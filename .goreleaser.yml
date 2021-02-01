@@ -1,0 +1,46 @@
+before:
+  hooks:
+    - go mod download
+builds:
+  - env:
+      - CGO_ENABLED=0
+    mod_timestamp: '{{ .CommitTimestamp }}'
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X coralogix/provider.providerVersion={{.Version}}
+    goos:
+      - darwin
+      - freebsd
+      - linux
+      - windows
+    goarch:
+      - '386'
+      - amd64
+      - arm
+      - arm64
+    ignore:
+      - goarch: '386'
+        goos: darwin
+    binary: '{{ .ProjectName }}_{{ .Version }}'
+archives:
+  - format: zip
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+checksum:
+  name_template: '{{ .ProjectName }}_{{ .Version }}_SHA256SUMS'
+  algorithm: sha256
+signs:
+  - artifacts: checksum
+    args:
+      - "--batch"
+      - "--local-user"
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+release:
+  #disable: true
+  draft: true
+changelog:
+  skip: true

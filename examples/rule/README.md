@@ -1,0 +1,1 @@
+# Coralogix Parsing Rule
