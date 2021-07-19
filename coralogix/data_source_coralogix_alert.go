@@ -31,6 +31,10 @@ func dataSourceCoralogixAlert() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"description": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"filter": {
 				Type:     schema.TypeSet,
 				Computed: true,
@@ -121,6 +125,7 @@ func dataSourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("severity", alert["severity"].(string))
 	d.Set("enabled", alert["is_active"].(bool))
 	d.Set("type", alert["log_filter"].(map[string]interface{})["filter_type"].(string))
+	d.Set("description", alert["description"].(string))
 	d.Set("filter", []interface{}{flattenAlertFilter(alert)})
 	d.Set("condition", []interface{}{flattenAlertCondition(alert)})
 	d.Set("notifications", []interface{}{flattenAlertNotifications(alert)})
