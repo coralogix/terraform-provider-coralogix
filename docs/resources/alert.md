@@ -42,6 +42,7 @@ resource "coralogix_alert" "example" {
 * `severity` - (Required) Alert severity, one of the following: `info`, `warning`, `critical`.
 * `enabled` - (Required) Alert state.
 * `filter` - (Required) A `filter` block as documented below.
+* `description` - (Optional) Alert description.
 * `condition` - (Optional) A `condition` block as documented below.
 * `notifications` - (Optional) A `notifications` block as documented below.
 

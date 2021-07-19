@@ -22,6 +22,7 @@ data "coralogix_alert" "alert" {
 ## Attribute Reference
 
 * `name` - Alert name.
+* `description` - Alert description.
 * `severity` - Alert severity.
 * `enabled` - Alert state.
 * `type` - Alert type.

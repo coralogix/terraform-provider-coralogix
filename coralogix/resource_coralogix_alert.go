@@ -43,9 +43,15 @@ func resourceCoralogixAlert() *schema.Resource {
 					"ratio",
 				}, false),
 			},
+			"description": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+			},
 			"filter": {
 				Type:     schema.TypeSet,
 				Required: true,
+				ForceNew: true,
 				MinItems: 1,
 				MaxItems: 1,
 				Elem: &schema.Resource{
@@ -87,7 +93,7 @@ func resourceCoralogixAlert() *schema.Resource {
 			"condition": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				Default:  nil,
+				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -147,11 +153,13 @@ func resourceCoralogixAlert() *schema.Resource {
 						"emails": {
 							Type:     schema.TypeList,
 							Optional: true,
+							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"integrations": {
 							Type:     schema.TypeList,
 							Optional: true,
+							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 					},
@@ -164,10 +172,21 @@ func resourceCoralogixAlert() *schema.Resource {
 func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) error {
 	apiClient := meta.(*Client)
 
+	condition := getFirstOrNil(d.Get("condition").(*schema.Set).List())
+	if condition == nil {
+		condition = map[string]interface{}{
+			"condition_type": "",
+			"threshold":      0,
+			"timeframe":      "",
+			"group_by":       "",
+		}
+	}
+
 	alert, err := apiClient.Post("/external/alerts", map[string]interface{}{
-		"name":      d.Get("name").(string),
-		"severity":  d.Get("severity").(string),
-		"is_active": d.Get("enabled").(bool),
+		"name":        d.Get("name").(string),
+		"severity":    d.Get("severity").(string),
+		"is_active":   d.Get("enabled").(bool),
+		"description": d.Get("description").(string),
 		"log_filter": map[string]interface{}{
 			"filter_type":      d.Get("type").(string),
 			"text":             d.Get("filter").(*schema.Set).List()[0].(map[string]interface{})["text"].(string),
@@ -175,7 +194,7 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 			"application_name": d.Get("filter").(*schema.Set).List()[0].(map[string]interface{})["applications"].(*schema.Set).List(),
 			"subsystem_name":   d.Get("filter").(*schema.Set).List()[0].(map[string]interface{})["subsystems"].(*schema.Set).List(),
 		},
-		"condition":     getFirstOrNil(d.Get("condition").(*schema.Set).List()),
+		"condition":     condition,
 		"notifications": getFirstOrNil(d.Get("notifications").(*schema.Set).List()),
 	})
 	if err != nil {
@@ -202,6 +221,7 @@ func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error 
 
 	d.Set("name", alert["name"].(string))
 	d.Set("severity", alert["severity"].(string))
+	d.Set("description", alert["description"].(string))
 	d.Set("enabled", alert["is_active"].(bool))
 	d.Set("type", alert["log_filter"].(map[string]interface{})["filter_type"].(string))
 	d.Set("filter", []interface{}{flattenAlertFilter(alert)})
@@ -216,21 +236,13 @@ func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error 
 func resourceCoralogixAlertUpdate(d *schema.ResourceData, meta interface{}) error {
 	apiClient := meta.(*Client)
 
-	if d.HasChanges("name", "severity", "enabled", "type", "filter", "condition", "notifications") {
+	if d.HasChanges("name", "severity", "enabled", "type", "description") {
 		alert, err := apiClient.Put("/external/alerts", map[string]interface{}{
-			"id":        d.Id(),
-			"name":      d.Get("name").(string),
-			"severity":  d.Get("severity").(string),
-			"is_active": d.Get("enabled").(bool),
-			"log_filter": map[string]interface{}{
-				"filter_type":      d.Get("type").(string),
-				"text":             d.Get("filter").(*schema.Set).List()[0].(map[string]interface{})["text"].(string),
-				"severity":         d.Get("filter").(*schema.Set).List()[0].(map[string]interface{})["severities"].(*schema.Set).List(),
-				"application_name": d.Get("filter").(*schema.Set).List()[0].(map[string]interface{})["applications"].(*schema.Set).List(),
-				"subsystem_name":   d.Get("filter").(*schema.Set).List()[0].(map[string]interface{})["subsystems"].(*schema.Set).List(),
-			},
-			"condition":     getFirstOrNil(d.Get("condition").(*schema.Set).List()),
-			"notifications": getFirstOrNil(d.Get("notifications").(*schema.Set).List()),
+			"id":          d.Id(),
+			"name":        d.Get("name").(string),
+			"description": d.Get("description").(string),
+			"severity":    d.Get("severity").(string),
+			"is_active":   d.Get("enabled").(bool),
 		})
 		if err != nil {
 			return err
