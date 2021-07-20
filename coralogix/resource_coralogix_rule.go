@@ -1,7 +1,9 @@
 package coralogix
 
 import (
+	"errors"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -14,7 +16,7 @@ func resourceCoralogixRule() *schema.Resource {
 		Update: resourceCoralogixRuleUpdate,
 		Delete: resourceCoralogixRuleDelete,
 		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
+			State: resourceCoralogixRuleImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -137,32 +139,32 @@ func resourceCoralogixRuleCreate(d *schema.ResourceData, meta interface{}) error
 	apiClient := meta.(*Client)
 
 	ruleParameters := map[string]interface{}{
-		"Name":        d.Get("name").(string),
-		"Type":        d.Get("type").(string),
-		"Description": d.Get("description").(string),
-		"Enabled":     d.Get("enabled").(bool),
-		"Rule":        d.Get("expression").(string),
-		"SourceField": d.Get("source_field").(string),
+		"name":        d.Get("name").(string),
+		"type":        d.Get("type").(string),
+		"description": d.Get("description").(string),
+		"enabled":     d.Get("enabled").(bool),
+		"rule":        d.Get("expression").(string),
+		"sourceField": d.Get("source_field").(string),
 	}
 
 	if d.Get("type").(string) == "replace" {
-		ruleParameters["ReplaceNewVal"] = d.Get("replace_value").(string)
+		ruleParameters["replaceNewVal"] = d.Get("replace_value").(string)
 	}
 
 	if d.Get("type").(string) == "jsonextract" || d.Get("type").(string) == "parse" || d.Get("type").(string) == "replace" {
-		ruleParameters["DestinationField"] = d.Get("destination_field").(string)
+		ruleParameters["destinationField"] = d.Get("destination_field").(string)
 	}
 
 	if d.Get("rule_matcher") != nil && len(d.Get("rule_matcher").(*schema.Set).List()) > 0 {
-		ruleParameters["RuleMatchers"] = flattenRuleMatchers(d.Get("rule_matcher").(*schema.Set).List())
+		ruleParameters["ruleMatchers"] = flattenRuleMatchers(d.Get("rule_matcher").(*schema.Set).List())
 	}
 
-	rule, err := apiClient.Post("/external/action/rule/"+d.Get("rules_group_id").(string), ruleParameters)
+	rule, err := apiClient.Post("/external/rule/"+d.Get("rules_group_id").(string), ruleParameters)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(rule["Id"].(string))
+	d.SetId(rule["id"].(string))
 
 	return resourceCoralogixRuleRead(d, meta)
 }
@@ -170,29 +172,29 @@ func resourceCoralogixRuleCreate(d *schema.ResourceData, meta interface{}) error
 func resourceCoralogixRuleRead(d *schema.ResourceData, meta interface{}) error {
 	apiClient := meta.(*Client)
 
-	rule, err := apiClient.Get("/external/action/" + d.Id() + "/rule/" + d.Get("rules_group_id").(string))
+	rule, err := apiClient.Get("/external/rule/" + d.Id() + "/group/" + d.Get("rules_group_id").(string))
 	if err != nil {
 		return err
 	}
 
-	d.Set("name", rule["Name"].(string))
-	d.Set("type", rule["Type"].(string))
-	d.Set("description", rule["Description"].(string))
-	d.Set("order", rule["Order"].(float64))
-	d.Set("enabled", rule["Enabled"].(bool))
-	d.Set("expression", rule["Rule"].(string))
-	d.Set("source_field", rule["SourceField"].(string))
+	d.Set("name", rule["name"].(string))
+	d.Set("type", rule["type"].(string))
+	d.Set("description", rule["description"].(string))
+	d.Set("order", rule["order"].(float64))
+	d.Set("enabled", rule["enabled"].(bool))
+	d.Set("expression", rule["rule"].(string))
+	d.Set("source_field", rule["sourceField"].(string))
 
 	if d.Get("type").(string) == "replace" {
-		d.Set("replace_value", rule["ReplaceNewVal"].(string))
+		d.Set("replace_value", rule["replaceNewVal"].(string))
 	}
 
 	if d.Get("type").(string) == "jsonextract" || d.Get("type").(string) == "parse" || d.Get("type").(string) == "replace" {
-		d.Set("destination_field", rule["DestinationField"].(string))
+		d.Set("destination_field", rule["destinationField"].(string))
 	}
 
-	if rule["RuleMatchers"] != nil {
-		d.Set("rule_matcher", flattenRuleMatchers(rule["RuleMatchers"].([]interface{})))
+	if rule["ruleMatchers"] != nil {
+		d.Set("rule_matcher", flattenRuleMatchers(rule["ruleMatchers"].([]interface{})))
 	} else {
 		d.Set("rule_matcher", nil)
 	}
@@ -205,27 +207,27 @@ func resourceCoralogixRuleUpdate(d *schema.ResourceData, meta interface{}) error
 
 	if d.HasChanges("name", "type", "description", "enabled", "rule_matcher", "expression", "source_field", "destination_field", "replace_value") {
 		ruleParameters := map[string]interface{}{
-			"Name":        d.Get("name").(string),
-			"Type":        d.Get("type").(string),
-			"Description": d.Get("description").(string),
-			"Enabled":     d.Get("enabled").(bool),
-			"Rule":        d.Get("expression").(string),
-			"SourceField": d.Get("source_field").(string),
+			"name":        d.Get("name").(string),
+			"type":        d.Get("type").(string),
+			"description": d.Get("description").(string),
+			"enabled":     d.Get("enabled").(bool),
+			"rule":        d.Get("expression").(string),
+			"sourceField": d.Get("source_field").(string),
 		}
 
 		if d.Get("type").(string) == "replace" {
-			ruleParameters["ReplaceNewVal"] = d.Get("replace_value").(string)
+			ruleParameters["replaceNewVal"] = d.Get("replace_value").(string)
 		}
 
 		if d.Get("type").(string) == "jsonextract" || d.Get("type").(string) == "parse" || d.Get("type").(string) == "replace" {
-			ruleParameters["DestinationField"] = d.Get("destination_field").(string)
+			ruleParameters["destinationField"] = d.Get("destination_field").(string)
 		}
 
 		if d.Get("rule_matcher") != nil && len(d.Get("rule_matcher").(*schema.Set).List()) > 0 {
-			ruleParameters["RuleMatchers"] = flattenRuleMatchers(d.Get("rule_matcher").(*schema.Set).List())
+			ruleParameters["ruleMatchers"] = flattenRuleMatchers(d.Get("rule_matcher").(*schema.Set).List())
 		}
 
-		_, err := apiClient.Put("/external/action/"+d.Id()+"/rule/"+d.Get("rules_group_id").(string), ruleParameters)
+		_, err := apiClient.Put("/external/rule/"+d.Id()+"/group/"+d.Get("rules_group_id").(string), ruleParameters)
 		if err != nil {
 			return err
 		}
@@ -237,10 +239,23 @@ func resourceCoralogixRuleUpdate(d *schema.ResourceData, meta interface{}) error
 func resourceCoralogixRuleDelete(d *schema.ResourceData, meta interface{}) error {
 	apiClient := meta.(*Client)
 
-	_, err := apiClient.Delete("/external/action/" + d.Id() + "/rule/" + d.Get("rules_group_id").(string))
+	_, err := apiClient.Delete("/external/rule/" + d.Id() + "/group/" + d.Get("rules_group_id").(string))
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func resourceCoralogixRuleImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	ids := strings.SplitN(d.Id(), "/", 2)
+
+	if len(ids) != 2 || ids[0] == "" || ids[1] == "" {
+		return nil, errors.New("Invalid rule ID")
+	}
+
+	d.Set("rules_group_id", ids[0])
+	d.SetId(ids[1])
+
+	return []*schema.ResourceData{d}, nil
 }

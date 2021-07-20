@@ -84,18 +84,18 @@ func dataSourceCoralogixRuleRead(d *schema.ResourceData, meta interface{}) error
 		return err
 	}
 
-	d.Set("name", rule["Name"].(string))
-	d.Set("type", rule["Type"].(string))
-	d.Set("description", rule["Description"].(string))
-	d.Set("order", rule["Order"].(float64))
-	d.Set("enabled", rule["Enabled"].(bool))
-	d.Set("rule_matcher", flattenRuleMatchers(rule["RuleMatchers"].([]interface{})))
-	d.Set("expression", rule["Rule"].(string))
-	d.Set("source_field", rule["SourceField"].(string))
-	d.Set("destination_field", rule["DestinationField"].(string))
-	d.Set("replace_value", rule["ReplaceNewVal"].(string))
+	d.Set("name", rule["name"].(string))
+	d.Set("type", rule["type"].(string))
+	d.Set("description", rule["description"].(string))
+	d.Set("order", rule["order"].(float64))
+	d.Set("enabled", rule["enabled"].(bool))
+	d.Set("rule_matcher", flattenRuleMatchers(rule["ruleMatchers"].([]interface{})))
+	d.Set("expression", rule["rule"].(string))
+	d.Set("source_field", rule["sourceField"].(string))
+	d.Set("destination_field", rule["destinationField"].(string))
+	d.Set("replace_value", rule["replaceNewVal"].(string))
 
-	d.SetId(rule["Id"].(string))
+	d.SetId(rule["id"].(string))
 
 	return nil
 }

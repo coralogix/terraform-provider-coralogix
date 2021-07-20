@@ -57,7 +57,7 @@ func (c *Client) Request(method string, path string, body interface{}) (map[stri
 
 			err = json.Unmarshal(responseBytes, &responseJSON)
 			if err != nil {
-				return nil, err
+				return nil, nil
 			}
 
 			return responseJSON.(map[string]interface{}), nil
@@ -65,7 +65,7 @@ func (c *Client) Request(method string, path string, body interface{}) (map[stri
 		return nil, nil
 	}
 
-	return nil, errors.New(string(responseBytes))
+	return nil, errors.New("API Error: " + string(responseBytes))
 }
 
 // Get executes GET request to Coralogix API

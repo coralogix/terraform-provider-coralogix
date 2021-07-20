@@ -21,6 +21,8 @@ resource "coralogix_rules_group" "rules_group" {
 
 * `name` - (Required) Rules Group name.
 * `enabled` - (Optional) Rules Group state.
+* `description` - (Optional) Rules Group description.
+* `creator` - (Optional) Rules Group creator.
 
 ## Attribute Reference
 
@@ -31,5 +33,5 @@ resource "coralogix_rules_group" "rules_group" {
 Rules Groups can be imported using their ID.
 
 ```
-$ terraform import coralogix_rules_group.rules_group e10ef9d1-36ab-11e8-af8f-02420a00070c
+$ terraform import coralogix_rules_group.rules_group <rules_group_id>
 ```

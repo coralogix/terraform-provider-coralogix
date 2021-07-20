@@ -11,7 +11,7 @@ func getAlertByID(alertsList []interface{}, alertID string) (map[string]interfac
 			return alert, nil
 		}
 	}
-	return nil, errors.New("alert is not exists")
+	return nil, errors.New("Alert is not exists")
 }
 
 func flattenAlertFilter(alert interface{}) interface{} {
@@ -65,17 +65,17 @@ func flattenRules(rules []interface{}) []map[string]interface{} {
 	for _, rule := range rules {
 		rule := rule.(map[string]interface{})
 		l := map[string]interface{}{
-			"id":                rule["Id"].(string),
-			"name":              rule["Name"].(string),
-			"type":              rule["Type"].(string),
-			"description":       rule["Description"].(string),
-			"order":             rule["Order"].(float64),
-			"enabled":           rule["Enabled"].(bool),
-			"rule_matcher":      flattenRuleMatchers(rule["RuleMatchers"].([]interface{})),
-			"expression":        rule["Rule"].(string),
-			"source_field":      rule["SourceField"].(string),
-			"destination_field": rule["DestinationField"].(string),
-			"replace_value":     rule["ReplaceNewVal"].(string),
+			"id":                rule["id"].(string),
+			"name":              rule["name"].(string),
+			"type":              rule["type"].(string),
+			"description":       rule["description"].(string),
+			"order":             rule["order"].(float64),
+			"enabled":           rule["enabled"].(bool),
+			"rule_matcher":      flattenRuleMatchers(rule["ruleMatchers"].([]interface{})),
+			"expression":        rule["rule"].(string),
+			"source_field":      rule["sourceField"].(string),
+			"destination_field": rule["destinationField"].(string),
+			"replace_value":     rule["replaceNewVal"].(string),
 		}
 		result = append(result, l)
 	}

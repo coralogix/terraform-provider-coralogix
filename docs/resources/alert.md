@@ -72,5 +72,5 @@ Each `notifications` block should contains the following:
 Alerts can be imported using their ID.
 
 ```
-$ terraform import coralogix_alert.alert bd4fdd3c-36dd-4bce-8bf1-ba447af94449
+$ terraform import coralogix_alert.alert <alert_id>
 ```

@@ -21,14 +21,47 @@ func resourceCoralogixRulesGroup() *schema.Resource {
 				Required:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
 			},
-			"order": {
-				Type:     schema.TypeInt,
-				Computed: true,
+			"description": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
 			},
 			"enabled": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true,
+			},
+			"creator": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "Coralogix Terraform Provider",
+			},
+			"order": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+			"rule_matcher": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"field": {
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								"severity",
+								"applicationName",
+								"subsystemName",
+							}, false),
+						},
+						"constraint": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ValidateFunc: validation.StringIsNotEmpty,
+						},
+					},
+				},
+				Set: schema.HashString,
 			},
 		},
 	}
@@ -37,25 +70,23 @@ func resourceCoralogixRulesGroup() *schema.Resource {
 func resourceCoralogixRulesGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	apiClient := meta.(*Client)
 
-	ruleGroup, err := apiClient.Post("/external/actions/rule", map[string]interface{}{
-		"Name": d.Get("name").(string),
-	})
+	rulesGroupParameters := map[string]interface{}{
+		"name":        d.Get("name").(string),
+		"description": d.Get("description").(string),
+		"enabled":     d.Get("enabled").(bool),
+		"creator":     d.Get("creator").(string),
+	}
+
+	if d.Get("rule_matcher") != nil && len(d.Get("rule_matcher").(*schema.Set).List()) > 0 {
+		rulesGroupParameters["ruleMatchers"] = flattenRuleMatchers(d.Get("rule_matcher").(*schema.Set).List())
+	}
+
+	ruleGroup, err := apiClient.Post("/external/group", rulesGroupParameters)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(ruleGroup["Id"].(string))
-
-	if !d.Get("enabled").(bool) {
-		_, err = apiClient.Put("/external/actions/rule/"+d.Id(), map[string]interface{}{
-			"Name":    d.Get("name").(string),
-			"Order":   ruleGroup["Order"].(float64),
-			"Enabled": d.Get("enabled").(bool),
-		})
-		if err != nil {
-			return err
-		}
-	}
+	d.SetId(ruleGroup["id"].(string))
 
 	return resourceCoralogixRulesGroupRead(d, meta)
 }
@@ -63,14 +94,22 @@ func resourceCoralogixRulesGroupCreate(d *schema.ResourceData, meta interface{})
 func resourceCoralogixRulesGroupRead(d *schema.ResourceData, meta interface{}) error {
 	apiClient := meta.(*Client)
 
-	ruleGroup, err := apiClient.Get("/external/actions/rule/" + d.Id())
+	ruleGroup, err := apiClient.Get("/external/group/" + d.Id())
 	if err != nil {
 		return err
 	}
 
-	d.Set("name", ruleGroup["Name"].(string))
-	d.Set("order", ruleGroup["Order"].(float64))
-	d.Set("enabled", ruleGroup["Enabled"].(bool))
+	d.Set("name", ruleGroup["name"].(string))
+	d.Set("description", ruleGroup["description"].(string))
+	d.Set("enabled", ruleGroup["enabled"].(bool))
+	d.Set("creator", ruleGroup["creator"].(string))
+	d.Set("order", ruleGroup["order"].(float64))
+
+	if ruleGroup["ruleMatchers"] != nil {
+		d.Set("rule_matcher", flattenRuleMatchers(ruleGroup["ruleMatchers"].([]interface{})))
+	} else {
+		d.Set("rule_matcher", nil)
+	}
 
 	return nil
 }
@@ -78,12 +117,19 @@ func resourceCoralogixRulesGroupRead(d *schema.ResourceData, meta interface{}) e
 func resourceCoralogixRulesGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	apiClient := meta.(*Client)
 
-	if d.HasChanges("name", "enabled") {
-		_, err := apiClient.Put("/external/actions/rule/"+d.Id(), map[string]interface{}{
-			"Name":    d.Get("name").(string),
-			"Order":   d.Get("order").(int),
-			"Enabled": d.Get("enabled").(bool),
-		})
+	if d.HasChanges("name", "enabled", "description", "creator", "rule_matcher") {
+		rulesGroupParameters := map[string]interface{}{
+			"name":        d.Get("name").(string),
+			"description": d.Get("description").(string),
+			"enabled":     d.Get("enabled").(bool),
+			"creator":     d.Get("creator").(string),
+		}
+
+		if d.Get("rule_matcher") != nil && len(d.Get("rule_matcher").(*schema.Set).List()) > 0 {
+			rulesGroupParameters["ruleMatchers"] = flattenRuleMatchers(d.Get("rule_matcher").(*schema.Set).List())
+		}
+
+		_, err := apiClient.Put("/external/group/"+d.Id(), rulesGroupParameters)
 		if err != nil {
 			return err
 		}
@@ -95,7 +141,7 @@ func resourceCoralogixRulesGroupUpdate(d *schema.ResourceData, meta interface{})
 func resourceCoralogixRulesGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	apiClient := meta.(*Client)
 
-	_, err := apiClient.Delete("/external/actions/rule/" + d.Id())
+	_, err := apiClient.Delete("/external/group/" + d.Id())
 	if err != nil {
 		return err
 	}

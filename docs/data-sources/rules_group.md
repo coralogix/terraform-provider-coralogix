@@ -24,4 +24,6 @@ data "coralogix_rules_group" "rules_group" {
 * `name` - Rules Group name.
 * `order` - Rules Group order number.
 * `enabled` - Rules Group state.
+* `description` - Rules Group description.
+* `creator` - Rules Group creator.
 * `rules` - Rules Group rules list. 

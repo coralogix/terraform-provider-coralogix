@@ -19,12 +19,20 @@ func dataSourceCoralogixRulesGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-			"order": {
-				Type:     schema.TypeInt,
+			"description": {
+				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"enabled": {
 				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"creator": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"order": {
+				Type:     schema.TypeInt,
 				Computed: true,
 			},
 			"rules": {
@@ -98,15 +106,17 @@ func dataSourceCoralogixRulesGroup() *schema.Resource {
 func dataSourceCoralogixRulesGroupRead(d *schema.ResourceData, meta interface{}) error {
 	apiClient := meta.(*Client)
 
-	ruleGroup, err := apiClient.Get("/external/actions/rule/" + d.Get("rules_group_id").(string))
+	ruleGroup, err := apiClient.Get("/external/group/" + d.Get("rules_group_id").(string))
 	if err != nil {
 		return err
 	}
 
-	d.Set("name", ruleGroup["Name"].(string))
-	d.Set("order", ruleGroup["Order"].(float64))
-	d.Set("enabled", ruleGroup["Enabled"].(bool))
-	d.Set("rules", flattenRules(ruleGroup["Rules"].([]interface{})))
+	d.Set("name", ruleGroup["name"].(string))
+	d.Set("description", ruleGroup["description"].(string))
+	d.Set("enabled", ruleGroup["enabled"].(bool))
+	d.Set("creator", ruleGroup["creator"].(string))
+	d.Set("order", ruleGroup["order"].(float64))
+	d.Set("rules", flattenRules(ruleGroup["rulesGroups"].([]interface{})))
 
 	d.SetId(ruleGroup["Id"].(string))
 

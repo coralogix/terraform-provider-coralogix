@@ -51,8 +51,8 @@ Each `rule_matcher` block should contains the following:
 
 ## Import
 
-Rules can be imported using their ID.
+Rules can be imported using their ID and rules group ID.
 
 ```
-$ terraform import coralogix_rule.rule e1a31d75-36ab-11e8-af8f-02420a00070c
+$ terraform import coralogix_rule.rule <rules_group_id>/<rule_id>
 ```
