@@ -44,6 +44,8 @@ resource "coralogix_alert" "example" {
 * `filter` - (Required) A `filter` block as documented below.
 * `description` - (Optional) Alert description.
 * `condition` - (Optional) A `condition` block as documented below.
+* `schedule` - (Optional) A `schedule` block as documented below.
+* `content` - (Optional) An array that contains log fields to be included with the alert notification.
 * `notifications` - (Optional) A `notifications` block as documented below.
 
 ---
@@ -61,6 +63,12 @@ Each `condition` block should contains the following:
 * `threshold` - (Required) Number of log occurrences that is needed to trigger the alert.
 * `timeframe` - (Required) The bounded time frame for the threshold to be occurred within, to trigger the alert.
 * `group_by` - (Optional) The field to **group by** on.
+
+Each `schedule` block should contains the following:
+
+* `days` - (Required) Days when alert triggering is allowed, one of the following: `Mo`, `Tu`, `We`, `Th`, `Fr`, `Sa`, `Su`.
+* `start` - (Required) Time from which alert triggering is allowed, for example `00:00:00`.
+* `end` - (Required) Time till which alert triggering is allowed, for example `23:59:59`.
 
 Each `notifications` block should contains the following:
 

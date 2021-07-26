@@ -86,6 +86,32 @@ func dataSourceCoralogixAlert() *schema.Resource {
 					},
 				},
 			},
+			"schedule": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"days": {
+							Type:     schema.TypeSet,
+							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"start": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"end": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
+			"content": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 			"notifications": {
 				Type:     schema.TypeSet,
 				Computed: true,
@@ -125,10 +151,23 @@ func dataSourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("severity", alert["severity"].(string))
 	d.Set("enabled", alert["is_active"].(bool))
 	d.Set("type", alert["log_filter"].(map[string]interface{})["filter_type"].(string))
-	d.Set("description", alert["description"].(string))
 	d.Set("filter", []interface{}{flattenAlertFilter(alert)})
 	d.Set("condition", []interface{}{flattenAlertCondition(alert)})
 	d.Set("notifications", []interface{}{flattenAlertNotifications(alert)})
+
+	if alert["description"] != nil {
+		d.Set("description", alert["description"].(string))
+	} else {
+		d.Set("description", "")
+	}
+
+	if alert["notif_payload_filter"] != nil && len(alert["notif_payload_filter"].([]interface{})) > 0 {
+		d.Set("content", alert["notif_payload_filter"])
+	}
+
+	if alert["active_when"] != nil && len(alert["active_when"].(map[string]interface{})["timeframes"].([]interface{})) > 0 {
+		d.Set("schedule", []interface{}{flattenAlertSchedule(alert)})
+	}
 
 	d.SetId(alert["id"].(string))
 

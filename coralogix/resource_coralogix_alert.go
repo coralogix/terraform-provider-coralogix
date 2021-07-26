@@ -100,6 +100,7 @@ func resourceCoralogixAlert() *schema.Resource {
 						"condition_type": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 							ValidateFunc: validation.StringInSlice([]string{
 								"less_than",
 								"more_than",
@@ -110,11 +111,13 @@ func resourceCoralogixAlert() *schema.Resource {
 						"threshold": {
 							Type:         schema.TypeInt,
 							Required:     true,
+							ForceNew:     true,
 							ValidateFunc: validation.IntAtLeast(0),
 						},
 						"timeframe": {
 							Type:     schema.TypeString,
 							Required: true,
+							ForceNew: true,
 							ValidateFunc: validation.StringInSlice([]string{
 								"5MIN",
 								"10MIN",
@@ -137,9 +140,62 @@ func resourceCoralogixAlert() *schema.Resource {
 						"group_by": {
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 							Default:  "",
 						},
 					},
+				},
+			},
+			"schedule": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"days": {
+							Type:     schema.TypeList,
+							Required: true,
+							ForceNew: true,
+							MinItems: 1,
+							MaxItems: 7,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+								ValidateFunc: validation.StringInSlice([]string{
+									"Mo",
+									"Tu",
+									"We",
+									"Th",
+									"Fr",
+									"Sa",
+									"Su",
+								}, false),
+							},
+						},
+						"start": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ForceNew:     true,
+							ValidateFunc: validation.StringIsNotEmpty,
+						},
+						"end": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ForceNew:     true,
+							ValidateFunc: validation.StringIsNotEmpty,
+						},
+					},
+				},
+			},
+			"content": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Default:  nil,
+				ForceNew: true,
+				MinItems: 1,
+				Elem: &schema.Schema{
+					Type:         schema.TypeString,
+					ValidateFunc: validation.StringIsNotEmpty,
 				},
 			},
 			"notifications": {
@@ -182,7 +238,7 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 
-	alert, err := apiClient.Post("/external/alerts", map[string]interface{}{
+	alertParameters := map[string]interface{}{
 		"name":        d.Get("name").(string),
 		"severity":    d.Get("severity").(string),
 		"is_active":   d.Get("enabled").(bool),
@@ -196,7 +252,26 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		},
 		"condition":     condition,
 		"notifications": getFirstOrNil(d.Get("notifications").(*schema.Set).List()),
-	})
+	}
+
+	schedule := getFirstOrNil(d.Get("schedule").(*schema.Set).List())
+	if schedule != nil {
+		alertParameters["active_when"] = map[string]interface{}{
+			"timeframes": []interface{}{
+				map[string]interface{}{
+					"days_of_week":    transformWeekList(d.Get("schedule").(*schema.Set).List()[0].(map[string]interface{})["days"].([]interface{})),
+					"activity_starts": d.Get("schedule").(*schema.Set).List()[0].(map[string]interface{})["start"].(string),
+					"activity_ends":   d.Get("schedule").(*schema.Set).List()[0].(map[string]interface{})["end"].(string),
+				},
+			},
+		}
+	}
+
+	if d.Get("content") != nil {
+		alertParameters["notif_payload_filter"] = d.Get("content").([]interface{})
+	}
+
+	alert, err := apiClient.Post("/external/alerts", alertParameters)
 	if err != nil {
 		return err
 	}
@@ -221,12 +296,25 @@ func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error 
 
 	d.Set("name", alert["name"].(string))
 	d.Set("severity", alert["severity"].(string))
-	d.Set("description", alert["description"].(string))
 	d.Set("enabled", alert["is_active"].(bool))
 	d.Set("type", alert["log_filter"].(map[string]interface{})["filter_type"].(string))
 	d.Set("filter", []interface{}{flattenAlertFilter(alert)})
 	d.Set("condition", []interface{}{flattenAlertCondition(alert)})
 	d.Set("notifications", []interface{}{flattenAlertNotifications(alert)})
+
+	if alert["description"] != nil {
+		d.Set("description", alert["description"].(string))
+	} else {
+		d.Set("description", "")
+	}
+
+	if alert["notif_payload_filter"] != nil && len(alert["notif_payload_filter"].([]interface{})) > 0 {
+		d.Set("content", alert["notif_payload_filter"])
+	}
+
+	if alert["active_when"] != nil && len(alert["active_when"].(map[string]interface{})["timeframes"].([]interface{})) > 0 {
+		d.Set("schedule", []interface{}{flattenAlertSchedule(alert)})
+	}
 
 	d.SetId(alert["id"].(string))
 
