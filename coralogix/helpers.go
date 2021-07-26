@@ -60,6 +60,15 @@ func flattenAlertNotifications(alert interface{}) interface{} {
 	return "disabled"
 }
 
+func flattenAlertSchedule(alert interface{}) interface{} {
+	alertSchedule := alert.(map[string]interface{})["active_when"].(map[string]interface{})["timeframes"].([]interface{})[0].(map[string]interface{})
+	return map[string]interface{}{
+		"days":  transformWeekListReverse(alertSchedule["days_of_week"].([]interface{})),
+		"start": alertSchedule["activity_starts"],
+		"end":   alertSchedule["activity_ends"],
+	}
+}
+
 func flattenRules(rules []interface{}) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(rules))
 	for _, rule := range rules {
@@ -96,6 +105,24 @@ func flattenRuleMatchers(ruleMatchers []interface{}) []map[string]interface{} {
 		return result
 	}
 	return nil
+}
+
+func transformWeekList(days []interface{}) []int {
+	week := make([]int, 0, len(days))
+	week_days := map[string]int{"Mo": 0, "Tu": 1, "We": 2, "Th": 3, "Fr": 4, "Sa": 5, "Su": 6}
+	for _, day := range days {
+		week = append(week, week_days[day.(string)])
+	}
+	return week
+}
+
+func transformWeekListReverse(days []interface{}) []string {
+	week := make([]string, 0, len(days))
+	week_days := map[float64]string{0: "Mo", 1: "Tu", 2: "We", 3: "Th", 4: "Fr", 5: "Sa", 6: "Su"}
+	for _, day := range days {
+		week = append(week, week_days[day.(float64)])
+	}
+	return week
 }
 
 func getFirstOrNil(list []interface{}) interface{} {

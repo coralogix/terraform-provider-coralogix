@@ -61,7 +61,6 @@ func resourceCoralogixRulesGroup() *schema.Resource {
 						},
 					},
 				},
-				Set: schema.HashString,
 			},
 		},
 	}

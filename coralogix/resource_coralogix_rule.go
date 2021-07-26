@@ -82,7 +82,6 @@ func resourceCoralogixRule() *schema.Resource {
 						},
 					},
 				},
-				Set: schema.HashString,
 			},
 			"expression": {
 				Type:         schema.TypeString,

@@ -28,4 +28,6 @@ data "coralogix_alert" "alert" {
 * `type` - Alert type.
 * `filter` - Alert filter.
 * `condition` - Alert condition.
+* `content` - List of fields attached to alert notification.
+* `schedule` - Configuration of period when alert triggering will be allowed.
 * `notifications` - Alert notifications.
