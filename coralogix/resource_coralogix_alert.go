@@ -41,6 +41,9 @@ func resourceCoralogixAlert() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					"text",
 					"ratio",
+					"unique_count",
+					"relative_time",
+					"metric",
 				}, false),
 			},
 			"description": {
@@ -86,6 +89,68 @@ func resourceCoralogixAlert() *schema.Resource {
 									"critical",
 								}, false),
 							},
+						},
+					},
+				},
+			},
+			"metric": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"field": {
+							Type:         schema.TypeString,
+							Required:     true,
+							ForceNew:     true,
+							ValidateFunc: validation.StringIsNotEmpty,
+						},
+						"source": {
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								"logs2metrics",
+								"Prometheus",
+							}, false),
+						},
+						"arithmetic_operator": {
+							Type:         schema.TypeInt,
+							Required:     true,
+							ForceNew:     true,
+							ValidateFunc: validation.IntBetween(0, 5),
+						},
+						"arithmetic_operator_modifier": {
+							Type:         schema.TypeInt,
+							Optional:     true,
+							ForceNew:     true,
+							Default:      0,
+							ValidateFunc: validation.IntAtLeast(0),
+						},
+						"sample_threshold_percentage": {
+							Type:     schema.TypeInt,
+							Required: true,
+							ForceNew: true,
+							ValidateFunc: validation.All(
+								validation.IntBetween(0, 90),
+								validation.IntDivisibleBy(10),
+							),
+						},
+						"non_null_percentage": {
+							Type:     schema.TypeInt,
+							Required: true,
+							ForceNew: true,
+							ValidateFunc: validation.All(
+								validation.IntBetween(0, 100),
+								validation.IntDivisibleBy(10),
+							),
+						},
+						"swap_null_values": {
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+							Default:  false,
 						},
 					},
 				},
@@ -138,6 +203,12 @@ func resourceCoralogixAlert() *schema.Resource {
 							}, false),
 						},
 						"group_by": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  "",
+						},
+						"unique_count_key": {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
@@ -231,11 +302,25 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 	condition := getFirstOrNil(d.Get("condition").(*schema.Set).List())
 	if condition == nil {
 		condition = map[string]interface{}{
-			"condition_type": "",
-			"threshold":      0,
-			"timeframe":      "",
-			"group_by":       "",
+			"condition_type":   "",
+			"threshold":        0,
+			"timeframe":        "",
+			"group_by":         "",
+			"unique_count_key": "",
 		}
+	}
+
+	metric := getFirstOrNil(d.Get("metric").(*schema.Set).List())
+	if d.Get("type").(string) == "metric" && metric != nil {
+		metric := metric.(map[string]interface{})
+		condition := condition.(map[string]interface{})
+		condition["metric_field"] = metric["field"]
+		condition["metric_source"] = metric["source"]
+		condition["arithmetic_operator"] = metric["arithmetic_operator"]
+		condition["arithmetic_operator_modifier"] = metric["arithmetic_operator_modifier"]
+		condition["sample_threshold_percentage"] = metric["sample_threshold_percentage"]
+		condition["non_null_percentage"] = metric["non_null_percentage"]
+		condition["swap_null_values"] = metric["swap_null_values"]
 	}
 
 	alertParameters := map[string]interface{}{
@@ -299,6 +384,7 @@ func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("enabled", alert["is_active"].(bool))
 	d.Set("type", alert["log_filter"].(map[string]interface{})["filter_type"].(string))
 	d.Set("filter", []interface{}{flattenAlertFilter(alert)})
+	d.Set("metric", []interface{}{flattenAlertMetric(alert)})
 	d.Set("condition", []interface{}{flattenAlertCondition(alert)})
 	d.Set("notifications", []interface{}{flattenAlertNotifications(alert)})
 
