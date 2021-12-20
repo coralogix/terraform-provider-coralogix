@@ -38,11 +38,12 @@ resource "coralogix_alert" "example" {
 ## Argument Reference
 
 * `name` - (Required) Alert name.
-* `type` - (Required) Alert type, one of the following: `text`, `ratio`.
+* `type` - (Required) Alert type, one of the following: `text`, `ratio`, `unique_count`, `relative_time`, `metric`. For `new_value` alerts the value should be `text`.
 * `severity` - (Required) Alert severity, one of the following: `info`, `warning`, `critical`.
 * `enabled` - (Required) Alert state.
 * `filter` - (Required) A `filter` block as documented below.
 * `description` - (Optional) Alert description.
+* `metric` - (Optional) A `metric` block as documented below.
 * `condition` - (Optional) A `condition` block as documented below.
 * `schedule` - (Optional) A `schedule` block as documented below.
 * `content` - (Optional) An array that contains log fields to be included with the alert notification.
@@ -56,6 +57,16 @@ Each `filter` block should contains the following:
 * `applications` - (Optional) List of application names to be alerted on.
 * `subsystems` - (Optional) List of subsystem names to be alerted on.
 * `severities` - (Optional) List of log severities to be alerted on, one of the following: `debug`, `verbose`, `info`, `warning`, `error`, `critical`.
+
+Each `metric` block should contains the following:
+
+* `field` - (Required) The name of the metric field to alert on.
+* `source` - (Required) The source of the metric. Either `logs2metrics` or `Prometheus`.
+* `arithmetic_operator` - (Required) `0` - avg, `1` - min, `2` - max, `3` - sum, `4` - count, `5` - percentile (for percentile you need to supply the requested percentile in arithmetic_operator_modifier).
+* `arithmetic_operator_modifier` - (Optional) For `percentile(5)` `arithmetic_operator` you need to supply the value in this property.
+* `sample_threshold_percentage` - (Required) The metric value must cross the threshold within this percentage of the timeframe (sum and count arithmetic operators do not use this parameter since they aggregate over the entire requested timeframe), `increments of 10`, `0 <= value <= 90`.
+* `non_null_percentage` - (Required) The minimum percentage of the timeframe that should have values for this alert to trigger, `increments of 10`, `0 <= value <= 100`.
+* `swap_null_values` - (Optional) If set to `true`, missing data will be considered as 0, otherwise, it will not be considered at all.
 
 Each `condition` block should contains the following:
 

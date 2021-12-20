@@ -24,6 +24,22 @@ func flattenAlertFilter(alert interface{}) interface{} {
 	}
 }
 
+func flattenAlertMetric(alert interface{}) interface{} {
+	if alert.(map[string]interface{})["log_filter"].(map[string]interface{})["filter_type"].(string) == "metric" {
+		alertCondition := alert.(map[string]interface{})["condition"].(map[string]interface{})
+		return map[string]interface{}{
+			"field":                        alertCondition["text"].(string),
+			"source":                       alertCondition["application_name"].(string),
+			"arithmetic_operator":          alertCondition["arithmetic_operator"].(float64),
+			"arithmetic_operator_modifier": alertCondition["arithmetic_operator_modifier"].(float64),
+			"sample_threshold_percentage":  alertCondition["sample_threshold_percentage"].(float64),
+			"non_null_percentage":          alertCondition["non_null_percentage"].(float64),
+			"swap_null_values":             alertCondition["swap_null_values"].(bool),
+		}
+	}
+	return nil
+}
+
 func flattenAlertCondition(alert interface{}) interface{} {
 	alertCondition := alert.(map[string]interface{})["condition"]
 	if alertCondition != nil {
