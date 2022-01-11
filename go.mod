@@ -1,6 +1,6 @@
 module github.com/coralogix/terraform-provider-coralogix
 
-go 1.15
+go 1.17
 
 require (
 	github.com/agext/levenshtein v1.2.3 // indirect
@@ -30,4 +30,20 @@ require (
 	google.golang.org/grpc v1.35.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+)
+
+require (
+	github.com/apparentlymart/go-textseg/v12 v12.0.0 // indirect
+	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320 // indirect
+	github.com/hashicorp/go-hclog v0.15.0 // indirect
+	github.com/hashicorp/go-plugin v1.4.0 // indirect
+	github.com/hashicorp/go-version v1.2.1 // indirect
+	github.com/hashicorp/terraform-plugin-go v0.2.1 // indirect
+	github.com/kr/pretty v0.2.1 // indirect
+	github.com/mattn/go-colorable v0.1.8 // indirect
+	github.com/mattn/go-isatty v0.0.12 // indirect
+	github.com/mitchellh/copystructure v1.0.0 // indirect
+	github.com/mitchellh/reflectwalk v1.0.1 // indirect
+	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
+	google.golang.org/protobuf v1.25.1-0.20200805231151-a709e31e5d12 // indirect
 )
