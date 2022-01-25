@@ -361,7 +361,7 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	d.SetId(alert["alert_id"].([]interface{})[0].(string))
+	d.SetId(alert["unique_identifier"].([]interface{})[0].(string))
 
 	return resourceCoralogixAlertRead(d, meta)
 }
@@ -402,7 +402,7 @@ func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error 
 		d.Set("schedule", []interface{}{flattenAlertSchedule(alert)})
 	}
 
-	d.SetId(alert["id"].(string))
+	d.SetId(alert["unique_identifier"].(string))
 
 	return nil
 }
@@ -421,7 +421,7 @@ func resourceCoralogixAlertUpdate(d *schema.ResourceData, meta interface{}) erro
 		if err != nil {
 			return err
 		}
-		d.SetId(alert["alert_id"].(string))
+		d.SetId(alert["unique_identifier"].(string))
 	}
 
 	return resourceCoralogixAlertRead(d, meta)

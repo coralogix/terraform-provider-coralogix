@@ -169,7 +169,7 @@ func dataSourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("schedule", []interface{}{flattenAlertSchedule(alert)})
 	}
 
-	d.SetId(alert["id"].(string))
+	d.SetId(alert["unique_identifier"].(string))
 
 	return nil
 }
