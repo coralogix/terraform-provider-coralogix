@@ -10,9 +10,15 @@ Provides the Coralogix Rule resource. This allows Rule to be created, updated, a
 ## Example Usage
 
 ```hcl
+# Create "My Group" Rules Group
+resource "coralogix_rules_group" "rules_group" {
+    name    = "My Group"
+    enabled = true
+}
+
 # Create "My Rule" Rule
 resource "coralogix_rule" "example" {
-    rules_group_id = "e10ef9d1-36ab-11e8-af8f-02420a00070c"
+    rules_group_id = coralogix_rules_group.rules_group.id
     name           = "My Rule"
     type           = "extract"
     description    = "My Rule created with Terraform"
