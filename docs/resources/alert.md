@@ -23,9 +23,9 @@ resource "coralogix_alert" "example" {
         severities   = []
     }
     condition {
-        type      = "more_than"
-        threshold = 100
-        timeframe = "30MIN"
+        condition_type = "more_than"
+        threshold      = 100
+        timeframe      = "30MIN"
     }
     notifications {
         emails = [
