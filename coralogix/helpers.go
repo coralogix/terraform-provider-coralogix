@@ -7,7 +7,7 @@ import (
 func getAlertByID(alertsList []interface{}, alertID string) (map[string]interface{}, error) {
 	for _, alert := range alertsList {
 		alert := alert.(map[string]interface{})
-		if alert["id"].(string) == alertID {
+		if alert["unique_identifier"].(string) == alertID {
 			return alert, nil
 		}
 	}
