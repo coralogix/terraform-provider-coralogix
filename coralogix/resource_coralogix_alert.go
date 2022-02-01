@@ -412,11 +412,11 @@ func resourceCoralogixAlertUpdate(d *schema.ResourceData, meta interface{}) erro
 
 	if d.HasChanges("name", "severity", "enabled", "type", "description") {
 		alert, err := apiClient.Put("/external/alerts", map[string]interface{}{
-			"id":          d.Id(),
-			"name":        d.Get("name").(string),
-			"description": d.Get("description").(string),
-			"severity":    d.Get("severity").(string),
-			"is_active":   d.Get("enabled").(bool),
+			"unique_identifier": d.Id(),
+			"name":              d.Get("name").(string),
+			"description":       d.Get("description").(string),
+			"severity":          d.Get("severity").(string),
+			"is_active":         d.Get("enabled").(bool),
 		})
 		if err != nil {
 			return err
@@ -430,7 +430,7 @@ func resourceCoralogixAlertUpdate(d *schema.ResourceData, meta interface{}) erro
 func resourceCoralogixAlertDelete(d *schema.ResourceData, meta interface{}) error {
 	apiClient := meta.(*Client)
 
-	_, err := apiClient.Request("DELETE", "/external/alerts", map[string]interface{}{"id": d.Id()})
+	_, err := apiClient.Request("DELETE", "/external/alerts", map[string]interface{}{"unique_identifier": d.Id()})
 	if err != nil {
 		return err
 	}
