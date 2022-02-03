@@ -384,7 +384,7 @@ func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("enabled", alert["is_active"].(bool))
 	d.Set("type", alert["log_filter"].(map[string]interface{})["filter_type"].(string))
 	d.Set("filter", []interface{}{flattenAlertFilter(alert)})
-	d.Set("metric", []interface{}{flattenAlertMetric(alert)})
+	d.Set("metric", flattenAlertMetric(alert))
 	d.Set("condition", []interface{}{flattenAlertCondition(alert)})
 	d.Set("notifications", []interface{}{flattenAlertNotifications(alert)})
 
