@@ -8,15 +8,15 @@ page_title: "Coralogix: coralogix_alert"
 Use this data source to retrieve information about a Coralogix Alert.
 
 ## Example Usage
-Once an alert is created with TF you mau wish to refer to it.
-while the alert will have a UUID it's attributes may be caleld upon by name.
+Once an alert is created with TF you may wish to refer to it.
+while the alert will have a UUID it's attributes may be called upon by name.
 ```hcl
 data "coralogix_alert" "my_alert" {
     alert_id        = "3dd35de0-0e10-11eb-9d0f-a1073519a608"
 }
 ```
 
-Using a code exmple like this will output the id of suce an alert:
+Using a code example like this will output the id of suce an alert:
 ```hcl
 output "name" {
   value       = coralogix_alert.my_alert.alert_id
