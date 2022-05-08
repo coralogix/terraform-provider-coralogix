@@ -8,11 +8,20 @@ page_title: "Coralogix: coralogix_rule"
 Use this data source to retrieve information about a Coralogix Rule.
 
 ## Example Usage
-
+once a rule group is created it can be refered to in your config.
+This example describes the data structurre of the rule
 ```hcl
-data "coralogix_rule" "rule" {
+data "coralogix_rule" "my_rule" {
     rule_id        = "e1a31d75-36ab-11e8-af8f-02420a00070c"
     rules_group_id = "e10ef9d1-36ab-11e8-af8f-02420a00070c"
+}
+```
+
+Using a code exmple like this will output the id of suce a rule:
+```hcl
+output "name" {
+  value       = coralogix_rule.my_rule.rule_id
+  description = "Rule name."
 }
 ```
 

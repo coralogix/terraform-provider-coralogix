@@ -16,6 +16,7 @@ Use the navigation to the left to read about the available resources.
 Terraform 0.13 and later:
 
 ```hcl
+# Set provider and it's source
 terraform {
   required_providers {
     coralogix = {
@@ -28,7 +29,10 @@ terraform {
 # Configure the Coralogix Provider
 provider "coralogix" {
     api_key = ""
+    url = ""
+    timeout = 30
 }
+
 ```
 
 Terraform 0.12 and earlier:
