@@ -7,12 +7,88 @@ page_title: "Coralogix: coralogix_alert"
 
 Provides the Coralogix Alert resource. This allows Alert to be created, updated, and deleted.
 
+The specification of Coralogix API requires recreation of this resource everytime when you'll modify it.
+
 ## Example Usage
 
 ```hcl
-# Create "My Alert" Alert
-resource "coralogix_alert" "example" {
-    name     = "My Alert"
+# Create "Standard Alert" Alert
+resource "coralogix_alert" "standard_alert" {
+    name     = "Standard Alert"
+    severity = "critical"
+    enabled  = true
+    type     = "text"
+    filter {
+        text         = ".*ERROR.*"
+        applications = []
+        subsystems   = []
+        severities   = []
+    }
+    condition {
+        condition_type = "more_than"
+        threshold      = 10
+        timeframe      = "30MIN"
+    }
+    notifications {
+        emails = [
+            "user@example.com"
+        ]
+    }
+}
+
+# Create "Unique Count Alert" Alert
+resource "coralogix_alert" "unique_count_alert" {
+    name     = "Unique Count Alert"
+    severity = "info"
+    enabled  = true
+    type     = "unique_count"
+    filter {
+        text         = ".*INFO.*"
+        applications = []
+        subsystems   = []
+        severities   = []
+    }
+    condition {
+        condition_type = "more_than"
+        threshold      = 10
+        timeframe      = "1H"
+        group_by       = "severity"
+    }
+    notifications {
+        emails = [
+            "user@example.com"
+        ]
+    }
+}
+
+# Create "Time Relative Alert" Alert
+resource "coralogix_alert" "unique_count_alert" {
+    name     = "Time Relative Alert"
+    severity = "info"
+    enabled  = true
+    type     = "relative_time"
+    filter {
+        text         = ""
+        applications = []
+        subsystems   = []
+        severities   = []
+    }
+    condition {
+        condition_type = "more_than"
+        threshold      = 10
+        timeframe      = "1H"
+    }
+    notifications {
+        emails = [
+            "user@example.com"
+        ]
+    }
+}
+
+
+# Create "New Value Alert" Alert
+resource "coralogix_alert" "new_value_alert" {
+    name     = "New Value Alert"
     severity = "info"
     enabled  = true
     type     = "text"
@@ -23,9 +99,9 @@ resource "coralogix_alert" "example" {
         severities   = []
     }
     condition {
-        condition_type = "more_than"
-        threshold      = 100
-        timeframe      = "30MIN"
+        condition_type = "new_value"
+        timeframe      = "12H"
+        group_by       = "my_field"
     }
     notifications {
         emails = [

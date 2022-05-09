@@ -16,18 +16,65 @@ resource "coralogix_rules_group" "rules_group" {
     enabled = true
 }
 
-# Create "My Rule" Rule
-resource "coralogix_rule" "example" {
+# Create "Parse Rule" Rule
+resource "coralogix_rule" "parse_rule_example" {
     rules_group_id = coralogix_rules_group.rules_group.id
-    name           = "My Rule"
-    type           = "extract"
+    name           = "My Parse Rule"
+    type           = "parse"
     description    = "My Rule created with Terraform"
     expression     = "(?:^|[\\s\"'.:\\-\\[\\]\\(\\)\\{\\}])(?P<severity>DEBUG|TRACE|INFO|WARN|WARNING|ERROR|FATAL|EXCEPTION|[I|i]nfo|[W|w]arn|[E|e]rror|[E|e]xception)(?:$|[\\s\"'.:\\-\\[\\]\\(\\)\\{\\}])"
-    
-    rule_matcher {
-        field      = "text"
-        constraint = "(?:^|[\\s\"'.:\\-\\[\\]\\(\\)\\{\\}])(?P<severity>DEBUG|TRACE|INFO|WARN|WARNING|ERROR|FATAL|EXCEPTION|[I|i]nfo|[W|w]arn|[E|e]rror|[E|e]xception)(?:$|[\\s\"'.:\\-\\[\\]\\(\\)\\{\\}])"
-    }
+}
+
+# Create "Extract Rule" Rule
+resource "coralogix_rule" "extract_rule_example" {
+    rules_group_id = coralogix_rules_group.rules_group.id
+    name           = "My Extract Rule"
+    type           = "extract"
+    description    = "My Rule created with Terraform"
+    expression     = "message\"\\s*:\\s*\"(?P<bytes>\\d+)\\s*.*?status\\sis\\s(?P<status>[^\"]+)"
+}
+
+# Create "Extract JSON Rule" Rule
+resource "coralogix_rule" "extract_json_rule_example" {
+    rules_group_id    = coralogix_rules_group.rules_group.id
+    name              = "My Extract JSON Rule"
+    type              = "jsonextract"
+    description       = "My Rule created with Terraform"
+    source_field      = "worker"
+    destination_field = "category"
+}
+
+# Create "Replace Rule" Rule
+resource "coralogix_rule" "replace_rule_example" {
+    rules_group_id    = coralogix_rules_group.rules_group.id
+    name              = "My Replace Rule"
+    type              = "replace"
+    description       = "My Rule created with Terraform"
+    source_field      = "text"
+    destination_field = "text"
+    expression        = "(.\*user\"):"([^-]*)-([^-]*)-([^-]*)-([^-]*)-([^-]*)",([^$]*)"
+    replace_value     = "$1:{\\"name\\":\\"$2\\",\\"address\\":\\"$3\\",\\"city\\":\\"$4\\",\\"state\\":\\"$5\\",\\"zip\\":\\"$6\\"},$7"
+}
+
+# Create "Block Rule" Rule
+resource "coralogix_rule" "block_rule_example" {
+    rules_group_id    = coralogix_rules_group.rules_group.id
+    name              = "My Block Rule"
+    type              = "block"
+    description       = "My Rule created with Terraform"
+    source_field      = "text"
+    expression        = "sql_error_code\s*=\s*28000"
+}
+
+# Create "Timestamp Extract Rule" Rule
+resource "coralogix_rule" "timestamp_extract_rule_example" {
+    rules_group_id    = coralogix_rules_group.rules_group.id
+    name              = "My Timestamp Extract Rule"
+    type              = "timestampextract"
+    description       = "My Rule created with Terraform"
+    source_field      = "text"
+    format_standard   = "golang"
+    time_format       = "%Y-%m-%dT%H:%M:%S.%f%z"
 }
 ```
 
@@ -35,7 +82,7 @@ resource "coralogix_rule" "example" {
 
 * `rules_group_id` - (Required) Rules Group ID.
 * `name` - (Required) Rule name.
-* `type` - (Required) Rule type, one of the following: `extract`, `jsonextract`, `parse`, `replace`, `allow`, `block`.
+* `type` - (Required) Rule type, one of the following: `extract`, `jsonextract`, `parse`, `replace`, `timestampextract`, `removefields`, `block`.
 * `description` - (Optional) Rule description.
 * `enabled` - (Optional) Rule state.
 * `rule_matcher` - (Optional) A `rule_matcher` block as documented below.
@@ -43,6 +90,8 @@ resource "coralogix_rule" "example" {
 * `source_field` - (Optional) Rule source field.
 * `destination_field` - (Optional) Rule destination field.
 * `replace_value` - (Optional) Rule replace value.
+* `format_standard` - (Optional) Format standard for `timestampextract` rule type, one of the following: `javasdf`, `golang`, `strftime`, `secondsts`, `millits`, `microts`, `nanots`.
+* `time_format` - (Optional) Time format for `timestampextract` rule type.
 
 ---
 

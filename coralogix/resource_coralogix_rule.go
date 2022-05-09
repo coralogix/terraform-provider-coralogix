@@ -39,7 +39,8 @@ func resourceCoralogixRule() *schema.Resource {
 					"jsonextract",
 					"parse",
 					"replace",
-					"allow",
+					"timestampextract",
+					"removefields",
 					"block",
 				}, false),
 			},
@@ -130,6 +131,24 @@ func resourceCoralogixRule() *schema.Resource {
 				Optional: true,
 				Default:  "",
 			},
+			"format_standard": {
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateFunc: validation.StringInSlice([]string{
+					"javasdf",
+					"golang",
+					"strftime",
+					"secondsts",
+					"millits",
+					"microts",
+					"nanots",
+				}, false),
+			},
+			"time_format": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
+			},
 		},
 	}
 }
@@ -148,6 +167,11 @@ func resourceCoralogixRuleCreate(d *schema.ResourceData, meta interface{}) error
 
 	if d.Get("type").(string) == "replace" {
 		ruleParameters["replaceNewVal"] = d.Get("replace_value").(string)
+	}
+
+	if d.Get("type").(string) == "timestampextract" {
+		ruleParameters["formatStandard"] = d.Get("format_standard").(string)
+		ruleParameters["timeFormat"] = d.Get("time_format").(string)
 	}
 
 	if d.Get("type").(string) == "jsonextract" || d.Get("type").(string) == "parse" || d.Get("type").(string) == "replace" {
