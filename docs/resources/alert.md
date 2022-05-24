@@ -109,6 +109,38 @@ resource "coralogix_alert" "new_value_alert" {
         ]
     }
 }
+
+
+# Create "Metric Alert" Alert
+resource "coralogix_alert" "new_value_alert" {
+    name     = "Metric alert"
+    severity = "info"
+    enabled  = true
+    type     = "metric"
+    filter {
+        text         = ""
+        applications = []
+        subsystems   = []
+        severities   = []
+    }
+    metric {
+        field                       = "cpuUsagePercent"
+        source                      = "Prometheus"
+        sample_threshold_percentage = 30
+        arithmetic_operator         = 2
+        non_null_percentage         = 0
+    }
+    condition {
+        condition_type = "more_than"
+        threshold      = 80
+        timeframe      = "10MIN"
+    }
+    notifications {
+        emails = [
+            "user@example.com"
+        ]
+    }
+}
 ```
 
 ## Argument Reference
@@ -120,7 +152,7 @@ resource "coralogix_alert" "new_value_alert" {
 * `filter` - (Required) A `filter` block as documented below.
 * `description` - (Optional) Alert description.
 * `metric` - (Optional) A `metric` block as documented below.
-* `condition` - (Optional) A `condition` block as documented below.
+* `condition` - (Optional) A `condition` block as documented below, required when using alert of type `metric`.
 * `schedule` - (Optional) A `schedule` block as documented below.
 * `content` - (Optional) An array that contains log fields to be included with the alert notification.
 * `notifications` - (Optional) A `notifications` block as documented below.
