@@ -50,9 +50,9 @@ resource "coralogix_alert" "unique_count_alert" {
     }
     condition {
         condition_type = "more_than"
-        threshold      = 10
-        timeframe      = "1H"
-        group_by       = "severity"
+        threshold        = 10
+        timeframe        = "1H"
+        unique_count_key = "concurrent_connections"
     }
     notifications {
         emails = [
@@ -62,7 +62,7 @@ resource "coralogix_alert" "unique_count_alert" {
 }
 
 # Create "Time Relative Alert" Alert
-resource "coralogix_alert" "unique_count_alert" {
+resource "coralogix_alert" "time_relative_alert" {
     name     = "Time Relative Alert"
     severity = "info"
     enabled  = true
@@ -74,9 +74,10 @@ resource "coralogix_alert" "unique_count_alert" {
         severities   = []
     }
     condition {
-        condition_type = "more_than"
-        threshold      = 10
-        timeframe      = "1H"
+        condition_type      = "more_than"
+        threshold           = 10
+        timeframe           = "HOUR"
+        relative_timeframe  = "DAY"
     }
     notifications {
         emails = [
@@ -101,7 +102,7 @@ resource "coralogix_alert" "new_value_alert" {
     condition {
         condition_type = "new_value"
         timeframe      = "12H"
-        group_by       = "my_field"
+        unique_count_key = "ip_address"
     }
     notifications {
         emails = [
@@ -112,7 +113,7 @@ resource "coralogix_alert" "new_value_alert" {
 
 
 # Create "Metric Alert" Alert
-resource "coralogix_alert" "new_value_alert" {
+resource "coralogix_alert" "metric_alert" {
     name     = "Metric alert"
     severity = "info"
     enabled  = true
@@ -125,7 +126,7 @@ resource "coralogix_alert" "new_value_alert" {
     }
     metric {
         field                       = "cpuUsagePercent"
-        source                      = "Prometheus"
+        source                      = "prometheus"
         sample_threshold_percentage = 30
         arithmetic_operator         = 2
         non_null_percentage         = 0
@@ -146,13 +147,13 @@ resource "coralogix_alert" "new_value_alert" {
 ## Argument Reference
 
 * `name` - (Required) Alert name.
-* `type` - (Required) Alert type, one of the following: `text`, `ratio`, `unique_count`, `relative_time`, `metric`. For `new_value` alerts the value should be `text`.
+* `type` - (Required) Alert type, one of the following: `text`, `unique_count`, `relative_time`, `metric`. For `new_value` alerts the value should be `text`.
 * `severity` - (Required) Alert severity, one of the following: `info`, `warning`, `critical`.
 * `enabled` - (Required) Alert state.
 * `filter` - (Required) A `filter` block as documented below.
 * `description` - (Optional) Alert description.
 * `metric` - (Optional) A `metric` block as documented below.
-* `condition` - (Optional) A `condition` block as documented below, required when using alert of type `metric`.
+* `condition` - (Optional) A `condition` block as documented below, only optional when using alert of type `text` (standard alert).
 * `schedule` - (Optional) A `schedule` block as documented below.
 * `content` - (Optional) An array that contains log fields to be included with the alert notification.
 * `notifications` - (Optional) A `notifications` block as documented below.
@@ -169,8 +170,8 @@ Each `filter` block should contains the following:
 Each `metric` block should contains the following:
 
 * `field` - (Required) The name of the metric field to alert on.
-* `source` - (Required) The source of the metric. Either `logs2metrics` or `Prometheus`.
-* `arithmetic_operator` - (Required) `0` - avg, `1` - min, `2` - max, `3` - sum, `4` - count, `5` - percentile (for percentile you need to supply the requested percentile in arithmetic_operator_modifier).
+* `source` - (Required) The source of the metric. Either `logs2metrics` or `prometheus`.
+* `arithmetic_operator` - (Required) The arithmetic operator to use on the alert, Integer: `0` - avg, `1` - min, `2` - max, `3` - sum, `4` - count, `5` - percentile (for percentile you need to supply the requested percentile in arithmetic_operator_modifier).
 * `arithmetic_operator_modifier` - (Optional) For `percentile(5)` `arithmetic_operator` you need to supply the value in this property.
 * `sample_threshold_percentage` - (Required) The metric value must cross the threshold within this percentage of the timeframe (sum and count arithmetic operators do not use this parameter since they aggregate over the entire requested timeframe), `increments of 10`, `0 <= value <= 90`.
 * `non_null_percentage` - (Required) The minimum percentage of the timeframe that should have values for this alert to trigger, `increments of 10`, `0 <= value <= 100`.
@@ -178,9 +179,12 @@ Each `metric` block should contains the following:
 
 Each `condition` block should contains the following:
 
-* `condition_type` - (Required) Alert condition type, one of the following: `less_than`, `more_than`, `more_than_usual`, `new_value`.
+* `condition_type` - (Required) Alert condition type, one of the following: `less_than`, `more_than`, `more_than_usual`, `new_value` For 'unique count' alerts, the value should be "more_than"
+For 'metric' alerts, the value can be one of [‘less_than’, ‘more_than’].
 * `threshold` - (Required) Number of log occurrences that is needed to trigger the alert.
-* `timeframe` - (Required) The bounded time frame for the threshold to be occurred within, to trigger the alert.
+* `timeframe` - (Required) The bounded time frame for the threshold to be occurred within, to trigger the alert one of the following: [‘5Min‘, 10Min’, ‘20Min’, ‘30Min’, ‘1H’, ‘2H’, ‘3H’, ‘4H’, ‘6H’, ‘12H’, ‘24H’], for 'new value' alerts [‘12H’, ‘24H’, ‘48H’, ‘72H’, ‘1W’, ‘1M’, ‘2M’, ‘3M’], for 'time relative' alerts ['HOUR', 'DAY'].
+* `relative_timeframe` - (Optional) required only for 'time relative' alerts one of the following: ['HOUR', 'DAY', 'WEEK', 'MONTH'].
+* `unique_count_key` - (Optional) required only for 'unique count' and 'new value' alerts, the key to track.
 * `group_by` - (Optional) The field to **group by** on.
 
 Each `schedule` block should contains the following:

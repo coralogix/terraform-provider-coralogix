@@ -11,7 +11,7 @@ func getAlertByID(alertsList []interface{}, alertID string) (map[string]interfac
 			return alert, nil
 		}
 	}
-	return nil, errors.New("Alert is not exists")
+	return nil, errors.New("alert does not exists")
 }
 
 func flattenAlertFilter(alert interface{}) interface{} {
@@ -27,18 +27,23 @@ func flattenAlertFilter(alert interface{}) interface{} {
 func flattenAlertMetric(alert interface{}) interface{} {
 	if alert.(map[string]interface{})["log_filter"].(map[string]interface{})["filter_type"].(string) == "metric" {
 		alertCondition := alert.(map[string]interface{})["condition"].(map[string]interface{})
-		return []interface{}{
-			map[string]interface{}{
-				"field":                        alertCondition["metric_field"].(string),
-				"source":                       alertCondition["metric_source"].(string),
-				"arithmetic_operator":          alertCondition["arithmetic_operator"].(float64),
-				"arithmetic_operator_modifier": alertCondition["arithmetic_operator_modifier"].(float64),
-				"sample_threshold_percentage":  alertCondition["sample_threshold_percentage"].(float64),
-				"non_null_percentage":          alertCondition["non_null_percentage"].(float64),
-				"swap_null_values":             alertCondition["swap_null_values"].(bool),
-			},
+		metricMap := map[string]interface{}{
+			"field":                       alertCondition["metric_field"].(string),
+			"source":                      alertCondition["metric_source"].(string),
+			"arithmetic_operator":         alertCondition["arithmetic_operator"].(float64),
+			"sample_threshold_percentage": alertCondition["sample_threshold_percentage"].(float64),
+			"non_null_percentage":         alertCondition["non_null_percentage"].(float64),
+			"swap_null_values":            alertCondition["swap_null_values"].(bool),
 		}
+		// check if arithmetic_operator_modifier field exists
+		if value, ok := alertCondition["arithmetic_operator_modifier"]; ok {
+			metricMap["arithmetic_operator_modifier"] = value.(float64)
+		} else {
+			metricMap["arithmetic_operator_modifier"] = 0
+		}
+		return []interface{}{metricMap}
 	}
+
 	return []interface{}{}
 }
 
@@ -46,19 +51,26 @@ func flattenAlertCondition(alert interface{}) interface{} {
 	alertCondition := alert.(map[string]interface{})["condition"]
 	if alertCondition != nil {
 		alertConditionParameters := alertCondition.(map[string]interface{})
-
-		alertConditionGroupBy, found := alertConditionParameters["group_by"]
-		if !found {
-			alertConditionGroupBy = "none"
-		} else {
-			alertConditionGroupBy = alertConditionParameters["group_by"].(string)
+		alertConditionGroupBy := ""
+		if value, ok := alertConditionParameters["group_by"]; ok {
+			alertConditionGroupBy = value.(string)
 		}
-
+		uniqueCountKey := ""
+		if value, ok := alertConditionParameters["unique_count_key"]; ok {
+			uniqueCountKey = value.(string)
+		}
+		// check if relative_timeframe field exists
+		relativeTimeframe := ""
+		if value, ok := alertConditionParameters["relative_timeframe"]; ok {
+			relativeTimeframe = value.(string)
+		}
 		return map[string]interface{}{
-			"type":      alertConditionParameters["condition_type"].(string),
-			"threshold": alertConditionParameters["threshold"].(float64),
-			"timeframe": alertConditionParameters["timeframe"].(string),
-			"group_by":  alertConditionGroupBy,
+			"condition_type":     alertConditionParameters["condition_type"].(string),
+			"threshold":          alertConditionParameters["threshold"].(float64),
+			"timeframe":          alertConditionParameters["timeframe"].(string),
+			"group_by":           alertConditionGroupBy,
+			"unique_count_key":   uniqueCountKey,
+			"relative_timeframe": relativeTimeframe,
 		}
 	}
 	return map[string]interface{}{

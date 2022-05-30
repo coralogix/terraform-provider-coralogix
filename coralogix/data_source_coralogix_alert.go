@@ -62,6 +62,42 @@ func dataSourceCoralogixAlert() *schema.Resource {
 					},
 				},
 			},
+			"metric": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"field": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"source": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"arithmetic_operator": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"arithmetic_operator_modifier": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"sample_threshold_percentage": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"non_null_percentage": {
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+						"swap_null_values": {
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+					},
+				},
+			},
 			"condition": {
 				Type:     schema.TypeSet,
 				Computed: true,
@@ -80,6 +116,14 @@ func dataSourceCoralogixAlert() *schema.Resource {
 							Computed: true,
 						},
 						"group_by": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"relative_timeframe": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"unique_count_key": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
@@ -152,6 +196,7 @@ func dataSourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("enabled", alert["is_active"].(bool))
 	d.Set("type", alert["log_filter"].(map[string]interface{})["filter_type"].(string))
 	d.Set("filter", []interface{}{flattenAlertFilter(alert)})
+	d.Set("metric", flattenAlertMetric(alert))
 	d.Set("condition", []interface{}{flattenAlertCondition(alert)})
 	d.Set("notifications", []interface{}{flattenAlertNotifications(alert)})
 

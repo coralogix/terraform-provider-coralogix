@@ -26,7 +26,7 @@ output "name" {
 
 ## Argument Reference
 
-* `alert_id` - (Required) Alert ID.
+* `alert_id` - (Required) Alert unique identifier.
 
 ## Attribute Reference
 The result is an object containing the following attributes.
@@ -36,6 +36,7 @@ The result is an object containing the following attributes.
 * `enabled` - Alert state.
 * `type` - Alert type.
 * `filter` - Alert filter.
+* `metric` - Alert metric.
 * `condition` - Alert condition.
 * `content` - List of fields attached to alert notification.
 * `schedule` - Configuration of period when alert triggering will be allowed.

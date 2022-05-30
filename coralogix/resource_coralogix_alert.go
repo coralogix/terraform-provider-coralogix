@@ -1,6 +1,8 @@
 package coralogix
 
 import (
+	"errors"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -112,7 +114,7 @@ func resourceCoralogixAlert() *schema.Resource {
 							ForceNew: true,
 							ValidateFunc: validation.StringInSlice([]string{
 								"logs2metrics",
-								"Prometheus",
+								"prometheus",
 							}, false),
 						},
 						"arithmetic_operator": {
@@ -200,7 +202,21 @@ func resourceCoralogixAlert() *schema.Resource {
 								"1M",
 								"2M",
 								"3M",
+								"HOUR",
+								"DAY",
 							}, false),
+						},
+						"relative_timeframe": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								"HOUR",
+								"DAY",
+								"WEEK",
+								"MONTH",
+							}, false),
+							Default: "",
 						},
 						"group_by": {
 							Type:     schema.TypeString,
@@ -301,12 +317,9 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 
 	condition := getFirstOrNil(d.Get("condition").(*schema.Set).List())
 	if condition == nil {
-		condition = map[string]interface{}{
-			"condition_type":   "",
-			"threshold":        0,
-			"timeframe":        "",
-			"group_by":         "",
-			"unique_count_key": "",
+		if d.Get("type").(string) != "text" {
+			str := "alert of type " + d.Get("type").(string) + " must have condition block"
+			return errors.New(str)
 		}
 	}
 
