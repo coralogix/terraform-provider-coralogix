@@ -2,12 +2,16 @@ package coralogix
 
 import (
 	"errors"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceCoralogixAlert() *schema.Resource {
+	// test
+	time.Sleep(time.Second * 7)
+	// e-test
 	return &schema.Resource{
 		Create: resourceCoralogixAlertCreate,
 		Read:   resourceCoralogixAlertRead,
@@ -57,7 +61,50 @@ func resourceCoralogixAlert() *schema.Resource {
 				Type:     schema.TypeSet,
 				Required: true,
 				ForceNew: true,
-				MinItems: 1,
+				MaxItems: 1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"text": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"applications": {
+							Type:     schema.TypeSet,
+							Required: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"subsystems": {
+							Type:     schema.TypeSet,
+							Required: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"severities": {
+							Type:     schema.TypeSet,
+							Required: true,
+							MaxItems: 6,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
+								ValidateFunc: validation.StringInSlice([]string{
+									"debug",
+									"verbose",
+									"info",
+									"warning",
+									"error",
+									"critical",
+								}, false),
+							},
+						},
+						"alias": {
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+			},
+			"ratio": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -91,6 +138,15 @@ func resourceCoralogixAlert() *schema.Resource {
 									"critical",
 								}, false),
 							},
+						},
+						"alias": {
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"group_by": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 					},
 				},
@@ -277,18 +333,11 @@ func resourceCoralogixAlert() *schema.Resource {
 			"content": {
 				Type:     schema.TypeList,
 				Optional: true,
-				Default:  nil,
-				ForceNew: true,
-				MinItems: 1,
-				Elem: &schema.Schema{
-					Type:         schema.TypeString,
-					ValidateFunc: validation.StringIsNotEmpty,
-				},
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"notifications": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				Default:  nil,
 				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
@@ -314,17 +363,46 @@ func resourceCoralogixAlert() *schema.Resource {
 
 func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) error {
 	apiClient := meta.(*Client)
-
+	alertType := d.Get("type").(string)
+	filter := getFirstOrNil(d.Get("filter").(*schema.Set).List())
+	var newFilter = make(map[string]interface{}, 7)
+	newFilter["filter_type"] = alertType
+	newFilter["text"] = filter.(map[string]interface{})["text"].(string)
+	newFilter["severity"] = filter.(map[string]interface{})["severities"].(*schema.Set).List()
+	newFilter["application_name"] = filter.(map[string]interface{})["applications"].(*schema.Set).List()
+	newFilter["subsystem_name"] = filter.(map[string]interface{})["subsystems"].(*schema.Set).List()
+	newFilter["alias"] = filter.(map[string]interface{})["alias"].(string)
 	condition := getFirstOrNil(d.Get("condition").(*schema.Set).List())
 	if condition == nil {
-		if d.Get("type").(string) != "text" {
+		if alertType != "text" {
 			str := "alert of type " + d.Get("type").(string) + " must have condition block"
 			return errors.New(str)
 		}
 	}
-
+	ratio := getFirstOrNil(d.Get("ratio").(*schema.Set).List())
+	if alertType == "ratio" {
+		if ratio == nil {
+			return errors.New("alert of type ratio must have ratio block")
+		}
+		// specific check until filter block is optional completly
+		if newFilter["alias"] == "" {
+			return errors.New("alert of type ratio must have alias defined on filter block")
+		}
+		ratio := ratio.(map[string]interface{})
+		newRatio := make(map[string]interface{}, 6)
+		newRatio["severity"] = ratio["severities"].(*schema.Set).List()
+		newRatio["application_name"] = ratio["applications"].(*schema.Set).List()
+		newRatio["subsystem_name"] = ratio["subsystems"].(*schema.Set).List()
+		newRatio["group_by"] = ratio["group_by"].(*schema.Set).List()
+		newRatio["text"] = ratio["text"]
+		newRatio["alias"] = ratio["alias"]
+		newFilter["ratioAlerts"] = []interface{}{newRatio}
+	}
 	metric := getFirstOrNil(d.Get("metric").(*schema.Set).List())
-	if d.Get("type").(string) == "metric" && metric != nil {
+	if alertType == "metric" {
+		if metric == nil {
+			return errors.New("alert of type metric must have metric block")
+		}
 		metric := metric.(map[string]interface{})
 		condition := condition.(map[string]interface{})
 		condition["metric_field"] = metric["field"]
@@ -335,40 +413,31 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		condition["non_null_percentage"] = metric["non_null_percentage"]
 		condition["swap_null_values"] = metric["swap_null_values"]
 	}
-
-	alertParameters := map[string]interface{}{
-		"name":        d.Get("name").(string),
-		"severity":    d.Get("severity").(string),
-		"is_active":   d.Get("enabled").(bool),
-		"description": d.Get("description").(string),
-		"log_filter": map[string]interface{}{
-			"filter_type":      d.Get("type").(string),
-			"text":             d.Get("filter").(*schema.Set).List()[0].(map[string]interface{})["text"].(string),
-			"severity":         d.Get("filter").(*schema.Set).List()[0].(map[string]interface{})["severities"].(*schema.Set).List(),
-			"application_name": d.Get("filter").(*schema.Set).List()[0].(map[string]interface{})["applications"].(*schema.Set).List(),
-			"subsystem_name":   d.Get("filter").(*schema.Set).List()[0].(map[string]interface{})["subsystems"].(*schema.Set).List(),
-		},
-		"condition":     condition,
-		"notifications": getFirstOrNil(d.Get("notifications").(*schema.Set).List()),
-	}
-
+	var newSchedule map[string]interface{}
 	schedule := getFirstOrNil(d.Get("schedule").(*schema.Set).List())
 	if schedule != nil {
-		alertParameters["active_when"] = map[string]interface{}{
-			"timeframes": []interface{}{
-				map[string]interface{}{
-					"days_of_week":    transformWeekList(d.Get("schedule").(*schema.Set).List()[0].(map[string]interface{})["days"].([]interface{})),
-					"activity_starts": d.Get("schedule").(*schema.Set).List()[0].(map[string]interface{})["start"].(string),
-					"activity_ends":   d.Get("schedule").(*schema.Set).List()[0].(map[string]interface{})["end"].(string),
-				},
-			},
+		schedule := schedule.(map[string]interface{})
+		newSchedule := make(map[string]interface{}, 1)
+		newSchedule["timeframes"] = []interface{}{map[string]interface{}{
+			"days_of_week":    transformWeekList(schedule["days"].([]interface{})),
+			"activity_starts": schedule["start"].(string),
+			"activity_ends":   schedule["end"].(string),
+		},
 		}
 	}
-
-	if d.Get("content") != nil {
-		alertParameters["notif_payload_filter"] = d.Get("content").([]interface{})
+	content := getFirstOrNil(d.Get("content").([]interface{}))
+	notification := getFirstOrNil(d.Get("notifications").(*schema.Set).List())
+	alertParameters := map[string]interface{}{
+		"name":                 d.Get("name").(string),
+		"severity":             d.Get("severity").(string),
+		"is_active":            d.Get("enabled").(bool),
+		"description":          d.Get("description").(string),
+		"log_filter":           newFilter,
+		"condition":            condition,
+		"notifications":        notification,
+		"active_when":          newSchedule,
+		"notif_payload_filter": content,
 	}
-
 	alert, err := apiClient.Post("/external/alerts", alertParameters)
 	if err != nil {
 		return err
@@ -396,27 +465,17 @@ func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("severity", alert["severity"].(string))
 	d.Set("enabled", alert["is_active"].(bool))
 	d.Set("type", alert["log_filter"].(map[string]interface{})["filter_type"].(string))
-	d.Set("filter", []interface{}{flattenAlertFilter(alert)})
+	d.Set("filter", flattenAlertFilter(alert))
 	d.Set("metric", flattenAlertMetric(alert))
-	d.Set("condition", []interface{}{flattenAlertCondition(alert)})
-	d.Set("notifications", []interface{}{flattenAlertNotifications(alert)})
-
-	if alert["description"] != nil {
-		d.Set("description", alert["description"].(string))
-	} else {
-		d.Set("description", "")
+	d.Set("ratio", flattenAlertRatio(alert))
+	d.Set("condition", flattenAlertCondition(alert))
+	d.Set("notifications", flattenAlertNotifications(alert))
+	d.Set("schedule", flattenAlertSchedule(alert))
+	if content := alert["notif_payload_filter"]; content != nil && len(content.([]interface{})) > 0 {
+		d.Set("content", content)
 	}
-
-	if alert["notif_payload_filter"] != nil && len(alert["notif_payload_filter"].([]interface{})) > 0 {
-		d.Set("content", alert["notif_payload_filter"])
-	}
-
-	if alert["active_when"] != nil && len(alert["active_when"].(map[string]interface{})["timeframes"].([]interface{})) > 0 {
-		d.Set("schedule", []interface{}{flattenAlertSchedule(alert)})
-	}
-
+	d.Set("description", alert["description"].(string))
 	d.SetId(alert["unique_identifier"].(string))
-
 	return nil
 }
 

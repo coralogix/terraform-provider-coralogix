@@ -274,7 +274,7 @@ func resourceCoralogixRuleImport(d *schema.ResourceData, meta interface{}) ([]*s
 	ids := strings.SplitN(d.Id(), "/", 2)
 
 	if len(ids) != 2 || ids[0] == "" || ids[1] == "" {
-		return nil, errors.New("Invalid rule ID")
+		return nil, errors.New("invalid rule ID")
 	}
 
 	d.Set("rules_group_id", ids[0])
