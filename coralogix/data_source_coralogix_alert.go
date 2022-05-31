@@ -59,6 +59,46 @@ func dataSourceCoralogixAlert() *schema.Resource {
 							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
+						"alias": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
+			"ratio": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"text": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"applications": {
+							Type:     schema.TypeSet,
+							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"subsystems": {
+							Type:     schema.TypeSet,
+							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"severities": {
+							Type:     schema.TypeSet,
+							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"alias": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"group_by": {
+							Type:     schema.TypeSet,
+							Computed: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
 					},
 				},
 			},
@@ -152,7 +192,7 @@ func dataSourceCoralogixAlert() *schema.Resource {
 				},
 			},
 			"content": {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
@@ -162,12 +202,12 @@ func dataSourceCoralogixAlert() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"emails": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"integrations": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
@@ -195,26 +235,16 @@ func dataSourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("severity", alert["severity"].(string))
 	d.Set("enabled", alert["is_active"].(bool))
 	d.Set("type", alert["log_filter"].(map[string]interface{})["filter_type"].(string))
-	d.Set("filter", []interface{}{flattenAlertFilter(alert)})
+	d.Set("filter", flattenAlertFilter(alert))
 	d.Set("metric", flattenAlertMetric(alert))
-	d.Set("condition", []interface{}{flattenAlertCondition(alert)})
-	d.Set("notifications", []interface{}{flattenAlertNotifications(alert)})
-
-	if alert["description"] != nil {
-		d.Set("description", alert["description"].(string))
-	} else {
-		d.Set("description", "")
+	d.Set("ratio", flattenAlertRatio(alert))
+	d.Set("condition", flattenAlertCondition(alert))
+	d.Set("notifications", flattenAlertNotifications(alert))
+	d.Set("schedule", flattenAlertSchedule(alert))
+	if content := alert["notif_payload_filter"]; content != nil && len(content.([]interface{})) > 0 {
+		d.Set("content", content)
 	}
-
-	if alert["notif_payload_filter"] != nil && len(alert["notif_payload_filter"].([]interface{})) > 0 {
-		d.Set("content", alert["notif_payload_filter"])
-	}
-
-	if alert["active_when"] != nil && len(alert["active_when"].(map[string]interface{})["timeframes"].([]interface{})) > 0 {
-		d.Set("schedule", []interface{}{flattenAlertSchedule(alert)})
-	}
-
+	d.Set("description", alert["description"].(string))
 	d.SetId(alert["unique_identifier"].(string))
-
 	return nil
 }

@@ -2,16 +2,12 @@ package coralogix
 
 import (
 	"errors"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceCoralogixAlert() *schema.Resource {
-	// test
-	time.Sleep(time.Second * 7)
-	// e-test
 	return &schema.Resource{
 		Create: resourceCoralogixAlertCreate,
 		Read:   resourceCoralogixAlertRead,

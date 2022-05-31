@@ -37,6 +37,7 @@ The result is an object containing the following attributes.
 * `type` - Alert type.
 * `filter` - Alert filter.
 * `metric` - Alert metric.
+* `ratio` - Alert ratio.
 * `condition` - Alert condition.
 * `content` - List of fields attached to alert notification.
 * `schedule` - Configuration of period when alert triggering will be allowed.
