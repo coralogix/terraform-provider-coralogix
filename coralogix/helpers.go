@@ -11,32 +11,43 @@ func getAlertByID(alertsList []interface{}, alertID string) (map[string]interfac
 			return alert, nil
 		}
 	}
-	return nil, errors.New("Alert is not exists")
+	return nil, errors.New("alert does not exists")
 }
 
 func flattenAlertFilter(alert interface{}) interface{} {
 	alertFilter := alert.(map[string]interface{})["log_filter"].(map[string]interface{})
-	return map[string]interface{}{
+	// checking for keys that not allways returned
+	aliasKey := ""
+	if value, ok := alertFilter["alias"]; ok {
+		aliasKey = value.(string)
+	}
+	return []interface{}{map[string]interface{}{
 		"text":         alertFilter["text"].(string),
 		"applications": alertFilter["application_name"],
 		"subsystems":   alertFilter["subsystem_name"],
 		"severities":   alertFilter["severity"],
+		"alias":        aliasKey,
+	},
 	}
 }
 
 func flattenAlertMetric(alert interface{}) interface{} {
 	if alert.(map[string]interface{})["log_filter"].(map[string]interface{})["filter_type"].(string) == "metric" {
 		alertCondition := alert.(map[string]interface{})["condition"].(map[string]interface{})
-		return []interface{}{
-			map[string]interface{}{
-				"field":                        alertCondition["metric_field"].(string),
-				"source":                       alertCondition["metric_source"].(string),
-				"arithmetic_operator":          alertCondition["arithmetic_operator"].(float64),
-				"arithmetic_operator_modifier": alertCondition["arithmetic_operator_modifier"].(float64),
-				"sample_threshold_percentage":  alertCondition["sample_threshold_percentage"].(float64),
-				"non_null_percentage":          alertCondition["non_null_percentage"].(float64),
-				"swap_null_values":             alertCondition["swap_null_values"].(bool),
-			},
+		// checking for keys that not allways returned
+		operatorModifierKey := 0.0
+		if value, ok := alertCondition["arithmetic_operator_modifier"]; ok {
+			operatorModifierKey = value.(float64)
+		}
+		return []interface{}{map[string]interface{}{
+			"field":                        alertCondition["metric_field"].(string),
+			"source":                       alertCondition["metric_source"].(string),
+			"arithmetic_operator":          alertCondition["arithmetic_operator"].(float64),
+			"sample_threshold_percentage":  alertCondition["sample_threshold_percentage"].(float64),
+			"non_null_percentage":          alertCondition["non_null_percentage"].(float64),
+			"swap_null_values":             alertCondition["swap_null_values"].(bool),
+			"arithmetic_operator_modifier": operatorModifierKey,
+		},
 		}
 	}
 	return []interface{}{}
@@ -46,47 +57,84 @@ func flattenAlertCondition(alert interface{}) interface{} {
 	alertCondition := alert.(map[string]interface{})["condition"]
 	if alertCondition != nil {
 		alertConditionParameters := alertCondition.(map[string]interface{})
-
-		alertConditionGroupBy, found := alertConditionParameters["group_by"]
-		if !found {
-			alertConditionGroupBy = "none"
-		} else {
-			alertConditionGroupBy = alertConditionParameters["group_by"].(string)
+		// checking for keys that not allways returned
+		alertConditionGroupBy := ""
+		if value, ok := alertConditionParameters["group_by"]; ok {
+			alertConditionGroupBy = value.(string)
 		}
-
-		return map[string]interface{}{
-			"type":      alertConditionParameters["condition_type"].(string),
-			"threshold": alertConditionParameters["threshold"].(float64),
-			"timeframe": alertConditionParameters["timeframe"].(string),
-			"group_by":  alertConditionGroupBy,
+		uniqueCountKey := ""
+		if value, ok := alertConditionParameters["unique_count_key"]; ok {
+			uniqueCountKey = value.(string)
+		}
+		relativeTimeframe := ""
+		if value, ok := alertConditionParameters["relative_timeframe"]; ok {
+			relativeTimeframe = value.(string)
+		}
+		return []interface{}{map[string]interface{}{
+			"condition_type":     alertConditionParameters["condition_type"].(string),
+			"threshold":          alertConditionParameters["threshold"].(float64),
+			"timeframe":          alertConditionParameters["timeframe"].(string),
+			"group_by":           alertConditionGroupBy,
+			"unique_count_key":   uniqueCountKey,
+			"relative_timeframe": relativeTimeframe,
+		},
 		}
 	}
-	return map[string]interface{}{
-		"type": "immediately",
+	return []interface{}{}
+}
+
+func flattenAlertRatio(alert interface{}) interface{} {
+	alertRatio := alert.(map[string]interface{})["ratioAlerts"]
+	if alertRatio != nil {
+		alertRatioParameters := alertRatio.(map[string]interface{})
+		// checking for keys that not allways returned
+		alertRatioGroupBy := ""
+		if value, ok := alertRatioParameters["group_by"]; ok {
+			alertRatioGroupBy = value.([]interface{})[0].(string)
+		}
+		aliasKey := ""
+		if value, ok := alertRatioParameters["alias"]; ok {
+			aliasKey = value.(string)
+		}
+		return []interface{}{map[string]interface{}{
+			"text":         alertRatioParameters["text"].(string),
+			"applications": alertRatioParameters["application_name"],
+			"subsystems":   alertRatioParameters["subsystem_name"],
+			"severities":   alertRatioParameters["severity"],
+			"alias":        aliasKey,
+			"group_by":     alertRatioGroupBy,
+		},
+		}
 	}
+	return []interface{}{}
 }
 
 func flattenAlertNotifications(alert interface{}) interface{} {
 	alertNotifications := alert.(map[string]interface{})["notifications"]
 	if alertNotifications != nil {
 		alertNotificationsParameters := alertNotifications.(map[string]interface{})
-		return map[string]interface{}{
+		return []interface{}{map[string]interface{}{
 			"emails":       alertNotificationsParameters["emails"],
 			"integrations": alertNotificationsParameters["integrations"],
+		},
 		}
 	}
-	return "disabled"
+	return []interface{}{}
 }
 
 func flattenAlertSchedule(alert interface{}) interface{} {
-	alertSchedule := alert.(map[string]interface{})["active_when"].(map[string]interface{})["timeframes"].([]interface{})[0].(map[string]interface{})
-	return map[string]interface{}{
-		"days":  transformWeekListReverse(alertSchedule["days_of_week"].([]interface{})),
-		"start": alertSchedule["activity_starts"],
-		"end":   alertSchedule["activity_ends"],
+	alertSchedule := alert.(map[string]interface{})["active_when"]
+	if alertSchedule != nil {
+		alertScheduleParameters := alertSchedule.(map[string]interface{})["timeframes"].([]interface{})[0].(map[string]interface{})
+		return []interface{}{map[string]interface{}{
+			"days":  transformWeekListReverse(alertScheduleParameters["days_of_week"].([]interface{})),
+			"start": alertScheduleParameters["activity_starts"],
+			"end":   alertScheduleParameters["activity_ends"],
+		},
+		}
 	}
+	return []interface{}{}
 }
-
 func flattenRules(rules []interface{}) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(rules))
 	for _, rule := range rules {

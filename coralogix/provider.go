@@ -5,10 +5,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var (
-	providerVersion string
-)
-
 // Provider returns a *schema.Provider.
 func Provider() *schema.Provider {
 	return &schema.Provider{
