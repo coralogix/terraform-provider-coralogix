@@ -129,7 +129,7 @@ resource "coralogix_alert" "ratio_alert" {
         applications = ["app1", "app2"]
         subsystems   = []
         severities   = []
-        alias        = "query2 "
+        alias        = "query 2"
         group_by     = []
     }
     condition {
