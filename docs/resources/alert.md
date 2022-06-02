@@ -249,3 +249,6 @@ Alerts can be imported using their unique identifier.
 ```
 $ terraform import coralogix_alert.<resource_name> <alert_unique identifier>
 ```
+
+The unique identifer can be retrieved from the API with a GET request,
+for more information regarding the API - https://coralogix.com/docs/alerts-api/
