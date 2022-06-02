@@ -125,6 +125,9 @@ func flattenAlertNotifications(alert interface{}) interface{} {
 func flattenAlertSchedule(alert interface{}) interface{} {
 	alertSchedule := alert.(map[string]interface{})["active_when"]
 	if alertSchedule != nil {
+		if len(alertSchedule.(map[string]interface{})["timeframes"].([]interface{})) == 0 {
+			return []interface{}{}
+		}
 		alertScheduleParameters := alertSchedule.(map[string]interface{})["timeframes"].([]interface{})[0].(map[string]interface{})
 		return []interface{}{map[string]interface{}{
 			"days":  transformWeekListReverse(alertScheduleParameters["days_of_week"].([]interface{})),
