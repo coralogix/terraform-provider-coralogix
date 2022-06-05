@@ -293,7 +293,7 @@ func resourceCoralogixAlert() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"days": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Required: true,
 							ForceNew: true,
 							MinItems: 1,
@@ -327,7 +327,7 @@ func resourceCoralogixAlert() *schema.Resource {
 				},
 			},
 			"content": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
@@ -339,13 +339,13 @@ func resourceCoralogixAlert() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"emails": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Optional: true,
 							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"integrations": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Optional: true,
 							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
@@ -413,16 +413,27 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 	schedule := getFirstOrNil(d.Get("schedule").(*schema.Set).List())
 	if schedule != nil {
 		schedule := schedule.(map[string]interface{})
-		newSchedule := make(map[string]interface{}, 1)
+		newSchedule = make(map[string]interface{}, 1)
 		newSchedule["timeframes"] = []interface{}{map[string]interface{}{
-			"days_of_week":    transformWeekList(schedule["days"].([]interface{})),
+			"days_of_week":    transformWeekList(schedule["days"].(*schema.Set).List()),
 			"activity_starts": schedule["start"].(string),
 			"activity_ends":   schedule["end"].(string),
 		},
 		}
 	}
-	content := getFirstOrNil(d.Get("content").([]interface{}))
+	content := getFirstOrNil(d.Get("content").(*schema.Set).List())
+	var newNotification map[string]interface{}
 	notification := getFirstOrNil(d.Get("notifications").(*schema.Set).List())
+	if notification != nil {
+		notification := notification.(map[string]interface{})
+		newNotification = make(map[string]interface{}, 2)
+		if _, ok := notification["emails"]; ok {
+			newNotification["emails"] = notification["emails"].(*schema.Set).List()
+		}
+		if _, ok := notification["integrations"]; ok {
+			newNotification["integrations"] = notification["integrations"].(*schema.Set).List()
+		}
+	}
 	alertParameters := map[string]interface{}{
 		"name":                 d.Get("name").(string),
 		"severity":             d.Get("severity").(string),
@@ -430,7 +441,7 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		"description":          d.Get("description").(string),
 		"log_filter":           newFilter,
 		"condition":            condition,
-		"notifications":        notification,
+		"notifications":        newNotification,
 		"active_when":          newSchedule,
 		"notif_payload_filter": content,
 	}
