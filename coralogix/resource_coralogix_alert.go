@@ -62,21 +62,21 @@ func resourceCoralogixAlert() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"text": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"applications": {
 							Type:     schema.TypeSet,
-							Required: true,
+							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"subsystems": {
 							Type:     schema.TypeSet,
-							Required: true,
+							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"severities": {
 							Type:     schema.TypeSet,
-							Required: true,
+							Optional: true,
 							MaxItems: 6,
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
@@ -156,13 +156,13 @@ func resourceCoralogixAlert() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"field": {
 							Type:         schema.TypeString,
-							Required:     true,
+							Optional:     true,
 							ForceNew:     true,
 							ValidateFunc: validation.StringIsNotEmpty,
 						},
 						"source": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 							ForceNew: true,
 							ValidateFunc: validation.StringInSlice([]string{
 								"logs2metrics",
@@ -171,8 +171,9 @@ func resourceCoralogixAlert() *schema.Resource {
 						},
 						"arithmetic_operator": {
 							Type:         schema.TypeInt,
-							Required:     true,
+							Optional:     true,
 							ForceNew:     true,
+							Default:      0,
 							ValidateFunc: validation.IntBetween(0, 5),
 						},
 						"arithmetic_operator_modifier": {
@@ -205,6 +206,12 @@ func resourceCoralogixAlert() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 							Default:  false,
+						},
+						"promql_text": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  nil,
 						},
 					},
 				},
@@ -293,7 +300,7 @@ func resourceCoralogixAlert() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"days": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Required: true,
 							ForceNew: true,
 							MinItems: 1,
@@ -327,7 +334,7 @@ func resourceCoralogixAlert() *schema.Resource {
 				},
 			},
 			"content": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
@@ -339,13 +346,13 @@ func resourceCoralogixAlert() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"emails": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Optional: true,
 							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"integrations": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Optional: true,
 							ForceNew: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
@@ -401,10 +408,20 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		}
 		metric := metric.(map[string]interface{})
 		condition := condition.(map[string]interface{})
-		condition["metric_field"] = metric["field"]
-		condition["metric_source"] = metric["source"]
-		condition["arithmetic_operator"] = metric["arithmetic_operator"]
-		condition["arithmetic_operator_modifier"] = metric["arithmetic_operator_modifier"]
+		if value := metric["promql_text"]; value != "" {
+			// when promql is supplied some fields must be nil
+			if condition["group_by"] != "" || newFilter["text"] != "" || metric["field"] != "" || metric["source"] != "" ||
+				metric["arithmetic_operator"] != 0 || metric["arithmetic_operator_modifier"] != 0 {
+				return errors.New("alert of type metric with promql_text must not define these fields: [metric.field, metric.source, metric.arithmetic_operator," +
+					"metric.arithmetic_operator_modifier, filter.text, condition.group_by]")
+			}
+			condition["promql_text"] = value
+		} else {
+			condition["metric_field"] = metric["field"]
+			condition["metric_source"] = metric["source"]
+			condition["arithmetic_operator"] = metric["arithmetic_operator"]
+			condition["arithmetic_operator_modifier"] = metric["arithmetic_operator_modifier"]
+		}
 		condition["sample_threshold_percentage"] = metric["sample_threshold_percentage"]
 		condition["non_null_percentage"] = metric["non_null_percentage"]
 		condition["swap_null_values"] = metric["swap_null_values"]
@@ -413,16 +430,27 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 	schedule := getFirstOrNil(d.Get("schedule").(*schema.Set).List())
 	if schedule != nil {
 		schedule := schedule.(map[string]interface{})
-		newSchedule := make(map[string]interface{}, 1)
+		newSchedule = make(map[string]interface{}, 1)
 		newSchedule["timeframes"] = []interface{}{map[string]interface{}{
-			"days_of_week":    transformWeekList(schedule["days"].([]interface{})),
+			"days_of_week":    transformWeekList(schedule["days"].(*schema.Set).List()),
 			"activity_starts": schedule["start"].(string),
 			"activity_ends":   schedule["end"].(string),
 		},
 		}
 	}
-	content := getFirstOrNil(d.Get("content").([]interface{}))
+	content := getFirstOrNil(d.Get("content").(*schema.Set).List())
+	var newNotification map[string]interface{}
 	notification := getFirstOrNil(d.Get("notifications").(*schema.Set).List())
+	if notification != nil {
+		notification := notification.(map[string]interface{})
+		newNotification = make(map[string]interface{}, 2)
+		if _, ok := notification["emails"]; ok {
+			newNotification["emails"] = notification["emails"].(*schema.Set).List()
+		}
+		if _, ok := notification["integrations"]; ok {
+			newNotification["integrations"] = notification["integrations"].(*schema.Set).List()
+		}
+	}
 	alertParameters := map[string]interface{}{
 		"name":                 d.Get("name").(string),
 		"severity":             d.Get("severity").(string),
@@ -430,7 +458,7 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		"description":          d.Get("description").(string),
 		"log_filter":           newFilter,
 		"condition":            condition,
-		"notifications":        notification,
+		"notifications":        newNotification,
 		"active_when":          newSchedule,
 		"notif_payload_filter": content,
 	}
