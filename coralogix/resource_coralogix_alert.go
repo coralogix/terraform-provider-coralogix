@@ -62,21 +62,21 @@ func resourceCoralogixAlert() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"text": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 						"applications": {
 							Type:     schema.TypeSet,
-							Required: true,
+							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"subsystems": {
 							Type:     schema.TypeSet,
-							Required: true,
+							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"severities": {
 							Type:     schema.TypeSet,
-							Required: true,
+							Optional: true,
 							MaxItems: 6,
 							Elem: &schema.Schema{
 								Type: schema.TypeString,
@@ -156,13 +156,13 @@ func resourceCoralogixAlert() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"field": {
 							Type:         schema.TypeString,
-							Required:     true,
+							Optional:     true,
 							ForceNew:     true,
 							ValidateFunc: validation.StringIsNotEmpty,
 						},
 						"source": {
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 							ForceNew: true,
 							ValidateFunc: validation.StringInSlice([]string{
 								"logs2metrics",
@@ -171,8 +171,9 @@ func resourceCoralogixAlert() *schema.Resource {
 						},
 						"arithmetic_operator": {
 							Type:         schema.TypeInt,
-							Required:     true,
+							Optional:     true,
 							ForceNew:     true,
+							Default:      0,
 							ValidateFunc: validation.IntBetween(0, 5),
 						},
 						"arithmetic_operator_modifier": {
@@ -205,6 +206,12 @@ func resourceCoralogixAlert() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 							Default:  false,
+						},
+						"promql_text": {
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+							Default:  nil,
 						},
 					},
 				},
@@ -401,10 +408,20 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		}
 		metric := metric.(map[string]interface{})
 		condition := condition.(map[string]interface{})
-		condition["metric_field"] = metric["field"]
-		condition["metric_source"] = metric["source"]
-		condition["arithmetic_operator"] = metric["arithmetic_operator"]
-		condition["arithmetic_operator_modifier"] = metric["arithmetic_operator_modifier"]
+		if value, ok := metric["promql_text"]; ok {
+			// when promql is supplied some fields must be nil
+			if condition["group_by"] != "" || newFilter["text"] != "" || metric["field"] != "" || metric["source"] != "" ||
+				metric["arithmetic_operator"] != 0 || metric["arithmetic_operator_modifier"] != 0 {
+				return errors.New("alert of type metric with promql_text must not define these fields: [metric.field, metric.source, metric.arithmetic_operator," +
+					"metric.arithmetic_operator_modifier, filter.text, condition.group_by]")
+			}
+			condition["promql_text"] = value
+		} else {
+			condition["metric_field"] = metric["field"]
+			condition["metric_source"] = metric["source"]
+			condition["arithmetic_operator"] = metric["arithmetic_operator"]
+			condition["arithmetic_operator_modifier"] = metric["arithmetic_operator_modifier"]
+		}
 		condition["sample_threshold_percentage"] = metric["sample_threshold_percentage"]
 		condition["non_null_percentage"] = metric["non_null_percentage"]
 		condition["swap_null_values"] = metric["swap_null_values"]

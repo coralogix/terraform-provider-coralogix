@@ -21,8 +21,12 @@ func flattenAlertFilter(alert interface{}) interface{} {
 	if value, ok := alertFilter["alias"]; ok {
 		aliasKey = value.(string)
 	}
+	textKey := ""
+	if value, ok := alertFilter["text"]; ok {
+		textKey = value.(string)
+	}
 	return []interface{}{map[string]interface{}{
-		"text":         alertFilter["text"].(string),
+		"text":         textKey,
 		"applications": alertFilter["application_name"],
 		"subsystems":   alertFilter["subsystem_name"],
 		"severities":   alertFilter["severity"],
@@ -39,14 +43,31 @@ func flattenAlertMetric(alert interface{}) interface{} {
 		if value, ok := alertCondition["arithmetic_operator_modifier"]; ok {
 			operatorModifierKey = value.(float64)
 		}
+		fieldKey := ""
+		if value, ok := alertCondition["metric_field"]; ok {
+			fieldKey = value.(string)
+		}
+		sourceKey := ""
+		if value, ok := alertCondition["metric_source"]; ok {
+			sourceKey = value.(string)
+		}
+		arithmeticKey := 0.0
+		if value, ok := alertCondition["arithmetic_operator_modifier"]; ok {
+			arithmeticKey = value.(float64)
+		}
+		promqlKey := ""
+		if value, ok := alertCondition["promql_text"]; ok {
+			promqlKey = value.(string)
+		}
 		return []interface{}{map[string]interface{}{
-			"field":                        alertCondition["metric_field"].(string),
-			"source":                       alertCondition["metric_source"].(string),
-			"arithmetic_operator":          alertCondition["arithmetic_operator"].(float64),
+			"field":                        fieldKey,
+			"source":                       sourceKey,
+			"arithmetic_operator":          arithmeticKey,
 			"sample_threshold_percentage":  alertCondition["sample_threshold_percentage"].(float64),
 			"non_null_percentage":          alertCondition["non_null_percentage"].(float64),
 			"swap_null_values":             alertCondition["swap_null_values"].(bool),
 			"arithmetic_operator_modifier": operatorModifierKey,
+			"promql_text":                  promqlKey,
 		},
 		}
 	}

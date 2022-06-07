@@ -135,6 +135,10 @@ func dataSourceCoralogixAlert() *schema.Resource {
 							Type:     schema.TypeBool,
 							Computed: true,
 						},
+						"promql_text": {
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -192,7 +196,7 @@ func dataSourceCoralogixAlert() *schema.Resource {
 				},
 			},
 			"content": {
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
@@ -202,12 +206,12 @@ func dataSourceCoralogixAlert() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"emails": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"integrations": {
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Computed: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},

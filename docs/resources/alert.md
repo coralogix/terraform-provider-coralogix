@@ -196,21 +196,22 @@ resource "coralogix_alert" "metric_alert" {
 
 Each `filter` block should contains the following:
 
-* `text` - (Required) String query to be alerted on. empty string is for all records without filtering
-* `applications` - (Required) List of application names to be alerted on, an empty list is all application names.
-* `subsystems` - (Required) List of subsystem names to be alerted on, empty list is all subsystem names.
-* `severities` - (Required) List of log severities to be alerted on, one of the following: `debug`, `verbose`, `info`, `warning`, `error`, `critical`, an empty list is all severities.
+* `text` - (Optional) String query to be alerted on. empty string is for all records without filtering
+* `applications` - (Optional) List of application names to be alerted on, an empty list is all application names.
+* `subsystems` - (Optional) List of subsystem names to be alerted on, empty list is all subsystem names.
+* `severities` - (Optional) List of log severities to be alerted on, one of the following: `debug`, `verbose`, `info`, `warning`, `error`, `critical`, an empty list is all severities.
 * `alias` - (Optional) An alias for the query, required only for alerts of type `ratio`.
 
 Each `metric` block should contains the following:
 
-* `field` - (Required) The name of the metric field to alert on.
-* `source` - (Required) The source of the metric. Either `logs2metrics` or `prometheus`.
-* `arithmetic_operator` - (Required) The arithmetic operator to use on the alert, Integer: `0` - avg, `1` - min, `2` - max, `3` - sum, `4` - count, `5` - percentile (for percentile you need to supply the requested percentile in arithmetic_operator_modifier).
+* `field` - (Optional) The name of the metric field to alert on.
+* `source` - (Optional) The source of the metric. Either `logs2metrics` or `prometheus`.
+* `arithmetic_operator` - (Optional) The arithmetic operator to use on the alert, Integer: `0` - avg, `1` - min, `2` - max, `3` - sum, `4` - count, `5` - percentile (for percentile you need to supply the requested percentile in arithmetic_operator_modifier).
 * `arithmetic_operator_modifier` - (Optional) For percentile(5) arithmetic_operator you need to supply the value in this property.
 * `sample_threshold_percentage` - (Required) The metric value must cross the threshold within this percentage of the timeframe (sum and count arithmetic operators do not use this parameter since they aggregate over the entire requested timeframe), `increments of 10`, `0 <= value <= 90`.
 * `non_null_percentage` - (Required) The minimum percentage of the timeframe that should have values for this alert to trigger, `increments of 10`, `0 <= value <= 100`.
 * `swap_null_values` - (Optional) If set to `true`, missing data will be considered as 0, otherwise, it will not be considered at all.
+* `promql_text` - (Optional) use PromQL instead of Lucene in the query. when used the fields [metric.field, metric.source, metric.arithmetic_operator, metric.arithmetic_operator_modifier, filter.text, condition.group_by] must not be set.
 
 Each `ratio` block should contains the following:
 
