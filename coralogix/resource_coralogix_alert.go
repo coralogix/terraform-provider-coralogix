@@ -408,7 +408,7 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		}
 		metric := metric.(map[string]interface{})
 		condition := condition.(map[string]interface{})
-		if value, ok := metric["promql_text"]; ok {
+		if value := metric["promql_text"]; value != "" {
 			// when promql is supplied some fields must be nil
 			if condition["group_by"] != "" || newFilter["text"] != "" || metric["field"] != "" || metric["source"] != "" ||
 				metric["arithmetic_operator"] != 0 || metric["arithmetic_operator_modifier"] != 0 {

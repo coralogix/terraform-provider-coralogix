@@ -52,7 +52,7 @@ func flattenAlertMetric(alert interface{}) interface{} {
 			sourceKey = value.(string)
 		}
 		arithmeticKey := 0.0
-		if value, ok := alertCondition["arithmetic_operator_modifier"]; ok {
+		if value, ok := alertCondition["arithmetic_operator"]; ok {
 			arithmeticKey = value.(float64)
 		}
 		promqlKey := ""
