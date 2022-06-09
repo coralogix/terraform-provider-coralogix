@@ -1,8 +1,6 @@
 package coralogix
 
 import (
-	"errors"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -56,7 +54,6 @@ func resourceCoralogixAlert() *schema.Resource {
 			"filter": {
 				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -100,7 +97,6 @@ func resourceCoralogixAlert() *schema.Resource {
 			"ratio": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -150,20 +146,17 @@ func resourceCoralogixAlert() *schema.Resource {
 			"metric": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"field": {
 							Type:         schema.TypeString,
 							Optional:     true,
-							ForceNew:     true,
 							ValidateFunc: validation.StringIsNotEmpty,
 						},
 						"source": {
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 							ValidateFunc: validation.StringInSlice([]string{
 								"logs2metrics",
 								"prometheus",
@@ -172,21 +165,18 @@ func resourceCoralogixAlert() *schema.Resource {
 						"arithmetic_operator": {
 							Type:         schema.TypeInt,
 							Optional:     true,
-							ForceNew:     true,
 							Default:      0,
 							ValidateFunc: validation.IntBetween(0, 5),
 						},
 						"arithmetic_operator_modifier": {
 							Type:         schema.TypeInt,
 							Optional:     true,
-							ForceNew:     true,
 							Default:      0,
-							ValidateFunc: validation.IntAtLeast(0),
+							ValidateFunc: validation.IntBetween(1, 99),
 						},
 						"sample_threshold_percentage": {
 							Type:     schema.TypeInt,
 							Required: true,
-							ForceNew: true,
 							ValidateFunc: validation.All(
 								validation.IntBetween(0, 90),
 								validation.IntDivisibleBy(10),
@@ -195,7 +185,6 @@ func resourceCoralogixAlert() *schema.Resource {
 						"non_null_percentage": {
 							Type:     schema.TypeInt,
 							Required: true,
-							ForceNew: true,
 							ValidateFunc: validation.All(
 								validation.IntBetween(0, 100),
 								validation.IntDivisibleBy(10),
@@ -204,13 +193,11 @@ func resourceCoralogixAlert() *schema.Resource {
 						"swap_null_values": {
 							Type:     schema.TypeBool,
 							Optional: true,
-							ForceNew: true,
 							Default:  false,
 						},
 						"promql_text": {
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 							Default:  nil,
 						},
 					},
@@ -219,14 +206,12 @@ func resourceCoralogixAlert() *schema.Resource {
 			"condition": {
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"condition_type": {
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: true,
 							ValidateFunc: validation.StringInSlice([]string{
 								"less_than",
 								"more_than",
@@ -235,15 +220,13 @@ func resourceCoralogixAlert() *schema.Resource {
 							}, false),
 						},
 						"threshold": {
-							Type:         schema.TypeInt,
+							Type:         schema.TypeFloat,
 							Required:     true,
-							ForceNew:     true,
-							ValidateFunc: validation.IntAtLeast(0),
+							ValidateFunc: validation.FloatAtLeast(0),
 						},
 						"timeframe": {
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: true,
 							ValidateFunc: validation.StringInSlice([]string{
 								"5MIN",
 								"10MIN",
@@ -268,7 +251,6 @@ func resourceCoralogixAlert() *schema.Resource {
 						"relative_timeframe": {
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 							ValidateFunc: validation.StringInSlice([]string{
 								"HOUR",
 								"DAY",
@@ -280,13 +262,11 @@ func resourceCoralogixAlert() *schema.Resource {
 						"group_by": {
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 							Default:  "",
 						},
 						"unique_count_key": {
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
 							Default:  "",
 						},
 					},
@@ -360,13 +340,26 @@ func resourceCoralogixAlert() *schema.Resource {
 					},
 				},
 			},
+			"alert_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"notify_every": {
+				Type:     schema.TypeInt,
+				Optional: true,
+				Default:  60,
+			},
 		},
 	}
 }
 
 func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) error {
+	if err := valuesValidation(d); err != nil {
+		return err
+	}
 	apiClient := meta.(*Client)
 	alertType := d.Get("type").(string)
+	notifyEvery := d.Get("notify_every").(int)
 	filter := getFirstOrNil(d.Get("filter").(*schema.Set).List())
 	var newFilter = make(map[string]interface{}, 7)
 	newFilter["filter_type"] = alertType
@@ -376,22 +369,8 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 	newFilter["subsystem_name"] = filter.(map[string]interface{})["subsystems"].(*schema.Set).List()
 	newFilter["alias"] = filter.(map[string]interface{})["alias"].(string)
 	condition := getFirstOrNil(d.Get("condition").(*schema.Set).List())
-	if condition == nil {
-		if alertType != "text" {
-			str := "alert of type " + d.Get("type").(string) + " must have condition block"
-			return errors.New(str)
-		}
-	}
-	ratio := getFirstOrNil(d.Get("ratio").(*schema.Set).List())
 	if alertType == "ratio" {
-		if ratio == nil {
-			return errors.New("alert of type ratio must have ratio block")
-		}
-		// specific check until filter block is optional completly
-		if newFilter["alias"] == "" {
-			return errors.New("alert of type ratio must have alias defined on filter block")
-		}
-		ratio := ratio.(map[string]interface{})
+		ratio := getFirstOrNil(d.Get("ratio").(*schema.Set).List()).(map[string]interface{})
 		newRatio := make(map[string]interface{}, 6)
 		newRatio["severity"] = ratio["severities"].(*schema.Set).List()
 		newRatio["application_name"] = ratio["applications"].(*schema.Set).List()
@@ -401,27 +380,17 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		newRatio["alias"] = ratio["alias"]
 		newFilter["ratioAlerts"] = []interface{}{newRatio}
 	}
-	metric := getFirstOrNil(d.Get("metric").(*schema.Set).List())
 	if alertType == "metric" {
-		if metric == nil {
-			return errors.New("alert of type metric must have metric block")
-		}
-		metric := metric.(map[string]interface{})
+		metric := getFirstOrNil(d.Get("metric").(*schema.Set).List()).(map[string]interface{})
 		condition := condition.(map[string]interface{})
 		if value := metric["promql_text"]; value != "" {
-			// when promql is supplied some fields must be nil
-			if condition["group_by"] != "" || newFilter["text"] != "" || metric["field"] != "" || metric["source"] != "" ||
-				metric["arithmetic_operator"] != 0 || metric["arithmetic_operator_modifier"] != 0 {
-				return errors.New("alert of type metric with promql_text must not define these fields: [metric.field, metric.source, metric.arithmetic_operator," +
-					"metric.arithmetic_operator_modifier, filter.text, condition.group_by]")
-			}
 			condition["promql_text"] = value
 		} else {
 			condition["metric_field"] = metric["field"]
 			condition["metric_source"] = metric["source"]
 			condition["arithmetic_operator"] = metric["arithmetic_operator"]
-			condition["arithmetic_operator_modifier"] = metric["arithmetic_operator_modifier"]
 		}
+		condition["arithmetic_operator_modifier"] = metric["arithmetic_operator_modifier"]
 		condition["sample_threshold_percentage"] = metric["sample_threshold_percentage"]
 		condition["non_null_percentage"] = metric["non_null_percentage"]
 		condition["swap_null_values"] = metric["swap_null_values"]
@@ -461,6 +430,7 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		"notifications":        newNotification,
 		"active_when":          newSchedule,
 		"notif_payload_filter": content,
+		"notify_every":         notifyEvery,
 	}
 	alert, err := apiClient.Post("/external/alerts", alertParameters)
 	if err != nil {
@@ -484,7 +454,7 @@ func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return err
 	}
-
+	d.Set("alert_id", alert["id"].(string))
 	d.Set("name", alert["name"].(string))
 	d.Set("severity", alert["severity"].(string))
 	d.Set("enabled", alert["is_active"].(bool))
@@ -499,27 +469,91 @@ func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error 
 		d.Set("content", content)
 	}
 	d.Set("description", alert["description"].(string))
+	d.Set("notify_every", alert["notify_every"].(float64))
 	d.SetId(alert["unique_identifier"].(string))
 	return nil
 }
 
 func resourceCoralogixAlertUpdate(d *schema.ResourceData, meta interface{}) error {
+	if err := valuesValidation(d); err != nil {
+		return err
+	}
 	apiClient := meta.(*Client)
-
-	if d.HasChanges("name", "severity", "enabled", "type", "description") {
-		alert, err := apiClient.Put("/external/alerts", map[string]interface{}{
-			"unique_identifier": d.Id(),
-			"name":              d.Get("name").(string),
-			"description":       d.Get("description").(string),
-			"severity":          d.Get("severity").(string),
-			"is_active":         d.Get("enabled").(bool),
-		})
+	alertUpdateParameters := make(map[string]interface{}, 0)
+	alertType := d.Get("type").(string)
+	// top level fields
+	if d.HasChange("name") {
+		alertUpdateParameters["name"] = d.Get("name").(string)
+	}
+	if d.HasChange("severity") {
+		alertUpdateParameters["severity"] = d.Get("severity").(string)
+	}
+	if d.HasChange("enabled") {
+		alertUpdateParameters["is_active"] = d.Get("enabled").(bool)
+	}
+	if d.HasChange("description") {
+		alertUpdateParameters["description"] = d.Get("description").(string)
+	}
+	if d.HasChange("notify_every") {
+		alertUpdateParameters["notify_every"] = d.Get("notify_every").(int)
+	}
+	// log_filter field
+	if d.HasChanges("type", "filter", "ratio") {
+		filter := getFirstOrNil(d.Get("filter").(*schema.Set).List())
+		var newFilter = make(map[string]interface{}, 7)
+		newFilter["filter_type"] = alertType
+		newFilter["text"] = filter.(map[string]interface{})["text"].(string)
+		newFilter["severity"] = filter.(map[string]interface{})["severities"].(*schema.Set).List()
+		newFilter["application_name"] = filter.(map[string]interface{})["applications"].(*schema.Set).List()
+		newFilter["subsystem_name"] = filter.(map[string]interface{})["subsystems"].(*schema.Set).List()
+		newFilter["alias"] = filter.(map[string]interface{})["alias"].(string)
+		if d.HasChange("ratio") {
+			ratio := getFirstOrNil(d.Get("ratio").(*schema.Set).List()).(map[string]interface{})
+			newRatio := make(map[string]interface{}, 6)
+			newRatio["severity"] = ratio["severities"].(*schema.Set).List()
+			newRatio["application_name"] = ratio["applications"].(*schema.Set).List()
+			newRatio["subsystem_name"] = ratio["subsystems"].(*schema.Set).List()
+			newRatio["group_by"] = ratio["group_by"].(*schema.Set).List()
+			newRatio["text"] = ratio["text"]
+			newRatio["alias"] = ratio["alias"]
+			newFilter["ratioAlerts"] = []interface{}{newRatio}
+		}
+		alertUpdateParameters["log_filter"] = newFilter
+	}
+	// condition field
+	if d.HasChanges("condition", "metric") {
+		alertUpdateParameters["condition"] = getFirstOrNil(d.Get("condition").(*schema.Set).List())
+		if d.HasChange("metric") && alertUpdateParameters["condition"] != nil {
+			if logFilter, ok := alertUpdateParameters["log_filter"]; ok {
+				// cannot send these fields with metric , already validated that they are zero-valued.
+				delete(logFilter.(map[string]interface{}), "severity")
+				delete(logFilter.(map[string]interface{}), "application_name")
+				delete(logFilter.(map[string]interface{}), "subsystem_name")
+				delete(logFilter.(map[string]interface{}), "alias")
+			}
+			metric := getFirstOrNil(d.Get("metric").(*schema.Set).List()).(map[string]interface{})
+			condition := alertUpdateParameters["condition"].(map[string]interface{})
+			if value := metric["promql_text"]; value != "" {
+				condition["promql_text"] = value
+			} else {
+				condition["metric_field"] = metric["field"]
+				condition["metric_source"] = metric["source"]
+				condition["arithmetic_operator"] = metric["arithmetic_operator"]
+			}
+			condition["arithmetic_operator_modifier"] = metric["arithmetic_operator_modifier"]
+			condition["sample_threshold_percentage"] = metric["sample_threshold_percentage"]
+			condition["non_null_percentage"] = metric["non_null_percentage"]
+			condition["swap_null_values"] = metric["swap_null_values"]
+		}
+	}
+	if len(alertUpdateParameters) > 0 {
+		alertUpdateParameters["id"] = d.Get("alert_id").(string)
+		alert, err := apiClient.Put("/external/alerts", alertUpdateParameters)
 		if err != nil {
 			return err
 		}
 		d.SetId(alert["unique_identifier"].(string))
 	}
-
 	return resourceCoralogixAlertRead(d, meta)
 }
 

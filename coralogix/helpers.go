@@ -2,6 +2,9 @@ package coralogix
 
 import (
 	"errors"
+	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func getAlertByID(alertsList []interface{}, alertID string) (map[string]interface{}, error) {
@@ -218,6 +221,175 @@ func transformWeekListReverse(days []interface{}) []string {
 func getFirstOrNil(list []interface{}) interface{} {
 	if len(list) > 0 {
 		return list[0]
+	}
+	return nil
+}
+
+// returns the timeframe chose in seconds
+func getTimeframeInSeconds(time string) int {
+	timeMap := map[string]int{"5Min": 300, "10Min": 600, "20Min": 1200, "30Min": 1800, "1H": 3600, "2H": 7200, "3H": 10800, "4H": 14400, "6H": 21600, "12H": 43200, "24H": 86400, "HOUR": 3600, "DAY": 86400}
+	return timeMap[time]
+}
+
+// resource values validation on create or update,
+// returns error or nil
+func valuesValidation(d *schema.ResourceData) error {
+	alertType := d.Get("type").(string)
+	filter := getFirstOrNil(d.Get("filter").(*schema.Set).List())
+	condition := getFirstOrNil(d.Get("condition").(*schema.Set).List())
+	ratio := getFirstOrNil(d.Get("ratio").(*schema.Set).List())
+	metric := getFirstOrNil(d.Get("metric").(*schema.Set).List())
+	if condition == nil {
+		if alertType != "text" {
+			return fmt.Errorf("alert of type %s must have condition block", alertType)
+		}
+	}
+	// conditions affecting multiple alertTypes are copied for simplicity
+	switch alertType {
+	case "text":
+		if condition != nil {
+			if condition.(map[string]interface{})["condition_type"] == "less_than" {
+				if condition.(map[string]interface{})["group_by"] != "" {
+					return errors.New("when alert condition is of type 'less_than' condition.group_by should not be defined")
+				}
+				if timeInSeconds := getTimeframeInSeconds(condition.(map[string]interface{})["timeframe"].(string)); d.Get("notify_every").(int) < timeInSeconds {
+					return fmt.Errorf("when alert condition is of type 'less_than', notify_every has to be as long as condition.timeframe, atleast %d", timeInSeconds)
+				}
+			}
+			if condition.(map[string]interface{})["condition_type"] == "new_value" {
+				if condition.(map[string]interface{})["group_by"] == "" {
+					return errors.New("when alert condition is of type 'new_value' condition.group_by should be defined")
+				}
+				timeMapNewValue := map[string]bool{"12H": true, "24H": true, "48H": true, "72H": true, "1W": true, "1M": true, "2M": true, "3M": true}
+				if _, ok := timeMapNewValue[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
+					return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
+				}
+			} else {
+				timeMapBasic := map[string]bool{"5Min": true, "10Min": true, "20Min": true, "30Min": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
+				if _, ok := timeMapBasic[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
+					return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
+				}
+			}
+			if condition.(map[string]interface{})["unique_count_key"] != "" {
+				return errors.New("when alert is of type 'text' condition.unique_count_key should not be defined")
+			}
+		}
+		if filter.(map[string]interface{})["alias"].(string) != "" {
+			return fmt.Errorf("alerts of type '%s' cannot define filter.alias", alertType)
+		}
+	case "unique_count":
+		if condition.(map[string]interface{})["unique_count_key"] == "" {
+			return errors.New("when alert is of type 'unique_count' condition.unique_count_key should be defined")
+		}
+		if condition.(map[string]interface{})["condition_type"] != "more_than" {
+			return errors.New("when alert is of type 'unique_count' condition.condition_type should be 'more_than'")
+		}
+		timeMapBasic := map[string]bool{"5Min": true, "10Min": true, "20Min": true, "30Min": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
+		if _, ok := timeMapBasic[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
+			return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
+		}
+		if filter.(map[string]interface{})["alias"].(string) != "" {
+			return fmt.Errorf("alerts of type '%s' cannot define filter.alias", alertType)
+		}
+	case "metric":
+		if metric == nil {
+			return errors.New("alert of type 'metric' must have metric block")
+		}
+		if metric.(map[string]interface{})["promql_text"] != "" {
+			if condition.(map[string]interface{})["group_by"] != "" || filter.(map[string]interface{})["text"] != "" || metric.(map[string]interface{})["field"] != "" ||
+				metric.(map[string]interface{})["source"] != "" || metric.(map[string]interface{})["arithmetic_operator"] != 0 {
+				return errors.New("alert of type metric with promql_text must not define these fields: [metric.field, metric.source, metric.arithmetic_operator," +
+					" filter.text, condition.group_by]")
+			}
+		} else {
+			if metric.(map[string]interface{})["field"] == "" || metric.(map[string]interface{})["source"] == "" {
+				return errors.New("alert of type metric without promql_text must define these fields: [metric.field, metric.source]")
+			}
+		}
+		if getFirstOrNil(filter.(map[string]interface{})["severities"].(*schema.Set).List()) != nil {
+			return errors.New("alert of type metric cannot define filter.severities")
+		}
+		if getFirstOrNil(filter.(map[string]interface{})["applications"].(*schema.Set).List()) != nil {
+			return errors.New("alert of type metric cannot define filter.applications")
+		}
+		if getFirstOrNil(filter.(map[string]interface{})["subsystems"].(*schema.Set).List()) != nil {
+			return errors.New("alert of type metric cannot define filter.subsystems")
+		}
+		if metric.(map[string]interface{})["arithmetic_operator"] != 5 && metric.(map[string]interface{})["arithmetic_operator_modifier"] != 0 {
+			return errors.New("alert of type metric cannot define metric.arithmetic_operator_modifier when metric.arithmetic_operator is not 5 (percentile)")
+		}
+		if filter.(map[string]interface{})["alias"].(string) != "" {
+			return errors.New("alert of type metric cannot define filter.alias")
+		}
+		if condition.(map[string]interface{})["condition_type"] == "less_than" {
+			if condition.(map[string]interface{})["group_by"] != "" {
+				return errors.New("when alert condition is of type 'less_than' condition.group_by should not be defined")
+			}
+			if timeInSeconds := getTimeframeInSeconds(condition.(map[string]interface{})["timeframe"].(string)); d.Get("notify_every").(int) < timeInSeconds {
+				return fmt.Errorf("when alert condition is of type 'less_than', notify_every has to be as long as condition.timeframe, atleast %d", timeInSeconds)
+			}
+		} else if condition.(map[string]interface{})["condition_type"] != "more_than" {
+			return errors.New("condition.condition_type has to match metric alert values")
+		}
+		if condition.(map[string]interface{})["unique_count_key"] != "" {
+			return errors.New("when alert is of type 'metric' condition.unique_count_key should not be defined")
+		}
+		timeMapBasic := map[string]bool{"5Min": true, "10Min": true, "20Min": true, "30Min": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
+		if _, ok := timeMapBasic[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
+			return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
+		}
+		if filter.(map[string]interface{})["alias"].(string) != "" {
+			return fmt.Errorf("alerts of type '%s' cannot define filter.alias", alertType)
+		}
+	case "relative_time":
+		if condition.(map[string]interface{})["condition_type"] == "less_than" {
+			if condition.(map[string]interface{})["group_by"] != "" {
+				return errors.New("when alert condition is of type 'less_than' condition.group_by should not be defined")
+			}
+			if timeInSeconds := getTimeframeInSeconds(condition.(map[string]interface{})["timeframe"].(string)); d.Get("notify_every").(int) < timeInSeconds {
+				return fmt.Errorf("when alert condition is of type 'less_than', notify_every has to be as long as condition.timeframe, atleast %d", timeInSeconds)
+			}
+		} else if condition.(map[string]interface{})["condition_type"] != "more_than" {
+			return errors.New("condition.condition_type has to match relative_time alert values")
+		}
+		timeMap := map[string]bool{"HOUR": true, "DAY": true}
+		if _, ok := timeMap[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
+			return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
+		}
+		timeMapRelative := map[string]bool{"HOUR": true, "DAY": true, "WEEK": true, "MONTH": true}
+		if _, ok := timeMapRelative[condition.(map[string]interface{})["relative_timeframe"].(string)]; !ok {
+			return fmt.Errorf("relative timeframe has to match '%s' alert values", alertType)
+		}
+		if filter.(map[string]interface{})["alias"].(string) != "" {
+			return fmt.Errorf("alerts of type '%s' cannot define filter.alias", alertType)
+		}
+		if condition.(map[string]interface{})["unique_count_key"] != "" {
+			return errors.New("when alert is of type 'relative_time' condition.unique_count_key should not be defined")
+		}
+	case "ratio":
+		if ratio == nil {
+			return errors.New("alert of type 'ratio' must have ratio block")
+		}
+		if filter.(map[string]interface{})["alias"].(string) == "" {
+			return errors.New("alert of type 'ratio' must have filter.alias defined")
+		}
+		if condition.(map[string]interface{})["condition_type"] == "less_than" {
+			if condition.(map[string]interface{})["group_by"] != "" {
+				return errors.New("when alert condition is of type 'less_than' condition.group_by should not be defined")
+			}
+			if timeInSeconds := getTimeframeInSeconds(condition.(map[string]interface{})["timeframe"].(string)); d.Get("notify_every").(int) < timeInSeconds {
+				return fmt.Errorf("when alert condition is of type 'less_than', notify_every has to be as long as condition.timeframe, atleast %d", timeInSeconds)
+			}
+		} else if condition.(map[string]interface{})["condition_type"] != "more_than" {
+			return errors.New("condition.condition_type has to match 'ratio' alert values")
+		}
+		timeMapBasic := map[string]bool{"5Min": true, "10Min": true, "20Min": true, "30Min": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
+		if _, ok := timeMapBasic[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
+			return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
+		}
+		if condition.(map[string]interface{})["unique_count_key"] != "" {
+			return errors.New("when alert is of type 'ratio' condition.unique_count_key should not be defined")
+		}
 	}
 	return nil
 }
