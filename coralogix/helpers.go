@@ -3,6 +3,7 @@ package coralogix
 import (
 	"errors"
 	"fmt"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -26,7 +27,11 @@ func flattenAlertFilter(alert interface{}) interface{} {
 	}
 	textKey := ""
 	if value, ok := alertFilter["text"]; ok {
-		textKey = value.(string)
+		if value == nil {
+			textKey = ""
+		} else {
+			textKey = value.(string)
+		}
 	}
 	return []interface{}{map[string]interface{}{
 		"text":         textKey,
@@ -239,23 +244,16 @@ func valuesValidation(d *schema.ResourceData) error {
 	condition := getFirstOrNil(d.Get("condition").(*schema.Set).List())
 	ratio := getFirstOrNil(d.Get("ratio").(*schema.Set).List())
 	metric := getFirstOrNil(d.Get("metric").(*schema.Set).List())
+	schedule := getFirstOrNil(d.Get("schedule").(*schema.Set).List())
 	if condition == nil {
 		if alertType != "text" {
 			return fmt.Errorf("alert of type %s must have condition block", alertType)
 		}
 	}
-	// conditions affecting multiple alertTypes are copied for simplicity
+	// conditions affecting multiple alertTypes but not all are copied for simplicity
 	switch alertType {
 	case "text":
 		if condition != nil {
-			if condition.(map[string]interface{})["condition_type"] == "less_than" {
-				if condition.(map[string]interface{})["group_by"] != "" {
-					return errors.New("when alert condition is of type 'less_than' condition.group_by should not be defined")
-				}
-				if timeInSeconds := getTimeframeInSeconds(condition.(map[string]interface{})["timeframe"].(string)); d.Get("notify_every").(int) < timeInSeconds {
-					return fmt.Errorf("when alert condition is of type 'less_than', notify_every has to be as long as condition.timeframe, atleast %d", timeInSeconds)
-				}
-			}
 			if condition.(map[string]interface{})["condition_type"] == "new_value" {
 				if condition.(map[string]interface{})["group_by"] == "" {
 					return errors.New("when alert condition is of type 'new_value' condition.group_by should be defined")
@@ -321,14 +319,7 @@ func valuesValidation(d *schema.ResourceData) error {
 		if filter.(map[string]interface{})["alias"].(string) != "" {
 			return errors.New("alert of type metric cannot define filter.alias")
 		}
-		if condition.(map[string]interface{})["condition_type"] == "less_than" {
-			if condition.(map[string]interface{})["group_by"] != "" {
-				return errors.New("when alert condition is of type 'less_than' condition.group_by should not be defined")
-			}
-			if timeInSeconds := getTimeframeInSeconds(condition.(map[string]interface{})["timeframe"].(string)); d.Get("notify_every").(int) < timeInSeconds {
-				return fmt.Errorf("when alert condition is of type 'less_than', notify_every has to be as long as condition.timeframe, atleast %d", timeInSeconds)
-			}
-		} else if condition.(map[string]interface{})["condition_type"] != "more_than" {
+		if condition.(map[string]interface{})["condition_type"] != "more_than" && condition.(map[string]interface{})["condition_type"] != "less_than" {
 			return errors.New("condition.condition_type has to match metric alert values")
 		}
 		if condition.(map[string]interface{})["unique_count_key"] != "" {
@@ -342,14 +333,7 @@ func valuesValidation(d *schema.ResourceData) error {
 			return fmt.Errorf("alerts of type '%s' cannot define filter.alias", alertType)
 		}
 	case "relative_time":
-		if condition.(map[string]interface{})["condition_type"] == "less_than" {
-			if condition.(map[string]interface{})["group_by"] != "" {
-				return errors.New("when alert condition is of type 'less_than' condition.group_by should not be defined")
-			}
-			if timeInSeconds := getTimeframeInSeconds(condition.(map[string]interface{})["timeframe"].(string)); d.Get("notify_every").(int) < timeInSeconds {
-				return fmt.Errorf("when alert condition is of type 'less_than', notify_every has to be as long as condition.timeframe, atleast %d", timeInSeconds)
-			}
-		} else if condition.(map[string]interface{})["condition_type"] != "more_than" {
+		if condition.(map[string]interface{})["condition_type"] != "more_than" && condition.(map[string]interface{})["condition_type"] != "less_than" {
 			return errors.New("condition.condition_type has to match relative_time alert values")
 		}
 		timeMap := map[string]bool{"HOUR": true, "DAY": true}
@@ -373,14 +357,7 @@ func valuesValidation(d *schema.ResourceData) error {
 		if filter.(map[string]interface{})["alias"].(string) == "" {
 			return errors.New("alert of type 'ratio' must have filter.alias defined")
 		}
-		if condition.(map[string]interface{})["condition_type"] == "less_than" {
-			if condition.(map[string]interface{})["group_by"] != "" {
-				return errors.New("when alert condition is of type 'less_than' condition.group_by should not be defined")
-			}
-			if timeInSeconds := getTimeframeInSeconds(condition.(map[string]interface{})["timeframe"].(string)); d.Get("notify_every").(int) < timeInSeconds {
-				return fmt.Errorf("when alert condition is of type 'less_than', notify_every has to be as long as condition.timeframe, atleast %d", timeInSeconds)
-			}
-		} else if condition.(map[string]interface{})["condition_type"] != "more_than" {
+		if condition.(map[string]interface{})["condition_type"] != "more_than" && condition.(map[string]interface{})["condition_type"] != "less_than" {
 			return errors.New("condition.condition_type has to match 'ratio' alert values")
 		}
 		timeMapBasic := map[string]bool{"5Min": true, "10Min": true, "20Min": true, "30Min": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
@@ -389,6 +366,26 @@ func valuesValidation(d *schema.ResourceData) error {
 		}
 		if condition.(map[string]interface{})["unique_count_key"] != "" {
 			return errors.New("when alert is of type 'ratio' condition.unique_count_key should not be defined")
+		}
+	}
+	// non-specific checks
+	if schedule != nil {
+		r, _ := regexp.Compile(`[0-9]{2}:[0-9]{2}:[0-9]{2}`)
+		if ok := r.MatchString(schedule.(map[string]interface{})["start"].(string)); !ok {
+			return errors.New("schedule.start must be in format HH:MM:SS")
+		}
+		if ok := r.MatchString(schedule.(map[string]interface{})["end"].(string)); !ok {
+			return errors.New("schedule.end must be in format HH:MM:SS")
+		}
+	}
+	if condition != nil {
+		if condition.(map[string]interface{})["condition_type"] == "less_than" {
+			if condition.(map[string]interface{})["group_by"] != "" {
+				return errors.New("when alert condition is of type 'less_than' condition.group_by should not be defined")
+			}
+			if timeInSeconds := getTimeframeInSeconds(condition.(map[string]interface{})["timeframe"].(string)); d.Get("notify_every").(int) < timeInSeconds {
+				return fmt.Errorf("when alert condition is of type 'less_than', notify_every has to be as long as condition.timeframe, atleast %d", timeInSeconds)
+			}
 		}
 	}
 	return nil

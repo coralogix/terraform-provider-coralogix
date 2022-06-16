@@ -10,7 +10,7 @@ func dataSourceCoralogixAlert() *schema.Resource {
 		Read: dataSourceCoralogixAlertRead,
 
 		Schema: map[string]*schema.Schema{
-			"alert_id": {
+			"unique_identifier": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.IsUUID,
@@ -218,6 +218,14 @@ func dataSourceCoralogixAlert() *schema.Resource {
 					},
 				},
 			},
+			"alert_id": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"notify_every": {
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -230,11 +238,12 @@ func dataSourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	alert, err := getAlertByID(alertsList["alerts"].([]interface{}), d.Get("alert_id").(string))
+	alert, err := getAlertByID(alertsList["alerts"].([]interface{}), d.Get("unique_identifier").(string))
 	if err != nil {
 		return err
 	}
 
+	d.Set("alert_id", alert["id"].(string))
 	d.Set("name", alert["name"].(string))
 	d.Set("severity", alert["severity"].(string))
 	d.Set("enabled", alert["is_active"].(bool))
@@ -249,6 +258,7 @@ func dataSourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) erro
 		d.Set("content", content)
 	}
 	d.Set("description", alert["description"].(string))
+	d.Set("notify_every", alert["notify_every"].(float64))
 	d.SetId(alert["unique_identifier"].(string))
 	return nil
 }
