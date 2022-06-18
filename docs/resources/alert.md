@@ -180,7 +180,7 @@ resource "coralogix_alert" "metric_alert" {
 ## Argument Reference
 
 * `name` - (Required) Alert name.
-* `type` - (Required) Alert type, one of the following: `text`, `unique_count`, `relative_time`, `metric`. For new_value alerts the value should be `text`.
+* `type` - (Required) Alert type, one of the following: `text`, `unique_count`, `relative_time`, `metric`, `ratio`. For new_value alerts the value should be `text`.
 * `severity` - (Required) Alert severity, one of the following: `info`, `warning`, `critical`.
 * `enabled` - (Required) Alert state.
 * `filter` - (Required) A `filter` block as documented below.
@@ -191,6 +191,7 @@ resource "coralogix_alert" "metric_alert" {
 * `schedule` - (Optional) A `schedule` block as documented below.
 * `content` - (Optional) An array that contains log fields to be included with the alert notification.
 * `notifications` - (Optional) A `notifications` block as documented below.
+* `notify_every` - (Optional) the time an alert is supressed after it was triggered in seconds, default to `60`. when using condition.condition_type 'less_than' , the value has to be more than the timeframe picked.
 
 ---
 
@@ -207,11 +208,13 @@ Each `metric` block should contains the following:
 * `field` - (Optional) The name of the metric field to alert on.
 * `source` - (Optional) The source of the metric. Either `logs2metrics` or `prometheus`.
 * `arithmetic_operator` - (Optional) The arithmetic operator to use on the alert, Integer: `0` - avg, `1` - min, `2` - max, `3` - sum, `4` - count, `5` - percentile (for percentile you need to supply the requested percentile in arithmetic_operator_modifier).
-* `arithmetic_operator_modifier` - (Optional) For percentile(5) arithmetic_operator you need to supply the value in this property.
+* `arithmetic_operator_modifier` - (Optional) For percentile(5) arithmetic_operator you need to supply the value in this property, `0 < value < 100`.
 * `sample_threshold_percentage` - (Required) The metric value must cross the threshold within this percentage of the timeframe (sum and count arithmetic operators do not use this parameter since they aggregate over the entire requested timeframe), `increments of 10`, `0 <= value <= 90`.
 * `non_null_percentage` - (Required) The minimum percentage of the timeframe that should have values for this alert to trigger, `increments of 10`, `0 <= value <= 100`.
 * `swap_null_values` - (Optional) If set to `true`, missing data will be considered as 0, otherwise, it will not be considered at all.
 * `promql_text` - (Optional) use PromQL instead of Lucene in the query. when used the fields [metric.field, metric.source, metric.arithmetic_operator, metric.arithmetic_operator_modifier, filter.text, condition.group_by] must not be set.
+
+** when defining a metric alert, [filter.applications, filter.subsystems, filter.severities] should not be defined
 
 Each `ratio` block should contains the following:
 
@@ -224,13 +227,13 @@ Each `ratio` block should contains the following:
 
 Each `condition` block should contains the following:
 
-* `condition_type` - (Required) Alert condition type, one of the following: [`less_than`, `more_than`, `more_than_usual`, `new_value`] For 'unique count' alerts, the value should be [`more_than`]
-For 'metric' alerts, the value can be one of [`less_than`, `more_than`].
+* `condition_type` - (Required) Alert condition type, one of the following: [`less_than`, `more_than`, `more_than_usual`, `new_value`] For 'unique_count' alerts, the value should be [`more_than`]
+For 'metric', 'ratio', 'relative_time' alerts, the value can be one of [`less_than`, `more_than`].
 * `threshold` - (Required) Number of log occurrences that is needed to trigger the alert.
 * `timeframe` - (Required) The bounded time frame for the threshold to be occurred within, to trigger the alert one of the following: [`5Min`, `10Min`, `20Min`, `30Min`, `1H`, `2H`, `3H`, `4H`, `6H`, `12H`, `24H`], for 'new value' alerts [`12H`, `24H`, `48H`, `72H`, `1W`, `1M`, `2M`, `3M`], for 'time relative' alerts [`HOUR`, `DAY`].
 * `relative_timeframe` - (Optional) required only for `time relative` alerts one of the following: [`HOUR`, `DAY`, `WEEK`, `MONTH`].
-* `unique_count_key` - (Optional) required only for `unique count` and `new value` alerts, the key to track.
-* `group_by` - (Optional) The field to group by on.
+* `unique_count_key` - (Optional) required only for `unique_count` alerts, the key to track.
+* `group_by` - (Optional) The field to group by on, required for `new_value` alerts and it is the key to track.
 
 Each `schedule` block should contains the following:
 
