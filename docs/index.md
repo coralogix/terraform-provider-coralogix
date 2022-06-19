@@ -54,13 +54,3 @@ The following arguments are supported in the `provider` block:
   it can also be sourced from the `CORALOGIX_API_KEY` environment variable.
 * `timeout` - (Optional) This is the Coralogix API timeout. It is optional, but
   it can be sourced from the `CORALOGIX_API_TIMEOUT` environment variable (Default: `30`).
-
-## Coralogix URL table
-
-| Cluster Region     | Base API Endpoint                                     |
-|--------------------|-------------------------------------------------------|
-| Europe (.com)      | https://api.coralogix.com/api/v1/external/alerts/     |
-| US (.us)           | https://api.coralogix.us/api/v1/external/alerts/      |
-| India (.in)        | https://api.app.coralogix.in/api/v1/external/alerts/  |
-| Sweden (.eu2.)     | https://api.eu2.coralogix.com/api/v1/external/alerts/ |
-| Singapore (sg.com) | https://api.coralogixsg.com/api/v1/external/alerts/   |

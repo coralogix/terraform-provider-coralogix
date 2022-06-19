@@ -263,7 +263,7 @@ func valuesValidation(d *schema.ResourceData) error {
 					return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
 				}
 			} else {
-				timeMapBasic := map[string]bool{"5Min": true, "10Min": true, "20Min": true, "30Min": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
+				timeMapBasic := map[string]bool{"5MIN": true, "10MIN": true, "20MIN": true, "30MIN": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
 				if _, ok := timeMapBasic[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
 					return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
 				}
@@ -282,7 +282,7 @@ func valuesValidation(d *schema.ResourceData) error {
 		if condition.(map[string]interface{})["condition_type"] != "more_than" {
 			return errors.New("when alert is of type 'unique_count' condition.condition_type should be 'more_than'")
 		}
-		timeMapBasic := map[string]bool{"5Min": true, "10Min": true, "20Min": true, "30Min": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
+		timeMapBasic := map[string]bool{"5MIN": true, "10MIN": true, "20MIN": true, "30MIN": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
 		if _, ok := timeMapBasic[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
 			return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
 		}
@@ -325,7 +325,7 @@ func valuesValidation(d *schema.ResourceData) error {
 		if condition.(map[string]interface{})["unique_count_key"] != "" {
 			return errors.New("when alert is of type 'metric' condition.unique_count_key should not be defined")
 		}
-		timeMapBasic := map[string]bool{"5Min": true, "10Min": true, "20Min": true, "30Min": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
+		timeMapBasic := map[string]bool{"5MIN": true, "10MIN": true, "20MIN": true, "30MIN": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
 		if _, ok := timeMapBasic[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
 			return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
 		}
@@ -360,7 +360,7 @@ func valuesValidation(d *schema.ResourceData) error {
 		if condition.(map[string]interface{})["condition_type"] != "more_than" && condition.(map[string]interface{})["condition_type"] != "less_than" {
 			return errors.New("condition.condition_type has to match 'ratio' alert values")
 		}
-		timeMapBasic := map[string]bool{"5Min": true, "10Min": true, "20Min": true, "30Min": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
+		timeMapBasic := map[string]bool{"5MIN": true, "10MIN": true, "20MIN": true, "30MIN": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
 		if _, ok := timeMapBasic[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
 			return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
 		}
