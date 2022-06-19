@@ -230,7 +230,7 @@ Each `condition` block should contains the following:
 * `condition_type` - (Required) Alert condition type, one of the following: [`less_than`, `more_than`, `more_than_usual`, `new_value`] For 'unique_count' alerts, the value should be [`more_than`]
 For 'metric', 'ratio', 'relative_time' alerts, the value can be one of [`less_than`, `more_than`].
 * `threshold` - (Required) Number of log occurrences that is needed to trigger the alert.
-* `timeframe` - (Required) The bounded time frame for the threshold to be occurred within, to trigger the alert one of the following: [`5Min`, `10Min`, `20Min`, `30Min`, `1H`, `2H`, `3H`, `4H`, `6H`, `12H`, `24H`], for 'new value' alerts [`12H`, `24H`, `48H`, `72H`, `1W`, `1M`, `2M`, `3M`], for 'time relative' alerts [`HOUR`, `DAY`].
+* `timeframe` - (Required) The bounded time frame for the threshold to be occurred within, to trigger the alert one of the following: [`5MIN`, `10MIN`, `20MIN`, `30MIN`, `1H`, `2H`, `3H`, `4H`, `6H`, `12H`, `24H`], for 'new value' alerts [`12H`, `24H`, `48H`, `72H`, `1W`, `1M`, `2M`, `3M`], for 'time relative' alerts [`HOUR`, `DAY`].
 * `relative_timeframe` - (Optional) required only for `time relative` alerts one of the following: [`HOUR`, `DAY`, `WEEK`, `MONTH`].
 * `unique_count_key` - (Optional) required only for `unique_count` alerts, the key to track.
 * `group_by` - (Optional) The field to group by on, required for `new_value` alerts and it is the key to track.
@@ -250,9 +250,19 @@ Each `notifications` block should contains the following:
 
 Alerts can be imported using their unique identifier.
 
+First create a new alert block:
+
+```hcl
+resource "coralogix_alert" "my_alert" {
+}
 ```
-$ terraform import coralogix_alert.<resource_name> <alert_unique identifier>
+And then import it:
+
 ```
+$ terraform import coralogix_alert.my_alert UUID
+```
+
+After that go to your .tfstate file and implement the data for your alert inside the resource block.
 
 The unique identifer can be retrieved from the API with a GET request,
 for more information regarding the API - https://coralogix.com/docs/alerts-api/
