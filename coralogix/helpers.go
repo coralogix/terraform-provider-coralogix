@@ -82,15 +82,34 @@ func flattenAlertMetric(alert interface{}) interface{} {
 	return []interface{}{}
 }
 
-func flattenAlertCondition(alert interface{}) interface{} {
+func flattenAlertCondition(alert interface{}, group_by_array_flag bool) interface{} {
 	alertCondition := alert.(map[string]interface{})["condition"]
 	if alertCondition != nil {
 		alertConditionParameters := alertCondition.(map[string]interface{})
-		// checking for keys that not allways returned
+		// a check for group_by_array and group_by. will be changed when we remove group_by
 		alertConditionGroupBy := ""
-		if value, ok := alertConditionParameters["group_by"]; ok {
-			alertConditionGroupBy = value.(string)
+		alertConditionGroupByArray := make([]string, 0, 2)
+		if group_by_array_flag {
+			// use group_by_array key
+			if value, ok := alertConditionParameters["group_by"]; ok {
+				alertConditionGroupByArray = append(alertConditionGroupByArray, value.(string))
+				index := 2
+				for {
+					key := fmt.Sprintf("group_by_lvl%d", index)
+					if value, ok := alertConditionParameters[key]; ok {
+						alertConditionGroupByArray = append(alertConditionGroupByArray, value.(string))
+						index++
+					} else {
+						break
+					}
+				}
+			}
+		} else {
+			if value, ok := alertConditionParameters["group_by"]; ok {
+				alertConditionGroupBy = value.(string)
+			}
 		}
+		// checking for keys that not allways returned
 		uniqueCountKey := ""
 		if value, ok := alertConditionParameters["unique_count_key"]; ok {
 			uniqueCountKey = value.(string)
@@ -104,6 +123,7 @@ func flattenAlertCondition(alert interface{}) interface{} {
 			"threshold":          alertConditionParameters["threshold"].(float64),
 			"timeframe":          alertConditionParameters["timeframe"].(string),
 			"group_by":           alertConditionGroupBy,
+			"group_by_array":     alertConditionGroupByArray,
 			"unique_count_key":   uniqueCountKey,
 			"relative_timeframe": relativeTimeframe,
 		},
@@ -255,8 +275,11 @@ func valuesValidation(d *schema.ResourceData) error {
 	case "text":
 		if condition != nil {
 			if condition.(map[string]interface{})["condition_type"] == "new_value" {
-				if condition.(map[string]interface{})["group_by"] == "" {
-					return errors.New("when alert condition is of type 'new_value' condition.group_by should be defined")
+				if condition.(map[string]interface{})["group_by"] == "" && len(condition.(map[string]interface{})["group_by_array"].(*schema.Set).List()) == 0 {
+					return errors.New("when alert condition is of type 'new_value' condition.group_by_array should be defined")
+				}
+				if len(condition.(map[string]interface{})["group_by_array"].(*schema.Set).List()) > 1 {
+					return errors.New("when alert condition is of type 'new_value' condition.group_by_array cannot be more than one element")
 				}
 				timeMapNewValue := map[string]bool{"12H": true, "24H": true, "48H": true, "72H": true, "1W": true, "1M": true, "2M": true, "3M": true}
 				if _, ok := timeMapNewValue[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
@@ -294,10 +317,11 @@ func valuesValidation(d *schema.ResourceData) error {
 			return errors.New("alert of type 'metric' must have metric block")
 		}
 		if metric.(map[string]interface{})["promql_text"] != "" {
-			if condition.(map[string]interface{})["group_by"] != "" || filter.(map[string]interface{})["text"] != "" || metric.(map[string]interface{})["field"] != "" ||
-				metric.(map[string]interface{})["source"] != "" || metric.(map[string]interface{})["arithmetic_operator"] != 0 {
+			if condition.(map[string]interface{})["group_by"] != "" || len(condition.(map[string]interface{})["group_by_array"].(*schema.Set).List()) != 0 ||
+				filter.(map[string]interface{})["text"] != "" || metric.(map[string]interface{})["field"] != "" || metric.(map[string]interface{})["source"] != "" ||
+				metric.(map[string]interface{})["arithmetic_operator"] != 0 {
 				return errors.New("alert of type metric with promql_text must not define these fields: [metric.field, metric.source, metric.arithmetic_operator," +
-					" filter.text, condition.group_by]")
+					" filter.text, condition.group_by, condition.group_by_array]")
 			}
 		} else {
 			if metric.(map[string]interface{})["field"] == "" || metric.(map[string]interface{})["source"] == "" {
@@ -380,12 +404,15 @@ func valuesValidation(d *schema.ResourceData) error {
 	}
 	if condition != nil {
 		if condition.(map[string]interface{})["condition_type"] == "less_than" {
-			if condition.(map[string]interface{})["group_by"] != "" {
-				return errors.New("when alert condition is of type 'less_than' condition.group_by should not be defined")
+			if condition.(map[string]interface{})["group_by"] != "" || len(condition.(map[string]interface{})["group_by_array"].(*schema.Set).List()) != 0 {
+				return errors.New("when alert condition is of type 'less_than', condition.group_by_array and condition.group_by should not be defined")
 			}
 			if timeInSeconds := getTimeframeInSeconds(condition.(map[string]interface{})["timeframe"].(string)); d.Get("notify_every").(int) < timeInSeconds {
 				return fmt.Errorf("when alert condition is of type 'less_than', notify_every has to be as long as condition.timeframe, atleast %d", timeInSeconds)
 			}
+		}
+		if condition.(map[string]interface{})["group_by"] != "" && len(condition.(map[string]interface{})["group_by_array"].(*schema.Set).List()) != 0 {
+			return errors.New("when condition.group_by_array is defined, condition.group_by cannot be defined")
 		}
 	}
 	return nil
