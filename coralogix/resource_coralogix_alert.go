@@ -260,9 +260,15 @@ func resourceCoralogixAlert() *schema.Resource {
 							Default: "",
 						},
 						"group_by": {
-							Type:     schema.TypeString,
+							Type:       schema.TypeString,
+							Optional:   true,
+							Default:    "",
+							Deprecated: "group_by is no longer being used and will be deprecated in the next release. Please use 'group_by_array'",
+						},
+						"group_by_array": {
+							Type:     schema.TypeSet,
 							Optional: true,
-							Default:  "",
+							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"unique_count_key": {
 							Type:     schema.TypeString,
@@ -362,6 +368,27 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 	newFilter["subsystem_name"] = filter.(map[string]interface{})["subsystems"].(*schema.Set).List()
 	newFilter["alias"] = filter.(map[string]interface{})["alias"].(string)
 	condition := getFirstOrNil(d.Get("condition").(*schema.Set).List())
+	var newCondition = make(map[string]interface{}, 6)
+	if condition != nil {
+		condition := condition.(map[string]interface{})
+		newCondition["condition_type"] = condition["condition_type"].(string)
+		newCondition["threshold"] = condition["threshold"].(float64)
+		newCondition["timeframe"] = condition["timeframe"].(string)
+		newCondition["relative_timeframe"] = condition["relative_timeframe"].(string)
+		newCondition["unique_count_key"] = condition["unique_count_key"].(string)
+		if condition["group_by"] != "" {
+			newCondition["group_by"] = condition["group_by"]
+		} else if len(condition["group_by_array"].(*schema.Set).List()) != 0 {
+			// new_value alert accept only one string
+			if newCondition["condition_type"] == "new_value" {
+				newCondition["group_by"] = condition["group_by_array"].(*schema.Set).List()[0]
+			} else {
+				newCondition["group_by"] = condition["group_by_array"].(*schema.Set).List()
+			}
+		}
+	} else {
+		newCondition = nil
+	}
 	if alertType == "ratio" {
 		ratio := getFirstOrNil(d.Get("ratio").(*schema.Set).List()).(map[string]interface{})
 		newRatio := make(map[string]interface{}, 6)
@@ -375,18 +402,17 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 	if alertType == "metric" {
 		metric := getFirstOrNil(d.Get("metric").(*schema.Set).List()).(map[string]interface{})
-		condition := condition.(map[string]interface{})
 		if value := metric["promql_text"]; value != "" {
-			condition["promql_text"] = value
+			newCondition["promql_text"] = value
 		} else {
-			condition["metric_field"] = metric["field"]
-			condition["metric_source"] = metric["source"]
-			condition["arithmetic_operator"] = metric["arithmetic_operator"]
+			newCondition["metric_field"] = metric["field"]
+			newCondition["metric_source"] = metric["source"]
+			newCondition["arithmetic_operator"] = metric["arithmetic_operator"]
 		}
-		condition["arithmetic_operator_modifier"] = metric["arithmetic_operator_modifier"]
-		condition["sample_threshold_percentage"] = metric["sample_threshold_percentage"]
-		condition["non_null_percentage"] = metric["non_null_percentage"]
-		condition["swap_null_values"] = metric["swap_null_values"]
+		newCondition["arithmetic_operator_modifier"] = metric["arithmetic_operator_modifier"]
+		newCondition["sample_threshold_percentage"] = metric["sample_threshold_percentage"]
+		newCondition["non_null_percentage"] = metric["non_null_percentage"]
+		newCondition["swap_null_values"] = metric["swap_null_values"]
 	}
 	var newSchedule map[string]interface{}
 	schedule := getFirstOrNil(d.Get("schedule").(*schema.Set).List())
@@ -419,7 +445,7 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		"is_active":            d.Get("enabled").(bool),
 		"description":          d.Get("description").(string),
 		"log_filter":           newFilter,
-		"condition":            condition,
+		"condition":            newCondition,
 		"notifications":        newNotification,
 		"active_when":          newSchedule,
 		"notif_payload_filter": content,
@@ -455,7 +481,18 @@ func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error 
 	d.Set("filter", flattenAlertFilter(alert))
 	d.Set("metric", flattenAlertMetric(alert))
 	d.Set("ratio", flattenAlertRatio(alert))
-	d.Set("condition", flattenAlertCondition(alert))
+	// a check for group_by_array and group_by. will be changed when we remove group_by
+	condition := getFirstOrNil(d.Get("condition").(*schema.Set).List())
+	group_by_array_flag := true
+	if condition != nil {
+		if condition.(map[string]interface{})["group_by"] != "" {
+			// the data came from group_by
+			group_by_array_flag = false
+		}
+		d.Set("condition", flattenAlertCondition(alert, group_by_array_flag))
+	} else {
+		d.Set("condition", flattenAlertCondition(alert, group_by_array_flag))
+	}
 	d.Set("notifications", flattenAlertNotifications(alert))
 	d.Set("schedule", flattenAlertSchedule(alert))
 	if content := alert["notif_payload_filter"]; content != nil && len(content.([]interface{})) > 0 {
@@ -525,7 +562,28 @@ func resourceCoralogixAlertUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 	// condition field
 	if d.HasChanges("condition", "metric") {
-		alertUpdateParameters["condition"] = getFirstOrNil(d.Get("condition").(*schema.Set).List())
+		if conditionKey, ok := d.GetOk("condition"); ok {
+			condition := getFirstOrNil(conditionKey.(*schema.Set).List()).(map[string]interface{})
+			newCondition := make(map[string]interface{}, 6)
+			newCondition["condition_type"] = condition["condition_type"].(string)
+			newCondition["threshold"] = condition["threshold"].(float64)
+			newCondition["timeframe"] = condition["timeframe"].(string)
+			newCondition["relative_timeframe"] = condition["relative_timeframe"].(string)
+			newCondition["unique_count_key"] = condition["unique_count_key"].(string)
+			if condition["group_by"] != "" {
+				newCondition["group_by"] = condition["group_by"]
+			} else if len(condition["group_by_array"].(*schema.Set).List()) != 0 {
+				// new_value alert accept only one string
+				if newCondition["condition_type"] == "new_value" {
+					newCondition["group_by"] = condition["group_by_array"].(*schema.Set).List()[0]
+				} else {
+					newCondition["group_by"] = condition["group_by_array"].(*schema.Set).List()
+				}
+			}
+			alertUpdateParameters["condition"] = newCondition
+		} else {
+			alertUpdateParameters["condition"] = nil
+		}
 		if d.HasChange("metric") && alertUpdateParameters["condition"] != nil {
 			// check if the change is to metric
 			if metricKey, ok := d.GetOk("metric"); ok {

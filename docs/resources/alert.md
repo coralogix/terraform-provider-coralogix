@@ -136,7 +136,7 @@ resource "coralogix_alert" "ratio_alert" {
         condition_type = "more_than"
         threshold      = 10
         timeframe      = "30MIN"
-        group_by       = ""
+        group_by_array       = []
     }
     notifications {
         emails = [
@@ -212,7 +212,7 @@ Each `metric` block should contains the following:
 * `sample_threshold_percentage` - (Required) The metric value must cross the threshold within this percentage of the timeframe (sum and count arithmetic operators do not use this parameter since they aggregate over the entire requested timeframe), `increments of 10`, `0 <= value <= 90`.
 * `non_null_percentage` - (Required) The minimum percentage of the timeframe that should have values for this alert to trigger, `increments of 10`, `0 <= value <= 100`.
 * `swap_null_values` - (Optional) If set to `true`, missing data will be considered as 0, otherwise, it will not be considered at all.
-* `promql_text` - (Optional) use PromQL instead of Lucene in the query. when used the fields [metric.field, metric.source, metric.arithmetic_operator, metric.arithmetic_operator_modifier, filter.text, condition.group_by] must not be set.
+* `promql_text` - (Optional) use PromQL instead of Lucene in the query. when used the fields [metric.field, metric.source, metric.arithmetic_operator, metric.arithmetic_operator_modifier, filter.text, condition.group_by, condition.group_by_array] must not be set.
 
 ** when defining a metric alert, [filter.applications, filter.subsystems, filter.severities] should not be defined
 
@@ -233,7 +233,8 @@ For 'metric', 'ratio', 'relative_time' alerts, the value can be one of [`less_th
 * `timeframe` - (Required) The bounded time frame for the threshold to be occurred within, to trigger the alert one of the following: [`5MIN`, `10MIN`, `20MIN`, `30MIN`, `1H`, `2H`, `3H`, `4H`, `6H`, `12H`, `24H`], for 'new value' alerts [`12H`, `24H`, `48H`, `72H`, `1W`, `1M`, `2M`, `3M`], for 'time relative' alerts [`HOUR`, `DAY`].
 * `relative_timeframe` - (Optional) required only for `time relative` alerts one of the following: [`HOUR`, `DAY`, `WEEK`, `MONTH`].
 * `unique_count_key` - (Optional) required only for `unique_count` alerts, the key to track.
-* `group_by` - (Optional) The field to group by on, required for `new_value` alerts and it is the key to track.
+* `group_by` - (Optional) DEPRECATED please use group_by_array. The field to group by on.
+* `group_by_array` - (Optional) An array of fields to group by on, on `new_value` alerts is required with only 1 element and it is the key to track.
 
 Each `schedule` block should contains the following:
 

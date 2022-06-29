@@ -160,8 +160,14 @@ func dataSourceCoralogixAlert() *schema.Resource {
 							Computed: true,
 						},
 						"group_by": {
-							Type:     schema.TypeString,
-							Computed: true,
+							Type:       schema.TypeString,
+							Deprecated: "group_by is no longer being used and will be deprecated in the next release. Please use 'group_by_array'",
+							Computed:   true,
+						},
+						"group_by_array": {
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
 						"relative_timeframe": {
 							Type:     schema.TypeString,
@@ -251,7 +257,8 @@ func dataSourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("filter", flattenAlertFilter(alert))
 	d.Set("metric", flattenAlertMetric(alert))
 	d.Set("ratio", flattenAlertRatio(alert))
-	d.Set("condition", flattenAlertCondition(alert))
+	// a change for group_by and group_by_array - will be changed when group_by is removed
+	d.Set("condition", flattenAlertCondition(alert, true))
 	d.Set("notifications", flattenAlertNotifications(alert))
 	d.Set("schedule", flattenAlertSchedule(alert))
 	if content := alert["notif_payload_filter"]; content != nil && len(content.([]interface{})) > 0 {
