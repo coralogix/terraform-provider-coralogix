@@ -5,354 +5,123 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-func resourceCoralogixAlert() *schema.Resource {
+func resourceCoralogixWebhook() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceCoralogixAlertCreate,
-		Read:   resourceCoralogixAlertRead,
-		Update: resourceCoralogixAlertUpdate,
-		Delete: resourceCoralogixAlertDelete,
+		Create: resourceCoralogixWebhookCreate,
+		Read:   resourceCoralogixWebhookRead,
+		Update: resourceCoralogixWebhookUpdate,
+		Delete: resourceCoralogixWebhookDelete,
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
 
 		Schema: map[string]*schema.Schema{
-			"name": {
+			"alias": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsNotEmpty,
-			},
-			"severity": {
-				Type:     schema.TypeString,
-				Required: true,
-				ValidateFunc: validation.StringInSlice([]string{
-					"info",
-					"warning",
-					"critical",
-				}, false),
-			},
-			"enabled": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  true,
 			},
 			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ValidateFunc: validation.StringInSlice([]string{
-					"text",
-					"ratio",
-					"unique_count",
-					"relative_time",
-					"metric",
+					"slack",
+					"pager_duty",
+					"microsoft_teams",
+					"webhook",
+					"jira",
+					"demisto",
+					"email",
+					"sendlog",
+					"opsgenie",
 				}, false),
 			},
-			"description": {
+			"url": {
 				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Required: true,
 			},
-			"filter": {
+			"updated_at": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"created_at": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"pager_duty": {
 				Type:     schema.TypeSet,
 				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"text": {
+						"service_key": {
 							Type:     schema.TypeString,
-							Optional: true,
-						},
-						"applications": {
-							Type:     schema.TypeSet,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-						},
-						"subsystems": {
-							Type:     schema.TypeSet,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-						},
-						"severities": {
-							Type:     schema.TypeSet,
-							Optional: true,
-							MaxItems: 6,
-							Elem: &schema.Schema{
-								Type: schema.TypeString,
-								ValidateFunc: validation.StringInSlice([]string{
-									"debug",
-									"verbose",
-									"info",
-									"warning",
-									"error",
-									"critical",
-								}, false),
-							},
-						},
-						"alias": {
-							Type:     schema.TypeString,
-							Optional: true,
+							Required: true,
 						},
 					},
 				},
 			},
-			"ratio": {
+			"web_request": {
 				Type:     schema.TypeSet,
-				Optional: true,
+				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"text": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "",
-						},
-						"applications": {
-							Type:     schema.TypeSet,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-						},
-						"subsystems": {
-							Type:     schema.TypeSet,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-						},
-						"severities": {
-							Type:     schema.TypeSet,
-							Optional: true,
-							MaxItems: 6,
-							Elem: &schema.Schema{
-								Type: schema.TypeString,
-								ValidateFunc: validation.StringInSlice([]string{
-									"debug",
-									"verbose",
-									"info",
-									"warning",
-									"error",
-									"critical",
-								}, false),
-							},
-						},
-						"alias": {
+						"uuid": {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-						"group_by": {
-							Type:     schema.TypeSet,
+						"method": {
+							Type:     schema.TypeString,
+							Required: true,
+							ValidateFunc: validation.StringInSlice([]string{
+								"get",
+								"post",
+								"put",
+							}, false),
+						},
+						"headers": {
+							Type:     schema.TypeString,
 							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+						"payload": {
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
 			},
-			"metric": {
+			"jira": {
 				Type:     schema.TypeSet,
-				Optional: true,
+				Required: true,
 				MaxItems: 1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"field": {
-							Type:         schema.TypeString,
-							Optional:     true,
-							ValidateFunc: validation.StringIsNotEmpty,
-						},
-						"source": {
+						"api_token": {
 							Type:     schema.TypeString,
-							Optional: true,
-							ValidateFunc: validation.StringInSlice([]string{
-								"logs2metrics",
-								"prometheus",
-							}, false),
-						},
-						"arithmetic_operator": {
-							Type:         schema.TypeInt,
-							Optional:     true,
-							Default:      0,
-							ValidateFunc: validation.IntBetween(0, 5),
-						},
-						"arithmetic_operator_modifier": {
-							Type:         schema.TypeInt,
-							Optional:     true,
-							Default:      0,
-							ValidateFunc: validation.IntBetween(1, 99),
-						},
-						"sample_threshold_percentage": {
-							Type:     schema.TypeInt,
 							Required: true,
-							ValidateFunc: validation.All(
-								validation.IntBetween(0, 90),
-								validation.IntDivisibleBy(10),
-							),
 						},
-						"non_null_percentage": {
-							Type:     schema.TypeInt,
-							Required: true,
-							ValidateFunc: validation.All(
-								validation.IntBetween(0, 100),
-								validation.IntDivisibleBy(10),
-							),
-						},
-						"swap_null_values": {
-							Type:     schema.TypeBool,
-							Optional: true,
-							Default:  false,
-						},
-						"promql_text": {
+						"email": {
 							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "",
+							Required: true,
+						},
+						"project_key": {
+							Type:     schema.TypeString,
+							Required: true,
 						},
 					},
 				},
 			},
-			"condition": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				MaxItems: 1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"condition_type": {
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateFunc: validation.StringInSlice([]string{
-								"less_than",
-								"more_than",
-								"more_than_usual",
-								"new_value",
-							}, false),
-						},
-						"threshold": {
-							Type:         schema.TypeFloat,
-							Required:     true,
-							ValidateFunc: validation.FloatAtLeast(0),
-						},
-						"timeframe": {
-							Type:     schema.TypeString,
-							Required: true,
-							ValidateFunc: validation.StringInSlice([]string{
-								"5MIN",
-								"10MIN",
-								"30MIN",
-								"1H",
-								"2H",
-								"3H",
-								"4H",
-								"6H",
-								"12H",
-								"24H",
-								"48H",
-								"72H",
-								"1W",
-								"1M",
-								"2M",
-								"3M",
-								"HOUR",
-								"DAY",
-							}, false),
-						},
-						"relative_timeframe": {
-							Type:     schema.TypeString,
-							Optional: true,
-							ValidateFunc: validation.StringInSlice([]string{
-								"HOUR",
-								"DAY",
-								"WEEK",
-								"MONTH",
-							}, false),
-							Default: "",
-						},
-						"group_by": {
-							Type:       schema.TypeString,
-							Optional:   true,
-							Default:    "",
-							Deprecated: "group_by is no longer being used and will be deprecated in the next release. Please use 'group_by_array'",
-						},
-						"group_by_array": {
-							Type:     schema.TypeSet,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-						},
-						"unique_count_key": {
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "",
-						},
-					},
-				},
-			},
-			"schedule": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				MaxItems: 1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"days": {
-							Type:     schema.TypeSet,
-							Required: true,
-							MinItems: 1,
-							MaxItems: 7,
-							Elem: &schema.Schema{
-								Type: schema.TypeString,
-								ValidateFunc: validation.StringInSlice([]string{
-									"Mo",
-									"Tu",
-									"We",
-									"Th",
-									"Fr",
-									"Sa",
-									"Su",
-								}, false),
-							},
-						},
-						"start": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validation.StringIsNotEmpty,
-						},
-						"end": {
-							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validation.StringIsNotEmpty,
-						},
-					},
-				},
-			},
-			"content": {
+			"email_group": {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-			},
-			"notifications": {
-				Type:     schema.TypeSet,
-				Optional: true,
-				MaxItems: 1,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"emails": {
-							Type:     schema.TypeSet,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-						},
-						"integrations": {
-							Type:     schema.TypeSet,
-							Optional: true,
-							Elem:     &schema.Schema{Type: schema.TypeString},
-						},
-					},
-				},
-			},
-			"alert_id": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"notify_every": {
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  60,
 			},
 		},
 	}
 }
 
-func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCoralogixWebhookCreate(d *schema.ResourceData, meta interface{}) error {
 	if err := alertValuesValidation(d); err != nil {
 		return err
 	}
@@ -458,10 +227,10 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 
 	d.SetId(alert["unique_identifier"].([]interface{})[0].(string))
 
-	return resourceCoralogixAlertRead(d, meta)
+	return resourceCoralogixWebhookRead(d, meta)
 }
 
-func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCoralogixWebhookRead(d *schema.ResourceData, meta interface{}) error {
 	apiClient := meta.(*Client)
 
 	alertsList, err := apiClient.Get("/external/alerts")
@@ -504,7 +273,7 @@ func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceCoralogixAlertUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceCoralogixWebhookUpdate(d *schema.ResourceData, meta interface{}) error {
 	if err := alertValuesValidation(d); err != nil {
 		return err
 	}
@@ -662,7 +431,7 @@ func resourceCoralogixAlertUpdate(d *schema.ResourceData, meta interface{}) erro
 	return resourceCoralogixAlertRead(d, meta)
 }
 
-func resourceCoralogixAlertDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCoralogixWebhookDelete(d *schema.ResourceData, meta interface{}) error {
 	apiClient := meta.(*Client)
 
 	_, err := apiClient.Request("DELETE", "/external/alerts", map[string]interface{}{"unique_identifier": d.Id()})

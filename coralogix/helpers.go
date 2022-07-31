@@ -258,7 +258,7 @@ func getTimeframeInSeconds(time string) int {
 
 // resource values validation on create or update,
 // returns error or nil
-func valuesValidation(d *schema.ResourceData) error {
+func alertValuesValidation(d *schema.ResourceData) error {
 	alertType := d.Get("type").(string)
 	filter := getFirstOrNil(d.Get("filter").(*schema.Set).List())
 	condition := getFirstOrNil(d.Get("condition").(*schema.Set).List())
