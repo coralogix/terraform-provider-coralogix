@@ -31,6 +31,8 @@ func (c *Client) Request(method string, path string, body interface{}) (map[stri
 
 	if body != nil {
 		bodyJSON, err := json.Marshal(body)
+		test := string(bodyJSON)
+		print(test)
 		if err != nil {
 			return nil, err
 		}
