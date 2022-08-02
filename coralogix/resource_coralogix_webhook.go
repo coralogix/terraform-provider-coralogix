@@ -142,15 +142,22 @@ func resourceCoralogixWebhookCreate(d *schema.ResourceData, meta interface{}) er
 		webRequest := getFirstOrNil(d.Get("web_request").(*schema.Set).List()).(map[string]interface{})
 		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "uuid", Value: webRequest["uuid"].(string)})
 		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "method", Value: webRequest["method"].(string)})
-		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "headers", Value: webRequest["headers"].(string)})
-		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "payload", Value: webRequest["payload"].(string)})
+		// using json unmarshal to not send double escaped json onto the api
+		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "headers", Value: ""})
+		if err := json.Unmarshal([]byte(webRequest["headers"].(string)), &webhookTypeFields[2].Value); err != nil {
+			return fmt.Errorf("error while decoding json in 'web_request.headers'. err: %s", err.Error())
+		}
+		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "payload", Value: ""})
+		if err := json.Unmarshal([]byte(webRequest["payload"].(string)), &webhookTypeFields[3].Value); err != nil {
+			return fmt.Errorf("error while decoding json in 'web_request.payload'. err: %s", err.Error())
+		}
 	case "jira":
 		jira := getFirstOrNil(d.Get("jira").(*schema.Set).List()).(map[string]interface{})
 		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "apiToken", Value: jira["api_token"].(string)})
 		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "email", Value: jira["email"].(string)})
 		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "projectKey", Value: jira["project_key"].(string)})
 	case "email_group":
-		emailGroup := getFirstOrNil(d.Get("email_group").(*schema.Set).List()).([]string)
+		emailGroup := (d.Get("email_group").(*schema.Set)).List()
 		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "payload", Value: emailGroup})
 	}
 	webhookTypeFieldsJson, _ := json.Marshal(webhookTypeFields)
@@ -217,15 +224,22 @@ func resourceCoralogixWebhookUpdate(d *schema.ResourceData, meta interface{}) er
 		webRequest := getFirstOrNil(d.Get("web_request").(*schema.Set).List()).(map[string]interface{})
 		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "uuid", Value: webRequest["uuid"].(string)})
 		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "method", Value: webRequest["method"].(string)})
-		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "headers", Value: webRequest["headers"].(string)})
-		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "payload", Value: webRequest["payload"].(string)})
+		// using json unmarshal to not send double escaped json onto the api
+		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "headers", Value: ""})
+		if err := json.Unmarshal([]byte(webRequest["headers"].(string)), &webhookTypeFields[2].Value); err != nil {
+			return fmt.Errorf("error while decoding json in 'web_request.headers'. err: %s", err.Error())
+		}
+		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "payload", Value: ""})
+		if err := json.Unmarshal([]byte(webRequest["payload"].(string)), &webhookTypeFields[3].Value); err != nil {
+			return fmt.Errorf("error while decoding json in 'web_request.payload'. err: %s", err.Error())
+		}
 	case "jira":
 		jira := getFirstOrNil(d.Get("jira").(*schema.Set).List()).(map[string]interface{})
 		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "apiToken", Value: jira["api_token"].(string)})
 		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "email", Value: jira["email"].(string)})
 		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "projectKey", Value: jira["project_key"].(string)})
 	case "email_group":
-		emailGroup := getFirstOrNil(d.Get("email_group").(*schema.Set).List()).([]string)
+		emailGroup := (d.Get("email_group").(*schema.Set)).List()
 		webhookTypeFields = append(webhookTypeFields, webhookValue{Name: "payload", Value: emailGroup})
 	}
 	webhookTypeFieldsJson, _ := json.Marshal(webhookTypeFields)
@@ -238,12 +252,12 @@ func resourceCoralogixWebhookUpdate(d *schema.ResourceData, meta interface{}) er
 		"url":                     d.Get("url").(string),
 		"id":                      id,
 	}
-	webhook, err := apiClient.Post("/external/integrations", webhookParameters)
+	_, err := apiClient.Post("/external/integrations", webhookParameters)
 	if err != nil {
 		return err
 	}
-
-	d.SetId(fmt.Sprintf("%.0f", webhook["id"].(float64)))
+	// cannot set as return value is not valid for now (api side)
+	//d.SetId(fmt.Sprintf("%.0f", webhook["id"].(float64)))
 
 	return resourceCoralogixWebhookRead(d, meta)
 }
