@@ -16,7 +16,7 @@ data "coralogix_alert" "my_alert" {
 }
 ```
 
-Using a code example like this will output the id of suce an alert:
+Using this code example will output the alert name:
 ```hcl
 output "name" {
   value       = coralogix_alert.my_alert.name

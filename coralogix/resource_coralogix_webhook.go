@@ -46,8 +46,9 @@ func resourceCoralogixWebhook() *schema.Resource {
 				}, false),
 			},
 			"url": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:         schema.TypeString,
+				ValidateFunc: validation.IsURLWithHTTPorHTTPS,
+				Required:     true,
 			},
 			"updated_at": {
 				Type:     schema.TypeString,
