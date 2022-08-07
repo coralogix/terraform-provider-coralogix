@@ -39,12 +39,14 @@ func Provider() *schema.Provider {
 			"coralogix_alert":       dataSourceCoralogixAlert(),
 			"coralogix_rules_group": dataSourceCoralogixRulesGroup(),
 			"coralogix_rule":        dataSourceCoralogixRule(),
+			"coralogix_webhook":     dataSourceCoralogixWebhook(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
 			"coralogix_alert":       resourceCoralogixAlert(),
 			"coralogix_rules_group": resourceCoralogixRulesGroup(),
 			"coralogix_rule":        resourceCoralogixRule(),
+			"coralogix_webhook":     resourceCoralogixWebhook(),
 		},
 
 		ConfigureFunc: func(d *schema.ResourceData) (interface{}, error) {

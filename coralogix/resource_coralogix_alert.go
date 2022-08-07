@@ -353,7 +353,7 @@ func resourceCoralogixAlert() *schema.Resource {
 }
 
 func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) error {
-	if err := valuesValidation(d); err != nil {
+	if err := alertValuesValidation(d); err != nil {
 		return err
 	}
 	apiClient := meta.(*Client)
@@ -505,7 +505,7 @@ func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceCoralogixAlertUpdate(d *schema.ResourceData, meta interface{}) error {
-	if err := valuesValidation(d); err != nil {
+	if err := alertValuesValidation(d); err != nil {
 		return err
 	}
 	apiClient := meta.(*Client)
