@@ -40,64 +40,112 @@ func dataSourceCoralogixRulesGroup() *schema.Resource {
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"id": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"name": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"type": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"description": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"order": {
-							Type:     schema.TypeInt,
-							Computed: true,
-						},
-						"enabled": {
-							Type:     schema.TypeBool,
-							Computed: true,
-						},
-						"rule_matcher": {
-							Type:     schema.TypeSet,
+						"group": {
+							Type:     schema.TypeList,
 							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
-									"field": {
+									"id": {
 										Type:     schema.TypeString,
 										Computed: true,
 									},
-									"constraint": {
+									"name": {
 										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"type": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"description": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"order": {
+										Type:     schema.TypeInt,
+										Computed: true,
+									},
+									"enabled": {
+										Type:     schema.TypeBool,
+										Computed: true,
+									},
+									"rule_matcher": {
+										Type:     schema.TypeSet,
+										Computed: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"field": {
+													Type:     schema.TypeString,
+													Computed: true,
+												},
+												"constraint": {
+													Type:     schema.TypeString,
+													Computed: true,
+												},
+											},
+										},
+									},
+									"expression": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"source_field": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"destination_field": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"replace_value": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"keep_blocked_logs": {
+										Type:     schema.TypeBool,
+										Computed: true,
+									},
+									"delete_source": {
+										Type:     schema.TypeBool,
+										Computed: true,
+									},
+									"escaped_value": {
+										Type:     schema.TypeBool,
+										Computed: true,
+									},
+									"override_destination": {
+										Type:     schema.TypeBool,
 										Computed: true,
 									},
 								},
 							},
 						},
-						"expression": {
+					},
+				},
+			},
+			"rule_matcher": {
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"field": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-						"source_field": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"destination_field": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"replace_value": {
+						"constraint": {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
 					},
 				},
+			},
+			"created_at": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"updated_at": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -117,8 +165,7 @@ func dataSourceCoralogixRulesGroupRead(d *schema.ResourceData, meta interface{})
 	d.Set("creator", ruleGroup["creator"].(string))
 	d.Set("order", ruleGroup["order"].(float64))
 	d.Set("rules", flattenRules(ruleGroup["rulesGroups"].([]interface{})))
-
-	d.SetId(ruleGroup["Id"].(string))
-
+	d.Set("rule_matcher", flattenRuleMatchers(ruleGroup["ruleMatchers"]))
+	d.SetId(ruleGroup["id"].(string))
 	return nil
 }

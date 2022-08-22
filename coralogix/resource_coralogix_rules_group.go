@@ -1,6 +1,8 @@
 package coralogix
 
 import (
+	"regexp"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -40,6 +42,94 @@ func resourceCoralogixRulesGroup() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"rules_group": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"rules": {
+							Type:     schema.TypeSet,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"id": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"type": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"description": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"order": {
+										Type:     schema.TypeInt,
+										Computed: true,
+									},
+									"enabled": {
+										Type:     schema.TypeBool,
+										Computed: true,
+									},
+									"rule_matcher": {
+										Type:     schema.TypeSet,
+										Computed: true,
+										Elem: &schema.Resource{
+											Schema: map[string]*schema.Schema{
+												"field": {
+													Type:     schema.TypeString,
+													Computed: true,
+												},
+												"constraint": {
+													Type:     schema.TypeString,
+													Computed: true,
+												},
+											},
+										},
+									},
+									"expression": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"source_field": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"destination_field": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"replace_value": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"keep_blocked_logs": {
+										Type:     schema.TypeBool,
+										Computed: true,
+									},
+									"delete_source": {
+										Type:     schema.TypeBool,
+										Computed: true,
+									},
+									"escaped_value": {
+										Type:     schema.TypeBool,
+										Computed: true,
+									},
+									"override_destination": {
+										Type:     schema.TypeBool,
+										Computed: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
 			"rule_matcher": {
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -57,10 +147,18 @@ func resourceCoralogixRulesGroup() *schema.Resource {
 						"constraint": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringIsNotEmpty,
+							ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9_-]*$`), "only lowercase alphanumeric characters, hyphens and underscores allowed in 'constraint'"),
 						},
 					},
 				},
+			},
+			"created_at": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"updated_at": {
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -103,12 +201,7 @@ func resourceCoralogixRulesGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("enabled", ruleGroup["enabled"].(bool))
 	d.Set("creator", ruleGroup["creator"].(string))
 	d.Set("order", ruleGroup["order"].(float64))
-
-	if ruleGroup["ruleMatchers"] != nil {
-		d.Set("rule_matcher", flattenRuleMatchers(ruleGroup["ruleMatchers"].([]interface{})))
-	} else {
-		d.Set("rule_matcher", nil)
-	}
+	d.Set("rule_matcher", flattenRuleMatchers(ruleGroup["ruleMatchers"]))
 
 	return nil
 }

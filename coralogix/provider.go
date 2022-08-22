@@ -1,12 +1,15 @@
 package coralogix
 
 import (
+	"time"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 // Provider returns a *schema.Provider.
 func Provider() *schema.Provider {
+	time.Sleep(3 * time.Second)
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"url": {
