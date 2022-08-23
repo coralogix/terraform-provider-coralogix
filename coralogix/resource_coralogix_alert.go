@@ -230,10 +230,10 @@ func resourceCoralogixAlert() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{
 								"5MIN",
 								"10MIN",
+								"15MIN",
 								"30MIN",
 								"1H",
 								"2H",
-								"3H",
 								"4H",
 								"6H",
 								"12H",
