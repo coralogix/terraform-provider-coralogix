@@ -192,6 +192,9 @@ resource "coralogix_alert" "metric_alert" {
 * `content` - (Optional) An array that contains log fields to be included with the alert notification.
 * `notifications` - (Optional) A `notifications` block as documented below.
 * `notify_every` - (Optional) the time an alert is supressed after it was triggered in seconds, default to `60`. when using condition.condition_type 'less_than' , the value has to be more than the timeframe picked.
+* `notify_group_by_only` - (Optional) Notifications should only contain triggered group-by values. default is true.
+* `notify_per_group_by` - (Optional) Notify per group_by value. default is false.
+
 
 ---
 

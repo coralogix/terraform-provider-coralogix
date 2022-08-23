@@ -232,6 +232,14 @@ func dataSourceCoralogixAlert() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
+			"notify_group_by_only": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"notify_per_group_by": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -266,6 +274,8 @@ func dataSourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) erro
 	}
 	d.Set("description", alert["description"].(string))
 	d.Set("notify_every", alert["notify_every"].(float64))
+	d.Set("notify_group_by_only", alert["notify_group_by_only_alerts"].(bool))
+	d.Set("notify_per_group_by", alert["notify_per_group_by_value"].(bool))
 	d.SetId(alert["unique_identifier"].(string))
 	return nil
 }
