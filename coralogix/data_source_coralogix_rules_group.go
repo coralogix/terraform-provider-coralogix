@@ -166,6 +166,8 @@ func dataSourceCoralogixRulesGroupRead(d *schema.ResourceData, meta interface{})
 	d.Set("order", ruleGroup["order"].(float64))
 	d.Set("rules", flattenRules(ruleGroup["rulesGroups"].([]interface{})))
 	d.Set("rule_matcher", flattenRuleMatchers(ruleGroup["ruleMatchers"]))
+	d.Set("updated_at", ruleGroup["updatedAt"].(string))
+	d.Set("created_at", ruleGroup["createdAt"].(string))
 	d.SetId(ruleGroup["id"].(string))
 	return nil
 }

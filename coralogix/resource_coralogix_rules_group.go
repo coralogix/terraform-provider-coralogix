@@ -42,13 +42,13 @@ func resourceCoralogixRulesGroup() *schema.Resource {
 				Type:     schema.TypeInt,
 				Computed: true,
 			},
-			"rules_group": {
+			"rules": {
 				Type:     schema.TypeList,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"rules": {
-							Type:     schema.TypeSet,
+						"group": {
+							Type:     schema.TypeList,
 							Computed: true,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -201,6 +201,9 @@ func resourceCoralogixRulesGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("enabled", ruleGroup["enabled"].(bool))
 	d.Set("creator", ruleGroup["creator"].(string))
 	d.Set("order", ruleGroup["order"].(float64))
+	d.Set("updated_at", ruleGroup["updatedAt"].(string))
+	d.Set("created_at", ruleGroup["createdAt"].(string))
+	d.Set("rules", flattenRules(ruleGroup["rulesGroups"].([]interface{})))
 	d.Set("rule_matcher", flattenRuleMatchers(ruleGroup["ruleMatchers"]))
 
 	return nil
