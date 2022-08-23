@@ -1,0 +1,21 @@
+{
+    "branches": [
+      "main",
+      "master"
+    ],
+    "ci": false,
+    "plugins": [
+      [
+        "@semantic-release/commit-analyzer",
+        {
+          "preset": "conventionalcommits",
+          "releaseRules": [
+            {"message": "*", "release": "patch"}
+          ]
+        }
+      ],
+      [
+        "@semantic-release/github"
+      ]
+    ]
+  }
