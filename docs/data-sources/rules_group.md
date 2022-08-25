@@ -26,4 +26,4 @@ data "coralogix_rules_group" "rules_group" {
 * `enabled` - Rules Group state.
 * `description` - Rules Group description.
 * `creator` - Rules Group creator.
-* `rules` - Rules Group rules list. 
+* `rules` - The rules inside the rule group. can access different rule groups with syntax : .rules.0.group , .rules.1.group.

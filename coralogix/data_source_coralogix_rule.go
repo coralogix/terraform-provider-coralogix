@@ -72,6 +72,22 @@ func dataSourceCoralogixRule() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"keep_blocked_logs": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"delete_source": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"overwrite_destinaton": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
+			"escaped_value": {
+				Type:     schema.TypeBool,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -79,21 +95,47 @@ func dataSourceCoralogixRule() *schema.Resource {
 func dataSourceCoralogixRuleRead(d *schema.ResourceData, meta interface{}) error {
 	apiClient := meta.(*Client)
 
-	rule, err := apiClient.Get("/external/action/" + d.Get("rule_id").(string) + "/rule/" + d.Get("rules_group_id").(string))
+	rule, err := apiClient.Get("/external/rule/" + d.Get("rule_id").(string) + "/group/" + d.Get("rules_group_id").(string))
 	if err != nil {
 		return err
 	}
 
+	ruleType := rule["type"]
+
 	d.Set("name", rule["name"].(string))
-	d.Set("type", rule["type"].(string))
+	d.Set("type", ruleType)
 	d.Set("description", rule["description"].(string))
 	d.Set("order", rule["order"].(float64))
 	d.Set("enabled", rule["enabled"].(bool))
-	d.Set("rule_matcher", flattenRuleMatchers(rule["ruleMatchers"].([]interface{})))
 	d.Set("expression", rule["rule"].(string))
 	d.Set("source_field", rule["sourceField"].(string))
-	d.Set("destination_field", rule["destinationField"].(string))
-	d.Set("replace_value", rule["replaceNewVal"].(string))
+
+	if ruleType == "replace" {
+		d.Set("replace_value", rule["replaceNewVal"].(string))
+	}
+
+	if ruleType == "jsonextract" || ruleType == "parse" || ruleType == "replace" {
+		d.Set("destination_field", rule["destinationField"].(string))
+	}
+
+	if ruleType == "block" || ruleType == "allow" {
+		d.Set("keep_blocked_logs", rule["keepBlockedLogs"])
+	}
+
+	if ruleType == "jsonstringify" || ruleType == "jsonparse" {
+		d.Set("delete_source", rule["deleteSource"])
+		d.Set("escaped_value", rule["escapedValue"])
+	}
+
+	if ruleType == "jsonparse" {
+		d.Set("overwrite_destinaton", rule["overrideDest"])
+	}
+
+	if rule["ruleMatchers"] != nil {
+		d.Set("rule_matcher", flattenRuleMatchers(rule["ruleMatchers"].([]interface{})))
+	} else {
+		d.Set("rule_matcher", nil)
+	}
 
 	d.SetId(rule["id"].(string))
 

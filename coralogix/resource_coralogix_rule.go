@@ -42,6 +42,9 @@ func resourceCoralogixRule() *schema.Resource {
 					"timestampextract",
 					"removefields",
 					"block",
+					"allow",
+					"jsonstringify",
+					"jsonparse",
 				}, false),
 			},
 			"description": {
@@ -59,8 +62,9 @@ func resourceCoralogixRule() *schema.Resource {
 				Default:  true,
 			},
 			"rule_matcher": {
-				Type:     schema.TypeSet,
-				Optional: true,
+				Type:       schema.TypeSet,
+				Optional:   true,
+				Deprecated: "rule_matcher is no longer being used and will be deprecated in the next release.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"field": {
@@ -86,7 +90,8 @@ func resourceCoralogixRule() *schema.Resource {
 			},
 			"expression": {
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
+				Default:      ".*",
 				ValidateFunc: validation.StringIsValidRegExp,
 			},
 			"source_field": {
@@ -111,6 +116,7 @@ func resourceCoralogixRule() *schema.Resource {
 			"destination_field": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "text",
 				ValidateFunc: validation.Any(
 					validation.StringMatch(
 						regexp.MustCompile(`^text(\..+)*$`),
@@ -134,6 +140,7 @@ func resourceCoralogixRule() *schema.Resource {
 			"format_standard": {
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "",
 				ValidateFunc: validation.StringInSlice([]string{
 					"javasdf",
 					"golang",
@@ -149,33 +156,68 @@ func resourceCoralogixRule() *schema.Resource {
 				Optional: true,
 				Default:  "",
 			},
+			"keep_blocked_logs": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"delete_source": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"overwrite_destinaton": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+			"escaped_value": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
 		},
 	}
 }
 
 func resourceCoralogixRuleCreate(d *schema.ResourceData, meta interface{}) error {
+	if err := ruleValuesValidation(d); err != nil {
+		return err
+	}
 	apiClient := meta.(*Client)
-
+	ruleType := d.Get("type").(string)
 	ruleParameters := map[string]interface{}{
 		"name":        d.Get("name").(string),
-		"type":        d.Get("type").(string),
+		"type":        ruleType,
 		"description": d.Get("description").(string),
 		"enabled":     d.Get("enabled").(bool),
-		"rule":        d.Get("expression").(string),
 		"sourceField": d.Get("source_field").(string),
 	}
-
-	if d.Get("type").(string) == "replace" {
-		ruleParameters["replaceNewVal"] = d.Get("replace_value").(string)
-	}
-
-	if d.Get("type").(string) == "timestampextract" {
+	if ruleType != "timestampextract" {
+		ruleParameters["rule"] = d.Get("expression").(string)
+	} else {
 		ruleParameters["formatStandard"] = d.Get("format_standard").(string)
 		ruleParameters["timeFormat"] = d.Get("time_format").(string)
 	}
+	if ruleType == "replace" {
+		ruleParameters["replaceNewVal"] = d.Get("replace_value").(string)
+	}
 
-	if d.Get("type").(string) == "jsonextract" || d.Get("type").(string) == "parse" || d.Get("type").(string) == "replace" {
+	if ruleType == "jsonextract" || ruleType == "parse" || ruleType == "replace" {
 		ruleParameters["destinationField"] = d.Get("destination_field").(string)
+	}
+
+	if ruleType == "block" || ruleType == "allow" {
+		ruleParameters["keepBlockedLogs"] = d.Get("keep_blocked_logs")
+	}
+
+	if ruleType == "jsonstringify" || ruleType == "jsonparse" {
+		ruleParameters["deleteSource"] = d.Get("delete_source").(bool)
+		ruleParameters["escapedValue"] = d.Get("escaped_value").(bool)
+	}
+
+	if ruleType == "jsonparse" {
+		ruleParameters["overrideDest"] = d.Get("overwrite_destinaton").(bool)
 	}
 
 	if d.Get("rule_matcher") != nil && len(d.Get("rule_matcher").(*schema.Set).List()) > 0 {
@@ -199,21 +241,41 @@ func resourceCoralogixRuleRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	ruleType := rule["type"]
 
 	d.Set("name", rule["name"].(string))
-	d.Set("type", rule["type"].(string))
+	d.Set("type", ruleType)
 	d.Set("description", rule["description"].(string))
 	d.Set("order", rule["order"].(float64))
 	d.Set("enabled", rule["enabled"].(bool))
-	d.Set("expression", rule["rule"].(string))
 	d.Set("source_field", rule["sourceField"].(string))
 
-	if d.Get("type").(string) == "replace" {
+	if ruleType != "timestampextract" {
+		d.Set("expression", rule["rule"].(string))
+	} else {
+		d.Set("format_standard", rule["formatStandard"].(string))
+		d.Set("time_format", rule["timeFormat"].(string))
+	}
+
+	if ruleType == "replace" {
 		d.Set("replace_value", rule["replaceNewVal"].(string))
 	}
 
-	if d.Get("type").(string) == "jsonextract" || d.Get("type").(string) == "parse" || d.Get("type").(string) == "replace" {
+	if ruleType == "jsonextract" || ruleType == "parse" || ruleType == "replace" {
 		d.Set("destination_field", rule["destinationField"].(string))
+	}
+
+	if ruleType == "block" || ruleType == "allow" {
+		d.Set("keep_blocked_logs", rule["keepBlockedLogs"])
+	}
+
+	if ruleType == "jsonstringify" || ruleType == "jsonparse" {
+		d.Set("delete_source", rule["deleteSource"])
+		d.Set("escaped_value", rule["escapedValue"])
+	}
+
+	if ruleType == "jsonparse" {
+		d.Set("overwrite_destinaton", rule["overrideDest"])
 	}
 
 	if rule["ruleMatchers"] != nil {
@@ -226,24 +288,47 @@ func resourceCoralogixRuleRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceCoralogixRuleUpdate(d *schema.ResourceData, meta interface{}) error {
+	if err := ruleValuesValidation(d); err != nil {
+		return err
+	}
 	apiClient := meta.(*Client)
-
-	if d.HasChanges("name", "type", "description", "enabled", "rule_matcher", "expression", "source_field", "destination_field", "replace_value") {
+	ruleType := d.Get("type").(string)
+	if d.HasChanges("name", "type", "description", "enabled", "expression", "source_field", "destination_field", "replace_value", "keep_blocked_logs", "delete_source", "overwrite_destinaton", "escaped_value", "format_standard", "time_format") {
 		ruleParameters := map[string]interface{}{
 			"name":        d.Get("name").(string),
-			"type":        d.Get("type").(string),
+			"type":        ruleType,
 			"description": d.Get("description").(string),
 			"enabled":     d.Get("enabled").(bool),
 			"rule":        d.Get("expression").(string),
 			"sourceField": d.Get("source_field").(string),
 		}
 
-		if d.Get("type").(string) == "replace" {
+		if ruleType != "timestampextract" {
+			ruleParameters["rule"] = d.Get("expression").(string)
+		} else {
+			ruleParameters["formatStandard"] = d.Get("format_standard").(string)
+			ruleParameters["timeFormat"] = d.Get("time_format").(string)
+		}
+
+		if ruleType == "replace" {
 			ruleParameters["replaceNewVal"] = d.Get("replace_value").(string)
 		}
 
-		if d.Get("type").(string) == "jsonextract" || d.Get("type").(string) == "parse" || d.Get("type").(string) == "replace" {
+		if ruleType == "jsonextract" || ruleType == "parse" || ruleType == "replace" {
 			ruleParameters["destinationField"] = d.Get("destination_field").(string)
+		}
+
+		if ruleType == "block" || ruleType == "allow" {
+			ruleParameters["keepBlockedLogs"] = d.Get("keep_blocked_logs")
+		}
+
+		if ruleType == "jsonstringify" || ruleType == "jsonparse" {
+			ruleParameters["deleteSource"] = d.Get("delete_source").(bool)
+			ruleParameters["escapedValue"] = d.Get("escaped_value").(bool)
+		}
+
+		if ruleType == "jsonparse" {
+			ruleParameters["overrideDest"] = d.Get("overwrite_destinaton").(bool)
 		}
 
 		if d.Get("rule_matcher") != nil && len(d.Get("rule_matcher").(*schema.Set).List()) > 0 {
