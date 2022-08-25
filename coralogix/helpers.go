@@ -276,13 +276,13 @@ func getFirstOrNil(list []interface{}) interface{} {
 
 // returns the timeframe chose in seconds
 func getTimeframeInSeconds(time string) int {
-	timeMap := map[string]int{"5Min": 300, "10Min": 600, "20Min": 1200, "30Min": 1800, "1H": 3600, "2H": 7200, "3H": 10800, "4H": 14400, "6H": 21600, "12H": 43200, "24H": 86400, "HOUR": 3600, "DAY": 86400}
+	timeMap := map[string]int{"5MIN": 300, "10MIN": 600, "15MIN": 900, "20MIN": 1200, "30MIN": 1800, "1H": 3600, "2H": 7200, "4H": 14400, "6H": 21600, "12H": 43200, "24H": 86400, "HOUR": 3600, "DAY": 86400}
 	return timeMap[time]
 }
 
 // resource values validation on create or update,
 // returns error or nil
-func valuesValidation(d *schema.ResourceData) error {
+func alertValuesValidation(d *schema.ResourceData) error {
 	alertType := d.Get("type").(string)
 	filter := getFirstOrNil(d.Get("filter").(*schema.Set).List())
 	condition := getFirstOrNil(d.Get("condition").(*schema.Set).List())
@@ -310,7 +310,7 @@ func valuesValidation(d *schema.ResourceData) error {
 					return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
 				}
 			} else {
-				timeMapBasic := map[string]bool{"5MIN": true, "10MIN": true, "20MIN": true, "30MIN": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
+				timeMapBasic := map[string]bool{"5MIN": true, "10MIN": true, "15MIN": true, "20MIN": true, "30MIN": true, "1H": true, "2H": true, "4H": true, "6H": true, "12H": true, "24H": true}
 				if _, ok := timeMapBasic[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
 					return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
 				}
@@ -329,7 +329,7 @@ func valuesValidation(d *schema.ResourceData) error {
 		if condition.(map[string]interface{})["condition_type"] != "more_than" {
 			return errors.New("when alert is of type 'unique_count' condition.condition_type should be 'more_than'")
 		}
-		timeMapBasic := map[string]bool{"5MIN": true, "10MIN": true, "20MIN": true, "30MIN": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
+		timeMapBasic := map[string]bool{"5MIN": true, "10MIN": true, "15MIN": true, "20MIN": true, "30MIN": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
 		if _, ok := timeMapBasic[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
 			return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
 		}
@@ -373,7 +373,7 @@ func valuesValidation(d *schema.ResourceData) error {
 		if condition.(map[string]interface{})["unique_count_key"] != "" {
 			return errors.New("when alert is of type 'metric' condition.unique_count_key should not be defined")
 		}
-		timeMapBasic := map[string]bool{"5MIN": true, "10MIN": true, "20MIN": true, "30MIN": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
+		timeMapBasic := map[string]bool{"5MIN": true, "10MIN": true, "15MIN": true, "20MIN": true, "30MIN": true, "1H": true, "2H": true, "4H": true, "6H": true, "12H": true, "24H": true}
 		if _, ok := timeMapBasic[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
 			return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
 		}
@@ -408,7 +408,7 @@ func valuesValidation(d *schema.ResourceData) error {
 		if condition.(map[string]interface{})["condition_type"] != "more_than" && condition.(map[string]interface{})["condition_type"] != "less_than" {
 			return errors.New("condition.condition_type has to match 'ratio' alert values")
 		}
-		timeMapBasic := map[string]bool{"5MIN": true, "10MIN": true, "20MIN": true, "30MIN": true, "1H": true, "2H": true, "3H": true, "4H": true, "6H": true, "12H": true, "24H": true}
+		timeMapBasic := map[string]bool{"5MIN": true, "10MIN": true, "20MIN": true, "30MIN": true, "1H": true, "2H": true, "4H": true, "6H": true, "12H": true, "24H": true}
 		if _, ok := timeMapBasic[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
 			return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
 		}
@@ -441,6 +441,7 @@ func valuesValidation(d *schema.ResourceData) error {
 	}
 	return nil
 }
+
 func ruleValuesValidation(d *schema.ResourceData) error {
 	ruleType := d.Get("type").(string)
 	switch ruleType {
@@ -501,6 +502,83 @@ func ruleValuesValidation(d *schema.ResourceData) error {
 	case "jsonparse":
 		if value := d.Get("expression").(string); value != ".*" {
 			return fmt.Errorf("rules of type '%s' cannot define expression", ruleType)
+    }
+	}
+	return nil
+}
+
+// returns the id of the webhook chosen
+func transformWebhookName(webhookType string) int {
+	webhookMap := map[string]int{"slack": 0, "webhook": 1, "pager_duty": 2, "sendlog": 3, "email_group": 4, "microsoft_teams": 5, "jira": 6, "opsgenie": 7, "demisto": 8}
+	return webhookMap[webhookType]
+}
+
+// returns the name of the webhook chosen
+func transformWebhookId(webhookType int) string {
+	webhookMap := map[int]string{0: "slack", 1: "webhook", 2: "pager_duty", 3: "sendlog", 4: "email_group", 5: "microsoft_teams", 6: "jira", 7: "opsgenie", 8: "demisto"}
+	return webhookMap[webhookType]
+}
+
+// returns the integration_type json fields
+func getWebhookJsonFields(webhookType string) interface{} {
+	webhookJsonMap := map[string]interface{}{
+		"slack":           map[string]interface{}{"id": 0, "name": "Slack", "icon": "/assets/settings/slack-48.png"},
+		"webhook":         map[string]interface{}{"id": 1, "name": "WebHook", "icon": "/assets/webhook.png"},
+		"pager_duty":      map[string]interface{}{"id": 2, "name": "PagerDuty", "icon": "/assets/settings/pagerDuty.png"},
+		"sendlog":         map[string]interface{}{"id": 3, "name": "SendLog", "icon": "/assets/invite.png"},
+		"email_group":     map[string]interface{}{"id": 4, "name": "Email Group", "icon": "/assets/email-group.png"},
+		"microsoft_teams": map[string]interface{}{"id": 5, "name": "Microsoft Teams", "icon": "/assets/settings/teams.png"},
+		"jira":            map[string]interface{}{"id": 6, "name": "Jira", "icon": "/assets/settings/jira.png"},
+		"opsgenie":        map[string]interface{}{"id": 7, "name": "Opsgenie", "icon": "/assets/settings/opsgenie.png"},
+		"demisto":         map[string]interface{}{"id": 8, "name": "Demisto", "icon": "/assets/settings/demisto.png"}}
+	return webhookJsonMap[webhookType]
+}
+
+func flattenWebhookTypeFieldsWebRequest(typeFields []webhookValue) interface{} {
+	return []interface{}{map[string]interface{}{
+		"uuid":    typeFields[0].Value,
+		"method":  typeFields[1].Value,
+		"headers": typeFields[2].Value,
+		"payload": typeFields[3].Value,
+	},
+	}
+}
+
+func flattenWebhookTypeFieldsJira(typeFields []webhookValue) interface{} {
+	return []interface{}{map[string]interface{}{
+		"api_token":   typeFields[0].Value,
+		"email":       typeFields[1].Value,
+		"project_key": typeFields[2].Value,
+	},
+	}
+}
+
+// resource values validation on create or update,
+// returns error or nil
+func webhookValuesValidation(d *schema.ResourceData) error {
+	webhookType := d.Get("type").(string)
+	pagerDuty := d.Get("pager_duty").(string)
+	webRequest := getFirstOrNil(d.Get("web_request").(*schema.Set).List())
+	jira := getFirstOrNil(d.Get("jira").(*schema.Set).List())
+	emailGroup := getFirstOrNil(d.Get("email_group").(*schema.Set).List())
+	switch webhookType {
+	case "slack":
+		// ingestion logic -- when external ingestion api is working
+	case "pager_duty":
+		if pagerDuty == "" {
+			return fmt.Errorf("when webhook is of type '%s', pager_duty field must be set", webhookType)
+		}
+	case "webhook", "demisto", "sendlog":
+		if webRequest == nil {
+			return fmt.Errorf("when webhook is of type '%s', web_request block must be set", webhookType)
+		}
+	case "jira":
+		if jira == nil {
+			return fmt.Errorf("when webhook is of type '%s', jira block must be set", webhookType)
+		}
+	case "email_group":
+		if emailGroup == nil {
+			return fmt.Errorf("when webhook is of type '%s', email_group field must be set", webhookType)
 		}
 	}
 	return nil

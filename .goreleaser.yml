@@ -41,6 +41,6 @@ signs:
       - "${artifact}"
 release:
   #disable: true
-  draft: true
+  draft: false
 changelog:
   skip: true

@@ -59,8 +59,12 @@ func (c *Client) Request(method string, path string, body interface{}) (map[stri
 			if err != nil {
 				return nil, nil
 			}
-
-			return responseJSON.(map[string]interface{}), nil
+			// some responses are not map but dont fail, just return nil
+			if _, ok := responseJSON.(map[string]interface{}); ok {
+				return responseJSON.(map[string]interface{}), nil
+			} else {
+				return nil, nil
+			}
 		}
 		return nil, nil
 	}

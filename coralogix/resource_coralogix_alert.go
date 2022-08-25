@@ -230,10 +230,10 @@ func resourceCoralogixAlert() *schema.Resource {
 							ValidateFunc: validation.StringInSlice([]string{
 								"5MIN",
 								"10MIN",
+								"15MIN",
 								"30MIN",
 								"1H",
 								"2H",
-								"3H",
 								"4H",
 								"6H",
 								"12H",
@@ -348,17 +348,29 @@ func resourceCoralogixAlert() *schema.Resource {
 				Optional: true,
 				Default:  60,
 			},
+			"notify_group_by_only": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  true,
+			},
+			"notify_per_group_by": {
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
 
 func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) error {
-	if err := valuesValidation(d); err != nil {
+	if err := alertValuesValidation(d); err != nil {
 		return err
 	}
 	apiClient := meta.(*Client)
 	alertType := d.Get("type").(string)
 	notifyEvery := d.Get("notify_every").(int)
+	notifyPerGroupBy := d.Get("notify_per_group_by").(bool)
+	notifyGroupByOnly := d.Get("notify_group_by_only").(bool)
 	filter := getFirstOrNil(d.Get("filter").(*schema.Set).List())
 	var newFilter = make(map[string]interface{}, 7)
 	newFilter["filter_type"] = alertType
@@ -440,16 +452,18 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		}
 	}
 	alertParameters := map[string]interface{}{
-		"name":                 d.Get("name").(string),
-		"severity":             d.Get("severity").(string),
-		"is_active":            d.Get("enabled").(bool),
-		"description":          d.Get("description").(string),
-		"log_filter":           newFilter,
-		"condition":            newCondition,
-		"notifications":        newNotification,
-		"active_when":          newSchedule,
-		"notif_payload_filter": content,
-		"notify_every":         notifyEvery,
+		"name":                        d.Get("name").(string),
+		"severity":                    d.Get("severity").(string),
+		"is_active":                   d.Get("enabled").(bool),
+		"description":                 d.Get("description").(string),
+		"log_filter":                  newFilter,
+		"condition":                   newCondition,
+		"notifications":               newNotification,
+		"active_when":                 newSchedule,
+		"notif_payload_filter":        content,
+		"notify_every":                notifyEvery,
+		"notify_group_by_only_alerts": notifyGroupByOnly,
+		"notify_per_group_by_value":   notifyPerGroupBy,
 	}
 	alert, err := apiClient.Post("/external/alerts", alertParameters)
 	if err != nil {
@@ -500,12 +514,14 @@ func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error 
 	}
 	d.Set("description", alert["description"].(string))
 	d.Set("notify_every", alert["notify_every"].(float64))
+	d.Set("notify_group_by_only", alert["notify_group_by_only_alerts"].(bool))
+	d.Set("notify_per_group_by", alert["notify_per_group_by_value"].(bool))
 	d.SetId(alert["unique_identifier"].(string))
 	return nil
 }
 
 func resourceCoralogixAlertUpdate(d *schema.ResourceData, meta interface{}) error {
-	if err := valuesValidation(d); err != nil {
+	if err := alertValuesValidation(d); err != nil {
 		return err
 	}
 	apiClient := meta.(*Client)
@@ -526,6 +542,12 @@ func resourceCoralogixAlertUpdate(d *schema.ResourceData, meta interface{}) erro
 	}
 	if d.HasChange("notify_every") {
 		alertUpdateParameters["notify_every"] = d.Get("notify_every").(int)
+	}
+	if d.HasChange("notify_group_by_only") {
+		alertUpdateParameters["notify_group_by_only_alerts"] = d.Get("notify_group_by_only").(bool)
+	}
+	if d.HasChange("notify_per_group_by") {
+		alertUpdateParameters["notify_per_group_by_value"] = d.Get("notify_group_by_only").(bool)
 	}
 	if d.HasChange("content") {
 		if contentKey, ok := d.GetOk("content"); ok {

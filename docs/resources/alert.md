@@ -192,6 +192,9 @@ resource "coralogix_alert" "metric_alert" {
 * `content` - (Optional) An array that contains log fields to be included with the alert notification.
 * `notifications` - (Optional) A `notifications` block as documented below.
 * `notify_every` - (Optional) the time an alert is supressed after it was triggered in seconds, default to `60`. when using condition.condition_type 'less_than' , the value has to be more than the timeframe picked.
+* `notify_group_by_only` - (Optional) Notifications should only contain triggered group-by values. default is true.
+* `notify_per_group_by` - (Optional) Notify per group_by value. default is false.
+
 
 ---
 
@@ -230,7 +233,7 @@ Each `condition` block should contains the following:
 * `condition_type` - (Required) Alert condition type, one of the following: [`less_than`, `more_than`, `more_than_usual`, `new_value`] For 'unique_count' alerts, the value should be [`more_than`]
 For 'metric', 'ratio', 'relative_time' alerts, the value can be one of [`less_than`, `more_than`].
 * `threshold` - (Required) Number of log occurrences that is needed to trigger the alert.
-* `timeframe` - (Required) The bounded time frame for the threshold to be occurred within, to trigger the alert one of the following: [`5MIN`, `10MIN`, `20MIN`, `30MIN`, `1H`, `2H`, `3H`, `4H`, `6H`, `12H`, `24H`], for 'new value' alerts [`12H`, `24H`, `48H`, `72H`, `1W`, `1M`, `2M`, `3M`], for 'time relative' alerts [`HOUR`, `DAY`].
+* `timeframe` - (Required) The bounded time frame for the threshold to be occurred within, to trigger the alert one of the following: [`5MIN`, `10MIN`, `15MIN`, `20MIN`, `30MIN`, `1H`, `2H`, `3H`, `4H`, `6H`, `12H`, `24H`], for 'new value' alerts [`12H`, `24H`, `48H`, `72H`, `1W`, `1M`, `2M`, `3M`], for 'time relative' alerts [`HOUR`, `DAY`].
 * `relative_timeframe` - (Optional) required only for `time relative` alerts one of the following: [`HOUR`, `DAY`, `WEEK`, `MONTH`].
 * `unique_count_key` - (Optional) required only for `unique_count` alerts, the key to track.
 * `group_by` - (Optional) DEPRECATED please use group_by_array. The field to group by on.

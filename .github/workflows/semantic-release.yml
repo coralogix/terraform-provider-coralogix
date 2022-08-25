@@ -1,0 +1,34 @@
+name: semantic-release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - '**/*.go'
+      - '**/*.tf'
+      - '**/*.md'
+      - '.github/workflows/release.yml'
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'coralogix'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Release
+        uses: cycjimmy/semantic-release-action@v2
+        with:
+          semantic_version: 19.0.2
+          extra_plugins: |
+            conventional-changelog-conventionalcommits@4.6.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
