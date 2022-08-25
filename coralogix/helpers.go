@@ -502,7 +502,7 @@ func ruleValuesValidation(d *schema.ResourceData) error {
 	case "jsonparse":
 		if value := d.Get("expression").(string); value != ".*" {
 			return fmt.Errorf("rules of type '%s' cannot define expression", ruleType)
-    }
+		}
 	}
 	return nil
 }
