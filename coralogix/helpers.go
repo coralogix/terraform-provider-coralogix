@@ -202,14 +202,22 @@ func flattenRules(rulesGroup []interface{}) []interface{} {
 				"rule_matcher":         flattenRuleMatchers(rule["ruleMatchers"]),
 				"expression":           rule["rule"].(string),
 				"source_field":         rule["sourceField"].(string),
-				"destination_field":    rule["destinationField"].(string),
-				"replace_value":        rule["replaceNewVal"].(string),
 				"type":                 rule["type"].(string),
 				"order":                rule["order"].(float64),
 				"keep_blocked_logs":    rule["keepBlockedLogs"].(bool),
 				"delete_source":        rule["deleteSource"].(bool),
 				"escaped_value":        rule["escapedValue"].(bool),
-				"override_destination": rule["overrideDest"].(bool),
+				"overwrite_destinaton": rule["overrideDest"].(bool),
+			}
+			// rule type timestampextract needs and return different fields
+			if rule["type"] == "timestampextract" {
+				r["destination_field"] = "text"
+				r["replace_value"] = ""
+				r["format_standard"] = "formatStandard"
+				r["time_format"] = "timeFormat"
+			} else {
+				r["destination_field"] = rule["destinationField"].(string)
+				r["replace_value"] = rule["replaceNewVal"].(string)
 			}
 			rules = append(rules, r)
 		}
@@ -429,6 +437,70 @@ func valuesValidation(d *schema.ResourceData) error {
 		}
 		if condition.(map[string]interface{})["group_by"] != "" && len(condition.(map[string]interface{})["group_by_array"].(*schema.Set).List()) != 0 {
 			return errors.New("when condition.group_by_array is defined, condition.group_by cannot be defined")
+		}
+	}
+	return nil
+}
+func ruleValuesValidation(d *schema.ResourceData) error {
+	ruleType := d.Get("type").(string)
+	switch ruleType {
+	case "extract":
+		if value := d.Get("replace_value").(string); value != "" {
+			return fmt.Errorf("rules of type '%s' cannot define replace_value", ruleType)
+		}
+		if value := d.Get("destination_field").(string); value != "text" {
+			return fmt.Errorf("rules of type '%s' cannot define destination_field", ruleType)
+		}
+	case "jsonextract":
+		if value := d.Get("replace_value").(string); value != "" {
+			return fmt.Errorf("rules of type '%s' cannot define replace_value", ruleType)
+		}
+		if value := d.Get("source_field").(string); value != "text" {
+			return fmt.Errorf("rules of type '%s' cannot define source_field, to define the field to exract define 'expression'", ruleType)
+		}
+	case "parse":
+		if value := d.Get("replace_value").(string); value != "" {
+			return fmt.Errorf("rules of type '%s' cannot define replace_value", ruleType)
+		}
+	case "replace":
+	case "timestampextract":
+		if value := d.Get("expression").(string); value != ".*" {
+			return fmt.Errorf("rules of type '%s' cannot define expression", ruleType)
+		}
+		if value := d.Get("destination_field").(string); value != "text" {
+			return fmt.Errorf("rules of type '%s' cannot define destination_field", ruleType)
+		}
+		if value := d.Get("format_standard").(string); value == "" {
+			return fmt.Errorf("rules of type '%s' must define format_standard", ruleType)
+		}
+		if value := d.Get("time_format").(string); value == "" {
+			return fmt.Errorf("rules of type '%s' must define time_format", ruleType)
+		}
+	case "removefields":
+		if value := d.Get("expression").(string); value == "" {
+			return fmt.Errorf("rules of type '%s' cannot set expression as empty", ruleType)
+		}
+	case "block":
+		if value := d.Get("replace_value").(string); value != "" {
+			return fmt.Errorf("rules of type '%s' cannot define replace_value", ruleType)
+		}
+		if value := d.Get("destination_field").(string); value != "text" {
+			return fmt.Errorf("rules of type '%s' cannot define destination_field", ruleType)
+		}
+	case "allow":
+		if value := d.Get("replace_value").(string); value != "" {
+			return fmt.Errorf("rules of type '%s' cannot define replace_value", ruleType)
+		}
+		if value := d.Get("destination_field").(string); value != "text" {
+			return fmt.Errorf("rules of type '%s' cannot define destination_field", ruleType)
+		}
+	case "jsonstringify":
+		if value := d.Get("expression").(string); value != ".*" {
+			return fmt.Errorf("rules of type '%s' cannot define expression", ruleType)
+		}
+	case "jsonparse":
+		if value := d.Get("expression").(string); value != ".*" {
+			return fmt.Errorf("rules of type '%s' cannot define expression", ruleType)
 		}
 	}
 	return nil

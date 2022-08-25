@@ -120,7 +120,7 @@ func resourceCoralogixRulesGroup() *schema.Resource {
 										Type:     schema.TypeBool,
 										Computed: true,
 									},
-									"override_destination": {
+									"overwrite_destinaton": {
 										Type:     schema.TypeBool,
 										Computed: true,
 									},

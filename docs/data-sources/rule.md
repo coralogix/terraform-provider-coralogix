@@ -9,18 +9,18 @@ Use this data source to retrieve information about a Coralogix Rule.
 
 ## Example Usage
 Once a rule group is created it can be refered to in your config.
-This example describes the data structurre of the rule
+This example shows how to use the data structure
 ```hcl
 data "coralogix_rule" "my_rule" {
     rule_id        = "e1a31d75-36ab-11e8-af8f-02420a00070c"
-    rules_group_id = "e10ef9d1-36ab-11e8-af8f-02420a00070c"
+    rules_group_id = "7894afca-66d7-ae7e-24da-b7031c38169b"
 }
 ```
 
-Using a code example like this will output the id of suce a rule:
+Using a code example like this will output the name of the rule:
 ```hcl
 output "name" {
-  value       = coralogix_rule.my_rule.rule_id
+  value       = data.coralogix_rule.my_rule.name
   description = "Rule name."
 }
 ```
@@ -42,6 +42,10 @@ output "name" {
 * `source_field` - Rule source field.
 * `destination_field` - Rule destination field.
 * `replace_value` - Rule replace value.
+* `keep_blocked_logs` - Indicate if the rule keep the blocked logs in the archive and LiveTail.
+* `delete_source` - Indicate if the rule delete the source field.
+* `overwrite_destinaton` - Indicate if the rule overwrite the destination field.
+* `escaped_value` - Indicate if the value is escaped.
 
 ---
 
