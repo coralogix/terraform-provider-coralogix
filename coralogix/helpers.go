@@ -558,27 +558,43 @@ func flattenWebhookTypeFieldsJira(typeFields []webhookValue) interface{} {
 func webhookValuesValidation(d *schema.ResourceData) error {
 	webhookType := d.Get("type").(string)
 	pagerDuty := d.Get("pager_duty").(string)
+	url := d.Get("url").(string)
 	webRequest := getFirstOrNil(d.Get("web_request").(*schema.Set).List())
 	jira := getFirstOrNil(d.Get("jira").(*schema.Set).List())
 	emailGroup := getFirstOrNil(d.Get("email_group").(*schema.Set).List())
 	switch webhookType {
 	case "slack":
 		// ingestion logic -- when external ingestion api is working
+		if url == "" {
+			return fmt.Errorf("when webhook is of type '%s', url field must be set", webhookType)
+		}
 	case "pager_duty":
 		if pagerDuty == "" {
 			return fmt.Errorf("when webhook is of type '%s', pager_duty field must be set", webhookType)
+		}
+		if url != "" {
+			return fmt.Errorf("when webhook is of type '%s', url field must not be set", webhookType)
 		}
 	case "webhook", "demisto", "sendlog":
 		if webRequest == nil {
 			return fmt.Errorf("when webhook is of type '%s', web_request block must be set", webhookType)
 		}
+		if url == "" {
+			return fmt.Errorf("when webhook is of type '%s', url field must be set", webhookType)
+		}
 	case "jira":
 		if jira == nil {
 			return fmt.Errorf("when webhook is of type '%s', jira block must be set", webhookType)
 		}
+		if url == "" {
+			return fmt.Errorf("when webhook is of type '%s', url field must be set", webhookType)
+		}
 	case "email_group":
 		if emailGroup == nil {
 			return fmt.Errorf("when webhook is of type '%s', email_group field must be set", webhookType)
+		}
+		if url != "" {
+			return fmt.Errorf("when webhook is of type '%s', url field must not be set", webhookType)
 		}
 	}
 	return nil

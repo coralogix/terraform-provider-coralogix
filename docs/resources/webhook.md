@@ -30,7 +30,6 @@ resource "coralogix_webhook" "opsgenie-webhook" {
 
 resource "coralogix_webhook" "pager-webhook" {
   alias = "tf-pager-webhook"
-  url = "https://test.coralogix.com"
   type = "pager_duty"
   pager_duty = "example-service-key"
 }
@@ -48,7 +47,6 @@ resource "coralogix_webhook" "jira-webhook" {
 
 resource "coralogix_webhook" "email-webhook" {
   alias = "tf-email-webhook"
-  url = "https://test.coralogix.com"
   type = "email_group"
   email_group = ["user@example.com", "user2@example.com"]
 }
@@ -135,7 +133,7 @@ resource "coralogix_webhook" "sendlog-webhook" {
 ## Argument Reference
 
 * `alias` - (Required) Webhook friendly name.
-* `url` - (Required) Webhook destination, a full vaild URL.
+* `url` - (Optional) Webhook destination, a full vaild URL. Only optional for types `email_group`, `pager_duty`.
 * `type` - (Required) Webhook type, one of the following: `slack`, `microsoft_teams`, `opsgenie`, `pager_duty`, `jira`, `email_group`, `webhook`, `demisto`, `sendlog`.
 * `pager_duty` - (Optional) Pager duty service key, required on `pager_duty` webhook type
 * `email_group` - (Optional) An array of emails to send to, required on `email_group` webhook type.
