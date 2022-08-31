@@ -181,7 +181,7 @@ resource "coralogix_alert" "metric_alert" {
 
 * `name` - (Required) Alert name.
 * `type` - (Required) Alert type, one of the following: `text`, `unique_count`, `relative_time`, `metric`, `ratio`. For new_value alerts the value should be `text`.
-* `severity` - (Required) Alert severity, one of the following: `info`, `warning`, `critical`.
+* `severity` - (Required) Alert severity, one of the following: `info`, `warning`,`error`, `critical`.
 * `enabled` - (Required) Alert state.
 * `filter` - (Required) A `filter` block as documented below.
 * `description` - (Optional) Alert description.

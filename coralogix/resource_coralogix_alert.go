@@ -27,6 +27,7 @@ func resourceCoralogixAlert() *schema.Resource {
 				ValidateFunc: validation.StringInSlice([]string{
 					"info",
 					"warning",
+					"error",
 					"critical",
 				}, false),
 			},
