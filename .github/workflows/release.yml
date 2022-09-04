@@ -12,9 +12,10 @@
 name: release
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
+  workflow_run:
+    workflows: ["semantic-release"]
+    types:
+      - completed
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
