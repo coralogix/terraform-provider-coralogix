@@ -80,7 +80,7 @@ func dataSourceCoralogixRule() *schema.Resource {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
-			"overwrite_destinaton": {
+			"overwrite_destination": {
 				Type:     schema.TypeBool,
 				Computed: true,
 			},
@@ -128,7 +128,7 @@ func dataSourceCoralogixRuleRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if ruleType == "jsonparse" {
-		d.Set("overwrite_destinaton", rule["overrideDest"])
+		d.Set("overwrite_destination", rule["overrideDest"])
 	}
 
 	if rule["ruleMatchers"] != nil {
