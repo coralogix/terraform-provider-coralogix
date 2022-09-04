@@ -142,7 +142,7 @@ resource "coralogix_rule" "json_parse_rule_example" {
 * `time_format` - (Optional) Time format for `timestampextract` rule type.
 * `keep_blocked_logs` - (Optional) Should the rule keep the blocked logs in the archive and LiveTail, only for rules: `block`, `allow`.
 * `delete_source` - (Optional) Should the rule delete the source field, relevant only for rules: `jsonparse`, `jsonstringify`. default is 'false'.
-* `overwrite_destinaton` - (Optional) Should the rule overwrite the destination field or merge into it, relevant only for `jsonparse` rule. default is 'false'.
+* `overwrite_destination` - (Optional) Should the rule overwrite the destination field or merge into it, relevant only for `jsonparse` rule. default is 'false'.
 * `escaped_value` - (Optional) Indicate if the value is escaped, relevant only for rules: `jsonparse`, `jsonstringify`. default is 'true'.
 
 ---

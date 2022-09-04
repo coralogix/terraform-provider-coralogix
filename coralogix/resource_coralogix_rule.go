@@ -166,7 +166,7 @@ func resourceCoralogixRule() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
-			"overwrite_destinaton": {
+			"overwrite_destination": {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
@@ -217,7 +217,7 @@ func resourceCoralogixRuleCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if ruleType == "jsonparse" {
-		ruleParameters["overrideDest"] = d.Get("overwrite_destinaton").(bool)
+		ruleParameters["overrideDest"] = d.Get("overwrite_destination").(bool)
 	}
 
 	if d.Get("rule_matcher") != nil && len(d.Get("rule_matcher").(*schema.Set).List()) > 0 {
@@ -275,7 +275,7 @@ func resourceCoralogixRuleRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if ruleType == "jsonparse" {
-		d.Set("overwrite_destinaton", rule["overrideDest"])
+		d.Set("overwrite_destination", rule["overrideDest"])
 	}
 
 	if rule["ruleMatchers"] != nil {
@@ -293,7 +293,7 @@ func resourceCoralogixRuleUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 	apiClient := meta.(*Client)
 	ruleType := d.Get("type").(string)
-	if d.HasChanges("name", "type", "description", "enabled", "expression", "source_field", "destination_field", "replace_value", "keep_blocked_logs", "delete_source", "overwrite_destinaton", "escaped_value", "format_standard", "time_format") {
+	if d.HasChanges("name", "type", "description", "enabled", "expression", "source_field", "destination_field", "replace_value", "keep_blocked_logs", "delete_source", "overwrite_destination", "escaped_value", "format_standard", "time_format") {
 		ruleParameters := map[string]interface{}{
 			"name":        d.Get("name").(string),
 			"type":        ruleType,
@@ -328,7 +328,7 @@ func resourceCoralogixRuleUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		if ruleType == "jsonparse" {
-			ruleParameters["overrideDest"] = d.Get("overwrite_destinaton").(bool)
+			ruleParameters["overrideDest"] = d.Get("overwrite_destination").(bool)
 		}
 
 		if d.Get("rule_matcher") != nil && len(d.Get("rule_matcher").(*schema.Set).List()) > 0 {

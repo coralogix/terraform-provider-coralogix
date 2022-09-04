@@ -44,7 +44,7 @@ output "name" {
 * `replace_value` - Rule replace value.
 * `keep_blocked_logs` - Indicate if the rule keep the blocked logs in the archive and LiveTail.
 * `delete_source` - Indicate if the rule delete the source field.
-* `overwrite_destinaton` - Indicate if the rule overwrite the destination field.
+* `overwrite_destination` - Indicate if the rule overwrite the destination field.
 * `escaped_value` - Indicate if the value is escaped.
 
 ---
