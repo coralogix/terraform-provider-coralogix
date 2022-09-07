@@ -147,7 +147,7 @@ func resourceCoralogixRulesGroup() *schema.Resource {
 						"constraint": {
 							Type:         schema.TypeString,
 							Required:     true,
-							ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[a-z0-9_-]*$`), "only lowercase alphanumeric characters, hyphens and underscores allowed in 'constraint'"),
+							ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[\sa-z0-9_-]*$`), "only lowercase alphanumeric characters, hyphens, underscores and spaces allowed in 'constraint'"),
 						},
 					},
 				},
