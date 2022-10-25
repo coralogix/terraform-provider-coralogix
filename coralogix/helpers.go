@@ -428,9 +428,6 @@ func alertValuesValidation(d *schema.ResourceData) error {
 	}
 	if condition != nil {
 		if condition.(map[string]interface{})["condition_type"] == "less_than" {
-			if condition.(map[string]interface{})["group_by"] != "" || len(condition.(map[string]interface{})["group_by_array"].(*schema.Set).List()) != 0 {
-				return errors.New("when alert condition is of type 'less_than', condition.group_by_array and condition.group_by should not be defined")
-			}
 			if timeInSeconds := getTimeframeInSeconds(condition.(map[string]interface{})["timeframe"].(string)); d.Get("notify_every").(int) < timeInSeconds {
 				return fmt.Errorf("when alert condition is of type 'less_than', notify_every has to be as long as condition.timeframe, atleast %d", timeInSeconds)
 			}
