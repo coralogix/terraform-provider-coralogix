@@ -602,6 +602,8 @@ func resourceCoralogixAlertUpdate(d *schema.ResourceData, meta interface{}) erro
 				} else {
 					newCondition["group_by"] = condition["group_by_array"].(*schema.Set).List()
 				}
+			} else {
+				newCondition["group_by"] = ""
 			}
 			alertUpdateParameters["condition"] = newCondition
 		} else {
