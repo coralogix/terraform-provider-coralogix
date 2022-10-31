@@ -165,7 +165,7 @@ func dataSourceCoralogixAlert() *schema.Resource {
 							Computed:   true,
 						},
 						"group_by_array": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
