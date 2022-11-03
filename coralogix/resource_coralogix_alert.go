@@ -267,7 +267,7 @@ func resourceCoralogixAlert() *schema.Resource {
 							Deprecated: "group_by is no longer being used and will be deprecated in the next release. Please use 'group_by_array'",
 						},
 						"group_by_array": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
@@ -391,12 +391,12 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		newCondition["unique_count_key"] = condition["unique_count_key"].(string)
 		if condition["group_by"] != "" {
 			newCondition["group_by"] = condition["group_by"]
-		} else if len(condition["group_by_array"].(*schema.Set).List()) != 0 {
+		} else if len(condition["group_by_array"].([]interface{})) != 0 {
 			// new_value alert accept only one string
 			if newCondition["condition_type"] == "new_value" {
-				newCondition["group_by"] = condition["group_by_array"].(*schema.Set).List()[0]
+				newCondition["group_by"] = condition["group_by_array"].([]interface{})[0]
 			} else {
-				newCondition["group_by"] = condition["group_by_array"].(*schema.Set).List()
+				newCondition["group_by"] = condition["group_by_array"].([]interface{})
 			}
 		}
 	} else {
@@ -595,12 +595,12 @@ func resourceCoralogixAlertUpdate(d *schema.ResourceData, meta interface{}) erro
 			newCondition["unique_count_key"] = condition["unique_count_key"].(string)
 			if condition["group_by"] != "" {
 				newCondition["group_by"] = condition["group_by"]
-			} else if len(condition["group_by_array"].(*schema.Set).List()) != 0 {
+			} else if len(condition["group_by_array"].([]interface{})) != 0 {
 				// new_value alert accept only one string
 				if newCondition["condition_type"] == "new_value" {
-					newCondition["group_by"] = condition["group_by_array"].(*schema.Set).List()[0]
+					newCondition["group_by"] = condition["group_by_array"].([]interface{})[0]
 				} else {
-					newCondition["group_by"] = condition["group_by_array"].(*schema.Set).List()
+					newCondition["group_by"] = condition["group_by_array"].([]interface{})
 				}
 			} else {
 				newCondition["group_by"] = ""

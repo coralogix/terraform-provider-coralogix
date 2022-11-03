@@ -299,10 +299,10 @@ func alertValuesValidation(d *schema.ResourceData) error {
 	case "text":
 		if condition != nil {
 			if condition.(map[string]interface{})["condition_type"] == "new_value" {
-				if condition.(map[string]interface{})["group_by"] == "" && len(condition.(map[string]interface{})["group_by_array"].(*schema.Set).List()) == 0 {
+				if condition.(map[string]interface{})["group_by"] == "" && len(condition.(map[string]interface{})["group_by_array"].([]interface{})) == 0 {
 					return errors.New("when alert condition is of type 'new_value' condition.group_by_array should be defined")
 				}
-				if len(condition.(map[string]interface{})["group_by_array"].(*schema.Set).List()) > 1 {
+				if len(condition.(map[string]interface{})["group_by_array"].([]interface{})) > 1 {
 					return errors.New("when alert condition is of type 'new_value' condition.group_by_array cannot be more than one element")
 				}
 				timeMapNewValue := map[string]bool{"12H": true, "24H": true, "48H": true, "72H": true, "1W": true, "1M": true, "2M": true, "3M": true}
@@ -341,7 +341,7 @@ func alertValuesValidation(d *schema.ResourceData) error {
 			return errors.New("alert of type 'metric' must have metric block")
 		}
 		if metric.(map[string]interface{})["promql_text"] != "" {
-			if condition.(map[string]interface{})["group_by"] != "" || len(condition.(map[string]interface{})["group_by_array"].(*schema.Set).List()) != 0 ||
+			if condition.(map[string]interface{})["group_by"] != "" || len(condition.(map[string]interface{})["group_by_array"].([]interface{})) != 0 ||
 				filter.(map[string]interface{})["text"] != "" || metric.(map[string]interface{})["field"] != "" || metric.(map[string]interface{})["source"] != "" ||
 				metric.(map[string]interface{})["arithmetic_operator"] != 0 {
 				return errors.New("alert of type metric with promql_text must not define these fields: [metric.field, metric.source, metric.arithmetic_operator," +
@@ -432,7 +432,7 @@ func alertValuesValidation(d *schema.ResourceData) error {
 				return fmt.Errorf("when alert condition is of type 'less_than', notify_every has to be as long as condition.timeframe, atleast %d", timeInSeconds)
 			}
 		}
-		if condition.(map[string]interface{})["group_by"] != "" && len(condition.(map[string]interface{})["group_by_array"].(*schema.Set).List()) != 0 {
+		if condition.(map[string]interface{})["group_by"] != "" && len(condition.(map[string]interface{})["group_by_array"].([]interface{})) != 0 {
 			return errors.New("when condition.group_by_array is defined, condition.group_by cannot be defined")
 		}
 	}
