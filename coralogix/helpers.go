@@ -133,8 +133,9 @@ func flattenAlertCondition(alert interface{}, group_by_array_flag bool) interfac
 }
 
 func flattenAlertRatio(alert interface{}) interface{} {
-	alertRatio := alert.(map[string]interface{})["log_filter"].(map[string]interface{})["ratioAlerts"].([]interface{})[0]
+	alertRatio := alert.(map[string]interface{})["log_filter"].(map[string]interface{})["ratioAlerts"]
 	if alertRatio != nil {
+		alertRatio := alertRatio.([]interface{})[0]
 		alertRatioParameters := alertRatio.(map[string]interface{})
 		// checking for keys that not allways returned
 		alertRatioGroupBy := make([]interface{}, 0, 1)
