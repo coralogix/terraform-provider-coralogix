@@ -137,7 +137,7 @@ func resourceCoralogixAlert() *schema.Resource {
 							Required: true,
 						},
 						"group_by": {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
@@ -408,7 +408,7 @@ func resourceCoralogixAlertCreate(d *schema.ResourceData, meta interface{}) erro
 		newRatio["severity"] = ratio["severities"].(*schema.Set).List()
 		newRatio["application_name"] = ratio["applications"].(*schema.Set).List()
 		newRatio["subsystem_name"] = ratio["subsystems"].(*schema.Set).List()
-		newRatio["group_by"] = ratio["group_by"].(*schema.Set).List()
+		newRatio["group_by"] = ratio["group_by"].([]interface{})
 		newRatio["text"] = ratio["text"]
 		newRatio["alias"] = ratio["alias"]
 		newFilter["ratioAlerts"] = []interface{}{newRatio}
@@ -575,7 +575,7 @@ func resourceCoralogixAlertUpdate(d *schema.ResourceData, meta interface{}) erro
 				newRatio["severity"] = ratio["severities"].(*schema.Set).List()
 				newRatio["application_name"] = ratio["applications"].(*schema.Set).List()
 				newRatio["subsystem_name"] = ratio["subsystems"].(*schema.Set).List()
-				newRatio["group_by"] = ratio["group_by"].(*schema.Set).List()
+				newRatio["group_by"] = ratio["group_by"].([]interface{})
 				newRatio["text"] = ratio["text"]
 				newRatio["alias"] = ratio["alias"]
 				newFilter["ratioAlerts"] = []interface{}{newRatio}
