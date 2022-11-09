@@ -374,7 +374,7 @@ func alertValuesValidation(d *schema.ResourceData) error {
 		if condition.(map[string]interface{})["unique_count_key"] != "" {
 			return errors.New("when alert is of type 'metric' condition.unique_count_key should not be defined")
 		}
-		timeMapBasic := map[string]bool{"5MIN": true, "10MIN": true, "15MIN": true, "20MIN": true, "30MIN": true, "1H": true, "2H": true, "4H": true, "6H": true, "12H": true, "24H": true}
+		timeMapBasic := map[string]bool{"1MIN": true, "5MIN": true, "10MIN": true, "15MIN": true, "20MIN": true, "30MIN": true, "1H": true, "2H": true, "4H": true, "6H": true, "12H": true, "24H": true}
 		if _, ok := timeMapBasic[condition.(map[string]interface{})["timeframe"].(string)]; !ok {
 			return fmt.Errorf("timeframe has to match '%s' alert values", alertType)
 		}
