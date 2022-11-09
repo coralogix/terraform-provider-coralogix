@@ -231,6 +231,7 @@ func resourceCoralogixAlert() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 							ValidateFunc: validation.StringInSlice([]string{
+								"1MIN",
 								"5MIN",
 								"10MIN",
 								"15MIN",
