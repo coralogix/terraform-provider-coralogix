@@ -20,24 +20,36 @@ func getAlertByID(alertsList []interface{}, alertID string) (map[string]interfac
 
 func flattenAlertFilter(alert interface{}) interface{} {
 	alertFilter := alert.(map[string]interface{})["log_filter"].(map[string]interface{})
-	// checking for keys that not allways returned
+	alertType := alertFilter["filter_type"].(string)
 	aliasKey := ""
-	if value, ok := alertFilter["alias"]; ok {
-		aliasKey = value.(string)
-	}
 	textKey := ""
+	applicationKey := make([]interface{}, 0)
+	subsystemKey := make([]interface{}, 0)
+	severitiesKey := make([]interface{}, 0)
 	if value, ok := alertFilter["text"]; ok {
-		if value == nil {
-			textKey = ""
-		} else {
+		if value != nil {
 			textKey = value.(string)
+		}
+	}
+	if alertType != "metric" {
+		if value, ok := alertFilter["alias"]; ok {
+			aliasKey = value.(string)
+		}
+		if value, ok := alertFilter["application_name"]; ok {
+			applicationKey = value.([]interface{})
+		}
+		if value, ok := alertFilter["subsystem_name"]; ok {
+			subsystemKey = value.([]interface{})
+		}
+		if value, ok := alertFilter["severity"]; ok {
+			severitiesKey = value.([]interface{})
 		}
 	}
 	return []interface{}{map[string]interface{}{
 		"text":         textKey,
-		"applications": alertFilter["application_name"],
-		"subsystems":   alertFilter["subsystem_name"],
-		"severities":   alertFilter["severity"],
+		"applications": applicationKey,
+		"subsystems":   subsystemKey,
+		"severities":   severitiesKey,
 		"alias":        aliasKey,
 	},
 	}

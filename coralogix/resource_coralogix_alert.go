@@ -1,6 +1,8 @@
 package coralogix
 
 import (
+	"errors"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
@@ -482,6 +484,11 @@ func resourceCoralogixAlertRead(d *schema.ResourceData, meta interface{}) error 
 	alertsList, err := apiClient.Get("/external/alerts")
 	if err != nil {
 		return err
+	}
+
+	// sometimes response is status 200 but no alerts
+	if alertsList == nil {
+		return errors.New("error while getting alerts list")
 	}
 
 	alert, err := getAlertByID(alertsList["alerts"].([]interface{}), d.Id())
