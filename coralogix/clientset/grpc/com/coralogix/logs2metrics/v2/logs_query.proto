@@ -1,0 +1,22 @@
+syntax = "proto3";
+option go_package = "./";
+package com.coralogixapis.logs2metrics.v2;
+
+message LogsQuery {
+  string lucene = 1;
+  string alias = 2;
+  repeated string applicationname_filters = 3;
+  repeated string subsystemname_filters = 4;
+  repeated string severity_filters = 5;
+}
+
+//enum Severity {
+//  Unspecified = 0;
+//  Debug = 1;
+//  Verbose = 2;
+//  Info = 3;
+//  Warning = 4;
+//  Error = 5;
+//  Critical = 6;
+//}
+//

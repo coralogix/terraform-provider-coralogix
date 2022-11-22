@@ -1,173 +1,46 @@
 package coralogix
 
 import (
+	"context"
+	"log"
+
+	"terraform-provider-coralogix-v2/coralogix/clientset"
+	v1 "terraform-provider-coralogix-v2/coralogix/clientset/grpc/com/coralogix/rules/v1"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func dataSourceCoralogixRulesGroup() *schema.Resource {
-	return &schema.Resource{
-		Read: dataSourceCoralogixRulesGroupRead,
+	rulesGroupSchema := datasourceSchemaFromResourceSchema(RulesGroupSchema())
+	rulesGroupSchema["id"] = &schema.Schema{
+		Type:     schema.TypeString,
+		Required: true,
+	}
 
-		Schema: map[string]*schema.Schema{
-			"rules_group_id": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.IsUUID,
-			},
-			"name": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"description": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"enabled": {
-				Type:     schema.TypeBool,
-				Computed: true,
-			},
-			"creator": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"order": {
-				Type:     schema.TypeInt,
-				Computed: true,
-			},
-			"rules": {
-				Type:     schema.TypeList,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"group": {
-							Type:     schema.TypeList,
-							Computed: true,
-							Elem: &schema.Resource{
-								Schema: map[string]*schema.Schema{
-									"id": {
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-									"name": {
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-									"type": {
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-									"description": {
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-									"order": {
-										Type:     schema.TypeInt,
-										Computed: true,
-									},
-									"enabled": {
-										Type:     schema.TypeBool,
-										Computed: true,
-									},
-									"rule_matcher": {
-										Type:     schema.TypeSet,
-										Computed: true,
-										Elem: &schema.Resource{
-											Schema: map[string]*schema.Schema{
-												"field": {
-													Type:     schema.TypeString,
-													Computed: true,
-												},
-												"constraint": {
-													Type:     schema.TypeString,
-													Computed: true,
-												},
-											},
-										},
-									},
-									"expression": {
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-									"source_field": {
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-									"destination_field": {
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-									"replace_value": {
-										Type:     schema.TypeString,
-										Computed: true,
-									},
-									"keep_blocked_logs": {
-										Type:     schema.TypeBool,
-										Computed: true,
-									},
-									"delete_source": {
-										Type:     schema.TypeBool,
-										Computed: true,
-									},
-									"escaped_value": {
-										Type:     schema.TypeBool,
-										Computed: true,
-									},
-									"overwrite_destinaton": {
-										Type:     schema.TypeBool,
-										Computed: true,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			"rule_matcher": {
-				Type:     schema.TypeSet,
-				Computed: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"field": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-						"constraint": {
-							Type:     schema.TypeString,
-							Computed: true,
-						},
-					},
-				},
-			},
-			"created_at": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"updated_at": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-		},
+	return &schema.Resource{
+		ReadContext: dataSourceCoralogixRulesGroupRead,
+
+		Schema: rulesGroupSchema,
 	}
 }
 
-func dataSourceCoralogixRulesGroupRead(d *schema.ResourceData, meta interface{}) error {
-	apiClient := meta.(*Client)
-
-	ruleGroup, err := apiClient.Get("/external/group/" + d.Get("rules_group_id").(string))
-	if err != nil {
-		return err
+func dataSourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	id := d.Get("id").(string)
+	getRuleGroupRequest := &v1.GetRuleGroupRequest{
+		GroupId: id,
 	}
 
-	d.Set("name", ruleGroup["name"].(string))
-	d.Set("description", ruleGroup["description"].(string))
-	d.Set("enabled", ruleGroup["enabled"].(bool))
-	d.Set("creator", ruleGroup["creator"].(string))
-	d.Set("order", ruleGroup["order"].(float64))
-	d.Set("rules", flattenRules(ruleGroup["rulesGroups"].([]interface{})))
-	d.Set("rule_matcher", flattenRuleMatchers(ruleGroup["ruleMatchers"]))
-	d.Set("updated_at", ruleGroup["updatedAt"].(string))
-	d.Set("created_at", ruleGroup["createdAt"].(string))
-	d.SetId(ruleGroup["id"].(string))
-	return nil
+	log.Printf("[INFO] Reading rule-group %s", id)
+	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().GetRuleGroup(ctx, getRuleGroupRequest)
+	if err != nil {
+		log.Printf("[ERROR] Received error: %#v", err)
+		return handleRpcErrorWithID(err, "alert", id)
+	}
+	ruleGroup := ruleGroupResp.GetRuleGroup()
+	log.Printf("[INFO] Received rule-group: %#v", ruleGroup)
+
+	d.SetId(ruleGroup.GetId().GetValue())
+
+	return setRuleGroup(d, ruleGroup)
 }

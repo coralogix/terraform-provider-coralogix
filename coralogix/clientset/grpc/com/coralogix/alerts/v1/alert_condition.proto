@@ -1,0 +1,136 @@
+syntax = "proto3";
+option go_package = "./";
+package com.coralogix.alerts.v1;
+
+import "google/protobuf/wrappers.proto";
+import "com/coralogix/alerts/v1/flow_alert.proto";
+
+message AlertCondition {
+  oneof condition {
+    ImmediateCondition immediate = 1;
+    LessThanCondition less_than = 2;
+    MoreThanCondition more_than = 3;
+    MoreThanUsualCondition more_than_usual = 4;
+    NewValueCondition new_value = 5;
+    FlowCondition flow = 6;
+    UniqueCountCondition unique_count = 7;
+  }
+}
+
+message ImmediateCondition {
+}
+
+message LessThanCondition {
+  ConditionParameters parameters = 1;
+}
+
+message MoreThanCondition {
+  ConditionParameters parameters = 1;
+}
+
+message MoreThanUsualCondition {
+  ConditionParameters parameters = 1;
+}
+
+message NewValueCondition {
+  ConditionParameters parameters = 1;
+}
+
+message UniqueCountCondition {
+  ConditionParameters parameters = 1;
+}
+
+message FlowCondition {
+  repeated FlowStage stages = 1;
+}
+
+message ConditionParameters {
+  google.protobuf.DoubleValue threshold = 1;
+  Timeframe timeframe = 2;
+  repeated google.protobuf.StringValue group_by = 3;
+
+  MetricAlertConditionParameters metric_alert_parameters = 4;
+  MetricAlertPromqlConditionParameters metric_alert_promql_parameters = 5;
+  google.protobuf.BoolValue notify_on_resolved = 6;
+  google.protobuf.BoolValue ignore_infinity = 7;
+  RelativeTimeframe relative_timeframe = 8;
+  google.protobuf.BoolValue notify_group_by_only_alerts = 9;
+  google.protobuf.BoolValue notify_per_group_by_value = 10;
+
+  repeated google.protobuf.StringValue cardinality_fields = 11;
+  google.protobuf.UInt32Value max_unique_count_values_for_group_by_key = 12;
+}
+
+enum Timeframe {
+  TIMEFRAME_5_MIN_OR_UNSPECIFIED = 0;
+  TIMEFRAME_1_MIN = 18;
+  TIMEFRAME_2_MIN = 19;
+  TIMEFRAME_10_MIN = 1;
+  TIMEFRAME_15_MIN = 17;
+  TIMEFRAME_20_MIN = 2;
+  TIMEFRAME_30_MIN = 3;
+  TIMEFRAME_1_H = 4;
+  TIMEFRAME_2_H = 5;
+  TIMEFRAME_3_H = 6;
+  TIMEFRAME_4_H = 7;
+  TIMEFRAME_6_H = 8;
+  TIMEFRAME_12_H = 9;
+  TIMEFRAME_24_H = 10;
+  TIMEFRAME_36_H = 20;
+  TIMEFRAME_48_H = 11;
+  TIMEFRAME_72_H = 12;
+  TIMEFRAME_1_W = 13;
+  TIMEFRAME_1_M = 14;
+  TIMEFRAME_2_M = 15;
+  TIMEFRAME_3_M = 16;
+}
+
+enum RelativeTimeframe {
+  RELATIVE_TIMEFRAME_HOUR_OR_UNSPECIFIED = 0;
+  RELATIVE_TIMEFRAME_DAY = 1;
+  RELATIVE_TIMEFRAME_WEEK = 2;
+  RELATIVE_TIMEFRAME_MONTH = 3;
+}
+
+message MetricAlertConditionParameters {
+  google.protobuf.StringValue metric_field = 1;
+
+  enum MetricSource {
+    METRIC_SOURCE_LOGS2METRICS_OR_UNSPECIFIED = 0;
+    METRIC_SOURCE_PROMETHEUS = 1;
+  }
+
+  MetricSource metric_source = 2;
+
+  enum ArithmeticOperator {
+    ARITHMETIC_OPERATOR_AVG_OR_UNSPECIFIED = 0;
+    ARITHMETIC_OPERATOR_MIN = 1;
+    ARITHMETIC_OPERATOR_MAX = 2;
+    ARITHMETIC_OPERATOR_SUM = 3;
+    ARITHMETIC_OPERATOR_COUNT = 4;
+    ARITHMETIC_OPERATOR_PERCENTILE = 5;
+  }
+
+  ArithmeticOperator arithmetic_operator = 3;
+
+  google.protobuf.UInt32Value arithmetic_operator_modifier = 4;
+
+  google.protobuf.UInt32Value sample_threshold_percentage = 5;
+
+  google.protobuf.UInt32Value non_null_percentage = 6;
+
+  google.protobuf.BoolValue swap_null_values = 7;
+}
+
+message MetricAlertPromqlConditionParameters {
+
+  google.protobuf.StringValue promql_text = 1;
+
+  google.protobuf.UInt32Value arithmetic_operator_modifier = 2;
+
+  google.protobuf.UInt32Value sample_threshold_percentage = 3;
+
+  google.protobuf.UInt32Value non_null_percentage = 4;
+
+  google.protobuf.BoolValue swap_null_values = 5;
+}

@@ -1,0 +1,11 @@
+syntax = "proto3";
+option go_package = "./";
+package com.coralogix.alerts.v1;
+
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/timestamp.proto";
+
+message AlertSnoozed {
+  google.protobuf.StringValue user_id = 1;
+  google.protobuf.Timestamp until = 2;
+}

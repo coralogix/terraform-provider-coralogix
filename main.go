@@ -1,10 +1,13 @@
 package main
 
 import (
-	"github.com/coralogix/terraform-provider-coralogix/coralogix"
+	"terraform-provider-coralogix-v2/coralogix"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 )
 
 func main() {
-	plugin.Serve(&plugin.ServeOpts{ProviderFunc: coralogix.Provider})
+	plugin.Serve(&plugin.ServeOpts{
+		ProviderFunc: coralogix.Provider,
+	})
 }

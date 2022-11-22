@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package com.coralogix.rules.v1;
+
+import "google/protobuf/wrappers.proto";
+option go_package = "./";
+import "com/coralogix/rules/v1/rule.proto";
+
+message RuleSubgroup {
+  google.protobuf.StringValue id = 1;
+  repeated Rule rules = 2;
+  google.protobuf.BoolValue enabled = 3;
+  google.protobuf.UInt32Value order = 4;
+}

@@ -1,0 +1,112 @@
+syntax = "proto3";
+option go_package = "./";
+package com.coralogix.rules.v1;
+
+import "google/protobuf/wrappers.proto";
+import "com/coralogix/rules/v1/rule.proto";
+import "com/coralogix/rules/v1/rule_group.proto";
+import "com/coralogix/rules/v1/rule_matcher.proto";
+import "google/protobuf/descriptor.proto";
+import "google/api/annotations.proto";
+
+message AuditLogDescription {
+  optional string description = 1;
+}
+
+extend google.protobuf.MethodOptions {
+  AuditLogDescription audit_log_description = 5001;
+}
+
+service RuleGroupsService {
+  rpc GetRuleGroup(GetRuleGroupRequest) returns (GetRuleGroupResponse) {
+    option (audit_log_description).description = "get rule group";
+    option (google.api.http) = {
+      get: "/api/v1/rulegroups/{group_id}"
+    };
+  }
+  rpc CreateRuleGroup(CreateRuleGroupRequest) returns (CreateRuleGroupResponse) {
+    option (audit_log_description).description = "create rule group";
+    option (google.api.http) = {
+      post: "/api/v1/rulegroups/"
+      body: "*"
+    };
+  }
+  rpc UpdateRuleGroup(UpdateRuleGroupRequest) returns (UpdateRuleGroupResponse) {
+    option (audit_log_description).description = "update rule group";
+    option (google.api.http) = {
+      put: "/api/v1/rulegroups/{group_id}"
+      body: "rule_group"
+    };
+  }
+  rpc DeleteRuleGroup(DeleteRuleGroupRequest) returns (DeleteRuleGroupResponse) {
+    option (audit_log_description).description = "delete rule group";
+    option (google.api.http) = {
+      delete: "/api/v1/rulegroups/{group_id}"
+    };
+  }
+}
+
+message GetRuleGroupRequest {
+  string group_id = 1;
+}
+
+message GetRuleGroupResponse {
+  RuleGroup rule_group = 1;
+}
+
+message CreateRuleGroupRequest {
+  google.protobuf.StringValue name = 1;
+  google.protobuf.StringValue description = 2;
+  google.protobuf.BoolValue enabled = 3;
+  google.protobuf.BoolValue hidden = 4;
+  google.protobuf.StringValue creator = 5;
+
+  repeated RuleMatcher rule_matchers = 6;
+
+  message CreateRuleSubgroup {
+    message CreateRule {
+      google.protobuf.StringValue name = 1;
+
+      reserved "rule";
+      reserved 2;
+
+      google.protobuf.StringValue description = 3;
+      google.protobuf.StringValue source_field = 4;
+
+      RuleParameters parameters = 5;
+
+      google.protobuf.BoolValue enabled = 6;
+
+      google.protobuf.UInt32Value order = 7;
+    }
+
+    repeated CreateRule rules = 1;
+
+    google.protobuf.BoolValue enabled = 2;
+    google.protobuf.UInt32Value order = 3;
+  }
+
+  repeated CreateRuleSubgroup rule_subgroups = 7;
+
+  google.protobuf.UInt32Value order = 8;
+}
+
+message CreateRuleGroupResponse {
+  RuleGroup rule_group = 1;
+}
+
+message UpdateRuleGroupRequest {
+  google.protobuf.StringValue group_id = 1;
+
+  CreateRuleGroupRequest rule_group = 2;
+}
+
+message UpdateRuleGroupResponse {
+  RuleGroup rule_group = 1;
+}
+
+message DeleteRuleGroupRequest {
+  string group_id = 1;
+}
+
+message DeleteRuleGroupResponse {}

@@ -1,0 +1,108 @@
+syntax = "proto3";
+option go_package = "./";
+package com.coralogix.rules.v1;
+
+import "google/protobuf/wrappers.proto";
+
+message Rule {
+  google.protobuf.StringValue id = 1;
+  google.protobuf.StringValue name = 2;
+  google.protobuf.StringValue description = 3;
+
+  reserved "rule";
+  reserved 4;
+
+  google.protobuf.StringValue source_field = 5;
+
+  RuleParameters parameters = 6;
+
+  google.protobuf.BoolValue enabled = 7;
+  google.protobuf.UInt32Value order = 8;
+}
+
+message RuleParameters {
+  oneof rule_parameters {
+    ExtractParameters extract_parameters = 1;
+    JsonExtractParameters json_extract_parameters = 2;
+    ReplaceParameters replace_parameters = 3;
+    ParseParameters parse_parameters = 4;
+    AllowParameters allow_parameters = 5;
+    BlockParameters block_parameters = 6;
+    ExtractTimestampParameters extract_timestamp_parameters = 7;
+    RemoveFieldsParameters remove_fields_parameters = 8;
+    JsonStringifyParameters json_stringify_parameters = 9;
+    JsonParseParameters json_parse_parameters = 10;
+  }
+}
+
+message ExtractParameters {
+  reserved 1;
+  reserved "destinationField";
+
+  google.protobuf.StringValue rule = 2;
+}
+
+message JsonExtractParameters {
+  enum DestinationField {
+    DESTINATION_FIELD_CATEGORY_OR_UNSPECIFIED = 0;
+    DESTINATION_FIELD_CLASSNAME = 1;
+    DESTINATION_FIELD_METHODNAME = 2;
+    DESTINATION_FIELD_THREADID = 3;
+    DESTINATION_FIELD_SEVERITY = 4;
+  }
+
+  DestinationField destination_field = 1;
+  google.protobuf.StringValue rule = 2;
+}
+
+message ReplaceParameters {
+  google.protobuf.StringValue destination_field = 1;
+  google.protobuf.StringValue replace_new_val = 2;
+  google.protobuf.StringValue rule = 3;
+}
+
+message ParseParameters {
+  google.protobuf.StringValue destination_field = 1;
+  google.protobuf.StringValue rule = 2;
+}
+
+message AllowParameters {
+  google.protobuf.BoolValue keep_blocked_logs = 1;
+  google.protobuf.StringValue rule = 2;
+}
+
+message BlockParameters {
+  google.protobuf.BoolValue keep_blocked_logs = 1;
+  google.protobuf.StringValue rule = 2;
+}
+
+message ExtractTimestampParameters {
+  enum FormatStandard {
+    FORMAT_STANDARD_STRFTIME_OR_UNSPECIFIED = 0;
+    FORMAT_STANDARD_JAVASDF = 1;
+    FORMAT_STANDARD_GOLANG = 2;
+    FORMAT_STANDARD_SECONDSTS = 3;
+    FORMAT_STANDARD_MILLITS = 4;
+    FORMAT_STANDARD_MICROTS = 5;
+    FORMAT_STANDARD_NANOTS = 6;
+  }
+
+  FormatStandard standard = 1;
+  google.protobuf.StringValue format = 2;
+}
+
+message RemoveFieldsParameters {
+  repeated string fields = 1;
+}
+
+message JsonStringifyParameters {
+  google.protobuf.StringValue destination_field = 1;
+  google.protobuf.BoolValue delete_source = 2;
+}
+
+message JsonParseParameters {
+  google.protobuf.StringValue destination_field = 1;
+  google.protobuf.BoolValue delete_source = 2;
+  google.protobuf.BoolValue escaped_value = 3;
+  google.protobuf.BoolValue override_dest = 4;
+}

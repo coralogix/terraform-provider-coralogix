@@ -1,0 +1,13 @@
+syntax = "proto3";
+option go_package = "./";
+package com.coralogixapis.logs2metrics.v2;
+
+import "google/protobuf/descriptor.proto";
+
+message AuditLogDescription {
+  optional string description = 1;
+}
+
+extend google.protobuf.MethodOptions {
+  optional AuditLogDescription audit_log_description = 5002;
+}

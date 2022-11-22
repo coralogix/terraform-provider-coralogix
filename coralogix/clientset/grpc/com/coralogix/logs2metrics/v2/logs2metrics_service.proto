@@ -1,0 +1,89 @@
+syntax = "proto3";
+package com.coralogixapis.logs2metrics.v2;
+option go_package = "./";
+import "google/api/annotations.proto";
+import "com/coralogixapis/logs2metrics/v2/audit_log.proto";
+import "google/protobuf/descriptor.proto";
+import "com/coralogixapis/logs2metrics/v2/logs2metrics_definition.proto";
+import "google/protobuf/empty.proto";
+
+service Logs2MetricService {
+  rpc CreateL2M(CreateL2MRequest) returns (L2M) {
+    option (audit_log_description).description = "Create new L2M";
+    option (google.api.http) = {
+      post: "/api/v2/logs2metrics",
+      body: "l2m"
+    };
+  }
+
+  rpc ListL2M(ListL2MRequest) returns (ListL2MResponse) {
+    option (audit_log_description).description = "List all L2M";
+    option (google.api.http) = {
+      get: "/api/v2/logs2metrics"
+    };
+  }
+
+  rpc UpdateL2M(UpdateL2MRequest) returns (L2M) {
+    option (audit_log_description).description = "Update L2M";
+    option (google.api.http) = {
+      put: "/api/v2/logs2metrics",
+      body: "l2m"
+    };
+  }
+
+  rpc GetL2M(GetL2MRequest) returns (L2M) {
+    option (audit_log_description).description = "Get L2M";
+    option (google.api.http) = {
+      get: "/api/v2/logs2metrics/{id}"
+    };
+  }
+
+  rpc DeleteL2M(DeleteL2MRequest) returns (google.protobuf.Empty) {
+    option (audit_log_description).description = "Delete L2M";
+    option (google.api.http) = {
+      delete: "/api/v2/logs2metrics/{id}"
+    };
+  }
+
+  rpc BatchExecuteL2M(BatchExecuteL2MRequest) returns (BatchExecuteL2MResponse) {
+    option (audit_log_description).description = "Batch Execute L2M";
+    option (google.api.http) = {
+      post: "/api/v2/logs2metrics:batchExecute"
+    };
+  }
+}
+
+
+message CreateL2MRequest {
+  L2M l2m = 1;
+}
+
+message ListL2MRequest {}
+
+message ListL2MResponse {
+  repeated L2M l2m = 1;
+}
+
+message UpdateL2MRequest {
+  L2M l2m = 1;
+}
+
+message GetL2MRequest {
+  string id = 1;
+}
+
+message DeleteL2MRequest {
+  string id = 1;
+}
+
+message BatchExecuteL2MRequest {
+  repeated L2M create = 1;
+  repeated L2M update = 2;
+  repeated string delete = 3;
+}
+
+message BatchExecuteL2MResponse {
+  repeated L2M created = 1;
+  repeated L2M updated = 2;
+  repeated string deleted = 3;
+}
