@@ -20,7 +20,7 @@ $ make testacc TESTARGS='-run=TestAccXXX'
 ```
 
 ### Release Note
-Release note for [CHANGELOG](https://github.com/coralogix/terraform-provider-coralogix-2/blob/master/CHANGELOG.md):
+Release note for [CHANGELOG](https://github.com/coralogix/terraform-provider-coralogix/blob/master/CHANGELOG.md):
 <!--
 If change is not user facing, just write "NONE" in the release-note block below.
 -->

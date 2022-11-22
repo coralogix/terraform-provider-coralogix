@@ -3,7 +3,7 @@ HOSTNAME=coralogix.com
 NAMESPACE=api
 NAME=coralogix
 BINARY=terraform-provider-${NAME}
-VERSION=0.1.0
+VERSION=1.3.0
 OS_ARCH=darwin_arm64
 
 default: install
