@@ -48,13 +48,13 @@ Clone the repository locally.
 
 ```sh
 $ mkdir -p $GOPATH/src/github.com/hashicorp; cd $GOPATH/src/github.com/hashicorp
-$ git clone git@github.com:coralogix/terraform-provider-coralogix-v2.0
+$ git clone git@github.com:coralogix/terraform-provider-coralogix
 ```
 
 Navigate to the provider directory and build the provider.
 Inside the Makefile, change "OS_ARCH=darwin_arm64" to "OS_ARCH=darwin_amd64" if needed (Line 7).
 ```sh
-$ cd $GOPATH/src/github.com/hashicorp/terraform-provider-coralogix-v2.0
+$ cd $GOPATH/src/github.com/hashicorp/terraform-provider-coralogix
 $ make install
 ```
 

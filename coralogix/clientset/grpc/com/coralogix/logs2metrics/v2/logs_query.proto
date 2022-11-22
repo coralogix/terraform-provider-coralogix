@@ -7,16 +7,16 @@ message LogsQuery {
   string alias = 2;
   repeated string applicationname_filters = 3;
   repeated string subsystemname_filters = 4;
-  repeated string severity_filters = 5;
+  repeated Severity severity_filters = 5;
 }
 
-//enum Severity {
-//  Unspecified = 0;
-//  Debug = 1;
-//  Verbose = 2;
-//  Info = 3;
-//  Warning = 4;
-//  Error = 5;
-//  Critical = 6;
-//}
-//
+enum Severity {
+  Unspecified = 0;
+  Debug = 1;
+  Verbose = 2;
+  Info = 3;
+  Warning = 4;
+  Error = 5;
+  Critical = 6;
+}
+

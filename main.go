@@ -1,7 +1,7 @@
 package main
 
 import (
-	"terraform-provider-coralogix-v2/coralogix"
+	"terraform-provider-coralogix/coralogix"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
 )

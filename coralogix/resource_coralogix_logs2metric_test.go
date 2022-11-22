@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"testing"
 
-	"terraform-provider-coralogix-v2/coralogix/clientset"
-	logs2metricv2 "terraform-provider-coralogix-v2/coralogix/clientset/grpc/com/coralogix/logs2metrics/v2"
+	"terraform-provider-coralogix/coralogix/clientset"
+	logs2metricv2 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/logs2metrics/v2"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"

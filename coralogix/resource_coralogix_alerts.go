@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"time"
 
-	"terraform-provider-coralogix-v2/coralogix/clientset"
-	alertsv1 "terraform-provider-coralogix-v2/coralogix/clientset/grpc/com/coralogix/alerts/v1"
+	"terraform-provider-coralogix/coralogix/clientset"
+	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/alerts/v1"
 
 	. "github.com/ahmetalpbalkan/go-linq"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"

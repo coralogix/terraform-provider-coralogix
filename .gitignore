@@ -1,5 +1,5 @@
 .DS_Store
-terraform-provider-coralogix-v2
+terraform-provider-coralogix
 bin
 
 # Created by https://www.toptal.com/developers/gitignore/api/go,terraform

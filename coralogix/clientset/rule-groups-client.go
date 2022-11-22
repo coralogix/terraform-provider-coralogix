@@ -3,7 +3,7 @@ package clientset
 import (
 	"context"
 
-	rulesv1 "terraform-provider-coralogix-v2/coralogix/clientset/grpc/com/coralogix/rules/v1"
+	rulesv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/rules/v1"
 )
 
 type RuleGroupsClient struct {

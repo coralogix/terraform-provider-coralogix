@@ -7,17 +7,16 @@ import (
 	"regexp"
 	"time"
 
-	"terraform-provider-coralogix-v2/coralogix/clientset"
-	logs2metricv2 "terraform-provider-coralogix-v2/coralogix/clientset/grpc/com/coralogix/logs2metrics/v2"
+	"golang.org/x/exp/maps"
+	"terraform-provider-coralogix/coralogix/clientset"
+	logs2metricv2 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/logs2metrics/v2"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var (
-	logs2metricProtoSeverityToSchemaSeverity = []string{"Debug", "Verbose", "Info", "Warning", "Error", "Critical"}
-)
+var validSeverities = maps.Keys(logs2metricv2.Severity_value)
 
 func resourceCoralogixLogs2Metric() *schema.Resource {
 	return &schema.Resource{
@@ -147,9 +146,9 @@ func expandQuery(v interface{}) *logs2metricv2.LogsQuery {
 	m := raw.(map[string]interface{})
 
 	searchQuery := m["lucene"].(string)
-	applications := interfaceSliceToStringSlice(m["applications"].([]interface{}))
-	subsystems := interfaceSliceToStringSlice(m["subsystems"].([]interface{}))
-	severities := interfaceSliceToStringSlice(m["severities"].([]interface{}))
+	applications := interfaceSliceToStringSlice(m["applications"].(*schema.Set).List())
+	subsystems := interfaceSliceToStringSlice(m["subsystems"].(*schema.Set).List())
+	severities := expandSeverities(m["severities"].(*schema.Set).List())
 
 	return &logs2metricv2.LogsQuery{
 		Lucene:                 searchQuery,
@@ -157,6 +156,16 @@ func expandQuery(v interface{}) *logs2metricv2.LogsQuery {
 		SubsystemnameFilters:   subsystems,
 		SeverityFilters:        severities,
 	}
+}
+
+func expandSeverities(severities []interface{}) []logs2metricv2.Severity {
+	result := make([]logs2metricv2.Severity, 0, len(severities))
+	for _, s := range severities {
+		severity := logs2metricv2.Severity(logs2metricv2.Severity_value[s.(string)])
+		result = append(result, severity)
+	}
+
+	return result
 }
 
 func expandLabels(v interface{}) []*logs2metricv2.MetricLabel {
@@ -341,7 +350,7 @@ func flattenQuery(query *logs2metricv2.LogsQuery) interface{} {
 		m["subsystems"] = subsystems
 	}
 
-	severities := query.GetSeverityFilters()
+	severities := flattenSeverities(query.GetSeverityFilters())
 	if len(severities) > 0 {
 		m["severities"] = severities
 	}
@@ -349,13 +358,13 @@ func flattenQuery(query *logs2metricv2.LogsQuery) interface{} {
 	return []interface{}{m}
 }
 
-/*func flattenSeverities(severities []logs2metricv2.Severity) []string {
+func flattenSeverities(severities []logs2metricv2.Severity) []string {
 	result := make([]string, 0, len(severities))
 	for _, s := range severities {
 		result = append(result, logs2metricv2.Severity_name[int32(s)])
 	}
 	return result
-}*/
+}
 
 func Logs2MetricSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
@@ -386,29 +395,32 @@ func Logs2MetricSchema() map[string]*schema.Schema {
 						Description:  "The search_query that we wanted to be notified on.",
 					},
 					"applications": {
-						Type:     schema.TypeList,
+						Type:     schema.TypeSet,
 						Optional: true,
 						Elem: &schema.Schema{
 							Type: schema.TypeString,
 						},
 						Description: "An array that contains log’s application names that we want to be alerted on.",
+						Set:         schema.HashString,
 					},
 					"subsystems": {
-						Type:     schema.TypeList,
+						Type:     schema.TypeSet,
 						Optional: true,
 						Elem: &schema.Schema{
 							Type: schema.TypeString,
 						},
 						Description: "An array that contains log’s subsystem names that we want to be notified on.",
+						Set:         schema.HashString,
 					},
 					"severities": {
-						Type:     schema.TypeList,
+						Type:     schema.TypeSet,
 						Optional: true,
 						Elem: &schema.Schema{
 							Type:         schema.TypeString,
-							ValidateFunc: validation.StringInSlice(logs2metricProtoSeverityToSchemaSeverity, false),
+							ValidateFunc: validation.StringInSlice(validSeverities, false),
 						},
-						Description: fmt.Sprintf("An array of severities that we interested in. Can be one of %q", logs2metricProtoSeverityToSchemaSeverity),
+						Set:         schema.HashString,
+						Description: fmt.Sprintf("An array of severities that we interested in. Can be one of %q", validSeverities),
 					},
 				},
 			},

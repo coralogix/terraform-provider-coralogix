@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	"terraform-provider-coralogix-v2/coralogix/clientset"
-	v1 "terraform-provider-coralogix-v2/coralogix/clientset/grpc/com/coralogix/rules/v1"
+	"terraform-provider-coralogix/coralogix/clientset"
+	v1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/rules/v1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"

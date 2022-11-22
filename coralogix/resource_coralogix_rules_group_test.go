@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"terraform-provider-coralogix-v2/coralogix/clientset"
-	rulesv1 "terraform-provider-coralogix-v2/coralogix/clientset/grpc/com/coralogix/rules/v1"
+	"terraform-provider-coralogix/coralogix/clientset"
+	rulesv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/rules/v1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"

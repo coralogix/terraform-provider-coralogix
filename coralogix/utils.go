@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	alertsv1 "terraform-provider-coralogix-v2/coralogix/clientset/grpc/com/coralogix/alerts/v1"
+	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/alerts/v1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -30,6 +30,8 @@ func handleRpcError(err error) diag.Diagnostics {
 	switch status.Code(err) {
 	case codes.PermissionDenied, codes.Unauthenticated:
 		return diag.Errorf("permission denied, check your api-key")
+	case codes.Internal:
+		return diag.Errorf("this is an internal error in Coralogix backend - %s", err)
 	default:
 		return diag.FromErr(err)
 	}

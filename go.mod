@@ -1,4 +1,4 @@
-module terraform-provider-coralogix-v2
+module terraform-provider-coralogix
 
 go 1.18
 

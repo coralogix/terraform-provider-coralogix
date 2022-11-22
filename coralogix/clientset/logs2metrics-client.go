@@ -3,7 +3,7 @@ package clientset
 import (
 	"context"
 
-	logs2metricv2 "terraform-provider-coralogix-v2/coralogix/clientset/grpc/com/coralogix/logs2metrics/v2"
+	logs2metricv2 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/logs2metrics/v2"
 
 	"google.golang.org/protobuf/types/known/emptypb"
 )

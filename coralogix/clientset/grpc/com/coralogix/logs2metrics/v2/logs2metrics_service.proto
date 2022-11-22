@@ -1,6 +1,6 @@
 syntax = "proto3";
-package com.coralogixapis.logs2metrics.v2;
 option go_package = "./";
+package com.coralogixapis.logs2metrics.v2;
 import "google/api/annotations.proto";
 import "com/coralogixapis/logs2metrics/v2/audit_log.proto";
 import "google/protobuf/descriptor.proto";
