@@ -69,7 +69,7 @@ Optional:
 
 - `applications` (Set of String) An array that contains log’s application names that we want to be alerted on.
 - `lucene` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of severities that we interested in. Can be one of ["Critical" "Unspecified" "Debug" "Verbose" "Info" "Warning" "Error"]
+- `severities` (Set of String) An array of severities that we interested in. Can be one of ["Verbose" "Info" "Warning" "Error" "Critical" "Unspecified" "Debug"]
 - `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on.
 
 

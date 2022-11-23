@@ -28,6 +28,7 @@ func TestAccCoralogixResourceAlert_standard(t *testing.T) {
 
 	checks := extractCommonChecks(&alert.alertCommonTestParams, resourceName, "standard")
 	checks = append(checks,
+		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
 		resource.TestCheckResourceAttr(resourceName, "meta_labels.0.key", "alert_type"),
 		resource.TestCheckResourceAttr(resourceName, "meta_labels.0.value", "security"),
 		resource.TestCheckResourceAttr(resourceName, "meta_labels.1.key", "security_severity"),
@@ -69,6 +70,7 @@ func TestAccCoralogixResourceAlert_ratio(t *testing.T) {
 
 	checks := extractCommonChecks(&alert.alertCommonTestParams, resourceName, "ratio.0.query_1")
 	checks = append(checks,
+		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
 		resource.TestCheckResourceAttr(resourceName, "ratio.0.query_2.0.search_query", alert.q2SearchQuery),
 		resource.TestCheckResourceAttr(resourceName, "ratio.0.condition.0.more_than", "true"),
 		resource.TestCheckResourceAttr(resourceName, "ratio.0.condition.0.queries_ratio", fmt.Sprintf("%f", alert.ratio)),
@@ -185,6 +187,7 @@ func TestAccCoralogixResourceAlert_timeRelative(t *testing.T) {
 
 	checks := extractCommonChecks(&alert.alertCommonTestParams, resourceName, "time_relative")
 	checks = append(checks,
+		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
 		resource.TestCheckResourceAttr(resourceName, "time_relative.0.condition.0.ratio_threshold", strconv.Itoa(alert.ratioThreshold)),
 		resource.TestCheckResourceAttr(resourceName, "time_relative.0.condition.0.relative_time_window", alert.relativeTimeWindow),
 		resource.TestCheckResourceAttr(resourceName, "time_relative.0.condition.0.group_by.0", alert.groupBy[0]),
@@ -231,6 +234,7 @@ func TestAccCoralogixResourceAlert_metricLucene(t *testing.T) {
 		resource.TestCheckResourceAttr(resourceName, "name", alert.name),
 		resource.TestCheckResourceAttr(resourceName, "description", alert.description),
 		resource.TestCheckResourceAttr(resourceName, "alert_severity", alert.severity),
+		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_every_sec", strconv.Itoa(alert.notifyEverySec)),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.search_query", alert.searchQuery),
@@ -559,6 +563,7 @@ func testAccCoralogixResourceAlertStandard(a *standardAlertTestParams) string {
       emails      = %s
     }
     notify_every_sec = %d
+	notify_only_on_triggered_group_by_values = true
   }
 
   scheduling {
@@ -603,6 +608,7 @@ func testAccCoralogixResourceAlertRatio(a *ratioAlertTestParams) string {
       emails      = %s
     }
     notify_every_sec = %d
+    notify_only_on_triggered_group_by_values = true
   }
 
   scheduling {
@@ -712,6 +718,7 @@ func testAccCoralogixResourceAlertTimeRelative(a *timeRelativeAlertTestParams) s
       emails      = %s
     }
     notify_every_sec = %d
+	notify_only_on_triggered_group_by_values = true
   }
 
   scheduling {
@@ -746,6 +753,7 @@ func testAccCoralogixResourceAlertMetricLucene(a *metricLuceneAlertTestParams) s
       emails      = %s
     }
     notify_every_sec = %d
+	notify_only_on_triggered_group_by_values = true
   }
 
   scheduling {

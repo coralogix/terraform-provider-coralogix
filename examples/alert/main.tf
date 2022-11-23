@@ -74,6 +74,7 @@ resource "coralogix_alert" "ratio_alert" {
       webhook_ids = ["WebhookAlerts"]
     }
     notify_every_sec = 60
+    notify_only_on_triggered_group_by_values = true
   }
 
   scheduling {

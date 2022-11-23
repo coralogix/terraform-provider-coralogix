@@ -137,11 +137,12 @@ type alertParams struct {
 }
 
 type notification struct {
-	notifyEverySec     *wrapperspb.DoubleValue
-	ignoreInfinity     *wrapperspb.BoolValue
-	notifyWhenResolved *wrapperspb.BoolValue
-	recipients         *alertsv1.AlertNotifications
-	payloadFields      []*wrapperspb.StringValue
+	notifyEverySec                     *wrapperspb.DoubleValue
+	ignoreInfinity                     *wrapperspb.BoolValue
+	notifyWhenResolved                 *wrapperspb.BoolValue
+	notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue
+	recipients                         *alertsv1.AlertNotifications
+	payloadFields                      []*wrapperspb.StringValue
 }
 
 type protoTimeFrameAndRelativeTimeFrame struct {
@@ -1378,16 +1379,18 @@ func hashMetaLabels() schema.SchemaSetFunc {
 func flattenNotification(alert *alertsv1.Alert, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) interface{} {
 	recipients := flattenRecipients(alert.GetNotifications())
 	notificationMap := map[string]interface{}{
-		"notify_only_on_triggered_group_by_values": notifyOnlyOnTriggeredGroupByValues.GetValue(),
-		"notify_every_sec":                         int(alert.GetNotifyEvery().GetValue()),
-		"recipients":                               recipients,
-		"payload_fields":                           wrappedStringSliceToStringSlice(alert.NotificationPayloadFilters),
+		"notify_every_sec": int(alert.GetNotifyEvery().GetValue()),
+		"recipients":       recipients,
+		"payload_fields":   wrappedStringSliceToStringSlice(alert.NotificationPayloadFilters),
 	}
 	if ignoreInfinity != nil {
 		notificationMap["ignore_infinity"] = ignoreInfinity.GetValue()
 	}
 	if notifyWhenResolved != nil {
 		notificationMap["on_trigger_and_resolved"] = notifyWhenResolved.GetValue()
+	}
+	if notifyOnlyOnTriggeredGroupByValues != nil {
+		notificationMap["notify_only_on_triggered_group_by_values"] = notifyOnlyOnTriggeredGroupByValues.GetValue()
 	}
 
 	return []interface{}{
@@ -1918,15 +1921,17 @@ func expandNotification(i interface{}) *notification {
 	notifyEverySec := wrapperspb.Double(float64(m["notify_every_sec"].(int)))
 	notifyWhenResolved := wrapperspb.Bool(m["on_trigger_and_resolved"].(bool))
 	ignoreInfinity := wrapperspb.Bool(m["ignore_infinity"].(bool))
+	notifyOnlyOnTriggeredGroupByValues := wrapperspb.Bool(m["notify_only_on_triggered_group_by_values"].(bool))
 	recipients := expandRecipients(m["recipients"])
 	payloadFields := interfaceSliceToWrappedStringSlice(m["payload_fields"].(*schema.Set).List())
 
 	return &notification{
-		notifyEverySec:     notifyEverySec,
-		notifyWhenResolved: notifyWhenResolved,
-		ignoreInfinity:     ignoreInfinity,
-		recipients:         recipients,
-		payloadFields:      payloadFields,
+		notifyEverySec:                     notifyEverySec,
+		notifyWhenResolved:                 notifyWhenResolved,
+		notifyOnlyOnTriggeredGroupByValues: notifyOnlyOnTriggeredGroupByValues,
+		ignoreInfinity:                     ignoreInfinity,
+		recipients:                         recipients,
+		payloadFields:                      payloadFields,
 	}
 }
 
@@ -2046,17 +2051,17 @@ func expandAlertType(d *schema.ResourceData, notification *notification) (alertT
 
 	switch alertTypeStr {
 	case "standard":
-		alertTypeParams, err = expandStandard(alertType, notification.notifyWhenResolved)
+		alertTypeParams, err = expandStandard(alertType, notification.notifyWhenResolved, notification.notifyOnlyOnTriggeredGroupByValues)
 	case "ratio":
-		alertTypeParams, err = expandRatio(alertType, notification.ignoreInfinity, notification.notifyWhenResolved)
+		alertTypeParams, err = expandRatio(alertType, notification.ignoreInfinity, notification.notifyWhenResolved, notification.notifyOnlyOnTriggeredGroupByValues)
 	case "new_value":
 		alertTypeParams = expandNewValue(alertType)
 	case "unique_count":
 		alertTypeParams = expandUniqueCount(alertType)
 	case "time_relative":
-		alertTypeParams, err = expandTimeRelative(alertType, notification.ignoreInfinity, notification.notifyWhenResolved)
+		alertTypeParams, err = expandTimeRelative(alertType, notification.ignoreInfinity, notification.notifyWhenResolved, notification.notifyOnlyOnTriggeredGroupByValues)
 	case "metric":
-		alertTypeParams, err = expandMetric(alertType, notification.notifyWhenResolved)
+		alertTypeParams, err = expandMetric(alertType, notification.notifyWhenResolved, notification.notifyOnlyOnTriggeredGroupByValues)
 	case "tracing":
 		alertTypeParams, tracingAlert = expandTracing(alertType, notification.notifyWhenResolved)
 	case "flow":
@@ -2066,9 +2071,9 @@ func expandAlertType(d *schema.ResourceData, notification *notification) (alertT
 	return
 }
 
-func expandStandard(m map[string]interface{}, notifyOnResolved *wrapperspb.BoolValue) (*alertParams, error) {
+func expandStandard(m map[string]interface{}, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alertParams, error) {
 	conditionMap := extractConditionMap(m)
-	condition, err := expandStandardCondition(conditionMap, notifyOnResolved)
+	condition, err := expandStandardCondition(conditionMap, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
 	if err != nil {
 		return nil, err
 	}
@@ -2079,7 +2084,7 @@ func expandStandard(m map[string]interface{}, notifyOnResolved *wrapperspb.BoolV
 	}, nil
 }
 
-func expandStandardCondition(m map[string]interface{}, notifyOnResolved *wrapperspb.BoolValue) (*alertsv1.AlertCondition, error) {
+func expandStandardCondition(m map[string]interface{}, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alertsv1.AlertCondition, error) {
 	if immediately := m["immediately"]; immediately != nil && immediately.(bool) {
 		return &alertsv1.AlertCondition{
 			Condition: &alertsv1.AlertCondition_Immediate{},
@@ -2097,7 +2102,7 @@ func expandStandardCondition(m map[string]interface{}, notifyOnResolved *wrapper
 			},
 		}, nil
 	} else {
-		parameters := expandStandardConditionParameters(m, notifyOnResolved)
+		parameters := expandStandardConditionParameters(m, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
 		if lessThan := m["less_than"]; lessThan != nil && lessThan.(bool) {
 			return &alertsv1.AlertCondition{
 				Condition: &alertsv1.AlertCondition_LessThan{
@@ -2116,16 +2121,17 @@ func expandStandardCondition(m map[string]interface{}, notifyOnResolved *wrapper
 	return nil, fmt.Errorf("immediately, less_than, more_than or more_than_usual have to be true")
 }
 
-func expandStandardConditionParameters(m map[string]interface{}, notifyOnResolved *wrapperspb.BoolValue) *alertsv1.ConditionParameters {
+func expandStandardConditionParameters(m map[string]interface{}, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) *alertsv1.ConditionParameters {
 	timeFrame := expandTimeFrame(m["time_window"].(string))
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
 	threshold := wrapperspb.Double(float64(m["occurrences_threshold"].(int)))
 
 	return &alertsv1.ConditionParameters{
-		Threshold:        threshold,
-		Timeframe:        timeFrame,
-		GroupBy:          groupBy,
-		NotifyOnResolved: notifyOnResolved,
+		Threshold:               threshold,
+		Timeframe:               timeFrame,
+		GroupBy:                 groupBy,
+		NotifyOnResolved:        notifyOnResolved,
+		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
 	}
 }
 
@@ -2135,7 +2141,7 @@ func expandStandardFilter(m map[string]interface{}) *alertsv1.AlertFilters {
 	return filters
 }
 
-func expandRatio(m map[string]interface{}, ignoreInfinity, notifyOnResolved *wrapperspb.BoolValue) (*alertParams, error) {
+func expandRatio(m map[string]interface{}, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alertParams, error) {
 	conditionMap := extractConditionMap(m)
 	groupBy := interfaceSliceToWrappedStringSlice(conditionMap["group_by"].([]interface{}))
 	var groupByQ1, groupByQ2 []*wrapperspb.StringValue
@@ -2152,7 +2158,7 @@ func expandRatio(m map[string]interface{}, ignoreInfinity, notifyOnResolved *wra
 		}
 	}
 
-	condition, err := expandRatioCondition(conditionMap, groupByQ1, ignoreInfinity, notifyOnResolved)
+	condition, err := expandRatioCondition(conditionMap, groupByQ1, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
 	if err != nil {
 		return nil, err
 	}
@@ -2174,20 +2180,21 @@ func expandRatioFilters(m map[string]interface{}, groupBy []*wrapperspb.StringVa
 	return filters
 }
 
-func expandRatioCondition(m map[string]interface{}, groupBy []*wrapperspb.StringValue, ignoreInfinity, notifyOnResolved *wrapperspb.BoolValue) (*alertsv1.AlertCondition, error) {
-	parameters := expandRatioParams(m, groupBy, ignoreInfinity, notifyOnResolved)
+func expandRatioCondition(m map[string]interface{}, groupBy []*wrapperspb.StringValue, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alertsv1.AlertCondition, error) {
+	parameters := expandRatioParams(m, groupBy, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
 	return expandLessThanOrMoreThanAlertCondition(m, parameters)
 }
 
-func expandRatioParams(m map[string]interface{}, groupBy []*wrapperspb.StringValue, ignoreInfinity, notifyOnResolved *wrapperspb.BoolValue) *alertsv1.ConditionParameters {
+func expandRatioParams(m map[string]interface{}, groupBy []*wrapperspb.StringValue, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) *alertsv1.ConditionParameters {
 	threshold := wrapperspb.Double(m["queries_ratio"].(float64))
 	timeFrame := expandTimeFrame(m["time_window"].(string))
 	parameters := &alertsv1.ConditionParameters{
-		Threshold:        threshold,
-		Timeframe:        timeFrame,
-		GroupBy:          groupBy,
-		NotifyOnResolved: notifyOnResolved,
-		IgnoreInfinity:   ignoreInfinity,
+		Threshold:               threshold,
+		Timeframe:               timeFrame,
+		GroupBy:                 groupBy,
+		NotifyOnResolved:        notifyOnResolved,
+		IgnoreInfinity:          ignoreInfinity,
+		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
 	}
 	return parameters
 }
@@ -2304,9 +2311,9 @@ func expandCommonAlertFilter(m map[string]interface{}) *alertsv1.AlertFilters {
 	}
 }
 
-func expandTimeRelative(m map[string]interface{}, ignoreInfinity, notifyOnResolved *wrapperspb.BoolValue) (*alertParams, error) {
+func expandTimeRelative(m map[string]interface{}, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alertParams, error) {
 	conditionMap := extractConditionMap(m)
-	condition, err := expandTimeRelativeCondition(conditionMap, ignoreInfinity, notifyOnResolved)
+	condition, err := expandTimeRelativeCondition(conditionMap, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
 	if err != nil {
 		return nil, err
 	}
@@ -2318,8 +2325,8 @@ func expandTimeRelative(m map[string]interface{}, ignoreInfinity, notifyOnResolv
 	}, nil
 }
 
-func expandTimeRelativeCondition(m map[string]interface{}, ignoreInfinity, notifyOnResolved *wrapperspb.BoolValue) (*alertsv1.AlertCondition, error) {
-	parameters := expandTimeRelativeConditionParameters(m, ignoreInfinity, notifyOnResolved)
+func expandTimeRelativeCondition(m map[string]interface{}, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alertsv1.AlertCondition, error) {
+	parameters := expandTimeRelativeConditionParameters(m, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
 	return expandLessThanOrMoreThanAlertCondition(m, parameters)
 }
 
@@ -2354,17 +2361,18 @@ func trueIfIsLessThanFalseIfMoreThanAndErrorOtherwise(m map[string]interface{}) 
 	return false, fmt.Errorf("less_than or more_than have to be true")
 }
 
-func expandTimeRelativeConditionParameters(m map[string]interface{}, ignoreInfinity, notifyOnResolved *wrapperspb.BoolValue) *alertsv1.ConditionParameters {
+func expandTimeRelativeConditionParameters(m map[string]interface{}, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) *alertsv1.ConditionParameters {
 	timeFrame, relativeTimeframe := expandTimeFrameAndRelativeTimeframe(m["relative_time_window"].(string))
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
 	threshold := wrapperspb.Double(m["ratio_threshold"].(float64))
 	return &alertsv1.ConditionParameters{
-		Timeframe:         timeFrame,
-		RelativeTimeframe: relativeTimeframe,
-		GroupBy:           groupBy,
-		Threshold:         threshold,
-		IgnoreInfinity:    ignoreInfinity,
-		NotifyOnResolved:  notifyOnResolved,
+		Timeframe:               timeFrame,
+		RelativeTimeframe:       relativeTimeframe,
+		GroupBy:                 groupBy,
+		Threshold:               threshold,
+		IgnoreInfinity:          ignoreInfinity,
+		NotifyOnResolved:        notifyOnResolved,
+		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
 	}
 }
 
@@ -2379,8 +2387,8 @@ func expandTimeRelativeFilters(m map[string]interface{}) *alertsv1.AlertFilters 
 	return filters
 }
 
-func expandMetric(m map[string]interface{}, notifyWhenResolved *wrapperspb.BoolValue) (*alertParams, error) {
-	condition, err := expandMetricCondition(m, notifyWhenResolved)
+func expandMetric(m map[string]interface{}, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alertParams, error) {
+	condition, err := expandMetricCondition(m, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues)
 	if err != nil {
 		return nil, err
 	}
@@ -2392,7 +2400,7 @@ func expandMetric(m map[string]interface{}, notifyWhenResolved *wrapperspb.BoolV
 	}, nil
 }
 
-func expandMetricCondition(m map[string]interface{}, notifyWhenResolved *wrapperspb.BoolValue) (*alertsv1.AlertCondition, error) {
+func expandMetricCondition(m map[string]interface{}, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alertsv1.AlertCondition, error) {
 	isPromQL := len(m["promql"].([]interface{})) > 0
 	var metricType string
 	if isPromQL {
@@ -2412,9 +2420,10 @@ func expandMetricCondition(m map[string]interface{}, notifyWhenResolved *wrapper
 	timeFrame := expandTimeFrame(conditionMap["time_window"].(string))
 
 	parameters := &alertsv1.ConditionParameters{
-		Threshold:        threshold,
-		NotifyOnResolved: notifyWhenResolved,
-		Timeframe:        timeFrame,
+		Threshold:               threshold,
+		NotifyOnResolved:        notifyWhenResolved,
+		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
+		Timeframe:               timeFrame,
 	}
 
 	if isPromQL {
@@ -2577,7 +2586,7 @@ func expandTracingCondition(m map[string]interface{}, notifyOnResolved *wrappers
 			Condition: &alertsv1.AlertCondition_Immediate{},
 		}, nil
 	} else if moreThan := m["more_than"]; moreThan != nil && moreThan.(bool) {
-		parameters := expandStandardConditionParameters(m, notifyOnResolved)
+		parameters := expandStandardConditionParameters(m, notifyOnResolved, nil)
 		return &alertsv1.AlertCondition{
 			Condition: &alertsv1.AlertCondition_MoreThan{
 				MoreThan: &alertsv1.MoreThanCondition{Parameters: parameters},
