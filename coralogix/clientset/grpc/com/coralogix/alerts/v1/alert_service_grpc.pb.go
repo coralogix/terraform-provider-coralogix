@@ -8,7 +8,6 @@ package __
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -26,6 +25,7 @@ type AlertServiceClient interface {
 	GetAlert(ctx context.Context, in *GetAlertRequest, opts ...grpc.CallOption) (*GetAlertResponse, error)
 	GetAlerts(ctx context.Context, in *GetAlertsRequest, opts ...grpc.CallOption) (*GetAlertsResponse, error)
 	GetAlertByUniqueId(ctx context.Context, in *GetAlertByUniqueIdRequest, opts ...grpc.CallOption) (*GetAlertByUniqueIdResponse, error)
+	GetAlertModelMapping(ctx context.Context, in *GetAlertModelMappingRequest, opts ...grpc.CallOption) (*GetAlertModelMappingResponse, error)
 	CreateAlert(ctx context.Context, in *CreateAlertRequest, opts ...grpc.CallOption) (*CreateAlertResponse, error)
 	UpdateAlert(ctx context.Context, in *UpdateAlertRequest, opts ...grpc.CallOption) (*UpdateAlertResponse, error)
 	DeleteAlert(ctx context.Context, in *DeleteAlertRequest, opts ...grpc.CallOption) (*DeleteAlertResponse, error)
@@ -63,6 +63,15 @@ func (c *alertServiceClient) GetAlerts(ctx context.Context, in *GetAlertsRequest
 func (c *alertServiceClient) GetAlertByUniqueId(ctx context.Context, in *GetAlertByUniqueIdRequest, opts ...grpc.CallOption) (*GetAlertByUniqueIdResponse, error) {
 	out := new(GetAlertByUniqueIdResponse)
 	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/GetAlertByUniqueId", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *alertServiceClient) GetAlertModelMapping(ctx context.Context, in *GetAlertModelMappingRequest, opts ...grpc.CallOption) (*GetAlertModelMappingResponse, error) {
+	out := new(GetAlertModelMappingResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/GetAlertModelMapping", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -130,6 +139,7 @@ type AlertServiceServer interface {
 	GetAlert(context.Context, *GetAlertRequest) (*GetAlertResponse, error)
 	GetAlerts(context.Context, *GetAlertsRequest) (*GetAlertsResponse, error)
 	GetAlertByUniqueId(context.Context, *GetAlertByUniqueIdRequest) (*GetAlertByUniqueIdResponse, error)
+	GetAlertModelMapping(context.Context, *GetAlertModelMappingRequest) (*GetAlertModelMappingResponse, error)
 	CreateAlert(context.Context, *CreateAlertRequest) (*CreateAlertResponse, error)
 	UpdateAlert(context.Context, *UpdateAlertRequest) (*UpdateAlertResponse, error)
 	DeleteAlert(context.Context, *DeleteAlertRequest) (*DeleteAlertResponse, error)
@@ -151,6 +161,9 @@ func (UnimplementedAlertServiceServer) GetAlerts(context.Context, *GetAlertsRequ
 }
 func (UnimplementedAlertServiceServer) GetAlertByUniqueId(context.Context, *GetAlertByUniqueIdRequest) (*GetAlertByUniqueIdResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAlertByUniqueId not implemented")
+}
+func (UnimplementedAlertServiceServer) GetAlertModelMapping(context.Context, *GetAlertModelMappingRequest) (*GetAlertModelMappingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetAlertModelMapping not implemented")
 }
 func (UnimplementedAlertServiceServer) CreateAlert(context.Context, *CreateAlertRequest) (*CreateAlertResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateAlert not implemented")
@@ -233,6 +246,24 @@ func _AlertService_GetAlertByUniqueId_Handler(srv interface{}, ctx context.Conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AlertServiceServer).GetAlertByUniqueId(ctx, req.(*GetAlertByUniqueIdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AlertService_GetAlertModelMapping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAlertModelMappingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AlertServiceServer).GetAlertModelMapping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogix.alerts.v1.AlertService/GetAlertModelMapping",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AlertServiceServer).GetAlertModelMapping(ctx, req.(*GetAlertModelMappingRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -363,6 +394,10 @@ var AlertService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAlertByUniqueId",
 			Handler:    _AlertService_GetAlertByUniqueId_Handler,
+		},
+		{
+			MethodName: "GetAlertModelMapping",
+			Handler:    _AlertService_GetAlertModelMapping_Handler,
 		},
 		{
 			MethodName: "CreateAlert",

@@ -27,7 +27,7 @@ Rule-group is list of rule-subgroups with 'and' (&&) operation between. Api-key 
 - `description` (String) Rule-group description
 - `hidden` (Boolean)
 - `rule_subgroups` (Block List) List of rule-subgroups. Every rule-subgroup is list of rules with 'or' (||) operation between. (see [below for nested schema](#nestedblock--rule_subgroups))
-- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["Error" "Critical" "Debug" "Verbose" "Info" "Warning"]
+- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["Verbose" "Info" "Warning" "Error" "Critical" "Debug"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
@@ -113,7 +113,7 @@ Read-Only:
 
 Required:
 
-- `field_format_standard` (String) The format standard you want to use. Can be one of ["ThreadID" "Severity" "Category" "Class" "Method"]
+- `field_format_standard` (String) The format standard you want to use. Can be one of ["Severity" "Category" "Class" "Method" "ThreadID"]
 - `name` (String)
 - `source_field` (String) The field on which the Regex will operate on.
 - `time_format` (String) A time format that matches the field format standard
@@ -134,7 +134,7 @@ Read-Only:
 
 Required:
 
-- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [ThreadID Severity Category Class Method].
+- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [Severity Category Class Method ThreadID].
 - `json_key` (String) JSON key to extract its value directly into a Coralogix metadata field.
 - `name` (String)
 

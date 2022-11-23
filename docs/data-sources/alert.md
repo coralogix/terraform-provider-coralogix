@@ -17,7 +17,7 @@ description: |-
 
 ### Read-Only
 
-- `alert_severity` (String) Determines the alert's severity. Can be one of ["Critical" "Error" "Info" "Warning"]
+- `alert_severity` (String) Determines the alert's severity. Can be one of ["Info" "Warning" "Critical" "Error"]
 - `description` (String) Alert description.
 - `enabled` (Boolean) Determines whether the alert will be active. True by default.
 - `expiration_date` (List of Object) The expiration date of the alert (if declared). (see [below for nested schema](#nestedatt--expiration_date))

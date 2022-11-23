@@ -250,9 +250,11 @@ func AlertSchema() map[string]*schema.Schema {
 						ConflictsWith: []string{"standard", "new_value", "unique_count", "metric", "tracing", "flow"},
 					},
 					"notify_only_on_triggered_group_by_values": {
-						Type:     schema.TypeBool,
-						Optional: true,
-						Default:  false,
+						Type:          schema.TypeBool,
+						Optional:      true,
+						Default:       false,
+						Description:   "Notifications will contain only triggered group-by values.",
+						ConflictsWith: []string{"new_value", "unique_count", "metric.0.promql", "tracing", "flow"},
 					},
 					"recipients": {
 						Type:     schema.TypeList,
@@ -1337,9 +1339,9 @@ func setAlert(d *schema.ResourceData, alert *alertsv1.Alert) diag.Diagnostics {
 		return diag.FromErr(err)
 	}
 
-	alertType, alertTypeParams, ignoreInfinity, notifyWhenResolved := flattenAlertType(alert)
+	alertType, alertTypeParams, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues := flattenAlertType(alert)
 
-	if err := d.Set("notification", flattenNotification(alert, ignoreInfinity, notifyWhenResolved)); err != nil {
+	if err := d.Set("notification", flattenNotification(alert, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues)); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -1373,10 +1375,10 @@ func hashMetaLabels() schema.SchemaSetFunc {
 	return schema.HashResource(metaLabels())
 }
 
-func flattenNotification(alert *alertsv1.Alert, ignoreInfinity, notifyWhenResolved *wrapperspb.BoolValue) interface{} {
+func flattenNotification(alert *alertsv1.Alert, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) interface{} {
 	recipients := flattenRecipients(alert.GetNotifications())
 	notificationMap := map[string]interface{}{
-		"notify_only_on_triggered_group_by_values": false, //Todo - adding notify_only_on_triggered_group_by_values to proto schema
+		"notify_only_on_triggered_group_by_values": notifyOnlyOnTriggeredGroupByValues.GetValue(),
 		"notify_every_sec":                         int(alert.GetNotifyEvery().GetValue()),
 		"recipients":                               recipients,
 		"payload_fields":                           wrappedStringSliceToStringSlice(alert.NotificationPayloadFilters),
@@ -1433,7 +1435,7 @@ func flattenDaysOfWeek(daysOfWeek []alertsv1.DayOfWeek) []string {
 	return result
 }
 
-func flattenAlertType(a *alertsv1.Alert) (alertType string, alertSchema interface{}, ignoreInfinity, notifyWhenResolved *wrapperspb.BoolValue) {
+func flattenAlertType(a *alertsv1.Alert) (alertType string, alertSchema interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
 	filters := a.GetFilters()
 	condition := a.GetCondition().GetCondition()
 
@@ -1444,20 +1446,20 @@ func flattenAlertType(a *alertsv1.Alert) (alertType string, alertSchema interfac
 			alertSchema = flattenNewValueAlert(filters, condition)
 		} else {
 			alertType = "standard"
-			alertSchema, notifyWhenResolved = flattenStandardAlert(filters, condition)
+			alertSchema, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues = flattenStandardAlert(filters, condition)
 		}
 	case alertsv1.AlertFilters_FILTER_TYPE_RATIO:
 		alertType = "ratio"
-		alertSchema, ignoreInfinity, notifyWhenResolved = flattenRatioAlert(filters, condition)
+		alertSchema, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues = flattenRatioAlert(filters, condition)
 	case alertsv1.AlertFilters_FILTER_TYPE_UNIQUE_COUNT:
 		alertType = "unique_count"
 		alertSchema = flattenUniqueCountAlert(filters, condition)
 	case alertsv1.AlertFilters_FILTER_TYPE_TIME_RELATIVE:
 		alertType = "time_relative"
-		alertSchema, ignoreInfinity, notifyWhenResolved = flattenTimeRelativeAlert(filters, condition)
+		alertSchema, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues = flattenTimeRelativeAlert(filters, condition)
 	case alertsv1.AlertFilters_FILTER_TYPE_METRIC:
 		alertType = "metric"
-		alertSchema, notifyWhenResolved = flattenMetricAlert(filters, condition)
+		alertSchema, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues = flattenMetricAlert(filters, condition)
 	case alertsv1.AlertFilters_FILTER_TYPE_TRACING:
 		alertType = "tracing"
 		alertSchema, notifyWhenResolved = flattenTracingAlert(filters, condition, a.TracingAlert)
@@ -1484,15 +1486,15 @@ func flattenNewValueCondition(condition interface{}) interface{} {
 	}
 }
 
-func flattenStandardAlert(filters *alertsv1.AlertFilters, condition interface{}) (alertSchema interface{}, notifyWhenResolved *wrapperspb.BoolValue) {
+func flattenStandardAlert(filters *alertsv1.AlertFilters, condition interface{}) (alertSchema interface{}, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
 	alertSchemaMap := flattenCommonAlert(filters)
-	conditionSchema, notifyWhenResolved := flattenStandardCondition(condition)
+	conditionSchema, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues := flattenStandardCondition(condition)
 	alertSchemaMap["condition"] = conditionSchema
 	alertSchema = []interface{}{alertSchemaMap}
 	return
 }
 
-func flattenStandardCondition(condition interface{}) (conditionSchema interface{}, notifyWhenResolved *wrapperspb.BoolValue) {
+func flattenStandardCondition(condition interface{}) (conditionSchema interface{}, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
 	var conditionParams *alertsv1.ConditionParameters
 	switch condition := condition.(type) {
 	case *alertsv1.AlertCondition_Immediate:
@@ -1512,6 +1514,7 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 			},
 		}
 		notifyWhenResolved = conditionParams.GetNotifyOnResolved()
+		notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
 	case *alertsv1.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		conditionSchema = []interface{}{
@@ -1523,6 +1526,7 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 			},
 		}
 		notifyWhenResolved = conditionParams.GetNotifyOnResolved()
+		notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
 	case *alertsv1.AlertCondition_MoreThanUsual:
 		conditionParams = condition.MoreThanUsual.GetParameters()
 		conditionMap := map[string]interface{}{
@@ -1540,12 +1544,12 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 	return
 }
 
-func flattenRatioAlert(filters *alertsv1.AlertFilters, condition interface{}) (alertSchema interface{}, ignoreInfinity, notifyWhenResolved *wrapperspb.BoolValue) {
+func flattenRatioAlert(filters *alertsv1.AlertFilters, condition interface{}) (alertSchema interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
 	query1Map := flattenCommonAlert(filters)
 	query1Map["alias"] = filters.GetAlias().GetValue()
 	query2 := filters.GetRatioAlerts()[0]
 	query2Map := flattenQuery2ParamsMap(query2)
-	conditionMap, ignoreInfinity, notifyWhenResolved := flattenRatioCondition(condition, query2)
+	conditionMap, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues := flattenRatioCondition(condition, query2)
 
 	alertSchema = []interface{}{
 		map[string]interface{}{
@@ -1558,7 +1562,7 @@ func flattenRatioAlert(filters *alertsv1.AlertFilters, condition interface{}) (a
 	return
 }
 
-func flattenRatioCondition(condition interface{}, query2 *alertsv1.AlertFilters_RatioAlert) (ratioParams interface{}, ignoreInfinity, notifyWhenResolved *wrapperspb.BoolValue) {
+func flattenRatioCondition(condition interface{}, query2 *alertsv1.AlertFilters_RatioAlert) (ratioParams interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
 	var conditionParams *alertsv1.ConditionParameters
 	ratioParamsMap := make(map[string]interface{})
 	switch condition := condition.(type) {
@@ -1576,6 +1580,7 @@ func flattenRatioCondition(condition interface{}, query2 *alertsv1.AlertFilters_
 	ratioParamsMap["time_window"] = alertProtoTimeFrameToSchemaTimeFrame[conditionParams.GetTimeframe().String()]
 	ignoreInfinity = conditionParams.GetIgnoreInfinity()
 	notifyWhenResolved = conditionParams.GetNotifyOnResolved()
+	notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
 
 	groupByQ1 := conditionParams.GetGroupBy()
 	groupByQ2 := query2.GetGroupBy()
@@ -1625,15 +1630,15 @@ func flattenUniqueCountCondition(condition interface{}) interface{} {
 	}
 }
 
-func flattenTimeRelativeAlert(filters *alertsv1.AlertFilters, condition interface{}) (timeRelativeSchema interface{}, ignoreInfinity, notifyWhenResolved *wrapperspb.BoolValue) {
+func flattenTimeRelativeAlert(filters *alertsv1.AlertFilters, condition interface{}) (timeRelativeSchema interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
 	alertSchema := flattenCommonAlert(filters)
-	conditionMap, ignoreInfinity, notifyWhenResolved := flattenTimeRelativeCondition(condition)
+	conditionMap, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues := flattenTimeRelativeCondition(condition)
 	alertSchema["condition"] = []interface{}{conditionMap}
 	timeRelativeSchema = []interface{}{alertSchema}
 	return
 }
 
-func flattenTimeRelativeCondition(condition interface{}) (timeRelativeConditionSchema interface{}, ignoreInfinity, notifyWhenResolved *wrapperspb.BoolValue) {
+func flattenTimeRelativeCondition(condition interface{}) (timeRelativeConditionSchema interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
 	var conditionParams *alertsv1.ConditionParameters
 	timeRelativeCondition := make(map[string]interface{})
 	switch condition := condition.(type) {
@@ -1655,6 +1660,7 @@ func flattenTimeRelativeCondition(condition interface{}) (timeRelativeConditionS
 
 	ignoreInfinity = conditionParams.GetIgnoreInfinity()
 	notifyWhenResolved = conditionParams.GetNotifyOnResolved()
+	notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
 	timeRelativeConditionSchema = timeRelativeCondition
 
 	return
@@ -1665,7 +1671,7 @@ func flattenRelativeTimeWindow(timeFrame alertsv1.Timeframe, relativeTimeFrame a
 	return alertProtoTimeFrameAndRelativeTimeFrameToSchemaRelativeTimeFrame[p]
 }
 
-func flattenMetricAlert(filters *alertsv1.AlertFilters, condition interface{}) (metricAlertSchema interface{}, notifyWhenResolved *wrapperspb.BoolValue) {
+func flattenMetricAlert(filters *alertsv1.AlertFilters, condition interface{}) (metricAlertSchema interface{}, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
 	var conditionParams *alertsv1.ConditionParameters
 	var conditionStr string
 	switch condition := condition.(type) {
@@ -1691,7 +1697,7 @@ func flattenMetricAlert(filters *alertsv1.AlertFilters, condition interface{}) (
 	} else {
 		metricTypeStr = "lucene"
 		searchQuery = filters.GetText().GetValue()
-		conditionMap, notifyWhenResolved = flattenLuceneCondition(conditionParams)
+		conditionMap, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues = flattenLuceneCondition(conditionParams)
 	}
 	conditionMap[conditionStr] = true
 
@@ -1724,7 +1730,7 @@ func flattenPromQLCondition(params *alertsv1.ConditionParameters) (promQLConditi
 	return
 }
 
-func flattenLuceneCondition(params *alertsv1.ConditionParameters) (luceneConditionMap map[string]interface{}, notifyWhenResolved *wrapperspb.BoolValue) {
+func flattenLuceneCondition(params *alertsv1.ConditionParameters) (luceneConditionMap map[string]interface{}, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
 	metricParams := params.GetMetricAlertParameters()
 	luceneConditionMap = map[string]interface{}{
 		"metric_field":                    metricParams.GetMetricField().GetValue(),
@@ -1738,6 +1744,7 @@ func flattenLuceneCondition(params *alertsv1.ConditionParameters) (luceneConditi
 		"min_non_null_values_percentage":  metricParams.GetNonNullPercentage().GetValue(),
 	}
 	notifyWhenResolved = params.GetNotifyOnResolved()
+	notifyOnlyOnTriggeredGroupByValues = params.GetNotifyGroupByOnlyAlerts()
 	return
 }
 
