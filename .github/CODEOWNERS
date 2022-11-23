@@ -1,2 +1,2 @@
-/.github/CODEOWNERS @coralogix/security-review
+.github/CODEOWNERS @coralogix/security-review
 * @coralogix/platform-sdks
