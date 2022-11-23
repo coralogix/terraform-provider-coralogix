@@ -1,12 +1,14 @@
 syntax = "proto3";
 option go_package = "./";
+import "google/protobuf/wrappers.proto";
+
 package com.coralogixapis.logs2metrics.v2;
 
 message LogsQuery {
-  string lucene = 1;
-  string alias = 2;
-  repeated string applicationname_filters = 3;
-  repeated string subsystemname_filters = 4;
+  google.protobuf.StringValue lucene = 1;
+  google.protobuf.StringValue alias = 2;
+  repeated google.protobuf.StringValue applicationname_filters = 3;
+  repeated google.protobuf.StringValue subsystemname_filters = 4;
   repeated Severity severity_filters = 5;
 }
 

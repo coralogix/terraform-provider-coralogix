@@ -26,7 +26,7 @@ description: |-
 - `name` (String) Rule-group name
 - `order` (Number) Determines the index of the rule-group between the other rule-groups. By default will be added last.
 - `rule_subgroups` (List of Object) List of rule-subgroups. Every rule-subgroup is list of rules with 'or' (||) operation between. (see [below for nested schema](#nestedatt--rule_subgroups))
-- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
+- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["Info" "Warning" "Error" "Critical" "Debug" "Verbose"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.
 
 <a id="nestedatt--rule_subgroups"></a>

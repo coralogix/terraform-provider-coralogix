@@ -57,9 +57,9 @@ Read-Only:
 
 Read-Only:
 
-- `applications` (List of String)
+- `applications` (Set of String)
 - `lucene` (String)
-- `severities` (List of String)
-- `subsystems` (List of String)
+- `severities` (Set of String)
+- `subsystems` (Set of String)
 
 

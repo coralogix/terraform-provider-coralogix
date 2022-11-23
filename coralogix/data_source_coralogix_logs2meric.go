@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"terraform-provider-coralogix/coralogix/clientset"
 	logs2metric "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/logs2metrics/v2"
@@ -28,7 +29,7 @@ func dataSourceCoralogixLogs2Metric() *schema.Resource {
 func dataSourceCoralogixLogs2MetricRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Get("id").(string)
 	getLogs2MetricRequest := &logs2metric.GetL2MRequest{
-		Id: id,
+		Id: wrapperspb.String(id),
 	}
 
 	log.Printf("[INFO] Reading logs2Metric %s", id)
@@ -40,7 +41,7 @@ func dataSourceCoralogixLogs2MetricRead(ctx context.Context, d *schema.ResourceD
 
 	log.Printf("[INFO] Received logs2Metric: %#v", logs2MetricResp)
 
-	d.SetId(logs2MetricResp.GetId())
+	d.SetId(logs2MetricResp.GetId().GetValue())
 
 	return setLogs2Metric(d, logs2MetricResp)
 }

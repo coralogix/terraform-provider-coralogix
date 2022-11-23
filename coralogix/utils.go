@@ -31,7 +31,9 @@ func handleRpcError(err error) diag.Diagnostics {
 	case codes.PermissionDenied, codes.Unauthenticated:
 		return diag.Errorf("permission denied, check your api-key")
 	case codes.Internal:
-		return diag.Errorf("this is an internal error in Coralogix backend - %s", err)
+		return diag.Errorf("internal error in Coralogix backend - %s", err)
+	case codes.InvalidArgument:
+		return diag.Errorf("invalid argument - %s", err)
 	default:
 		return diag.FromErr(err)
 	}

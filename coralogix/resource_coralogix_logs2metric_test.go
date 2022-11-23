@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"testing"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
 	logs2metricv2 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/logs2metrics/v2"
 
@@ -87,12 +88,12 @@ func testAccCheckLogs2MetricDestroy(s *terraform.State) error {
 		}
 
 		req := &logs2metricv2.GetL2MRequest{
-			Id: rs.Primary.ID,
+			Id: wrapperspb.String(rs.Primary.ID),
 		}
 
 		resp, err := client.GetLogs2Metric(ctx, req)
 		if err == nil {
-			if resp.GetId() == rs.Primary.ID {
+			if resp.GetId().GetValue() == rs.Primary.ID {
 				return fmt.Errorf("logs2metric still exists: %s", rs.Primary.ID)
 			}
 		}

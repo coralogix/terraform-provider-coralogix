@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"golang.org/x/exp/maps"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
 	logs2metricv2 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/logs2metrics/v2"
 
@@ -57,7 +58,7 @@ func resourceCoralogixLogs2MetricCreate(ctx context.Context, d *schema.ResourceD
 		return handleRpcError(err)
 	}
 	log.Printf("[INFO] Submitted new logs2metric: %#v", Logs2MetricResp)
-	d.SetId(Logs2MetricResp.GetId())
+	d.SetId(Logs2MetricResp.GetId().GetValue())
 
 	return resourceCoralogixLogs2MetricRead(ctx, d, meta)
 }
@@ -65,7 +66,7 @@ func resourceCoralogixLogs2MetricCreate(ctx context.Context, d *schema.ResourceD
 func resourceCoralogixLogs2MetricRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
 	getLogs2MetricRequest := &logs2metricv2.GetL2MRequest{
-		Id: id,
+		Id: wrapperspb.String(id),
 	}
 
 	log.Printf("[INFO] Reading logs2metric %s", id)
@@ -85,8 +86,8 @@ func resourceCoralogixLogs2MetricUpdate(ctx context.Context, d *schema.ResourceD
 		return diag.FromErr(err)
 	}
 
-	req.Id = d.Id()
-	updateLogs2MetricRequest := &logs2metricv2.UpdateL2MRequest{
+	req.Id = wrapperspb.String(d.Id())
+	updateLogs2MetricRequest := &logs2metricv2.ReplaceL2MRequest{
 		L2M: req,
 	}
 
@@ -94,7 +95,7 @@ func resourceCoralogixLogs2MetricUpdate(ctx context.Context, d *schema.ResourceD
 	log2MetricResp, err := meta.(*clientset.ClientSet).Logs2Metrics().UpdateLogs2Metric(ctx, updateLogs2MetricRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcErrorWithID(err, "logs2metric", req.Id)
+		return handleRpcErrorWithID(err, "logs2metric", req.Id.GetValue())
 	}
 	log.Printf("[INFO] Submitted updated logs2metric: %#v", log2MetricResp)
 
@@ -104,7 +105,7 @@ func resourceCoralogixLogs2MetricUpdate(ctx context.Context, d *schema.ResourceD
 func resourceCoralogixLogs2MetricDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
 	deleteLogs2MetricRequest := &logs2metricv2.DeleteL2MRequest{
-		Id: id,
+		Id: wrapperspb.String(id),
 	}
 
 	log.Printf("[INFO] Deleting logs2metric %s\n", id)
@@ -120,8 +121,8 @@ func resourceCoralogixLogs2MetricDelete(ctx context.Context, d *schema.ResourceD
 }
 
 func extractLogs2Metric(d *schema.ResourceData) (*logs2metricv2.L2M, error) {
-	name := d.Get("name").(string)
-	description := d.Get("description").(string)
+	name := wrapperspb.String(d.Get("name").(string))
+	description := wrapperspb.String(d.Get("description").(string))
 	query := expandQuery(d.Get("query"))
 	permutations := expandPermutations(d.Get("permutations"))
 	fields := expandFields(d.Get("metric_fields"))
@@ -145,9 +146,9 @@ func expandQuery(v interface{}) *logs2metricv2.LogsQuery {
 	raw := l[0]
 	m := raw.(map[string]interface{})
 
-	searchQuery := m["lucene"].(string)
-	applications := interfaceSliceToStringSlice(m["applications"].(*schema.Set).List())
-	subsystems := interfaceSliceToStringSlice(m["subsystems"].(*schema.Set).List())
+	searchQuery := wrapperspb.String(m["lucene"].(string))
+	applications := interfaceSliceToWrappedStringSlice(m["applications"].(*schema.Set).List())
+	subsystems := interfaceSliceToWrappedStringSlice(m["subsystems"].(*schema.Set).List())
 	severities := expandSeverities(m["severities"].(*schema.Set).List())
 
 	return &logs2metricv2.LogsQuery{
@@ -181,8 +182,8 @@ func expandLabels(v interface{}) []*logs2metricv2.MetricLabel {
 
 func expandLabel(v interface{}) *logs2metricv2.MetricLabel {
 	m := v.(map[string]interface{})
-	targetLabel := m["target_label"].(string)
-	sourceField := m["source_field"].(string)
+	targetLabel := wrapperspb.String(m["target_label"].(string))
+	sourceField := wrapperspb.String(m["source_field"].(string))
 	return &logs2metricv2.MetricLabel{
 		TargetLabel: targetLabel,
 		SourceField: sourceField,
@@ -203,8 +204,8 @@ func expandFields(v interface{}) []*logs2metricv2.MetricField {
 
 func expandField(v interface{}) *logs2metricv2.MetricField {
 	m := v.(map[string]interface{})
-	targetBaseMetricName := m["target_base_metric_name"].(string)
-	sourceField := m["source_field"].(string)
+	targetBaseMetricName := wrapperspb.String(m["target_base_metric_name"].(string))
+	sourceField := wrapperspb.String(m["source_field"].(string))
 	return &logs2metricv2.MetricField{
 		TargetBaseMetricName: targetBaseMetricName,
 		SourceField:          sourceField,
@@ -227,11 +228,11 @@ func expandPermutations(v interface{}) *logs2metricv2.L2MPermutations {
 }
 
 func setLogs2Metric(d *schema.ResourceData, logs2Metric *logs2metricv2.L2M) diag.Diagnostics {
-	if err := d.Set("name", logs2Metric.GetName()); err != nil {
+	if err := d.Set("name", logs2Metric.GetName().GetValue()); err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("description", logs2Metric.GetDescription()); err != nil {
+	if err := d.Set("description", logs2Metric.GetDescription().GetValue()); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -284,8 +285,8 @@ func metricFields() *schema.Resource {
 
 func flattenMetricField(field *logs2metricv2.MetricField) interface{} {
 	return map[string]interface{}{
-		"target_base_metric_name": field.TargetBaseMetricName,
-		"source_field":            field.GetSourceField(),
+		"target_base_metric_name": field.GetTargetBaseMetricName().GetValue(),
+		"source_field":            field.GetSourceField().GetValue(),
 	}
 }
 
@@ -319,8 +320,8 @@ func flattenMetricLabels(labels []*logs2metricv2.MetricLabel) interface{} {
 
 func flattenMetricLabel(label *logs2metricv2.MetricLabel) interface{} {
 	return map[string]interface{}{
-		"target_label": label.GetTargetLabel(),
-		"source_field": label.GetSourceField(),
+		"target_label": label.GetTargetLabel().GetValue(),
+		"source_field": label.GetSourceField().GetValue(),
 	}
 }
 
@@ -335,19 +336,19 @@ func flattenPermutations(permutations *logs2metricv2.L2MPermutations) interface{
 func flattenQuery(query *logs2metricv2.LogsQuery) interface{} {
 	m := make(map[string]interface{})
 
-	lucene := query.GetLucene()
+	lucene := query.GetLucene().GetValue()
 	if lucene != "" {
 		m["lucene"] = lucene
 	}
 
 	applications := query.GetApplicationnameFilters()
 	if len(applications) > 0 {
-		m["applications"] = applications
+		m["applications"] = wrappedStringSliceToStringSlice(applications)
 	}
 
 	subsystems := query.GetSubsystemnameFilters()
 	if len(subsystems) > 0 {
-		m["subsystems"] = subsystems
+		m["subsystems"] = wrappedStringSliceToStringSlice(subsystems)
 	}
 
 	severities := flattenSeverities(query.GetSeverityFilters())

@@ -38,7 +38,7 @@ func (l Logs2MetricsClient) GetLogs2Metric(ctx context.Context, req *logs2metric
 	return client.GetL2M(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (l Logs2MetricsClient) UpdateLogs2Metric(ctx context.Context, req *logs2metricv2.UpdateL2MRequest) (*logs2metricv2.L2M, error) {
+func (l Logs2MetricsClient) UpdateLogs2Metric(ctx context.Context, req *logs2metricv2.ReplaceL2MRequest) (*logs2metricv2.L2M, error) {
 	callProperties, err := l.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -49,7 +49,7 @@ func (l Logs2MetricsClient) UpdateLogs2Metric(ctx context.Context, req *logs2met
 
 	client := logs2metricv2.NewLogs2MetricServiceClient(conn)
 
-	return client.UpdateL2M(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.ReplaceL2M(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 func (l Logs2MetricsClient) DeleteLogs2Metric(ctx context.Context, req *logs2metricv2.DeleteL2MRequest) (*emptypb.Empty, error) {

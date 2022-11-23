@@ -2,15 +2,16 @@ syntax = "proto3";
 option go_package = "./";
 package com.coralogixapis.logs2metrics.v2;
 import "google/protobuf/descriptor.proto";
+import "google/protobuf/wrappers.proto";
 import "com/coralogixapis/logs2metrics/v2/logs_query.proto";
 
 message L2M {
-  string id = 1;
-  string name = 2;
-  string description = 3;
+  google.protobuf.StringValue id = 1;
+  google.protobuf.StringValue name = 2;
+  google.protobuf.StringValue description = 3;
   LogsQuery query = 5;
-  string create_time = 8;
-  string update_time = 9;
+  google.protobuf.StringValue create_time = 8;
+  google.protobuf.StringValue update_time = 9;
   L2MPermutations permutations = 10;
   repeated MetricLabel metric_labels = 12;
   repeated MetricField metric_fields = 13;
@@ -22,14 +23,14 @@ message L2MPermutations {
 }
 
 message MetricLabel {
-  string target_label = 1;
-  string source_field = 2;
+  google.protobuf.StringValue target_label = 1;
+  google.protobuf.StringValue source_field = 2;
 }
 
 
 message MetricField {
-  string target_base_metric_name = 1;
-  string source_field = 2;
+  google.protobuf.StringValue target_base_metric_name = 1;
+  google.protobuf.StringValue source_field = 2;
 }
 
 
