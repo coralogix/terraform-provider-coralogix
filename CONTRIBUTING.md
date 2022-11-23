@@ -115,3 +115,8 @@ In general, adding test coverage (unit tests and acceptance tests) to new featur
 ### Documentations
 
 We use [terraform-plugin-docs](https://github.com/hashicorp/terraform-plugin-docs) for generating documentations automatically.
+In order to generate docs automatically, simply run `make generate`. 
+
+```sh
+$ make generate
+```

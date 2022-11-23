@@ -18,5 +18,5 @@ description: |-
 ### Optional
 
 - `api_key` (String, Sensitive) A key for alerts, rules and tags APIs (Auto Generated), appropriate for the defined environment.
-- `env` (String) The Coralogix API environment. can be one of ["APAC1" "APAC2" "EUROPE1" "EUROPE2" "USA1"]
+- `env` (String) The Coralogix API environment. can be one of ["USA1" "APAC1" "APAC2" "EUROPE1" "EUROPE2"]
 - `teams_api_key` (String, Sensitive) A key for accessing teams API, appropriate for the defined environment.
