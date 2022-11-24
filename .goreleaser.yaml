@@ -16,9 +16,10 @@ builds:
     flags:
       - -trimpath
     goos:
-      - darwin
+#      - darwin
       - freebsd
       - linux
+      - openbsd
       - windows
     goarch:
       - '386'
@@ -32,6 +33,8 @@ builds:
         goos: freebsd
       - goarch: arm64
         goos: windows
+      - goarch: arm64
+        goos: openbsd
     ldflags:
       - -s -w -X version.ProviderVersion={{.Version}}
     mod_timestamp: '{{ .CommitTimestamp }}'
@@ -62,5 +65,15 @@ release:
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   ids:
     - none
+signs:
+  - args: ["sign", "--dearmor", "--file", "${artifact}", "--out", "${signature}"]
+    artifacts: checksum
+    cmd: signore
+    signature: ${artifact}.sig
+  - args: ["sign", "--dearmor", "--file", "${artifact}", "--out", "${signature}"]
+    artifacts: checksum
+    cmd: signore
+    id: key-id
+    signature: ${artifact}.72D7468F.sig
 snapshot:
   name_template: "{{ .Tag }}-next"
