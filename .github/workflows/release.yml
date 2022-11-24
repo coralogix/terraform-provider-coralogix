@@ -11,6 +11,7 @@
 #
 name: release
 on:
+  pull_request:
   workflow_dispatch:
   workflow_run:
     workflows: ["semantic-release"]
