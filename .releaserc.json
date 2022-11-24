@@ -10,6 +10,8 @@
         {
           "preset": "conventionalcommits",
           "releaseRules": [
+            {"message": "major*", "release": "major"},
+            {"message": "minor*", "release": "minor"},
             {"message": "*", "release": "patch"}
           ]
         }
