@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var validSeverities = keys(logs2metricv2.Severity_value)
+var validSeverities = getKeysInt(logs2metricv2.Severity_value)
 
 func resourceCoralogixLogs2Metric() *schema.Resource {
 	return &schema.Resource{

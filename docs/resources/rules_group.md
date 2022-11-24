@@ -58,7 +58,7 @@ Read-Only:
 Optional:
 
 - `block` (Block List, Max: 1) Block rules allow for refined filtering of incoming logs with a RegEx. (see [below for nested schema](#nestedblock--rule_subgroups--rules--block))
-- `extract` (Block List, Max: 1) Use a named RegEx group to extract specific values you need as JSON keys without having to parse the entire log. (see [below for nested schema](#nestedblock--rule_subgroups--rules--extract))
+- `extract` (Block List, Max: 1) Use a named RegEx group to extract specific values you need as JSON getKeysStrings without having to parse the entire log. (see [below for nested schema](#nestedblock--rule_subgroups--rules--extract))
 - `extract_timestamp` (Block List, Max: 1) Replace rules are used to replace logs timestamp with JSON field. (see [below for nested schema](#nestedblock--rule_subgroups--rules--extract_timestamp))
 - `json_extract` (Block List, Max: 1) Name a JSON field to extract its value directly into a Coralogix metadata field (see [below for nested schema](#nestedblock--rule_subgroups--rules--json_extract))
 - `json_stringify` (Block List, Max: 1) Convert JSON object to JSON string. (see [below for nested schema](#nestedblock--rule_subgroups--rules--json_stringify))

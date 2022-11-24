@@ -24,8 +24,8 @@ var (
 		"Error":    "VALUE_ERROR",
 		"Critical": "VALUE_CRITICAL",
 	}
-	rulesProtoSeverityToSchemaSeverity                 = reverseMap(rulesSchemaSeverityToProtoSeverity)
-	rulesValidSeverities                               = keys(rulesSchemaSeverityToProtoSeverity)
+	rulesProtoSeverityToSchemaSeverity                 = reverseMapStrings(rulesSchemaSeverityToProtoSeverity)
+	rulesValidSeverities                               = getKeysStrings(rulesSchemaSeverityToProtoSeverity)
 	rulesSchemaDestinationFieldToProtoDestinationField = map[string]string{
 		"Category": "DESTINATION_FIELD_CATEGORY_OR_UNSPECIFIED",
 		"Class":    "DESTINATION_FIELD_CLASSNAME",
@@ -33,8 +33,8 @@ var (
 		"ThreadID": "DESTINATION_FIELD_THREADID",
 		"Severity": "DESTINATION_FIELD_SEVERITY",
 	}
-	rulesProtoDestinationFieldToSchemaDestinationField = reverseMap(rulesSchemaDestinationFieldToProtoDestinationField)
-	rulesValidDestinationFields                        = keys(rulesSchemaDestinationFieldToProtoDestinationField)
+	rulesProtoDestinationFieldToSchemaDestinationField = reverseMapStrings(rulesSchemaDestinationFieldToProtoDestinationField)
+	rulesValidDestinationFields                        = getKeysStrings(rulesSchemaDestinationFieldToProtoDestinationField)
 	rulesSchemaFormatStandardToProtoFormatStandard     = map[string]string{
 		"Strftime": "FORMAT_STANDARD_STRFTIME_OR_UNSPECIFIED",
 		"JavaSDF":  "FORMAT_STANDARD_JAVASDF",
@@ -44,8 +44,8 @@ var (
 		"MicroTS":  "FORMAT_STANDARD_MICROTS",
 		"NanoTS":   "FORMAT_STANDARD_NANOTS",
 	}
-	rulesProtoFormatStandardToSchemaFormatStandard = reverseMap(rulesSchemaFormatStandardToProtoFormatStandard)
-	rulesValidFormatStandards                      = keys(rulesSchemaFormatStandardToProtoFormatStandard)
+	rulesProtoFormatStandardToSchemaFormatStandard = reverseMapStrings(rulesSchemaFormatStandardToProtoFormatStandard)
+	rulesValidFormatStandards                      = getKeysStrings(rulesSchemaFormatStandardToProtoFormatStandard)
 )
 
 func resourceCoralogixRulesGroup() *schema.Resource {
@@ -230,7 +230,7 @@ func RulesGroupSchema() map[string]*schema.Schema {
 									Elem: &schema.Resource{
 										Schema: extractSchema(),
 									},
-									Description: "Use a named RegEx group to extract specific values you need as JSON keys without having to parse the entire log.",
+									Description: "Use a named RegEx group to extract specific values you need as JSON getKeysStrings without having to parse the entire log.",
 									MaxItems:    1,
 								},
 							},
@@ -643,12 +643,12 @@ func expandRule(i interface{}) (*rulesv1.CreateRuleGroupRequest_CreateRuleSubgro
 			if rule == nil {
 				rule = expandRuleForSpecificRuleType(k, r[0])
 			} else {
-				return nil, fmt.Errorf("exactly one of %q must be provided inside rule. more than one rule type where provided.", keys(m))
+				return nil, fmt.Errorf("exactly one of %q must be provided inside rule. more than one rule type where provided.", getKeysInterface(m))
 			}
 		}
 	}
 	if rule == nil {
-		return nil, fmt.Errorf("exactly one of %q must be provided inside rule. no rule type was provided.", keys(m))
+		return nil, fmt.Errorf("exactly one of %q must be provided inside rule. no rule type was provided.", getKeysInterface(m))
 	}
 	return rule, nil
 }
