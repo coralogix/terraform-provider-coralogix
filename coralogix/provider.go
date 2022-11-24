@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"golang.org/x/exp/maps"
 )
 
 var (
@@ -20,7 +19,7 @@ var (
 		"EUROPE2": "ng-api-grpc.eu2.coralogix.com:443",
 		"USA1":    "ng-api-grpc.coralogix.us:443",
 	}
-	validEnvs = maps.Keys(envToGrpcUrl)
+	validEnvs = keys(envToGrpcUrl)
 )
 
 // Provider returns a *schema.Provider.
