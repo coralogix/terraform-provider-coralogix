@@ -1,1 +1,0 @@
-# Coralogix Parsing Rules Group

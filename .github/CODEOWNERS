@@ -1,1 +1,2 @@
-@coralogix/team-cs-devops
+.github/CODEOWNERS @coralogix/security-review
+* @coralogix/platform-sdks
