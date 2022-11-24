@@ -12,13 +12,6 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-/*
-TODO
-grpc -> sdk
-docker
-workflow
-*/
-
 var (
 	envToGrpcUrl = map[string]string{
 		"APAC1":   "ng-api-grpc.app.coralogix.in:443",
