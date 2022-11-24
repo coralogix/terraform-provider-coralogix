@@ -19,4 +19,4 @@ with [Coralogix](https://coralogix.com/) resources.
 # Guides
 
 - [Contributing guide](CONTRIBUTING.md)
-- [Authorization](docs/guides/authorization.md)
+- [index.md](docs/index.md)
