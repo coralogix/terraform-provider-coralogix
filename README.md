@@ -18,5 +18,6 @@ with [Coralogix](https://coralogix.com/) resources.
 
 # Guides
 
-- [Contributing guide](CONTRIBUTING.md)
-- [index.md](docs/index.md)
+- [Getting started](docs/index.md)
+- [Contributing](CONTRIBUTING.md)
+- [Known issues](known-issues.md)
