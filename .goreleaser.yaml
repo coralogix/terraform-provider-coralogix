@@ -16,7 +16,7 @@ builds:
     flags:
       - -trimpath
     goos:
-      - darwin
+#      - darwin
       - freebsd
       - linux
       - openbsd
