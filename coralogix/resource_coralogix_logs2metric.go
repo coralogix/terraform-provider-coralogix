@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"time"
 
-	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
 	logs2metricv2 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/logs2metrics/v2"
@@ -17,7 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var validSeverities = maps.Keys(logs2metricv2.Severity_value)
+var validSeverities = keys(logs2metricv2.Severity_value)
 
 func resourceCoralogixLogs2Metric() *schema.Resource {
 	return &schema.Resource{

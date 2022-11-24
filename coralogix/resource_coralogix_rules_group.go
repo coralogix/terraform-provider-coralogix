@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -26,7 +25,7 @@ var (
 		"Critical": "VALUE_CRITICAL",
 	}
 	rulesProtoSeverityToSchemaSeverity                 = reverseMap(rulesSchemaSeverityToProtoSeverity)
-	rulesValidSeverities                               = maps.Keys(rulesSchemaSeverityToProtoSeverity)
+	rulesValidSeverities                               = keys(rulesSchemaSeverityToProtoSeverity)
 	rulesSchemaDestinationFieldToProtoDestinationField = map[string]string{
 		"Category": "DESTINATION_FIELD_CATEGORY_OR_UNSPECIFIED",
 		"Class":    "DESTINATION_FIELD_CLASSNAME",
@@ -35,7 +34,7 @@ var (
 		"Severity": "DESTINATION_FIELD_SEVERITY",
 	}
 	rulesProtoDestinationFieldToSchemaDestinationField = reverseMap(rulesSchemaDestinationFieldToProtoDestinationField)
-	rulesValidDestinationFields                        = maps.Keys(rulesSchemaDestinationFieldToProtoDestinationField)
+	rulesValidDestinationFields                        = keys(rulesSchemaDestinationFieldToProtoDestinationField)
 	rulesSchemaFormatStandardToProtoFormatStandard     = map[string]string{
 		"Strftime": "FORMAT_STANDARD_STRFTIME_OR_UNSPECIFIED",
 		"JavaSDF":  "FORMAT_STANDARD_JAVASDF",
@@ -46,7 +45,7 @@ var (
 		"NanoTS":   "FORMAT_STANDARD_NANOTS",
 	}
 	rulesProtoFormatStandardToSchemaFormatStandard = reverseMap(rulesSchemaFormatStandardToProtoFormatStandard)
-	rulesValidFormatStandards                      = maps.Keys(rulesSchemaFormatStandardToProtoFormatStandard)
+	rulesValidFormatStandards                      = keys(rulesSchemaFormatStandardToProtoFormatStandard)
 )
 
 func resourceCoralogixRulesGroup() *schema.Resource {
@@ -644,12 +643,12 @@ func expandRule(i interface{}) (*rulesv1.CreateRuleGroupRequest_CreateRuleSubgro
 			if rule == nil {
 				rule = expandRuleForSpecificRuleType(k, r[0])
 			} else {
-				return nil, fmt.Errorf("exactly one of %q must be provided inside rule. more than one rule type where provided.", maps.Keys(m))
+				return nil, fmt.Errorf("exactly one of %q must be provided inside rule. more than one rule type where provided.", keys(m))
 			}
 		}
 	}
 	if rule == nil {
-		return nil, fmt.Errorf("exactly one of %q must be provided inside rule. no rule type was provided.", maps.Keys(m))
+		return nil, fmt.Errorf("exactly one of %q must be provided inside rule. no rule type was provided.", keys(m))
 	}
 	return rule, nil
 }

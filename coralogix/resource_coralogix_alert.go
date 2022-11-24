@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"golang.org/x/exp/maps"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -28,7 +27,7 @@ var (
 		"Error":    "ALERT_SEVERITY_ERROR",
 	}
 	alertProtoSeverityToSchemaSeverity       = reverseMap(alertSchemaSeverityToProtoSeverity)
-	alertValidSeverities                     = maps.Keys(alertSchemaSeverityToProtoSeverity)
+	alertValidSeverities                     = keys(alertSchemaSeverityToProtoSeverity)
 	alertSchemaLogSeverityToProtoLogSeverity = map[string]string{
 		"Debug":    "LOG_SEVERITY_DEBUG_OR_UNSPECIFIED",
 		"Verbose":  "LOG_SEVERITY_VERBOSE",
@@ -38,7 +37,7 @@ var (
 		"Critical": "LOG_SEVERITY_CRITICAL",
 	}
 	alertProtoLogSeverityToSchemaLogSeverity = reverseMap(alertSchemaLogSeverityToProtoLogSeverity)
-	alertValidLogSeverities                  = maps.Keys(alertSchemaLogSeverityToProtoLogSeverity)
+	alertValidLogSeverities                  = keys(alertSchemaLogSeverityToProtoLogSeverity)
 	alertSchemaDayOfWeekToProtoDayOfWeek     = map[string]string{
 		"Monday":    "DAY_OF_WEEK_MONDAY_OR_UNSPECIFIED",
 		"Tuesday":   "DAY_OF_WEEK_TUESDAY",
@@ -49,7 +48,7 @@ var (
 		"Sunday":    "DAY_OF_WEEK_SUNDAY",
 	}
 	alertProtoDayOfWeekToSchemaDayOfWeek = reverseMap(alertSchemaDayOfWeekToProtoDayOfWeek)
-	alertValidDaysOfWeek                 = maps.Keys(alertSchemaDayOfWeekToProtoDayOfWeek)
+	alertValidDaysOfWeek                 = keys(alertSchemaDayOfWeekToProtoDayOfWeek)
 	alertSchemaTimeFrameToProtoTimeFrame = map[string]string{
 		"5Min":  "TIMEFRAME_5_MIN_OR_UNSPECIFIED",
 		"10Min": "TIMEFRAME_10_MIN",
@@ -66,7 +65,7 @@ var (
 		"36H":   "TIMEFRAME_36_H",
 	}
 	alertProtoTimeFrameToSchemaTimeFrame            = reverseMap(alertSchemaTimeFrameToProtoTimeFrame)
-	alertValidTimeFrames                            = maps.Keys(alertSchemaTimeFrameToProtoTimeFrame)
+	alertValidTimeFrames                            = keys(alertSchemaTimeFrameToProtoTimeFrame)
 	alertSchemaUniqueCountTimeFrameToProtoTimeFrame = map[string]string{
 		"10Min": "TIMEFRAME_10_MIN",
 		"15Min": "TIMEFRAME_15_MIN",
@@ -81,7 +80,7 @@ var (
 		"24H":   "TIMEFRAME_24_H",
 	}
 	alertProtoUniqueCountTimeFrameToSchemaTimeFrame = reverseMap(alertSchemaUniqueCountTimeFrameToProtoTimeFrame)
-	alertValidUniqueCountTimeFrames                 = maps.Keys(alertSchemaUniqueCountTimeFrameToProtoTimeFrame)
+	alertValidUniqueCountTimeFrames                 = keys(alertSchemaUniqueCountTimeFrameToProtoTimeFrame)
 	alertSchemaNewValueTimeFrameToProtoTimeFrame    = map[string]string{
 		"12H":    "TIMEFRAME_12_H",
 		"24H":    "TIMEFRAME_24_H",
@@ -93,7 +92,7 @@ var (
 		"3Month": "TIMEFRAME_3_M",
 	}
 	alertProtoNewValueTimeFrameToSchemaTimeFrame                     = reverseMap(alertSchemaNewValueTimeFrameToProtoTimeFrame)
-	alertValidNewValueTimeFrames                                     = maps.Keys(alertSchemaNewValueTimeFrameToProtoTimeFrame)
+	alertValidNewValueTimeFrames                                     = keys(alertSchemaNewValueTimeFrameToProtoTimeFrame)
 	alertSchemaRelativeTimeFrameToProtoTimeFrameAndRelativeTimeFrame = map[string]protoTimeFrameAndRelativeTimeFrame{
 		"Previous_hour":       {timeFrame: alertsv1.Timeframe_TIMEFRAME_1_H, relativeTimeFrame: alertsv1.RelativeTimeframe_RELATIVE_TIMEFRAME_HOUR_OR_UNSPECIFIED},
 		"Same_hour_yesterday": {timeFrame: alertsv1.Timeframe_TIMEFRAME_1_H, relativeTimeFrame: alertsv1.RelativeTimeframe_RELATIVE_TIMEFRAME_DAY},
@@ -103,7 +102,7 @@ var (
 		"Same_day_last_month": {timeFrame: alertsv1.Timeframe_TIMEFRAME_24_H, relativeTimeFrame: alertsv1.RelativeTimeframe_RELATIVE_TIMEFRAME_MONTH},
 	}
 	alertProtoTimeFrameAndRelativeTimeFrameToSchemaRelativeTimeFrame = reverseMap(alertSchemaRelativeTimeFrameToProtoTimeFrameAndRelativeTimeFrame)
-	alertValidRelativeTimeFrames                                     = maps.Keys(alertSchemaRelativeTimeFrameToProtoTimeFrameAndRelativeTimeFrame)
+	alertValidRelativeTimeFrames                                     = keys(alertSchemaRelativeTimeFrameToProtoTimeFrameAndRelativeTimeFrame)
 	alertSchemaArithmeticOperatorToProtoArithmetic                   = map[string]string{
 		"Avg":        "ARITHMETIC_OPERATOR_AVG_OR_UNSPECIFIED",
 		"Min":        "ARITHMETIC_OPERATOR_MIN",
@@ -113,22 +112,22 @@ var (
 		"Percentile": "ARITHMETIC_OPERATOR_PERCENTILE",
 	}
 	alertProtoArithmeticOperatorToSchemaArithmetic   = reverseMap(alertSchemaArithmeticOperatorToProtoArithmetic)
-	alertValidArithmeticOperators                    = maps.Keys(alertSchemaArithmeticOperatorToProtoArithmetic)
+	alertValidArithmeticOperators                    = keys(alertSchemaArithmeticOperatorToProtoArithmetic)
 	alertSchemaTracingOperatorToProtoTracingOperator = map[string]string{
 		"Equals":     "equals",
 		"Contains":   "contains",
 		"Start_with": "startsWith",
 		"End_with":   "endsWith"}
 	alertProtoTracingOperatorToSchemaTracingOperator       = reverseMap(alertSchemaTracingOperatorToProtoTracingOperator)
-	alertValidTracingOperator                              = maps.Keys(alertSchemaTracingOperatorToProtoTracingOperator)
+	alertValidTracingOperator                              = keys(alertSchemaTracingOperatorToProtoTracingOperator)
 	alertSchemaTracingFilterFieldToProtoTracingFilterField = map[string]string{
 		"Application": "applicationName",
 		"Subsystem":   "subsystemName",
 		"Service":     "serviceName",
 	}
 	alertProtoTracingFilterFieldToSchemaTracingFilterField = reverseMap(alertSchemaTracingFilterFieldToProtoTracingFilterField)
-	alertValidTracingFilterField                           = maps.Keys(alertSchemaTracingFilterFieldToProtoTracingFilterField)
-	alertValidFlowOperator                                 = maps.Keys(alertsv1.FlowOperator_value)
+	alertValidTracingFilterField                           = keys(alertSchemaTracingFilterFieldToProtoTracingFilterField)
+	alertValidFlowOperator                                 = keys(alertsv1.FlowOperator_value)
 )
 
 type alertParams struct {
