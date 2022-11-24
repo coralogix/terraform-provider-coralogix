@@ -106,7 +106,7 @@ func getRandomLogs2Metric() *logs2MetricTestFields {
 	return &logs2MetricTestFields{
 		name:        acctest.RandStringFromCharSet(10, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012346789_:"),
 		description: acctest.RandomWithPrefix("tf-acc-test"),
-		limit:       acctest.RandIntRange(0, 999999),
+		limit:       acctest.RandIntRange(0, 500000),
 	}
 
 }

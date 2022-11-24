@@ -203,14 +203,6 @@ func flattenTimeframe(timeMS int) []interface{} {
 	}}
 }
 
-func reverseMap[K comparable, V comparable](m map[K]V) map[V]K {
-	n := make(map[V]K, len(m))
-	for k, v := range m {
-		n[v] = k
-	}
-	return n
-}
-
 func sliceToString(data []string) string {
 	b, _ := json.Marshal(data)
 	return fmt.Sprintf("%v", string(b))
@@ -236,10 +228,50 @@ func selectManyRandomlyFromSlice(s []string) []string {
 	return result
 }
 
-func keys[K comparable, V interface{}](m map[K]V) []K {
-	result := make([]K, 0)
-	for k, _ := range m {
+func getKeysStrings(m map[string]string) []string {
+	result := make([]string, 0)
+	for k := range m {
 		result = append(result, k)
 	}
 	return result
+}
+
+func getKeysInterface(m map[string]interface{}) []string {
+	result := make([]string, 0)
+	for k := range m {
+		result = append(result, k)
+	}
+	return result
+}
+
+func getKeysInt(m map[string]int32) []string {
+	result := make([]string, 0)
+	for k := range m {
+		result = append(result, k)
+	}
+	return result
+}
+
+func getKeysRelativeTimeFrame(m map[string]protoTimeFrameAndRelativeTimeFrame) []string {
+	result := make([]string, 0)
+	for k := range m {
+		result = append(result, k)
+	}
+	return result
+}
+
+func reverseMapStrings(m map[string]string) map[string]string {
+	n := make(map[string]string)
+	for k, v := range m {
+		n[v] = k
+	}
+	return n
+}
+
+func reverseMapRelativeTimeFrame(m map[string]protoTimeFrameAndRelativeTimeFrame) map[protoTimeFrameAndRelativeTimeFrame]string {
+	n := make(map[protoTimeFrameAndRelativeTimeFrame]string)
+	for k, v := range m {
+		n[v] = k
+	}
+	return n
 }

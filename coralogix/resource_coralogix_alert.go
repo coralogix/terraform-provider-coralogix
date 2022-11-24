@@ -26,8 +26,8 @@ var (
 		"Critical": "ALERT_SEVERITY_CRITICAL",
 		"Error":    "ALERT_SEVERITY_ERROR",
 	}
-	alertProtoSeverityToSchemaSeverity       = reverseMap(alertSchemaSeverityToProtoSeverity)
-	alertValidSeverities                     = keys(alertSchemaSeverityToProtoSeverity)
+	alertProtoSeverityToSchemaSeverity       = reverseMapStrings(alertSchemaSeverityToProtoSeverity)
+	alertValidSeverities                     = getKeysStrings(alertSchemaSeverityToProtoSeverity)
 	alertSchemaLogSeverityToProtoLogSeverity = map[string]string{
 		"Debug":    "LOG_SEVERITY_DEBUG_OR_UNSPECIFIED",
 		"Verbose":  "LOG_SEVERITY_VERBOSE",
@@ -36,8 +36,8 @@ var (
 		"Error":    "LOG_SEVERITY_ERROR",
 		"Critical": "LOG_SEVERITY_CRITICAL",
 	}
-	alertProtoLogSeverityToSchemaLogSeverity = reverseMap(alertSchemaLogSeverityToProtoLogSeverity)
-	alertValidLogSeverities                  = keys(alertSchemaLogSeverityToProtoLogSeverity)
+	alertProtoLogSeverityToSchemaLogSeverity = reverseMapStrings(alertSchemaLogSeverityToProtoLogSeverity)
+	alertValidLogSeverities                  = getKeysStrings(alertSchemaLogSeverityToProtoLogSeverity)
 	alertSchemaDayOfWeekToProtoDayOfWeek     = map[string]string{
 		"Monday":    "DAY_OF_WEEK_MONDAY_OR_UNSPECIFIED",
 		"Tuesday":   "DAY_OF_WEEK_TUESDAY",
@@ -47,8 +47,8 @@ var (
 		"Saturday":  "DAY_OF_WEEK_SATURDAY",
 		"Sunday":    "DAY_OF_WEEK_SUNDAY",
 	}
-	alertProtoDayOfWeekToSchemaDayOfWeek = reverseMap(alertSchemaDayOfWeekToProtoDayOfWeek)
-	alertValidDaysOfWeek                 = keys(alertSchemaDayOfWeekToProtoDayOfWeek)
+	alertProtoDayOfWeekToSchemaDayOfWeek = reverseMapStrings(alertSchemaDayOfWeekToProtoDayOfWeek)
+	alertValidDaysOfWeek                 = getKeysStrings(alertSchemaDayOfWeekToProtoDayOfWeek)
 	alertSchemaTimeFrameToProtoTimeFrame = map[string]string{
 		"5Min":  "TIMEFRAME_5_MIN_OR_UNSPECIFIED",
 		"10Min": "TIMEFRAME_10_MIN",
@@ -64,8 +64,8 @@ var (
 		"24H":   "TIMEFRAME_24_H",
 		"36H":   "TIMEFRAME_36_H",
 	}
-	alertProtoTimeFrameToSchemaTimeFrame            = reverseMap(alertSchemaTimeFrameToProtoTimeFrame)
-	alertValidTimeFrames                            = keys(alertSchemaTimeFrameToProtoTimeFrame)
+	alertProtoTimeFrameToSchemaTimeFrame            = reverseMapStrings(alertSchemaTimeFrameToProtoTimeFrame)
+	alertValidTimeFrames                            = getKeysStrings(alertSchemaTimeFrameToProtoTimeFrame)
 	alertSchemaUniqueCountTimeFrameToProtoTimeFrame = map[string]string{
 		"10Min": "TIMEFRAME_10_MIN",
 		"15Min": "TIMEFRAME_15_MIN",
@@ -79,8 +79,8 @@ var (
 		"12H":   "TIMEFRAME_12_H",
 		"24H":   "TIMEFRAME_24_H",
 	}
-	alertProtoUniqueCountTimeFrameToSchemaTimeFrame = reverseMap(alertSchemaUniqueCountTimeFrameToProtoTimeFrame)
-	alertValidUniqueCountTimeFrames                 = keys(alertSchemaUniqueCountTimeFrameToProtoTimeFrame)
+	alertProtoUniqueCountTimeFrameToSchemaTimeFrame = reverseMapStrings(alertSchemaUniqueCountTimeFrameToProtoTimeFrame)
+	alertValidUniqueCountTimeFrames                 = getKeysStrings(alertSchemaUniqueCountTimeFrameToProtoTimeFrame)
 	alertSchemaNewValueTimeFrameToProtoTimeFrame    = map[string]string{
 		"12H":    "TIMEFRAME_12_H",
 		"24H":    "TIMEFRAME_24_H",
@@ -91,8 +91,8 @@ var (
 		"2Month": "TIMEFRAME_2_M",
 		"3Month": "TIMEFRAME_3_M",
 	}
-	alertProtoNewValueTimeFrameToSchemaTimeFrame                     = reverseMap(alertSchemaNewValueTimeFrameToProtoTimeFrame)
-	alertValidNewValueTimeFrames                                     = keys(alertSchemaNewValueTimeFrameToProtoTimeFrame)
+	alertProtoNewValueTimeFrameToSchemaTimeFrame                     = reverseMapStrings(alertSchemaNewValueTimeFrameToProtoTimeFrame)
+	alertValidNewValueTimeFrames                                     = getKeysStrings(alertSchemaNewValueTimeFrameToProtoTimeFrame)
 	alertSchemaRelativeTimeFrameToProtoTimeFrameAndRelativeTimeFrame = map[string]protoTimeFrameAndRelativeTimeFrame{
 		"Previous_hour":       {timeFrame: alertsv1.Timeframe_TIMEFRAME_1_H, relativeTimeFrame: alertsv1.RelativeTimeframe_RELATIVE_TIMEFRAME_HOUR_OR_UNSPECIFIED},
 		"Same_hour_yesterday": {timeFrame: alertsv1.Timeframe_TIMEFRAME_1_H, relativeTimeFrame: alertsv1.RelativeTimeframe_RELATIVE_TIMEFRAME_DAY},
@@ -101,8 +101,8 @@ var (
 		"Same_day_last_week":  {timeFrame: alertsv1.Timeframe_TIMEFRAME_24_H, relativeTimeFrame: alertsv1.RelativeTimeframe_RELATIVE_TIMEFRAME_WEEK},
 		"Same_day_last_month": {timeFrame: alertsv1.Timeframe_TIMEFRAME_24_H, relativeTimeFrame: alertsv1.RelativeTimeframe_RELATIVE_TIMEFRAME_MONTH},
 	}
-	alertProtoTimeFrameAndRelativeTimeFrameToSchemaRelativeTimeFrame = reverseMap(alertSchemaRelativeTimeFrameToProtoTimeFrameAndRelativeTimeFrame)
-	alertValidRelativeTimeFrames                                     = keys(alertSchemaRelativeTimeFrameToProtoTimeFrameAndRelativeTimeFrame)
+	alertProtoTimeFrameAndRelativeTimeFrameToSchemaRelativeTimeFrame = reverseMapRelativeTimeFrame(alertSchemaRelativeTimeFrameToProtoTimeFrameAndRelativeTimeFrame)
+	alertValidRelativeTimeFrames                                     = getKeysRelativeTimeFrame(alertSchemaRelativeTimeFrameToProtoTimeFrameAndRelativeTimeFrame)
 	alertSchemaArithmeticOperatorToProtoArithmetic                   = map[string]string{
 		"Avg":        "ARITHMETIC_OPERATOR_AVG_OR_UNSPECIFIED",
 		"Min":        "ARITHMETIC_OPERATOR_MIN",
@@ -111,23 +111,23 @@ var (
 		"Count":      "ARITHMETIC_OPERATOR_COUNT",
 		"Percentile": "ARITHMETIC_OPERATOR_PERCENTILE",
 	}
-	alertProtoArithmeticOperatorToSchemaArithmetic   = reverseMap(alertSchemaArithmeticOperatorToProtoArithmetic)
-	alertValidArithmeticOperators                    = keys(alertSchemaArithmeticOperatorToProtoArithmetic)
+	alertProtoArithmeticOperatorToSchemaArithmetic   = reverseMapStrings(alertSchemaArithmeticOperatorToProtoArithmetic)
+	alertValidArithmeticOperators                    = getKeysStrings(alertSchemaArithmeticOperatorToProtoArithmetic)
 	alertSchemaTracingOperatorToProtoTracingOperator = map[string]string{
 		"Equals":     "equals",
 		"Contains":   "contains",
 		"Start_with": "startsWith",
 		"End_with":   "endsWith"}
-	alertProtoTracingOperatorToSchemaTracingOperator       = reverseMap(alertSchemaTracingOperatorToProtoTracingOperator)
-	alertValidTracingOperator                              = keys(alertSchemaTracingOperatorToProtoTracingOperator)
+	alertProtoTracingOperatorToSchemaTracingOperator       = reverseMapStrings(alertSchemaTracingOperatorToProtoTracingOperator)
+	alertValidTracingOperator                              = getKeysStrings(alertSchemaTracingOperatorToProtoTracingOperator)
 	alertSchemaTracingFilterFieldToProtoTracingFilterField = map[string]string{
 		"Application": "applicationName",
 		"Subsystem":   "subsystemName",
 		"Service":     "serviceName",
 	}
-	alertProtoTracingFilterFieldToSchemaTracingFilterField = reverseMap(alertSchemaTracingFilterFieldToProtoTracingFilterField)
-	alertValidTracingFilterField                           = keys(alertSchemaTracingFilterFieldToProtoTracingFilterField)
-	alertValidFlowOperator                                 = keys(alertsv1.FlowOperator_value)
+	alertProtoTracingFilterFieldToSchemaTracingFilterField = reverseMapStrings(alertSchemaTracingFilterFieldToProtoTracingFilterField)
+	alertValidTracingFilterField                           = getKeysStrings(alertSchemaTracingFilterFieldToProtoTracingFilterField)
+	alertValidFlowOperator                                 = getKeysInt(alertsv1.FlowOperator_value)
 )
 
 type alertParams struct {

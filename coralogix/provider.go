@@ -19,7 +19,7 @@ var (
 		"EUROPE2": "ng-api-grpc.eu2.coralogix.com:443",
 		"USA1":    "ng-api-grpc.coralogix.us:443",
 	}
-	validEnvs = keys(envToGrpcUrl)
+	validEnvs = getKeysStrings(envToGrpcUrl)
 )
 
 // Provider returns a *schema.Provider.
