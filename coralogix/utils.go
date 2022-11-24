@@ -237,7 +237,7 @@ func selectManyRandomlyFromSlice(s []string) []string {
 }
 
 func keys[K comparable, V interface{}](m map[K]V) []K {
-	result := make([]K, len(m))
+	result := make([]K, 0)
 	for k, _ := range m {
 		result = append(result, k)
 	}
