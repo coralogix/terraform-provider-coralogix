@@ -218,7 +218,7 @@ func TestAccCoralogixResourceAlert_metricLucene(t *testing.T) {
 		alertCommonTestParams:      *getRandomAlert(),
 		groupBy:                    []string{"EventType"},
 		metricField:                "subsystem",
-		timeWindow:                 selectRandomlyFromSlice(alertValidTimeFrames),
+		timeWindow:                 selectRandomlyFromSlice(alertValidMetricTimeFrames),
 		threshold:                  acctest.RandIntRange(0, 1000),
 		arithmeticOperator:         selectRandomlyFromSlice(alertValidArithmeticOperators),
 		arithmeticOperatorModifier: acctest.RandIntRange(0, 1000),
@@ -278,7 +278,7 @@ func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
 		threshold:                  acctest.RandIntRange(0, 1000),
 		arithmeticOperatorModifier: acctest.RandIntRange(0, 1000),
 		nonNullPercentage:          acctest.RandIntRange(0, 100),
-		timeWindow:                 selectRandomlyFromSlice(alertValidTimeFrames),
+		timeWindow:                 selectRandomlyFromSlice(alertValidMetricTimeFrames),
 	}
 
 	checks := []resource.TestCheckFunc{

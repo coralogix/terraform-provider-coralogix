@@ -128,6 +128,22 @@ var (
 	alertProtoTracingFilterFieldToSchemaTracingFilterField = reverseMapStrings(alertSchemaTracingFilterFieldToProtoTracingFilterField)
 	alertValidTracingFilterField                           = getKeysStrings(alertSchemaTracingFilterFieldToProtoTracingFilterField)
 	alertValidFlowOperator                                 = getKeysInt(alertsv1.FlowOperator_value)
+	alertSchemaMetricTimeFrameToMetricProtoTimeFrame       = map[string]string{
+		"1Min":  "TIMEFRAME_1_MIN",
+		"5Min":  "TIMEFRAME_5_MIN_OR_UNSPECIFIED",
+		"10Min": "TIMEFRAME_10_MIN",
+		"15Min": "TIMEFRAME_15_MIN",
+		"20Min": "TIMEFRAME_20_MIN",
+		"30Min": "TIMEFRAME_30_MIN",
+		"1H":    "TIMEFRAME_1_H",
+		"2H":    "TIMEFRAME_2_H",
+		"4H":    "TIMEFRAME_4_H",
+		"6H":    "TIMEFRAME_6_H",
+		"12H":   "TIMEFRAME_12_H",
+		"24H":   "TIMEFRAME_24_H",
+	}
+	alertProtoMetricTimeFrameToMetricSchemaTimeFrame = reverseMapStrings(alertSchemaMetricTimeFrameToMetricProtoTimeFrame)
+	alertValidMetricTimeFrames                       = getKeysStrings(alertSchemaMetricTimeFrameToMetricProtoTimeFrame)
 )
 
 type alertParams struct {
@@ -919,8 +935,8 @@ func metricSchema() map[string]*schema.Schema {
 								"time_window": {
 									Type:         schema.TypeString,
 									Required:     true,
-									ValidateFunc: validation.StringInSlice(alertValidTimeFrames, false),
-									Description:  fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidTimeFrames),
+									ValidateFunc: validation.StringInSlice(alertValidMetricTimeFrames, false),
+									Description:  fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidMetricTimeFrames),
 								},
 								"group_by": {
 									Type:     schema.TypeList,
@@ -990,8 +1006,8 @@ func metricSchema() map[string]*schema.Schema {
 								"time_window": {
 									Type:         schema.TypeString,
 									Required:     true,
-									ValidateFunc: validation.StringInSlice(alertValidTimeFrames, false),
-									Description:  fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidTimeFrames),
+									ValidateFunc: validation.StringInSlice(alertValidMetricTimeFrames, false),
+									Description:  fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidMetricTimeFrames),
 								},
 								"arithmetic_operator_modifier": {
 									Type:     schema.TypeInt,
