@@ -1738,7 +1738,7 @@ func flattenPromQLCondition(params *alertsv1.ConditionParameters) (promQLConditi
 	promQLConditionMap =
 		map[string]interface{}{
 			"threshold":                       params.GetThreshold().GetValue(),
-			"time_window":                     alertProtoTimeFrameToSchemaTimeFrame[params.GetTimeframe().String()],
+			"time_window":                     alertProtoMetricTimeFrameToMetricSchemaTimeFrame[params.GetTimeframe().String()],
 			"arithmetic_operator_modifier":    promqlParams.GetArithmeticOperatorModifier().GetValue(),
 			"sample_threshold_percentage":     promqlParams.GetSampleThresholdPercentage().GetValue(),
 			"replace_missing_value_with_zero": promqlParams.GetSwapNullValues().GetValue(),
@@ -1756,7 +1756,7 @@ func flattenLuceneCondition(params *alertsv1.ConditionParameters) (luceneConditi
 		"threshold":                       params.GetThreshold().GetValue(),
 		"arithmetic_operator_modifier":    metricParams.GetArithmeticOperatorModifier().GetValue(),
 		"sample_threshold_percentage":     metricParams.GetSampleThresholdPercentage().GetValue(),
-		"time_window":                     alertProtoTimeFrameToSchemaTimeFrame[params.GetTimeframe().String()],
+		"time_window":                     alertProtoMetricTimeFrameToMetricSchemaTimeFrame[params.GetTimeframe().String()],
 		"group_by":                        wrappedStringSliceToStringSlice(params.GetGroupBy()),
 		"replace_missing_value_with_zero": metricParams.GetSwapNullValues().GetValue(),
 		"min_non_null_values_percentage":  metricParams.GetNonNullPercentage().GetValue(),
@@ -2667,7 +2667,7 @@ func extractConditionMap(m map[string]interface{}) map[string]interface{} {
 }
 
 func expandTimeFrame(s string) alertsv1.Timeframe {
-	protoTimeFrame := alertSchemaTimeFrameToProtoTimeFrame[s]
+	protoTimeFrame := alertSchemaMetricTimeFrameToMetricProtoTimeFrame[s]
 	return alertsv1.Timeframe(alertsv1.Timeframe_value[protoTimeFrame])
 }
 
