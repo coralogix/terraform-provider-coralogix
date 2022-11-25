@@ -206,8 +206,7 @@ Required:
 - `metric_field` (String)
 - `sample_threshold_percentage` (Number)
 - `threshold` (Number) The number of log threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be
-  one of ["36H" "5Min" "10Min" "15Min" "30Min" "3H" "6H" "20Min" "1H" "2H" "4H" "12H" "24H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["1H" "2H" "4H" "12H" "24H" "1Min" "5Min" "10Min" "6H" "15Min" "20Min" "30Min"]
 
 Optional:
 
@@ -235,8 +234,7 @@ Required:
 - `arithmetic_operator_modifier` (Number)
 - `sample_threshold_percentage` (Number)
 - `threshold` (Number) The threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be
-  one of ["36H" "5Min" "10Min" "15Min" "30Min" "3H" "6H" "20Min" "1H" "2H" "4H" "12H" "24H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["1H" "2H" "4H" "12H" "24H" "1Min" "5Min" "10Min" "6H" "15Min" "20Min" "30Min"]
 
 Optional:
 
