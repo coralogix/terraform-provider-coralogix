@@ -128,6 +128,22 @@ var (
 	alertProtoTracingFilterFieldToSchemaTracingFilterField = reverseMapStrings(alertSchemaTracingFilterFieldToProtoTracingFilterField)
 	alertValidTracingFilterField                           = getKeysStrings(alertSchemaTracingFilterFieldToProtoTracingFilterField)
 	alertValidFlowOperator                                 = getKeysInt(alertsv1.FlowOperator_value)
+	alertSchemaMetricTimeFrameToMetricProtoTimeFrame       = map[string]string{
+		"1Min":  "TIMEFRAME_1_MIN",
+		"5Min":  "TIMEFRAME_5_MIN_OR_UNSPECIFIED",
+		"10Min": "TIMEFRAME_10_MIN",
+		"15Min": "TIMEFRAME_15_MIN",
+		"20Min": "TIMEFRAME_20_MIN",
+		"30Min": "TIMEFRAME_30_MIN",
+		"1H":    "TIMEFRAME_1_H",
+		"2H":    "TIMEFRAME_2_H",
+		"4H":    "TIMEFRAME_4_H",
+		"6H":    "TIMEFRAME_6_H",
+		"12H":   "TIMEFRAME_12_H",
+		"24H":   "TIMEFRAME_24_H",
+	}
+	alertProtoMetricTimeFrameToMetricSchemaTimeFrame = reverseMapStrings(alertSchemaMetricTimeFrameToMetricProtoTimeFrame)
+	alertValidMetricTimeFrames                       = getKeysStrings(alertSchemaMetricTimeFrameToMetricProtoTimeFrame)
 )
 
 type alertParams struct {
@@ -919,8 +935,8 @@ func metricSchema() map[string]*schema.Schema {
 								"time_window": {
 									Type:         schema.TypeString,
 									Required:     true,
-									ValidateFunc: validation.StringInSlice(alertValidTimeFrames, false),
-									Description:  fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidTimeFrames),
+									ValidateFunc: validation.StringInSlice(alertValidMetricTimeFrames, false),
+									Description:  fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidMetricTimeFrames),
 								},
 								"group_by": {
 									Type:     schema.TypeList,
@@ -990,8 +1006,8 @@ func metricSchema() map[string]*schema.Schema {
 								"time_window": {
 									Type:         schema.TypeString,
 									Required:     true,
-									ValidateFunc: validation.StringInSlice(alertValidTimeFrames, false),
-									Description:  fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidTimeFrames),
+									ValidateFunc: validation.StringInSlice(alertValidMetricTimeFrames, false),
+									Description:  fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidMetricTimeFrames),
 								},
 								"arithmetic_operator_modifier": {
 									Type:     schema.TypeInt,
@@ -1722,7 +1738,7 @@ func flattenPromQLCondition(params *alertsv1.ConditionParameters) (promQLConditi
 	promQLConditionMap =
 		map[string]interface{}{
 			"threshold":                       params.GetThreshold().GetValue(),
-			"time_window":                     alertProtoTimeFrameToSchemaTimeFrame[params.GetTimeframe().String()],
+			"time_window":                     alertProtoMetricTimeFrameToMetricSchemaTimeFrame[params.GetTimeframe().String()],
 			"arithmetic_operator_modifier":    promqlParams.GetArithmeticOperatorModifier().GetValue(),
 			"sample_threshold_percentage":     promqlParams.GetSampleThresholdPercentage().GetValue(),
 			"replace_missing_value_with_zero": promqlParams.GetSwapNullValues().GetValue(),
@@ -1740,7 +1756,7 @@ func flattenLuceneCondition(params *alertsv1.ConditionParameters) (luceneConditi
 		"threshold":                       params.GetThreshold().GetValue(),
 		"arithmetic_operator_modifier":    metricParams.GetArithmeticOperatorModifier().GetValue(),
 		"sample_threshold_percentage":     metricParams.GetSampleThresholdPercentage().GetValue(),
-		"time_window":                     alertProtoTimeFrameToSchemaTimeFrame[params.GetTimeframe().String()],
+		"time_window":                     alertProtoMetricTimeFrameToMetricSchemaTimeFrame[params.GetTimeframe().String()],
 		"group_by":                        wrappedStringSliceToStringSlice(params.GetGroupBy()),
 		"replace_missing_value_with_zero": metricParams.GetSwapNullValues().GetValue(),
 		"min_non_null_values_percentage":  metricParams.GetNonNullPercentage().GetValue(),
@@ -2651,7 +2667,7 @@ func extractConditionMap(m map[string]interface{}) map[string]interface{} {
 }
 
 func expandTimeFrame(s string) alertsv1.Timeframe {
-	protoTimeFrame := alertSchemaTimeFrameToProtoTimeFrame[s]
+	protoTimeFrame := alertSchemaMetricTimeFrameToMetricProtoTimeFrame[s]
 	return alertsv1.Timeframe(alertsv1.Timeframe_value[protoTimeFrame])
 }
 
