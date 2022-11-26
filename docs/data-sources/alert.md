@@ -154,7 +154,6 @@ Read-Only:
 
 Read-Only:
 
-- `arithmetic_operator_modifier` (Number)
 - `less_than` (Boolean)
 - `min_non_null_values_percentage` (Number)
 - `more_than` (Boolean)

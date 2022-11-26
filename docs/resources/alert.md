@@ -206,7 +206,7 @@ Required:
 - `metric_field` (String)
 - `sample_threshold_percentage` (Number)
 - `threshold` (Number) The number of log threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["1H" "2H" "4H" "12H" "24H" "1Min" "5Min" "10Min" "6H" "15Min" "20Min" "30Min"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["1Min" "5Min" "10Min" "15Min" "20Min" "30Min" "1H" "2H" "4H" "6H" "12H" "24H"]
 
 Optional:
 
@@ -231,10 +231,9 @@ Required:
 
 Required:
 
-- `arithmetic_operator_modifier` (Number)
 - `sample_threshold_percentage` (Number)
 - `threshold` (Number) The threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["1H" "2H" "4H" "12H" "24H" "1Min" "5Min" "10Min" "6H" "15Min" "20Min" "30Min"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["1Min" "5Min" "10Min" "15Min" "20Min" "30Min" "1H" "2H" "4H" "6H" "12H" "24H"]
 
 Optional:
 
@@ -496,7 +495,7 @@ Optional:
 - `more_than` (Boolean) Determines the condition operator. Must be one of - immediately or more_than.
 - `occurrences_threshold` (Number) The number of log occurrences that is needed to trigger the alert.
 - `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be
-  one of ["36H" "5Min" "10Min" "15Min" "30Min" "3H" "6H" "20Min" "1H" "2H" "4H" "12H" "24H"]
+  one of ["5Min" "10Min" "15Min" "20Min" "30Min" "1H" "2H" "4H" "6H" "12H" "24H" "36H"]
 
 <a id="nestedblock--tracing--field_filters"></a>
 
@@ -563,7 +562,7 @@ Required:
 
 - `max_unique_values` (Number)
 - `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be
-  one of ["4H" "12H" "15Min" "3H" "30Min" "1H" "2H" "6H" "24H" "10Min" "20Min"]
+  one of ["10Min" "15Min" "20Min" "30Min" "1H" "2H" "4H" "6H" "12H" "24H"]
 - `unique_count_key` (String) Defines the key to match to track its unique count.
 
 Optional:

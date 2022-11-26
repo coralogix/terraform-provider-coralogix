@@ -221,7 +221,6 @@ resource "coralogix_alert" "metric_promql_alert" {
       condition {
         more_than                      = true
         threshold                      = 3
-        arithmetic_operator_modifier   = 2
         sample_threshold_percentage    = 50
         time_window                    = "12H"
         min_non_null_values_percentage = 55
