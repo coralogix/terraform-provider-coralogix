@@ -274,11 +274,10 @@ func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
 	resourceName := "coralogix_alert.test"
 
 	alert := metricPromqlAlertTestParams{
-		alertCommonTestParams:      *getRandomAlert(),
-		threshold:                  acctest.RandIntRange(0, 1000),
-		arithmeticOperatorModifier: acctest.RandIntRange(0, 1000),
-		nonNullPercentage:          acctest.RandIntRange(0, 100),
-		timeWindow:                 selectRandomlyFromSlice(alertValidMetricTimeFrames),
+		alertCommonTestParams: *getRandomAlert(),
+		threshold:             acctest.RandIntRange(0, 1000),
+		nonNullPercentage:     acctest.RandIntRange(0, 100),
+		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
 	}
 
 	checks := []resource.TestCheckFunc{
@@ -291,7 +290,6 @@ func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
 		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_every_sec", strconv.Itoa(alert.notifyEverySec)),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.search_query", alert.searchQuery),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.threshold", strconv.Itoa(alert.threshold)),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.arithmetic_operator_modifier", strconv.Itoa(alert.arithmeticOperatorModifier)),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.more_than", "true"),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.sample_threshold_percentage", strconv.Itoa(alert.sampleThresholdPercentage)),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.min_non_null_values_percentage", strconv.Itoa(alert.nonNullPercentage)),
@@ -808,7 +806,6 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
       condition {
         more_than                    = true
         threshold                    = %d
-        arithmetic_operator_modifier = %d
         sample_threshold_percentage  = %d
         time_window                  = "%s"
         min_non_null_values_percentage          = %d
@@ -818,7 +815,7 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
 }`,
 		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEverySec,
 		sliceToString(a.daysOfWeek), a.activityStarts.hour, a.activityStarts.minute, a.activityEnds.hour, a.activityEnds.minute,
-		a.searchQuery, a.threshold, a.arithmeticOperatorModifier, a.sampleThresholdPercentage, a.timeWindow, a.nonNullPercentage)
+		a.searchQuery, a.threshold, a.sampleThresholdPercentage, a.timeWindow, a.nonNullPercentage)
 }
 
 func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
@@ -951,8 +948,8 @@ type metricLuceneAlertTestParams struct {
 
 type metricPromqlAlertTestParams struct {
 	alertCommonTestParams
-	threshold, arithmeticOperatorModifier, nonNullPercentage, sampleThresholdPercentage int
-	timeWindow                                                                          string
+	threshold, nonNullPercentage, sampleThresholdPercentage int
+	timeWindow                                              string
 }
 
 type tracingAlertTestParams struct {

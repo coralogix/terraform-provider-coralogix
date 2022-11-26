@@ -57,7 +57,6 @@ var (
 		"30Min": "TIMEFRAME_30_MIN",
 		"1H":    "TIMEFRAME_1_H",
 		"2H":    "TIMEFRAME_2_H",
-		"3H":    "TIMEFRAME_3_H",
 		"4H":    "TIMEFRAME_4_H",
 		"6H":    "TIMEFRAME_6_H",
 		"12H":   "TIMEFRAME_12_H",
@@ -73,7 +72,6 @@ var (
 		"30Min": "TIMEFRAME_30_MIN",
 		"1H":    "TIMEFRAME_1_H",
 		"2H":    "TIMEFRAME_2_H",
-		"3H":    "TIMEFRAME_3_H",
 		"4H":    "TIMEFRAME_4_H",
 		"6H":    "TIMEFRAME_6_H",
 		"12H":   "TIMEFRAME_12_H",
@@ -1009,10 +1007,6 @@ func metricSchema() map[string]*schema.Schema {
 									ValidateFunc: validation.StringInSlice(alertValidMetricTimeFrames, false),
 									Description:  fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidMetricTimeFrames),
 								},
-								"arithmetic_operator_modifier": {
-									Type:     schema.TypeInt,
-									Required: true,
-								},
 								"sample_threshold_percentage": {
 									Type:         schema.TypeInt,
 									Required:     true,
@@ -1739,7 +1733,6 @@ func flattenPromQLCondition(params *alertsv1.ConditionParameters) (promQLConditi
 		map[string]interface{}{
 			"threshold":                       params.GetThreshold().GetValue(),
 			"time_window":                     alertProtoMetricTimeFrameToMetricSchemaTimeFrame[params.GetTimeframe().String()],
-			"arithmetic_operator_modifier":    promqlParams.GetArithmeticOperatorModifier().GetValue(),
 			"sample_threshold_percentage":     promqlParams.GetSampleThresholdPercentage().GetValue(),
 			"replace_missing_value_with_zero": promqlParams.GetSwapNullValues().GetValue(),
 			"min_non_null_values_percentage":  promqlParams.GetNonNullPercentage().GetValue(),
@@ -2428,7 +2421,6 @@ func expandMetricCondition(m map[string]interface{}, notifyWhenResolved, notifyO
 	text := wrapperspb.String(metricMap["search_query"].(string))
 	conditionMap := extractConditionMap(metricMap)
 	threshold := wrapperspb.Double(conditionMap["threshold"].(float64))
-	arithmeticOperatorModifier := wrapperspb.UInt32(uint32(conditionMap["arithmetic_operator_modifier"].(int)))
 	sampleThresholdPercentage := wrapperspb.UInt32(uint32(conditionMap["sample_threshold_percentage"].(int)))
 	nonNullPercentage := wrapperspb.UInt32(uint32(conditionMap["min_non_null_values_percentage"].(int)))
 	swapNullValues := wrapperspb.Bool(conditionMap["replace_missing_value_with_zero"].(bool))
@@ -2443,15 +2435,15 @@ func expandMetricCondition(m map[string]interface{}, notifyWhenResolved, notifyO
 
 	if isPromQL {
 		parameters.MetricAlertPromqlParameters = &alertsv1.MetricAlertPromqlConditionParameters{
-			PromqlText:                 text,
-			ArithmeticOperatorModifier: arithmeticOperatorModifier,
-			SampleThresholdPercentage:  sampleThresholdPercentage,
-			NonNullPercentage:          nonNullPercentage,
-			SwapNullValues:             swapNullValues,
+			PromqlText:                text,
+			SampleThresholdPercentage: sampleThresholdPercentage,
+			NonNullPercentage:         nonNullPercentage,
+			SwapNullValues:            swapNullValues,
 		}
 	} else {
 		metricField := wrapperspb.String(conditionMap["metric_field"].(string))
 		arithmeticOperator := expandArithmeticOperator(conditionMap["arithmetic_operator"].(string))
+		arithmeticOperatorModifier := wrapperspb.UInt32(uint32(conditionMap["arithmetic_operator_modifier"].(int)))
 		groupBy := interfaceSliceToWrappedStringSlice(conditionMap["group_by"].([]interface{}))
 		parameters.GroupBy = groupBy
 		parameters.MetricAlertParameters = &alertsv1.MetricAlertConditionParameters{
