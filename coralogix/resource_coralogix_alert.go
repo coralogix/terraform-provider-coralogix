@@ -2424,7 +2424,7 @@ func expandMetricCondition(m map[string]interface{}, notifyWhenResolved, notifyO
 	sampleThresholdPercentage := wrapperspb.UInt32(uint32(conditionMap["sample_threshold_percentage"].(int)))
 	nonNullPercentage := wrapperspb.UInt32(uint32(conditionMap["min_non_null_values_percentage"].(int)))
 	swapNullValues := wrapperspb.Bool(conditionMap["replace_missing_value_with_zero"].(bool))
-	timeFrame := expandTimeFrame(conditionMap["time_window"].(string))
+	timeFrame := expandMetricTimeFrame(conditionMap["time_window"].(string))
 
 	parameters := &alertsv1.ConditionParameters{
 		Threshold:               threshold,
@@ -2659,6 +2659,11 @@ func extractConditionMap(m map[string]interface{}) map[string]interface{} {
 }
 
 func expandTimeFrame(s string) alertsv1.Timeframe {
+	protoTimeFrame := alertSchemaTimeFrameToProtoTimeFrame[s]
+	return alertsv1.Timeframe(alertsv1.Timeframe_value[protoTimeFrame])
+}
+
+func expandMetricTimeFrame(s string) alertsv1.Timeframe {
 	protoTimeFrame := alertSchemaMetricTimeFrameToMetricProtoTimeFrame[s]
 	return alertsv1.Timeframe(alertsv1.Timeframe_value[protoTimeFrame])
 }
