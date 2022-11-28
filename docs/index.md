@@ -47,4 +47,3 @@ $ export CORALOGIX_ENV="<add the environment you want to work at>"
 
 - `api_key` (String, Sensitive) A key for alerts, rules and logs2metric APIs (Auto Generated), appropriate for the defined environment.
 - `env` (String) The Coralogix API environment. can be one of ["APAC1" "APAC2" "EUROPE1" "EUROPE2" "USA1"]
-~~- `teams_api_key` (String, Sensitive) A key for accessing teams API, appropriate for the defined environment.~~

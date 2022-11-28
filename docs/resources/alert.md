@@ -17,6 +17,7 @@ More info: https://coralogix.com/docs/alerts-api/ .
 
 ## Example Usage
 
+### Standard Alert
 ```hcl
 resource "coralogix_alert" "standard_alert" {
   name           = "Standard alert example"
@@ -34,8 +35,8 @@ resource "coralogix_alert" "standard_alert" {
 
   notification {
     recipients {
-      emails      = ["or.novogroder@coralogix.com"]
-      webhook_ids = ["WebhookAlerts"]
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_sec = 60
   }
@@ -48,17 +49,338 @@ resource "coralogix_alert" "standard_alert" {
 
   scheduling {
     days_enabled = ["Sunday", "Monday"]
-    start_time   = "8:30"
-    end_time     = "23:30"
+    start_time   = "7:30"
+    end_time     = "22:30"
   }
 
   standard {
-    applications = ["nginx"]
-    subsystems   = ["training"]
+    applications = ["nginx"] //change here for existing applications from your account
+    subsystems   = ["training"] //change here for existing subsystems from your account
     severities   = ["Warning", "Info"]
     search_query = "remote_addr_enriched:/.*/"
     condition {
       immediately = true
+    }
+  }
+}
+```
+
+### Ratio Alert
+```hcl
+resource "coralogix_alert" "ratio_alert" {
+  name           = "Ratio alert example"
+  description    = "Example of ratio alert from terraform"
+  alert_severity = "Critical"
+
+  notification {
+    on_trigger_and_resolved = true
+    recipients {
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+    }
+    notify_every_sec                         = 60
+    notify_only_on_triggered_group_by_values = true
+  }
+
+  scheduling {
+    days_enabled = ["Sunday", "Monday"]
+    start_time   = "7:30"
+    end_time     = "22:30"
+  }
+
+  ratio {
+    query_1 {
+
+    }
+    query_2 {
+      applications = ["nginx"] //change here for existing applications from your account
+      subsystems   = ["training"] //change here for existing subsystems from your account
+      severities   = ["Warning"]
+    }
+    condition {
+      more_than     = true
+      queries_ratio = 2
+      time_window   = "10Min"
+      group_by      = ["coralogix.metadata.sdkId"]
+      group_by_q1   = true
+    }
+  }
+}
+```
+
+### New-Value Alert
+```hcl
+resource "coralogix_alert" "new_value_alert" {
+  name           = "New value alert example"
+  description    = "Example of new value alert from terraform"
+  alert_severity = "Info"
+  notification {
+    recipients {
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+    }
+    notify_every_sec = 60
+  }
+
+  scheduling {
+    days_enabled = ["Sunday", "Monday"]
+    start_time   = "7:30"
+    end_time     = "22:30"
+  }
+
+
+  new_value {
+    severities = ["Info"]
+    condition {
+      key_to_track = "remote_addr_geoip.country_name"
+      time_window  = "12H"
+    }
+  }
+}
+```
+
+### Time-Relative Alert
+```hcl
+resource "coralogix_alert" "time_relative_alert" {
+  name           = "Time relative alert example"
+  description    = "Example of time relative alert from terraform"
+  alert_severity = "Critical"
+  notification {
+    recipients {
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+    }
+    notify_every_sec = 60
+  }
+
+  scheduling {
+    days_enabled = ["Sunday", "Monday"]
+    start_time   = "7:30"
+    end_time     = "22:30"
+  }
+
+
+  time_relative {
+    severities = ["Error"]
+    condition {
+      more_than            = true
+      ratio_threshold      = 2
+      relative_time_window = "Same_hour_last_week"
+    }
+  }
+}
+```
+
+### Metric-Lucene Alert
+```hcl
+resource "coralogix_alert" "metric_lucene_alert" {
+  name           = "Metric lucene alert example"
+  description    = "Example of metric lucene alert from terraform"
+  alert_severity = "Critical"
+
+  notification {
+    on_trigger_and_resolved = true
+    recipients {
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+    }
+    notify_every_sec = 60
+  }
+
+  scheduling {
+    days_enabled = ["Sunday", "Monday"]
+    start_time   = "7:30"
+    end_time     = "22:30"
+  }
+
+  metric {
+    lucene {
+      search_query = "name:\"Frontend transactions\""
+      condition {
+        metric_field                 = "subsystem"
+        arithmetic_operator          = "Avg"
+        more_than                    = true
+        threshold                    = 60
+        arithmetic_operator_modifier = 2
+        sample_threshold_percentage  = 50
+        time_window                  = "30Min"
+      }
+    }
+  }
+}
+```
+
+### Metric-Promql Alert
+```hcl
+resource "coralogix_alert" "metric_promql_alert" {
+  name           = "Metric promql alert example"
+  description    = "Example of metric promql alert from terraform"
+  alert_severity = "Critical"
+
+  notification {
+    on_trigger_and_resolved = true
+    recipients {
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+    }
+    notify_every_sec = 60
+  }
+
+  scheduling {
+    days_enabled = ["Sunday", "Monday"]
+    start_time   = "7:30"
+    end_time     = "22:30"
+  }
+
+  metric {
+    promql {
+      search_query = "status.numeric:[500 TO *] AND env:production"
+      condition {
+        more_than                      = true
+        threshold                      = 3
+        sample_threshold_percentage    = 50
+        time_window                    = "12H"
+        min_non_null_values_percentage = 55
+      }
+    }
+  }
+}
+```
+
+### Unique-Count Alert
+```hcl
+resource "coralogix_alert" "unique_count_alert" {
+  name           = "Unique count alert example"
+  description    = "Example of unique count alert from terraform"
+  alert_severity = "Info"
+
+  notification {
+    recipients {
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+    }
+    notify_every_sec = 60
+  }
+
+  scheduling {
+    days_enabled = ["Sunday", "Monday"]
+    start_time   = "7:30"
+    end_time     = "22:30"
+  }
+
+  unique_count {
+    severities = ["Info"]
+    condition {
+      unique_count_key               = "remote_addr_geoip.country_name"
+      max_unique_values              = 2
+      time_window                    = "10Min"
+      group_by_key                   = "EventType"
+      max_unique_values_for_group_by = 500
+    }
+  }
+}
+```
+
+### Tracing Alert
+```hcl
+resource "coralogix_alert" "tracing_alert" {
+  name           = "Tracing alert example"
+  description    = "Example of tracing alert from terraform"
+  alert_severity = "Info"
+
+  notification {
+    //on_trigger_and_resolved = true
+    recipients {
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+    }
+    notify_every_sec = 60
+  }
+
+  scheduling {
+    days_enabled = ["Sunday", "Monday"]
+    start_time   = "7:30"
+    end_time     = "22:30"
+  }
+
+
+  tracing {
+    severities           = ["Info"]
+    latency_threshold_ms = 20.5
+    field_filters {
+      field = "Application"
+      filters {
+        values   = ["nginx"]
+        operator = "Equals"
+      }
+    }
+    condition {
+      more_than             = true
+      time_window           = "5Min"
+      occurrences_threshold = 2
+    }
+  }
+}
+```
+
+### Flow Alert
+```hcl
+resource "coralogix_alert" "flow_alert" {
+  name           = "Flow alert example"
+  description    = "Example of flow alert from terraform"
+  alert_severity = "Info"
+
+  notification {
+    recipients {
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+    }
+    notify_every_sec = 60
+  }
+
+  scheduling {
+    days_enabled = ["Sunday", "Monday"]
+    start_time   = "7:30"
+    end_time     = "22:30"
+  }
+
+  flow {
+    stages {
+      groups {
+        sub_alerts {
+          /*
+          change for existing alert's id.
+           soon it will be possible to consume from the id of an alert created from the terraform in the following way -
+           'user_alert_id = coralogix_alert.unique_count_alert.id'
+           */
+          user_alert_id = "c3c2936e-0b7e-44d7-9295-3aacba1e2366"
+        }
+        operator = "OR"
+      }
+    }
+    stages {
+      groups {
+        sub_alerts {
+          /*
+          change for existing alert's id.
+           soon it will be possible to consume from the id of an alert created from the terraform in the following way -
+           'user_alert_id = coralogix_alert.unique_count_alert.id'
+           */
+          user_alert_id = "615f4b56-5441-417d-9eb6-c183f9374557"
+        }
+        sub_alerts {
+          /*
+           change for existing alert's id.
+            soon it will be possible to consume from the id of an alert created from the terraform in the following way -
+            'user_alert_id = coralogix_alert.unique_count_alert.id'
+            */
+          user_alert_id = "a9836075-7164-4499-897f-e97404d33c3f"
+        }
+        operator = "OR"
+      }
+      time_window {
+        minutes = 20
+      }
     }
   }
 }
