@@ -14,7 +14,7 @@ with [Coralogix](https://coralogix.com/) resources.
 
 # Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) 1.2.x
+- [Terraform](https://www.terraform.io/downloads.html) 0.12.x
 
 # Guides
 
