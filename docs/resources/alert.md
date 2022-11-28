@@ -532,7 +532,7 @@ Required:
 
 Optional:
 
-- `group_by` (List of String) The fields to 'group by' on. Limited for two fields.
+- `group_by` (List of String) The fields to 'group by' on.
 - `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 - `min_non_null_values_percentage` (Number)
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
@@ -643,7 +643,7 @@ Required:
 
 Optional:
 
-- `group_by` (List of String) The fields to 'group by' on. Limited for two fields.
+- `group_by` (List of String) The fields to 'group by' on.
 - `group_by_both` (Boolean)
 - `group_by_q1` (Boolean)
 - `group_by_q2` (Boolean)
@@ -720,7 +720,7 @@ Optional:
 
 Optional:
 
-- `group_by` (List of String) The fields to 'group by' on. Limited for two fields.
+- `group_by` (List of String) The fields to 'group by' on.
 - `group_by_key` (String) The key to 'group by' on.
 - `immediately` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
   more_than_usual.
@@ -767,7 +767,7 @@ Required:
 
 Optional:
 
-- `group_by` (List of String) The fields to 'group by' on. Limited for two fields.
+- `group_by` (List of String) The fields to 'group by' on.
 - `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 
@@ -812,7 +812,7 @@ Optional:
 
 Optional:
 
-- `group_by` (List of String) The fields to 'group by' on. Limited for two fields.
+- `group_by` (List of String) The fields to 'group by' on.
 - `immediately` (Boolean) Determines the condition operator. Must be one of - immediately or more_than.
 - `more_than` (Boolean) Determines the condition operator. Must be one of - immediately or more_than.
 - `occurrences_threshold` (Number) The number of log occurrences that is needed to trigger the alert.
