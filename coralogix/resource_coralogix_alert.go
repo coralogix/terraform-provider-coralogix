@@ -1079,7 +1079,6 @@ func tracingSchema() map[string]*schema.Schema {
 						Type: schema.TypeString,
 					},
 					ConflictsWith: []string{"tracing.0.condition.0.immediately"},
-					MaxItems:      2,
 					Description:   "The fields to 'group by' on.",
 				},
 			},
