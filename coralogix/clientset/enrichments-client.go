@@ -6,11 +6,11 @@ import (
 	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/enrichment/v1"
 )
 
-type EnrichmentClient struct {
+type EnrichmentsClient struct {
 	callPropertiesCreator *CallPropertiesCreator
 }
 
-func (e EnrichmentClient) CreateEnrichment(ctx context.Context, req *enrichmentv1.AddEnrichmentsRequest) (*enrichmentv1.AddEnrichmentsResponse, error) {
+func (e EnrichmentsClient) CreateEnrichment(ctx context.Context, req *enrichmentv1.AddEnrichmentsRequest) (*enrichmentv1.AddEnrichmentsResponse, error) {
 	callProperties, err := e.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -23,7 +23,7 @@ func (e EnrichmentClient) CreateEnrichment(ctx context.Context, req *enrichmentv
 	return client.AddEnrichments(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (e EnrichmentClient) GetEnrichment(ctx context.Context, req *enrichmentv1.GetEnrichmentsRequest) (*enrichmentv1.GetEnrichmentsResponse, error) {
+func (e EnrichmentsClient) GetEnrichments(ctx context.Context, req *enrichmentv1.GetEnrichmentsRequest) (*enrichmentv1.GetEnrichmentsResponse, error) {
 	callProperties, err := e.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func (e EnrichmentClient) GetEnrichment(ctx context.Context, req *enrichmentv1.G
 	return client.GetEnrichments(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (e EnrichmentClient) DeleteEnrichment(ctx context.Context, req *enrichmentv1.RemoveEnrichmentsRequest) (*enrichmentv1.RemoveEnrichmentsResponse, error) {
+func (e EnrichmentsClient) DeleteEnrichment(ctx context.Context, req *enrichmentv1.RemoveEnrichmentsRequest) (*enrichmentv1.RemoveEnrichmentsResponse, error) {
 	callProperties, err := e.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -50,6 +50,6 @@ func (e EnrichmentClient) DeleteEnrichment(ctx context.Context, req *enrichmentv
 	return client.RemoveEnrichments(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func NewEnrichmentClient(c *CallPropertiesCreator) *EnrichmentClient {
-	return &EnrichmentClient{callPropertiesCreator: c}
+func NewEnrichmentClient(c *CallPropertiesCreator) *EnrichmentsClient {
+	return &EnrichmentsClient{callPropertiesCreator: c}
 }

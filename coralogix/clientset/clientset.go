@@ -4,7 +4,7 @@ type ClientSet struct {
 	ruleGroups   *RuleGroupsClient
 	alerts       *AlertsClient
 	logs2Metrics *Logs2MetricsClient
-	enrichment   *EnrichmentClient
+	enrichment   *EnrichmentsClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -19,7 +19,7 @@ func (c *ClientSet) Logs2Metrics() *Logs2MetricsClient {
 	return c.logs2Metrics
 }
 
-func (c *ClientSet) Enrichment() *EnrichmentClient {
+func (c *ClientSet) Enrichments() *EnrichmentsClient {
 	return c.enrichment
 }
 

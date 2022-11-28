@@ -505,16 +505,16 @@ var file_com_coralogix_enrichment_v1_enrichment_service_proto_goTypes = []interf
 	(*AddEnrichmentsResponse)(nil),     // 5: com.coralogix.enrichment.v1.AddEnrichmentsResponse
 	(*RemoveEnrichmentsRequest)(nil),   // 6: com.coralogix.enrichment.v1.RemoveEnrichmentsRequest
 	(*RemoveEnrichmentsResponse)(nil),  // 7: com.coralogix.enrichment.v1.RemoveEnrichmentsResponse
-	(*Enrichment)(nil),                 // 8: com.coralogix.enrichment.v1.Enrichment
+	(*Enrichment)(nil),                 // 8: com.coralogix.enrichment.v1.Enrichments
 	(*EnrichmentRequestModel)(nil),     // 9: com.coralogix.enrichment.v1.EnrichmentRequestModel
 	(*wrapperspb.UInt32Value)(nil),     // 10: google.protobuf.UInt32Value
 }
 var file_com_coralogix_enrichment_v1_enrichment_service_proto_depIdxs = []int32{
-	8,  // 0: com.coralogix.enrichment.v1.GetEnrichmentsResponse.enrichments:type_name -> com.coralogix.enrichment.v1.Enrichment
+	8,  // 0: com.coralogix.enrichment.v1.GetEnrichmentsResponse.enrichments:type_name -> com.coralogix.enrichment.v1.Enrichments
 	9,  // 1: com.coralogix.enrichment.v1.AddEnrichmentsRequest.request_enrichments:type_name -> com.coralogix.enrichment.v1.EnrichmentRequestModel
-	8,  // 2: com.coralogix.enrichment.v1.AddEnrichmentsResponse.enrichments:type_name -> com.coralogix.enrichment.v1.Enrichment
+	8,  // 2: com.coralogix.enrichment.v1.AddEnrichmentsResponse.enrichments:type_name -> com.coralogix.enrichment.v1.Enrichments
 	10, // 3: com.coralogix.enrichment.v1.RemoveEnrichmentsRequest.enrichment_ids:type_name -> google.protobuf.UInt32Value
-	8,  // 4: com.coralogix.enrichment.v1.RemoveEnrichmentsResponse.remaining_enrichments:type_name -> com.coralogix.enrichment.v1.Enrichment
+	8,  // 4: com.coralogix.enrichment.v1.RemoveEnrichmentsResponse.remaining_enrichments:type_name -> com.coralogix.enrichment.v1.Enrichments
 	2,  // 5: com.coralogix.enrichment.v1.EnrichmentService.GetEnrichments:input_type -> com.coralogix.enrichment.v1.GetEnrichmentsRequest
 	4,  // 6: com.coralogix.enrichment.v1.EnrichmentService.AddEnrichments:input_type -> com.coralogix.enrichment.v1.AddEnrichmentsRequest
 	6,  // 7: com.coralogix.enrichment.v1.EnrichmentService.RemoveEnrichments:input_type -> com.coralogix.enrichment.v1.RemoveEnrichmentsRequest

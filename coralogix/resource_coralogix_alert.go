@@ -1189,7 +1189,7 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 	AlertResp, err := meta.(*clientset.ClientSet).Alerts().CreateAlert(ctx, createAlertRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err)
+		return handleRpcError(err, "alert")
 	}
 	Alert := AlertResp.GetAlert()
 	log.Printf("[INFO] Submitted new alert: %#v", Alert)

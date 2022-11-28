@@ -26,14 +26,14 @@ var (
 	msInSecond = int(time.Second.Milliseconds())
 )
 
-func handleRpcError(err error) diag.Diagnostics {
+func handleRpcError(err error, resource string) diag.Diagnostics {
 	switch status.Code(err) {
 	case codes.PermissionDenied, codes.Unauthenticated:
-		return diag.Errorf("permission denied, check your api-key")
+		return diag.Errorf("permission denied for %s, check your api-key", resource)
 	case codes.Internal:
-		return diag.Errorf("internal error in Coralogix backend - %s", err)
+		return diag.Errorf("internal error for %s in Coralogix backend - %s", resource, err)
 	case codes.InvalidArgument:
-		return diag.Errorf("invalid argument - %s", err)
+		return diag.Errorf("invalid argument for %s - %s", resource, err)
 	default:
 		return diag.FromErr(err)
 	}
@@ -43,7 +43,7 @@ func handleRpcErrorWithID(err error, resource, id string) diag.Diagnostics {
 	if status.Code(err) == codes.NotFound {
 		return diag.Errorf("no %s with id %s found", resource, id)
 	}
-	return handleRpcError(err)
+	return handleRpcError(err, resource)
 }
 
 // datasourceSchemaFromResourceSchema is a recursive func that

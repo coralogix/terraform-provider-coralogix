@@ -57,7 +57,7 @@ func (x *Enrichment) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Enrichment.ProtoReflect.Descriptor instead.
+// Deprecated: Use Enrichments.ProtoReflect.Descriptor instead.
 func (*Enrichment) Descriptor() ([]byte, []int) {
 	return file_com_coralogix_enrichment_v1_enrichment_proto_rawDescGZIP(), []int{0}
 }
@@ -120,11 +120,11 @@ func file_com_coralogix_enrichment_v1_enrichment_proto_rawDescGZIP() []byte {
 
 var file_com_coralogix_enrichment_v1_enrichment_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_com_coralogix_enrichment_v1_enrichment_proto_goTypes = []interface{}{
-	(*Enrichment)(nil),     // 0: com.coralogix.enrichment.v1.Enrichment
+	(*Enrichment)(nil),     // 0: com.coralogix.enrichment.v1.Enrichments
 	(*EnrichmentType)(nil), // 1: com.coralogix.enrichment.v1.EnrichmentType
 }
 var file_com_coralogix_enrichment_v1_enrichment_proto_depIdxs = []int32{
-	1, // 0: com.coralogix.enrichment.v1.Enrichment.enrichment_type:type_name -> com.coralogix.enrichment.v1.EnrichmentType
+	1, // 0: com.coralogix.enrichment.v1.Enrichments.enrichment_type:type_name -> com.coralogix.enrichment.v1.EnrichmentType
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
