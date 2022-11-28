@@ -372,7 +372,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 	alert := flowAlertTestParams{
 		name:            acctest.RandomWithPrefix("tf-acc-test"),
 		description:     acctest.RandomWithPrefix("tf-acc-test"),
-		emailRecipients: []string{"or.novogroder@coralogix.com"},
+		emailRecipients: []string{"user@example.com"},
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen: activeWhen{
 			daysOfWeek: selectManyRandomlyFromSlice(alertValidDaysOfWeek),
@@ -392,12 +392,12 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 		resource.TestCheckResourceAttr(resourceName, "alert_severity", alert.severity),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_every_sec", strconv.Itoa(alert.notifyEverySec)),
-		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.0.groups.0.sub_alerts.0.user_alert_id", "00bf3eb5-5681-4167-9611-ab0d6b902d84"),
+		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.0.groups.0.sub_alerts.0.user_alert_id", "c3c2936e-0b7e-44d7-9295-3aacba1e2366"),
 		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.time_window.0.hours", "0"),
 		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.time_window.0.minutes", "20"),
 		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.time_window.0.seconds", "0"),
-		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.groups.0.sub_alerts.0.user_alert_id", "d47a5aef-3fa3-4cdd-87df-9e0367372647"),
-		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.groups.0.sub_alerts.1.user_alert_id", "7a65d9fd-c52a-4eae-953e-6ac24558aa20"),
+		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.groups.0.sub_alerts.0.user_alert_id", "615f4b56-5441-417d-9eb6-c183f9374557"),
+		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.groups.0.sub_alerts.1.user_alert_id", "a9836075-7164-4499-897f-e97404d33c3f"),
 		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.groups.0.operator", "OR"),
 	}
 
@@ -474,7 +474,7 @@ func getRandomAlert() *alertCommonTestParams {
 	return &alertCommonTestParams{
 		name:            acctest.RandomWithPrefix("tf-acc-test"),
 		description:     acctest.RandomWithPrefix("tf-acc-test"),
-		emailRecipients: []string{"or.novogroder@coralogix.com"},
+		emailRecipients: []string{"user@example.com"},
 		searchQuery:     "remote_addr_enriched:/.*/",
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen: activeWhen{
@@ -882,7 +882,7 @@ func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
     stages {
       groups {
         sub_alerts {
-          user_alert_id = "00bf3eb5-5681-4167-9611-ab0d6b902d84"
+          user_alert_id = "c3c2936e-0b7e-44d7-9295-3aacba1e2366"
         }
         operator = "OR"
       }
@@ -890,10 +890,10 @@ func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
     stages {
       groups {
         sub_alerts {
-          user_alert_id = "d47a5aef-3fa3-4cdd-87df-9e0367372647"
+          user_alert_id = "615f4b56-5441-417d-9eb6-c183f9374557"
         }
         sub_alerts {
-          user_alert_id = "7a65d9fd-c52a-4eae-953e-6ac24558aa20"
+          user_alert_id = "a9836075-7164-4499-897f-e97404d33c3f"
         }
         operator = "OR"
       }

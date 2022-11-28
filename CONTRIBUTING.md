@@ -27,7 +27,7 @@ Building the provider
 
 ### Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) 1.2.x
+- [Terraform](https://www.terraform.io/downloads.html) 0.12.x
 - [Go](https://golang.org/doc/install) 1.18.x (to build the provider plugin)
 
 ### Steps
@@ -53,6 +53,7 @@ $ git clone git@github.com:coralogix/terraform-provider-coralogix
 
 Navigate to the provider directory and build the provider.
 Inside the Makefile, change "OS_ARCH=darwin_arm64" to "OS_ARCH=darwin_amd64" if needed (Line 7).
+
 ```sh
 $ cd $GOPATH/src/github.com/hashicorp/terraform-provider-coralogix
 $ make install
@@ -110,12 +111,14 @@ $ make testacc
 
 ### Tests
 
-In general, adding test coverage (unit tests and acceptance tests) to new features or bug fixes in your PRs, and sharing the logs of a successful test run on your branch will greatly speed up the acceptance of your PR.
+In general, adding test coverage (unit tests and acceptance tests) to new features or bug fixes in your PRs, and sharing
+the logs of a successful test run on your branch will greatly speed up the acceptance of your PR.
 
 ### Documentations
 
-We use [terraform-plugin-docs](https://github.com/hashicorp/terraform-plugin-docs) for generating documentations automatically.
-In order to generate docs automatically, simply run `make generate`. 
+We use [terraform-plugin-docs](https://github.com/hashicorp/terraform-plugin-docs) for generating documentations
+automatically.
+In order to generate docs automatically, simply run `make generate`.
 
 ```sh
 $ make generate

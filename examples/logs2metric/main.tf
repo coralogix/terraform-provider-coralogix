@@ -13,30 +13,30 @@ provider "coralogix" {
 }
 
 resource "coralogix_logs2metric" "logs2metric" {
-  name        = "name"
+  name        = "logs2metricExample"
   description = "logs2metric from coralogix terraform provide"
   query {
     lucene       = "remote_addr_enriched:/.*/"
-    applications = ["nginx"]
+    applications = ["nginx"] //change here for existing applications from your account
     severities   = ["Debug"]
   }
 
   metric_fields {
     target_base_metric_name = "method"
-    source_field            = "method"
+    source_field            = "method" //change here for existing source field from your account
   }
   metric_fields {
     target_base_metric_name = "geo_point"
-    source_field            = "remote_addr_geoip.location_geopoint"
+    source_field            = "remote_addr_geoip.location_geopoint" //change here for existing source field from your account
   }
 
   metric_labels {
     target_label = "Status"
-    source_field = "status"
+    source_field = "status" //change here for existing source field from your account
   }
   metric_labels {
     target_label = "Path"
-    source_field = "http_referer"
+    source_field = "http_referer" //change here for existing source field from your account
   }
 
   permutations {

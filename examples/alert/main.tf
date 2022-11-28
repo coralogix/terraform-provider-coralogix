@@ -29,8 +29,8 @@ resource "coralogix_alert" "standard_alert" {
 
   notification {
     recipients {
-      emails      = ["or.novogroder@coralogix.com"]
-      webhook_ids = ["WebhookAlerts"]
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_sec = 60
   }
@@ -48,8 +48,8 @@ resource "coralogix_alert" "standard_alert" {
   }
 
   standard {
-    applications = ["nginx"]
-    subsystems   = ["training"]
+    applications = ["nginx"] //change here for existing applications from your account
+    subsystems   = ["training"] //change here for existing subsystems from your account
     severities   = ["Warning", "Info"]
     search_query = "remote_addr_enriched:/.*/"
     condition {
@@ -70,10 +70,10 @@ resource "coralogix_alert" "ratio_alert" {
   notification {
     on_trigger_and_resolved = true
     recipients {
-      emails      = ["or.novogroder@coralogix.com"]
-      webhook_ids = ["WebhookAlerts"]
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_sec                         = 60
     notify_only_on_triggered_group_by_values = true
   }
 
@@ -88,8 +88,8 @@ resource "coralogix_alert" "ratio_alert" {
 
     }
     query_2 {
-      applications = ["nginx"]
-      subsystems   = ["training"]
+      applications = ["nginx"] //change here for existing applications from your account
+      subsystems   = ["training"] //change here for existing subsystems from your account
       severities   = ["Warning"]
     }
     condition {
@@ -108,8 +108,8 @@ resource "coralogix_alert" "new_value_alert" {
   alert_severity = "Info"
   notification {
     recipients {
-      emails      = ["or.novogroder@coralogix.com"]
-      webhook_ids = ["WebhookAlerts"]
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_sec = 60
   }
@@ -136,8 +136,8 @@ resource "coralogix_alert" "time_relative_alert" {
   alert_severity = "Critical"
   notification {
     recipients {
-      emails      = ["or.novogroder@coralogix.com"]
-      webhook_ids = ["WebhookAlerts"]
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_sec = 60
   }
@@ -167,8 +167,8 @@ resource "coralogix_alert" "metric_lucene_alert" {
   notification {
     on_trigger_and_resolved = true
     recipients {
-      emails      = ["or.novogroder@coralogix.com"]
-      webhook_ids = ["WebhookAlerts"]
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_sec = 60
   }
@@ -203,8 +203,8 @@ resource "coralogix_alert" "metric_promql_alert" {
   notification {
     on_trigger_and_resolved = true
     recipients {
-      emails      = ["or.novogroder@coralogix.com"]
-      webhook_ids = ["WebhookAlerts"]
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_sec = 60
   }
@@ -236,8 +236,8 @@ resource "coralogix_alert" "unique_count_alert" {
 
   notification {
     recipients {
-      emails      = ["or.novogroder@coralogix.com"]
-      webhook_ids = ["WebhookAlerts"]
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_sec = 60
   }
@@ -268,8 +268,8 @@ resource "coralogix_alert" "tracing_alert" {
   notification {
     //on_trigger_and_resolved = true
     recipients {
-      emails      = ["or.novogroder@coralogix.com"]
-      webhook_ids = ["WebhookAlerts"]
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_sec = 60
   }
@@ -306,8 +306,8 @@ resource "coralogix_alert" "flow_alert" {
 
   notification {
     recipients {
-      emails      = ["or.novogroder@coralogix.com"]
-      webhook_ids = ["WebhookAlerts"]
+      emails      = ["user@example.com"]
+      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_sec = 60
   }
@@ -322,7 +322,12 @@ resource "coralogix_alert" "flow_alert" {
     stages {
       groups {
         sub_alerts {
-          user_alert_id = "00bf3eb5-5681-4167-9611-ab0d6b902d84" //coralogix_alert.standard_alert.id
+          /*
+          change for existing alert's id.
+           soon it will be possible to consume from the id of an alert created from the terraform in the following way -
+           'user_alert_id = coralogix_alert.unique_count_alert.id'
+           */
+          user_alert_id = "c3c2936e-0b7e-44d7-9295-3aacba1e2366"
         }
         operator = "OR"
       }
@@ -330,10 +335,20 @@ resource "coralogix_alert" "flow_alert" {
     stages {
       groups {
         sub_alerts {
-          user_alert_id = "d47a5aef-3fa3-4cdd-87df-9e0367372647" //coralogix_alert.unique_count_alert.id
+          /*
+          change for existing alert's id.
+           soon it will be possible to consume from the id of an alert created from the terraform in the following way -
+           'user_alert_id = coralogix_alert.unique_count_alert.id'
+           */
+          user_alert_id = "615f4b56-5441-417d-9eb6-c183f9374557"
         }
         sub_alerts {
-          user_alert_id = "7a65d9fd-c52a-4eae-953e-6ac24558aa20" //coralogix_alert.new_value_alert.id
+          /*
+           change for existing alert's id.
+            soon it will be possible to consume from the id of an alert created from the terraform in the following way -
+            'user_alert_id = coralogix_alert.unique_count_alert.id'
+            */
+          user_alert_id = "a9836075-7164-4499-897f-e97404d33c3f"
         }
         operator = "OR"
       }
