@@ -609,8 +609,7 @@ func standardSchema() map[string]*schema.Schema {
 					},
 					ConflictsWith: []string{"standard.0.condition.0.immediately",
 						"standard.0.condition.0.more_than_usual"},
-					MaxItems:    2,
-					Description: "The fields to 'group by' on. Limited for two fields.",
+					Description: "The fields to 'group by' on.",
 				},
 				"group_by_key": {
 					Type:     schema.TypeString,
@@ -721,8 +720,7 @@ func ratioSchema() map[string]*schema.Schema {
 						Elem: &schema.Schema{
 							Type: schema.TypeString,
 						},
-						MaxItems:    2,
-						Description: "The fields to 'group by' on. Limited for two fields.",
+						Description: "The fields to 'group by' on.",
 					},
 					"group_by_q1": {
 						Type:         schema.TypeBool,
@@ -862,8 +860,7 @@ func timeRelativeSchema() map[string]*schema.Schema {
 					Elem: &schema.Schema{
 						Type: schema.TypeString,
 					},
-					MaxItems:    2,
-					Description: "The fields to 'group by' on. Limited for two fields.",
+					Description: "The fields to 'group by' on.",
 				},
 			},
 		},
@@ -942,8 +939,7 @@ func metricSchema() map[string]*schema.Schema {
 									Elem: &schema.Schema{
 										Type: schema.TypeString,
 									},
-									MaxItems:    2,
-									Description: "The fields to 'group by' on. Limited for two fields.",
+									Description: "The fields to 'group by' on.",
 								},
 								"replace_missing_value_with_zero": {
 									Type:          schema.TypeBool,
@@ -1083,8 +1079,7 @@ func tracingSchema() map[string]*schema.Schema {
 						Type: schema.TypeString,
 					},
 					ConflictsWith: []string{"tracing.0.condition.0.immediately"},
-					MaxItems:      2,
-					Description:   "The fields to 'group by' on. Limited for two fields.",
+					Description:   "The fields to 'group by' on.",
 				},
 			},
 		},

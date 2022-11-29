@@ -15,8 +15,8 @@ provider "coralogix" {
 resource "coralogix_rules_group" "rules_group_example" {
   name         = "Example rule-group from terraform"
   description  = "rule_group creates by coralogix terraform provider"
-  applications = ["nginx"]
-  subsystems   = ["training"]
+  applications = ["nginx"] //change here for existing applications from your account
+  subsystems   = ["training"] //change here for existing subsystems from your account
   severities   = ["Warning"]
 
   rule_subgroups {
@@ -100,8 +100,8 @@ data "coralogix_rules_group" "imported_rules_group_example" {
 resource "coralogix_rules_group" "extract_timestamp_example" {
   name         = "Example extract-timestamp rule-group from terraform"
   description  = "rule_group created by coralogix terraform provider"
-  applications = ["nginx"]
-  subsystems   = ["training"]
+  applications = ["nginx"] //change here for existing applications from your account
+  subsystems   = ["training"] //change here for existing subsystems from your account
   severities   = ["Warning"]
 
   rule_subgroups {
@@ -120,8 +120,8 @@ resource "coralogix_rules_group" "extract_timestamp_example" {
 resource "coralogix_rules_group" "remove_fields_example" {
   name         = "Example remove-fields rule-group from terraform"
   description  = "rule_group created by coralogix terraform provider"
-  applications = ["nginx"]
-  subsystems   = ["training"]
+  applications = ["nginx"] //change here for existing applications from your account
+  subsystems   = ["training"] //change here for existing subsystems from your account
   severities   = ["Warning"]
   rule_subgroups {
     rules {
