@@ -48,7 +48,7 @@ resource "coralogix_rules_group" "rules_group_example" {
     rules {
       replace {
         name               = "Delete prefix"
-        description        = "Deletes data before Json"
+        description        = "Deletes d before Json"
         source_field       = "text"
         destination_field  = "text"
         replacement_string = "{"
@@ -128,7 +128,7 @@ json_extract {
 ```hcl
 replace {
   name               = "Delete prefix"
-  description        = "Deletes data before Json"
+  description        = "Deletes d before Json"
   source_field       = "text"
   destination_field  = "text"
   replacement_string = "{"

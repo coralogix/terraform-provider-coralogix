@@ -1,9 +1,9 @@
 TEST?=$$(go list ./... | grep -v 'vendor')
-HOSTNAME=coralogix.com
-NAMESPACE=api
+HOSTNAME=locally
+NAMESPACE=debug
 NAME=coralogix
 BINARY=terraform-provider-${NAME}
-VERSION=1.3.0
+VERSION=1.3
 OS_ARCH=darwin_arm64
 
 default: install
@@ -35,6 +35,3 @@ test:
 
 testacc:
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
-
-generate:
-	go generate

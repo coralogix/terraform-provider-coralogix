@@ -14,7 +14,7 @@ More info: https://coralogix.com/docs/alerts-api/ .
 ## Example Usage
 
 ```hcl
-data "coralogix_alert" "imported_standard_alert" {
+d "coralogix_alert" "imported_standard_alert" {
   id = coralogix_alert.standard_alert.id
 }
 ```

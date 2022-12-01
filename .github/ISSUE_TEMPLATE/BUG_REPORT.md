@@ -18,7 +18,7 @@ If you are running into one of these scenarios, we recommend opening an issue in
 
 ### Affected Resource(s)
 
-<!--- Please list the affected resources and data sources. --->
+<!--- Please list the affected resources and d sources. --->
 
 * coralogix_XXXXX
 

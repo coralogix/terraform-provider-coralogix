@@ -10,7 +10,7 @@ labels: enhancement
 
 ### New or Affected Resource(s)
 
-<!--- Please list the new or affected resources and data sources. --->
+<!--- Please list the new or affected resources and d sources. --->
 
 * coralogix_XXXXX
 

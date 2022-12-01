@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/alerts/v1"
 	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/enrichment/v1"
 )
 
@@ -71,6 +70,7 @@ func EnrichmentSchema() map[string]*schema.Schema {
 			},
 			MaxItems:     1,
 			ExactlyOneOf: validEnrichmentTypes,
+			Description:  "Coralogix allows you to automatically discover threats on your web servers by enriching your logs with the most updated IP blacklists.",
 		},
 		"aws": {
 			Type:     schema.TypeList,
@@ -82,16 +82,27 @@ func EnrichmentSchema() map[string]*schema.Schema {
 						Required:     true,
 						ValidateFunc: validation.StringIsNotEmpty,
 					},
+					"resource_type": {
+						Type:         schema.TypeString,
+						Required:     true,
+						ValidateFunc: validation.StringIsNotEmpty,
+					},
 				},
 			},
 			MaxItems:     1,
 			ExactlyOneOf: validEnrichmentTypes,
+			Description:  "Coralogix allows you to enrich your logs with the data from a chosen AWS resource. The feature enriches every log that contains a particular resourceId, associated with the metadata of a chosen AWS resource.",
 		},
 		"custom": {
 			Type:     schema.TypeList,
 			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
+					"custom_enrichment_id": {
+						Type:         schema.TypeString,
+						Required:     true,
+						ValidateFunc: validation.StringIsNotEmpty,
+					},
 					"field_name": {
 						Type:         schema.TypeString,
 						Required:     true,
@@ -101,88 +112,143 @@ func EnrichmentSchema() map[string]*schema.Schema {
 			},
 			MaxItems:     1,
 			ExactlyOneOf: validEnrichmentTypes,
+			Description:  "Custom Log Enrichment with Coralogix enables you to easily enrich your log data.",
 		},
 	}
 }
 
 func resourceCoralogixEnrichmentCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	enrichment, err := extractEnrichment(d)
+	enrichmentReq, err := extractEnrichmentRequest(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
-
-	enrichmentReq := &enrichmentv1.AddEnrichmentsRequest{
-		RequestEnrichments: []*enrichmentv1.EnrichmentRequestModel{enrichment},
-	}
-
 	log.Printf("[INFO] Creating new enrichment: %#v", enrichmentReq)
-	enrichmentsResp, err := meta.(*clientset.ClientSet).Enrichments().CreateEnrichment(ctx, enrichmentReq)
+	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().CreateEnrichment(ctx, enrichmentReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err)
+		return handleRpcError(err, "enrichment")
 	}
-	enrichmentResp := enrichmentsResp.GetEnrichments()[0]
 	log.Printf("[INFO] Submitted new enrichment: %#v", enrichmentResp)
-	id := extractEnrichmentId(enrichmentResp)
+	id := uint32ToStr(enrichmentResp.GetId())
 	d.SetId(id)
-
 	return resourceCoralogixEnrichmentRead(ctx, d, meta)
 }
 
-func extractEnrichmentId(enrichment *enrichmentv1.Enrichment) string {
-	enrichmentTypeStr := enrichmentTypeStr(enrichment.GetEnrichmentType())
-	return fmt.Sprintf("%s:%s", enrichmentTypeStr, enrichment.FieldName)
-}
-
-func enrichmentTypeStr(enrichmentType *enrichmentv1.EnrichmentType) string {
-	switch enrichmentType.GetType().(type) {
-	case *enrichmentv1.EnrichmentType_GeoIp:
-		return "GeoIp"
-	case *enrichmentv1.EnrichmentType_SuspiciousIp:
-		return "SuspiciousIp"
-	case *enrichmentv1.EnrichmentType_Aws:
-		return "Aws"
-	case *enrichmentv1.EnrichmentType_CustomEnrichment:
-		return "Custom"
-	}
-	return ""
-}
-
-func resourceCoralogixEnrichmentRead(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	id := wrapperspb.String(data.Id())
-	log.Print("[INFO] Reading enrichments")
-	enrichmentsResp, err := meta.(*clientset.ClientSet).Enrichments().GetEnrichments(ctx, &enrichmentv1.GetEnrichmentsRequest{})
+func resourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	id := d.Id()
+	log.Print("[INFO] Reading enrichment")
+	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().GetEnrichment(ctx, strToUint32(id))
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "enrichments")
+		return handleRpcErrorWithID(err, "enrichment", id)
 	}
-	enrichments := enrichmentsResp.GetEnrichments()
-	log.Printf("[INFO] Received enrichments: %#v", enrichments)
-
-	return setEnrichment(data, enrichment)
+	log.Printf("[INFO] Received enrichment: %#v", enrichmentResp)
+	return setEnrichment(d, enrichmentResp)
 }
 
-func extractEnrichment(d *schema.ResourceData) (*enrichmentv1.EnrichmentRequestModel, error) {
+func resourceCoralogixEnrichmentUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	id := d.Id()
+	enrichmentReq, err := extractEnrichmentRequest(d)
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	log.Print("[INFO] Updating enrichment")
+	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().UpdateEnrichment(ctx, strToUint32(id), enrichmentReq)
+	if err != nil {
+		log.Printf("[ERROR] Received error: %#v", err)
+		return handleRpcErrorWithID(err, "enrichment", id)
+	}
+	log.Printf("[INFO] Received enrichment: %#v", enrichmentResp)
+	return setEnrichment(d, enrichmentResp)
+}
+
+func resourceCoralogixEnrichmentDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	id := d.Id()
+	log.Printf("[INFO] Deleting enrichment %s\n", id)
+	err := meta.(*clientset.ClientSet).Enrichments().DeleteEnrichment(ctx, strToUint32(id))
+	if err != nil {
+		log.Printf("[ERROR] Received error: %#v\n", err)
+		return handleRpcErrorWithID(err, "enrichment", id)
+	}
+	log.Printf("[INFO] enrichment %s deleted\n", id)
+
+	d.SetId("")
+	return nil
+}
+
+func extractEnrichmentRequest(d *schema.ResourceData) (*enrichmentv1.EnrichmentRequestModel, error) {
 	if geoIp := d.Get("geo_ip").([]interface{}); len(geoIp) != 0 {
-		return expandGeoIp(geoIp[0])
+		return expandGeoIp(geoIp[0]), nil
 	}
 	if suspiciousIp := d.Get("suspicious_ip").([]interface{}); len(suspiciousIp) != 0 {
-		return expandSuspiciousIp(suspiciousIp[0])
+		return expandSuspiciousIp(suspiciousIp[0]), nil
 	}
 	if aws := d.Get("aws").([]interface{}); len(aws) != 0 {
-		return expandAws(aws[0])
+		return expandAws(aws[0]), nil
 	}
 	if custom := d.Get("custom").([]interface{}); len(custom) != 0 {
-		return expandCustom(custom[0])
+		return expandCustom(custom[0]), nil
 	}
+
 	return nil, fmt.Errorf("not valid enrichment")
 }
 
-func setEnrichment(data *schema.ResourceData, enrichment *enrichmentv1.Enrichment) diag.Diagnostics {
+func setEnrichment(d *schema.ResourceData, enrichment *enrichmentv1.Enrichment) diag.Diagnostics {
+	enrichmentType := enrichment.GetEnrichmentType().GetType()
+	fieldName := enrichment.GetFieldName()
+	var enrichmentTypeStr string
+	var flattenedEnrichment interface{}
+	switch enrichmentType.(type) {
+	case *enrichmentv1.EnrichmentType_Aws:
+		enrichmentTypeStr = "aws"
+		flattenedEnrichment = flattenAwsEnrichment(enrichmentType.(*enrichmentv1.EnrichmentType_Aws).Aws, fieldName)
+	case *enrichmentv1.EnrichmentType_GeoIp:
+		enrichmentTypeStr = "geo_ip"
+		flattenedEnrichment = flattenGeoIpEnrichment(fieldName)
+	case *enrichmentv1.EnrichmentType_SuspiciousIp:
+		enrichmentTypeStr = "suspicious_ip"
+		flattenedEnrichment = flattenSuspiciousIpEnrichment(fieldName)
+	case *enrichmentv1.EnrichmentType_CustomEnrichment:
+		enrichmentTypeStr = "custom"
+		flattenedEnrichment = flattenCustomEnrichment(enrichmentType.(*enrichmentv1.EnrichmentType_CustomEnrichment).CustomEnrichment, fieldName)
+	default:
+		return diag.Errorf("unexpected enrichment type %s", enrichment.GetEnrichmentType().String())
+	}
 
+	if err := d.Set(enrichmentTypeStr, []interface{}{flattenedEnrichment}); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
 }
 
-func expandGeoIp(v interface{}) (*enrichmentv1.EnrichmentRequestModel, error) {
+func flattenAwsEnrichment(e *enrichmentv1.AwsType, fieldName string) interface{} {
+	return map[string]interface{}{
+		"field_name":    fieldName,
+		"resource_type": e.GetResourceType().GetValue(),
+	}
+}
+
+func flattenGeoIpEnrichment(fieldName string) interface{} {
+	return map[string]interface{}{
+		"field_name": fieldName,
+	}
+}
+
+func flattenSuspiciousIpEnrichment(fieldName string) interface{} {
+	return map[string]interface{}{
+		"field_name": fieldName,
+	}
+}
+
+func flattenCustomEnrichment(e *enrichmentv1.CustomEnrichmentType, fieldName string) interface{} {
+	return map[string]interface{}{
+		"custom_enrichment_id": uint32ToStr(e.GetId().GetValue()),
+		"field_name":           fieldName,
+	}
+}
+
+func expandGeoIp(v interface{}) *enrichmentv1.EnrichmentRequestModel {
 	m := v.(map[string]interface{})
 	fieldName := wrapperspb.String(m["field_name"].(string))
 	return &enrichmentv1.EnrichmentRequestModel{
@@ -192,10 +258,10 @@ func expandGeoIp(v interface{}) (*enrichmentv1.EnrichmentRequestModel, error) {
 				GeoIp: &enrichmentv1.GeoIpType{},
 			},
 		},
-	}, nil
+	}
 }
 
-func expandSuspiciousIp(v interface{}) (*enrichmentv1.EnrichmentRequestModel, error) {
+func expandSuspiciousIp(v interface{}) *enrichmentv1.EnrichmentRequestModel {
 	m := v.(map[string]interface{})
 	fieldName := wrapperspb.String(m["field_name"].(string))
 	return &enrichmentv1.EnrichmentRequestModel{
@@ -205,10 +271,10 @@ func expandSuspiciousIp(v interface{}) (*enrichmentv1.EnrichmentRequestModel, er
 				SuspiciousIp: &enrichmentv1.SuspiciousIpType{},
 			},
 		},
-	}, nil
+	}
 }
 
-func expandAws(v interface{}) (*enrichmentv1.EnrichmentRequestModel, error) {
+func expandAws(v interface{}) *enrichmentv1.EnrichmentRequestModel {
 	m := v.(map[string]interface{})
 	fieldName := wrapperspb.String(m["field_name"].(string))
 	return &enrichmentv1.EnrichmentRequestModel{
@@ -218,13 +284,13 @@ func expandAws(v interface{}) (*enrichmentv1.EnrichmentRequestModel, error) {
 				Aws: &enrichmentv1.AwsType{},
 			},
 		},
-	}, nil
+	}
 }
 
-func expandCustom(v interface{}) (*enrichmentv1.EnrichmentRequestModel, error) {
+func expandCustom(v interface{}) *enrichmentv1.EnrichmentRequestModel {
 	m := v.(map[string]interface{})
 	fieldName := wrapperspb.String(m["field_name"].(string))
-	id := wrapperspb.UInt32(uint32(m["id"].(int)))
+	id := wrapperspb.UInt32(strToUint32(m["custom_enrichment_id"].(string)))
 	return &enrichmentv1.EnrichmentRequestModel{
 		FieldName: fieldName,
 		EnrichmentType: &enrichmentv1.EnrichmentType{
@@ -234,46 +300,5 @@ func expandCustom(v interface{}) (*enrichmentv1.EnrichmentRequestModel, error) {
 				},
 			},
 		},
-	}, nil
-}
-
-func resourceCoralogixEnrichmentDelete(ctx context.Context, data *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	id := wrapperspb.String(d.Id())
-	deleteAlertRequest := &alertsv1.DeleteAlertRequest{
-		Id: id,
 	}
-
-	log.Printf("[INFO] Deleting alert %s\n", id)
-	_, err := meta.(*clientset.ClientSet).Alerts().DeleteAlert(ctx, deleteAlertRequest)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %#v\n", err)
-		return handleRpcErrorWithID(err, "alert", id.GetValue())
-	}
-	log.Printf("[INFO] alert %s deleted\n", id)
-
-	d.SetId("")
-	return nil
-}
-
-func resourceCoralogixEnrichmentUpdate(ctx context.Context, data *schema.ResourceData, i interface{}) diag.Diagnostics {
-	req, err := extractAlert(d)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-
-	id := d.Id()
-	updateAlertRequest := &alertsv1.UpdateAlertRequest{
-		Alert: req,
-	}
-
-	log.Printf("[INFO] Updating alert %s", updateAlertRequest)
-	alertResp, err := meta.(*clientset.ClientSet).Alerts().UpdateAlert(ctx, updateAlertRequest)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcErrorWithID(err, "alert", id)
-	}
-	log.Printf("[INFO] Submitted updated alert: %#v", alertResp)
-	d.SetId(alertResp.GetAlert().GetId().GetValue())
-
-	return resourceCoralogixAlertRead(ctx, d, meta)
 }

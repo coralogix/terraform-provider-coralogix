@@ -13,7 +13,7 @@ More info: https://coralogix.com/docs/logs2metrics/ .
 ## Example Usage
 
 ```hcl
-data "coralogix_logs2metric" "imported_logs2metric" {
+d "coralogix_logs2metric" "imported_logs2metric" {
   id = coralogix_logs2metric.logs2metric.id
 }
 ```

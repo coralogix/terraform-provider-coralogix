@@ -55,15 +55,19 @@ func Provider() *schema.Provider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"coralogix_rules_group": dataSourceCoralogixRulesGroup(),
-			"coralogix_alert":       dataSourceCoralogixAlert(),
-			"coralogix_logs2metric": dataSourceCoralogixLogs2Metric(),
+			"coralogix_rules_group":     dataSourceCoralogixRulesGroup(),
+			"coralogix_alert":           dataSourceCoralogixAlert(),
+			"coralogix_logs2metric":     dataSourceCoralogixLogs2Metric(),
+			"coralogix_enrichment":      dataSourceCoralogixEnrichment(),
+			"coralogix_enrichment_data": dataSourceCoralogixEnrichmentData(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"coralogix_rules_group": resourceCoralogixRulesGroup(),
-			"coralogix_alert":       resourceCoralogixAlert(),
-			"coralogix_logs2metric": resourceCoralogixLogs2Metric(),
+			"coralogix_rules_group":     resourceCoralogixRulesGroup(),
+			"coralogix_alert":           resourceCoralogixAlert(),
+			"coralogix_logs2metric":     resourceCoralogixLogs2Metric(),
+			"coralogix_enrichment":      resourceCoralogixEnrichment(),
+			"coralogix_enrichment_data": resourceCoralogixEnrichmentData(),
 		},
 
 		ConfigureContextFunc: func(context context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {

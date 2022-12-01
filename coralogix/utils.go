@@ -275,3 +275,12 @@ func reverseMapRelativeTimeFrame(m map[string]protoTimeFrameAndRelativeTimeFrame
 	}
 	return n
 }
+
+func strToUint32(str string) uint32 {
+	n, _ := strconv.ParseUint(str, 10, 32)
+	return uint32(n)
+}
+
+func uint32ToStr(n uint32) string {
+	return strconv.FormatUint(uint64(n), 10)
+}
