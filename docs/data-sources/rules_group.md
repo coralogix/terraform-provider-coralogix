@@ -14,7 +14,7 @@ More info: https://coralogix.com/docs/rules-api/.
 ## Example Usage
 
 ```hcl
-d "coralogix_rules_group" "imported_rules_group_example" {
+data "coralogix_rules_group" "imported_rules_group_example" {
   id = coralogix_rules_group.rules_group_example.id
 }
 ```
