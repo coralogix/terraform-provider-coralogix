@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -17,13 +18,19 @@ func TestAccCoralogixResourceEnrichmentData(t *testing.T) {
 	resourceName := "coralogix_enrichment_data.test"
 	name := acctest.RandomWithPrefix("tf-acc-test")
 	description := acctest.RandomWithPrefix("tf-acc-test")
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	parent := filepath.Dir(wd)
+	filePath := parent + "/examples/enrichment/date-to-day-of-the-week.csv"
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckEnrichmentDataDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceEnrichmentData(name, description),
+				Config: testAccCoralogixResourceEnrichmentData(name, description, filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", name),
@@ -43,7 +50,12 @@ func TestAccCoralogixResourceEnrichmentDataWithUploadedFile(t *testing.T) {
 	resourceName := "coralogix_enrichment_data.test"
 	name := acctest.RandomWithPrefix("tf-acc-test")
 	description := acctest.RandomWithPrefix("tf-acc-test")
-	filePath := "../examples/enrichment/date-to-day-of-the-week.csv"
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	parent := filepath.Dir(wd)
+	filePath := parent + "/examples/enrichment/date-to-day-of-the-week.csv"
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
@@ -99,13 +111,13 @@ func TestAccCoralogixResourceEnrichmentDataWithUploadedFile(t *testing.T) {
 	})
 }
 
-func testAccCoralogixResourceEnrichmentData(name, description string) string {
+func testAccCoralogixResourceEnrichmentData(name, description, filePath string) string {
 	return fmt.Sprintf(`resource "coralogix_enrichment_data" test {
 		name         = "%s"
 		description  = "%s"
-		file_content = "local_id,instance_type\nfoo1,t2.micro\nfoo2,t2.micro\nfoo3,t2.micro\nbar1,m3.large\n"
+		file_content = file("%s")
 	}
-	`, name, description)
+	`, name, description, filePath)
 }
 
 func testAccCoralogixResourceEnrichmentDataWithUploadedFile(name, description, filePath string) string {

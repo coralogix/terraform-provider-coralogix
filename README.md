@@ -12,6 +12,9 @@ Terraform Provider for Coralogix
 The [Coralogix provider](https://registry.terraform.io/providers/coralogix/coralogix/latest/docs) is used to interact
 with [Coralogix](https://coralogix.com/) resources.
 
+# Supporting
+- [Slack channel](https://coralogix-dev.slack.com/archives/C04CV0JG36H)
+
 # Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) 0.12.x
