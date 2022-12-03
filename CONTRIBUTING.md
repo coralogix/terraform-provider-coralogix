@@ -61,8 +61,8 @@ $ make install
 
 Running examples
 ---------------------
-Navigate to one of the example directories and initialize the Terraform configuration files.
-
+Navigate to one of the example directories or create your own terraform file, and initialize the Terraform configuration files.
+For running the build provider, change the source of the provider to locally/debug/coralogix (`source  = "locally/debug/coralogix"`).
 ```sh
 $ cd examples/rules_group
 $ terraform init
@@ -103,7 +103,7 @@ Running tests
 ---------------------
 In order to run the full suite of Acceptance tests, run `make testacc`.
 
-*Note:* Acceptance tests create real resources.
+*Note:* Acceptance tests create real resources and in a case of failure some resources may not be removed.
 
 ```sh
 $ make testacc
@@ -120,6 +120,7 @@ We use [terraform-plugin-docs](https://github.com/hashicorp/terraform-plugin-doc
 automatically.
 In order to generate docs automatically, simply run `make generate`.
 
+*Note:* The generated documentation overrides the existing one, so be sure to add only the desired changes.
 ```sh
 $ make generate
 ```
