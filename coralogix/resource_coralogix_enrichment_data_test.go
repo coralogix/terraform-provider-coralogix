@@ -77,16 +77,9 @@ func TestAccCoralogixResourceEnrichmentDataWithUploadedFile(t *testing.T) {
 				ImportState:  true,
 			},
 			{
-				PreConfig: func() {
-					f, _ := os.Open(filePath)
-					csvReader := csv.NewReader(f)
-					csvReader.Read()
-					rec, _ := csvReader.Read()
-					csvWriter := csv.NewWriter(f)
-					csvWriter.Write(rec)
-				},
-				PlanOnly: true,
-				Config:   testAccCoralogixResourceEnrichmentDataWithUploadedFile(name, description, filePath),
+				PreConfig: func() { removeLineFromCsvFile(filePath) },
+				PlanOnly:  true,
+				Config:    testAccCoralogixResourceEnrichmentDataWithUploadedFile(name, description, filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", name),
@@ -109,6 +102,24 @@ func TestAccCoralogixResourceEnrichmentDataWithUploadedFile(t *testing.T) {
 			},
 		},
 	})
+}
+
+func removeLineFromCsvFile(path string) {
+	f, _ := os.Open(path)
+	csvReader := csv.NewReader(f)
+	_, err := csvReader.Read()
+	if err != nil {
+		panic(err)
+	}
+	rec, err := csvReader.Read()
+	if err != nil {
+		panic(err)
+	}
+	csvWriter := csv.NewWriter(f)
+	err = csvWriter.Write(rec)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func testAccCoralogixResourceEnrichmentData(name, description, filePath string) string {

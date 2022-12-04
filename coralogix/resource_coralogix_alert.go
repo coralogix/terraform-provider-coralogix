@@ -421,11 +421,12 @@ func schedulingSchema() map[string]*schema.Schema {
 			Type:         schema.TypeInt,
 			Optional:     true,
 			Default:      0,
-			ValidateFunc: validation.IntBetween(-11, 12),
+			ValidateFunc: validation.IntBetween(-12, 14),
+			Description:  "Specifies the time zone to be used in interpreting the schedule. The value of this field must be an integer between [-12, 14].",
 		},
 		"time_frames": {
 			Type:        schema.TypeSet,
-			Optional:    true,
+			Required:    true,
 			Elem:        timeFrames(),
 			Set:         hashTimeFrames(),
 			Description: "time_frames are set of days and hours when the alert will be active.",
@@ -2125,13 +2126,6 @@ func convertGmtToUtc(hours, utc int32) int32 {
 	}
 
 	return hours
-}
-
-func abs(x int32) int32 {
-	if x < 0 {
-		return -x
-	}
-	return x
 }
 
 func expandDaysOfWeek(v interface{}) []alertsv1.DayOfWeek {

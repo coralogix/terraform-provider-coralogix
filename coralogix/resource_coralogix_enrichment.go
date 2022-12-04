@@ -198,10 +198,10 @@ func setEnrichment(d *schema.ResourceData, enrichment *enrichmentv1.Enrichment) 
 	fieldName := enrichment.GetFieldName()
 	var enrichmentTypeStr string
 	var flattenedEnrichment interface{}
-	switch enrichmentType.(type) {
+	switch enrichmentType := enrichmentType.(type) {
 	case *enrichmentv1.EnrichmentType_Aws:
 		enrichmentTypeStr = "aws"
-		flattenedEnrichment = flattenAwsEnrichment(enrichmentType.(*enrichmentv1.EnrichmentType_Aws).Aws, fieldName)
+		flattenedEnrichment = flattenAwsEnrichment(enrichmentType.Aws, fieldName)
 	case *enrichmentv1.EnrichmentType_GeoIp:
 		enrichmentTypeStr = "geo_ip"
 		flattenedEnrichment = flattenGeoIpEnrichment(fieldName)
@@ -210,7 +210,7 @@ func setEnrichment(d *schema.ResourceData, enrichment *enrichmentv1.Enrichment) 
 		flattenedEnrichment = flattenSuspiciousIpEnrichment(fieldName)
 	case *enrichmentv1.EnrichmentType_CustomEnrichment:
 		enrichmentTypeStr = "custom"
-		flattenedEnrichment = flattenCustomEnrichment(enrichmentType.(*enrichmentv1.EnrichmentType_CustomEnrichment).CustomEnrichment, fieldName)
+		flattenedEnrichment = flattenCustomEnrichment(enrichmentType.CustomEnrichment, fieldName)
 	default:
 		return diag.Errorf("unexpected enrichment type %s", enrichment.GetEnrichmentType().String())
 	}
