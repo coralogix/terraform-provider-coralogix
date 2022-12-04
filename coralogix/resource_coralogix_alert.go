@@ -429,7 +429,7 @@ func schedulingSchema() map[string]*schema.Schema {
 			Required:    true,
 			Elem:        timeFrames(),
 			Set:         hashTimeFrames(),
-			Description: "time_frames are set of days and hours when the alert will be active.",
+			Description: "time_frames is a set of days and hours when the alert will be active.",
 		},
 	}
 }

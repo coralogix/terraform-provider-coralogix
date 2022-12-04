@@ -36,7 +36,7 @@ data "coralogix_alert" "imported_standard_alert" {
 - `new_value` (List of Object) Alert on a never before seen log value. (see [below for nested schema](#nestedatt--new_value))
 - `notification` (List of Object) The Alert notification info. (see [below for nested schema](#nestedatt--notification))
 - `ratio` (List of Object) Alert based on the ratio between queries. (see [below for nested schema](#nestedatt--ratio))
-- `scheduling` (Set of Object) Limit the triggering of this alert to specific time frames. Active always by default. (see [below for nested schema](#nestedatt--scheduling))
+- `scheduling` (List of Object) Limit the triggering of this alert to specific time frames. Active always by default. (see [below for nested schema](#nestedatt--scheduling))
 - `standard` (List of Object) Alert based on number of log occurrences. (see [below for nested schema](#nestedatt--standard))
 - `time_relative` (List of Object) Alert based on ratio between timeframes. (see [below for nested schema](#nestedatt--time_relative))
 - `tracing` (List of Object) Alert based on tracing latency. (see [below for nested schema](#nestedatt--tracing))
@@ -269,6 +269,14 @@ Read-Only:
 
 <a id="nestedatt--scheduling"></a>
 ### Nested Schema for `scheduling`
+
+Read-Only:
+
+- `time_frames` (Set of Object) (see [below for nested schema](#nestedobjatt--scheduling--time_frames))
+- `utc` (Number)
+
+<a id="nestedobjatt--scheduling--time_frames"></a>
+### Nested Schema for `scheduling.time_frames`
 
 Read-Only:
 

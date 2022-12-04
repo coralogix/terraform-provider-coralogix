@@ -18,6 +18,10 @@ resource "coralogix_enrichment" geo_ip_enrichment {
   }
 }
 
+data "coralogix_enrichment" "imported_enrichment" {
+  id = coralogix_enrichment.geo_ip_enrichment.id
+}
+
 resource "coralogix_enrichment" suspicious_ip_enrichment {
   suspicious_ip {
     field_name = "coralogix.metadata.sdkId"
@@ -31,10 +35,21 @@ resource "coralogix_enrichment" aws_enrichment {
   }
 }
 
+resource "coralogix_enrichment" custom_enrichment {
+  custom {
+    custom_enrichment_id = coralogix_enrichment_data.enrichment_data.id
+    field_name           = "field name"
+  }
+}
+
 resource "coralogix_enrichment_data" enrichment_data {
   name         = "custom enrichment data"
   description  = "description.ssss"
   file_content = file("./date-to-day-of-the-week.csv")
+}
+
+data "coralogix_enrichment_data" "imported_enrichment_data" {
+  id = coralogix_enrichment_data.enrichment_data.id
 }
 
 resource "coralogix_enrichment_data" enrichment_data2 {
@@ -42,13 +57,6 @@ resource "coralogix_enrichment_data" enrichment_data2 {
   description = "description"
   uploaded_file {
     path = "./date-to-day-of-the-week.csv"
-  }
-}
-
-resource "coralogix_enrichment" custom_enrichment {
-  custom {
-    custom_enrichment_id = coralogix_enrichment_data.enrichment_data.id
-    field_name           = "field name"
   }
 }
 
