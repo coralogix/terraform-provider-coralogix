@@ -117,11 +117,11 @@ func wrappedStringSliceToStringSlice(s []*wrapperspb.StringValue) []string {
 }
 
 func timeInDaySchema(description string) *schema.Schema {
-	timeRegex := regexp.MustCompile(`^(\d|0\d|1\d|2[0-3]):(\d|[0-5]\d)$`)
+	timeRegex := regexp.MustCompile(`^(0\d|1\d|2[0-3]):[0-5]\d$`)
 	return &schema.Schema{
 		Type:         schema.TypeString,
-		Optional:     true,
-		ValidateFunc: validation.StringMatch(timeRegex, "not valid time"),
+		Required:     true,
+		ValidateFunc: validation.StringMatch(timeRegex, "not valid time, only HH:MM format is allowed"),
 		Description:  description,
 	}
 }
@@ -136,8 +136,19 @@ func expandTimeInDay(v interface{}) *alertsv1.Time {
 	}
 }
 
-func flattenTimeInDay(t *alertsv1.Time) string {
-	return fmt.Sprintf("%d:%d", t.GetHours(), t.GetMinutes())
+func flattenTimeInDay(t *alertsv1.Time, utc int32) string {
+	hours := convertGmtToUtc(t.GetHours(), utc)
+	hoursStr := toTwoDigitsFormat(hours)
+	minStr := toTwoDigitsFormat(t.GetMinutes())
+	return fmt.Sprintf("%s:%s", hoursStr, minStr)
+}
+
+func toTwoDigitsFormat(digit int32) string {
+	digitStr := fmt.Sprintf("%d", digit)
+	if len(digitStr) == 1 {
+		digitStr = "0" + digitStr
+	}
+	return digitStr
 }
 
 func timeSchema(description string) *schema.Schema {

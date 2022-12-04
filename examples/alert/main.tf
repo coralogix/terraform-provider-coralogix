@@ -2,7 +2,7 @@ terraform {
   required_providers {
     coralogix = {
       version = "~> 1.3"
-      source  = "coralogix/coralogix"
+      source  = "locally/debug/coralogix"
     }
   }
 }
@@ -36,15 +36,17 @@ resource "coralogix_alert" "standard_alert" {
   }
 
   scheduling {
-    days_enabled = ["Wednesday", "Thursday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
-  }
-
-  scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time = "00:30"
+    }
   }
 
   standard {
@@ -78,9 +80,17 @@ resource "coralogix_alert" "ratio_alert" {
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time = "00:30"
+    }
   }
 
   ratio {
@@ -115,9 +125,12 @@ resource "coralogix_alert" "new_value_alert" {
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
   }
 
 
@@ -143,9 +156,12 @@ resource "coralogix_alert" "time_relative_alert" {
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
   }
 
 
@@ -174,9 +190,12 @@ resource "coralogix_alert" "metric_lucene_alert" {
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
   }
 
   metric {
@@ -210,9 +229,12 @@ resource "coralogix_alert" "metric_promql_alert" {
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = -8
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
   }
 
   metric {
@@ -243,9 +265,17 @@ resource "coralogix_alert" "unique_count_alert" {
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time = "00:30"
+    }
   }
 
   unique_count {
@@ -275,9 +305,17 @@ resource "coralogix_alert" "tracing_alert" {
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time = "00:30"
+    }
   }
 
 
@@ -313,9 +351,17 @@ resource "coralogix_alert" "flow_alert" {
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time = "00:30"
+    }
   }
 
   flow {
