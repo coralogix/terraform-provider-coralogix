@@ -40,29 +40,10 @@ resource "coralogix_enrichment" custom_enrichment {
   }
 }
 
-resource "coralogix_enrichment" custom_enrichment2 {
-  custom {
-    custom_enrichment_id = coralogix_data_set.data_set2.id
-    fields {
-      name = "coralogix.metadata.IPAddress"
-    }
-  }
-}
-
 resource "coralogix_data_set" data_set {
   name        = "custom enrichment data"
   description = "description"
-  uploaded_file {
-    path = "./date-to-day-of-the-week.csv"
-  }
-}
-
-resource "coralogix_data_set" data_set2 {
-  name        = "custom enrichment data 2"
-  description = "description"
-  uploaded_file {
-    path = "./date-to-day-of-the-week.csv"
-  }
+  file_content = "Date,day of week\n7/30/21,Friday\n7/31/21,Saturday\n8/1/21,Sunday\n8/2/21,Monday\n8/4/21,Wednesday\n8/5/21,Thursday\n8/6/21,Friday\n"
 }
 
 data "coralogix_enrichment" "imported_enrichment" {
