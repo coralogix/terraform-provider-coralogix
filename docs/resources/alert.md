@@ -18,6 +18,7 @@ More info: https://coralogix.com/docs/alerts-api/ .
 ## Example Usage
 
 ### Standard Alert
+
 ```hcl
 resource "coralogix_alert" "standard_alert" {
   name           = "Standard alert example"
@@ -38,19 +39,21 @@ resource "coralogix_alert" "standard_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Wednesday", "Thursday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
-  }
-
-  scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time     = "00:30"
+    }
   }
 
   standard {
@@ -66,6 +69,7 @@ resource "coralogix_alert" "standard_alert" {
 ```
 
 ### Ratio Alert
+
 ```hcl
 resource "coralogix_alert" "ratio_alert" {
   name           = "Ratio alert example"
@@ -78,14 +82,22 @@ resource "coralogix_alert" "ratio_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec                         = 60
+    notify_every_min                         = 1
     notify_only_on_triggered_group_by_values = true
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time     = "00:30"
+    }
   }
 
   ratio {
@@ -109,6 +121,7 @@ resource "coralogix_alert" "ratio_alert" {
 ```
 
 ### New-Value Alert
+
 ```hcl
 resource "coralogix_alert" "new_value_alert" {
   name           = "New value alert example"
@@ -119,13 +132,16 @@ resource "coralogix_alert" "new_value_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
   }
 
 
@@ -140,6 +156,7 @@ resource "coralogix_alert" "new_value_alert" {
 ```
 
 ### Time-Relative Alert
+
 ```hcl
 resource "coralogix_alert" "time_relative_alert" {
   name           = "Time relative alert example"
@@ -150,13 +167,16 @@ resource "coralogix_alert" "time_relative_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
   }
 
 
@@ -172,6 +192,7 @@ resource "coralogix_alert" "time_relative_alert" {
 ```
 
 ### Metric-Lucene Alert
+
 ```hcl
 resource "coralogix_alert" "metric_lucene_alert" {
   name           = "Metric lucene alert example"
@@ -184,13 +205,16 @@ resource "coralogix_alert" "metric_lucene_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
   }
 
   metric {
@@ -211,6 +235,7 @@ resource "coralogix_alert" "metric_lucene_alert" {
 ```
 
 ### Metric-Promql Alert
+
 ```hcl
 resource "coralogix_alert" "metric_promql_alert" {
   name           = "Metric promql alert example"
@@ -223,13 +248,16 @@ resource "coralogix_alert" "metric_promql_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = -8
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
   }
 
   metric {
@@ -248,6 +276,7 @@ resource "coralogix_alert" "metric_promql_alert" {
 ```
 
 ### Unique-Count Alert
+
 ```hcl
 resource "coralogix_alert" "unique_count_alert" {
   name           = "Unique count alert example"
@@ -259,13 +288,21 @@ resource "coralogix_alert" "unique_count_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time     = "00:30"
+    }
   }
 
   unique_count {
@@ -282,6 +319,7 @@ resource "coralogix_alert" "unique_count_alert" {
 ```
 
 ### Tracing Alert
+
 ```hcl
 resource "coralogix_alert" "tracing_alert" {
   name           = "Tracing alert example"
@@ -294,13 +332,21 @@ resource "coralogix_alert" "tracing_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time     = "00:30"
+    }
   }
 
 
@@ -324,6 +370,7 @@ resource "coralogix_alert" "tracing_alert" {
 ```
 
 ### Flow Alert
+
 ```hcl
 resource "coralogix_alert" "flow_alert" {
   name           = "Flow alert example"
@@ -335,13 +382,21 @@ resource "coralogix_alert" "flow_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time     = "00:30"
+    }
   }
 
   flow {
@@ -401,25 +456,26 @@ resource "coralogix_alert" "flow_alert" {
 - `enabled` (Boolean) Determines whether the alert will be active. True by default.
 - `expiration_date` (Block List, Max: 1) The expiration date of the alert (if declared). (
   see [below for nested schema](#nestedblock--expiration_date))
-- `flow` (Block List, Max: 1) Alert based on a combination of alerts in a specific timeframe. (
-  see [below for nested schema](#nestedblock--flow))
+- `notification` (Block List, Max: 1) The Alert notification info. (
+  see [below for nested schema](#nestedblock--notification))
 - `meta_labels` (Block Set) Labels allow you to easily filter by alert type and create views. Insert a new label or use
   an existing one. You can nest a label using key:value. (see [below for nested schema](#nestedblock--meta_labels))
+- `scheduling` (Block List, Max: 1) Limit the triggering of this alert to specific time frames. Active always by
+  default. (see [below for nested schema](#nestedblock--scheduling))
+  see [below for nested schema](#nestedblock--scheduling))
+- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
+- `flow` (Block List, Max: 1) Alert based on a combination of alerts in a specific timeframe. (
+  see [below for nested schema](#nestedblock--flow))
 - `metric` (Block List, Max: 1) Alert based on arithmetic operators for metrics. (
   see [below for nested schema](#nestedblock--metric))
 - `new_value` (Block List, Max: 1) Alert on a never before seen log value. (
   see [below for nested schema](#nestedblock--new_value))
-- `notification` (Block List, Max: 1) The Alert notification info. (
-  see [below for nested schema](#nestedblock--notification))
 - `ratio` (Block List, Max: 1) Alert based on the ratio between queries. (
   see [below for nested schema](#nestedblock--ratio))
-- `scheduling` (Block Set) Limit the triggering of this alert to specific time frames. Active always by default. (
-  see [below for nested schema](#nestedblock--scheduling))
 - `standard` (Block List, Max: 1) Alert based on number of log occurrences. (
   see [below for nested schema](#nestedblock--standard))
 - `time_relative` (Block List, Max: 1) Alert based on ratio between timeframes. (
   see [below for nested schema](#nestedblock--time_relative))
-- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `tracing` (Block List, Max: 1) Alert based on tracing latency. (see [below for nested schema](#nestedblock--tracing))
 - `unique_count` (Block List, Max: 1) Alert based on unique value count per key. (
   see [below for nested schema](#nestedblock--unique_count))
@@ -528,7 +584,8 @@ Required:
 - `metric_field` (String)
 - `sample_threshold_percentage` (Number)
 - `threshold` (Number) The number of log threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["1Min" "5Min" "10Min" "15Min" "20Min" "30Min" "1H" "2H" "4H" "6H" "12H" "24H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be
+  one of ["1Min" "5Min" "10Min" "15Min" "20Min" "30Min" "1H" "2H" "4H" "6H" "12H" "24H"]
 
 Optional:
 
@@ -555,7 +612,8 @@ Required:
 
 - `sample_threshold_percentage` (Number)
 - `threshold` (Number) The threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["1Min" "5Min" "10Min" "15Min" "20Min" "30Min" "1H" "2H" "4H" "6H" "12H" "24H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be
+  one of ["1Min" "5Min" "10Min" "15Min" "20Min" "30Min" "1H" "2H" "4H" "6H" "12H" "24H"]
 
 Optional:
 
@@ -603,7 +661,7 @@ Required:
 Optional:
 
 - `ignore_infinity` (Boolean)
-- `notify_every_sec` (Number) By default, notify_every_sec will be populated with 60(sec) for immediate, more_than and
+- `notify_every_min` (Number) By default, notify_every_min will be populated with min for immediate, more_than and
   more_than_usual alerts. For less_than alert it will be populated with the chosen time frame for the less_than
   condition (in seconds). You may choose to change the suppress window so the alert will be suppressed for a longer
   period.
@@ -685,12 +743,29 @@ Optional:
 
 ### Nested Schema for `scheduling`
 
+Required:
+
+- `time_frames` (Block Set, Min: 1) time_frames is a set of days and hours when the alert will be active. (
+  see [below for nested schema](#nestedblock--scheduling--time_frames))
+
+Optional:
+
+- `utc` (Number) Specifies the time zone to be used in interpreting the schedule. The value of this field must be an
+  integer between [-12, 14].
+
+<a id="nestedblock--scheduling--time_frames"></a>
+
+### Nested Schema for `scheduling.time_frames`
+
+Required:
+
+- `end_time` (String) Limit the triggering of this alert to end at specific hour.
+- `start_time` (String) Limit the triggering of this alert to start at specific hour.
+
 Optional:
 
 - `days_enabled` (Set of String) Days of week. Can be one
-  of ["Saturday" "Sunday" "Monday" "Tuesday" "Wednesday" "Thursday" "Friday"]
-- `end_time` (String) Limit the triggering of this alert to end at specific hour.
-- `start_time` (String) Limit the triggering of this alert to start at specific hour.
+  of ["Sunday" "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday"]
 
 <a id="nestedblock--standard"></a>
 

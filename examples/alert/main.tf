@@ -32,19 +32,21 @@ resource "coralogix_alert" "standard_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Wednesday", "Thursday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
-  }
-
-  scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time     = "00:30"
+    }
   }
 
   standard {
@@ -73,14 +75,22 @@ resource "coralogix_alert" "ratio_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec                         = 60
+    notify_every_min                         = 1
     notify_only_on_triggered_group_by_values = true
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time     = "00:30"
+    }
   }
 
   ratio {
@@ -111,13 +121,16 @@ resource "coralogix_alert" "new_value_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
   }
 
 
@@ -139,13 +152,16 @@ resource "coralogix_alert" "time_relative_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
   }
 
 
@@ -170,13 +186,16 @@ resource "coralogix_alert" "metric_lucene_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
   }
 
   metric {
@@ -206,13 +225,16 @@ resource "coralogix_alert" "metric_promql_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = -8
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
   }
 
   metric {
@@ -239,13 +261,21 @@ resource "coralogix_alert" "unique_count_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time     = "00:30"
+    }
   }
 
   unique_count {
@@ -271,13 +301,21 @@ resource "coralogix_alert" "tracing_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time     = "00:30"
+    }
   }
 
 
@@ -309,13 +347,21 @@ resource "coralogix_alert" "flow_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_sec = 60
+    notify_every_min = 1
   }
 
   scheduling {
-    days_enabled = ["Sunday", "Monday"]
-    start_time   = "7:30"
-    end_time     = "22:30"
+    utc = 2
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+    time_frames {
+      days_enabled = ["Sunday", "Monday"]
+      start_time   = "10:30"
+      end_time     = "00:30"
+    }
   }
 
   flow {

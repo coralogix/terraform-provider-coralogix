@@ -13,12 +13,6 @@ func TestAccCoralogixDataSourceLogs2Metric_basic(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceLogs2Metric(logsToMetric),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coralogix_logs2metric.test", "name", logsToMetric.name),
-				),
-			},
-			{
 				Config: testAccCoralogixResourceLogs2Metric(logsToMetric) +
 					testAccCoralogixDataSourceLogs2Metric_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(

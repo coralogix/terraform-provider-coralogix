@@ -299,12 +299,12 @@ func AlertSchema() map[string]*schema.Schema {
 						},
 						MaxItems: 1,
 					},
-					"notify_every_sec": {
+					"notify_every_min": {
 						Type:         schema.TypeInt,
 						Optional:     true,
-						Default:      60,
-						ValidateFunc: validation.IntAtLeast(60),
-						Description: "By default, notify_every_sec will be populated with 60(sec) for immediate," +
+						Default:      1,
+						ValidateFunc: validation.IntAtLeast(1),
+						Description: "By default, notify_every_min will be populated with min for immediate," +
 							" more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time" +
 							" frame for the less_than condition (in seconds). You may choose to change the suppress window so the " +
 							"alert will be suppressed for a longer period.",
@@ -324,11 +324,13 @@ func AlertSchema() map[string]*schema.Schema {
 			Description: "The Alert notification info.",
 		},
 		"scheduling": {
-			Type:        schema.TypeSet,
-			Optional:    true,
-			Elem:        scheduling(),
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem: &schema.Resource{
+				Schema: schedulingSchema(),
+			},
+			MaxItems:    1,
 			Description: "Limit the triggering of this alert to specific time frames. Active always by default.",
-			Set:         hashScheduling(),
 		},
 		"standard": {
 			Type:     schema.TypeList,
@@ -413,7 +415,26 @@ func AlertSchema() map[string]*schema.Schema {
 	}
 }
 
-func scheduling() *schema.Resource {
+func schedulingSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"utc": {
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Default:      0,
+			ValidateFunc: validation.IntBetween(-12, 14),
+			Description:  "Specifies the time zone to be used in interpreting the schedule. The value of this field must be an integer between [-12, 14].",
+		},
+		"time_frames": {
+			Type:        schema.TypeSet,
+			Required:    true,
+			Elem:        timeFrames(),
+			Set:         hashTimeFrames(),
+			Description: "time_frames is a set of days and hours when the alert will be active.",
+		},
+	}
+}
+
+func timeFrames() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"days_enabled": {
@@ -432,8 +453,8 @@ func scheduling() *schema.Resource {
 	}
 }
 
-func hashScheduling() schema.SchemaSetFunc {
-	return schema.HashResource(scheduling())
+func hashTimeFrames() schema.SchemaSetFunc {
+	return schema.HashResource(timeFrames())
 }
 
 func metaLabels() *schema.Resource {
@@ -1184,7 +1205,7 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 	AlertResp, err := meta.(*clientset.ClientSet).Alerts().CreateAlert(ctx, createAlertRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err)
+		return handleRpcError(err, "alert")
 	}
 	Alert := AlertResp.GetAlert()
 	log.Printf("[INFO] Submitted new alert: %#v", Alert)
@@ -1350,7 +1371,7 @@ func setAlert(d *schema.ResourceData, alert *alertsv1.Alert) diag.Diagnostics {
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("scheduling", flattenScheduling(alert.GetActiveWhen())); err != nil {
+	if err := d.Set("scheduling", flattenScheduling(d, alert.GetActiveWhen())); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -1383,7 +1404,7 @@ func hashMetaLabels() schema.SchemaSetFunc {
 func flattenNotification(alert *alertsv1.Alert, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) interface{} {
 	recipients := flattenRecipients(alert.GetNotifications())
 	notificationMap := map[string]interface{}{
-		"notify_every_sec": int(alert.GetNotifyEvery().GetValue()),
+		"notify_every_min": int(alert.GetNotifyEvery().GetValue() / 60),
 		"recipients":       recipients,
 		"payload_fields":   wrappedStringSliceToStringSlice(alert.NotificationPayloadFilters),
 	}
@@ -1411,33 +1432,64 @@ func flattenRecipients(notifications *alertsv1.AlertNotifications) interface{} {
 	}
 }
 
-func flattenScheduling(activeWhen *alertsv1.AlertActiveWhen) []interface{} {
-	if activeWhen == nil {
+func flattenScheduling(d *schema.ResourceData, activeWhen *alertsv1.AlertActiveWhen) interface{} {
+	scheduling, ok := d.GetOk("scheduling")
+	if !ok || activeWhen == nil {
 		return nil
 	}
 
-	timeFrames := activeWhen.GetTimeframes()
-	result := make([]interface{}, 0, len(timeFrames))
-	for _, tf := range timeFrames {
-		daysOfWeek := flattenDaysOfWeek(tf.GetDaysOfWeek())
-		tr := tf.GetRange()
-		activityStart := flattenTimeInDay(tr.GetStart())
-		activityEnd := flattenTimeInDay(tr.GetEnd())
-		m := map[string]interface{}{
-			"days_enabled": daysOfWeek,
-			"start_time":   activityStart,
-			"end_time":     activityEnd,
-		}
-		result = append(result, m)
-	}
+	utc := int32(scheduling.([]interface{})[0].(map[string]interface{})["utc"].(int))
 
+	timeFrames := flattenTimeFrames(activeWhen, utc)
+
+	return []interface{}{
+		map[string]interface{}{
+			"utc":         utc,
+			"time_frames": timeFrames,
+		},
+	}
+}
+
+func flattenTimeFrames(activeWhen *alertsv1.AlertActiveWhen, utc int32) interface{} {
+	timeFrames := activeWhen.GetTimeframes()
+	result := schema.NewSet(hashTimeFrames(), []interface{}{})
+	for _, tf := range timeFrames {
+		m := flattenTimeFrame(tf, utc)
+		result.Add(m)
+	}
 	return result
 }
 
-func flattenDaysOfWeek(daysOfWeek []alertsv1.DayOfWeek) []string {
-	result := make([]string, 0, len(daysOfWeek))
+func flattenTimeFrame(tf *alertsv1.AlertActiveTimeframe, utc int32) map[string]interface{} {
+	tr := tf.GetRange()
+	activityStartGMT, activityEndGMT := tr.GetStart(), tr.GetEnd()
+	daysOffset := getDaysOffsetFromGMT(activityStartGMT, utc)
+	activityStartUTC := flattenTimeInDay(activityStartGMT, utc)
+	activityEndUTC := flattenTimeInDay(activityEndGMT, utc)
+	daysOfWeek := flattenDaysOfWeek(tf.GetDaysOfWeek(), daysOffset)
+
+	return map[string]interface{}{
+		"days_enabled": daysOfWeek,
+		"start_time":   activityStartUTC,
+		"end_time":     activityEndUTC,
+	}
+}
+
+func getDaysOffsetFromGMT(activityStartGMT *alertsv1.Time, utc int32) int32 {
+	daysOffset := int32(activityStartGMT.GetHours()+utc) / 24
+	if daysOffset < 0 {
+		daysOffset += 7
+	}
+
+	return daysOffset
+}
+
+func flattenDaysOfWeek(daysOfWeek []alertsv1.DayOfWeek, daysOffset int32) interface{} {
+	result := schema.NewSet(schema.HashString, []interface{}{})
 	for _, d := range daysOfWeek {
-		result = append(result, alertProtoDayOfWeekToSchemaDayOfWeek[d.String()])
+		dayConvertedFromGmtToUtc := alertsv1.DayOfWeek((int32(d) + daysOffset) % 7)
+		day := alertProtoDayOfWeekToSchemaDayOfWeek[dayConvertedFromGmtToUtc.String()]
+		result.Add(day)
 	}
 	return result
 }
@@ -1921,7 +1973,7 @@ func expandNotification(i interface{}) *notification {
 	raw := l[0]
 	m := raw.(map[string]interface{})
 
-	notifyEverySec := wrapperspb.Double(float64(m["notify_every_sec"].(int)))
+	notifyEverySec := wrapperspb.Double(float64(m["notify_every_min"].(int) * 60))
 	notifyWhenResolved := wrapperspb.Bool(m["on_trigger_and_resolved"].(bool))
 	ignoreInfinity := wrapperspb.Bool(m["ignore_infinity"].(bool))
 	notifyOnlyOnTriggeredGroupByValues := wrapperspb.Bool(m["notify_only_on_triggered_group_by_values"].(bool))
@@ -1995,31 +2047,85 @@ func expandMetaLabel(v interface{}) *alertsv1.MetaLabel {
 }
 
 func expandActiveWhen(v interface{}) *alertsv1.AlertActiveWhen {
-	l := v.(*schema.Set).List()
+	l := v.([]interface{})
 	if len(l) == 0 {
 		return nil
 	}
 
-	timeFrames := make([]*alertsv1.AlertActiveTimeframe, 0, len(l))
-	for _, t := range l {
-		tf := expandActiveTimeframe(t)
-		timeFrames = append(timeFrames, tf)
-	}
+	schedulingMap := l[0].(map[string]interface{})
+	utc := int32(schedulingMap["utc"].(int))
+	timeFrames := schedulingMap["time_frames"].(*schema.Set).List()
+
+	expandedTimeframes := expandActiveTimeframes(timeFrames, utc)
 
 	return &alertsv1.AlertActiveWhen{
-		Timeframes: timeFrames,
+		Timeframes: expandedTimeframes,
 	}
 }
 
-func expandActiveTimeframe(v interface{}) *alertsv1.AlertActiveTimeframe {
-	m := v.(map[string]interface{})
-	daysOfWeek := expandDaysOfWeek(m["days_enabled"])
-	frameRange := expandRange(m)
+func expandActiveTimeframes(timeFrames []interface{}, utc int32) []*alertsv1.AlertActiveTimeframe {
+	result := make([]*alertsv1.AlertActiveTimeframe, 0, len(timeFrames))
+	for _, tf := range timeFrames {
+		alertActiveTimeframe := expandActiveTimeFrame(tf, utc)
+		result = append(result, alertActiveTimeframe)
+	}
+	return result
+}
 
-	return &alertsv1.AlertActiveTimeframe{
+func expandActiveTimeFrame(timeFrame interface{}, utc int32) *alertsv1.AlertActiveTimeframe {
+	m := timeFrame.(map[string]interface{})
+	daysOfWeek := expandDaysOfWeek(m["days_enabled"])
+	frameRange := expandRange(m["start_time"], m["end_time"])
+	frameRange, daysOfWeek = convertTimeFramesToGMT(frameRange, daysOfWeek, utc)
+
+	alertActiveTimeframe := &alertsv1.AlertActiveTimeframe{
 		DaysOfWeek: daysOfWeek,
 		Range:      frameRange,
 	}
+	return alertActiveTimeframe
+}
+
+func convertTimeFramesToGMT(frameRange *alertsv1.TimeRange, daysOfWeek []alertsv1.DayOfWeek, utc int32) (*alertsv1.TimeRange, []alertsv1.DayOfWeek) {
+	daysOfWeekOffset := daysOfWeekOffsetToGMT(frameRange, utc)
+	frameRange.Start.Hours = convertUtcToGmt(frameRange.GetStart().GetHours(), utc)
+	frameRange.End.Hours = convertUtcToGmt(frameRange.GetEnd().GetHours(), utc)
+	if daysOfWeekOffset != 0 {
+		for i, d := range daysOfWeek {
+			daysOfWeek[i] = alertsv1.DayOfWeek((int32(d) + daysOfWeekOffset) % 7)
+		}
+	}
+
+	return frameRange, daysOfWeek
+}
+
+func daysOfWeekOffsetToGMT(frameRange *alertsv1.TimeRange, utc int32) int32 {
+	daysOfWeekOffset := int32(frameRange.Start.Hours-utc) / 24
+	if daysOfWeekOffset < 0 {
+		daysOfWeekOffset += 7
+	}
+	return daysOfWeekOffset
+}
+
+func convertUtcToGmt(hours, utc int32) int32 {
+	hours -= utc
+	if hours < 0 {
+		hours += 24
+	} else if hours >= 24 {
+		hours -= 24
+	}
+
+	return hours
+}
+
+func convertGmtToUtc(hours, utc int32) int32 {
+	hours += utc
+	if hours < 0 {
+		hours += 24
+	} else if hours >= 24 {
+		hours -= 24
+	}
+
+	return hours
 }
 
 func expandDaysOfWeek(v interface{}) []alertsv1.DayOfWeek {
@@ -2033,10 +2139,8 @@ func expandDaysOfWeek(v interface{}) []alertsv1.DayOfWeek {
 	return result
 }
 
-func expandRange(m map[string]interface{}) *alertsv1.TimeRange {
-	activityStarts := m["start_time"]
+func expandRange(activityStarts, activityEnds interface{}) *alertsv1.TimeRange {
 	start := expandTimeInDay(activityStarts)
-	activityEnds := m["end_time"]
 	end := expandTimeInDay(activityEnds)
 
 	return &alertsv1.TimeRange{

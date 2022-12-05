@@ -419,7 +419,7 @@ func resourceCoralogixRulesGroupCreate(ctx context.Context, d *schema.ResourceDa
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().CreateRuleGroup(ctx, createRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err)
+		return handleRpcError(err, "rule-group")
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
 	log.Printf("[INFO] Submitted new rule-group: %#v", ruleGroup)

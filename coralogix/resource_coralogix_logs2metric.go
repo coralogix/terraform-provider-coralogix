@@ -54,7 +54,7 @@ func resourceCoralogixLogs2MetricCreate(ctx context.Context, d *schema.ResourceD
 	Logs2MetricResp, err := meta.(*clientset.ClientSet).Logs2Metrics().CreateLogs2Metric(ctx, log2MetricReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err)
+		return handleRpcError(err, "logs2metric")
 	}
 	log.Printf("[INFO] Submitted new logs2metric: %#v", Logs2MetricResp)
 	d.SetId(Logs2MetricResp.GetId().GetValue())

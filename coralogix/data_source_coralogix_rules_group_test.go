@@ -14,13 +14,6 @@ func TestAccCoralogixDataSourceRuleGroup_basic(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixDataSourceRuleGroup_basic(r),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coralogix_rules_group.test", "name", r.name),
-					resource.TestCheckResourceAttr("coralogix_rules_group.test", "rule_subgroups.0.rules.0.extract.0.name", r.ruleParams.name),
-				),
-			},
-			{
 				Config: testAccCoralogixDataSourceRuleGroup_basic(r) +
 					testAccCoralogixDataSourceRuleGroup_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(

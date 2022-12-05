@@ -5,12 +5,14 @@ Terraform Provider for Coralogix
 ![GitHub tag (latest SemVer pre-release)](https://img.shields.io/github/v/tag/coralogix/terraform-provider-coralogix?include_prereleases&style=plastic)
 [![Github All Releases](https://img.shields.io/github/downloads/coralogix/terraform-provider-coralogix/total.svg?style=plastic)]()
 ![Go Report Card](https://goreportcard.com/badge/github.com/coralogix/terraform-provider-coralogix)
-![build](https://github.com/coralogix/terraform-provider-coralogix/actions/workflows/build.yml/badge.svg?style=plastic)
 ![acc-tests](https://github.com/coralogix/terraform-provider-coralogix/actions/workflows/acc-test.yml/badge.svg?style=plastic)
 
 
 The [Coralogix provider](https://registry.terraform.io/providers/coralogix/coralogix/latest/docs) is used to interact
 with [Coralogix](https://coralogix.com/) resources.
+
+# Supporting
+- [Slack channel](https://coralogix-dev.slack.com/archives/C04CV0JG36H)
 
 # Requirements
 
