@@ -45,7 +45,7 @@ resource "coralogix_alert" "standard_alert" {
     time_frames {
       days_enabled = ["Sunday", "Monday"]
       start_time   = "10:30"
-      end_time = "00:30"
+      end_time     = "00:30"
     }
   }
 
@@ -89,7 +89,7 @@ resource "coralogix_alert" "ratio_alert" {
     time_frames {
       days_enabled = ["Sunday", "Monday"]
       start_time   = "10:30"
-      end_time = "00:30"
+      end_time     = "00:30"
     }
   }
 
@@ -274,7 +274,7 @@ resource "coralogix_alert" "unique_count_alert" {
     time_frames {
       days_enabled = ["Sunday", "Monday"]
       start_time   = "10:30"
-      end_time = "00:30"
+      end_time     = "00:30"
     }
   }
 
@@ -314,7 +314,7 @@ resource "coralogix_alert" "tracing_alert" {
     time_frames {
       days_enabled = ["Sunday", "Monday"]
       start_time   = "10:30"
-      end_time = "00:30"
+      end_time     = "00:30"
     }
   }
 
@@ -360,7 +360,7 @@ resource "coralogix_alert" "flow_alert" {
     time_frames {
       days_enabled = ["Sunday", "Monday"]
       start_time   = "10:30"
-      end_time = "00:30"
+      end_time     = "00:30"
     }
   }
 
