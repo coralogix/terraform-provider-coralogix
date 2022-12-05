@@ -92,7 +92,7 @@ func TestAccCoralogixResourceCustomEnrichment(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckEnrichmentDestroy,
+		CheckDestroy:      testAccCheckCustomEnrichmentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceCustomEnrichment(fieldName),
