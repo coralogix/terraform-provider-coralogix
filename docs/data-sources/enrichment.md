@@ -33,8 +33,17 @@ data "coralogix_enrichment" "imported_enrichment" {
 
 Read-Only:
 
-- `field_name` (String)
-- `resource_type` (String)
+- `fields` (Set of Object) (see [below for nested schema](#nestedobjatt--aws--fields))
+
+<a id="nestedobjatt--aws--fields"></a>
+### Nested Schema for `aws.fields`
+
+Read-Only:
+
+- `id` (Number)
+- `name` (String)
+- `resource` (String)
+
 
 
 <a id="nestedatt--custom"></a>
@@ -42,8 +51,17 @@ Read-Only:
 
 Read-Only:
 
-- `custom_enrichment_id` (String)
-- `field_name` (String)
+- `custom_enrichment_id` (Number)
+- `fields` (Set of Object) (see [below for nested schema](#nestedobjatt--custom--fields))
+
+<a id="nestedobjatt--custom--fields"></a>
+### Nested Schema for `custom.fields`
+
+Read-Only:
+
+- `id` (Number)
+- `name` (String)
+
 
 
 <a id="nestedatt--geo_ip"></a>
@@ -51,7 +69,16 @@ Read-Only:
 
 Read-Only:
 
-- `field_name` (String)
+- `fields` (Set of Object) (see [below for nested schema](#nestedobjatt--geo_ip--fields))
+
+<a id="nestedobjatt--geo_ip--fields"></a>
+### Nested Schema for `geo_ip.fields`
+
+Read-Only:
+
+- `id` (Number)
+- `name` (String)
+
 
 
 <a id="nestedatt--suspicious_ip"></a>
@@ -59,6 +86,14 @@ Read-Only:
 
 Read-Only:
 
-- `field_name` (String)
+- `fields` (Set of Object) (see [below for nested schema](#nestedobjatt--suspicious_ip--fields))
+
+<a id="nestedobjatt--suspicious_ip--fields"></a>
+### Nested Schema for `suspicious_ip.fields`
+
+Read-Only:
+
+- `id` (Number)
+- `name` (String)
 
 

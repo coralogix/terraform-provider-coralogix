@@ -197,7 +197,7 @@ Read-Only:
 Read-Only:
 
 - `ignore_infinity` (Boolean)
-- `notify_every_sec` (Number)
+- `notify_every_min` (Number)
 - `notify_only_on_triggered_group_by_values` (Boolean)
 - `on_trigger_and_resolved` (Boolean)
 - `payload_fields` (Set of String)
