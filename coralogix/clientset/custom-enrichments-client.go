@@ -6,12 +6,12 @@ import (
 	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/enrichment/v1"
 )
 
-type EnrichmentDataClient struct {
+type DataSetClient struct {
 	callPropertiesCreator *CallPropertiesCreator
 }
 
-func (e EnrichmentDataClient) CreatEnrichmentData(ctx context.Context, req *enrichmentv1.CreateCustomEnrichmentRequest) (*enrichmentv1.CreateCustomEnrichmentResponse, error) {
-	callProperties, err := e.callPropertiesCreator.GetCallProperties(ctx)
+func (d DataSetClient) CreatDataSet(ctx context.Context, req *enrichmentv1.CreateCustomEnrichmentRequest) (*enrichmentv1.CreateCustomEnrichmentResponse, error) {
+	callProperties, err := d.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -24,8 +24,8 @@ func (e EnrichmentDataClient) CreatEnrichmentData(ctx context.Context, req *enri
 	return client.CreateCustomEnrichment(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (e EnrichmentDataClient) GetEnrichmentData(ctx context.Context, req *enrichmentv1.GetCustomEnrichmentRequest) (*enrichmentv1.GetCustomEnrichmentResponse, error) {
-	callProperties, err := e.callPropertiesCreator.GetCallProperties(ctx)
+func (d DataSetClient) GetDataSet(ctx context.Context, req *enrichmentv1.GetCustomEnrichmentRequest) (*enrichmentv1.GetCustomEnrichmentResponse, error) {
+	callProperties, err := d.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -38,8 +38,8 @@ func (e EnrichmentDataClient) GetEnrichmentData(ctx context.Context, req *enrich
 	return client.GetCustomEnrichment(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (e EnrichmentDataClient) UpdateEnrichmentData(ctx context.Context, req *enrichmentv1.UpdateCustomEnrichmentRequest) (*enrichmentv1.UpdateCustomEnrichmentResponse, error) {
-	callProperties, err := e.callPropertiesCreator.GetCallProperties(ctx)
+func (d DataSetClient) UpdateDataSet(ctx context.Context, req *enrichmentv1.UpdateCustomEnrichmentRequest) (*enrichmentv1.UpdateCustomEnrichmentResponse, error) {
+	callProperties, err := d.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +52,8 @@ func (e EnrichmentDataClient) UpdateEnrichmentData(ctx context.Context, req *enr
 	return client.UpdateCustomEnrichment(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (e EnrichmentDataClient) DeleteEnrichmentData(ctx context.Context, req *enrichmentv1.DeleteCustomEnrichmentRequest) (*enrichmentv1.DeleteCustomEnrichmentResponse, error) {
-	callProperties, err := e.callPropertiesCreator.GetCallProperties(ctx)
+func (d DataSetClient) DeleteDataSet(ctx context.Context, req *enrichmentv1.DeleteCustomEnrichmentRequest) (*enrichmentv1.DeleteCustomEnrichmentResponse, error) {
+	callProperties, err := d.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -66,6 +66,6 @@ func (e EnrichmentDataClient) DeleteEnrichmentData(ctx context.Context, req *enr
 	return client.DeleteCustomEnrichment(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func NewEnrichmentDataClient(c *CallPropertiesCreator) *EnrichmentDataClient {
-	return &EnrichmentDataClient{callPropertiesCreator: c}
+func NewDataSetClient(c *CallPropertiesCreator) *DataSetClient {
+	return &DataSetClient{callPropertiesCreator: c}
 }

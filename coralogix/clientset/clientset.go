@@ -1,11 +1,11 @@
 package clientset
 
 type ClientSet struct {
-	ruleGroups     *RuleGroupsClient
-	alerts         *AlertsClient
-	logs2Metrics   *Logs2MetricsClient
-	enrichments    *EnrichmentsClient
-	enrichmentData *EnrichmentDataClient
+	ruleGroups   *RuleGroupsClient
+	alerts       *AlertsClient
+	logs2Metrics *Logs2MetricsClient
+	enrichments  *EnrichmentsClient
+	dataSet      *DataSetClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -24,8 +24,8 @@ func (c *ClientSet) Enrichments() *EnrichmentsClient {
 	return c.enrichments
 }
 
-func (c *ClientSet) EnrichmentData() *EnrichmentDataClient {
-	return c.enrichmentData
+func (c *ClientSet) DataSet() *DataSetClient {
+	return c.dataSet
 }
 
 func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
@@ -36,13 +36,13 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	alertsClient := NewAlertsClient(apikeyCPC)
 	logs2MetricsClient := NewLogs2MetricsClient(apikeyCPC)
 	enrichmentClient := NewEnrichmentClient(apikeyCPC)
-	enrichmentDataClient := NewEnrichmentDataClient(apikeyCPC)
+	dataSetClient := NewDataSetClient(apikeyCPC)
 
 	return &ClientSet{
-		ruleGroups:     ruleGroupsClient,
-		alerts:         alertsClient,
-		logs2Metrics:   logs2MetricsClient,
-		enrichments:    enrichmentClient,
-		enrichmentData: enrichmentDataClient,
+		ruleGroups:   ruleGroupsClient,
+		alerts:       alertsClient,
+		logs2Metrics: logs2MetricsClient,
+		enrichments:  enrichmentClient,
+		dataSet:      dataSetClient,
 	}
 }

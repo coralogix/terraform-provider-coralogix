@@ -11,11 +11,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
+	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/enrichment/v1"
 )
 
-func TestAccCoralogixResourceEnrichmentData(t *testing.T) {
-	resourceName := "coralogix_enrichment_data.test"
+func TestAccCoralogixResourceDataSet(t *testing.T) {
+	resourceName := "coralogix_data_set.test"
 	name := acctest.RandomWithPrefix("tf-acc-test")
 	description := acctest.RandomWithPrefix("tf-acc-test")
 	wd, err := os.Getwd()
@@ -27,10 +29,10 @@ func TestAccCoralogixResourceEnrichmentData(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckEnrichmentDataDestroy,
+		CheckDestroy:      testAccCheckDataSetDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceEnrichmentData(name, description, filePath),
+				Config: testAccCoralogixResourceDataSet(name, description, filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", name),
@@ -46,8 +48,8 @@ func TestAccCoralogixResourceEnrichmentData(t *testing.T) {
 	})
 }
 
-func TestAccCoralogixResourceEnrichmentDataWithUploadedFile(t *testing.T) {
-	resourceName := "coralogix_enrichment_data.test"
+func TestAccCoralogixResourceDataSetWithUploadedFile(t *testing.T) {
+	resourceName := "coralogix_data_set.test"
 	name := acctest.RandomWithPrefix("tf-acc-test")
 	description := acctest.RandomWithPrefix("tf-acc-test")
 	wd, err := os.Getwd()
@@ -59,10 +61,10 @@ func TestAccCoralogixResourceEnrichmentDataWithUploadedFile(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckEnrichmentDataDestroy,
+		CheckDestroy:      testAccCheckDataSetDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceEnrichmentDataWithUploadedFile(name, description, filePath),
+				Config: testAccCoralogixResourceDataSetWithUploadedFile(name, description, filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", name),
@@ -79,7 +81,7 @@ func TestAccCoralogixResourceEnrichmentDataWithUploadedFile(t *testing.T) {
 			{
 				PreConfig: func() { removeLineFromCsvFile(filePath) },
 				PlanOnly:  true,
-				Config:    testAccCoralogixResourceEnrichmentDataWithUploadedFile(name, description, filePath),
+				Config:    testAccCoralogixResourceDataSetWithUploadedFile(name, description, filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", name),
@@ -90,7 +92,7 @@ func TestAccCoralogixResourceEnrichmentDataWithUploadedFile(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "uploaded_file.0.path", filePath)),
 			},
 			{
-				Config: testAccCoralogixResourceEnrichmentDataWithUploadedFile(name, description, filePath),
+				Config: testAccCoralogixResourceDataSetWithUploadedFile(name, description, filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", name),
@@ -122,8 +124,8 @@ func removeLineFromCsvFile(path string) {
 	}
 }
 
-func testAccCoralogixResourceEnrichmentData(name, description, filePath string) string {
-	return fmt.Sprintf(`resource "coralogix_enrichment_data" test {
+func testAccCoralogixResourceDataSet(name, description, filePath string) string {
+	return fmt.Sprintf(`resource "coralogix_data_set" test {
 		name         = "%s"
 		description  = "%s"
 		file_content = file("%s")
@@ -131,9 +133,9 @@ func testAccCoralogixResourceEnrichmentData(name, description, filePath string) 
 	`, name, description, filePath)
 }
 
-func testAccCoralogixResourceEnrichmentDataWithUploadedFile(name, description, filePath string) string {
+func testAccCoralogixResourceDataSetWithUploadedFile(name, description, filePath string) string {
 	return fmt.Sprintf(
-		`resource "coralogix_enrichment_data" test {
+		`resource "coralogix_data_set" test {
   					name        = "%s"
   					description = "%s"
   					uploaded_file {
@@ -143,8 +145,8 @@ func testAccCoralogixResourceEnrichmentDataWithUploadedFile(name, description, f
 			`, name, description, filePath)
 }
 
-func testAccCheckEnrichmentDataDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).Enrichments()
+func testAccCheckDataSetDestroy(s *terraform.State) error {
+	client := testAccProvider.Meta().(*clientset.ClientSet).DataSet()
 
 	ctx := context.TODO()
 
@@ -153,9 +155,9 @@ func testAccCheckEnrichmentDataDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.GetEnrichment(ctx, strToUint32(rs.Primary.ID))
+		resp, err := client.GetDataSet(ctx, &enrichmentv1.GetCustomEnrichmentRequest{Id: wrapperspb.UInt32(strToUint32(rs.Primary.ID))})
 		if err == nil {
-			if uint32ToStr(resp.GetId()) == rs.Primary.ID {
+			if uint32ToStr(resp.GetCustomEnrichment().GetId()) == rs.Primary.ID {
 				return fmt.Errorf("enrichment still exists: %s", rs.Primary.ID)
 			}
 		}

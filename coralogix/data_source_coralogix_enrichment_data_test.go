@@ -10,8 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-func TestAccCoralogixDataSourceEnrichmentData_basic(t *testing.T) {
-	resourceName := "coralogix_enrichment_data.test"
+func TestAccCoralogixDataSourceDataSet_basic(t *testing.T) {
+	resourceName := "coralogix_data_set.test"
 	name := acctest.RandomWithPrefix("tf-acc-test")
 	description := acctest.RandomWithPrefix("tf-acc-test")
 	wd, err := os.Getwd()
@@ -23,11 +23,11 @@ func TestAccCoralogixDataSourceEnrichmentData_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckEnrichmentDataDestroy,
+		CheckDestroy:      testAccCheckDataSetDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceEnrichmentData(name, description, filePath) +
-					testAccCoralogixDataSourceEnrichmentData_read(),
+				Config: testAccCoralogixResourceDataSet(name, description, filePath) +
+					testAccCoralogixDataSourceDataSet_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(fmt.Sprintf("data.%s", resourceName), "name", name),
 				),
@@ -36,9 +36,9 @@ func TestAccCoralogixDataSourceEnrichmentData_basic(t *testing.T) {
 	})
 }
 
-func testAccCoralogixDataSourceEnrichmentData_read() string {
-	return `data "coralogix_enrichment_data" "test" {
-	id = coralogix_enrichment_data.test.id
+func testAccCoralogixDataSourceDataSet_read() string {
+	return `data "coralogix_data_set" "test" {
+	id = coralogix_data_set.test.id
 }
 `
 }

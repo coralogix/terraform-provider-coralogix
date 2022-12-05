@@ -40,7 +40,7 @@ resource "coralogix_enrichment" aws_enrichment {
 ```hcl
 resource "coralogix_enrichment" custom_enrichment{
   custom {
-    custom_enrichment_id = coralogix_enrichment_data.enrichment_data.id
+    custom_enrichment_id = coralogix_data_set.data_set.id
     field_name           = "field name"
   }
 }

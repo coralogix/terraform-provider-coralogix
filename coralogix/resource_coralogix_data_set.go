@@ -20,12 +20,12 @@ import (
 
 var fileContentLimit = int(1e6)
 
-func resourceCoralogixEnrichmentData() *schema.Resource {
+func resourceCoralogixDataSet() *schema.Resource {
 	return &schema.Resource{
-		CreateContext: resourceCoralogixEnrichmentDataCreate,
-		ReadContext:   resourceCoralogixEnrichmentDataRead,
-		UpdateContext: resourceCoralogixEnrichmentDataUpdate,
-		DeleteContext: resourceCoralogixEnrichmentDataDelete,
+		CreateContext: resourceCoralogixDataSetCreate,
+		ReadContext:   resourceCoralogixDataSetRead,
+		UpdateContext: resourceCoralogixDataSetUpdate,
+		DeleteContext: resourceCoralogixDataSetDelete,
 
 		Importer: &schema.ResourceImporter{
 			StateContext: schema.ImportStatePassthroughContext,
@@ -38,11 +38,11 @@ func resourceCoralogixEnrichmentData() *schema.Resource {
 			Delete: schema.DefaultTimeout(30 * time.Minute),
 		},
 
-		Schema: EnrichmentDataSchema(),
+		Schema: DataSetSchema(),
 	}
 }
 
-func EnrichmentDataSchema() map[string]*schema.Schema {
+func DataSetSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"name": {
 			Type:         schema.TypeString,
@@ -105,15 +105,15 @@ func fileContentNoLongerThan(i interface{}, k string) ([]string, []error) {
 	return nil, nil
 }
 
-func resourceCoralogixEnrichmentDataCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	req, fileModificationTime, err := expandEnrichmentDataRequest(d)
+func resourceCoralogixDataSetCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	req, fileModificationTime, err := expandDataSetRequest(d)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcError(err, "enrichment-data")
 	}
 	log.Printf("[INFO] Creating new enrichment-data: %#v", req)
 
-	resp, err := meta.(*clientset.ClientSet).EnrichmentData().CreatEnrichmentData(ctx, req)
+	resp, err := meta.(*clientset.ClientSet).DataSet().CreatDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcError(err, "enrichment-data")
@@ -128,7 +128,7 @@ func resourceCoralogixEnrichmentDataCreate(ctx context.Context, d *schema.Resour
 	id := uint32ToStr(resp.GetCustomEnrichment().GetId())
 	d.SetId(id)
 
-	return resourceCoralogixEnrichmentDataRead(ctx, d, meta)
+	return resourceCoralogixDataSetRead(ctx, d, meta)
 }
 
 func setModificationTimeUploaded(d *schema.ResourceData, uploadedFile interface{}, modificationTime string) error {
@@ -138,29 +138,29 @@ func setModificationTimeUploaded(d *schema.ResourceData, uploadedFile interface{
 	return d.Set("uploaded_file", []interface{}{uploadedFileMap})
 }
 
-func resourceCoralogixEnrichmentDataRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
 	req := &enrichmentv1.GetCustomEnrichmentRequest{Id: wrapperspb.UInt32(strToUint32(id))}
 
 	log.Print("[INFO] Reading enrichment-data")
-	enrichmentDataResp, err := meta.(*clientset.ClientSet).EnrichmentData().GetEnrichmentData(ctx, req)
+	DataSetResp, err := meta.(*clientset.ClientSet).DataSet().GetDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcErrorWithID(err, "enrichment-data", id)
 	}
 
-	log.Printf("[INFO] Received enrichment-data: %#v", enrichmentDataResp)
-	return setEnrichmentData(d, enrichmentDataResp.GetCustomEnrichment())
+	log.Printf("[INFO] Received enrichment-data: %#v", DataSetResp)
+	return setDataSet(d, DataSetResp.GetCustomEnrichment())
 }
 
-func resourceCoralogixEnrichmentDataUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	req, fileModificationTime, err := expandUpdateEnrichmentDataRequest(d)
+func resourceCoralogixDataSetUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+	req, fileModificationTime, err := expandUpdateDataSetRequest(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
 	log.Print("[INFO] Updating enrichment-data")
-	_, err = meta.(*clientset.ClientSet).EnrichmentData().UpdateEnrichmentData(ctx, req)
+	_, err = meta.(*clientset.ClientSet).DataSet().UpdateDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcError(err, "enrichment-data")
@@ -172,15 +172,15 @@ func resourceCoralogixEnrichmentDataUpdate(ctx context.Context, d *schema.Resour
 		}
 	}
 
-	return resourceCoralogixEnrichmentDataRead(ctx, d, meta)
+	return resourceCoralogixDataSetRead(ctx, d, meta)
 }
 
-func resourceCoralogixEnrichmentDataDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
+func resourceCoralogixDataSetDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
 	req := &enrichmentv1.DeleteCustomEnrichmentRequest{CustomEnrichmentId: wrapperspb.UInt32(strToUint32(id))}
 
 	log.Printf("[INFO] Deleting enrichment-data %s\n", id)
-	_, err := meta.(*clientset.ClientSet).EnrichmentData().DeleteEnrichmentData(ctx, req)
+	_, err := meta.(*clientset.ClientSet).DataSet().DeleteDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v\n", err)
 		return handleRpcErrorWithID(err, "enrichment-data", id)
@@ -192,7 +192,7 @@ func resourceCoralogixEnrichmentDataDelete(ctx context.Context, d *schema.Resour
 	return nil
 }
 
-func setEnrichmentData(d *schema.ResourceData, c *enrichmentv1.CustomEnrichment) diag.Diagnostics {
+func setDataSet(d *schema.ResourceData, c *enrichmentv1.CustomEnrichment) diag.Diagnostics {
 	if err := d.Set("name", c.Name); err != nil {
 		return diag.FromErr(err)
 	}
@@ -216,7 +216,7 @@ func setEnrichmentData(d *schema.ResourceData, c *enrichmentv1.CustomEnrichment)
 	return nil
 }
 
-func expandEnrichmentDataRequest(d *schema.ResourceData) (*enrichmentv1.CreateCustomEnrichmentRequest, string, error) {
+func expandDataSetRequest(d *schema.ResourceData) (*enrichmentv1.CreateCustomEnrichmentRequest, string, error) {
 	name, description, file, modificationTime, err := expandEnrichmentReq(d)
 	if err != nil {
 		return nil, "", err
@@ -229,7 +229,7 @@ func expandEnrichmentDataRequest(d *schema.ResourceData) (*enrichmentv1.CreateCu
 	return req, modificationTime, nil
 }
 
-func expandUpdateEnrichmentDataRequest(d *schema.ResourceData) (*enrichmentv1.UpdateCustomEnrichmentRequest, string, error) {
+func expandUpdateDataSetRequest(d *schema.ResourceData) (*enrichmentv1.UpdateCustomEnrichmentRequest, string, error) {
 	customEnrichmentId := wrapperspb.UInt32(strToUint32(d.Id()))
 	name, description, file, modificationTime, err := expandEnrichmentReq(d)
 	if err != nil {

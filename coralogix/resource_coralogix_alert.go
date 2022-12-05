@@ -299,12 +299,12 @@ func AlertSchema() map[string]*schema.Schema {
 						},
 						MaxItems: 1,
 					},
-					"notify_every_sec": {
+					"notify_every_min": {
 						Type:         schema.TypeInt,
 						Optional:     true,
-						Default:      60,
-						ValidateFunc: validation.IntAtLeast(60),
-						Description: "By default, notify_every_sec will be populated with 60(sec) for immediate," +
+						Default:      1,
+						ValidateFunc: validation.IntAtLeast(1),
+						Description: "By default, notify_every_min will be populated with min for immediate," +
 							" more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time" +
 							" frame for the less_than condition (in seconds). You may choose to change the suppress window so the " +
 							"alert will be suppressed for a longer period.",
@@ -1404,7 +1404,7 @@ func hashMetaLabels() schema.SchemaSetFunc {
 func flattenNotification(alert *alertsv1.Alert, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) interface{} {
 	recipients := flattenRecipients(alert.GetNotifications())
 	notificationMap := map[string]interface{}{
-		"notify_every_sec": int(alert.GetNotifyEvery().GetValue()),
+		"notify_every_min": int(alert.GetNotifyEvery().GetValue() / 60),
 		"recipients":       recipients,
 		"payload_fields":   wrappedStringSliceToStringSlice(alert.NotificationPayloadFilters),
 	}
@@ -1973,7 +1973,7 @@ func expandNotification(i interface{}) *notification {
 	raw := l[0]
 	m := raw.(map[string]interface{})
 
-	notifyEverySec := wrapperspb.Double(float64(m["notify_every_sec"].(int)))
+	notifyEverySec := wrapperspb.Double(float64(m["notify_every_min"].(int) * 60))
 	notifyWhenResolved := wrapperspb.Bool(m["on_trigger_and_resolved"].(bool))
 	ignoreInfinity := wrapperspb.Bool(m["ignore_infinity"].(bool))
 	notifyOnlyOnTriggeredGroupByValues := wrapperspb.Bool(m["notify_only_on_triggered_group_by_values"].(bool))
