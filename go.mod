@@ -1,12 +1,12 @@
 module terraform-provider-coralogix
 
-go 1.19
+go 1.18
 
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/terraform-plugin-docs v0.13.0
-	github.com/hashicorp/terraform-plugin-sdk/v2 v2.24.1
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.20.0
 	google.golang.org/grpc v1.51.0
 	google.golang.org/protobuf v1.28.1
 )
