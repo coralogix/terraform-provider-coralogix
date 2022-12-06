@@ -2288,7 +2288,7 @@ func expandStandardCondition(m map[string]interface{}, notifyOnResolved, notifyO
 }
 
 func expandRelatedExtendedData(m map[string]interface{}) *alertsv1.RelatedExtendedData {
-	if deadmanRatio, ok := m["undetected_values_auto_retire_ratio"]; ok {
+	if deadmanRatio, ok := m["undetected_values_auto_retire_ratio"]; ok && deadmanRatio != "" {
 		protoDeadmanRatioStr := alertSchemaDeadmanRatiosToProtoDeadmanRatios[deadmanRatio.(string)]
 		protoDeadmanRatio := alertsv1.CleanupDeadmanDuration_value[protoDeadmanRatioStr]
 		cleanupDeadmanDuration := alertsv1.CleanupDeadmanDuration(protoDeadmanRatio)

@@ -24,6 +24,7 @@ func TestAccCoralogixResourceAlert_standard(t *testing.T) {
 		groupBy:               []string{"EventType"},
 		occurrencesThreshold:  acctest.RandIntRange(1, 1000),
 		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
+		deadmanRatio:          selectRandomlyFromSlice(alertValidUndetectedValuesAutoRetireRatios),
 	}
 
 	checks := extractCommonChecks(&alert.alertCommonTestParams, resourceName, "standard")
@@ -36,6 +37,8 @@ func TestAccCoralogixResourceAlert_standard(t *testing.T) {
 		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.occurrences_threshold", strconv.Itoa(alert.occurrencesThreshold)),
 		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.time_window", alert.timeWindow),
 		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.group_by.0", alert.groupBy[0]),
+		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.less_than", "true"),
+		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.undetected_values_auto_retire_ratio", alert.deadmanRatio),
 	)
 
 	resource.Test(t, resource.TestCase{
@@ -414,6 +417,7 @@ func TestAccCoralogixResourceAlert_update(t *testing.T) {
 		groupBy:               []string{"EventType"},
 		occurrencesThreshold:  10,
 		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
+		deadmanRatio:          selectRandomlyFromSlice(alertValidUndetectedValuesAutoRetireRatios),
 	}
 
 	checks1 := extractCommonChecks(&alert1.alertCommonTestParams, resourceName, "standard")
@@ -426,6 +430,7 @@ func TestAccCoralogixResourceAlert_update(t *testing.T) {
 		groupBy:               []string{"metadata.uid"},
 		occurrencesThreshold:  10,
 		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
+		deadmanRatio:          selectRandomlyFromSlice(alertValidUndetectedValuesAutoRetireRatios),
 	}
 
 	checks2 := extractCommonChecks(&alert2.alertCommonTestParams, resourceName, "standard")
@@ -568,16 +573,17 @@ func testAccCoralogixResourceAlertStandard(a *standardAlertTestParams) string {
     search_query = "%s"
     condition {
 	  group_by = %s
-      more_than = true
+      less_than = true
       occurrences_threshold = %d
       time_window = "%s"
+      undetected_values_auto_retire_ratio = "%s"
     }
   }
 }
 `,
 		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.utc,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
-		sliceToString(a.severities), a.searchQuery, sliceToString(a.groupBy), a.occurrencesThreshold, a.timeWindow)
+		sliceToString(a.severities), a.searchQuery, sliceToString(a.groupBy), a.occurrencesThreshold, a.timeWindow, a.deadmanRatio)
 }
 
 func testAccCoralogixResourceAlertRatio(a *ratioAlertTestParams) string {
@@ -926,6 +932,7 @@ type standardAlertTestParams struct {
 	groupBy              []string
 	occurrencesThreshold int
 	timeWindow           string
+	deadmanRatio         string
 	alertCommonTestParams
 }
 
