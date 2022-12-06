@@ -138,6 +138,7 @@ Read-Only:
 - `sample_threshold_percentage` (Number)
 - `threshold` (Number)
 - `time_window` (String)
+- `undetected_values_auto_retire_ratio` (String)
 
 
 
@@ -161,6 +162,7 @@ Read-Only:
 - `sample_threshold_percentage` (Number)
 - `threshold` (Number)
 - `time_window` (String)
+- `undetected_values_auto_retire_ratio` (String)
 
 
 
@@ -235,6 +237,7 @@ Read-Only:
 - `more_than` (Boolean)
 - `queries_ratio` (Number)
 - `time_window` (String)
+- `undetected_values_auto_retire_ratio` (String)
 
 
 <a id="nestedobjatt--ratio--query_1"></a>
@@ -314,6 +317,7 @@ Read-Only:
 - `more_than_usual` (Boolean)
 - `occurrences_threshold` (Number)
 - `time_window` (String)
+- `undetected_values_auto_retire_ratio` (String)
 
 
 
@@ -343,6 +347,7 @@ Read-Only:
 - `more_than` (Boolean)
 - `ratio_threshold` (Number)
 - `relative_time_window` (String)
+- `undetected_values_auto_retire_ratio` (String)
 
 
 

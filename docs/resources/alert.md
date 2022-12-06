@@ -110,11 +110,12 @@ resource "coralogix_alert" "ratio_alert" {
       severities   = ["Warning"]
     }
     condition {
-      more_than     = true
-      queries_ratio = 2
-      time_window   = "10Min"
-      group_by      = ["coralogix.metadata.sdkId"]
-      group_by_q1   = true
+      less_than                           = true
+      queries_ratio                       = 2
+      time_window                         = "10Min"
+      group_by                            = ["coralogix.metadata.sdkId"]
+      group_by_q1                         = true
+      undetected_values_auto_retire_ratio = "5Min"
     }
   }
 }
@@ -594,6 +595,7 @@ Optional:
 - `min_non_null_values_percentage` (Number)
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 - `replace_missing_value_with_zero` (Boolean)
+- `undetected_values_auto_retire_ratio` (String)
 
 <a id="nestedblock--metric--promql"></a>
 
@@ -621,6 +623,7 @@ Optional:
 - `min_non_null_values_percentage` (Number)
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 - `replace_missing_value_with_zero` (Boolean)
+- `undetected_values_auto_retire_ratio` (String)
 
 <a id="nestedblock--new_value"></a>
 
@@ -707,6 +710,7 @@ Optional:
 - `group_by_q2` (Boolean)
 - `less_than` (Boolean)
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
+- `undetected_values_auto_retire_ratio` (String)
 
 <a id="nestedblock--ratio--query_1"></a>
 
@@ -807,6 +811,7 @@ Optional:
   more_than_usual.
 - `occurrences_threshold` (Number) The number of log occurrences that is needed to trigger the alert.
 - `time_window` (String)
+- `undetected_values_auto_retire_ratio` (String)
 
 <a id="nestedblock--time_relative"></a>
 
@@ -845,6 +850,7 @@ Optional:
 - `group_by` (List of String) The fields to 'group by' on.
 - `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
+- `undetected_values_auto_retire_ratio` (String)
 
 <a id="nestedblock--timeouts"></a>
 
