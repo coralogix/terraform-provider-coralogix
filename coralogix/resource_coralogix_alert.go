@@ -142,6 +142,18 @@ var (
 	}
 	alertProtoMetricTimeFrameToMetricSchemaTimeFrame = reverseMapStrings(alertSchemaMetricTimeFrameToMetricProtoTimeFrame)
 	alertValidMetricTimeFrames                       = getKeysStrings(alertSchemaMetricTimeFrameToMetricProtoTimeFrame)
+	alertSchemaDeadmanRatiosToProtoDeadmanRatios     = map[string]string{
+		"Never": "CLEANUP_DEADMAN_DURATION_NEVER_OR_UNSPECIFIED",
+		"5Min":  "CLEANUP_DEADMAN_DURATION_5MIN",
+		"10Min": "CLEANUP_DEADMAN_DURATION_10MIN",
+		"1H":    "CLEANUP_DEADMAN_DURATION_1H",
+		"2H":    "CLEANUP_DEADMAN_DURATION_2H",
+		"6H":    "CLEANUP_DEADMAN_DURATION_6H",
+		"12H":   "CLEANUP_DEADMAN_DURATION_12H",
+		"24H":   "CLEANUP_DEADMAN_DURATION_24H",
+	}
+	alertProtoDeadmanRatiosToSchemaDeadmanRatios = reverseMapStrings(alertSchemaDeadmanRatiosToProtoDeadmanRatios)
+	alertValidUndetectedValuesAutoRetireRatios   = getKeysStrings(alertSchemaDeadmanRatiosToProtoDeadmanRatios)
 )
 
 type alertParams struct {
@@ -633,11 +645,16 @@ func standardSchema() map[string]*schema.Schema {
 					Description: "The fields to 'group by' on.",
 				},
 				"group_by_key": {
-					Type:     schema.TypeString,
-					Optional: true,
-					ConflictsWith: []string{"standard.0.condition.0.immediately",
-						"standard.0.condition.0.more_than", "standard.0.condition.0.less_than"},
-					Description: "The key to 'group by' on.",
+					Type:         schema.TypeString,
+					Optional:     true,
+					RequiredWith: []string{"standard.0.condition.0.more_than_usual"},
+					Description:  "The key to 'group by' on.",
+				},
+				"undetected_values_auto_retire_ratio": {
+					Type:         schema.TypeString,
+					Optional:     true,
+					RequiredWith: []string{"standard.0.condition.0.less_than", "standard.0.condition.0.group_by"},
+					ValidateFunc: validation.StringInSlice(alertValidUndetectedValuesAutoRetireRatios, false),
 				},
 			},
 		},
@@ -655,7 +672,6 @@ func ratioSchema() map[string]*schema.Schema {
 		Default:     "Query 1",
 		Description: "Query1 alias.",
 	}
-
 	return map[string]*schema.Schema{
 		"query_1": {
 			Type:     schema.TypeList,
@@ -763,6 +779,12 @@ func ratioSchema() map[string]*schema.Schema {
 						RequiredWith: []string{"ratio.0.condition.0.group_by"},
 						ConflictsWith: []string{"ratio.0.condition.0.group_by_q1",
 							"ratio.0.condition.0.group_by_q2"},
+					},
+					"undetected_values_auto_retire_ratio": {
+						Type:         schema.TypeString,
+						Optional:     true,
+						RequiredWith: []string{"ratio.0.condition.0.less_than", "ratio.0.condition.0.group_by"},
+						ValidateFunc: validation.StringInSlice(alertValidUndetectedValuesAutoRetireRatios, false),
 					},
 				},
 			},
@@ -883,6 +905,12 @@ func timeRelativeSchema() map[string]*schema.Schema {
 					},
 					Description: "The fields to 'group by' on.",
 				},
+				"undetected_values_auto_retire_ratio": {
+					Type:         schema.TypeString,
+					Optional:     true,
+					RequiredWith: []string{"time_relative.0.condition.0.less_than", "time_relative.0.condition.0.group_by"},
+					ValidateFunc: validation.StringInSlice(alertValidUndetectedValuesAutoRetireRatios, false),
+				},
 			},
 		},
 	}
@@ -972,6 +1000,12 @@ func metricSchema() map[string]*schema.Schema {
 									Optional:      true,
 									ConflictsWith: []string{"metric.0.lucene.0.condition.0.replace_missing_value_with_zero"},
 								},
+								"undetected_values_auto_retire_ratio": {
+									Type:         schema.TypeString,
+									Optional:     true,
+									RequiredWith: []string{"metric.0.lucene.0.condition.0.less_than", "metric.0.lucene.0.condition.0.group_by"},
+									ValidateFunc: validation.StringInSlice(alertValidUndetectedValuesAutoRetireRatios, false),
+								},
 							},
 						},
 					},
@@ -1038,6 +1072,12 @@ func metricSchema() map[string]*schema.Schema {
 									Type:          schema.TypeInt,
 									Optional:      true,
 									ConflictsWith: []string{"metric.0.promql.0.condition.0.replace_missing_value_with_zero"},
+								},
+								"undetected_values_auto_retire_ratio": {
+									Type:         schema.TypeString,
+									Optional:     true,
+									RequiredWith: []string{"metric.0.promql.0.condition.0.less_than"},
+									ValidateFunc: validation.StringInSlice(alertValidUndetectedValuesAutoRetireRatios, false),
 								},
 							},
 						},
@@ -1564,14 +1604,16 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 		}
 	case *alertsv1.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
-		conditionSchema = []interface{}{
-			map[string]interface{}{
-				"less_than":             true,
-				"occurrences_threshold": int(conditionParams.GetThreshold().GetValue()),
-				"group_by":              wrappedStringSliceToStringSlice(conditionParams.GroupBy),
-				"time_window":           alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
-			},
+		m := map[string]interface{}{
+			"less_than":             true,
+			"occurrences_threshold": int(conditionParams.GetThreshold().GetValue()),
+			"group_by":              wrappedStringSliceToStringSlice(conditionParams.GroupBy),
+			"time_window":           alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
 		}
+		if deadmanRatio := flattenDeadmanRatio(conditionParams); deadmanRatio != nil {
+			m["undetected_values_auto_retire_ratio"] = *deadmanRatio
+		}
+		conditionSchema = []interface{}{m}
 		notifyWhenResolved = conditionParams.GetNotifyOnResolved()
 		notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
 	case *alertsv1.AlertCondition_MoreThan:
@@ -1601,6 +1643,15 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 	}
 
 	return
+}
+
+func flattenDeadmanRatio(conditionParams *alertsv1.ConditionParameters) *string {
+	if relatedExtendedData := conditionParams.GetRelatedExtendedData(); relatedExtendedData != nil {
+		deadmanRatioStr := alertsv1.CleanupDeadmanDuration_name[int32(relatedExtendedData.GetCleanupDeadmanDuration())]
+		deadmanRatio := alertProtoDeadmanRatiosToSchemaDeadmanRatios[deadmanRatioStr]
+		return &deadmanRatio
+	}
+	return nil
 }
 
 func flattenRatioAlert(filters *alertsv1.AlertFilters, condition interface{}) (alertSchema interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
@@ -1637,6 +1688,9 @@ func flattenRatioCondition(condition interface{}, query2 *alertsv1.AlertFilters_
 
 	ratioParamsMap["queries_ratio"] = conditionParams.GetThreshold().GetValue()
 	ratioParamsMap["time_window"] = alertProtoTimeFrameToSchemaTimeFrame[conditionParams.GetTimeframe().String()]
+	if deadmanRatio := flattenDeadmanRatio(conditionParams); deadmanRatio != nil {
+		ratioParamsMap["undetected_values_auto_retire_ratio"] = *deadmanRatio
+	}
 	ignoreInfinity = conditionParams.GetIgnoreInfinity()
 	notifyWhenResolved = conditionParams.GetNotifyOnResolved()
 	notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
@@ -1716,6 +1770,9 @@ func flattenTimeRelativeCondition(condition interface{}) (timeRelativeConditionS
 	timeFrame := conditionParams.Timeframe
 	relativeTimeFrame := conditionParams.GetRelativeTimeframe()
 	timeRelativeCondition["relative_time_window"] = flattenRelativeTimeWindow(timeFrame, relativeTimeFrame)
+	if deadmanRatio := flattenDeadmanRatio(conditionParams); deadmanRatio != nil {
+		timeRelativeCondition["undetected_values_auto_retire_ratio"] = *deadmanRatio
+	}
 
 	ignoreInfinity = conditionParams.GetIgnoreInfinity()
 	notifyWhenResolved = conditionParams.GetNotifyOnResolved()
@@ -1759,7 +1816,9 @@ func flattenMetricAlert(filters *alertsv1.AlertFilters, condition interface{}) (
 		conditionMap, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues = flattenLuceneCondition(conditionParams)
 	}
 	conditionMap[conditionStr] = true
-
+	if deadmanRatio := flattenDeadmanRatio(conditionParams); deadmanRatio != nil {
+		conditionMap["undetected_values_auto_retire_ratio"] = *deadmanRatio
+	}
 	metricMap := map[string]interface{}{
 		"search_query": searchQuery,
 		"condition":    []interface{}{conditionMap},
@@ -2228,10 +2287,23 @@ func expandStandardCondition(m map[string]interface{}, notifyOnResolved, notifyO
 	return nil, fmt.Errorf("immediately, less_than, more_than or more_than_usual have to be true")
 }
 
+func expandRelatedExtendedData(m map[string]interface{}) *alertsv1.RelatedExtendedData {
+	if deadmanRatio, ok := m["undetected_values_auto_retire_ratio"]; ok {
+		protoDeadmanRatioStr := alertSchemaDeadmanRatiosToProtoDeadmanRatios[deadmanRatio.(string)]
+		protoDeadmanRatio := alertsv1.CleanupDeadmanDuration_value[protoDeadmanRatioStr]
+		cleanupDeadmanDuration := alertsv1.CleanupDeadmanDuration(protoDeadmanRatio)
+		return &alertsv1.RelatedExtendedData{
+			CleanupDeadmanDuration: &cleanupDeadmanDuration,
+		}
+	}
+	return nil
+}
+
 func expandStandardConditionParameters(m map[string]interface{}, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) *alertsv1.ConditionParameters {
 	timeFrame := expandTimeFrame(m["time_window"].(string))
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
 	threshold := wrapperspb.Double(float64(m["occurrences_threshold"].(int)))
+	relatedExtendedData := expandRelatedExtendedData(m)
 
 	return &alertsv1.ConditionParameters{
 		Threshold:               threshold,
@@ -2239,6 +2311,7 @@ func expandStandardConditionParameters(m map[string]interface{}, notifyOnResolve
 		GroupBy:                 groupBy,
 		NotifyOnResolved:        notifyOnResolved,
 		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
+		RelatedExtendedData:     relatedExtendedData,
 	}
 }
 
@@ -2295,6 +2368,8 @@ func expandRatioCondition(m map[string]interface{}, groupBy []*wrapperspb.String
 func expandRatioParams(m map[string]interface{}, groupBy []*wrapperspb.StringValue, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) *alertsv1.ConditionParameters {
 	threshold := wrapperspb.Double(m["queries_ratio"].(float64))
 	timeFrame := expandTimeFrame(m["time_window"].(string))
+	relatedExtendedData := expandRelatedExtendedData(m)
+
 	parameters := &alertsv1.ConditionParameters{
 		Threshold:               threshold,
 		Timeframe:               timeFrame,
@@ -2302,6 +2377,7 @@ func expandRatioParams(m map[string]interface{}, groupBy []*wrapperspb.StringVal
 		NotifyOnResolved:        notifyOnResolved,
 		IgnoreInfinity:          ignoreInfinity,
 		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
+		RelatedExtendedData:     relatedExtendedData,
 	}
 	return parameters
 }
@@ -2472,6 +2548,7 @@ func expandTimeRelativeConditionParameters(m map[string]interface{}, ignoreInfin
 	timeFrame, relativeTimeframe := expandTimeFrameAndRelativeTimeframe(m["relative_time_window"].(string))
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
 	threshold := wrapperspb.Double(m["ratio_threshold"].(float64))
+	relatedExtendedData := expandRelatedExtendedData(m)
 	return &alertsv1.ConditionParameters{
 		Timeframe:               timeFrame,
 		RelativeTimeframe:       relativeTimeframe,
@@ -2480,6 +2557,7 @@ func expandTimeRelativeConditionParameters(m map[string]interface{}, ignoreInfin
 		IgnoreInfinity:          ignoreInfinity,
 		NotifyOnResolved:        notifyOnResolved,
 		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
+		RelatedExtendedData:     relatedExtendedData,
 	}
 }
 
@@ -2524,12 +2602,14 @@ func expandMetricCondition(m map[string]interface{}, notifyWhenResolved, notifyO
 	nonNullPercentage := wrapperspb.UInt32(uint32(conditionMap["min_non_null_values_percentage"].(int)))
 	swapNullValues := wrapperspb.Bool(conditionMap["replace_missing_value_with_zero"].(bool))
 	timeFrame := expandMetricTimeFrame(conditionMap["time_window"].(string))
+	relatedExtendedData := expandRelatedExtendedData(m)
 
 	parameters := &alertsv1.ConditionParameters{
 		Threshold:               threshold,
 		NotifyOnResolved:        notifyWhenResolved,
 		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
 		Timeframe:               timeFrame,
+		RelatedExtendedData:     relatedExtendedData,
 	}
 
 	if isPromQL {
