@@ -12,7 +12,7 @@ The [Coralogix provider](https://registry.terraform.io/providers/coralogix/coral
 with [Coralogix](https://coralogix.com/) resources.
 
 # Supporting
-- [Slack channel](https://coralogix-dev.slack.com/archives/C04CV0JG36H)
+- Chat: [#terraform-providers in Coralogix](https://coralogix-dev.slack.com/archives/C04CV0JG36H) (To join the channel, contact the [#cs-interface](https://coralogix-dev.slack.com/archives/CRZ06DKGS))
 
 # Requirements
 

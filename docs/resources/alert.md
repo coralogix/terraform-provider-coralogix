@@ -58,7 +58,7 @@ resource "coralogix_alert" "standard_alert" {
 
   standard {
     applications = ["nginx"] //change here for existing applications from your account
-    subsystems   = ["training"] //change here for existing subsystems from your account
+    subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
     severities   = ["Warning", "Info"]
     search_query = "remote_addr_enriched:/.*/"
     condition {
@@ -106,7 +106,7 @@ resource "coralogix_alert" "ratio_alert" {
     }
     query_2 {
       applications = ["nginx"] //change here for existing applications from your account
-      subsystems   = ["training"] //change here for existing subsystems from your account
+      subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
       severities   = ["Warning"]
     }
     condition {

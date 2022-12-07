@@ -100,7 +100,7 @@ data "coralogix_rules_group" "imported_rules_group_example" {
 resource "coralogix_rules_group" "extract_timestamp_example" {
   name         = "Example extract-timestamp rule-group from terraform"
   description  = "rule_group created by coralogix terraform provider"
-  applications = ["application-name"] //change here for existing applications from your account
+  applications = ["nginx"] //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
 
