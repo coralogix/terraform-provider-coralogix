@@ -272,8 +272,6 @@ func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
 		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
 	}
 
-	alert.searchQuery = "http_requests_total{status!~\"4..\"}"
-
 	checks := []resource.TestCheckFunc{
 		resource.TestCheckResourceAttrSet(resourceName, "id"),
 		resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
@@ -282,7 +280,7 @@ func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
 		resource.TestCheckResourceAttr(resourceName, "alert_severity", alert.severity),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.search_query", alert.searchQuery),
+		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.search_query", "http_requests_total{status!~\"4..\"}"),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.threshold", strconv.Itoa(alert.threshold)),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.more_than", "true"),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.sample_threshold_percentage", strconv.Itoa(alert.sampleThresholdPercentage)),
@@ -811,7 +809,7 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
 
   metric {
     promql {
-      search_query = "%s"
+      search_query = "http_requests_total{status!~\"4..\"}"
       condition {
         more_than                    = true
         threshold                    = %d
@@ -823,8 +821,8 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
   }
 }`,
 		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.utc,
-		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
-		a.searchQuery, a.threshold, a.sampleThresholdPercentage, a.timeWindow, a.nonNullPercentage)
+		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds, a.threshold, a.sampleThresholdPercentage,
+		a.timeWindow, a.nonNullPercentage)
 }
 
 func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
