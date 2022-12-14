@@ -272,6 +272,8 @@ func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
 		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
 	}
 
+	alert.searchQuery = "http_requests_total{status!~\"4..\"}"
+
 	checks := []resource.TestCheckFunc{
 		resource.TestCheckResourceAttrSet(resourceName, "id"),
 		resource.TestCheckResourceAttr(resourceName, "enabled", "true"),

@@ -262,7 +262,7 @@ resource "coralogix_alert" "metric_promql_alert" {
 
   metric {
     promql {
-      search_query = "status.numeric:[500 TO *] AND env:production"
+      search_query = "http_requests_total{status!~\"4..\"}"
       condition {
         more_than                      = true
         threshold                      = 3

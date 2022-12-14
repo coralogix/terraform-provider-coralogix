@@ -8,6 +8,7 @@ description: |- The Coralogix provider is used to interact with the resources su
 
 The Coralogix provider is used to interact with the resources supported by [Coralogix](https://coralogix.com/). The provider needs to be configured with the proper credentials before it can be used.
 
+**Note! The Coralogix terraform registry has now been updated to v1.3.x.** The new version contains many [breaking changes](../CHANGELOG.md) and does not support webhooks. It should be configured by following the instructions below.
 
 ## Example Usage
 
