@@ -477,9 +477,10 @@ func metaLabels() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Label key.",
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[A-Za-z\d_-]*$`), "not valid key"),
+				Description:  "Label key.",
 			},
 			"value": {
 				Type:        schema.TypeString,
@@ -672,13 +673,16 @@ func standardSchema() map[string]*schema.Schema {
 								ExactlyOneOf: []string{"standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "standard.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
 							},
 							"auto_retire_ratio": {
-								Type:         schema.TypeString,
-								Optional:     true,
-								RequiredWith: []string{"standard.0.condition.0.less_than", "standard.0.condition.0.group_by", "standard.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-								ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+								Type:          schema.TypeString,
+								Optional:      true,
+								RequiredWith:  []string{"standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
+								ConflictsWith: []string{"standard.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+								ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
 							},
 						},
 					},
+					ConflictsWith: []string{"standard.0.condition.0.more_than", "standard.0.condition.0.immediately",
+						"standard.0.condition.0.more_than_usual"},
 				},
 			},
 		},
@@ -823,10 +827,11 @@ func ratioSchema() map[string]*schema.Schema {
 									ExactlyOneOf: []string{"ratio.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "ratio.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
 								},
 								"auto_retire_ratio": {
-									Type:         schema.TypeString,
-									Optional:     true,
-									RequiredWith: []string{"ratio.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
-									ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+									Type:          schema.TypeString,
+									Optional:      true,
+									RequiredWith:  []string{"ratio.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
+									ConflictsWith: []string{"ratio.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+									ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
 								},
 							},
 						},
@@ -954,6 +959,7 @@ func timeRelativeSchema() map[string]*schema.Schema {
 				"manage_undetected_values": {
 					Type:     schema.TypeList,
 					Optional: true,
+					Computed: true,
 					MaxItems: 1,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
@@ -968,13 +974,15 @@ func timeRelativeSchema() map[string]*schema.Schema {
 								ExactlyOneOf: []string{"time_relative.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "time_relative.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
 							},
 							"auto_retire_ratio": {
-								Type:         schema.TypeString,
-								Optional:     true,
-								RequiredWith: []string{"time_relative.0.condition.0.less_than", "time_relative.0.condition.0.group_by", "time_relative.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-								ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+								Type:          schema.TypeString,
+								Optional:      true,
+								RequiredWith:  []string{"time_relative.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
+								ConflictsWith: []string{"time_relative.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+								ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
 							},
 						},
 					},
+					RequiredWith: []string{"time_relative.0.condition.0.less_than", "time_relative.0.condition.0.group_by"},
 				},
 			},
 		},
@@ -1068,6 +1076,7 @@ func metricSchema() map[string]*schema.Schema {
 								"manage_undetected_values": {
 									Type:     schema.TypeList,
 									Optional: true,
+									Computed: true,
 									MaxItems: 1,
 									Elem: &schema.Resource{
 										Schema: map[string]*schema.Schema{
@@ -1082,13 +1091,15 @@ func metricSchema() map[string]*schema.Schema {
 												ExactlyOneOf: []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
 											},
 											"auto_retire_ratio": {
-												Type:         schema.TypeString,
-												Optional:     true,
-												RequiredWith: []string{"metric.0.lucene.0.condition.0.less_than", "metric.0.lucene.0.condition.0.group_by", "metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-												ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+												Type:          schema.TypeString,
+												Optional:      true,
+												RequiredWith:  []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
+												ConflictsWith: []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+												ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
 											},
 										},
 									},
+									ConflictsWith: []string{"metric.0.lucene.0.condition.0.more_than"},
 								},
 							},
 						},
@@ -1159,7 +1170,8 @@ func metricSchema() map[string]*schema.Schema {
 								},
 								"manage_undetected_values": {
 									Type:     schema.TypeList,
-									Required: true,
+									Optional: true,
+									Computed: true,
 									MaxItems: 1,
 									Elem: &schema.Resource{
 										Schema: map[string]*schema.Schema{
@@ -1174,21 +1186,15 @@ func metricSchema() map[string]*schema.Schema {
 												ExactlyOneOf: []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "metric.0.promql.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
 											},
 											"auto_retire_ratio": {
-												Type:         schema.TypeString,
-												Optional:     true,
-												RequiredWith: []string{"metric.0.promql.0.condition.0.less_than", "metric.0.promql.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-												ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+												Type:          schema.TypeString,
+												Optional:      true,
+												RequiredWith:  []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
+												ConflictsWith: []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+												ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
 											},
 										},
 									},
-									DefaultFunc: func() (interface{}, error) {
-										return []map[string]interface{}{
-											{
-												"enable_triggering_on_undetected_values": "true",
-												"auto_retire_ratio":                      "Never",
-											},
-										}, nil
-									},
+									ConflictsWith: []string{"metric.0.promql.0.condition.0.more_than"},
 								},
 							},
 						},
@@ -1352,7 +1358,6 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	panic(createAlertRequest)
 	log.Printf("[INFO] Creating new alert: %#v", createAlertRequest)
 	AlertResp, err := meta.(*clientset.ClientSet).Alerts().CreateAlert(ctx, createAlertRequest)
 	if err != nil {
@@ -1764,18 +1769,25 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 }
 
 func flattenManageUndetectedValues(data *alertsv1.RelatedExtendedData) interface{} {
-	if data == nil || data.CleanupDeadmanDuration == nil {
+	if data == nil || (data.GetShouldTriggerDeadman() == nil && data.GetShouldTriggerDeadman().GetValue()) {
 		return []map[string]interface{}{
 			{
-				"disable_triggering_on_undetected_values": false,
+				"enable_triggering_on_undetected_values": true,
+				"auto_retire_ratio":                      flattenDeadmanRatio(alertsv1.CleanupDeadmanDuration_CLEANUP_DEADMAN_DURATION_NEVER_OR_UNSPECIFIED),
+			},
+		}
+	} else if data.GetShouldTriggerDeadman().GetValue() {
+		return []map[string]interface{}{
+			{
+				"enable_triggering_on_undetected_values": true,
+				"auto_retire_ratio":                      flattenDeadmanRatio(data.GetCleanupDeadmanDuration()),
 			},
 		}
 	}
 
 	return []map[string]interface{}{
 		{
-			"enable_triggering_on_undetected_values": true,
-			"auto_retire_ratio":                      flattenDeadmanRatio(*data.CleanupDeadmanDuration),
+			"disable_triggering_on_undetected_values": true,
 		},
 	}
 }
@@ -1938,7 +1950,7 @@ func flattenMetricAlert(filters *alertsv1.AlertFilters, condition interface{}) (
 		metricTypeStr = "promql"
 		searchQuery = promqlParams.GetPromqlText().GetValue()
 		conditionMap, notifyWhenResolved = flattenPromQLCondition(conditionParams)
-
+		conditionMap["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
 	} else {
 		metricTypeStr = "lucene"
 		searchQuery = filters.GetText().GetValue()
@@ -1948,6 +1960,7 @@ func flattenMetricAlert(filters *alertsv1.AlertFilters, condition interface{}) (
 	if conditionStr == "less_than" {
 		conditionMap["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
 	}
+
 	metricMap := map[string]interface{}{
 		"search_query": searchQuery,
 		"condition":    []interface{}{conditionMap},
@@ -2420,15 +2433,19 @@ func expandRelatedExtendedData(m map[string]interface{}) *alertsv1.RelatedExtend
 	if v, ok := m["manage_undetected_values"]; ok {
 		if manageUndetectedValues, ok := v.([]interface{}); ok && len(manageUndetectedValues) != 0 {
 			raw := manageUndetectedValues[0].(map[string]interface{})
-			var cleanupDeadmanDuration *alertsv1.CleanupDeadmanDuration
 			if enable, ok := raw["enable_triggering_on_undetected_values"]; ok && enable.(bool) {
 				cleanupDeadmanDurationStr := alertSchemaDeadmanRatiosToProtoDeadmanRatios[raw["auto_retire_ratio"].(string)]
-				cleanupDeadmanDurationVal := alertsv1.CleanupDeadmanDuration(alertsv1.CleanupDeadmanDuration_value[cleanupDeadmanDurationStr])
-				cleanupDeadmanDuration = &cleanupDeadmanDurationVal
+				cleanupDeadmanDuration := alertsv1.CleanupDeadmanDuration(alertsv1.CleanupDeadmanDuration_value[cleanupDeadmanDurationStr])
+				return &alertsv1.RelatedExtendedData{
+					CleanupDeadmanDuration: &cleanupDeadmanDuration,
+					ShouldTriggerDeadman:   wrapperspb.Bool(true),
+				}
+			} else if disable, ok := raw["disable_triggering_on_undetected_values"]; ok && disable.(bool) {
+				return &alertsv1.RelatedExtendedData{
+					ShouldTriggerDeadman: wrapperspb.Bool(false),
+				}
 			}
-			return &alertsv1.RelatedExtendedData{
-				CleanupDeadmanDuration: cleanupDeadmanDuration,
-			}
+
 		}
 	}
 
@@ -2737,7 +2754,7 @@ func expandMetricCondition(m map[string]interface{}, notifyWhenResolved, notifyO
 	nonNullPercentage := wrapperspb.UInt32(uint32(conditionMap["min_non_null_values_percentage"].(int)))
 	swapNullValues := wrapperspb.Bool(conditionMap["replace_missing_value_with_zero"].(bool))
 	timeFrame := expandMetricTimeFrame(conditionMap["time_window"].(string))
-	relatedExtendedData := expandRelatedExtendedData(m)
+	relatedExtendedData := expandRelatedExtendedData(conditionMap)
 
 	parameters := &alertsv1.ConditionParameters{
 		Threshold:               threshold,

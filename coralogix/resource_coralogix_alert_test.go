@@ -24,7 +24,7 @@ func TestAccCoralogixResourceAlert_standard(t *testing.T) {
 		groupBy:               []string{"EventType"},
 		occurrencesThreshold:  acctest.RandIntRange(1, 1000),
 		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
-		deadmanRatio:          selectRandomlyFromSlice(alertValidUndetectedValuesAutoRetireRatios),
+		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
 	}
 
 	checks := extractCommonChecks(&alert.alertCommonTestParams, resourceName, "standard")
@@ -245,7 +245,7 @@ func TestAccCoralogixResourceAlert_metricLucene(t *testing.T) {
 		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.sample_threshold_percentage", strconv.Itoa(alert.sampleThresholdPercentage)),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.time_window", alert.timeWindow),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.group_by.0", alert.groupBy[0]),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values", "true"),
+		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values", "true"),
 	}
 
 	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds, resourceName)
@@ -421,7 +421,7 @@ func TestAccCoralogixResourceAlert_update(t *testing.T) {
 		groupBy:               []string{"EventType"},
 		occurrencesThreshold:  10,
 		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
-		deadmanRatio:          selectRandomlyFromSlice(alertValidUndetectedValuesAutoRetireRatios),
+		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
 	}
 
 	checks1 := extractCommonChecks(&alert1.alertCommonTestParams, resourceName, "standard")
@@ -434,7 +434,7 @@ func TestAccCoralogixResourceAlert_update(t *testing.T) {
 		groupBy:               []string{"metadata.uid"},
 		occurrencesThreshold:  10,
 		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
-		deadmanRatio:          selectRandomlyFromSlice(alertValidUndetectedValuesAutoRetireRatios),
+		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
 	}
 
 	checks2 := extractCommonChecks(&alert2.alertCommonTestParams, resourceName, "standard")
@@ -471,7 +471,7 @@ func getRandomAlert() *alertCommonTestParams {
 		searchQuery:     "remote_addr_enriched:/.*/",
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen:      randActiveWhen(),
-		notifyEveryMin:  acctest.RandIntRange(60, 3600),
+		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
 		alertFilters: alertFilters{
 			severities: selectManyRandomlyFromSlice(alertValidLogSeverities),
 		},
@@ -563,14 +563,14 @@ func testAccCoralogixResourceAlertStandard(a *standardAlertTestParams) string {
   	}
   }
 
-	meta_labels {
-    	key   = "alert_type"
-    	value = "security"
-  	}
-  	meta_labels {
-    	key   = "security_severity"
-    	value = "High"
-  	}
+   meta_labels {
+   	key   = "alert_type"
+    value = "security"
+   }
+   meta_labels {
+	key   = "security_severity"
+	value = "High"
+   }
 
   standard {
     severities = %s
@@ -580,7 +580,7 @@ func testAccCoralogixResourceAlertStandard(a *standardAlertTestParams) string {
       less_than = true
       occurrences_threshold = %d
       time_window = "%s"
-      manage_undetected_values = {
+      manage_undetected_values {
 			enable_triggering_on_undetected_values = true
 			auto_retire_ratio = "%s"
 		}
@@ -789,6 +789,9 @@ func testAccCoralogixResourceAlertMetricLucene(a *metricLuceneAlertTestParams) s
         sample_threshold_percentage  = %d
         time_window                  = "%s"
 		group_by = %s
+		manage_undetected_values{
+			disable_triggering_on_undetected_values = true
+		}
       }
     }
   }
@@ -834,8 +837,8 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
   }
 }`,
 		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
-		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
-		a.searchQuery, a.threshold, a.sampleThresholdPercentage, a.timeWindow, a.nonNullPercentage)
+		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds, a.threshold, a.sampleThresholdPercentage,
+		a.timeWindow, a.nonNullPercentage)
 }
 
 func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
