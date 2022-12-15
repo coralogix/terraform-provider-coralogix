@@ -23,7 +23,7 @@ resource "coralogix_rules_group" "rules_group_example" {
   name         = "Example rule-group from terraform"
   description  = "rule_group creates by coralogix terraform provider"
   applications = ["nginx"] //change here for existing applications from your account
-  subsystems   = ["training"] //change here for existing subsystems from your account
+  subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
 
   rule_subgroups {
