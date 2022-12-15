@@ -43,7 +43,7 @@ resource "coralogix_alert" "standard_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -87,7 +87,7 @@ resource "coralogix_alert" "ratio_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -137,7 +137,7 @@ resource "coralogix_alert" "new_value_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -172,7 +172,7 @@ resource "coralogix_alert" "time_relative_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -210,7 +210,7 @@ resource "coralogix_alert" "metric_lucene_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -253,7 +253,7 @@ resource "coralogix_alert" "metric_promql_alert" {
   }
 
   scheduling {
-    utc = -8
+    time_zone = "UTC-8"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -293,7 +293,7 @@ resource "coralogix_alert" "unique_count_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -337,7 +337,7 @@ resource "coralogix_alert" "tracing_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -387,7 +387,7 @@ resource "coralogix_alert" "flow_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"

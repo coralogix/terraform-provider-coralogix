@@ -2,7 +2,7 @@ terraform {
   required_providers {
     coralogix = {
       version = "~> 1.3"
-      source  = "coralogix/coralogix"
+      source  = "locally/debug/coralogix"
     }
   }
 }
@@ -36,7 +36,7 @@ provider "coralogix" {
 #  }
 #
 #  scheduling {
-#    utc = 2
+#    time_zone = "UTC+2"
 #    time_frames {
 #      days_enabled = ["Wednesday", "Thursday"]
 #      start_time   = "08:30"
@@ -80,7 +80,7 @@ resource "coralogix_alert" "ratio_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -103,12 +103,15 @@ resource "coralogix_alert" "ratio_alert" {
       severities   = ["Warning"]
     }
     condition {
-      less_than                           = true
-      queries_ratio                       = 2
-      time_window                         = "10Min"
-      group_by                            = ["coralogix.metadata.sdkId"]
-      group_by_q1                         = true
-      undetected_values_auto_retire_ratio = "5Min"
+      less_than                = true
+      queries_ratio            = 2
+      time_window              = "10Min"
+      group_by                 = ["coralogix.metadata.sdkId"]
+      group_by_q1              = true
+      manage_undetected_values  {
+        enable_triggering_on_undetected_values = true
+        auto_retire_ratio                      = "5Min"
+      }
     }
   }
 }
@@ -126,7 +129,7 @@ resource "coralogix_alert" "ratio_alert" {
 #  }
 #
 #  scheduling {
-#    utc = 2
+#    time_zone = "UTC+2"
 #    time_frames {
 #      days_enabled = ["Wednesday", "Thursday"]
 #      start_time   = "08:30"
@@ -157,7 +160,7 @@ resource "coralogix_alert" "ratio_alert" {
 #  }
 #
 #  scheduling {
-#    utc = 2
+#    time_zone = "UTC+2"
 #    time_frames {
 #      days_enabled = ["Wednesday", "Thursday"]
 #      start_time   = "08:30"
@@ -191,7 +194,7 @@ resource "coralogix_alert" "ratio_alert" {
 #  }
 #
 #  scheduling {
-#    utc = 2
+#    time_zone = "UTC+2"
 #    time_frames {
 #      days_enabled = ["Wednesday", "Thursday"]
 #      start_time   = "08:30"
@@ -230,7 +233,7 @@ resource "coralogix_alert" "ratio_alert" {
 #  }
 #
 #  scheduling {
-#    utc = -8
+#    time_zone = "UTC-8"
 #    time_frames {
 #      days_enabled = ["Wednesday", "Thursday"]
 #      start_time   = "08:30"
@@ -266,7 +269,7 @@ resource "coralogix_alert" "ratio_alert" {
 #  }
 #
 #  scheduling {
-#    utc = 2
+#    time_zone = "UTC+2"
 #    time_frames {
 #      days_enabled = ["Wednesday", "Thursday"]
 #      start_time   = "08:30"
@@ -306,7 +309,7 @@ resource "coralogix_alert" "ratio_alert" {
 #  }
 #
 #  scheduling {
-#    utc = 2
+#    time_zone = "UTC+2"
 #    time_frames {
 #      days_enabled = ["Wednesday", "Thursday"]
 #      start_time   = "08:30"
@@ -352,7 +355,7 @@ resource "coralogix_alert" "ratio_alert" {
 #  }
 #
 #  scheduling {
-#    utc = 2
+#    time_zone = "UTC+2"
 #    time_frames {
 #      days_enabled = ["Wednesday", "Thursday"]
 #      start_time   = "08:30"
