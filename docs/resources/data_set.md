@@ -14,7 +14,7 @@ description: |-
 ```hcl
 resource "coralogix_data_set" data_set {
   name         = "custom enrichment data"
-  description  = "description.ssss"
+  description  = "description"
   file_content = file("./date-to-day-of-the-week.csv")
 }
 ```

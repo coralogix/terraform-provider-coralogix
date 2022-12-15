@@ -285,7 +285,7 @@ func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
 		resource.TestCheckResourceAttr(resourceName, "alert_severity", alert.severity),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.search_query", alert.searchQuery),
+		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.search_query", "http_requests_total{status!~\"4..\"}"),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.threshold", strconv.Itoa(alert.threshold)),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.less_than", "true"),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.sample_threshold_percentage", strconv.Itoa(alert.sampleThresholdPercentage)),
@@ -822,7 +822,7 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
 
   metric {
     promql {
-      search_query = "%s"
+      search_query = "http_requests_total{status!~\"4..\"}"
       condition {
         less_than                    = true
         threshold                    = %d
