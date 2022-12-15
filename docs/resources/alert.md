@@ -82,7 +82,7 @@ resource "coralogix_alert" "ratio_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_min                         = 1
+    notify_every_min                         = 10
     notify_only_on_triggered_group_by_values = true
   }
 
@@ -110,12 +110,15 @@ resource "coralogix_alert" "ratio_alert" {
       severities   = ["Warning"]
     }
     condition {
-      less_than                           = true
-      queries_ratio                       = 2
-      time_window                         = "10Min"
-      group_by                            = ["coralogix.metadata.sdkId"]
-      group_by_q1                         = true
-      undetected_values_auto_retire_ratio = "5Min"
+      less_than     = true
+      queries_ratio = 2
+      time_window   = "10Min"
+      group_by      = ["coralogix.metadata.sdkId"]
+      group_by_q1   = true
+      manage_undetected_values {
+        enable_triggering_on_undetected_values = true
+        auto_retire_ratio                      = "5Min"
+      }
     }
   }
 }
@@ -592,10 +595,22 @@ Optional:
 
 - `group_by` (List of String) The fields to 'group by' on.
 - `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
+- `manage_undetected_values` (Block List, Max: 1) (see [below for nested schema](#nestedblock--metric--lucene--condition--manage_undetected_values))
 - `min_non_null_values_percentage` (Number)
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 - `replace_missing_value_with_zero` (Boolean)
-- `undetected_values_auto_retire_ratio` (String)
+
+<a id="nestedblock--metric--lucene--condition--manage_undetected_values"></a>
+### Nested Schema for `metric.lucene.condition.manage_undetected_values`
+
+Optional:
+
+- `auto_retire_ratio` (String)
+- `disable_triggering_on_undetected_values` (Boolean)
+- `enable_triggering_on_undetected_values` (Boolean)
+
+
+
 
 <a id="nestedblock--metric--promql"></a>
 
@@ -620,10 +635,23 @@ Required:
 Optional:
 
 - `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
+- `manage_undetected_values` (Block List, Max: 1) (see [below for nested schema](#nestedblock--metric--promql--condition--manage_undetected_values))
 - `min_non_null_values_percentage` (Number)
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 - `replace_missing_value_with_zero` (Boolean)
-- `undetected_values_auto_retire_ratio` (String)
+
+<a id="nestedblock--metric--promql--condition--manage_undetected_values"></a>
+### Nested Schema for `metric.promql.condition.manage_undetected_values`
+
+Optional:
+
+- `auto_retire_ratio` (String)
+- `disable_triggering_on_undetected_values` (Boolean)
+- `enable_triggering_on_undetected_values` (Boolean)
+
+
+
+
 
 <a id="nestedblock--new_value"></a>
 
@@ -709,8 +737,19 @@ Optional:
 - `group_by_q1` (Boolean)
 - `group_by_q2` (Boolean)
 - `less_than` (Boolean)
+- `manage_undetected_values` (Block List, Max: 1) (see [below for nested schema](#nestedblock--ratio--condition--manage_undetected_values))
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `undetected_values_auto_retire_ratio` (String)
+
+<a id="nestedblock--ratio--condition--manage_undetected_values"></a>
+### Nested Schema for `ratio.condition.manage_undetected_values`
+
+Optional:
+
+- `auto_retire_ratio` (String)
+- `disable_triggering_on_undetected_values` (Boolean)
+- `enable_triggering_on_undetected_values` (Boolean)
+
+
 
 <a id="nestedblock--ratio--query_1"></a>
 
@@ -754,8 +793,7 @@ Required:
 
 Optional:
 
-- `utc` (Number) Specifies the time zone to be used in interpreting the schedule. The value of this field must be an
-  integer between [-12, 14].
+- `time_zone` (String) Specifies the time zone to be used in interpreting the schedule. Can be one of ["UTC-11" "UTC-10" "UTC-9" "UTC-8" "UTC-7" "UTC-6" "UTC-5" "UTC-4" "UTC-3" "UTC-2" "UTC-1" "UTC+0" "UTC+1" "UTC+2" "UTC+3" "UTC+4" "UTC+5" "UTC+6" "UTC+7" "UTC+8" "UTC+9" "UTC+10" "UTC+11" "UTC+12" "UTC+13" "UTC+14"]
 
 <a id="nestedblock--scheduling--time_frames"></a>
 
@@ -801,17 +839,25 @@ Optional:
 
 - `group_by` (List of String) The fields to 'group by' on.
 - `group_by_key` (String) The key to 'group by' on.
-- `immediately` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
-  more_than_usual.
-- `less_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
-  more_than_usual.
-- `more_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
-  more_than_usual.
-- `more_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
-  more_than_usual.
+- `immediately` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
+- `less_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
+- `manage_undetected_values` (Block List, Max: 1) (see [below for nested schema](#nestedblock--standard--condition--manage_undetected_values))
+- `more_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
+- `more_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
 - `occurrences_threshold` (Number) The number of log occurrences that is needed to trigger the alert.
 - `time_window` (String)
-- `undetected_values_auto_retire_ratio` (String)
+
+<a id="nestedblock--standard--condition--manage_undetected_values"></a>
+### Nested Schema for `standard.condition.manage_undetected_values`
+
+Optional:
+
+- `auto_retire_ratio` (String)
+- `disable_triggering_on_undetected_values` (Boolean)
+- `enable_triggering_on_undetected_values` (Boolean)
+
+
+
 
 <a id="nestedblock--time_relative"></a>
 
@@ -849,11 +895,22 @@ Optional:
 
 - `group_by` (List of String) The fields to 'group by' on.
 - `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
+- `manage_undetected_values` (Block List, Max: 1) (see [below for nested schema](#nestedblock--time_relative--condition--manage_undetected_values))
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `undetected_values_auto_retire_ratio` (String)
+
+<a id="nestedblock--time_relative--condition--manage_undetected_values"></a>
+### Nested Schema for `time_relative.condition.manage_undetected_values`
+
+Optional:
+
+- `auto_retire_ratio` (String)
+- `disable_triggering_on_undetected_values` (Boolean)
+- `enable_triggering_on_undetected_values` (Boolean)
+
+
+
 
 <a id="nestedblock--timeouts"></a>
-
 ### Nested Schema for `timeouts`
 
 Optional:

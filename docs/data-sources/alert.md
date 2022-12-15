@@ -131,6 +131,7 @@ Read-Only:
 - `arithmetic_operator_modifier` (Number)
 - `group_by` (List of String)
 - `less_than` (Boolean)
+- `manage_undetected_values` (List of Object) (see [below for nested schema](#nestedobjatt--metric--lucene--condition--manage_undetected_values))
 - `metric_field` (String)
 - `min_non_null_values_percentage` (Number)
 - `more_than` (Boolean)
@@ -138,7 +139,16 @@ Read-Only:
 - `sample_threshold_percentage` (Number)
 - `threshold` (Number)
 - `time_window` (String)
-- `undetected_values_auto_retire_ratio` (String)
+
+<a id="nestedobjatt--metric--lucene--condition--manage_undetected_values"></a>
+### Nested Schema for `metric.lucene.condition.time_window`
+
+Read-Only:
+
+- `auto_retire_ratio` (String)
+- `disable_triggering_on_undetected_values` (Boolean)
+- `enable_triggering_on_undetected_values` (Boolean)
+
 
 
 
@@ -156,13 +166,23 @@ Read-Only:
 Read-Only:
 
 - `less_than` (Boolean)
+- `manage_undetected_values` (List of Object) (see [below for nested schema](#nestedobjatt--metric--promql--condition--manage_undetected_values))
 - `min_non_null_values_percentage` (Number)
 - `more_than` (Boolean)
 - `replace_missing_value_with_zero` (Boolean)
 - `sample_threshold_percentage` (Number)
 - `threshold` (Number)
 - `time_window` (String)
-- `undetected_values_auto_retire_ratio` (String)
+
+<a id="nestedobjatt--metric--promql--condition--manage_undetected_values"></a>
+### Nested Schema for `metric.promql.condition.time_window`
+
+Read-Only:
+
+- `auto_retire_ratio` (String)
+- `disable_triggering_on_undetected_values` (Boolean)
+- `enable_triggering_on_undetected_values` (Boolean)
+
 
 
 
@@ -234,10 +254,20 @@ Read-Only:
 - `group_by_q1` (Boolean)
 - `group_by_q2` (Boolean)
 - `less_than` (Boolean)
+- `manage_undetected_values` (List of Object) (see [below for nested schema](#nestedobjatt--ratio--condition--manage_undetected_values))
 - `more_than` (Boolean)
 - `queries_ratio` (Number)
 - `time_window` (String)
-- `undetected_values_auto_retire_ratio` (String)
+
+<a id="nestedobjatt--ratio--condition--manage_undetected_values"></a>
+### Nested Schema for `ratio.condition.manage_undetected_values`
+
+Read-Only:
+
+- `auto_retire_ratio` (String)
+- `disable_triggering_on_undetected_values` (Boolean)
+- `enable_triggering_on_undetected_values` (Boolean)
+
 
 
 <a id="nestedobjatt--ratio--query_1"></a>
@@ -276,7 +306,7 @@ Read-Only:
 Read-Only:
 
 - `time_frames` (Set of Object) (see [below for nested schema](#nestedobjatt--scheduling--time_frames))
-- `utc` (Number)
+- `time_zone` (String)
 
 <a id="nestedobjatt--scheduling--time_frames"></a>
 ### Nested Schema for `scheduling.time_frames`
@@ -313,11 +343,21 @@ Read-Only:
 - `group_by_key` (String)
 - `immediately` (Boolean)
 - `less_than` (Boolean)
+- `manage_undetected_values` (List of Object) (see [below for nested schema](#nestedobjatt--standard--condition--manage_undetected_values))
 - `more_than` (Boolean)
 - `more_than_usual` (Boolean)
 - `occurrences_threshold` (Number)
 - `time_window` (String)
-- `undetected_values_auto_retire_ratio` (String)
+
+<a id="nestedobjatt--standard--condition--manage_undetected_values"></a>
+### Nested Schema for `standard.condition.manage_undetected_values`
+
+Read-Only:
+
+- `auto_retire_ratio` (String)
+- `disable_triggering_on_undetected_values` (Boolean)
+- `enable_triggering_on_undetected_values` (Boolean)
+
 
 
 
@@ -344,10 +384,20 @@ Read-Only:
 
 - `group_by` (List of String)
 - `less_than` (Boolean)
+- `manage_undetected_values` (List of Object) (see [below for nested schema](#nestedobjatt--time_relative--condition--manage_undetected_values))
 - `more_than` (Boolean)
 - `ratio_threshold` (Number)
 - `relative_time_window` (String)
-- `undetected_values_auto_retire_ratio` (String)
+
+<a id="nestedobjatt--time_relative--condition--manage_undetected_values"></a>
+### Nested Schema for `time_relative.condition.manage_undetected_values`
+
+Read-Only:
+
+- `auto_retire_ratio` (String)
+- `disable_triggering_on_undetected_values` (Boolean)
+- `enable_triggering_on_undetected_values` (Boolean)
+
 
 
 
