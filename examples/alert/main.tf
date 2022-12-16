@@ -208,7 +208,7 @@ resource "coralogix_alert" "metric_lucene_alert" {
         metric_field                 = "subsystem"
         arithmetic_operator          = "Avg"
         less_than                    = true
-        group_by      = ["coralogix.metadata.sdkId"]
+        group_by                     = ["coralogix.metadata.sdkId"]
         threshold                    = 60
         arithmetic_operator_modifier = 2
         sample_threshold_percentage  = 50
