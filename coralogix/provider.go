@@ -11,16 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var (
-	envToGrpcUrl = map[string]string{
-		"APAC1":   "ng-api-grpc.app.coralogix.in:443",
-		"APAC2":   "ng-api-grpc.coralogixsg.com:443",
-		"EUROPE1": "ng-api-grpc.coralogix.com:443",
-		"EUROPE2": "ng-api-grpc.eu2.coralogix.com:443",
-		"USA1":    "ng-api-grpc.coralogix.us:443",
-	}
-	validEnvs = getKeysStrings(envToGrpcUrl)
-)
+var validEnvs = getKeysStrings(clientset.EnvToGrpcUrl)
 
 // Provider returns a *schema.Provider.
 func Provider() *schema.Provider {
@@ -71,10 +62,10 @@ func Provider() *schema.Provider {
 		},
 
 		ConfigureContextFunc: func(context context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
-			targetUrl := envToGrpcUrl[d.Get("env").(string)]
+			env := d.Get("env").(string)
 			apikey := d.Get("api_key").(string)
 			teamsApiKey := d.Get("teams_api_key").(string)
-			return clientset.NewClientSet(targetUrl, apikey, teamsApiKey), nil
+			return clientset.NewClientSet(env, apikey, teamsApiKey), nil
 		},
 	}
 }
