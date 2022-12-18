@@ -595,7 +595,7 @@ Optional:
 
 - `group_by` (List of String) The fields to 'group by' on.
 - `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `manage_undetected_values` (Block List, Max: 1) (see [below for nested schema](#nestedblock--metric--lucene--condition--manage_undetected_values))
+- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--metric--lucene--condition--manage_undetected_values))
 - `min_non_null_values_percentage` (Number)
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 - `replace_missing_value_with_zero` (Boolean)
@@ -605,7 +605,7 @@ Optional:
 
 Optional:
 
-- `auto_retire_ratio` (String)
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
 - `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
@@ -635,7 +635,7 @@ Required:
 Optional:
 
 - `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `manage_undetected_values` (Block List, Max: 1) (see [below for nested schema](#nestedblock--metric--promql--condition--manage_undetected_values))
+- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--metric--promql--condition--manage_undetected_values))
 - `min_non_null_values_percentage` (Number)
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 - `replace_missing_value_with_zero` (Boolean)
@@ -645,7 +645,7 @@ Optional:
 
 Optional:
 
-- `auto_retire_ratio` (String)
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
 - `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
@@ -737,7 +737,7 @@ Optional:
 - `group_by_q1` (Boolean)
 - `group_by_q2` (Boolean)
 - `less_than` (Boolean)
-- `manage_undetected_values` (Block List, Max: 1) (see [below for nested schema](#nestedblock--ratio--condition--manage_undetected_values))
+- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--ratio--condition--manage_undetected_values))
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 
 <a id="nestedblock--ratio--condition--manage_undetected_values"></a>
@@ -745,7 +745,7 @@ Optional:
 
 Optional:
 
-- `auto_retire_ratio` (String)
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
 - `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
@@ -841,7 +841,7 @@ Optional:
 - `group_by_key` (String) The key to 'group by' on.
 - `immediately` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
 - `less_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
-- `manage_undetected_values` (Block List, Max: 1) (see [below for nested schema](#nestedblock--standard--condition--manage_undetected_values))
+- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--standard--condition--manage_undetected_values))
 - `more_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
 - `more_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
 - `occurrences_threshold` (Number) The number of log occurrences that is needed to trigger the alert.
@@ -852,7 +852,7 @@ Optional:
 
 Optional:
 
-- `auto_retire_ratio` (String)
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
 - `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
@@ -895,7 +895,7 @@ Optional:
 
 - `group_by` (List of String) The fields to 'group by' on.
 - `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `manage_undetected_values` (Block List, Max: 1) (see [below for nested schema](#nestedblock--time_relative--condition--manage_undetected_values))
+- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--time_relative--condition--manage_undetected_values))
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 
 <a id="nestedblock--time_relative--condition--manage_undetected_values"></a>
@@ -903,7 +903,7 @@ Optional:
 
 Optional:
 
-- `auto_retire_ratio` (String)
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
 - `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
