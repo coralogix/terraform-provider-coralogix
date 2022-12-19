@@ -24,6 +24,7 @@ func TestAccCoralogixResourceAlert_standard(t *testing.T) {
 		groupBy:               []string{"EventType"},
 		occurrencesThreshold:  acctest.RandIntRange(1, 1000),
 		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
+		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
 	}
 
 	checks := extractCommonChecks(&alert.alertCommonTestParams, resourceName, "standard")
@@ -36,6 +37,9 @@ func TestAccCoralogixResourceAlert_standard(t *testing.T) {
 		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.occurrences_threshold", strconv.Itoa(alert.occurrencesThreshold)),
 		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.time_window", alert.timeWindow),
 		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.group_by.0", alert.groupBy[0]),
+		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.less_than", "true"),
+		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "true"),
+		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.manage_undetected_values.0.auto_retire_ratio", alert.deadmanRatio),
 	)
 
 	resource.Test(t, resource.TestCase{
@@ -235,12 +239,13 @@ func TestAccCoralogixResourceAlert_metricLucene(t *testing.T) {
 		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.search_query", alert.searchQuery),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.metric_field", alert.metricField),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.arithmetic_operator", alert.arithmeticOperator),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.more_than", "true"),
+		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.less_than", "true"),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.threshold", strconv.Itoa(alert.threshold)),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.arithmetic_operator_modifier", strconv.Itoa(alert.arithmeticOperatorModifier)),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.sample_threshold_percentage", strconv.Itoa(alert.sampleThresholdPercentage)),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.time_window", alert.timeWindow),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.group_by.0", alert.groupBy[0]),
+		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values", "true"),
 	}
 
 	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds, resourceName)
@@ -280,12 +285,14 @@ func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
 		resource.TestCheckResourceAttr(resourceName, "alert_severity", alert.severity),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.search_query", alert.searchQuery),
+		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.search_query", "http_requests_total{status!~\"4..\"}"),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.threshold", strconv.Itoa(alert.threshold)),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.more_than", "true"),
+		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.less_than", "true"),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.sample_threshold_percentage", strconv.Itoa(alert.sampleThresholdPercentage)),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.min_non_null_values_percentage", strconv.Itoa(alert.nonNullPercentage)),
 		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.time_window", alert.timeWindow),
+		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "true"),
+		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.manage_undetected_values.0.auto_retire_ratio", "Never"),
 	}
 
 	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds, resourceName)
@@ -365,9 +372,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 		emailRecipients: []string{"user@example.com"},
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen:      randActiveWhen(),
-		notifyEveryMin:  acctest.RandIntRange(1, 60),
-		alterId1:        "a9836075-7164-4499-897f-e97404d33c3f",
-		alertId2:        "c3c2936e-0b7e-44d7-9295-3aacba1e2366",
+		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
 	}
 
 	checks := []resource.TestCheckFunc{
@@ -378,12 +383,9 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 		resource.TestCheckResourceAttr(resourceName, "alert_severity", alert.severity),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
-		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.0.groups.0.sub_alerts.0.user_alert_id", alert.alterId1),
 		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.time_window.0.hours", "0"),
 		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.time_window.0.minutes", "20"),
 		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.time_window.0.seconds", "0"),
-		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.groups.0.sub_alerts.0.user_alert_id", alert.alertId2),
-		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.groups.0.sub_alerts.1.user_alert_id", alert.alterId1),
 		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.groups.0.operator", "OR"),
 	}
 
@@ -414,6 +416,7 @@ func TestAccCoralogixResourceAlert_update(t *testing.T) {
 		groupBy:               []string{"EventType"},
 		occurrencesThreshold:  10,
 		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
+		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
 	}
 
 	checks1 := extractCommonChecks(&alert1.alertCommonTestParams, resourceName, "standard")
@@ -426,6 +429,7 @@ func TestAccCoralogixResourceAlert_update(t *testing.T) {
 		groupBy:               []string{"metadata.uid"},
 		occurrencesThreshold:  10,
 		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
+		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
 	}
 
 	checks2 := extractCommonChecks(&alert2.alertCommonTestParams, resourceName, "standard")
@@ -462,7 +466,7 @@ func getRandomAlert() *alertCommonTestParams {
 		searchQuery:     "remote_addr_enriched:/.*/",
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen:      randActiveWhen(),
-		notifyEveryMin:  acctest.RandIntRange(60, 3600),
+		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
 		alertFilters: alertFilters{
 			severities: selectManyRandomlyFromSlice(alertValidLogSeverities),
 		},
@@ -515,7 +519,7 @@ func testAccCheckAlertDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &alertsv1.GetAlertRequest{
+		req := &alertsv1.GetAlertByUniqueIdRequest{
 			Id: wrapperspb.String(rs.Primary.ID),
 		}
 
@@ -545,7 +549,7 @@ func testAccCoralogixResourceAlertStandard(a *standardAlertTestParams) string {
   }
 
   scheduling {
-    utc = %d
+    time_zone =  "%s"
 	
 	time_frames {
     	days_enabled = %s
@@ -554,30 +558,34 @@ func testAccCoralogixResourceAlertStandard(a *standardAlertTestParams) string {
   	}
   }
 
-	meta_labels {
-    	key   = "alert_type"
-    	value = "security"
-  	}
-  	meta_labels {
-    	key   = "security_severity"
-    	value = "High"
-  	}
+   meta_labels {
+   	key   = "alert_type"
+    value = "security"
+   }
+   meta_labels {
+	key   = "security_severity"
+	value = "High"
+   }
 
   standard {
     severities = %s
     search_query = "%s"
     condition {
 	  group_by = %s
-      more_than = true
+      less_than = true
       occurrences_threshold = %d
       time_window = "%s"
+      manage_undetected_values {
+			enable_triggering_on_undetected_values = true
+			auto_retire_ratio = "%s"
+		}
     }
   }
 }
 `,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.utc,
+		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
-		sliceToString(a.severities), a.searchQuery, sliceToString(a.groupBy), a.occurrencesThreshold, a.timeWindow)
+		sliceToString(a.severities), a.searchQuery, sliceToString(a.groupBy), a.occurrencesThreshold, a.timeWindow, a.deadmanRatio)
 }
 
 func testAccCoralogixResourceAlertRatio(a *ratioAlertTestParams) string {
@@ -594,7 +602,7 @@ func testAccCoralogixResourceAlertRatio(a *ratioAlertTestParams) string {
   }
 
   scheduling {
-    utc = %d
+    time_zone =  "%s"
 	
 	time_frames {
     	days_enabled = %s
@@ -621,7 +629,7 @@ func testAccCoralogixResourceAlertRatio(a *ratioAlertTestParams) string {
     }
   }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.utc,
+		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
 		sliceToString(a.severities), a.searchQuery, sliceToString(a.q2Severities), a.q2SearchQuery,
 		a.ratio, a.timeWindow, sliceToString(a.groupBy))
@@ -640,7 +648,7 @@ func testAccCoralogixResourceAlertNewValue(a *newValueAlertTestParams) string {
   }
 
   scheduling {
-    utc = %d
+    time_zone =  "%s"
 	
 	time_frames {
     	days_enabled = %s
@@ -658,7 +666,7 @@ func testAccCoralogixResourceAlertNewValue(a *newValueAlertTestParams) string {
     }
   }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.utc,
+		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
 		sliceToString(a.severities), a.searchQuery, a.keyToTrack, a.timeWindow)
 }
@@ -676,7 +684,7 @@ func testAccCoralogixResourceAlertUniqueCount(a *uniqueCountAlertTestParams) str
   }
 
   scheduling {
-    utc = %d
+    time_zone =  "%s"
 	
 	time_frames {
     	days_enabled = %s
@@ -697,7 +705,7 @@ func testAccCoralogixResourceAlertUniqueCount(a *uniqueCountAlertTestParams) str
     }
   }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.utc,
+		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds, sliceToString(a.severities),
 		a.searchQuery, a.uniqueCountKey, a.maxUniqueValues, a.timeWindow, a.groupByKey, a.maxUniqueValuesForGroupBy)
 }
@@ -716,7 +724,7 @@ func testAccCoralogixResourceAlertTimeRelative(a *timeRelativeAlertTestParams) s
   }
 
   scheduling {
-    utc = %d
+    time_zone =  "%s"
 	
 	time_frames {
     	days_enabled = %s
@@ -736,7 +744,7 @@ func testAccCoralogixResourceAlertTimeRelative(a *timeRelativeAlertTestParams) s
     }
   }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.utc,
+		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
 		sliceToString(a.severities), a.searchQuery, sliceToString(a.groupBy), a.ratioThreshold, a.relativeTimeWindow)
 }
@@ -755,7 +763,7 @@ func testAccCoralogixResourceAlertMetricLucene(a *metricLuceneAlertTestParams) s
   }
 
   scheduling {
-    utc = %d
+    time_zone =  "%s"
 	
 	time_frames {
     	days_enabled = %s
@@ -770,17 +778,20 @@ func testAccCoralogixResourceAlertMetricLucene(a *metricLuceneAlertTestParams) s
       condition {
         metric_field                 = "%s"
         arithmetic_operator          = "%s"
-        more_than                    = true
+        less_than                    = true
         threshold                    = %d
         arithmetic_operator_modifier = %d
         sample_threshold_percentage  = %d
         time_window                  = "%s"
 		group_by = %s
+		manage_undetected_values{
+			disable_triggering_on_undetected_values = true
+		}
       }
     }
   }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.utc,
+		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds, a.searchQuery, a.metricField, a.arithmeticOperator,
 		a.threshold, a.arithmeticOperatorModifier, a.sampleThresholdPercentage, a.timeWindow, sliceToString(a.groupBy))
 }
@@ -798,7 +809,7 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
   }
 
   scheduling {
-    utc = %d
+    time_zone =  "%s"
 	
 	time_frames {
     	days_enabled = %s
@@ -809,9 +820,9 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
 
   metric {
     promql {
-      search_query = "%s"
+      search_query = "http_requests_total{status!~\"4..\"}"
       condition {
-        more_than                    = true
+        less_than                    = true
         threshold                    = %d
         sample_threshold_percentage  = %d
         time_window                  = "%s"
@@ -820,9 +831,9 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
     }
   }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.utc,
-		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
-		a.searchQuery, a.threshold, a.sampleThresholdPercentage, a.timeWindow, a.nonNullPercentage)
+		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
+		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds, a.threshold, a.sampleThresholdPercentage,
+		a.timeWindow, a.nonNullPercentage)
 }
 
 func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
@@ -839,7 +850,7 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
   }
 
   scheduling {
-    utc = %d
+    time_zone =  "%s"
 	
 	time_frames {
     	days_enabled = %s
@@ -866,66 +877,76 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
     }
   }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.utc,
+		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
 		sliceToString(a.severities), a.conditionLatencyMs, a.timeWindow, a.occurrencesThreshold, sliceToString(a.groupBy))
 }
 
 func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
-	return fmt.Sprintf(`resource "coralogix_alert" "test" {
-  name               = "%s"
-  description        = "%s"
-  alert_severity     = "%s"
-  notification {
-    recipients {
-      emails      = %s
-    }
-    notify_every_min = %d
-  }
+	return fmt.Sprintf(`resource "coralogix_alert" "standard_alert" {
+	name               = "standard"
+	alert_severity     = "Info"
+	standard {
+		condition {
+			immediately = true
+		}
+	}
+}
 
-  scheduling {
-    utc = %d
-	
-	time_frames {
-    	days_enabled = %s
-    	start_time = "%s"
-    	end_time = "%s"
+	resource "coralogix_alert" "test" {
+  		name               = "%s"
+  		description        = "%s"
+	  	alert_severity     = "%s"
+		notification {
+    		recipients {
+      			emails      = %s
+    		}
+    	notify_every_min = %d
+  		}
+
+  		scheduling {
+    		time_zone =  "%s"
+			time_frames {
+    			days_enabled = %s
+    			start_time = "%s"
+    			end_time = "%s"
+  			}
+		}
+
+  	flow {
+    	stages {
+      		groups {
+        		sub_alerts {
+          			user_alert_id = coralogix_alert.standard_alert.id
+        		}
+        		operator = "OR"
+      		}
+    	}
+    	stages {
+      		groups {
+        		sub_alerts {
+          			user_alert_id = coralogix_alert.standard_alert.id
+				}
+        		sub_alerts {
+          			user_alert_id = coralogix_alert.standard_alert.id
+        		}
+        		operator = "OR"
+      		}
+      		time_window {
+        		minutes = 20
+      		}
+		}
   	}
-  }
-
-  flow {
-    stages {
-      groups {
-        sub_alerts {
-          user_alert_id = "%s"
-        }
-        operator = "OR"
-      }
-    }
-    stages {
-      groups {
-        sub_alerts {
-          user_alert_id = "%s"
-        }
-        sub_alerts {
-          user_alert_id = "%s"
-        }
-        operator = "OR"
-      }
-      time_window {
-        minutes = 20
-      }
-    }
-  }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.utc,
-		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds, a.alterId1, a.alertId2, a.alterId1)
+		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
+		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds)
 }
 
 type standardAlertTestParams struct {
 	groupBy              []string
 	occurrencesThreshold int
 	timeWindow           string
+	deadmanRatio         string
 	alertCommonTestParams
 }
 
@@ -976,7 +997,6 @@ type tracingAlertTestParams struct {
 }
 
 type flowAlertTestParams struct {
-	alterId1, alertId2          string
 	name, description, severity string
 	emailRecipients             []string
 	notifyEveryMin              int
@@ -997,14 +1017,13 @@ type alertFilters struct {
 }
 
 type activeWhen struct {
-	utc                          int
-	daysOfWeek                   []string
-	activityStarts, activityEnds string
+	daysOfWeek                             []string
+	activityStarts, activityEnds, timeZone string
 }
 
 func randActiveWhen() activeWhen {
 	return activeWhen{
-		utc:            acctest.RandIntRange(-11, 13),
+		timeZone:       selectRandomlyFromSlice(alertValidTimeZones),
 		daysOfWeek:     selectManyRandomlyFromSlice(alertValidDaysOfWeek),
 		activityStarts: randHourStr(),
 		activityEnds:   randHourStr(),

@@ -13,6 +13,7 @@ func TestAccCoralogixDataSourceAlert_basic(t *testing.T) {
 		groupBy:               []string{"EventType"},
 		occurrencesThreshold:  acctest.RandIntRange(1, 1000),
 		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
+		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
 	}
 
 	resource.Test(t, resource.TestCase{

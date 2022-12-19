@@ -12,7 +12,6 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-
 resource "coralogix_alert" "standard_alert" {
   name           = "Standard alert example"
   description    = "Example of standard alert from terraform"
@@ -36,7 +35,7 @@ resource "coralogix_alert" "standard_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -51,7 +50,7 @@ resource "coralogix_alert" "standard_alert" {
 
   standard {
     applications = ["nginx"] //change here for existing applications from your account
-    subsystems   = ["training"] //change here for existing subsystems from your account
+    subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
     severities   = ["Warning", "Info"]
     search_query = "remote_addr_enriched:/.*/"
     condition {
@@ -75,12 +74,12 @@ resource "coralogix_alert" "ratio_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_min                         = 1
+    notify_every_min                         = 10
     notify_only_on_triggered_group_by_values = true
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -99,15 +98,19 @@ resource "coralogix_alert" "ratio_alert" {
     }
     query_2 {
       applications = ["nginx"] //change here for existing applications from your account
-      subsystems   = ["training"] //change here for existing subsystems from your account
+      subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
       severities   = ["Warning"]
     }
     condition {
-      more_than     = true
+      less_than     = true
       queries_ratio = 2
       time_window   = "10Min"
       group_by      = ["coralogix.metadata.sdkId"]
       group_by_q1   = true
+      manage_undetected_values {
+        enable_triggering_on_undetected_values = true
+        auto_retire_ratio                      = "5Min"
+      }
     }
   }
 }
@@ -125,7 +128,7 @@ resource "coralogix_alert" "new_value_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -156,7 +159,7 @@ resource "coralogix_alert" "time_relative_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -186,11 +189,11 @@ resource "coralogix_alert" "metric_lucene_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_min = 1
+    notify_every_min = 60
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -204,11 +207,15 @@ resource "coralogix_alert" "metric_lucene_alert" {
       condition {
         metric_field                 = "subsystem"
         arithmetic_operator          = "Avg"
-        more_than                    = true
+        less_than                    = true
+        group_by                     = ["coralogix.metadata.sdkId"]
         threshold                    = 60
         arithmetic_operator_modifier = 2
         sample_threshold_percentage  = 50
         time_window                  = "30Min"
+        manage_undetected_values {
+          disable_triggering_on_undetected_values = true
+        }
       }
     }
   }
@@ -225,11 +232,11 @@ resource "coralogix_alert" "metric_promql_alert" {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
     }
-    notify_every_min = 1
+    notify_every_min = 1440
   }
 
   scheduling {
-    utc = -8
+    time_zone = "UTC-8"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -239,7 +246,7 @@ resource "coralogix_alert" "metric_promql_alert" {
 
   metric {
     promql {
-      search_query = "status.numeric:[500 TO *] AND env:production"
+      search_query = "http_requests_total{status!~\"4..\"}"
       condition {
         more_than                      = true
         threshold                      = 3
@@ -265,7 +272,7 @@ resource "coralogix_alert" "unique_count_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -305,7 +312,7 @@ resource "coralogix_alert" "tracing_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -351,7 +358,7 @@ resource "coralogix_alert" "flow_alert" {
   }
 
   scheduling {
-    utc = 2
+    time_zone = "UTC+2"
     time_frames {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -368,12 +375,7 @@ resource "coralogix_alert" "flow_alert" {
     stages {
       groups {
         sub_alerts {
-          /*
-          change for existing alert's id.
-           soon it will be possible to consume from the id of an alert created from the terraform in the following way -
-           'user_alert_id = coralogix_alert.unique_count_alert.id'
-           */
-          user_alert_id = "c3c2936e-0b7e-44d7-9295-3aacba1e2366"
+          user_alert_id = coralogix_alert.unique_count_alert.id
         }
         operator = "OR"
       }
@@ -381,20 +383,10 @@ resource "coralogix_alert" "flow_alert" {
     stages {
       groups {
         sub_alerts {
-          /*
-          change for existing alert's id.
-           soon it will be possible to consume from the id of an alert created from the terraform in the following way -
-           'user_alert_id = coralogix_alert.unique_count_alert.id'
-           */
-          user_alert_id = "615f4b56-5441-417d-9eb6-c183f9374557"
+          user_alert_id = coralogix_alert.standard_alert.id
         }
         sub_alerts {
-          /*
-           change for existing alert's id.
-            soon it will be possible to consume from the id of an alert created from the terraform in the following way -
-            'user_alert_id = coralogix_alert.unique_count_alert.id'
-            */
-          user_alert_id = "a9836075-7164-4499-897f-e97404d33c3f"
+          user_alert_id = coralogix_alert.metric_promql_alert.id
         }
         operator = "OR"
       }
