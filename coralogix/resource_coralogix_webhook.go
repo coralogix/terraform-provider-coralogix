@@ -28,7 +28,7 @@ func resourceCoralogixWebhook() *schema.Resource {
 
 		Schema: WebhookSchema(),
 
-		//Description: "Rule-group is list of rule-subgroups with 'and' (&&) operation between. Api-key is required for this resource.",
+		//Description: "Webhook defines integration. Api-key is required for this resource.",
 	}
 }
 
@@ -49,5 +49,86 @@ func resourceCoralogixWebhookDelete(ctx context.Context, d *schema.ResourceData,
 }
 
 func WebhookSchema() map[string]*schema.Schema {
-	return map[string]*schema.Schema{}
+	return map[string]*schema.Schema{
+		"slack": {
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"service_key": nil,
+				},
+			},
+			MaxItems: 1,
+		},
+		"webhook": {
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem: &schema.Resource{
+				Schema: nil,
+			},
+			MaxItems: 1,
+		},
+		"pager_duty": {
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem: &schema.Resource{
+				Schema: nil,
+			},
+			MaxItems: 1,
+		},
+		"sendlog": {
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem: &schema.Resource{
+				Schema: nil,
+			},
+			MaxItems: 1,
+		},
+		"email_group": {
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"payload": nil,
+				},
+			},
+			MaxItems: 1,
+		},
+		"microsoft_teams": {
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem: &schema.Resource{
+				Schema: nil,
+			},
+			MaxItems: 1,
+		},
+		"jira": {
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"api_token":   nil,
+					"email":       nil,
+					"project_key": nil,
+				},
+			},
+			MaxItems: 1,
+		},
+		"opsgenie": {
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem: &schema.Resource{
+				Schema: nil,
+			},
+			MaxItems: 1,
+		},
+		"demisto": {
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem: &schema.Resource{
+				Schema: nil,
+			},
+			MaxItems: 1,
+		},
+	}
 }
