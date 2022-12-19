@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
 func resourceCoralogixWebhook() *schema.Resource {
@@ -126,7 +127,18 @@ func WebhookSchema() map[string]*schema.Schema {
 			Type:     schema.TypeList,
 			Optional: true,
 			Elem: &schema.Resource{
-				Schema: nil,
+				Schema: map[string]*schema.Schema{
+					"uuid": {
+						Type:         schema.TypeString,
+						ValidateFunc: validation.IsUUID,
+					},
+					"method": {
+						Type:         schema.TypeString,
+						ValidateFunc: validation.StringInSlice([]string{"get", "post", "put"}, false),
+					},
+					"headers": {},
+					"payload": {},
+				},
 			},
 			MaxItems: 1,
 		},
