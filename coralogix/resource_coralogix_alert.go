@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -142,6 +144,20 @@ var (
 	}
 	alertProtoMetricTimeFrameToMetricSchemaTimeFrame = reverseMapStrings(alertSchemaMetricTimeFrameToMetricProtoTimeFrame)
 	alertValidMetricTimeFrames                       = getKeysStrings(alertSchemaMetricTimeFrameToMetricProtoTimeFrame)
+	alertSchemaDeadmanRatiosToProtoDeadmanRatios     = map[string]string{
+		"Never": "CLEANUP_DEADMAN_DURATION_NEVER_OR_UNSPECIFIED",
+		"5Min":  "CLEANUP_DEADMAN_DURATION_5MIN",
+		"10Min": "CLEANUP_DEADMAN_DURATION_10MIN",
+		"1H":    "CLEANUP_DEADMAN_DURATION_1H",
+		"2H":    "CLEANUP_DEADMAN_DURATION_2H",
+		"6H":    "CLEANUP_DEADMAN_DURATION_6H",
+		"12H":   "CLEANUP_DEADMAN_DURATION_12H",
+		"24H":   "CLEANUP_DEADMAN_DURATION_24H",
+	}
+	alertProtoDeadmanRatiosToSchemaDeadmanRatios = reverseMapStrings(alertSchemaDeadmanRatiosToProtoDeadmanRatios)
+	alertValidDeadmanRatioValues                 = getKeysStrings(alertSchemaDeadmanRatiosToProtoDeadmanRatios)
+	alertValidTimeZones                          = []string{"UTC-11", "UTC-10", "UTC-9", "UTC-8", "UTC-7", "UTC-6", "UTC-5", "UTC-4", "UTC-3", "UTC-2", "UTC-1",
+		"UTC+0", "UTC+1", "UTC+2", "UTC+3", "UTC+4", "UTC+5", "UTC+6", "UTC+7", "UTC+8", "UTC+9", "UTC+10", "UTC+11", "UTC+12", "UTC+13", "UTC+14"}
 )
 
 type alertParams struct {
@@ -175,10 +191,10 @@ func resourceCoralogixAlert() *schema.Resource {
 		},
 
 		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(60 * time.Minute),
-			Read:   schema.DefaultTimeout(30 * time.Minute),
-			Update: schema.DefaultTimeout(60 * time.Minute),
-			Delete: schema.DefaultTimeout(30 * time.Minute),
+			Create: schema.DefaultTimeout(60 * time.Second),
+			Read:   schema.DefaultTimeout(30 * time.Second),
+			Update: schema.DefaultTimeout(60 * time.Second),
+			Delete: schema.DefaultTimeout(30 * time.Second),
 		},
 
 		Schema: AlertSchema(),
@@ -251,6 +267,7 @@ func AlertSchema() map[string]*schema.Schema {
 		"notification": {
 			Type:     schema.TypeList,
 			Optional: true,
+			Computed: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"on_trigger_and_resolved": {
@@ -302,11 +319,11 @@ func AlertSchema() map[string]*schema.Schema {
 					"notify_every_min": {
 						Type:         schema.TypeInt,
 						Optional:     true,
-						Default:      1,
+						Computed:     true,
 						ValidateFunc: validation.IntAtLeast(1),
 						Description: "By default, notify_every_min will be populated with min for immediate," +
 							" more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time" +
-							" frame for the less_than condition (in seconds). You may choose to change the suppress window so the " +
+							" frame for the less_than condition (in minutes). You may choose to change the suppress window so the " +
 							"alert will be suppressed for a longer period.",
 					},
 					"payload_fields": {
@@ -417,12 +434,12 @@ func AlertSchema() map[string]*schema.Schema {
 
 func schedulingSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"utc": {
-			Type:         schema.TypeInt,
+		"time_zone": {
+			Type:         schema.TypeString,
 			Optional:     true,
-			Default:      0,
-			ValidateFunc: validation.IntBetween(-12, 14),
-			Description:  "Specifies the time zone to be used in interpreting the schedule. The value of this field must be an integer between [-12, 14].",
+			Default:      "UTC+0",
+			ValidateFunc: validation.StringInSlice(alertValidTimeZones, false),
+			Description:  fmt.Sprintf("Specifies the time zone to be used in interpreting the schedule. Can be one of %q", alertValidTimeZones),
 		},
 		"time_frames": {
 			Type:        schema.TypeSet,
@@ -461,9 +478,10 @@ func metaLabels() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"key": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Label key.",
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[A-Za-z\d_-]*$`), "not valid key"),
+				Description:  "Label key.",
 			},
 			"value": {
 				Type:        schema.TypeString,
@@ -639,6 +657,35 @@ func standardSchema() map[string]*schema.Schema {
 						"standard.0.condition.0.more_than", "standard.0.condition.0.less_than"},
 					Description: "The key to 'group by' on.",
 				},
+				"manage_undetected_values": {
+					Type:     schema.TypeList,
+					Optional: true,
+					MaxItems: 1,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"enable_triggering_on_undetected_values": {
+								Type:         schema.TypeBool,
+								Optional:     true,
+								ExactlyOneOf: []string{"standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "standard.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+							},
+							"disable_triggering_on_undetected_values": {
+								Type:         schema.TypeBool,
+								Optional:     true,
+								ExactlyOneOf: []string{"standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "standard.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+							},
+							"auto_retire_ratio": {
+								Type:          schema.TypeString,
+								Optional:      true,
+								RequiredWith:  []string{"standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
+								ConflictsWith: []string{"standard.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+								ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
+								Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+							},
+						},
+					},
+					RequiredWith: []string{"standard.0.condition.0.less_than", "standard.0.condition.0.group_by"},
+					Description:  "Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER.",
+				},
 			},
 		},
 		Description: fmt.Sprintf("Target alert by subsystems contained within the logs. Can be one of %q",
@@ -764,6 +811,36 @@ func ratioSchema() map[string]*schema.Schema {
 						ConflictsWith: []string{"ratio.0.condition.0.group_by_q1",
 							"ratio.0.condition.0.group_by_q2"},
 					},
+					"manage_undetected_values": {
+						Type:     schema.TypeList,
+						Optional: true,
+						Computed: true,
+						MaxItems: 1,
+						Elem: &schema.Resource{
+							Schema: map[string]*schema.Schema{
+								"enable_triggering_on_undetected_values": {
+									Type:         schema.TypeBool,
+									Optional:     true,
+									ExactlyOneOf: []string{"ratio.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "ratio.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+								},
+								"disable_triggering_on_undetected_values": {
+									Type:         schema.TypeBool,
+									Optional:     true,
+									ExactlyOneOf: []string{"ratio.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "ratio.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+								},
+								"auto_retire_ratio": {
+									Type:          schema.TypeString,
+									Optional:      true,
+									RequiredWith:  []string{"ratio.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
+									ConflictsWith: []string{"ratio.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+									ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
+									Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+								},
+							},
+						},
+						RequiredWith: []string{"ratio.0.condition.0.less_than", "ratio.0.condition.0.group_by"},
+						Description:  "Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER.",
+					},
 				},
 			},
 		},
@@ -883,6 +960,36 @@ func timeRelativeSchema() map[string]*schema.Schema {
 					},
 					Description: "The fields to 'group by' on.",
 				},
+				"manage_undetected_values": {
+					Type:     schema.TypeList,
+					Optional: true,
+					Computed: true,
+					MaxItems: 1,
+					Elem: &schema.Resource{
+						Schema: map[string]*schema.Schema{
+							"enable_triggering_on_undetected_values": {
+								Type:         schema.TypeBool,
+								Optional:     true,
+								ExactlyOneOf: []string{"time_relative.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "time_relative.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+							},
+							"disable_triggering_on_undetected_values": {
+								Type:         schema.TypeBool,
+								Optional:     true,
+								ExactlyOneOf: []string{"time_relative.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "time_relative.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+							},
+							"auto_retire_ratio": {
+								Type:          schema.TypeString,
+								Optional:      true,
+								RequiredWith:  []string{"time_relative.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
+								ConflictsWith: []string{"time_relative.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+								ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
+								Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+							},
+						},
+					},
+					RequiredWith: []string{"time_relative.0.condition.0.less_than", "time_relative.0.condition.0.group_by"},
+					Description:  "Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER.",
+				},
 			},
 		},
 	}
@@ -972,6 +1079,36 @@ func metricSchema() map[string]*schema.Schema {
 									Optional:      true,
 									ConflictsWith: []string{"metric.0.lucene.0.condition.0.replace_missing_value_with_zero"},
 								},
+								"manage_undetected_values": {
+									Type:     schema.TypeList,
+									Optional: true,
+									Computed: true,
+									MaxItems: 1,
+									Elem: &schema.Resource{
+										Schema: map[string]*schema.Schema{
+											"enable_triggering_on_undetected_values": {
+												Type:         schema.TypeBool,
+												Optional:     true,
+												ExactlyOneOf: []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+											},
+											"disable_triggering_on_undetected_values": {
+												Type:         schema.TypeBool,
+												Optional:     true,
+												ExactlyOneOf: []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+											},
+											"auto_retire_ratio": {
+												Type:          schema.TypeString,
+												Optional:      true,
+												RequiredWith:  []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
+												ConflictsWith: []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+												ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
+												Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+											},
+										},
+									},
+									RequiredWith: []string{"metric.0.lucene.0.condition.0.less_than", "metric.0.lucene.0.condition.0.group_by"},
+									Description:  "Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER.",
+								},
 							},
 						},
 					},
@@ -1038,6 +1175,36 @@ func metricSchema() map[string]*schema.Schema {
 									Type:          schema.TypeInt,
 									Optional:      true,
 									ConflictsWith: []string{"metric.0.promql.0.condition.0.replace_missing_value_with_zero"},
+								},
+								"manage_undetected_values": {
+									Type:     schema.TypeList,
+									Optional: true,
+									Computed: true,
+									MaxItems: 1,
+									Elem: &schema.Resource{
+										Schema: map[string]*schema.Schema{
+											"enable_triggering_on_undetected_values": {
+												Type:         schema.TypeBool,
+												Optional:     true,
+												ExactlyOneOf: []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "metric.0.promql.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+											},
+											"disable_triggering_on_undetected_values": {
+												Type:         schema.TypeBool,
+												Optional:     true,
+												ExactlyOneOf: []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "metric.0.promql.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+											},
+											"auto_retire_ratio": {
+												Type:          schema.TypeString,
+												Optional:      true,
+												RequiredWith:  []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
+												ConflictsWith: []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+												ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
+												Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+											},
+										},
+									},
+									RequiredWith: []string{"metric.0.promql.0.condition.0.less_than"},
+									Description:  "Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER.",
 								},
 							},
 						},
@@ -1209,14 +1376,14 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 	Alert := AlertResp.GetAlert()
 	log.Printf("[INFO] Submitted new alert: %#v", Alert)
-	d.SetId(Alert.GetId().GetValue())
+	d.SetId(Alert.GetUniqueIdentifier().GetValue())
 
 	return resourceCoralogixAlertRead(ctx, d, meta)
 }
 
 func resourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := wrapperspb.String(d.Id())
-	getAlertRequest := &alertsv1.GetAlertRequest{
+	getAlertRequest := &alertsv1.GetAlertByUniqueIdRequest{
 		Id: id,
 	}
 
@@ -1239,7 +1406,7 @@ func resourceCoralogixAlertUpdate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	id := d.Id()
-	updateAlertRequest := &alertsv1.UpdateAlertRequest{
+	updateAlertRequest := &alertsv1.UpdateAlertByUniqueIdRequest{
 		Alert: req,
 	}
 
@@ -1250,14 +1417,14 @@ func resourceCoralogixAlertUpdate(ctx context.Context, d *schema.ResourceData, m
 		return handleRpcErrorWithID(err, "alert", id)
 	}
 	log.Printf("[INFO] Submitted updated alert: %#v", alertResp)
-	d.SetId(alertResp.GetAlert().GetId().GetValue())
+	d.SetId(alertResp.GetAlert().GetUniqueIdentifier().GetValue())
 
 	return resourceCoralogixAlertRead(ctx, d, meta)
 }
 
 func resourceCoralogixAlertDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := wrapperspb.String(d.Id())
-	deleteAlertRequest := &alertsv1.DeleteAlertRequest{
+	deleteAlertRequest := &alertsv1.DeleteAlertByUniqueIdRequest{
 		Id: id,
 	}
 
@@ -1307,6 +1474,7 @@ func extractCreateAlertRequest(d *schema.ResourceData) (*alertsv1.CreateAlertReq
 }
 
 func extractAlert(d *schema.ResourceData) (*alertsv1.Alert, error) {
+	id := wrapperspb.String(d.Id())
 	enabled := wrapperspb.Bool(d.Get("enabled").(bool))
 	name := wrapperspb.String(d.Get("name").(string))
 	description := wrapperspb.String(d.Get("description").(string))
@@ -1321,7 +1489,7 @@ func extractAlert(d *schema.ResourceData) (*alertsv1.Alert, error) {
 	}
 
 	createAlertRequest := &alertsv1.Alert{
-		Id:                         wrapperspb.String(d.Id()),
+		UniqueIdentifier:           id,
 		Name:                       name,
 		Description:                description,
 		IsActive:                   enabled,
@@ -1438,26 +1606,33 @@ func flattenScheduling(d *schema.ResourceData, activeWhen *alertsv1.AlertActiveW
 		return nil
 	}
 
-	utc := int32(scheduling.([]interface{})[0].(map[string]interface{})["utc"].(int))
+	timeZone := scheduling.([]interface{})[0].(map[string]interface{})["time_zone"].(string)
 
-	timeFrames := flattenTimeFrames(activeWhen, utc)
+	timeFrames := flattenTimeFrames(activeWhen, timeZone)
 
 	return []interface{}{
 		map[string]interface{}{
-			"utc":         utc,
+			"time_zone":   timeZone,
 			"time_frames": timeFrames,
 		},
 	}
 }
 
-func flattenTimeFrames(activeWhen *alertsv1.AlertActiveWhen, utc int32) interface{} {
+func flattenTimeFrames(activeWhen *alertsv1.AlertActiveWhen, timeZone string) interface{} {
 	timeFrames := activeWhen.GetTimeframes()
+	utc := flattenUtc(timeZone)
 	result := schema.NewSet(hashTimeFrames(), []interface{}{})
 	for _, tf := range timeFrames {
 		m := flattenTimeFrame(tf, utc)
 		result.Add(m)
 	}
 	return result
+}
+
+func flattenUtc(timeZone string) int32 {
+	utcStr := strings.Split(timeZone, "UTC")[1]
+	utc, _ := strconv.Atoi(utcStr)
+	return int32(utc)
 }
 
 func flattenTimeFrame(tf *alertsv1.AlertActiveTimeframe, utc int32) map[string]interface{} {
@@ -1564,14 +1739,15 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 		}
 	case *alertsv1.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
-		conditionSchema = []interface{}{
-			map[string]interface{}{
-				"less_than":             true,
-				"occurrences_threshold": int(conditionParams.GetThreshold().GetValue()),
-				"group_by":              wrappedStringSliceToStringSlice(conditionParams.GroupBy),
-				"time_window":           alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
-			},
+		m := map[string]interface{}{
+			"less_than":                true,
+			"occurrences_threshold":    int(conditionParams.GetThreshold().GetValue()),
+			"group_by":                 wrappedStringSliceToStringSlice(conditionParams.GroupBy),
+			"time_window":              alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
+			"manage_undetected_values": flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData()),
 		}
+
+		conditionSchema = []interface{}{m}
 		notifyWhenResolved = conditionParams.GetNotifyOnResolved()
 		notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
 	case *alertsv1.AlertCondition_MoreThan:
@@ -1603,6 +1779,36 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 	return
 }
 
+func flattenManageUndetectedValues(data *alertsv1.RelatedExtendedData) interface{} {
+	if data == nil || (data.GetShouldTriggerDeadman() == nil && data.GetShouldTriggerDeadman().GetValue()) {
+		return []map[string]interface{}{
+			{
+				"enable_triggering_on_undetected_values": true,
+				"auto_retire_ratio":                      flattenDeadmanRatio(alertsv1.CleanupDeadmanDuration_CLEANUP_DEADMAN_DURATION_NEVER_OR_UNSPECIFIED),
+			},
+		}
+	} else if data.GetShouldTriggerDeadman().GetValue() {
+		return []map[string]interface{}{
+			{
+				"enable_triggering_on_undetected_values": true,
+				"auto_retire_ratio":                      flattenDeadmanRatio(data.GetCleanupDeadmanDuration()),
+			},
+		}
+	}
+
+	return []map[string]interface{}{
+		{
+			"disable_triggering_on_undetected_values": true,
+		},
+	}
+}
+
+func flattenDeadmanRatio(cleanupDeadmanDuration alertsv1.CleanupDeadmanDuration) string {
+	deadmanRatioStr := alertsv1.CleanupDeadmanDuration_name[int32(cleanupDeadmanDuration)]
+	deadmanRatio := alertProtoDeadmanRatiosToSchemaDeadmanRatios[deadmanRatioStr]
+	return deadmanRatio
+}
+
 func flattenRatioAlert(filters *alertsv1.AlertFilters, condition interface{}) (alertSchema interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
 	query1Map := flattenCommonAlert(filters)
 	query1Map["alias"] = filters.GetAlias().GetValue()
@@ -1628,6 +1834,7 @@ func flattenRatioCondition(condition interface{}, query2 *alertsv1.AlertFilters_
 	case *alertsv1.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
 		ratioParamsMap["less_than"] = true
+		ratioParamsMap["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
 	case *alertsv1.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		ratioParamsMap["more_than"] = true
@@ -1637,6 +1844,7 @@ func flattenRatioCondition(condition interface{}, query2 *alertsv1.AlertFilters_
 
 	ratioParamsMap["queries_ratio"] = conditionParams.GetThreshold().GetValue()
 	ratioParamsMap["time_window"] = alertProtoTimeFrameToSchemaTimeFrame[conditionParams.GetTimeframe().String()]
+
 	ignoreInfinity = conditionParams.GetIgnoreInfinity()
 	notifyWhenResolved = conditionParams.GetNotifyOnResolved()
 	notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
@@ -1704,6 +1912,7 @@ func flattenTimeRelativeCondition(condition interface{}) (timeRelativeConditionS
 	case *alertsv1.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
 		timeRelativeCondition["less_than"] = true
+		timeRelativeCondition["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
 	case *alertsv1.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		timeRelativeCondition["more_than"] = true
@@ -1752,13 +1961,16 @@ func flattenMetricAlert(filters *alertsv1.AlertFilters, condition interface{}) (
 		metricTypeStr = "promql"
 		searchQuery = promqlParams.GetPromqlText().GetValue()
 		conditionMap, notifyWhenResolved = flattenPromQLCondition(conditionParams)
-
+		conditionMap["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
 	} else {
 		metricTypeStr = "lucene"
 		searchQuery = filters.GetText().GetValue()
 		conditionMap, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues = flattenLuceneCondition(conditionParams)
 	}
 	conditionMap[conditionStr] = true
+	if conditionStr == "less_than" {
+		conditionMap["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
+	}
 
 	metricMap := map[string]interface{}{
 		"search_query": searchQuery,
@@ -2053,7 +2265,7 @@ func expandActiveWhen(v interface{}) *alertsv1.AlertActiveWhen {
 	}
 
 	schedulingMap := l[0].(map[string]interface{})
-	utc := int32(schedulingMap["utc"].(int))
+	utc := flattenUtc(schedulingMap["time_zone"].(string))
 	timeFrames := schedulingMap["time_frames"].(*schema.Set).List()
 
 	expandedTimeframes := expandActiveTimeframes(timeFrames, utc)
@@ -2228,10 +2440,34 @@ func expandStandardCondition(m map[string]interface{}, notifyOnResolved, notifyO
 	return nil, fmt.Errorf("immediately, less_than, more_than or more_than_usual have to be true")
 }
 
+func expandRelatedExtendedData(m map[string]interface{}) *alertsv1.RelatedExtendedData {
+	if v, ok := m["manage_undetected_values"]; ok {
+		if manageUndetectedValues, ok := v.([]interface{}); ok && len(manageUndetectedValues) != 0 {
+			raw := manageUndetectedValues[0].(map[string]interface{})
+			if enable, ok := raw["enable_triggering_on_undetected_values"]; ok && enable.(bool) {
+				cleanupDeadmanDurationStr := alertSchemaDeadmanRatiosToProtoDeadmanRatios[raw["auto_retire_ratio"].(string)]
+				cleanupDeadmanDuration := alertsv1.CleanupDeadmanDuration(alertsv1.CleanupDeadmanDuration_value[cleanupDeadmanDurationStr])
+				return &alertsv1.RelatedExtendedData{
+					CleanupDeadmanDuration: &cleanupDeadmanDuration,
+					ShouldTriggerDeadman:   wrapperspb.Bool(true),
+				}
+			} else if disable, ok := raw["disable_triggering_on_undetected_values"]; ok && disable.(bool) {
+				return &alertsv1.RelatedExtendedData{
+					ShouldTriggerDeadman: wrapperspb.Bool(false),
+				}
+			}
+
+		}
+	}
+
+	return nil
+}
+
 func expandStandardConditionParameters(m map[string]interface{}, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) *alertsv1.ConditionParameters {
 	timeFrame := expandTimeFrame(m["time_window"].(string))
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
 	threshold := wrapperspb.Double(float64(m["occurrences_threshold"].(int)))
+	relatedExtendedData := expandRelatedExtendedData(m)
 
 	return &alertsv1.ConditionParameters{
 		Threshold:               threshold,
@@ -2239,6 +2475,7 @@ func expandStandardConditionParameters(m map[string]interface{}, notifyOnResolve
 		GroupBy:                 groupBy,
 		NotifyOnResolved:        notifyOnResolved,
 		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
+		RelatedExtendedData:     relatedExtendedData,
 	}
 }
 
@@ -2295,15 +2532,17 @@ func expandRatioCondition(m map[string]interface{}, groupBy []*wrapperspb.String
 func expandRatioParams(m map[string]interface{}, groupBy []*wrapperspb.StringValue, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) *alertsv1.ConditionParameters {
 	threshold := wrapperspb.Double(m["queries_ratio"].(float64))
 	timeFrame := expandTimeFrame(m["time_window"].(string))
-	parameters := &alertsv1.ConditionParameters{
+	relatedExtendedData := expandRelatedExtendedData(m)
+
+	return &alertsv1.ConditionParameters{
 		Threshold:               threshold,
 		Timeframe:               timeFrame,
 		GroupBy:                 groupBy,
 		NotifyOnResolved:        notifyOnResolved,
 		IgnoreInfinity:          ignoreInfinity,
 		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
+		RelatedExtendedData:     relatedExtendedData,
 	}
-	return parameters
 }
 
 func expandQuery2(v interface{}, groupBy []*wrapperspb.StringValue) *alertsv1.AlertFilters_RatioAlert {
@@ -2390,14 +2629,14 @@ func expandUniqueCountConditionParameters(m map[string]interface{}) *alertsv1.Co
 	timeFrame := expandUniqueValueTimeFrame(m["time_window"].(string))
 	groupBy := []*wrapperspb.StringValue{wrapperspb.String(m["group_by_key"].(string))}
 	groupByThreshold := wrapperspb.UInt32(uint32(m["max_unique_values_for_group_by"].(int)))
-	parameters := &alertsv1.ConditionParameters{
+
+	return &alertsv1.ConditionParameters{
 		CardinalityFields:                 uniqueCountKey,
 		Threshold:                         threshold,
 		Timeframe:                         timeFrame,
 		GroupBy:                           groupBy,
 		MaxUniqueCountValuesForGroupByKey: groupByThreshold,
 	}
-	return parameters
 }
 
 func expandUniqueCountFilters(m map[string]interface{}) *alertsv1.AlertFilters {
@@ -2472,6 +2711,7 @@ func expandTimeRelativeConditionParameters(m map[string]interface{}, ignoreInfin
 	timeFrame, relativeTimeframe := expandTimeFrameAndRelativeTimeframe(m["relative_time_window"].(string))
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
 	threshold := wrapperspb.Double(m["ratio_threshold"].(float64))
+	relatedExtendedData := expandRelatedExtendedData(m)
 	return &alertsv1.ConditionParameters{
 		Timeframe:               timeFrame,
 		RelativeTimeframe:       relativeTimeframe,
@@ -2480,6 +2720,7 @@ func expandTimeRelativeConditionParameters(m map[string]interface{}, ignoreInfin
 		IgnoreInfinity:          ignoreInfinity,
 		NotifyOnResolved:        notifyOnResolved,
 		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
+		RelatedExtendedData:     relatedExtendedData,
 	}
 }
 
@@ -2524,12 +2765,14 @@ func expandMetricCondition(m map[string]interface{}, notifyWhenResolved, notifyO
 	nonNullPercentage := wrapperspb.UInt32(uint32(conditionMap["min_non_null_values_percentage"].(int)))
 	swapNullValues := wrapperspb.Bool(conditionMap["replace_missing_value_with_zero"].(bool))
 	timeFrame := expandMetricTimeFrame(conditionMap["time_window"].(string))
+	relatedExtendedData := expandRelatedExtendedData(conditionMap)
 
 	parameters := &alertsv1.ConditionParameters{
 		Threshold:               threshold,
 		NotifyOnResolved:        notifyWhenResolved,
 		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
 		Timeframe:               timeFrame,
+		RelatedExtendedData:     relatedExtendedData,
 	}
 
 	if isPromQL {

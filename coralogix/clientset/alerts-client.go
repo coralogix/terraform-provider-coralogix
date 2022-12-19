@@ -23,7 +23,7 @@ func (a AlertsClient) CreateAlert(ctx context.Context, req *alertsv1.CreateAlert
 	return client.CreateAlert(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (a AlertsClient) GetAlert(ctx context.Context, req *alertsv1.GetAlertRequest) (*alertsv1.GetAlertResponse, error) {
+func (a AlertsClient) GetAlert(ctx context.Context, req *alertsv1.GetAlertByUniqueIdRequest) (*alertsv1.GetAlertByUniqueIdResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -33,10 +33,10 @@ func (a AlertsClient) GetAlert(ctx context.Context, req *alertsv1.GetAlertReques
 	defer conn.Close()
 	client := alertsv1.NewAlertServiceClient(conn)
 
-	return client.GetAlert(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.GetAlertByUniqueId(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (a AlertsClient) UpdateAlert(ctx context.Context, req *alertsv1.UpdateAlertRequest) (*alertsv1.UpdateAlertResponse, error) {
+func (a AlertsClient) UpdateAlert(ctx context.Context, req *alertsv1.UpdateAlertByUniqueIdRequest) (*alertsv1.UpdateAlertByUniqueIdResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -46,10 +46,10 @@ func (a AlertsClient) UpdateAlert(ctx context.Context, req *alertsv1.UpdateAlert
 	defer conn.Close()
 	client := alertsv1.NewAlertServiceClient(conn)
 
-	return client.UpdateAlert(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.UpdateAlertByUniqueId(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (a AlertsClient) DeleteAlert(ctx context.Context, req *alertsv1.DeleteAlertRequest) (*alertsv1.DeleteAlertResponse, error) {
+func (a AlertsClient) DeleteAlert(ctx context.Context, req *alertsv1.DeleteAlertByUniqueIdRequest) (*alertsv1.DeleteAlertByUniqueIdResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (a AlertsClient) DeleteAlert(ctx context.Context, req *alertsv1.DeleteAlert
 	defer conn.Close()
 	client := alertsv1.NewAlertServiceClient(conn)
 
-	return client.DeleteAlert(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.DeleteAlertByUniqueId(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 func NewAlertsClient(c *CallPropertiesCreator) *AlertsClient {
