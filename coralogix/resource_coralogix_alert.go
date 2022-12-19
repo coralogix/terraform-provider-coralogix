@@ -267,6 +267,7 @@ func AlertSchema() map[string]*schema.Schema {
 		"notification": {
 			Type:     schema.TypeList,
 			Optional: true,
+			Computed: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"on_trigger_and_resolved": {
@@ -318,11 +319,11 @@ func AlertSchema() map[string]*schema.Schema {
 					"notify_every_min": {
 						Type:         schema.TypeInt,
 						Optional:     true,
-						Default:      1,
+						Computed:     true,
 						ValidateFunc: validation.IntAtLeast(1),
 						Description: "By default, notify_every_min will be populated with min for immediate," +
 							" more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time" +
-							" frame for the less_than condition (in seconds). You may choose to change the suppress window so the " +
+							" frame for the less_than condition (in minutes). You may choose to change the suppress window so the " +
 							"alert will be suppressed for a longer period.",
 					},
 					"payload_fields": {

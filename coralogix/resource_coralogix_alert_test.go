@@ -372,9 +372,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 		emailRecipients: []string{"user@example.com"},
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen:      randActiveWhen(),
-		notifyEveryMin:  acctest.RandIntRange(1, 60),
-		alterId1:        "a9836075-7164-4499-897f-e97404d33c3f",
-		alertId2:        "c3c2936e-0b7e-44d7-9295-3aacba1e2366",
+		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
 	}
 
 	checks := []resource.TestCheckFunc{
@@ -385,12 +383,9 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 		resource.TestCheckResourceAttr(resourceName, "alert_severity", alert.severity),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
-		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.0.groups.0.sub_alerts.0.user_alert_id", alert.alterId1),
 		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.time_window.0.hours", "0"),
 		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.time_window.0.minutes", "20"),
 		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.time_window.0.seconds", "0"),
-		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.groups.0.sub_alerts.0.user_alert_id", alert.alertId2),
-		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.groups.0.sub_alerts.1.user_alert_id", alert.alterId1),
 		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.groups.0.operator", "OR"),
 	}
 
@@ -892,10 +887,11 @@ func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
 	name               = "standard"
 	alert_severity     = "Info"
 	standard {
-	condition {
-		immediately = true
+		condition {
+			immediately = true
 		}
 	}
+}
 
 	resource "coralogix_alert" "test" {
   		name               = "%s"
@@ -919,31 +915,31 @@ func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
 
   	flow {
     	stages {
-     		 groups {
-        		sub_alerts {
-         		 	user_alert_id = "%s"
-        			}
-        		operator = "OR"
-      			}
-   			 }
-    	stages {
       		groups {
         		sub_alerts {
-       		   		user_alert_id = "%s"
-				}
-        		sub_alerts {
-          			user_alert_id = "%s"
+          			user_alert_id = coralogix_alert.standard_alert.id
         		}
         		operator = "OR"
       		}
-      	time_window {
-        	minutes = 20
-      	}
-    }
-  }
+    	}
+    	stages {
+      		groups {
+        		sub_alerts {
+          			user_alert_id = coralogix_alert.standard_alert.id
+				}
+        		sub_alerts {
+          			user_alert_id = coralogix_alert.standard_alert.id
+        		}
+        		operator = "OR"
+      		}
+      		time_window {
+        		minutes = 20
+      		}
+		}
+  	}
 }`,
 		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
-		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds, a.alterId1, a.alertId2, a.alterId1)
+		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds)
 }
 
 type standardAlertTestParams struct {
@@ -1001,7 +997,6 @@ type tracingAlertTestParams struct {
 }
 
 type flowAlertTestParams struct {
-	alterId1, alertId2          string
 	name, description, severity string
 	emailRecipients             []string
 	notifyEveryMin              int
