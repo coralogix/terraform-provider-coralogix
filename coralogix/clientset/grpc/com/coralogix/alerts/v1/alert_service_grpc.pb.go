@@ -28,7 +28,9 @@ type AlertServiceClient interface {
 	GetAlertModelMapping(ctx context.Context, in *GetAlertModelMappingRequest, opts ...grpc.CallOption) (*GetAlertModelMappingResponse, error)
 	CreateAlert(ctx context.Context, in *CreateAlertRequest, opts ...grpc.CallOption) (*CreateAlertResponse, error)
 	UpdateAlert(ctx context.Context, in *UpdateAlertRequest, opts ...grpc.CallOption) (*UpdateAlertResponse, error)
+	UpdateAlertByUniqueId(ctx context.Context, in *UpdateAlertByUniqueIdRequest, opts ...grpc.CallOption) (*UpdateAlertByUniqueIdResponse, error)
 	DeleteAlert(ctx context.Context, in *DeleteAlertRequest, opts ...grpc.CallOption) (*DeleteAlertResponse, error)
+	DeleteAlertByUniqueId(ctx context.Context, in *DeleteAlertByUniqueIdRequest, opts ...grpc.CallOption) (*DeleteAlertByUniqueIdResponse, error)
 	GetAlertEvents(ctx context.Context, in *GetAlertEventsRequest, opts ...grpc.CallOption) (*GetAlertEventsResponse, error)
 	ValidateAlert(ctx context.Context, in *ValidateAlertRequest, opts ...grpc.CallOption) (*ValidateAlertResponse, error)
 	GetAlertEventsCountBySeverity(ctx context.Context, in *GetAlertEventsCountBySeverityRequest, opts ...grpc.CallOption) (*GetAlertEventsCountBySeverityResponse, error)
@@ -96,9 +98,27 @@ func (c *alertServiceClient) UpdateAlert(ctx context.Context, in *UpdateAlertReq
 	return out, nil
 }
 
+func (c *alertServiceClient) UpdateAlertByUniqueId(ctx context.Context, in *UpdateAlertByUniqueIdRequest, opts ...grpc.CallOption) (*UpdateAlertByUniqueIdResponse, error) {
+	out := new(UpdateAlertByUniqueIdResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/UpdateAlertByUniqueId", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *alertServiceClient) DeleteAlert(ctx context.Context, in *DeleteAlertRequest, opts ...grpc.CallOption) (*DeleteAlertResponse, error) {
 	out := new(DeleteAlertResponse)
 	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/DeleteAlert", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *alertServiceClient) DeleteAlertByUniqueId(ctx context.Context, in *DeleteAlertByUniqueIdRequest, opts ...grpc.CallOption) (*DeleteAlertByUniqueIdResponse, error) {
+	out := new(DeleteAlertByUniqueIdResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/DeleteAlertByUniqueId", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +162,9 @@ type AlertServiceServer interface {
 	GetAlertModelMapping(context.Context, *GetAlertModelMappingRequest) (*GetAlertModelMappingResponse, error)
 	CreateAlert(context.Context, *CreateAlertRequest) (*CreateAlertResponse, error)
 	UpdateAlert(context.Context, *UpdateAlertRequest) (*UpdateAlertResponse, error)
+	UpdateAlertByUniqueId(context.Context, *UpdateAlertByUniqueIdRequest) (*UpdateAlertByUniqueIdResponse, error)
 	DeleteAlert(context.Context, *DeleteAlertRequest) (*DeleteAlertResponse, error)
+	DeleteAlertByUniqueId(context.Context, *DeleteAlertByUniqueIdRequest) (*DeleteAlertByUniqueIdResponse, error)
 	GetAlertEvents(context.Context, *GetAlertEventsRequest) (*GetAlertEventsResponse, error)
 	ValidateAlert(context.Context, *ValidateAlertRequest) (*ValidateAlertResponse, error)
 	GetAlertEventsCountBySeverity(context.Context, *GetAlertEventsCountBySeverityRequest) (*GetAlertEventsCountBySeverityResponse, error)
@@ -171,8 +193,14 @@ func (UnimplementedAlertServiceServer) CreateAlert(context.Context, *CreateAlert
 func (UnimplementedAlertServiceServer) UpdateAlert(context.Context, *UpdateAlertRequest) (*UpdateAlertResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateAlert not implemented")
 }
+func (UnimplementedAlertServiceServer) UpdateAlertByUniqueId(context.Context, *UpdateAlertByUniqueIdRequest) (*UpdateAlertByUniqueIdResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateAlertByUniqueId not implemented")
+}
 func (UnimplementedAlertServiceServer) DeleteAlert(context.Context, *DeleteAlertRequest) (*DeleteAlertResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteAlert not implemented")
+}
+func (UnimplementedAlertServiceServer) DeleteAlertByUniqueId(context.Context, *DeleteAlertByUniqueIdRequest) (*DeleteAlertByUniqueIdResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteAlertByUniqueId not implemented")
 }
 func (UnimplementedAlertServiceServer) GetAlertEvents(context.Context, *GetAlertEventsRequest) (*GetAlertEventsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAlertEvents not implemented")
@@ -304,6 +332,24 @@ func _AlertService_UpdateAlert_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AlertService_UpdateAlertByUniqueId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateAlertByUniqueIdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AlertServiceServer).UpdateAlertByUniqueId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogix.alerts.v1.AlertService/UpdateAlertByUniqueId",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AlertServiceServer).UpdateAlertByUniqueId(ctx, req.(*UpdateAlertByUniqueIdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AlertService_DeleteAlert_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DeleteAlertRequest)
 	if err := dec(in); err != nil {
@@ -318,6 +364,24 @@ func _AlertService_DeleteAlert_Handler(srv interface{}, ctx context.Context, dec
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AlertServiceServer).DeleteAlert(ctx, req.(*DeleteAlertRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AlertService_DeleteAlertByUniqueId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteAlertByUniqueIdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AlertServiceServer).DeleteAlertByUniqueId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogix.alerts.v1.AlertService/DeleteAlertByUniqueId",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AlertServiceServer).DeleteAlertByUniqueId(ctx, req.(*DeleteAlertByUniqueIdRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -408,8 +472,16 @@ var AlertService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AlertService_UpdateAlert_Handler,
 		},
 		{
+			MethodName: "UpdateAlertByUniqueId",
+			Handler:    _AlertService_UpdateAlertByUniqueId_Handler,
+		},
+		{
 			MethodName: "DeleteAlert",
 			Handler:    _AlertService_DeleteAlert_Handler,
+		},
+		{
+			MethodName: "DeleteAlertByUniqueId",
+			Handler:    _AlertService_DeleteAlertByUniqueId_Handler,
 		},
 		{
 			MethodName: "GetAlertEvents",

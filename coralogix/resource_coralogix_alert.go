@@ -1375,14 +1375,14 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 	Alert := AlertResp.GetAlert()
 	log.Printf("[INFO] Submitted new alert: %#v", Alert)
-	d.SetId(Alert.GetId().GetValue())
+	d.SetId(Alert.GetUniqueIdentifier().GetValue())
 
 	return resourceCoralogixAlertRead(ctx, d, meta)
 }
 
 func resourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := wrapperspb.String(d.Id())
-	getAlertRequest := &alertsv1.GetAlertRequest{
+	getAlertRequest := &alertsv1.GetAlertByUniqueIdRequest{
 		Id: id,
 	}
 
@@ -1405,7 +1405,7 @@ func resourceCoralogixAlertUpdate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	id := d.Id()
-	updateAlertRequest := &alertsv1.UpdateAlertRequest{
+	updateAlertRequest := &alertsv1.UpdateAlertByUniqueIdRequest{
 		Alert: req,
 	}
 
@@ -1416,14 +1416,14 @@ func resourceCoralogixAlertUpdate(ctx context.Context, d *schema.ResourceData, m
 		return handleRpcErrorWithID(err, "alert", id)
 	}
 	log.Printf("[INFO] Submitted updated alert: %#v", alertResp)
-	d.SetId(alertResp.GetAlert().GetId().GetValue())
+	d.SetId(alertResp.GetAlert().GetUniqueIdentifier().GetValue())
 
 	return resourceCoralogixAlertRead(ctx, d, meta)
 }
 
 func resourceCoralogixAlertDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := wrapperspb.String(d.Id())
-	deleteAlertRequest := &alertsv1.DeleteAlertRequest{
+	deleteAlertRequest := &alertsv1.DeleteAlertByUniqueIdRequest{
 		Id: id,
 	}
 
@@ -1473,6 +1473,7 @@ func extractCreateAlertRequest(d *schema.ResourceData) (*alertsv1.CreateAlertReq
 }
 
 func extractAlert(d *schema.ResourceData) (*alertsv1.Alert, error) {
+	id := wrapperspb.String(d.Id())
 	enabled := wrapperspb.Bool(d.Get("enabled").(bool))
 	name := wrapperspb.String(d.Get("name").(string))
 	description := wrapperspb.String(d.Get("description").(string))
@@ -1487,7 +1488,7 @@ func extractAlert(d *schema.ResourceData) (*alertsv1.Alert, error) {
 	}
 
 	createAlertRequest := &alertsv1.Alert{
-		Id:                         wrapperspb.String(d.Id()),
+		UniqueIdentifier:           id,
 		Name:                       name,
 		Description:                description,
 		IsActive:                   enabled,

@@ -524,7 +524,7 @@ func testAccCheckAlertDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &alertsv1.GetAlertRequest{
+		req := &alertsv1.GetAlertByUniqueIdRequest{
 			Id: wrapperspb.String(rs.Primary.ID),
 		}
 
@@ -888,49 +888,57 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
 }
 
 func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
-	return fmt.Sprintf(`resource "coralogix_alert" "test" {
-  name               = "%s"
-  description        = "%s"
-  alert_severity     = "%s"
-  notification {
-    recipients {
-      emails      = %s
-    }
-    notify_every_min = %d
-  }
+	return fmt.Sprintf(`resource "coralogix_alert" "standard_alert" {
+	name               = "standard"
+	alert_severity     = "Info"
+	standard {
+	condition {
+		immediately = true
+		}
+	}
 
-  scheduling {
-    time_zone =  "%s"
-	
-	time_frames {
-    	days_enabled = %s
-    	start_time = "%s"
-    	end_time = "%s"
-  	}
-  }
+	resource "coralogix_alert" "test" {
+  		name               = "%s"
+  		description        = "%s"
+	  	alert_severity     = "%s"
+		notification {
+    		recipients {
+      			emails      = %s
+    		}
+    	notify_every_min = %d
+  		}
 
-  flow {
-    stages {
-      groups {
-        sub_alerts {
-          user_alert_id = "%s"
-        }
-        operator = "OR"
-      }
-    }
-    stages {
-      groups {
-        sub_alerts {
-          user_alert_id = "%s"
-        }
-        sub_alerts {
-          user_alert_id = "%s"
-        }
-        operator = "OR"
-      }
-      time_window {
-        minutes = 20
-      }
+  		scheduling {
+    		time_zone =  "%s"
+			time_frames {
+    			days_enabled = %s
+    			start_time = "%s"
+    			end_time = "%s"
+  			}
+		}
+
+  	flow {
+    	stages {
+     		 groups {
+        		sub_alerts {
+         		 	user_alert_id = "%s"
+        			}
+        		operator = "OR"
+      			}
+   			 }
+    	stages {
+      		groups {
+        		sub_alerts {
+       		   		user_alert_id = "%s"
+				}
+        		sub_alerts {
+          			user_alert_id = "%s"
+        		}
+        		operator = "OR"
+      		}
+      	time_window {
+        	minutes = 20
+      	}
     }
   }
 }`,

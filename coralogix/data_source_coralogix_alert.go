@@ -28,7 +28,7 @@ func dataSourceCoralogixAlert() *schema.Resource {
 
 func dataSourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := wrapperspb.String(d.Get("id").(string))
-	getAlertRequest := &alertsv1.GetAlertRequest{
+	getAlertRequest := &alertsv1.GetAlertByUniqueIdRequest{
 		Id: id,
 	}
 

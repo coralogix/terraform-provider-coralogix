@@ -43,7 +43,7 @@ resource "coralogix_enrichment" custom_enrichment {
 resource "coralogix_data_set" data_set {
   name         = "custom enrichment data"
   description  = "description"
-  file_content = file("./date-to-day-of-the-week.csv")
+  file_content = file("../data_set/date-to-day-of-the-week.csv")
 }
 
 data "coralogix_enrichment" "imported_enrichment" {
