@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -294,4 +295,24 @@ func strToUint32(str string) uint32 {
 
 func uint32ToStr(n uint32) string {
 	return strconv.FormatUint(uint64(n), 10)
+}
+
+func mailValidationFunc() schema.SchemaValidateFunc {
+	return validation.StringMatch(
+		regexp.MustCompile(`^[a-z/d._%+\-]+@[a-z/d.\-]+\.[a-z]{2,4}$`), "not valid mail address")
+}
+
+func urlValidationFunc() schema.SchemaValidateFunc {
+	return func(i interface{}, k string) ([]string, []error) {
+		v, ok := i.(string)
+		if !ok {
+			return nil, []error{fmt.Errorf("expected type of %s to be string", k)}
+		}
+
+		if _, err := url.ParseRequestURI(v); err != nil {
+			return nil, []error{fmt.Errorf("%s in not valid url - %s", k, err.Error())}
+		}
+		return nil, nil
+	}
+
 }

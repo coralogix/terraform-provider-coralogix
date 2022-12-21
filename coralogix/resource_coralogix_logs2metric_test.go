@@ -23,7 +23,6 @@ type logs2MetricTestFields struct {
 func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 	resourceName := "coralogix_logs2metric.test"
 	logs2Metric := getRandomLogs2Metric()
-	testAccCoralogixResourceLogs2Metric(logs2Metric)
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,

@@ -2,9 +2,10 @@ package REST
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -20,7 +21,7 @@ func NewRESTClient(url string, apiKey string) *Client {
 }
 
 // Request executes request to Coralogix API
-func (c *Client) Request(method string, path string, body interface{}) (map[string]interface{}, error) {
+func (c *Client) Request(ctx context.Context, method string, path string, body interface{}) (map[string]interface{}, error) {
 	var request *http.Request
 
 	if body != nil {
@@ -33,6 +34,8 @@ func (c *Client) Request(method string, path string, body interface{}) (map[stri
 		request, _ = http.NewRequest(method, c.url+path, nil)
 	}
 
+	request = request.WithContext(ctx)
+
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Cache-Control", "no-cache")
 	request.Header.Set("Authorization", "Bearer "+c.apiKey)
@@ -43,7 +46,7 @@ func (c *Client) Request(method string, path string, body interface{}) (map[stri
 	}
 
 	defer response.Body.Close()
-	responseBytes, _ := ioutil.ReadAll(response.Body)
+	responseBytes, _ := io.ReadAll(response.Body)
 
 	if response.StatusCode == 200 || response.StatusCode == 201 {
 		if method != "DELETE" && len(responseBytes) > 0 {
@@ -67,21 +70,21 @@ func (c *Client) Request(method string, path string, body interface{}) (map[stri
 }
 
 // Get executes GET request to Coralogix API
-func (c *Client) Get(path string) (map[string]interface{}, error) {
-	return c.Request("GET", path, nil)
+func (c *Client) Get(ctx context.Context, path string) (map[string]interface{}, error) {
+	return c.Request(ctx, "GET", path, nil)
 }
 
 // Post executes POST request to Coralogix API
-func (c *Client) Post(path string, body interface{}) (map[string]interface{}, error) {
-	return c.Request("POST", path, body)
+func (c *Client) Post(ctx context.Context, path string, body interface{}) (map[string]interface{}, error) {
+	return c.Request(ctx, "POST", path, body)
 }
 
 // Put executes PUT request to Coralogix API
-func (c *Client) Put(path string, body interface{}) (map[string]interface{}, error) {
-	return c.Request("PUT", path, body)
+func (c *Client) Put(ctx context.Context, path string, body interface{}) (map[string]interface{}, error) {
+	return c.Request(ctx, "PUT", path, body)
 }
 
 // Delete executes DELETE request to Coralogix API
-func (c *Client) Delete(path string) (map[string]interface{}, error) {
-	return c.Request("DELETE", path, nil)
+func (c *Client) Delete(ctx context.Context, path string) (map[string]interface{}, error) {
+	return c.Request(ctx, "DELETE", path, nil)
 }

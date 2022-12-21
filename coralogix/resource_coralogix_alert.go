@@ -296,9 +296,8 @@ func AlertSchema() map[string]*schema.Schema {
 									Type:     schema.TypeSet,
 									Optional: true,
 									Elem: &schema.Schema{
-										Type: schema.TypeString,
-										ValidateFunc: validation.StringMatch(
-											regexp.MustCompile(`^[a-z/d._%+\-]+@[a-z/d.\-]+\.[a-z]{2,4}$`), "not valid mail address"),
+										Type:         schema.TypeString,
+										ValidateFunc: mailValidationFunc(),
 									},
 									Description: "The emails for anyone that should receive this alert.",
 									Set:         schema.HashString,

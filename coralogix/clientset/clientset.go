@@ -50,6 +50,10 @@ func (c *ClientSet) DataSet() *DataSetClient {
 	return c.dataSet
 }
 
+func (c *ClientSet) Webhooks() *WebhooksClient {
+	return c.webhooks
+}
+
 func NewClientSet(env, apiKey, teamsApiKey string) *ClientSet {
 	targetUrl := EnvToGrpcUrl[env]
 	targetRESTUrl := EnvToRESTUrl[env]
