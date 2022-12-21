@@ -4,15 +4,10 @@
 
 page_title: "coralogix_rules_group Resource - terraform-provider-coralogix"
 subcategory: ""
-description: |-
-Rule-group is list of rule-subgroups with 'and' (&&) operation between. Api-key is required for this resource.
+description: "Rule-group is list of rule-subgroups with 'and' (&&) operation between. Api-key is required for this resource. More info: https://coralogix.com/docs/rules-api/."
 ---
 
 # coralogix_rules_group (Resource)
-
-Rule-group is list of rule-subgroups with 'and' (&&) operation between.
-Api-key is required for this resource.
-More info: https://coralogix.com/docs/rules-api/.
 
 ## Example Usage
 
