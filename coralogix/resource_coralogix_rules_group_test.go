@@ -360,7 +360,6 @@ func TestAccCoralogixResourceRuleGroup_parseJsonField(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.destination_field", "text"),
 					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.keep_source_field", keepSourceField),
 					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.keep_destination_field", keepDestinationField),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.escaped_value", isEscapedValue),
 				),
 			},
 			{
@@ -861,7 +860,6 @@ func testAccCoralogixResourceRuleGroupParseJsonField(r *ruleGroupParams, keepSou
 		destination_field  = "text"
 		keep_source_field  = "%s"
 		keep_destination_field = "%s"
-		escaped_value = "%s"
 	  }
     }
   }

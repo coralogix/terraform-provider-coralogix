@@ -197,8 +197,7 @@ parse_json_field {
   source_field           = "text"
   destination_field      = "text"
   keep_source_field      = "true"
-  keep_destination_field = "true"
-  escaped_value          = "false"
+  keep_destination_field = "true" 
 }
 ```
 
@@ -405,7 +404,6 @@ Optional:
 
 - `active` (Boolean)
 - `description` (String)
-- `escaped_value` (Boolean)
 - `keep_destination_field` (Boolean) Determines whether to keep or to delete the destination field.
 - `keep_source_field` (Boolean) Determines whether to keep or to delete the source field.
 

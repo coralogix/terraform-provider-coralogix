@@ -378,11 +378,6 @@ func parseJsonFieldSchema() map[string]*schema.Schema {
 		Default:     true,
 		Description: "Determines whether to keep or to delete the destination field.",
 	}
-	parseJsonFieldSchema["escaped_value"] = &schema.Schema{
-		Type:     schema.TypeBool,
-		Optional: true,
-		Default:  false,
-	}
 	return parseJsonFieldSchema
 }
 
@@ -764,7 +759,7 @@ func expandParameters(ruleType string, m map[string]interface{}) *rulesv1.RulePa
 		destinationField := wrapperspb.String(m["destination_field"].(string))
 		deleteSource := wrapperspb.Bool(!m["keep_source_field"].(bool))
 		overrideDest := wrapperspb.Bool(!m["keep_destination_field"].(bool))
-		escapedValue := wrapperspb.Bool(m["escaped_value"].(bool))
+		escapedValue := wrapperspb.Bool(true)
 		jsonParseParameters := rulesv1.JsonParseParameters{
 			DestinationField: destinationField,
 			DeleteSource:     deleteSource,
@@ -919,7 +914,6 @@ func flattenRule(r *rulesv1.Rule) (map[string]interface{}, error) {
 		rule["destination_field"] = jsonParseParameters.GetDestinationField().GetValue()
 		rule["keep_source_field"] = !(jsonParseParameters.GetDeleteSource().GetValue())
 		rule["keep_destination_field"] = !(jsonParseParameters.GetOverrideDest().GetValue())
-		rule["escaped_value"] = jsonParseParameters.GetEscapedValue().GetValue()
 	default:
 		return nil, fmt.Errorf("unexpected type %T for r parameters", ruleParams)
 	}

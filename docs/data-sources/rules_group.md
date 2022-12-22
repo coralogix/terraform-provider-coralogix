@@ -160,7 +160,6 @@ Read-Only:
 - `active` (Boolean)
 - `description` (String)
 - `destination_field` (String)
-- `escaped_value` (Boolean)
 - `id` (String)
 - `keep_destination_field` (Boolean)
 - `keep_source_field` (Boolean)

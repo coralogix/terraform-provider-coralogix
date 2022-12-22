@@ -2,7 +2,7 @@ terraform {
   required_providers {
     coralogix = {
       version = "~> 1.3"
-      source  = "coralogix/coralogix"
+      source  = "locally/debug/coralogix"
     }
   }
 }
@@ -149,7 +149,6 @@ resource "coralogix_rules_group" "parse_json_field_example" {
         destination_field      = "text"
         keep_source_field      = "true"
         keep_destination_field = "true"
-        escaped_value          = "false"
       }
     }
   }
