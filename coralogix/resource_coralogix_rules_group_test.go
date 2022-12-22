@@ -329,47 +329,6 @@ func TestAccCoralogixResourceRuleGroup_jsonStringify(t *testing.T) {
 	})
 }
 
-func TestAccCoralogixResourceRuleGroup_parseJsonField(t *testing.T) {
-	r := getRandomRuleGroup()
-	keepSourceField := selectRandomlyFromSlice([]string{"true", "false"})
-	keepDestinationField := selectRandomlyFromSlice([]string{"true", "false"})
-	resourceName := "coralogix_rules_group.test"
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckRuleGroupDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCoralogixResourceRuleGroupParseJsonField(r, keepSourceField, keepDestinationField),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r.description),
-					resource.TestCheckResourceAttrSet(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.id"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.order", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.name", r.ruleParams.name),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.description", r.ruleParams.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.source_field", "text"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.destination_field", "text"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.keep_source_field", keepSourceField),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.keep_destination_field", keepDestinationField),
-				),
-			},
-			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
-	})
-}
-
 func TestAccCoralogixResourceRuleGroup_extract(t *testing.T) {
 	r := getRandomRuleGroup()
 
