@@ -233,6 +233,15 @@ func RulesGroupSchema() map[string]*schema.Schema {
 									Description: "Use a named RegEx group to extract specific values you need as JSON getKeysStrings without having to parse the entire log.",
 									MaxItems:    1,
 								},
+								"parse_json_field": {
+									Type:     schema.TypeList,
+									Optional: true,
+									Elem: &schema.Resource{
+										Schema: parseJsonFieldSchema(),
+									},
+									Description: "Use a named RegEx group to extract specific values you need as JSON getKeysStrings without having to parse the entire log.",
+									MaxItems:    1,
+								},
 							},
 						},
 						Required: true,
@@ -347,6 +356,13 @@ func jsonStringifyFieldsSchema() map[string]*schema.Schema {
 }
 
 func extractSchema() map[string]*schema.Schema {
+	extractSchema := commonRulesSchema()
+	extractSchema = appendSourceFieldSchema(extractSchema)
+	extractSchema = appendRegularExpressionSchema(extractSchema)
+	return extractSchema
+}
+
+func parseJsonFieldSchema() map[string]*schema.Schema {
 	extractSchema := commonRulesSchema()
 	extractSchema = appendSourceFieldSchema(extractSchema)
 	extractSchema = appendRegularExpressionSchema(extractSchema)
@@ -726,6 +742,19 @@ func expandParameters(ruleType string, m map[string]interface{}) *rulesv1.RulePa
 		deleteSource := wrapperspb.Bool(!m["keep_source_field"].(bool))
 		jsonStringifyParameters := rulesv1.JsonStringifyParameters{DestinationField: destinationField, DeleteSource: deleteSource}
 		ruleParametersJsonStringifyParameters := rulesv1.RuleParameters_JsonStringifyParameters{JsonStringifyParameters: &jsonStringifyParameters}
+		ruleParameters.RuleParameters = &ruleParametersJsonStringifyParameters
+	case "parse_json_field":
+		destinationField := wrapperspb.String(m["destination_field"].(string))
+		deleteSource := wrapperspb.Bool(!m["keep_source_field"].(bool))
+		overrideDest := wrapperspb.Bool(!m["keep_destination_field"].(bool))
+		escapedValue := wrapperspb.Bool(m["escaped_value"].(bool))
+		jsonParseParameters := rulesv1.JsonParseParameters{
+			DestinationField: destinationField,
+			DeleteSource:     deleteSource,
+			EscapedValue:     escapedValue,
+			OverrideDest:     overrideDest,
+		}
+		ruleParametersJsonStringifyParameters := rulesv1.RuleParameters_JsonParseParameters{JsonParseParameters: &jsonParseParameters}
 		ruleParameters.RuleParameters = &ruleParametersJsonStringifyParameters
 	default:
 		panic(ruleType)
