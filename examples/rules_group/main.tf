@@ -20,6 +20,7 @@ resource "coralogix_rules_group" "rules_group_example" {
   severities   = ["Warning"]
 
   rule_subgroups {
+    order = 3
     rules {
       extract {
         name               = "Severity Rule"
@@ -105,6 +106,7 @@ resource "coralogix_rules_group" "extract_timestamp_example" {
   severities   = ["Warning"]
 
   rule_subgroups {
+    order = 2
     rules {
       extract_timestamp {
         name                  = "example extract-timestamp rule from terraform"
@@ -124,6 +126,7 @@ resource "coralogix_rules_group" "remove_fields_example" {
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
   rule_subgroups {
+    order = 1
     rules {
       remove_fields {
         name            = "Example remove-fields rule from terraform"
@@ -135,6 +138,7 @@ resource "coralogix_rules_group" "remove_fields_example" {
 }
 
 resource "coralogix_rules_group" "parse_json_field_example" {
+  order = 0
   name         = "Example parse-json-field rule-group from terraform"
   description  = "rule_group created by coralogix terraform provider"
   applications = ["nginx"] //change here for existing applications from your account
