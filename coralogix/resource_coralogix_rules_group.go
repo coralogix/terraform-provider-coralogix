@@ -132,6 +132,7 @@ func RulesGroupSchema() map[string]*schema.Schema {
 		},
 		"order": {
 			Type:        schema.TypeInt,
+			Optional:    true,
 			Computed:    true,
 			Description: "Determines the index of the rule-group between the other rule-groups. By default will be added last.",
 		},

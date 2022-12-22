@@ -3,6 +3,7 @@ package coralogix
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -622,6 +623,28 @@ func TestAccCoralogixResourceRuleGroup_update_order_inside_rule_group(t *testing
 	})
 }
 
+func TestAccCoralogixResourceRuleGroupOrder(t *testing.T) {
+	firstRuleGroupOrder := acctest.RandIntRange(1, 2)
+	secondRuleGroupOrder := 2
+	if firstRuleGroupOrder == 2 {
+		secondRuleGroupOrder = 1
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckRuleGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceRuleRulesGroupsOrders(firstRuleGroupOrder, secondRuleGroupOrder),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coralogix_rules_group.test1", "order", strconv.Itoa(firstRuleGroupOrder)),
+					resource.TestCheckResourceAttr("coralogix_rules_group.test2", "order", strconv.Itoa(secondRuleGroupOrder)),
+				),
+			},
+		},
+	})
+}
+
 func getRandomRuleGroup() *ruleGroupParams {
 	return &ruleGroupParams{
 		name:        acctest.RandomWithPrefix("tf-acc-test"),
@@ -965,6 +988,42 @@ func testAccCoralogixResourceRuleRulesCombinationDifferentOrders(r *ruleGroupPar
   }
  }
 `, r.name, r.description, r.creator)
+}
+
+func testAccCoralogixResourceRuleRulesGroupsOrders(firstRuleGroupOrder, secondRuleGroupOrder int) string {
+	return fmt.Sprintf(`resource "coralogix_rules_group" "test1" {
+  name         = "name1"
+  description  = "description1"
+  creator      = "creator1"
+ order = %d
+  rule_subgroups {
+	rules{
+     extract {
+       name               = "rule2"
+       description        = "description"
+       source_field       = "text"
+       regular_expression  = "(?P<remote_addr>\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3})\\s*-\\s*(?P<user>[^ ]+)\\s*\\[(?P<timestemp>\\d{4}-\\d{2}\\-\\d{2}T\\d{2}\\:\\d{2}\\:\\d{2}\\.\\d{1,6}Z)\\]\\s*\\\\\\\"(?P<method>[A-z]+)\\s[\\/\\\\]+(?P<request>[^\\s]+)\\s*(?P<protocol>[A-z0-9\\/\\.]+)\\\\\\\"\\s*(?P<status>\\d+)\\s*(?P<body_bytes_sent>\\d+)?\\s*?\\\\\\\"(?P<http_referer>[^\"]+)\\\"\\s*\\\\\\\"(?P<http_user_agent>[^\"]+)\\\"\\s(?P<request_time>\\d{1,6})\\s*(?P<response_time>\\d{1,6})"
+     }
+    }
+  }
+}
+resource "coralogix_rules_group" "test2" {
+  name         = "name2"
+  description  = "description2"
+  creator      = "creator2"
+  order = %d
+  rule_subgroups {
+	rules{
+     extract {
+       name               = "rule2"
+       description        = "description"
+       source_field       = "text"
+       regular_expression  = "(?P<remote_addr>\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3})\\s*-\\s*(?P<user>[^ ]+)\\s*\\[(?P<timestemp>\\d{4}-\\d{2}\\-\\d{2}T\\d{2}\\:\\d{2}\\:\\d{2}\\.\\d{1,6}Z)\\]\\s*\\\\\\\"(?P<method>[A-z]+)\\s[\\/\\\\]+(?P<request>[^\\s]+)\\s*(?P<protocol>[A-z0-9\\/\\.]+)\\\\\\\"\\s*(?P<status>\\d+)\\s*(?P<body_bytes_sent>\\d+)?\\s*?\\\\\\\"(?P<http_referer>[^\"]+)\\\"\\s*\\\\\\\"(?P<http_user_agent>[^\"]+)\\\"\\s(?P<request_time>\\d{1,6})\\s*(?P<response_time>\\d{1,6})"
+     }
+    }
+  }
+}
+`, firstRuleGroupOrder, secondRuleGroupOrder)
 }
 
 type ruleParams struct {
