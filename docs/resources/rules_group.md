@@ -196,7 +196,7 @@ remove_fields {
 
 ```hcl
 parse_json_field {
-  name                   = "Example remove-fields rule from terraform"
+  name                   = "Example parse-json-field rule from terraform"
   description            = "rule created by coralogix terraform provider"
   source_field           = "text"
   destination_field      = "text"
@@ -230,7 +230,7 @@ parse_json_field {
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default will be added last.
+- `order` (Number) Determines the index (1-based index) of the rule-group between the other rule-groups. By default will be added last.
 
 <a id="nestedblock--rule_subgroups"></a>
 

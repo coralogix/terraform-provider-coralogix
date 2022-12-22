@@ -18,6 +18,7 @@ resource "coralogix_rules_group" "rules_group_example" {
   applications = ["nginx"] //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
+  order        = 1
 
   rule_subgroups {
     rules {
@@ -103,6 +104,7 @@ resource "coralogix_rules_group" "extract_timestamp_example" {
   applications = ["nginx"] //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
+  order        = 4
 
   rule_subgroups {
     rules {
@@ -123,12 +125,34 @@ resource "coralogix_rules_group" "remove_fields_example" {
   applications = ["nginx"] //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
+  order        = 3
   rule_subgroups {
     rules {
       remove_fields {
         name            = "Example remove-fields rule from terraform"
         description     = "rule created by coralogix terraform provider"
         excluded_fields = ["coralogix.metadata.applicationName", "coralogix.metadata.className"]
+      }
+    }
+  }
+}
+
+resource "coralogix_rules_group" "parse_json_field_example" {
+  name         = "Example parse-json-field rule-group from terraform"
+  description  = "rule_group created by coralogix terraform provider"
+  applications = ["nginx"] //change here for existing applications from your account
+  subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
+  severities   = ["Warning"]
+  order = 2
+  rule_subgroups {
+    rules {
+      parse_json_field {
+        name                   = "Example parse-json-field rule from terraform"
+        description            = "rule created by coralogix terraform provider"
+        source_field           = "text"
+        destination_field      = "text"
+        keep_source_field      = "true"
+        keep_destination_field = "true"
       }
     }
   }

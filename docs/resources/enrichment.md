@@ -4,7 +4,7 @@
 
 page_title: "coralogix_enrichment Resource - terraform-provider-coralogix"
 subcategory: ""
-description: |-
+description: "Coralogix enrichment. Api-key is required for this resource. More info: https://coralogix.com/docs/threat-discovery/"
   
 ---
 
