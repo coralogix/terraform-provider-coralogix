@@ -262,7 +262,7 @@ Optional:
 - `json_extract` (Block List, Max: 1) Name a JSON field to extract its value directly into a Coralogix metadata field (see [below for nested schema](#nestedblock--rule_subgroups--rules--json_extract))
 - `json_stringify` (Block List, Max: 1) Convert JSON object to JSON string. (see [below for nested schema](#nestedblock--rule_subgroups--rules--json_stringify))
 - `parse` (Block List, Max: 1) Parse unstructured logs into JSON format using named Regex groups. (see [below for nested schema](#nestedblock--rule_subgroups--rules--parse))
-- `parse_json_field` (Block List, Max: 1) Use a named RegEx group to extract specific values you need as JSON getKeysStrings without having to parse the entire log. (see [below for nested schema](#nestedblock--rule_subgroups--rules--parse_json_field))
+- `parse_json_field` (Block List, Max: 1) Convert JSON string to JSON object. (see [below for nested schema](#nestedblock--rule_subgroups--rules--parse_json_field))
 - `remove_fields` (Block List, Max: 1) Remove Fields allows to select fields that will not be indexed. (see [below for nested schema](#nestedblock--rule_subgroups--rules--remove_fields))
 - `replace` (Block List, Max: 1) Replace rules are used to strings in order to fix log structure, change log severity, or obscure information. (see [below for nested schema](#nestedblock--rule_subgroups--rules--replace))
 
