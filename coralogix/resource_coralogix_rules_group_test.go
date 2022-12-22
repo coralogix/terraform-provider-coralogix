@@ -333,7 +333,6 @@ func TestAccCoralogixResourceRuleGroup_parseJsonField(t *testing.T) {
 	r := getRandomRuleGroup()
 	keepSourceField := selectRandomlyFromSlice([]string{"true", "false"})
 	keepDestinationField := selectRandomlyFromSlice([]string{"true", "false"})
-	isEscapedValue := selectRandomlyFromSlice([]string{"true", "false"})
 	resourceName := "coralogix_rules_group.test"
 
 	resource.Test(t, resource.TestCase{
@@ -342,7 +341,7 @@ func TestAccCoralogixResourceRuleGroup_parseJsonField(t *testing.T) {
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceRuleGroupParseJsonField(r, keepSourceField, keepDestinationField, isEscapedValue),
+				Config: testAccCoralogixResourceRuleGroupParseJsonField(r, keepSourceField, keepDestinationField),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttrSet(resourceName, "order"),
@@ -846,7 +845,7 @@ func testAccCoralogixResourceRuleGroupParse(r *ruleGroupParams, regEx string) st
 `, r.name, r.description, r.creator, r.ruleParams.name, r.ruleParams.description, regEx)
 }
 
-func testAccCoralogixResourceRuleGroupParseJsonField(r *ruleGroupParams, keepSourceField, keepDestinationField, isEscapedValue string) string {
+func testAccCoralogixResourceRuleGroupParseJsonField(r *ruleGroupParams, keepSourceField, keepDestinationField string) string {
 	return fmt.Sprintf(`resource "coralogix_rules_group" "test" {
   name         = "%s"
   description  = "%s"
@@ -864,7 +863,7 @@ func testAccCoralogixResourceRuleGroupParseJsonField(r *ruleGroupParams, keepSou
     }
   }
  }
-`, r.name, r.description, r.creator, r.ruleParams.name, r.ruleParams.description, keepSourceField, keepDestinationField, isEscapedValue)
+`, r.name, r.description, r.creator, r.ruleParams.name, r.ruleParams.description, keepSourceField, keepDestinationField)
 }
 
 func testAccCoralogixResourceRuleRulesCombination(r *ruleGroupParams) string {
