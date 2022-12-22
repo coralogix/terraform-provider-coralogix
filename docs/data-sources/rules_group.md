@@ -59,6 +59,7 @@ Read-Only:
 - `json_extract` (List of Object) (see [below for nested schema](#nestedobjatt--rule_subgroups--rules--json_extract))
 - `json_stringify` (List of Object) (see [below for nested schema](#nestedobjatt--rule_subgroups--rules--json_stringify))
 - `parse` (List of Object) (see [below for nested schema](#nestedobjatt--rule_subgroups--rules--parse))
+- `parse_json_field` (List of Object) (see [below for nested schema](#nestedobjatt--rule_subgroups--rules--parse_json_field))
 - `remove_fields` (List of Object) (see [below for nested schema](#nestedobjatt--rule_subgroups--rules--remove_fields))
 - `replace` (List of Object) (see [below for nested schema](#nestedobjatt--rule_subgroups--rules--replace))
 
@@ -148,6 +149,23 @@ Read-Only:
 - `name` (String)
 - `order` (Number)
 - `regular_expression` (String)
+- `source_field` (String)
+
+
+<a id="nestedobjatt--rule_subgroups--rules--parse_json_field"></a>
+### Nested Schema for `rule_subgroups.rules.parse_json_field`
+
+Read-Only:
+
+- `active` (Boolean)
+- `description` (String)
+- `destination_field` (String)
+- `escaped_value` (Boolean)
+- `id` (String)
+- `keep_destination_field` (Boolean)
+- `keep_source_field` (Boolean)
+- `name` (String)
+- `order` (Number)
 - `source_field` (String)
 
 

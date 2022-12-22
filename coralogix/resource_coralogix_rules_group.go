@@ -349,7 +349,7 @@ func jsonStringifyFieldsSchema() map[string]*schema.Schema {
 	jsonStringifySchema["keep_source_field"] = &schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
-		Default:     true,
+		Default:     false,
 		Description: "Determines whether to keep or to delete the source field.",
 	}
 	return jsonStringifySchema
@@ -363,10 +363,27 @@ func extractSchema() map[string]*schema.Schema {
 }
 
 func parseJsonFieldSchema() map[string]*schema.Schema {
-	extractSchema := commonRulesSchema()
-	extractSchema = appendSourceFieldSchema(extractSchema)
-	extractSchema = appendRegularExpressionSchema(extractSchema)
-	return extractSchema
+	parseJsonFieldSchema := commonRulesSchema()
+	parseJsonFieldSchema = appendSourceFieldSchema(parseJsonFieldSchema)
+	parseJsonFieldSchema = appendDestinationFieldSchema(parseJsonFieldSchema)
+	parseJsonFieldSchema["keep_source_field"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Default:     false,
+		Description: "Determines whether to keep or to delete the source field.",
+	}
+	parseJsonFieldSchema["keep_destination_field"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Default:     true,
+		Description: "Determines whether to keep or to delete the destination field.",
+	}
+	parseJsonFieldSchema["escaped_value"] = &schema.Schema{
+		Type:     schema.TypeBool,
+		Optional: true,
+		Default:  false,
+	}
+	return parseJsonFieldSchema
 }
 
 func commonRulesSchema() map[string]*schema.Schema {
@@ -895,6 +912,14 @@ func flattenRule(r *rulesv1.Rule) (map[string]interface{}, error) {
 		rule["source_field"] = r.GetSourceField().GetValue()
 		rule["destination_field"] = jsonStringifyParameters.GetDestinationField().GetValue()
 		rule["keep_source_field"] = !(jsonStringifyParameters.GetDeleteSource().GetValue())
+	case *rulesv1.RuleParameters_JsonParseParameters:
+		ruleType = "parse_json_field"
+		jsonParseParameters := ruleParams.JsonParseParameters
+		rule["source_field"] = r.GetSourceField().GetValue()
+		rule["destination_field"] = jsonParseParameters.GetDestinationField().GetValue()
+		rule["keep_source_field"] = !(jsonParseParameters.GetDeleteSource().GetValue())
+		rule["keep_destination_field"] = !(jsonParseParameters.GetOverrideDest().GetValue())
+		rule["escaped_value"] = jsonParseParameters.GetEscapedValue().GetValue()
 	default:
 		return nil, fmt.Errorf("unexpected type %T for r parameters", ruleParams)
 	}
