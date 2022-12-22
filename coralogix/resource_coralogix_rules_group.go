@@ -233,6 +233,15 @@ func RulesGroupSchema() map[string]*schema.Schema {
 									Description: "Use a named RegEx group to extract specific values you need as JSON getKeysStrings without having to parse the entire log.",
 									MaxItems:    1,
 								},
+								"parse_json_field": {
+									Type:     schema.TypeList,
+									Optional: true,
+									Elem: &schema.Resource{
+										Schema: parseJsonFieldSchema(),
+									},
+									Description: "Use a named RegEx group to extract specific values you need as JSON getKeysStrings without having to parse the entire log.",
+									MaxItems:    1,
+								},
 							},
 						},
 						Required: true,
@@ -340,7 +349,7 @@ func jsonStringifyFieldsSchema() map[string]*schema.Schema {
 	jsonStringifySchema["keep_source_field"] = &schema.Schema{
 		Type:        schema.TypeBool,
 		Optional:    true,
-		Default:     true,
+		Default:     false,
 		Description: "Determines whether to keep or to delete the source field.",
 	}
 	return jsonStringifySchema
@@ -351,6 +360,25 @@ func extractSchema() map[string]*schema.Schema {
 	extractSchema = appendSourceFieldSchema(extractSchema)
 	extractSchema = appendRegularExpressionSchema(extractSchema)
 	return extractSchema
+}
+
+func parseJsonFieldSchema() map[string]*schema.Schema {
+	parseJsonFieldSchema := commonRulesSchema()
+	parseJsonFieldSchema = appendSourceFieldSchema(parseJsonFieldSchema)
+	parseJsonFieldSchema = appendDestinationFieldSchema(parseJsonFieldSchema)
+	parseJsonFieldSchema["keep_source_field"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Default:     false,
+		Description: "Determines whether to keep or to delete the source field.",
+	}
+	parseJsonFieldSchema["keep_destination_field"] = &schema.Schema{
+		Type:        schema.TypeBool,
+		Optional:    true,
+		Default:     true,
+		Description: "Determines whether to keep or to delete the destination field.",
+	}
+	return parseJsonFieldSchema
 }
 
 func commonRulesSchema() map[string]*schema.Schema {
@@ -727,6 +755,19 @@ func expandParameters(ruleType string, m map[string]interface{}) *rulesv1.RulePa
 		jsonStringifyParameters := rulesv1.JsonStringifyParameters{DestinationField: destinationField, DeleteSource: deleteSource}
 		ruleParametersJsonStringifyParameters := rulesv1.RuleParameters_JsonStringifyParameters{JsonStringifyParameters: &jsonStringifyParameters}
 		ruleParameters.RuleParameters = &ruleParametersJsonStringifyParameters
+	case "parse_json_field":
+		destinationField := wrapperspb.String(m["destination_field"].(string))
+		deleteSource := wrapperspb.Bool(!m["keep_source_field"].(bool))
+		overrideDest := wrapperspb.Bool(!m["keep_destination_field"].(bool))
+		escapedValue := wrapperspb.Bool(true)
+		jsonParseParameters := rulesv1.JsonParseParameters{
+			DestinationField: destinationField,
+			DeleteSource:     deleteSource,
+			EscapedValue:     escapedValue,
+			OverrideDest:     overrideDest,
+		}
+		ruleParametersJsonStringifyParameters := rulesv1.RuleParameters_JsonParseParameters{JsonParseParameters: &jsonParseParameters}
+		ruleParameters.RuleParameters = &ruleParametersJsonStringifyParameters
 	default:
 		panic(ruleType)
 	}
@@ -866,6 +907,13 @@ func flattenRule(r *rulesv1.Rule) (map[string]interface{}, error) {
 		rule["source_field"] = r.GetSourceField().GetValue()
 		rule["destination_field"] = jsonStringifyParameters.GetDestinationField().GetValue()
 		rule["keep_source_field"] = !(jsonStringifyParameters.GetDeleteSource().GetValue())
+	case *rulesv1.RuleParameters_JsonParseParameters:
+		ruleType = "parse_json_field"
+		jsonParseParameters := ruleParams.JsonParseParameters
+		rule["source_field"] = r.GetSourceField().GetValue()
+		rule["destination_field"] = jsonParseParameters.GetDestinationField().GetValue()
+		rule["keep_source_field"] = !(jsonParseParameters.GetDeleteSource().GetValue())
+		rule["keep_destination_field"] = !(jsonParseParameters.GetOverrideDest().GetValue())
 	default:
 		return nil, fmt.Errorf("unexpected type %T for r parameters", ruleParams)
 	}

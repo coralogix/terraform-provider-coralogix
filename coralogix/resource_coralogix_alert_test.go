@@ -333,6 +333,7 @@ func TestAccCoralogixResourceAlert_tracing(t *testing.T) {
 		resource.TestCheckResourceAttr(resourceName, "alert_severity", alert.severity),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
 		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
+		resource.TestCheckResourceAttr(resourceName, "notification.0.on_trigger_and_resolved", "true"),
 		resource.TestCheckResourceAttr(resourceName, "tracing.0.latency_threshold_ms", fmt.Sprintf("%.3f", alert.conditionLatencyMs)),
 		resource.TestCheckResourceAttr(resourceName, "tracing.0.condition.0.more_than", "true"),
 		resource.TestCheckResourceAttr(resourceName, "tracing.0.condition.0.time_window", alert.timeWindow),
@@ -842,7 +843,7 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
   description        = "%s"
   alert_severity     = "%s"
   notification {
-	//on_trigger_and_resolved = true
+	on_trigger_and_resolved = true
     recipients {
       emails      = %s
     }

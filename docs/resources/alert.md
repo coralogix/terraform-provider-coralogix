@@ -4,9 +4,7 @@
 
 page_title: "coralogix_alert Resource - terraform-provider-coralogix"
 subcategory: ""
-description: |-
-Coralogix alert. Api-key is required for this resource.
-More info: https://coralogix.com/docs/alerts-api/ .
+description: "Coralogix alert. Api-key is required for this resource. More info: https://coralogix.com/docs/alerts-api/."
 ---
 
 # coralogix_alert (Resource)
