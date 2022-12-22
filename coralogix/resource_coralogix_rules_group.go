@@ -239,7 +239,7 @@ func RulesGroupSchema() map[string]*schema.Schema {
 									Elem: &schema.Resource{
 										Schema: parseJsonFieldSchema(),
 									},
-									Description: "Use a named RegEx group to extract specific values you need as JSON getKeysStrings without having to parse the entire log.",
+									Description: "Convert JSON string to JSON object.",
 									MaxItems:    1,
 								},
 							},
