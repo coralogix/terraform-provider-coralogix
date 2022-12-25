@@ -11,6 +11,8 @@ import (
 
 	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/alerts/v1"
 
+	"github.com/hashicorp/go-cty/cty"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -296,9 +298,14 @@ func uint32ToStr(n uint32) string {
 	return strconv.FormatUint(uint64(n), 10)
 }
 
-func mailValidationFunc() schema.SchemaValidateFunc {
-	return validation.StringMatch(
-		regexp.MustCompile(`^[a-z/d._%+\-]+@[a-z/d.\-]+\.[a-z]{2,4}$`), "not valid mail address")
+func mailValidationFunc() schema.SchemaValidateDiagFunc {
+	return func(interface{}, cty.Path) diag.Diagnostics {
+		_, err := regexp.Compile(`^[a-z/d._%+\-]+@[a-z/d.\-]+\.[a-z]{2,4}$`)
+		if err != nil {
+			return diag.Errorf("not valid mail address")
+		}
+		return nil
+	}
 }
 
 /*func urlValidationFunc() schema.SchemaValidateFunc {
