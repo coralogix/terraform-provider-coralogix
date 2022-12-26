@@ -60,6 +60,7 @@ func Provider() *schema.Provider {
 			"coralogix_logs2metric": dataSourceCoralogixLogs2Metric(),
 			"coralogix_enrichment":  dataSourceCoralogixEnrichment(),
 			"coralogix_data_set":    dataSourceCoralogixDataSet(),
+			"coralogix_dashboard":   dataSourceCoralogixDashboard(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -68,6 +69,7 @@ func Provider() *schema.Provider {
 			"coralogix_logs2metric": resourceCoralogixLogs2Metric(),
 			"coralogix_enrichment":  resourceCoralogixEnrichment(),
 			"coralogix_data_set":    resourceCoralogixDataSet(),
+			"coralogix_dashboard":   resourceCoralogixDashboard(),
 		},
 
 		ConfigureContextFunc: func(context context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {

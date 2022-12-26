@@ -6,6 +6,7 @@ type ClientSet struct {
 	logs2Metrics *Logs2MetricsClient
 	enrichments  *EnrichmentsClient
 	dataSet      *DataSetClient
+	dashboards   *DashboardsClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -28,6 +29,10 @@ func (c *ClientSet) DataSet() *DataSetClient {
 	return c.dataSet
 }
 
+func (c *ClientSet) Dashboards() *DashboardsClient {
+	return c.dashboards
+}
+
 func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 	_ = NewCallPropertiesCreator(targetUrl, teamsApiKey)
@@ -37,6 +42,7 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	logs2MetricsClient := NewLogs2MetricsClient(apikeyCPC)
 	enrichmentClient := NewEnrichmentClient(apikeyCPC)
 	dataSetClient := NewDataSetClient(apikeyCPC)
+	dashboards := NewDashboardsClient(apikeyCPC)
 
 	return &ClientSet{
 		ruleGroups:   ruleGroupsClient,
@@ -44,5 +50,6 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 		logs2Metrics: logs2MetricsClient,
 		enrichments:  enrichmentClient,
 		dataSet:      dataSetClient,
+		dashboards:   dashboards,
 	}
 }
