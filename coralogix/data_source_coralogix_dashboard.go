@@ -25,9 +25,9 @@ func dataSourceCoralogixDashboard() *schema.Resource {
 }
 
 func dataSourceCoralogixDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	id := d.Id()
+	id := d.Get("id").(string)
 	log.Printf("[INFO] Reading dashboard %s", id)
-	resp, err := meta.(*clientset.ClientSet).Dashboards().GetDashboard(ctx, &dashboardv1.GetDashboardRequest{DashboardId: nil})
+	resp, err := meta.(*clientset.ClientSet).Dashboards().GetDashboard(ctx, &dashboardv1.GetDashboardRequest{DashboardId: expandUUID(id)})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcErrorWithID(err, "dashboard", id)
