@@ -3,6 +3,8 @@ package coralogix
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -81,6 +83,31 @@ func TestAccCoralogixResourceDashboard(t *testing.T) {
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
+	resourceName := "coralogix_dashboard.test"
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	parent := filepath.Dir(wd)
+	filePath := parent + "/examples/dashboard/dashboard.json"
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardFromJson(filePath),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(resourceName, "id"),
+					resource.TestCheckResourceAttr(resourceName, "name", "dont drop me!"),
+					resource.TestCheckResourceAttr(resourceName, "description", "dashboards team is messing with this 🗿"),
+				),
 			},
 		},
 	})
@@ -245,4 +272,13 @@ func testAccCoralogixResourceDashboard() string {
   }
 }
 `)
+}
+
+func testAccCoralogixResourceDashboardFromJson(jsonFilePath string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboard" test {
+  	name        = "dont drop me!"
+    description = "dashboards team is messing with this 🗿"
+   	layout_json = file("%s")
+	}
+`, jsonFilePath)
 }

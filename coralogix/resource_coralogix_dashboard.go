@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,6 +12,7 @@ import (
 	"terraform-provider-coralogix/coralogix/clientset"
 	dashboardv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/coralogix-dashboards"
 
+	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -96,10 +98,22 @@ func extractDashboard(d *schema.ResourceData) (*dashboardv1.Dashboard, diag.Diag
 	id := expandUUID(d.Id())
 	name := wrapperspb.String(d.Get("name").(string))
 	description := wrapperspb.String(d.Get("description").(string))
-	layout, diags := expandLayout(d.Get("layout"))
-	if diags != nil {
-		return nil, diags
+
+	var layout *dashboardv1.Layout
+	var diags diag.Diagnostics
+	if v, ok := d.GetOk("layout"); ok {
+		layout, diags = expandLayout(v)
+		if diags != nil {
+			return nil, diags
+		}
+	} else if jsonContent, ok := d.GetOk("layout_json"); ok {
+		layout = new(dashboardv1.Layout)
+		err := jsonpb.Unmarshal(strings.NewReader(jsonContent.(string)), layout)
+		if err != nil {
+			return nil, diag.FromErr(err)
+		}
 	}
+
 	variables := expandVariables(d.Get("variables"))
 	return &dashboardv1.Dashboard{
 		Id:          id,
@@ -732,8 +746,11 @@ func setDashboard(d *schema.ResourceData, dashboard *dashboardv1.Dashboard) diag
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("layout", flattenLayout(dashboard.GetLayout())); err != nil {
-		return diag.FromErr(err)
+	_, ok := d.GetOk("layout_json")
+	if !ok {
+		if err := d.Set("layout", flattenLayout(dashboard.GetLayout())); err != nil {
+			return diag.FromErr(err)
+		}
 	}
 
 	if err := d.Set("variables", flattenVariables(dashboard.GetVariables())); err != nil {
@@ -1552,7 +1569,13 @@ func DashboardSchema() map[string]*schema.Schema {
 					},
 				},
 			},
-			Optional: true,
+			Optional:      true,
+			ConflictsWith: []string{"layout_json"},
+		},
+		"layout_json": {
+			Type:          schema.TypeString,
+			Optional:      true,
+			ConflictsWith: []string{"layout"},
 		},
 		"variables": {
 			Type: schema.TypeList,
