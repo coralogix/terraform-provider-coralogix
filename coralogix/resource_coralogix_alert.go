@@ -1016,13 +1016,15 @@ func metricSchema() map[string]*schema.Schema {
 						Elem: &schema.Resource{
 							Schema: map[string]*schema.Schema{
 								"metric_field": {
-									Type:     schema.TypeString,
-									Required: true,
+									Type:        schema.TypeString,
+									Required:    true,
+									Description: "The name of the metric field to alert on.",
 								},
 								"arithmetic_operator": {
 									Type:         schema.TypeString,
 									Required:     true,
 									ValidateFunc: validation.StringInSlice(alertValidArithmeticOperators, false),
+									Description:  fmt.Sprintf("The arithmetic operator to use on the alert. can be one of %q", alertValidArithmeticOperators),
 								},
 								"less_than": {
 									Type:     schema.TypeBool,
@@ -1053,6 +1055,9 @@ func metricSchema() map[string]*schema.Schema {
 									Type:         schema.TypeInt,
 									Required:     true,
 									ValidateFunc: validation.IntBetween(0, 100),
+									Description: "The metric value must cross the threshold within this percentage of " +
+										"the timeframe (sum and count arithmetic operators do not use this parameter " +
+										"since they aggregate over the entire requested timeframe)",
 								},
 								"time_window": {
 									Type:         schema.TypeString,
@@ -1072,11 +1077,14 @@ func metricSchema() map[string]*schema.Schema {
 									Type:          schema.TypeBool,
 									Optional:      true,
 									ConflictsWith: []string{"metric.0.lucene.0.condition.0.min_non_null_values_percentage"},
+									Description:   "If set to true, missing data will be considered as 0, otherwise, it will not be considered at all.",
 								},
 								"min_non_null_values_percentage": {
 									Type:          schema.TypeInt,
 									Optional:      true,
+									ValidateFunc:  validation.IntBetween(0, 100),
 									ConflictsWith: []string{"metric.0.lucene.0.condition.0.replace_missing_value_with_zero"},
+									Description:   "The minimum percentage of the timeframe that should have values for this alert to trigger",
 								},
 								"manage_undetected_values": {
 									Type:     schema.TypeList,
@@ -1887,13 +1895,18 @@ func flattenUniqueCountAlert(filters *alertsv1.AlertFilters, condition interface
 
 func flattenUniqueCountCondition(condition interface{}) interface{} {
 	conditionParams := condition.(*alertsv1.AlertCondition_UniqueCount).UniqueCount.GetParameters()
-	return map[string]interface{}{
-		"unique_count_key":               conditionParams.GetCardinalityFields()[0].GetValue(),
-		"max_unique_values":              conditionParams.GetThreshold().GetValue(),
-		"time_window":                    alertProtoUniqueCountTimeFrameToSchemaTimeFrame[conditionParams.GetTimeframe().String()],
-		"group_by_key":                   conditionParams.GetGroupBy()[0].GetValue(),
-		"max_unique_values_for_group_by": conditionParams.GetMaxUniqueCountValuesForGroupByKey().GetValue(),
+	conditionMap := map[string]interface{}{
+		"unique_count_key":  conditionParams.GetCardinalityFields()[0].GetValue(),
+		"max_unique_values": conditionParams.GetThreshold().GetValue(),
+		"time_window":       alertProtoUniqueCountTimeFrameToSchemaTimeFrame[conditionParams.GetTimeframe().String()],
 	}
+
+	if groupBy := conditionParams.GetGroupBy(); len(groupBy) > 0 {
+		conditionMap["group_by_key"] = conditionParams.GetGroupBy()[0].GetValue()
+		conditionMap["max_unique_values_for_group_by"] = conditionParams.GetMaxUniqueCountValuesForGroupByKey().GetValue()
+	}
+
+	return conditionMap
 }
 
 func flattenTimeRelativeAlert(filters *alertsv1.AlertFilters, condition interface{}) (timeRelativeSchema interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
