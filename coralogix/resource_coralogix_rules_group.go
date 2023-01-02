@@ -319,7 +319,7 @@ func extractTimestampSchema() map[string]*schema.Schema {
 		Type:         schema.TypeString,
 		Required:     true,
 		ValidateFunc: validation.StringInSlice(rulesValidFormatStandards, false),
-		Description:  fmt.Sprintf("The format standard you want to use. Can be one of %q", rulesValidDestinationFields),
+		Description:  fmt.Sprintf("The format standard you want to use. Can be one of %q", rulesValidFormatStandards),
 	}
 	extractTimestampSchema["time_format"] = &schema.Schema{
 		Type:        schema.TypeString,

@@ -316,7 +316,7 @@ Read-Only:
 Required:
 
 - `field_format_standard` (String) The format standard you want to use. Can be one
-  of ["Method" "ThreadID" "Severity" "Category" "Class"]
+  of ["Strftime" "JavaSDF" "Golang" "SecondTS" "MilliTS" "MicroTS" "NanoTS"]
 - `name` (String)
 - `source_field` (String) The field on which the Regex will operate on.
 - `time_format` (String) A time format that matches the field format standard
