@@ -4,7 +4,7 @@
 
 page_title: "coralogix_dashboard Resource - terraform-provider-coralogix"
 subcategory: ""
-description:"Coralogix Dashboard. *Note:* This resource is still in beta and may contain breaking changes later. Api-key is required for this resource."
+description:"Coralogix Dashboard. Api-key is required for this resource."
 ---
 
 # coralogix_dashboard (Resource)
@@ -199,7 +199,7 @@ resource "coralogix_dashboard" dashboard_from_json {
 
 - `description` (String) Dashboard description.
 - `layout` (Block List, Max: 1) (see [below for nested schema](#nestedblock--layout))
-- `layout_json` (String)
+- `layout_json` (String) an option to set the layout from a json string.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `variables` (Block List) (see [below for nested schema](#nestedblock--variables))
 

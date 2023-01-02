@@ -1557,6 +1557,7 @@ func DashboardSchema() map[string]*schema.Schema {
 			Optional:         true,
 			ConflictsWith:    []string{"layout"},
 			ValidateDiagFunc: dashboardLayoutJsonValidationFunc(),
+			Description:      "an option to set the layout from a json string.",
 		},
 		"variables": {
 			Type: schema.TypeList,
