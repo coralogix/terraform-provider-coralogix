@@ -227,7 +227,6 @@ resource "coralogix_alert" "metric_lucene_alert" {
         arithmetic_operator          = "Avg"
         more_than                    = true
         threshold                    = 60
-        arithmetic_operator_modifier = 2
         sample_threshold_percentage  = 50
         time_window                  = "30Min"
       }
@@ -581,29 +580,29 @@ Required:
 
 Required:
 
-- `arithmetic_operator` (String)
-- `arithmetic_operator_modifier` (Number)
-- `metric_field` (String)
-- `sample_threshold_percentage` (Number)
+- `arithmetic_operator` (String) The arithmetic operator to use on the alert. can be one of ["Sum" "Count" "Percentile" "Avg" "Min" "Max"]
+- `metric_field` (String) The name of the metric field to alert on.
+- `sample_threshold_percentage` (Number) The metric value must cross the threshold within this percentage of the timeframe (sum and count arithmetic operators do not use this parameter since they aggregate over the entire requested timeframe), increments of 10, 0 <= value <= 100.
 - `threshold` (Number) The number of log threshold that is needed to trigger the alert.
 - `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be
   one of ["1Min" "5Min" "10Min" "15Min" "20Min" "30Min" "1H" "2H" "4H" "6H" "12H" "24H"]
 
 Optional:
 
+- `arithmetic_operator_modifier` (Number) When arithmetic_operator = "Percentile" you need to supply the value in this property, 0 < value < 100.
 - `group_by` (List of String) The fields to 'group by' on.
 - `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 - `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--metric--lucene--condition--manage_undetected_values))
-- `min_non_null_values_percentage` (Number)
+- `min_non_null_values_percentage` (Number) The minimum percentage of the timeframe that should have values for this alert to trigger
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `replace_missing_value_with_zero` (Boolean)
+- `replace_missing_value_with_zero` (Boolean) If set to true, missing data will be considered as 0, otherwise, it will not be considered at all.
 
 <a id="nestedblock--metric--lucene--condition--manage_undetected_values"></a>
 ### Nested Schema for `metric.lucene.condition.manage_undetected_values`
 
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["2H" "6H" "12H" "24H" "Never" "5Min" "10Min" "1H"]
 - `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
@@ -690,10 +689,7 @@ Required:
 Optional:
 
 - `ignore_infinity` (Boolean)
-- `notify_every_min` (Number) By default, notify_every_min will be populated with min for immediate, more_than and
-  more_than_usual alerts. For less_than alert it will be populated with the chosen time frame for the less_than
-  condition (in seconds). You may choose to change the suppress window so the alert will be suppressed for a longer
-  period.
+- `notify_every_min` (Number) By default, notify_every_min will be populated with min for immediate, more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time frame for the less_than condition (in minutes). You may choose to change the suppress window so the alert will be suppressed for a longer period.
 - `notify_only_on_triggered_group_by_values` (Boolean) Notifications will contain only triggered group-by values.
 - `on_trigger_and_resolved` (Boolean)
 - `payload_fields` (Set of String) A list of log fields out of the log example which will be included with the alert

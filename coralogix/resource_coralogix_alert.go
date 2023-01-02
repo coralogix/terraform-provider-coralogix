@@ -1026,6 +1026,12 @@ func metricSchema() map[string]*schema.Schema {
 									ValidateFunc: validation.StringInSlice(alertValidArithmeticOperators, false),
 									Description:  fmt.Sprintf("The arithmetic operator to use on the alert. can be one of %q", alertValidArithmeticOperators),
 								},
+								"arithmetic_operator_modifier": {
+									Type:         schema.TypeInt,
+									Optional:     true,
+									ValidateFunc: validation.IntBetween(0, 100),
+									Description:  "When arithmetic_operator = \"Percentile\" you need to supply the value in this property, 0 < value < 100.",
+								},
 								"less_than": {
 									Type:     schema.TypeBool,
 									Optional: true,
@@ -1047,17 +1053,11 @@ func metricSchema() map[string]*schema.Schema {
 									Required:    true,
 									Description: "The number of log threshold that is needed to trigger the alert.",
 								},
-								"arithmetic_operator_modifier": {
-									Type:     schema.TypeInt,
-									Required: true,
-								},
 								"sample_threshold_percentage": {
 									Type:         schema.TypeInt,
 									Required:     true,
-									ValidateFunc: validation.IntBetween(0, 100),
-									Description: "The metric value must cross the threshold within this percentage of " +
-										"the timeframe (sum and count arithmetic operators do not use this parameter " +
-										"since they aggregate over the entire requested timeframe)",
+									ValidateFunc: validation.All(validation.IntDivisibleBy(10), validation.IntBetween(0, 100)),
+									Description:  "The metric value must cross the threshold within this percentage of the timeframe (sum and count arithmetic operators do not use this parameter since they aggregate over the entire requested timeframe), increments of 10, 0 <= value <= 100.",
 								},
 								"time_window": {
 									Type:         schema.TypeString,
