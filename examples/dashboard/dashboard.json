@@ -150,32 +150,25 @@
                   "rowStyle": "ROW_STYLE_ONE_LINE",
                   "columns": [
                     {
-                      "field": "coralogix.timestamp",
-                      "orderDirection": "ORDER_DIRECTION_ASC"
+                      "field": "coralogix.timestamp"
                     },
                     {
-                      "field": "textObject.textObject.textObject.kubernetes.pod_id",
-                      "orderDirection": "ORDER_DIRECTION_UNSPECIFIED"
+                      "field": "textObject.textObject.textObject.kubernetes.pod_id"
                     },
                     {
-                      "field": "coralogix.text",
-                      "orderDirection": "ORDER_DIRECTION_UNSPECIFIED"
+                      "field": "coralogix.text"
                     },
                     {
-                      "field": "coralogix.metadata.applicationName",
-                      "orderDirection": "ORDER_DIRECTION_UNSPECIFIED"
+                      "field": "coralogix.metadata.applicationName"
                     },
                     {
-                      "field": "coralogix.metadata.subsystemName",
-                      "orderDirection": "ORDER_DIRECTION_UNSPECIFIED"
+                      "field": "coralogix.metadata.subsystemName"
                     },
                     {
-                      "field": "coralogix.metadata.sdkId",
-                      "orderDirection": "ORDER_DIRECTION_UNSPECIFIED"
+                      "field": "coralogix.metadata.sdkId"
                     },
                     {
-                      "field": "textObject.textObject.textObject.log_obj.e2e_test.config",
-                      "orderDirection": "ORDER_DIRECTION_UNSPECIFIED"
+                      "field": "textObject.log_obj.e2e_test.config"
                     }
                   ]
                 }

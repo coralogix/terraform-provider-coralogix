@@ -111,32 +111,25 @@ resource "coralogix_dashboard" dashboard {
               results_per_page = 20
               row_style        = "One_Line"
               columns {
-                field           = "coralogix.timestamp"
-                order_direction = "Unspecified"
+                field = "coralogix.timestamp"
               }
               columns {
-                field           = "textObject.textObject.textObject.kubernetes.pod_id"
-                order_direction = "Unspecified"
+                field = "textObject.textObject.textObject.kubernetes.pod_id"
               }
               columns {
-                field           = "coralogix.text"
-                order_direction = "Unspecified"
+                field = "coralogix.text"
               }
               columns {
-                field           = "coralogix.metadata.applicationName"
-                order_direction = "Unspecified"
+                field = "coralogix.metadata.applicationName"
               }
               columns {
-                field           = "coralogix.metadata.subsystemName"
-                order_direction = "Unspecified"
+                field = "coralogix.metadata.subsystemName"
               }
               columns {
-                field           = "coralogix.metadata.sdkId"
-                order_direction = "Unspecified"
+                field = "coralogix.metadata.sdkId"
               }
               columns {
-                field           = "textObject.textObject.textObject.log_obj.e2e_test.config"
-                order_direction = "Unspecified"
+                field = "textObject.log_obj.e2e_test.config"
               }
             }
           }
@@ -147,11 +140,37 @@ resource "coralogix_dashboard" dashboard {
       }
     }
   }
+  variables {
+    name = "test_variable"
+    definition {
+      multi_select {
+        selected = ["1", "2", "3"]
+        source {
+          constant_list {
+            values = ["1", "2", "3"]
+          }
+        }
+      }
+    }
+  }
 }
 
 resource "coralogix_dashboard" dashboard_from_json {
-  name = "dont drop me!"
+  name        = "dont drop me!"
   description = "dashboards team is messing with this 🗿"
   layout_json = file("./dashboard.json")
+  variables {
+    name = "test_variable"
+    definition {
+      multi_select {
+        selected = ["1", "2", "3"]
+        source {
+          constant_list {
+            values = ["1", "2", "3"]
+          }
+        }
+      }
+    }
+  }
 }
 

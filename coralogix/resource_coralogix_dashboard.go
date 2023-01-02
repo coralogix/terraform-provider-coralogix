@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"terraform-provider-coralogix/coralogix/clientset"
 	dashboardv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/coralogix-dashboards"
@@ -19,14 +20,7 @@ import (
 )
 
 var (
-	dashboardSchemaOrderDirectionToProtoOrderDirection = map[string]string{
-		"Unspecified": "ORDER_DIRECTION_UNSPECIFIED",
-		"Asc":         "ORDER_DIRECTION_ASC",
-		"Desc":        "ORDER_DIRECTION_DESC",
-	}
-	dashboardProtoOrderDirectionToSchemaOrderDirection = reverseMapStrings(dashboardSchemaOrderDirectionToProtoOrderDirection)
-	dashboardValidOrderDirection                       = getKeysStrings(dashboardSchemaOrderDirectionToProtoOrderDirection)
-	dashboardSchemaRowStyleToProtoRowStyle             = map[string]string{
+	dashboardSchemaRowStyleToProtoRowStyle = map[string]string{
 		"Unspecified": "ROW_STYLE_UNSPECIFIED",
 		"One_Line":    "ROW_STYLE_ONE_LINE",
 		"Two_Line":    "ROW_STYLE_TWO_LINE",
@@ -103,25 +97,23 @@ func extractDashboard(d *schema.ResourceData) (*dashboardv1.Dashboard, diag.Diag
 	var diags diag.Diagnostics
 	if v, ok := d.GetOk("layout"); ok {
 		layout, diags = expandLayout(v)
-		if diags != nil {
-			return nil, diags
-		}
 	} else if jsonContent, ok := d.GetOk("layout_json"); ok {
 		layout = new(dashboardv1.Layout)
 		err := jsonpb.Unmarshal(strings.NewReader(jsonContent.(string)), layout)
-		if err != nil {
-			return nil, diag.FromErr(err)
-		}
+		diags = diag.FromErr(err)
+
 	}
 
-	variables := expandVariables(d.Get("variables"))
+	variables, dgs := expandVariables(d.Get("variables"))
+	diags = append(diags, dgs...)
+
 	return &dashboardv1.Dashboard{
 		Id:          id,
 		Name:        name,
 		Description: description,
 		Layout:      layout,
 		Variables:   variables,
-	}, nil
+	}, diags
 }
 
 func expandLayout(v interface{}) (*dashboardv1.Layout, diag.Diagnostics) {
@@ -521,18 +513,10 @@ func expandDataTableColumn(v interface{}) *dashboardv1.DataTable_Column {
 	m := v.(map[string]interface{})
 
 	field := wrapperspb.String(m["field"].(string))
-	orderDirection := expandOrderDirection(m["order_direction"].(string))
 	return &dashboardv1.DataTable_Column{
-		Field:          field,
-		OrderDirection: orderDirection,
+		Field: field,
 	}
 
-}
-
-func expandOrderDirection(s string) dashboardv1.OrderDirection {
-	orderDirectionStr := dashboardSchemaOrderDirectionToProtoOrderDirection[s]
-	orderDirectionValue := dashboardv1.OrderDirection_value[orderDirectionStr]
-	return dashboardv1.OrderDirection(orderDirectionValue)
 }
 
 func expandRowStyle(s string) dashboardv1.RowStyle {
@@ -615,38 +599,45 @@ func expandWidgetAppearance(v interface{}) *dashboardv1.Widget_Appearance {
 	}
 }
 
-func expandVariables(i interface{}) []*dashboardv1.Variable {
+func expandVariables(i interface{}) ([]*dashboardv1.Variable, diag.Diagnostics) {
 	if i == nil {
-		return nil
+		return nil, nil
 	}
 	variables := i.([]interface{})
 	result := make([]*dashboardv1.Variable, 0, len(variables))
+	var diags diag.Diagnostics
 	for _, v := range variables {
-		variable := expandVariable(v)
+		variable, dgs := expandVariable(v)
 		result = append(result, variable)
+		diags = append(diags, dgs...)
 	}
-	return result
+	return result, diags
 }
 
-func expandVariable(v interface{}) *dashboardv1.Variable {
-	var m map[string]interface{}
+func expandVariable(v interface{}) (*dashboardv1.Variable, diag.Diagnostics) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
-	if l := v.([]interface{}); len(l) == 0 {
-		return nil
-	} else {
-		m = l[0].(map[string]interface{})
-	}
+	m := v.(map[string]interface{})
 	name := wrapperspb.String(m["name"].(string))
-	definition := expandDefinition(m)
+	definition, diags := expandVariableDefinition(m["definition"])
 	return &dashboardv1.Variable{
 		Name:       name,
 		Definition: definition,
-	}
+	}, diags
 }
 
-func expandDefinition(m map[string]interface{}) *dashboardv1.Variable_Definition {
+func expandVariableDefinition(v interface{}) (*dashboardv1.Variable_Definition, diag.Diagnostics) {
+	var m map[string]interface{}
+	if v == nil {
+		return nil, nil
+	}
+	if l := v.([]interface{}); len(l) == 0 {
+		return nil, nil
+	} else {
+		m = l[0].(map[string]interface{})
+	}
+
 	if l, ok := m["constant"]; ok && len(l.([]interface{})) != 0 {
 		constant := l.([]interface{})[0].(map[string]interface{})
 		value := wrapperspb.String(constant["value"].(string))
@@ -656,11 +647,11 @@ func expandDefinition(m map[string]interface{}) *dashboardv1.Variable_Definition
 					Value: value,
 				},
 			},
-		}
+		}, nil
 	} else if l, ok = m["multi_select"]; ok && len(l.([]interface{})) != 0 {
 		multiSelect := l.([]interface{})[0].(map[string]interface{})
 		selected := interfaceSliceToWrappedStringSlice(multiSelect["selected"].([]interface{}))
-		source := expandSource(m["source"])
+		source, diags := expandSource(multiSelect["source"])
 		return &dashboardv1.Variable_Definition{
 			Value: &dashboardv1.Variable_Definition_MultiSelect{
 				MultiSelect: &dashboardv1.MultiSelect{
@@ -668,18 +659,19 @@ func expandDefinition(m map[string]interface{}) *dashboardv1.Variable_Definition
 					Source:   source,
 				},
 			},
-		}
+		}, diags
 	}
-	return nil
+
+	return nil, diag.Errorf("variable definition must contain exactly one of \"constant\" or \"multi_select\"")
 }
 
-func expandSource(v interface{}) *dashboardv1.MultiSelect_Source {
+func expandSource(v interface{}) (*dashboardv1.MultiSelect_Source, diag.Diagnostics) {
 	var m map[string]interface{}
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 	if l := v.([]interface{}); len(l) == 0 {
-		return nil
+		return nil, nil
 	} else {
 		m = l[0].(map[string]interface{})
 	}
@@ -693,7 +685,7 @@ func expandSource(v interface{}) *dashboardv1.MultiSelect_Source {
 					Value: value,
 				},
 			},
-		}
+		}, nil
 	} else if l, ok = m["metric_label"]; ok && len(l.([]interface{})) != 0 {
 		metricLabel := l.([]interface{})[0].(map[string]interface{})
 		metricName := wrapperspb.String(metricLabel["metric_name"].(string))
@@ -705,7 +697,7 @@ func expandSource(v interface{}) *dashboardv1.MultiSelect_Source {
 					Label:      label,
 				},
 			},
-		}
+		}, nil
 	} else if l, ok = m["constant_list"]; ok && len(l.([]interface{})) != 0 {
 		constantList := l.([]interface{})[0].(map[string]interface{})
 		values := interfaceSliceToWrappedStringSlice(constantList["values"].([]interface{}))
@@ -715,10 +707,10 @@ func expandSource(v interface{}) *dashboardv1.MultiSelect_Source {
 					Values: values,
 				},
 			},
-		}
+		}, nil
 	}
 
-	return nil
+	return nil, diag.Errorf("source must contain exactly one of \"logs_path\", \"metric_label\" or \"constant_list\"")
 }
 
 func resourceCoralogixDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -1027,16 +1019,9 @@ func flattenDataTableColumns(columns []*dashboardv1.DataTable_Column) interface{
 
 func flattenDataTableColumn(column *dashboardv1.DataTable_Column) interface{} {
 	field := column.GetField().GetValue()
-	orderDirection := flattenOrderDirection(column.GetOrderDirection())
 	return map[string]interface{}{
-		"field":           field,
-		"order_direction": orderDirection,
+		"field": field,
 	}
-}
-
-func flattenOrderDirection(orderDirection dashboardv1.OrderDirection) string {
-	orderDirectionStr := dashboardv1.OrderDirection_name[int32(orderDirection)]
-	return dashboardProtoOrderDirectionToSchemaOrderDirection[orderDirectionStr]
 }
 
 func flattenRowStyle(rowStyle dashboardv1.RowStyle) string {
@@ -1525,11 +1510,6 @@ func DashboardSchema() map[string]*schema.Schema {
 																								Type:     schema.TypeString,
 																								Required: true,
 																							},
-																							"order_direction": {
-																								Type:         schema.TypeString,
-																								ValidateFunc: validation.StringInSlice(dashboardValidOrderDirection, false),
-																								Required:     true,
-																							},
 																						},
 																					},
 																					Optional: true,
@@ -1573,9 +1553,10 @@ func DashboardSchema() map[string]*schema.Schema {
 			ConflictsWith: []string{"layout_json"},
 		},
 		"layout_json": {
-			Type:          schema.TypeString,
-			Optional:      true,
-			ConflictsWith: []string{"layout"},
+			Type:             schema.TypeString,
+			Optional:         true,
+			ConflictsWith:    []string{"layout"},
+			ValidateDiagFunc: dashboardLayoutJsonValidationFunc(),
 		},
 		"variables": {
 			Type: schema.TypeList,
@@ -1682,5 +1663,15 @@ func DashboardSchema() map[string]*schema.Schema {
 			},
 			Optional: true,
 		},
+	}
+}
+
+func dashboardLayoutJsonValidationFunc() schema.SchemaValidateDiagFunc {
+	return func(v interface{}, _ cty.Path) diag.Diagnostics {
+		err := jsonpb.Unmarshal(strings.NewReader(v.(string)), &dashboardv1.Layout{})
+		if err != nil {
+			return diag.Errorf("json content is not matching layout schema. got an err while unmarshalling %s", err)
+		}
+		return nil
 	}
 }

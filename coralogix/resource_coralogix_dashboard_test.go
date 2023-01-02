@@ -63,20 +63,20 @@ func TestAccCoralogixResourceDashboard(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.results_per_page", "20"),
 					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.row_style", "One_Line"),
 					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.0.field", "coralogix.timestamp"),
-					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.0.order_direction", "Unspecified"),
 					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.1.field", "textObject.textObject.textObject.kubernetes.pod_id"),
-					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.1.order_direction", "Unspecified"),
 					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.2.field", "coralogix.text"),
-					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.2.order_direction", "Unspecified"),
 					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.3.field", "coralogix.metadata.applicationName"),
-					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.3.order_direction", "Unspecified"),
 					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.4.field", "coralogix.metadata.subsystemName"),
-					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.4.order_direction", "Unspecified"),
 					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.5.field", "coralogix.metadata.sdkId"),
-					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.5.order_direction", "Unspecified"),
-					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.6.field", "textObject.textObject.textObject.log_obj.e2e_test.config"),
-					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.6.order_direction", "Unspecified"),
+					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.6.field", "textObject.log_obj.e2e_test.config"),
 					resource.TestCheckResourceAttr(resourceName, "layout.0.sections.0.rows.1.widgets.0.appearance.0.width", "0"),
+					resource.TestCheckResourceAttr(resourceName, "variables.0.name", "test_variable"),
+					resource.TestCheckResourceAttr(resourceName, "variables.0.definition.0.multi_select.0.selected.0", "1"),
+					resource.TestCheckResourceAttr(resourceName, "variables.0.definition.0.multi_select.0.selected.1", "2"),
+					resource.TestCheckResourceAttr(resourceName, "variables.0.definition.0.multi_select.0.selected.2", "3"),
+					resource.TestCheckResourceAttr(resourceName, "variables.0.definition.0.multi_select.0.source.0.constant_list.0.values.0", "1"),
+					resource.TestCheckResourceAttr(resourceName, "variables.0.definition.0.multi_select.0.source.0.constant_list.0.values.1", "2"),
+					resource.TestCheckResourceAttr(resourceName, "variables.0.definition.0.multi_select.0.source.0.constant_list.0.values.2", "3"),
 				),
 			},
 			{
@@ -139,11 +139,11 @@ func testAccCoralogixResourceDashboard() string {
   	name        = "dont drop me!"
     description = "dashboards team is messing with this 🗿"
    	layout {
-    sections {
-      rows {
-        appearance {
-          height = 19
-        }
+    	sections {
+      		rows {
+       		 appearance {
+          		height = 19
+			 }
         widgets {
           title = "status 4XX"
           definition {
@@ -235,31 +235,24 @@ func testAccCoralogixResourceDashboard() string {
               row_style        = "One_Line"
               columns {
                 field           = "coralogix.timestamp"
-                order_direction = "Unspecified"
               }
               columns {
                 field           = "textObject.textObject.textObject.kubernetes.pod_id"
-                order_direction = "Unspecified"
               }
               columns {
                 field           = "coralogix.text"
-                order_direction = "Unspecified"
               }
               columns {
                 field           = "coralogix.metadata.applicationName"
-                order_direction = "Unspecified"
               }
               columns {
                 field           = "coralogix.metadata.subsystemName"
-                order_direction = "Unspecified"
               }
               columns {
                 field           = "coralogix.metadata.sdkId"
-                order_direction = "Unspecified"
               }
               columns {
-                field           = "textObject.textObject.textObject.log_obj.e2e_test.config"
-                order_direction = "Unspecified"
+                field           = "textObject.log_obj.e2e_test.config"
               }
             }
           }
@@ -268,6 +261,19 @@ func testAccCoralogixResourceDashboard() string {
           }
         }
       }
+    }
+  }
+  variables {
+	name = "test_variable"
+	definition{
+        multi_select{
+          selected = ["1", "2", "3"]
+          source{
+            constant_list{
+              values =["1", "2", "3"]
+            }
+          }
+        }
     }
   }
 }

@@ -137,13 +137,26 @@ resource "coralogix_dashboard" dashboard {
                 order_direction = "Unspecified"
               }
               columns {
-                field           = "textObject.textObject.textObject.log_obj.e2e_test.config"
+                field           = "textObject.log_obj.e2e_test.config"
                 order_direction = "Unspecified"
               }
             }
           }
           appearance {
             width = 0
+          }
+        }
+      }
+    }
+  }
+  variables {
+    name = "test_variable"
+    definition {
+      multi_select {
+        selected = ["1", "2", "3"]
+        source {
+          constant_list {
+            values = ["1", "2", "3"]
           }
         }
       }
@@ -158,6 +171,19 @@ resource "coralogix_dashboard" dashboard_from_json {
   name        = "dont drop me!"
   description = "dashboards team is messing with this 🗿"
   layout_json = file("./dashboard.json")
+  variables {
+    name = "test_variable"
+    definition {
+      multi_select {
+        selected = ["1", "2", "3"]
+        source {
+          constant_list {
+            values = ["1", "2", "3"]
+          }
+        }
+      }
+    }
+  }
 }
 ```
 
