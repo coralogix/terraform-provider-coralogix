@@ -1,7 +1,7 @@
 ---
 layout: "coralogix"
 page_title: "Provider: Coralogix"
-description: |- The Coralogix provider is used to interact with the resources supported by Coralogix. The provider needs to be configured with the proper credentials before it can be used.
+description: "The Coralogix provider is used to interact with the resources supported by Coralogix. The provider needs to be configured with the proper credentials before it can be used."
 ---
 
 # Coralogix Provider

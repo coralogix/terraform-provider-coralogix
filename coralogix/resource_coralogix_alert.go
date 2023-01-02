@@ -296,8 +296,8 @@ func AlertSchema() map[string]*schema.Schema {
 									Type:     schema.TypeSet,
 									Optional: true,
 									Elem: &schema.Schema{
-										Type:         schema.TypeString,
-										ValidateFunc: mailValidationFunc(),
+										Type:             schema.TypeString,
+										ValidateDiagFunc: mailValidationFunc(),
 									},
 									Description: "The emails for anyone that should receive this alert.",
 									Set:         schema.HashString,

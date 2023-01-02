@@ -1,0 +1,185 @@
+{
+  "sections": [
+    {
+      "id": {
+        "value": "516e4c6b-f21f-4224-2a3a-71a4cab2de6e"
+      },
+      "rows": [
+        {
+          "id": {
+            "value": "770c6f4b-7920-3016-c5cb-fe3b56456cd7"
+          },
+          "appearance": {
+            "height": 19
+          },
+          "widgets": [
+            {
+              "id": {
+                "value": "9582603b-bd2b-61c4-bbe2-a414b93eec39"
+              },
+              "title": "process_cpu_cores_available",
+              "definition": {
+                "lineChart": {
+                  "query": {
+                    "metrics": {
+                      "promqlQuery": {
+                        "value": "process_cpu_cores_available"
+                      }
+                    }
+                  },
+                  "legend": {
+                    "isVisible": true,
+                    "columns": [
+                      "LEGEND_COLUMN_MAX",
+                      "LEGEND_COLUMN_LAST"
+                    ]
+                  },
+                  "seriesNameTemplate": "{{ pod }}"
+                }
+              },
+              "appearance": {
+                "width": 0
+              }
+            },
+            {
+              "id": {
+                "value": "60cd91c4-3428-9af6-34f8-028a056f2ffc"
+              },
+              "title":  "count",
+              "definition": {
+                "lineChart": {
+                  "query": {
+                    "logs": {
+                      "aggregations": [
+                        {
+                          "count": {}
+                        }
+                      ]
+                    }
+                  },
+                  "legend": {
+                    "isVisible": true,
+                    "columns": [
+                      "LEGEND_COLUMN_MIN",
+                      "LEGEND_COLUMN_MAX",
+                      "LEGEND_COLUMN_SUM",
+                      "LEGEND_COLUMN_AVG",
+                      "LEGEND_COLUMN_LAST"
+                    ]
+                  }
+                }
+              },
+              "appearance": {
+                "width": 0
+              }
+            },
+            {
+              "id": {
+                "value": "81ec98f7-f24b-9617-edd4-46552338e7a8"
+              },
+              "title":  "error throwing pods",
+              "definition": {
+                "lineChart": {
+                  "query": {
+                    "logs": {
+                      "luceneQuery": {
+                        "value": "coralogix.metadata.severity=5 OR coralogix.metadata.severity=\"6\" OR coralogix.metadata.severity=\"4\""
+                      },
+                      "groupBy": ["coralogix.metadata.subsystemName"],
+                      "aggregations": [
+                        {
+                          "count": {}
+                        }
+                      ]
+                    }
+                  },
+                  "legend": {
+                    "isVisible": true,
+                    "columns": [
+                      "LEGEND_COLUMN_MAX",
+                      "LEGEND_COLUMN_LAST"
+                    ]
+                  },
+                  "seriesNameTemplate": "[{{ subsystem }}]: {{ kubernetes.pod_id.keyword }}"
+                }
+              },
+              "appearance": {
+                "width": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": {
+            "value": "ff37a826-14ab-3ad1-6e38-1ecd89ac5d72"
+          },
+          "appearance": {
+            "height": 28
+          },
+          "widgets": [
+            {
+              "id": {
+                "value": "9d13a070-a2da-dd08-1352-7a8a7894b044"
+              },
+              "title":  "dashboards-api logz",
+              "description":  "warnings, errors, criticals",
+              "definition": {
+                "dataTable": {
+                  "query": {
+                    "logs": {
+                      "filters": [
+                        {
+                          "name": "coralogix.metadata.severity",
+                          "values": [
+                            "6",
+                            "5",
+                            "4"
+                          ]
+                        },
+                        {
+
+                          "name": "coralogix.metadata.subsystemName",
+                          "values": [
+                            "coralogix-terraform-provider"
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "resultsPerPage": 20,
+                  "rowStyle": "ROW_STYLE_ONE_LINE",
+                  "columns": [
+                    {
+                      "field": "coralogix.timestamp"
+                    },
+                    {
+                      "field": "textObject.textObject.textObject.kubernetes.pod_id"
+                    },
+                    {
+                      "field": "coralogix.text"
+                    },
+                    {
+                      "field": "coralogix.metadata.applicationName"
+                    },
+                    {
+                      "field": "coralogix.metadata.subsystemName"
+                    },
+                    {
+                      "field": "coralogix.metadata.sdkId"
+                    },
+                    {
+                      "field": "textObject.log_obj.e2e_test.config"
+                    }
+                  ]
+                }
+              },
+              "appearance": {
+                "width": 0
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
