@@ -104,7 +104,6 @@ Read-Only:
 Read-Only:
 
 - `field` (String)
-- `order_direction` (String)
 
 
 <a id="nestedobjatt--layout--sections--rows--widgets--definition--line_chart--query"></a>

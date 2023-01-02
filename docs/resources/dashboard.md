@@ -342,7 +342,8 @@ Required:
 Required:
 
 - `field` (String)
-- `order_direction` (String)
+
+
 
 <a id="nestedblock--layout--sections--rows--widgets--definition--line_chart"></a>
 
