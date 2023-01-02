@@ -214,13 +214,12 @@ func TestAccCoralogixResourceAlert_metricLucene(t *testing.T) {
 	resourceName := "coralogix_alert.test"
 
 	alert := metricLuceneAlertTestParams{
-		alertCommonTestParams:      *getRandomAlert(),
-		groupBy:                    []string{"EventType"},
-		metricField:                "subsystem",
-		timeWindow:                 selectRandomlyFromSlice(alertValidMetricTimeFrames),
-		threshold:                  acctest.RandIntRange(0, 1000),
-		arithmeticOperator:         selectRandomlyFromSlice(alertValidArithmeticOperators),
-		arithmeticOperatorModifier: acctest.RandIntRange(0, 1000),
+		alertCommonTestParams: *getRandomAlert(),
+		groupBy:               []string{"EventType"},
+		metricField:           "subsystem",
+		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
+		threshold:             acctest.RandIntRange(0, 1000),
+		arithmeticOperator:    selectRandomlyFromSlice(alertValidArithmeticOperators),
 	}
 
 	if alert.arithmeticOperator == "Percentile" {
