@@ -135,7 +135,7 @@ func testAccCheckDashboardDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceDashboard() string {
-	return fmt.Sprintf(`resource "coralogix_dashboard" test {
+	return `resource "coralogix_dashboard" test {
   	name        = "dont drop me!"
     description = "dashboards team is messing with this 🗿"
    	layout {
@@ -277,7 +277,7 @@ func testAccCoralogixResourceDashboard() string {
     }
   }
 }
-`)
+`
 }
 
 func testAccCoralogixResourceDashboardFromJson(jsonFilePath string) string {
