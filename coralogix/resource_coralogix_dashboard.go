@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,9 +12,9 @@ import (
 	"terraform-provider-coralogix/coralogix/clientset"
 	dashboardv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/coralogix-dashboards"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -99,9 +98,8 @@ func extractDashboard(d *schema.ResourceData) (*dashboardv1.Dashboard, diag.Diag
 		layout, diags = expandLayout(v)
 	} else if jsonContent, ok := d.GetOk("layout_json"); ok {
 		layout = new(dashboardv1.Layout)
-		err := jsonpb.Unmarshal(strings.NewReader(jsonContent.(string)), layout)
+		err := protojson.Unmarshal([]byte(jsonContent.(string)), layout)
 		diags = diag.FromErr(err)
-
 	}
 
 	variables, dgs := expandVariables(d.Get("variables"))
@@ -1669,9 +1667,9 @@ func DashboardSchema() map[string]*schema.Schema {
 
 func dashboardLayoutJsonValidationFunc() schema.SchemaValidateDiagFunc {
 	return func(v interface{}, _ cty.Path) diag.Diagnostics {
-		err := jsonpb.Unmarshal(strings.NewReader(v.(string)), &dashboardv1.Layout{})
+		err := protojson.Unmarshal([]byte(v.(string)), &dashboardv1.Layout{})
 		if err != nil {
-			return diag.Errorf("json content is not matching layout schema. got an err while unmarshalling %s", err)
+			return diag.Errorf("json content is not matching layout schema. got an err while unmarshalling - %s", err)
 		}
 		return nil
 	}
