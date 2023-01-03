@@ -206,11 +206,11 @@ resource "coralogix_alert" "metric_lucene_alert" {
       search_query = "name:\"Frontend transactions\""
       condition {
         metric_field                 = "subsystem"
-        arithmetic_operator          = "Avg"
+        arithmetic_operator          = "Percentile"
+        arithmetic_operator_modifier = 20
         less_than                    = true
         group_by                     = ["coralogix.metadata.sdkId"]
         threshold                    = 60
-        arithmetic_operator_modifier = 2
         sample_threshold_percentage  = 50
         time_window                  = "30Min"
         manage_undetected_values {
