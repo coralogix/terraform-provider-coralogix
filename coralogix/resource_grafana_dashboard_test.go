@@ -23,7 +23,7 @@ func TestAccCoralogixResourceGrafanaDashboardCreate(t *testing.T) {
 	updatedFilePath := parent + "/examples/grafana_dashboard/grafana_acc_updated_dashboard.json"
 
 	expectedInitialConfig := `{"title":"Title","uid":"UID"}`
-	expectedUpdatedTitleConfig := `{"title":"Updated title","uid":"Updated UID"}`
+	expectedUpdatedTitleConfig := `{"title":"Updated title","uid":"UpdatedUID"}`
 
 	var dashboard gapi.Dashboard
 
@@ -47,7 +47,7 @@ func TestAccCoralogixResourceGrafanaDashboardCreate(t *testing.T) {
 				Config: testAccCoralogixResourceGrafanaDashboard(updatedFilePath),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("coralogix_grafana_dashboard.test", &dashboard),
-					resource.TestCheckResourceAttr("coralogix_grafana_dashboard.test", "uid", "Updated uid"),
+					resource.TestCheckResourceAttr("coralogix_grafana_dashboard.test", "uid", "UpdatedUID"),
 					resource.TestCheckResourceAttr(
 						"coralogix_grafana_dashboard.test", "config_json", expectedUpdatedTitleConfig,
 					),
