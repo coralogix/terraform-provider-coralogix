@@ -55,7 +55,7 @@ func TestAccCoralogixResourceGrafanaDashboardCreate(t *testing.T) {
 			},
 			{
 				// Importing matches the state of the previous step.
-				ResourceName:            "grafana_dashboard.test",
+				ResourceName:            "coralogix_grafana_dashboard.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"message"},
