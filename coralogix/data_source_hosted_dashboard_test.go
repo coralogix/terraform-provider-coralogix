@@ -14,7 +14,7 @@ func TestAccCoralogixDataSourceGrafanaDashboard_basic(t *testing.T) {
 		panic(err)
 	}
 	parent := filepath.Dir(wd)
-	filePath := parent + "/examples/grafana_dashboard/grafana_acc_dashboard.json"
+	filePath := parent + "/examples/hosted_dashboard/grafana_acc_dashboard.json"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },

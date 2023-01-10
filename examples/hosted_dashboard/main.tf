@@ -2,7 +2,7 @@ terraform {
   required_providers {
     coralogix = {
       version = "~> 1.3"
-      source  = "coralogix/coralogix"
+      source  = "locally/debug/coralogix"
     }
   }
 }
@@ -12,6 +12,12 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_grafana_dashboard" dashboard {
-  config_json = file("./grafana_dashboard.json")
+resource "coralogix_hosted_dashboard" dashboard {
+  grafana {
+    config_json = file("./grafana_dashboard.json")
+  }
+}
+
+data "coralogix_hosted_dashboard" imported_dashboard {
+  uid = coralogix_hosted_dashboard.dashboard.id
 }

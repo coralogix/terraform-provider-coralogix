@@ -18,7 +18,7 @@ Hosted grafana dashboard.
 ## Example Usage
 ```hcl
     resource "coralogix_grafana_dashboard" dashboard {
-  config_json = file("./grafana_dashboard.json")
+  config_json = file("./hosted_dashboard.json")
 }
 ```
 

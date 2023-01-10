@@ -13,14 +13,14 @@ import (
 	"terraform-provider-coralogix/coralogix/clientset"
 )
 
-func TestAccCoralogixResourceGrafanaDashboardCreate(t *testing.T) {
+func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
 		panic(err)
 	}
 	parent := filepath.Dir(wd)
-	filePath := parent + "/examples/grafana_dashboard/grafana_acc_dashboard.json"
-	updatedFilePath := parent + "/examples/grafana_dashboard/grafana_acc_updated_dashboard.json"
+	filePath := parent + "/examples/hosted_dashboard/grafana_acc_dashboard.json"
+	updatedFilePath := parent + "/examples/hosted_dashboard/grafana_acc_updated_dashboard.json"
 
 	expectedInitialConfig := `{"title":"Title","uid":"UID"}`
 	expectedUpdatedTitleConfig := `{"title":"Updated Title","uid":"UpdatedUID"}`
@@ -36,26 +36,26 @@ func TestAccCoralogixResourceGrafanaDashboardCreate(t *testing.T) {
 				// Test resource creation.
 				Config: testAccCoralogixResourceGrafanaDashboard(filePath),
 				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("coralogix_grafana_dashboard.test", &dashboard),
-					resource.TestCheckResourceAttr("coralogix_grafana_dashboard.test", "uid", "UID"),
+					testAccDashboardCheckExists("coralogix_hosted_dashboard.test", &dashboard),
+					resource.TestCheckResourceAttr("coralogix_hosted_dashboard.test", "uid", "UID"),
 					resource.TestCheckResourceAttr(
-						"coralogix_grafana_dashboard.test", "config_json", expectedInitialConfig,
+						"coralogix_hosted_dashboard.test", "grafana.0.config_json", expectedInitialConfig,
 					),
 				),
 			},
 			{
 				Config: testAccCoralogixResourceGrafanaDashboard(updatedFilePath),
 				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("coralogix_grafana_dashboard.test", &dashboard),
-					resource.TestCheckResourceAttr("coralogix_grafana_dashboard.test", "uid", "UpdatedUID"),
+					testAccDashboardCheckExists("coralogix_hosted_dashboard.test", &dashboard),
+					resource.TestCheckResourceAttr("coralogix_hosted_dashboard.test", "uid", "UpdatedUID"),
 					resource.TestCheckResourceAttr(
-						"coralogix_grafana_dashboard.test", "config_json", expectedUpdatedTitleConfig,
+						"coralogix_hosted_dashboard.test", "grafana.0.config_json", expectedUpdatedTitleConfig,
 					),
 				),
 			},
 			{
 				// Importing matches the state of the previous step.
-				ResourceName:            "coralogix_grafana_dashboard.test",
+				ResourceName:            "coralogix_hosted_dashboard.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateVerifyIgnore: []string{"message"},
@@ -87,7 +87,7 @@ func testAccDashboardCheckDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*clientset.ClientSet).GrafanaDashboards()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "coralogix_grafana_dashboard" {
+		if rs.Type != "coralogix_hosted_dashboard" {
 			continue
 		}
 
@@ -104,8 +104,10 @@ func testAccDashboardCheckDestroy(s *terraform.State) error {
 
 func testAccCoralogixResourceGrafanaDashboard(filePath string) string {
 	return fmt.Sprintf(
-		`resource "coralogix_grafana_dashboard" test {
-  					config_json = file("%s")
-			}
+		`resource "coralogix_hosted_dashboard" test {
+ 					grafana{
+  						config_json = file("%s")
+					}
+				}
 `, filePath)
 }
