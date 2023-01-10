@@ -1,12 +1,13 @@
 package clientset
 
 type ClientSet struct {
-	ruleGroups   *RuleGroupsClient
-	alerts       *AlertsClient
-	logs2Metrics *Logs2MetricsClient
-	enrichments  *EnrichmentsClient
-	dataSet      *DataSetClient
-	dashboards   *DashboardsClient
+	ruleGroups        *RuleGroupsClient
+	alerts            *AlertsClient
+	logs2Metrics      *Logs2MetricsClient
+	enrichments       *EnrichmentsClient
+	dataSet           *DataSetClient
+	dashboards        *DashboardsClient
+	grafanaDashboards *GrafanaDashboardClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -33,6 +34,10 @@ func (c *ClientSet) Dashboards() *DashboardsClient {
 	return c.dashboards
 }
 
+func (c *ClientSet) GrafanaDashboards() *GrafanaDashboardClient {
+	return c.grafanaDashboards
+}
+
 func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 	_ = NewCallPropertiesCreator(targetUrl, teamsApiKey)
@@ -43,13 +48,15 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	enrichmentClient := NewEnrichmentClient(apikeyCPC)
 	dataSetClient := NewDataSetClient(apikeyCPC)
 	dashboards := NewDashboardsClient(apikeyCPC)
+	grafanaDashboards := NewGrafanaClient(apikeyCPC)
 
 	return &ClientSet{
-		ruleGroups:   ruleGroupsClient,
-		alerts:       alertsClient,
-		logs2Metrics: logs2MetricsClient,
-		enrichments:  enrichmentClient,
-		dataSet:      dataSetClient,
-		dashboards:   dashboards,
+		ruleGroups:        ruleGroupsClient,
+		alerts:            alertsClient,
+		logs2Metrics:      logs2MetricsClient,
+		enrichments:       enrichmentClient,
+		dataSet:           dataSetClient,
+		dashboards:        dashboards,
+		grafanaDashboards: grafanaDashboards,
 	}
 }

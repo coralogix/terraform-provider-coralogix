@@ -55,21 +55,23 @@ func Provider() *schema.Provider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"coralogix_rules_group": dataSourceCoralogixRulesGroup(),
-			"coralogix_alert":       dataSourceCoralogixAlert(),
-			"coralogix_logs2metric": dataSourceCoralogixLogs2Metric(),
-			"coralogix_enrichment":  dataSourceCoralogixEnrichment(),
-			"coralogix_data_set":    dataSourceCoralogixDataSet(),
-			"coralogix_dashboard":   dataSourceCoralogixDashboard(),
+			"coralogix_rules_group":      dataSourceCoralogixRulesGroup(),
+			"coralogix_alert":            dataSourceCoralogixAlert(),
+			"coralogix_logs2metric":      dataSourceCoralogixLogs2Metric(),
+			"coralogix_enrichment":       dataSourceCoralogixEnrichment(),
+			"coralogix_data_set":         dataSourceCoralogixDataSet(),
+			"coralogix_dashboard":        dataSourceCoralogixDashboard(),
+			"coralogix_hosted_dashboard": dataSourceCoralogixHostedDashboard(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"coralogix_rules_group": resourceCoralogixRulesGroup(),
-			"coralogix_alert":       resourceCoralogixAlert(),
-			"coralogix_logs2metric": resourceCoralogixLogs2Metric(),
-			"coralogix_enrichment":  resourceCoralogixEnrichment(),
-			"coralogix_data_set":    resourceCoralogixDataSet(),
-			"coralogix_dashboard":   resourceCoralogixDashboard(),
+			"coralogix_rules_group":      resourceCoralogixRulesGroup(),
+			"coralogix_alert":            resourceCoralogixAlert(),
+			"coralogix_logs2metric":      resourceCoralogixLogs2Metric(),
+			"coralogix_enrichment":       resourceCoralogixEnrichment(),
+			"coralogix_data_set":         resourceCoralogixDataSet(),
+			"coralogix_dashboard":        resourceCoralogixDashboard(),
+			"coralogix_hosted_dashboard": resourceCoralogixHostedDashboard(),
 		},
 
 		ConfigureContextFunc: func(context context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
