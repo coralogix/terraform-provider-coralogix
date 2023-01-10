@@ -33,7 +33,7 @@ func TestAccCoralogixDataSourceGrafanaDashboard_basic(t *testing.T) {
 
 func testAccCoralogixDataSourceGrafanaDashboard_read() string {
 	return `data "coralogix_hosted_dashboard" "test" {
-	uid = coralogix_hosted_dashboard.test.uid
+	uid = coralogix_hosted_dashboard.dashboard.id
 }
 `
 }

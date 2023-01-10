@@ -74,7 +74,8 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 			return fmt.Errorf("resource id not set")
 		}
 		client := testAccProvider.Meta().(*clientset.ClientSet).GrafanaDashboards()
-		gotDashboard, err := client.GetGrafanaDashboard(context.TODO(), rs.Primary.ID)
+		_, uid := extractDashboardTypeAndUIDFromID(rs.Primary.ID)
+		gotDashboard, err := client.GetGrafanaDashboard(context.TODO(), uid)
 		if err != nil {
 			return fmt.Errorf("error getting dashboard: %s", err)
 		}
