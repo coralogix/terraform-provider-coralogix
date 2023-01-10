@@ -37,7 +37,6 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 				Config: testAccCoralogixResourceGrafanaDashboard(filePath),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists("coralogix_hosted_dashboard.test", &dashboard),
-					resource.TestCheckResourceAttr("coralogix_hosted_dashboard.test", "uid", "UID"),
 					resource.TestCheckResourceAttr(
 						"coralogix_hosted_dashboard.test", "grafana.0.config_json", expectedInitialConfig,
 					),

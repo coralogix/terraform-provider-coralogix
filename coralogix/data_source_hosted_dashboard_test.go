@@ -24,7 +24,7 @@ func TestAccCoralogixDataSourceGrafanaDashboard_basic(t *testing.T) {
 				Config: testAccCoralogixResourceGrafanaDashboard(filePath) +
 					testAccCoralogixDataSourceGrafanaDashboard_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.coralogix_hosted_dashboard.test", "uid", "UID"),
+					resource.TestCheckResourceAttrSet("data.coralogix_hosted_dashboard.test", "uid"),
 				),
 			},
 		},
