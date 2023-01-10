@@ -175,6 +175,7 @@ func HostedDashboardSchema() map[string]*schema.Schema {
 			Description: `Hosted grafana dashboard.
 			* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
 			* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/dashboard/)`,
+			ExactlyOneOf: validHostedDashboardTypes,
 		},
 	}
 }
