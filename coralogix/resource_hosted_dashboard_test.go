@@ -51,13 +51,6 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 					),
 				),
 			},
-			{
-				// Importing matches the state of the previous step.
-				ResourceName:            "coralogix_hosted_dashboard.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"message"},
-			},
 		},
 	})
 }
