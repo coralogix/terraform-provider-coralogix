@@ -11,17 +11,62 @@ import (
 )
 
 func dataSourceCoralogixHostedDashboard() *schema.Resource {
-	grafanaDashboardSchema := datasourceSchemaFromResourceSchema(HostedDashboardSchema())
-	grafanaDashboardSchema["uid"] = &schema.Schema{
-		Type:        schema.TypeString,
-		Required:    true,
-		Description: "The unique identifier of a dashboard with the dashboard-type prefix (e.g. - grafana:vgvvfknr)",
-	}
-
 	return &schema.Resource{
 		ReadContext: dataSourceHostedDashboardRead,
 
-		Schema: grafanaDashboardSchema,
+		Schema: map[string]*schema.Schema{
+			"grafana": {
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"uid": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The uid of the Grafana dashboard.",
+						},
+						"config_json": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The complete dashboard model JSON.",
+						},
+						"version": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The numerical version of the Grafana dashboard.",
+						},
+						"title": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The title of the Grafana dashboard.",
+						},
+						"folder": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The numerical ID of the folder where the Grafana dashboard is found.",
+						},
+						"is_starred": {
+							Type:        schema.TypeBool,
+							Computed:    true,
+							Description: "Whether or not the Grafana dashboard is starred. Starred Dashboards will show up on your own Home Dashboard by default, and are a convenient way to mark Dashboards that you’re interested in.",
+						},
+						"url": {
+							Type:        schema.TypeString,
+							Computed:    true,
+							Description: "The full URL of the dashboard.",
+						},
+					},
+				},
+				Description: `Hosted grafana dashboard.
+			* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
+			* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/dashboard/)`,
+			},
+			"uid": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The unique identifier of a dashboard with the dashboard-type prefix (e.g. - grafana:vgvvfknr)",
+			},
+		},
 	}
 }
 
