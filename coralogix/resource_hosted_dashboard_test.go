@@ -94,8 +94,9 @@ func testAccDashboardCheckDestroy(s *terraform.State) error {
 
 		resp, err := client.GetGrafanaDashboard(ctx, rs.Primary.ID)
 		if err == nil {
-			if uid, ok := resp.Model["uid"]; ok && uid.(string) == rs.Primary.ID {
-				return fmt.Errorf("grafana-dashboard still exists: %s", rs.Primary.ID)
+			_, originalUID := extractDashboardTypeAndUIDFromID(rs.Primary.ID)
+			if uid, ok := resp.Model["uid"]; ok && uid.(string) == originalUID {
+				return fmt.Errorf("grafana-dashboard still exists: %s", originalUID)
 			}
 		}
 	}
