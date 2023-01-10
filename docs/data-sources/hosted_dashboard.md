@@ -42,9 +42,9 @@ Read-Only:
 
 - `config_json` (String)
 - `dashboard_id` (Number)
-- `folder` (String)
-- `message` (String)
-- `overwrite` (Boolean)
+- `folder` (Number)
+- `is_starred` (Boolean)
+- `title` (String)
 - `uid` (String)
 - `url` (String)
 - `version` (Number)

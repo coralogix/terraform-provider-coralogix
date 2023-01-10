@@ -25,6 +25,11 @@ func dataSourceCoralogixHostedDashboard() *schema.Resource {
 							Computed:    true,
 							Description: "The uid of the Grafana dashboard.",
 						},
+						"dashboard_id": {
+							Type:        schema.TypeInt,
+							Computed:    true,
+							Description: "The numeric ID of the dashboard computed by Grafana.",
+						},
 						"config_json": {
 							Type:        schema.TypeString,
 							Computed:    true,
