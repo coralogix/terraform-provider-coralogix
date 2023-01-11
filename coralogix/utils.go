@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -309,17 +310,11 @@ func mailValidationFunc() schema.SchemaValidateDiagFunc {
 	}
 }
 
-/*func urlValidationFunc() schema.SchemaValidateFunc {
-	return func(i interface{}, k string) ([]string, []error) {
-		v, ok := i.(string)
-		if !ok {
-			return nil, []error{fmt.Errorf("expected type of %s to be string", k)}
+func urlValidationFunc() schema.SchemaValidateDiagFunc {
+	return func(v interface{}, _ cty.Path) diag.Diagnostics {
+		if _, err := url.ParseRequestURI(v.(string)); err != nil {
+			return diag.Errorf("%s in not valid url - %s", v.(string), err.Error())
 		}
-
-		if _, err := url.ParseRequestURI(v); err != nil {
-			return nil, []error{fmt.Errorf("%s in not valid url - %s", k, err.Error())}
-		}
-		return nil, nil
+		return nil
 	}
-
-}*/
+}

@@ -72,6 +72,7 @@ func Provider() *schema.Provider {
 			"coralogix_data_set":         resourceCoralogixDataSet(),
 			"coralogix_dashboard":        resourceCoralogixDashboard(),
 			"coralogix_hosted_dashboard": resourceCoralogixHostedDashboard(),
+			"coralogix_action":           resourceCoralogixAction(),
 		},
 
 		ConfigureContextFunc: func(context context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {

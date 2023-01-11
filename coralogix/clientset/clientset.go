@@ -8,6 +8,7 @@ type ClientSet struct {
 	dataSet           *DataSetClient
 	dashboards        *DashboardsClient
 	grafanaDashboards *GrafanaDashboardClient
+	actions           *ActionsClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -38,6 +39,10 @@ func (c *ClientSet) GrafanaDashboards() *GrafanaDashboardClient {
 	return c.grafanaDashboards
 }
 
+func (c *ClientSet) Actions() *ActionsClient {
+	return c.actions
+}
+
 func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 	_ = NewCallPropertiesCreator(targetUrl, teamsApiKey)
@@ -49,6 +54,7 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	dataSetClient := NewDataSetClient(apikeyCPC)
 	dashboards := NewDashboardsClient(apikeyCPC)
 	grafanaDashboards := NewGrafanaClient(apikeyCPC)
+	actions := NewActionsClient(apikeyCPC)
 
 	return &ClientSet{
 		ruleGroups:        ruleGroupsClient,
@@ -58,5 +64,6 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 		dataSet:           dataSetClient,
 		dashboards:        dashboards,
 		grafanaDashboards: grafanaDashboards,
+		actions:           actions,
 	}
 }
