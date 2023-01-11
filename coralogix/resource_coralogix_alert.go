@@ -605,6 +605,7 @@ func standardSchema() map[string]*schema.Schema {
 						"standard.0.condition.0.more_than_usual"},
 					Description: "Determines the condition operator." +
 						" Must be one of - immediately, less_than, more_than or more_than_usual.",
+					RequiredWith: []string{"standard.0.condition.0.time_window"},
 				},
 				"more_than": {
 					Type:     schema.TypeBool,
@@ -613,6 +614,7 @@ func standardSchema() map[string]*schema.Schema {
 						"standard.0.condition.0.more_than",
 						"standard.0.condition.0.less_than",
 						"standard.0.condition.0.more_than_usual"},
+					RequiredWith: []string{"standard.0.condition.0.time_window"},
 					Description: "Determines the condition operator." +
 						" Must be one of - immediately, less_than, more_than or more_than_usual.",
 				},

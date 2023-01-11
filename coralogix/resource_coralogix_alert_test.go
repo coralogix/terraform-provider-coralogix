@@ -466,7 +466,7 @@ func getRandomAlert() *alertCommonTestParams {
 		searchQuery:     "remote_addr_enriched:/.*/",
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen:      randActiveWhen(),
-		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
+		notifyEveryMin:  acctest.RandIntRange(2160 /*to avoid notify_every < condition.0.time_window*/, 3600),
 		alertFilters: alertFilters{
 			severities: selectManyRandomlyFromSlice(alertValidLogSeverities),
 		},
