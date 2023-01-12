@@ -15,7 +15,7 @@ func TestAccCoralogixDataSourceAction(t *testing.T) {
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
 		isPrivate:    true,
-		isHidden:     true,
+		isHidden:     false,
 	}
 
 	resource.Test(t, resource.TestCase{
