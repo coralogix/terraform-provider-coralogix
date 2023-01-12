@@ -2,7 +2,7 @@ terraform {
   required_providers {
     coralogix = {
       version = "~> 1.3"
-      source  = "coralogix/coralogix"
+      source  = "locally/debug/coralogix"
     }
   }
 }
@@ -14,7 +14,7 @@ provider "coralogix" {
 
 resource "coralogix_action" action {
   is_private  = true
-  source_type = "Log"
+  source_type = "Data_Map"
   name        = "google search action"
   url         = "https://www.google.com/search?q={{$p.selected_value}}"
 }

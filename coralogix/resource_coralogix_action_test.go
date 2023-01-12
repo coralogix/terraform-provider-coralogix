@@ -35,7 +35,7 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 	updatedAction := actionTestParams{
 		name:         "bing search action",
 		url:          "https://www.bing.com/search?q={{$p.selected_value}}",
-		sourceType:   selectRandomlyFromSlice(actionValidSourceTypes),
+		sourceType:   action.sourceType,
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
 		isPrivate:    true,
