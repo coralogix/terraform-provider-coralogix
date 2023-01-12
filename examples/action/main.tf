@@ -15,6 +15,6 @@ provider "coralogix" {
 resource "coralogix_action" "action" {
   is_private = true
   source_type = "Log"
-  name = "aaa"
-  url = "https://ng-api-http.eu2.coralogix.com/opendashboards"
+  name = "google search action"
+  url = "https://www.google.com/search?q={{$p.selected_value}}"
 }

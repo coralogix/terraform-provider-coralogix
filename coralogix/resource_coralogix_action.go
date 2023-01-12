@@ -15,9 +15,8 @@ import (
 
 var (
 	actionSchemaSourceTypeToProtoSourceType = map[string]string{
-		"Unspecified": "SOURCE_TYPE_UNSPECIFIED",
-		"Log":         "SOURCE_TYPE_LOG",
-		"Data_Map":    "SOURCE_TYPE_DATA_MAP",
+		"Log":      "SOURCE_TYPE_LOG",
+		"Data_Map": "SOURCE_TYPE_DATA_MAP",
 	}
 	actionProtoSourceTypeToSchemaSourceType = reverseMapStrings(actionSchemaSourceTypeToProtoSourceType)
 	actionValidSourceTypes                  = getKeysStrings(actionSchemaSourceTypeToProtoSourceType)
@@ -133,7 +132,13 @@ func ActionSchema() map[string]*schema.Schema {
 		},
 		"is_private": {
 			Type:     schema.TypeBool,
-			Required: true,
+			Optional: true,
+			Default:  true,
+		},
+		"is_hidden": {
+			Type:     schema.TypeBool,
+			Optional: true,
+			Default:  false,
 		},
 		"source_type": {
 			Type:         schema.TypeString,
@@ -155,10 +160,6 @@ func ActionSchema() map[string]*schema.Schema {
 				Type: schema.TypeString,
 			},
 			Set: schema.HashString,
-		},
-		"is_hidden": {
-			Type:     schema.TypeBool,
-			Computed: true,
 		},
 		"created_by": {
 			Type:     schema.TypeString,
@@ -190,6 +191,7 @@ func extractUpdateAction(d *schema.ResourceData) *actionsv2.ReplaceActionRequest
 	name := wrapperspb.String(d.Get("name").(string))
 	url := wrapperspb.String(d.Get("url").(string))
 	isPrivate := wrapperspb.Bool(d.Get("is_private").(bool))
+	isHidden := wrapperspb.Bool(d.Get("is_hidden").(bool))
 	sourceType := expandActionSourceType(d.Get("source_type").(string))
 	applicationNames := interfaceSliceToWrappedStringSlice(d.Get("applications").(*schema.Set).List())
 	subsystemNames := interfaceSliceToWrappedStringSlice(d.Get("subsystems").(*schema.Set).List())
@@ -200,6 +202,7 @@ func extractUpdateAction(d *schema.ResourceData) *actionsv2.ReplaceActionRequest
 			Name:             name,
 			Url:              url,
 			IsPrivate:        isPrivate,
+			IsHidden:         isHidden,
 			SourceType:       sourceType,
 			ApplicationNames: applicationNames,
 			SubsystemNames:   subsystemNames,

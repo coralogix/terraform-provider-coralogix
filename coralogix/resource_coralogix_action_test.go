@@ -23,23 +23,23 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 	resourceName := "coralogix_action.test"
 
 	action := actionTestParams{
-		name:         acctest.RandomWithPrefix("tf-acc-test"),
+		name:         "google search action",
 		url:          "https://www.google.com/",
 		sourceType:   selectRandomlyFromSlice(actionValidSourceTypes),
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
 		isPrivate:    true,
-		isHidden:     acctest.RandInt()%2 == 0,
+		isHidden:     true,
 	}
 
 	updatedAction := actionTestParams{
-		name:         acctest.RandomWithPrefix("tf-acc-test"),
-		url:          "https://coralogix.com/",
+		name:         "bing search action",
+		url:          "https://www.bing.com/search?q={{$p.selected_value}}",
 		sourceType:   selectRandomlyFromSlice(actionValidSourceTypes),
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
 		isPrivate:    true,
-		isHidden:     acctest.RandInt()%2 == 0,
+		isHidden:     true,
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -50,14 +50,14 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceAction(action),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("resource.coralogix_action.test", "id"),
-					resource.TestCheckResourceAttr("resource.coralogix_action.test", "name", action.name),
-					resource.TestCheckResourceAttr("resource.coralogix_action.test", "url", action.url),
-					resource.TestCheckResourceAttr("resource.coralogix_action.test", "source_type", action.sourceType),
-					resource.TestCheckResourceAttr("resource.coralogix_action.test", "applications.0", action.applications[0]),
-					resource.TestCheckResourceAttr("resource.coralogix_action.test", "subsystems.0", action.subsystems[0]),
-					resource.TestCheckResourceAttr("resource.coralogix_action.test", "is_private", fmt.Sprintf("%t", action.isPrivate)),
-					resource.TestCheckResourceAttr("resource.coralogix_action.test", "is_hidden", fmt.Sprintf("%t", action.isHidden)),
+					resource.TestCheckResourceAttrSet(resourceName, "id"),
+					resource.TestCheckResourceAttr(resourceName, "name", action.name),
+					resource.TestCheckResourceAttr(resourceName, "url", action.url),
+					resource.TestCheckResourceAttr(resourceName, "source_type", action.sourceType),
+					resource.TestCheckResourceAttr(resourceName, "applications.0", action.applications[0]),
+					resource.TestCheckResourceAttr(resourceName, "subsystems.0", action.subsystems[0]),
+					resource.TestCheckResourceAttr(resourceName, "is_private", fmt.Sprintf("%t", action.isPrivate)),
+					resource.TestCheckResourceAttr(resourceName, "is_hidden", fmt.Sprintf("%t", action.isHidden)),
 				),
 			},
 			{
@@ -114,5 +114,6 @@ func testAccCoralogixResourceAction(action actionTestParams) string {
   						applications       =  %s
   						subsystems 		   =  %s
   						is_private         =  %t
-}`, action.name, action.url, action.sourceType, action.applications, action.subsystems, action.isPrivate)
+}
+`, action.name, action.url, action.sourceType, sliceToString(action.applications), sliceToString(action.subsystems), action.isPrivate)
 }

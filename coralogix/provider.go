@@ -62,6 +62,7 @@ func Provider() *schema.Provider {
 			"coralogix_data_set":         dataSourceCoralogixDataSet(),
 			"coralogix_dashboard":        dataSourceCoralogixDashboard(),
 			"coralogix_hosted_dashboard": dataSourceCoralogixHostedDashboard(),
+			"coralogix_action":           dataSourceCoralogixAction(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
