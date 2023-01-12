@@ -15,8 +15,8 @@ import (
 
 var (
 	actionSchemaSourceTypeToProtoSourceType = map[string]string{
-		"Log":      "SOURCE_TYPE_LOG",
-		"Data_Map": "SOURCE_TYPE_DATA_MAP",
+		"Log":     "SOURCE_TYPE_LOG",
+		"DataMap": "SOURCE_TYPE_DATA_MAP",
 	}
 	actionProtoSourceTypeToSchemaSourceType = reverseMapStrings(actionSchemaSourceTypeToProtoSourceType)
 	actionValidSourceTypes                  = getKeysStrings(actionSchemaSourceTypeToProtoSourceType)
