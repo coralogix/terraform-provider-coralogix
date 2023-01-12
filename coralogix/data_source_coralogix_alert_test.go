@@ -21,12 +21,6 @@ func TestAccCoralogixDataSourceAlert_basic(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertStandard(&alert),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("coralogix_alert.test", "name", alert.name),
-				),
-			},
-			{
 				Config: testAccCoralogixResourceAlertStandard(&alert) +
 					testAccCoralogixDataSourceAlert_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
