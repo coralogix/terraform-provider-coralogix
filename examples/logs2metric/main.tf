@@ -17,7 +17,7 @@ resource "coralogix_logs2metric" "logs2metric" {
   description = "logs2metric from coralogix terraform provide"
   query {
     lucene       = "remote_addr_enriched:/.*/"
-    applications = ["nginx"] //change here for existing applications from your account
+    applications = ["filter:startsWith:nginx"] //change here for existing applications from your account
     severities   = ["Debug"]
   }
 

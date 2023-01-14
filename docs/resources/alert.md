@@ -660,7 +660,7 @@ Required:
 
 Optional:
 
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on.
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 - `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
 - `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
 - `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
@@ -669,7 +669,7 @@ Optional:
 - `search_query` (String) The search_query that we wanted to be notified on.
 - `severities` (Set of String) An array of log severities that we interested in. Can be one
   of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on.
+- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 <a id="nestedblock--new_value--condition"></a>
 
@@ -739,7 +739,7 @@ Optional:
 
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["1H" "2H" "6H" "12H" "24H" "Never" "5Min" "10Min"]
 - `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
@@ -752,7 +752,7 @@ Optional:
 Optional:
 
 - `alias` (String) Query1 alias.
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on.
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 - `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
 - `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
 - `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
@@ -761,7 +761,7 @@ Optional:
 - `search_query` (String) The search_query that we wanted to be notified on.
 - `severities` (Set of String) An array of log severities that we interested in. Can be one
   of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on.
+- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 <a id="nestedblock--ratio--query_2"></a>
 
@@ -814,7 +814,7 @@ Required:
 
 Optional:
 
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on.
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 - `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
 - `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
 - `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
@@ -823,7 +823,7 @@ Optional:
 - `search_query` (String) The search_query that we wanted to be notified on.
 - `severities` (Set of String) An array of log severities that we interested in. Can be one
   of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on.
+- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 <a id="nestedblock--standard--condition"></a>
 
@@ -863,7 +863,7 @@ Required:
 
 Optional:
 
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on.
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 - `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
 - `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
 - `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
@@ -872,7 +872,7 @@ Optional:
 - `search_query` (String) The search_query that we wanted to be notified on.
 - `severities` (Set of String) An array of log severities that we interested in. Can be one
   of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on.
+- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 <a id="nestedblock--time_relative--condition"></a>
 
@@ -924,7 +924,7 @@ Required:
 
 Optional:
 
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on.
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 - `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
 - `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
 - `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
@@ -935,7 +935,7 @@ Optional:
 - `search_query` (String) The search_query that we wanted to be notified on.
 - `severities` (Set of String) An array of log severities that we interested in. Can be one
   of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on.
+- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 - `tag_filters` (Block List) (see [below for nested schema](#nestedblock--tracing--tag_filters))
 
 <a id="nestedblock--tracing--condition"></a>
@@ -997,7 +997,7 @@ Required:
 
 Optional:
 
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on.
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 - `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
 - `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
 - `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
@@ -1006,7 +1006,7 @@ Optional:
 - `search_query` (String) The search_query that we wanted to be notified on.
 - `severities` (Set of String) An array of log severities that we interested in. Can be one
   of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on.
+- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 <a id="nestedblock--unique_count--condition"></a>
 
