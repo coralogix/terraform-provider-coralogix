@@ -7,10 +7,6 @@ terraform {
   }
 }
 
-locals {
-  s = "\"duration_${unit}\":$duration"
-}
-
 provider "coralogix" {
   #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
@@ -49,7 +45,7 @@ resource "coralogix_rules_group" "rules_group_example" {
         description        = "Deletes data before Json"
         source_field       = "text"
         destination_field  = "text"
-        replacement_string = local.s
+        replacement_string = "{"
         regular_expression = ".*{"
       }
     }
@@ -98,66 +94,66 @@ resource "coralogix_rules_group" "rules_group_example" {
   }
 }
 
-#data "coralogix_rules_group" "imported_rules_group_example" {
-#  id = coralogix_rules_group.rules_group_example.id
-#}
-#
-#resource "coralogix_rules_group" "extract_timestamp_example" {
-#  name         = "Example extract-timestamp rule-group from terraform"
-#  description  = "rule_group created by coralogix terraform provider"
-#  applications = ["nginx"] //change here for existing applications from your account
-#  subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
-#  severities   = ["Warning"]
-#  order        = 4
-#
-#  rule_subgroups {
-#    rules {
-#      extract_timestamp {
-#        name                  = "example extract-timestamp rule from terraform"
-#        description           = "rule created by coralogix terraform provider"
-#        source_field          = "text"
-#        field_format_standard = "Strftime"
-#        time_format           = "%Y-%m-%dT%H:%M:%S.%f%z"
-#      }
-#    }
-#  }
-#}
-#
-#resource "coralogix_rules_group" "remove_fields_example" {
-#  name         = "Example remove-fields rule-group from terraform"
-#  description  = "rule_group created by coralogix terraform provider"
-#  applications = ["nginx"] //change here for existing applications from your account
-#  subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
-#  severities   = ["Warning"]
-#  order        = 3
-#  rule_subgroups {
-#    rules {
-#      remove_fields {
-#        name            = "Example remove-fields rule from terraform"
-#        description     = "rule created by coralogix terraform provider"
-#        excluded_fields = ["coralogix.metadata.applicationName", "coralogix.metadata.className"]
-#      }
-#    }
-#  }
-#}
-#
-#resource "coralogix_rules_group" "parse_json_field_example" {
-#  name         = "Example parse-json-field rule-group from terraform"
-#  description  = "rule_group created by coralogix terraform provider"
-#  applications = ["nginx"] //change here for existing applications from your account
-#  subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
-#  severities   = ["Warning"]
-#  order = 2
-#  rule_subgroups {
-#    rules {
-#      parse_json_field {
-#        name                   = "Example parse-json-field rule from terraform"
-#        description            = "rule created by coralogix terraform provider"
-#        source_field           = "text"
-#        destination_field      = "text"
-#        keep_source_field      = "true"
-#        keep_destination_field = "true"
-#      }
-#    }
-#  }
-#}
+data "coralogix_rules_group" "imported_rules_group_example" {
+  id = coralogix_rules_group.rules_group_example.id
+}
+
+resource "coralogix_rules_group" "extract_timestamp_example" {
+  name         = "Example extract-timestamp rule-group from terraform"
+  description  = "rule_group created by coralogix terraform provider"
+  applications = ["nginx"] //change here for existing applications from your account
+  subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
+  severities   = ["Warning"]
+  order        = 4
+
+  rule_subgroups {
+    rules {
+      extract_timestamp {
+        name                  = "example extract-timestamp rule from terraform"
+        description           = "rule created by coralogix terraform provider"
+        source_field          = "text"
+        field_format_standard = "Strftime"
+        time_format           = "%Y-%m-%dT%H:%M:%S.%f%z"
+      }
+    }
+  }
+}
+
+resource "coralogix_rules_group" "remove_fields_example" {
+  name         = "Example remove-fields rule-group from terraform"
+  description  = "rule_group created by coralogix terraform provider"
+  applications = ["nginx"] //change here for existing applications from your account
+  subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
+  severities   = ["Warning"]
+  order        = 3
+  rule_subgroups {
+    rules {
+      remove_fields {
+        name            = "Example remove-fields rule from terraform"
+        description     = "rule created by coralogix terraform provider"
+        excluded_fields = ["coralogix.metadata.applicationName", "coralogix.metadata.className"]
+      }
+    }
+  }
+}
+
+resource "coralogix_rules_group" "parse_json_field_example" {
+  name         = "Example parse-json-field rule-group from terraform"
+  description  = "rule_group created by coralogix terraform provider"
+  applications = ["nginx"] //change here for existing applications from your account
+  subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
+  severities   = ["Warning"]
+  order = 2
+  rule_subgroups {
+    rules {
+      parse_json_field {
+        name                   = "Example parse-json-field rule from terraform"
+        description            = "rule created by coralogix terraform provider"
+        source_field           = "text"
+        destination_field      = "text"
+        keep_source_field      = "true"
+        keep_destination_field = "true"
+      }
+    }
+  }
+}
