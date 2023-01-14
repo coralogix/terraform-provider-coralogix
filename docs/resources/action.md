@@ -24,15 +24,15 @@ resource "coralogix_action" action {
 ### Required
 
 - `name` (String) Action name.
-- `source_type` (String)
-- `url` (String)
+- `source_type` (String) By selecting the data type, you can make sure that the action will be displayed only in the relevant context. Can be one of ["Log" "DataMap"]
+- `url` (String) URL for the external tool.
 
 ### Optional
 
-- `applications` (Set of String)
-- `is_hidden` (Boolean)
-- `is_private` (Boolean)
-- `subsystems` (Set of String)
+- `applications` (Set of String) Applies the action for specific applications.
+- `is_hidden` (Boolean) Determines weather the action will be shown at the action menu.
+- `is_private` (Boolean) Determines weather the action will be shared with the entire team. Can be set to false only by admin.
+- `subsystems` (Set of String) Applies the action for specific subsystems.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
