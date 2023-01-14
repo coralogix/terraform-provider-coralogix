@@ -602,7 +602,7 @@ Optional:
 
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["2H" "6H" "12H" "24H" "Never" "5Min" "10Min" "1H"]
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
 - `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
@@ -739,7 +739,7 @@ Optional:
 
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["1H" "2H" "6H" "12H" "24H" "Never" "5Min" "10Min"]
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
 - `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
