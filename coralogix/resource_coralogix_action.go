@@ -2,6 +2,7 @@ package coralogix
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -129,21 +130,25 @@ func ActionSchema() map[string]*schema.Schema {
 			Type:             schema.TypeString,
 			Required:         true,
 			ValidateDiagFunc: urlValidationFunc(),
+			Description:      "URL for the external tool.",
 		},
 		"is_private": {
-			Type:     schema.TypeBool,
-			Optional: true,
-			Default:  true,
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     true,
+			Description: "Determines weather the action will be shared with the entire team. Can be set to false only by admin.",
 		},
 		"is_hidden": {
-			Type:     schema.TypeBool,
-			Optional: true,
-			Default:  false,
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     false,
+			Description: "Determines weather the action will be shown at the action menu.",
 		},
 		"source_type": {
 			Type:         schema.TypeString,
 			Required:     true,
 			ValidateFunc: validation.StringInSlice(actionValidSourceTypes, false),
+			Description:  fmt.Sprintf("By selecting the data type, you can make sure that the action will be displayed only in the relevant context. Can be one of %q", actionValidSourceTypes),
 		},
 		"applications": {
 			Type:     schema.TypeSet,
@@ -151,7 +156,8 @@ func ActionSchema() map[string]*schema.Schema {
 			Elem: &schema.Schema{
 				Type: schema.TypeString,
 			},
-			Set: schema.HashString,
+			Set:         schema.HashString,
+			Description: "Applies the action for specific applications.",
 		},
 		"subsystems": {
 			Type:     schema.TypeSet,
@@ -159,7 +165,8 @@ func ActionSchema() map[string]*schema.Schema {
 			Elem: &schema.Schema{
 				Type: schema.TypeString,
 			},
-			Set: schema.HashString,
+			Set:         schema.HashString,
+			Description: "Applies the action for specific subsystems.",
 		},
 		"created_by": {
 			Type:     schema.TypeString,
