@@ -41,11 +41,6 @@ resource "coralogix_alert" "standard_alert" {
       start_time   = "08:30"
       end_time     = "20:30"
     }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
-    }
   }
 
   standard {
@@ -84,11 +79,6 @@ resource "coralogix_alert" "ratio_alert" {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
-    }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
     }
   }
 
@@ -278,11 +268,6 @@ resource "coralogix_alert" "unique_count_alert" {
       start_time   = "08:30"
       end_time     = "20:30"
     }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
-    }
   }
 
   unique_count {
@@ -317,11 +302,6 @@ resource "coralogix_alert" "tracing_alert" {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
-    }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
     }
   }
 
@@ -363,11 +343,6 @@ resource "coralogix_alert" "flow_alert" {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
-    }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
     }
   }
 

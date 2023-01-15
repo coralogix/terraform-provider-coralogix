@@ -401,7 +401,7 @@ func Logs2MetricSchema() map[string]*schema.Schema {
 							Type: schema.TypeString,
 						},
 						Description: "An array that contains log’s application names that we want to be alerted on." +
-							" Applications can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+							" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
 						Set: schema.HashString,
 					},
 					"subsystems": {
@@ -411,7 +411,7 @@ func Logs2MetricSchema() map[string]*schema.Schema {
 							Type: schema.TypeString,
 						},
 						Description: "An array that contains log’s subsystem names that we want to be notified on. " +
-							" Subsystems can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+							" Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
 						Set: schema.HashString,
 					},
 					"severities": {
