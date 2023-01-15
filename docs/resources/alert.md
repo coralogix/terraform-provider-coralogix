@@ -780,8 +780,7 @@ Optional:
 
 Required:
 
-- `time_frames` (Block Set, Min: 1) time_frames is a set of days and hours when the alert will be active. (
-  see [below for nested schema](#nestedblock--scheduling--time_frames))
+- `time_frames` (Block Set, Min: 1, Max: 1) time_frames is a set of days and hours when the alert will be active. ***Currently, supported only for one time_frames*** (see [below for nested schema](#nestedblock--scheduling--time_frames))
 
 Optional:
 
