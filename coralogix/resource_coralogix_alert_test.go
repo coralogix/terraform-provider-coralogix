@@ -225,6 +225,9 @@ func TestAccCoralogixResourceAlert_metricLucene(t *testing.T) {
 		threshold:             acctest.RandIntRange(0, 1000),
 		arithmeticOperator:    selectRandomlyFromSlice(alertValidArithmeticOperators),
 	}
+	if alert.arithmeticOperator == "Percentile" {
+		alert.arithmeticOperatorModifier = acctest.RandIntRange(0, 100)
+	}
 	checks := extractLuceneMetricChecks(alert)
 
 	updatedAlert := metricLuceneAlertTestParams{
@@ -234,6 +237,9 @@ func TestAccCoralogixResourceAlert_metricLucene(t *testing.T) {
 		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
 		threshold:             acctest.RandIntRange(0, 1000),
 		arithmeticOperator:    selectRandomlyFromSlice(alertValidArithmeticOperators),
+	}
+	if updatedAlert.arithmeticOperator == "Percentile" {
+		alert.arithmeticOperatorModifier = acctest.RandIntRange(0, 100)
 	}
 	updatedAlertChecks := extractLuceneMetricChecks(updatedAlert)
 
@@ -465,9 +471,6 @@ func extractTimeRelativeChecks(alert timeRelativeAlertTestParams) []resource.Tes
 }
 
 func extractLuceneMetricChecks(alert metricLuceneAlertTestParams) []resource.TestCheckFunc {
-	if alert.arithmeticOperator == "Percentile" {
-		alert.arithmeticOperatorModifier = acctest.RandIntRange(0, 100)
-	}
 	checks := []resource.TestCheckFunc{
 		resource.TestCheckResourceAttrSet(resourceName, "id"),
 		resource.TestCheckResourceAttr(resourceName, "enabled", "true"),

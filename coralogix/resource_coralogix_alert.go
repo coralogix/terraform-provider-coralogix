@@ -1978,7 +1978,6 @@ func flattenMetricAlert(filters *alertsv1.AlertFilters, condition interface{}) (
 		metricTypeStr = "promql"
 		searchQuery = promqlParams.GetPromqlText().GetValue()
 		conditionMap, notifyWhenResolved = flattenPromQLCondition(conditionParams)
-		conditionMap["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
 	} else {
 		metricTypeStr = "lucene"
 		searchQuery = filters.GetText().GetValue()
