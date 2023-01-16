@@ -2472,7 +2472,6 @@ func expandRelatedExtendedData(m map[string]interface{}) *alertsv1.RelatedExtend
 					ShouldTriggerDeadman: wrapperspb.Bool(false),
 				}
 			}
-
 		}
 	}
 
