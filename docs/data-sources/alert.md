@@ -33,7 +33,7 @@ data "coralogix_alert" "imported_standard_alert" {
 - `meta_labels` (Set of Object) Labels allow you to easily filter by alert type and create views. Insert a new label or use an existing one. You can nest a label using key:value. (see [below for nested schema](#nestedatt--meta_labels))
 - `metric` (List of Object) Alert based on arithmetic operators for metrics. (see [below for nested schema](#nestedatt--metric))
 - `name` (String) Alert name.
-- `new_value` (List of Object) Alert on a never before seen log value. (see [below for nested schema](#nestedatt--new_value))
+- `new_value` (List of Object) Alert on never before seen log value. (see [below for nested schema](#nestedatt--new_value))
 - `notification` (List of Object) The Alert notification info. (see [below for nested schema](#nestedatt--notification))
 - `ratio` (List of Object) Alert based on the ratio between queries. (see [below for nested schema](#nestedatt--ratio))
 - `scheduling` (List of Object) Limit the triggering of this alert to specific time frames. Active always by default. (see [below for nested schema](#nestedatt--scheduling))

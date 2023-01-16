@@ -4,7 +4,8 @@
 
 page_title: "coralogix_alert Resource - terraform-provider-coralogix"
 subcategory: ""
-description: "Coralogix alert. Api-key is required for this resource. More info: https://coralogix.com/docs/alerts-api/."
+description: "Coralogix alert. Api-key is required for this resource. More info: https://coralogix.com/docs/alerts-api/
+."
 ---
 
 # coralogix_alert (Resource)
@@ -47,16 +48,11 @@ resource "coralogix_alert" "standard_alert" {
       start_time   = "08:30"
       end_time     = "20:30"
     }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
-    }
   }
 
   standard {
-    applications = ["nginx"] //change here for existing applications from your account
-    subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
+    applications = ["filter:contains:nginx"] //'filter:contains:' is prefix for 'Contains' filtering. change here for existing applications from your account. 
+    subsystems   = ["filter:startsWith:subsystem-name"] //'filter:startsWith:' is prefix for 'Start With' filtering. change here for existing subsystems from your account
     severities   = ["Warning", "Info"]
     search_query = "remote_addr_enriched:/.*/"
     condition {
@@ -90,11 +86,6 @@ resource "coralogix_alert" "ratio_alert" {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
-    }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
     }
   }
 
@@ -223,12 +214,12 @@ resource "coralogix_alert" "metric_lucene_alert" {
     lucene {
       search_query = "name:\"Frontend transactions\""
       condition {
-        metric_field                 = "subsystem"
-        arithmetic_operator          = "Avg"
-        more_than                    = true
-        threshold                    = 60
-        sample_threshold_percentage  = 50
-        time_window                  = "30Min"
+        metric_field                = "subsystem"
+        arithmetic_operator         = "Avg"
+        more_than                   = true
+        threshold                   = 60
+        sample_threshold_percentage = 50
+        time_window                 = "30Min"
       }
     }
   }
@@ -299,11 +290,6 @@ resource "coralogix_alert" "unique_count_alert" {
       start_time   = "08:30"
       end_time     = "20:30"
     }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
-    }
   }
 
   unique_count {
@@ -342,11 +328,6 @@ resource "coralogix_alert" "tracing_alert" {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
-    }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
     }
   }
 
@@ -392,11 +373,6 @@ resource "coralogix_alert" "flow_alert" {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
-    }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
     }
   }
 
@@ -580,34 +556,42 @@ Required:
 
 Required:
 
-- `arithmetic_operator` (String) The arithmetic operator to use on the alert. can be one of ["Sum" "Count" "Percentile" "Avg" "Min" "Max"]
+- `arithmetic_operator` (String) The arithmetic operator to use on the alert. can be one
+  of ["Sum" "Count" "Percentile" "Avg" "Min" "Max"]
 - `metric_field` (String) The name of the metric field to alert on.
-- `sample_threshold_percentage` (Number) The metric value must cross the threshold within this percentage of the timeframe (sum and count arithmetic operators do not use this parameter since they aggregate over the entire requested timeframe), increments of 10, 0 <= value <= 100.
+- `sample_threshold_percentage` (Number) The metric value must cross the threshold within this percentage of the
+  timeframe (sum and count arithmetic operators do not use this parameter since they aggregate over the entire requested
+  timeframe), increments of 10, 0 <= value <= 100.
 - `threshold` (Number) The number of log threshold that is needed to trigger the alert.
 - `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be
   one of ["1Min" "5Min" "10Min" "15Min" "20Min" "30Min" "1H" "2H" "4H" "6H" "12H" "24H"]
 
 Optional:
 
-- `arithmetic_operator_modifier` (Number) When arithmetic_operator = "Percentile" you need to supply the value in this property, 0 < value < 100.
+- `arithmetic_operator_modifier` (Number) When arithmetic_operator = "Percentile" you need to supply the value in this
+  property, 0 < value < 100.
 - `group_by` (List of String) The fields to 'group by' on.
 - `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--metric--lucene--condition--manage_undetected_values))
-- `min_non_null_values_percentage` (Number) The minimum percentage of the timeframe that should have values for this alert to trigger
+- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable
+  triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled
+  with retire-ratio=NEVER. (
+  see [below for nested schema](#nestedblock--metric--lucene--condition--manage_undetected_values))
+- `min_non_null_values_percentage` (Number) The minimum percentage of the timeframe that should have values for this
+  alert to trigger
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `replace_missing_value_with_zero` (Boolean) If set to true, missing data will be considered as 0, otherwise, it will not be considered at all.
+- `replace_missing_value_with_zero` (Boolean) If set to true, missing data will be considered as 0, otherwise, it will
+  not be considered at all.
 
 <a id="nestedblock--metric--lucene--condition--manage_undetected_values"></a>
+
 ### Nested Schema for `metric.lucene.condition.manage_undetected_values`
 
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one
+  of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
 - `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
-
-
-
 
 <a id="nestedblock--metric--promql"></a>
 
@@ -632,23 +616,24 @@ Required:
 Optional:
 
 - `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--metric--promql--condition--manage_undetected_values))
+- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable
+  triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled
+  with retire-ratio=NEVER. (
+  see [below for nested schema](#nestedblock--metric--promql--condition--manage_undetected_values))
 - `min_non_null_values_percentage` (Number)
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 - `replace_missing_value_with_zero` (Boolean)
 
 <a id="nestedblock--metric--promql--condition--manage_undetected_values"></a>
+
 ### Nested Schema for `metric.promql.condition.manage_undetected_values`
 
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one
+  of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
 - `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
-
-
-
-
 
 <a id="nestedblock--new_value"></a>
 
@@ -660,7 +645,9 @@ Required:
 
 Optional:
 
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on.
+  Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:
+  endsWith:xxx, filter:contains:xxx
 - `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
 - `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
 - `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
@@ -669,7 +656,9 @@ Optional:
 - `search_query` (String) The search_query that we wanted to be notified on.
 - `severities` (Set of String) An array of log severities that we interested in. Can be one
   of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems
+  can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx,
+  filter:contains:xxx
 
 <a id="nestedblock--new_value--condition"></a>
 
@@ -689,7 +678,10 @@ Required:
 Optional:
 
 - `ignore_infinity` (Boolean)
-- `notify_every_min` (Number) By default, notify_every_min will be populated with min for immediate, more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time frame for the less_than condition (in minutes). You may choose to change the suppress window so the alert will be suppressed for a longer period.
+- `notify_every_min` (Number) By default, notify_every_min will be populated with min for immediate, more_than and
+  more_than_usual alerts. For less_than alert it will be populated with the chosen time frame for the less_than
+  condition (in minutes). You may choose to change the suppress window so the alert will be suppressed for a longer
+  period.
 - `notify_only_on_triggered_group_by_values` (Boolean) Notifications will contain only triggered group-by values.
 - `on_trigger_and_resolved` (Boolean)
 - `payload_fields` (Set of String) A list of log fields out of the log example which will be included with the alert
@@ -731,19 +723,21 @@ Optional:
 - `group_by_q1` (Boolean)
 - `group_by_q2` (Boolean)
 - `less_than` (Boolean)
-- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--ratio--condition--manage_undetected_values))
+- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable
+  triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled
+  with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--ratio--condition--manage_undetected_values))
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 
 <a id="nestedblock--ratio--condition--manage_undetected_values"></a>
+
 ### Nested Schema for `ratio.condition.manage_undetected_values`
 
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one
+  of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
 - `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
-
-
 
 <a id="nestedblock--ratio--query_1"></a>
 
@@ -752,7 +746,9 @@ Optional:
 Optional:
 
 - `alias` (String) Query1 alias.
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on.
+  Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:
+  endsWith:xxx, filter:contains:xxx
 - `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
 - `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
 - `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
@@ -761,7 +757,9 @@ Optional:
 - `search_query` (String) The search_query that we wanted to be notified on.
 - `severities` (Set of String) An array of log severities that we interested in. Can be one
   of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems
+  can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx,
+  filter:contains:xxx
 
 <a id="nestedblock--ratio--query_2"></a>
 
@@ -782,12 +780,12 @@ Optional:
 
 Required:
 
-- `time_frames` (Block Set, Min: 1) time_frames is a set of days and hours when the alert will be active. (
-  see [below for nested schema](#nestedblock--scheduling--time_frames))
+- `time_frames` (Block Set, Min: 1, Max: 1) time_frames is a set of days and hours when the alert will be active. ***Currently, supported only for one time_frames*** (see [below for nested schema](#nestedblock--scheduling--time_frames))
 
 Optional:
 
-- `time_zone` (String) Specifies the time zone to be used in interpreting the schedule. Can be one of ["UTC-11" "UTC-10" "UTC-9" "UTC-8" "UTC-7" "UTC-6" "UTC-5" "UTC-4" "UTC-3" "UTC-2" "UTC-1" "UTC+0" "UTC+1" "UTC+2" "UTC+3" "UTC+4" "UTC+5" "UTC+6" "UTC+7" "UTC+8" "UTC+9" "UTC+10" "UTC+11" "UTC+12" "UTC+13" "UTC+14"]
+- `time_zone` (String) Specifies the time zone to be used in interpreting the schedule. Can be one
+  of ["UTC-11" "UTC-10" "UTC-9" "UTC-8" "UTC-7" "UTC-6" "UTC-5" "UTC-4" "UTC-3" "UTC-2" "UTC-1" "UTC+0" "UTC+1" "UTC+2" "UTC+3" "UTC+4" "UTC+5" "UTC+6" "UTC+7" "UTC+8" "UTC+9" "UTC+10" "UTC+11" "UTC+12" "UTC+13" "UTC+14"]
 
 <a id="nestedblock--scheduling--time_frames"></a>
 
@@ -814,7 +812,9 @@ Required:
 
 Optional:
 
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on.
+  Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:
+  endsWith:xxx, filter:contains:xxx
 - `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
 - `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
 - `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
@@ -823,7 +823,9 @@ Optional:
 - `search_query` (String) The search_query that we wanted to be notified on.
 - `severities` (Set of String) An array of log severities that we interested in. Can be one
   of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems
+  can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx,
+  filter:contains:xxx
 
 <a id="nestedblock--standard--condition"></a>
 
@@ -833,25 +835,30 @@ Optional:
 
 - `group_by` (List of String) The fields to 'group by' on.
 - `group_by_key` (String) The key to 'group by' on.
-- `immediately` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
-- `less_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
-- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--standard--condition--manage_undetected_values))
-- `more_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
-- `more_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
+- `immediately` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
+  more_than_usual.
+- `less_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
+  more_than_usual.
+- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable
+  triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled
+  with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--standard--condition--manage_undetected_values))
+- `more_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
+  more_than_usual.
+- `more_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
+  more_than_usual.
 - `occurrences_threshold` (Number) The number of log occurrences that is needed to trigger the alert.
 - `time_window` (String)
 
 <a id="nestedblock--standard--condition--manage_undetected_values"></a>
+
 ### Nested Schema for `standard.condition.manage_undetected_values`
 
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one
+  of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
 - `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
-
-
-
 
 <a id="nestedblock--time_relative"></a>
 
@@ -863,7 +870,9 @@ Required:
 
 Optional:
 
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on.
+  Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:
+  endsWith:xxx, filter:contains:xxx
 - `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
 - `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
 - `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
@@ -872,7 +881,9 @@ Optional:
 - `search_query` (String) The search_query that we wanted to be notified on.
 - `severities` (Set of String) An array of log severities that we interested in. Can be one
   of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems
+  can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx,
+  filter:contains:xxx
 
 <a id="nestedblock--time_relative--condition"></a>
 
@@ -889,22 +900,25 @@ Optional:
 
 - `group_by` (List of String) The fields to 'group by' on.
 - `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--time_relative--condition--manage_undetected_values))
+- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable
+  triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled
+  with retire-ratio=NEVER. (
+  see [below for nested schema](#nestedblock--time_relative--condition--manage_undetected_values))
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 
 <a id="nestedblock--time_relative--condition--manage_undetected_values"></a>
+
 ### Nested Schema for `time_relative.condition.manage_undetected_values`
 
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one
+  of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
 - `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
-
-
-
 <a id="nestedblock--timeouts"></a>
+
 ### Nested Schema for `timeouts`
 
 Optional:
@@ -924,7 +938,9 @@ Required:
 
 Optional:
 
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on.
+  Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:
+  endsWith:xxx, filter:contains:xxx
 - `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
 - `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
 - `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
@@ -935,7 +951,9 @@ Optional:
 - `search_query` (String) The search_query that we wanted to be notified on.
 - `severities` (Set of String) An array of log severities that we interested in. Can be one
   of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems
+  can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx,
+  filter:contains:xxx
 - `tag_filters` (Block List) (see [below for nested schema](#nestedblock--tracing--tag_filters))
 
 <a id="nestedblock--tracing--condition"></a>
@@ -997,7 +1015,9 @@ Required:
 
 Optional:
 
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on.
+  Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:
+  endsWith:xxx, filter:contains:xxx
 - `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
 - `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
 - `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
@@ -1006,7 +1026,9 @@ Optional:
 - `search_query` (String) The search_query that we wanted to be notified on.
 - `severities` (Set of String) An array of log severities that we interested in. Can be one
   of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filter by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems
+  can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx,
+  filter:contains:xxx
 
 <a id="nestedblock--unique_count--condition"></a>
 
