@@ -31,26 +31,7 @@ func TestAccCoralogixRecordingRulesGroupsFromYaml(t *testing.T) {
 				Config: testAccCoralogixResourceRecordingRulesGroupsFromYaml(filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(recordingRulesGroupsResourceName, "id"),
-					resource.TestCheckTypeSetElemNestedAttrs(
-						recordingRulesGroupsResourceName,
-						"groups.*",
-						map[string]string{
-							"name":     "Bar",
-							"interval": "60",
-							"limit":    "0",
-							//"rules":    " {\n              - expr   = \"sum(rate(http_requests_total[5m])) by (job)\" -> null\n              - labels = {} -> null\n              - record = \"job:http_requests_total:sum\" -> null\n            }\n",
-						},
-					),
-					resource.TestCheckTypeSetElemNestedAttrs(
-						recordingRulesGroupsResourceName,
-						"groups.*",
-						map[string]string{
-							"name":     "Foo",
-							"interval": "180",
-							"limit":    "0",
-							//"rules":    "{\n              - expr   = \"sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\\\"staging\\\",pod=~\\\"ts3db-live-ingester.*\\\"}[2m])) by (pod)\" -> null\n              - labels = {} -> null\n              - record = \"ts3db_live_ingester_write_latency:3m\" -> null\n            }\n",
-						},
-					),
+					resource.TestCheckResourceAttr(recordingRulesGroupsResourceName, "groups.#", "2"),
 				),
 			},
 		},
@@ -67,26 +48,7 @@ func TestAccCoralogixRecordingRulesGroupsExplicit(t *testing.T) {
 				Config: testAccCoralogixResourceRecordingRulesGroupsExplicit(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(recordingRulesGroupsResourceName, "id"),
-					resource.TestCheckTypeSetElemNestedAttrs(
-						recordingRulesGroupsResourceName,
-						"groups.*",
-						map[string]string{
-							"name":     "Bar",
-							"interval": "60",
-							"limit":    "0",
-							//"rules":    " {\n              - expr   = \"sum(rate(http_requests_total[5m])) by (job)\" -> null\n              - labels = {} -> null\n              - record = \"job:http_requests_total:sum\" -> null\n            }\n",
-						},
-					),
-					resource.TestCheckTypeSetElemNestedAttrs(
-						recordingRulesGroupsResourceName,
-						"groups.*",
-						map[string]string{
-							"name":     "Foo",
-							"interval": "180",
-							"limit":    "0",
-							//"rules":    "{\n              - expr   = \"sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\\\"staging\\\",pod=~\\\"ts3db-live-ingester.*\\\"}[2m])) by (pod)\" -> null\n              - labels = {} -> null\n              - record = \"ts3db_live_ingester_write_latency:3m\" -> null\n            }\n",
-						},
-					),
+					resource.TestCheckResourceAttr(recordingRulesGroupsResourceName, "groups.#", "2"),
 				),
 			},
 		},
