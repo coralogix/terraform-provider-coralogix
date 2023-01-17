@@ -4,9 +4,10 @@ import (
 	"context"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 func dataSourceCoralogixRecordingRulesGroup() *schema.Resource {

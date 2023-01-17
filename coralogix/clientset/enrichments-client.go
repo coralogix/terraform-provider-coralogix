@@ -3,8 +3,9 @@ package clientset
 import (
 	"context"
 
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
+
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type EnrichmentsClient struct {

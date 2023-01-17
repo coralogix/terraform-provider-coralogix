@@ -6,9 +6,10 @@ import (
 	"strconv"
 	"testing"
 
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
 	logs2metricv2 "terraform-provider-coralogix/coralogix/clientset/grpc/logs2metrics/v2"
+
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"

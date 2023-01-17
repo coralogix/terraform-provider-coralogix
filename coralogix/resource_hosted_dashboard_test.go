@@ -7,10 +7,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 var hostedDashboardResourceName = "coralogix_hosted_dashboard.test"

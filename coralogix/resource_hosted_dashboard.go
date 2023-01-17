@@ -9,12 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	. "github.com/ahmetalpbalkan/go-linq"
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 var (
@@ -59,8 +60,6 @@ func resourceHostedDashboardCreate(ctx context.Context, d *schema.ResourceData, 
 	default:
 		return diag.Errorf("unknown hosted-dashboard type %s", hostedDashboardTypeStr)
 	}
-
-	return nil
 }
 
 func resourceHostedDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -76,8 +75,6 @@ func resourceHostedDashboardRead(ctx context.Context, d *schema.ResourceData, me
 	default:
 		return diag.Errorf("unknown hosted-dashboard type %s", hostedDashboardTypeStr)
 	}
-
-	return nil
 }
 
 func resourceHostedDashboardUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -93,8 +90,6 @@ func resourceHostedDashboardUpdate(ctx context.Context, d *schema.ResourceData, 
 	default:
 		return diag.Errorf("unknown hosted-dashboard type %s", hostedDashboardTypeStr)
 	}
-
-	return nil
 }
 
 func resourceHostedDashboardDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -108,8 +103,6 @@ func resourceHostedDashboardDelete(ctx context.Context, d *schema.ResourceData, 
 	default:
 		return diag.Errorf("unknown hosted-dashboard type %s", hostedDashboardTypeStr)
 	}
-
-	return nil
 }
 
 func HostedDashboardSchema() map[string]*schema.Schema {
@@ -254,7 +247,10 @@ func resourceGrafanaDashboardRead(ctx context.Context, d *schema.ResourceData, m
 	configJSON = normalizeDashboardConfigJSON(remoteDashJSON)
 	hostedGrafanaNewSchema["config_json"] = configJSON
 
-	d.Set("grafana", []interface{}{hostedGrafanaNewSchema})
+	if err = d.Set("grafana", []interface{}{hostedGrafanaNewSchema}); err != nil {
+		diags = append(diags, diag.FromErr(err)...)
+	}
+
 	return diags
 }
 

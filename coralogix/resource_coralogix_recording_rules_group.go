@@ -5,11 +5,12 @@ import (
 	"log"
 	"time"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"gopkg.in/yaml.v3"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 func resourceCoralogixRecordingRulesGroup() *schema.Resource {

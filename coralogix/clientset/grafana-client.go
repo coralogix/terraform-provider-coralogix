@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"terraform-provider-coralogix/coralogix/clientset/rest"
+
+	gapi "github.com/grafana/grafana-api-golang-client"
 )
 
 type GrafanaDashboardClient struct {

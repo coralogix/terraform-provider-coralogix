@@ -8,12 +8,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 )
 
 var dataSetResourceName = "coralogix_data_set.test"

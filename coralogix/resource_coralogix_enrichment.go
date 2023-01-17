@@ -6,11 +6,12 @@ import (
 	"log"
 	"time"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 )
 
 var validEnrichmentTypes = []string{"geo_ip", "suspicious_ip", "aws", "custom"}

@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 var recordingRulesGroupsResourceName = "coralogix_recording_rules_group.test"
@@ -121,7 +122,7 @@ func testAccCoralogixResourceRecordingRulesGroupsFromYaml(filePath string) strin
 }
 
 func testAccCoralogixResourceRecordingRulesGroupsExplicit() string {
-	return fmt.Sprintf(`resource "coralogix_recording_rules_group" "test" {
+	return `resource "coralogix_recording_rules_group" "test" {
   		groups {
     name     = "Foo"
     interval = 180
@@ -139,6 +140,5 @@ func testAccCoralogixResourceRecordingRulesGroupsExplicit() string {
     },
   }
 }
-`,
-	)
+`
 }

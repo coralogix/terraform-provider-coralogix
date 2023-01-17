@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"testing"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	actionsv2 "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	actionsv2 "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
 )
 
 var actionResourceName = "coralogix_action.test"

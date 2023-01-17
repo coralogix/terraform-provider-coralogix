@@ -23,7 +23,7 @@ func TestAccCoralogixDataSourceRecordingRulesGroups_basic(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceRecordingRulesGroups(filePath) +
+				Config: testAccCoralogixResourceRecordingRulesGroupsFromYaml(filePath) +
 					testAccCoralogixDataSourceRecordingRulesGroups_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(recordingRulesGroupsDataSourceName, "groups"),

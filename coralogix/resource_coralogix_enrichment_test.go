@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"testing"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 var enrichmentResourceName = "coralogix_enrichment.test"

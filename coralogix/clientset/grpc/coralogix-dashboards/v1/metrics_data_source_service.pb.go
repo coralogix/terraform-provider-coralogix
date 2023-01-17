@@ -28,8 +28,8 @@ type SearchMetricsTimeSeriesRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeFrame   *TimeFrame           `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
-	Interval    *durationpb.Duration `protobuf:"bytes,2,opt,name=interval,proto3" json:"interval,omitempty"`
+	TimeFrame   *TimeFrame              `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
+	Interval    *durationpb.Duration    `protobuf:"bytes,2,opt,name=interval,proto3" json:"interval,omitempty"`
 	PromqlQuery *wrapperspb.StringValue `protobuf:"bytes,3,opt,name=promql_query,json=promqlQuery,proto3" json:"promql_query,omitempty"`
 	Limit       *wrapperspb.Int32Value  `protobuf:"bytes,4,opt,name=limit,proto3" json:"limit,omitempty"`
 }

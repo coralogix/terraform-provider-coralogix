@@ -4,10 +4,11 @@ import (
 	"context"
 	"log"
 
+	logs2metric "terraform-provider-coralogix/coralogix/clientset/grpc/logs2metrics/v2"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	logs2metric "terraform-provider-coralogix/coralogix/clientset/grpc/logs2metrics/v2"
 
 	"terraform-provider-coralogix/coralogix/clientset"
 )

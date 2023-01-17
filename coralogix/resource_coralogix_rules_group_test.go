@@ -6,11 +6,12 @@ import (
 	"strconv"
 	"testing"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	rulesgroups "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
-	"terraform-provider-coralogix/coralogix/clientset"
-	rulesgroups "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
 )
 
 /*

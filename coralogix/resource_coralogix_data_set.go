@@ -10,12 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 )
 
 var fileContentLimit = int(1e6)

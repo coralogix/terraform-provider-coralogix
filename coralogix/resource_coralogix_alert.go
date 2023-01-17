@@ -9,13 +9,14 @@ import (
 	"strings"
 	"time"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	alerts "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v1"
+
 	. "github.com/ahmetalpbalkan/go-linq"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	alerts "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v1"
 )
 
 var (

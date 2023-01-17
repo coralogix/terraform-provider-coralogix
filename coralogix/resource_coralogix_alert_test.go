@@ -7,12 +7,13 @@ import (
 	"strconv"
 	"testing"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v1"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v1"
 )
 
 var alertResourceName = "coralogix_alert.test"

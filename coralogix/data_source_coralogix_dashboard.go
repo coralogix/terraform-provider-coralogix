@@ -4,10 +4,11 @@ import (
 	"context"
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"terraform-provider-coralogix/coralogix/clientset"
 	dashboardv1 "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
+
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 func dataSourceCoralogixDashboard() *schema.Resource {
