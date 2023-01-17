@@ -7,14 +7,15 @@
 package __
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -308,8 +309,8 @@ type LogsEvent struct {
 	LogId        *wrapperspb.StringValue `protobuf:"bytes,1,opt,name=log_id,json=logId,proto3" json:"log_id,omitempty"`
 	Timestamp    *timestamppb.Timestamp  `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	Text         *wrapperspb.StringValue `protobuf:"bytes,4,opt,name=text,proto3" json:"text,omitempty"`
-	Json         *structpb.Struct        `protobuf:"bytes,5,opt,name=json,proto3" json:"json,omitempty"`
-	LogsMetadata *LogsMetadata           `protobuf:"bytes,6,opt,name=logs_metadata,json=logsMetadata,proto3" json:"logs_metadata,omitempty"`
+	Json         *structpb.Struct `protobuf:"bytes,5,opt,name=json,proto3" json:"json,omitempty"`
+	LogsMetadata *LogsMetadata    `protobuf:"bytes,6,opt,name=logs_metadata,json=logsMetadata,proto3" json:"logs_metadata,omitempty"`
 }
 
 func (x *LogsEvent) Reset() {
@@ -385,8 +386,8 @@ type LogsMetadata struct {
 	unknownFields protoimpl.UnknownFields
 
 	ApplicationName *wrapperspb.StringValue `protobuf:"bytes,1,opt,name=application_name,json=applicationName,proto3" json:"application_name,omitempty"`
-	SubsystemName   *wrapperspb.StringValue `protobuf:"bytes,2,opt,name=subsystem_name,json=subsystemName,proto3" json:"subsystem_name,omitempty"`
-	Severity        LogSeverityLevel        `protobuf:"varint,3,opt,name=severity,proto3,enum=com.coralogixapis.dashboards.v1.common.LogSeverityLevel" json:"severity,omitempty"`
+	SubsystemName *wrapperspb.StringValue `protobuf:"bytes,2,opt,name=subsystem_name,json=subsystemName,proto3" json:"subsystem_name,omitempty"`
+	Severity      LogSeverityLevel        `protobuf:"varint,3,opt,name=severity,proto3,enum=com.coralogixapis.dashboards.v1.common.LogSeverityLevel" json:"severity,omitempty"`
 }
 
 func (x *LogsMetadata) Reset() {
