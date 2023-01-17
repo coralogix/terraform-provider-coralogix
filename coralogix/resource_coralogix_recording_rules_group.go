@@ -2,6 +2,7 @@ package coralogix
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
@@ -167,7 +168,8 @@ func resourceCoralogixRecordingRulesGroupDelete(ctx context.Context, d *schema.R
 func setRecordingRulesGroups(d *schema.ResourceData, yamlResp string) diag.Diagnostics {
 	var groups recordingRulesGroups
 
-	if err := yaml.Unmarshal([]byte(yamlResp), &groups); err != nil {
+	if err := yaml.Unmarshal([]byte(yamlResp), &groups.Groups); err != nil {
+		panic(fmt.Sprint(groups))
 		return diag.FromErr(err)
 	}
 

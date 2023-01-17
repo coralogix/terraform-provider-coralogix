@@ -35,7 +35,7 @@ func TestAccCoralogixDataSourceRecordingRulesGroups_basic(t *testing.T) {
 
 func testAccCoralogixDataSourceRecordingRulesGroups_read() string {
 	return `data "coralogix_recording_rules_group" "test" {
-	id = coralogix_logs2metric.test.id
+		id = coralogix_recording_rules_group.test.id
 }
 `
 }
