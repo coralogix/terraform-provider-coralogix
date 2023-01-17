@@ -10,8 +10,9 @@ import (
 	"terraform-provider-coralogix/coralogix/clientset"
 )
 
+var enrichmentResourceName = "coralogix_enrichment.test"
+
 func TestAccCoralogixResourceGeoIpeEnrichment(t *testing.T) {
-	resourceName := "coralogix_enrichment.test"
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -22,12 +23,12 @@ func TestAccCoralogixResourceGeoIpeEnrichment(t *testing.T) {
 
 				Config: testAccCoralogixResourceGeoIpEnrichment(fieldName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "geo_ip.0.fields.0.name", fieldName),
+					resource.TestCheckResourceAttrSet(enrichmentResourceName, "id"),
+					resource.TestCheckResourceAttr(enrichmentResourceName, "geo_ip.0.fields.0.name", fieldName),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      enrichmentResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -36,7 +37,6 @@ func TestAccCoralogixResourceGeoIpeEnrichment(t *testing.T) {
 }
 
 func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
-	resourceName := "coralogix_enrichment.test"
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -47,12 +47,12 @@ func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 
 				Config: testAccCoralogixResourceSuspiciousIpEnrichment(fieldName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "suspicious_ip.0.fields.0.name", fieldName),
+					resource.TestCheckResourceAttrSet(enrichmentResourceName, "id"),
+					resource.TestCheckResourceAttr(enrichmentResourceName, "suspicious_ip.0.fields.0.name", fieldName),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      enrichmentResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -61,7 +61,7 @@ func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 }
 
 //func TestAccCoralogixResourceAwsEnrichment(t *testing.T) {
-//	resourceName := "coralogix_enrichment.test"
+//	alertResourceName := "coralogix_enrichment.test"
 //	fieldName := "coralogix.metadata.sdkId"
 //	resourceType := ""
 //	resource.Test(t, resource.TestCase{
@@ -72,13 +72,13 @@ func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 //			{
 //				Config: testAccCoralogixResourceAwsEnrichment(fieldName, resourceType),
 //				Check: resource.ComposeAggregateTestCheckFunc(
-//					resource.TestCheckResourceAttrSet(resourceName, "id"),
-//					resource.TestCheckResourceAttr(resourceName, "aws.0.fields.0.name", fieldName),
-//					resource.TestCheckResourceAttr(resourceName, "aws.0.fields.0.resource_type", resourceType),
+//					resource.TestCheckResourceAttrSet(alertResourceName, "id"),
+//					resource.TestCheckResourceAttr(alertResourceName, "aws.0.fields.0.name", fieldName),
+//					resource.TestCheckResourceAttr(alertResourceName, "aws.0.fields.0.resource_type", resourceType),
 //				),
 //			},
 //			{
-//				ResourceName:      resourceName,
+//				ResourceName:      alertResourceName,
 //				ImportState:       true,
 //				ImportStateVerify: true,
 //			},
@@ -87,7 +87,6 @@ func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 //}
 
 func TestAccCoralogixResourceCustomEnrichment(t *testing.T) {
-	resourceName := "coralogix_enrichment.test"
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -97,12 +96,12 @@ func TestAccCoralogixResourceCustomEnrichment(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceCustomEnrichment(fieldName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "custom.0.fields.0.name", fieldName),
+					resource.TestCheckResourceAttrSet(enrichmentResourceName, "id"),
+					resource.TestCheckResourceAttr(enrichmentResourceName, "custom.0.fields.0.name", fieldName),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      enrichmentResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+var hostedDashboardDataSourceName = "data." + hostedDashboardResourceName
+
 func TestAccCoralogixDataSourceGrafanaDashboard_basic(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -24,7 +26,7 @@ func TestAccCoralogixDataSourceGrafanaDashboard_basic(t *testing.T) {
 				Config: testAccCoralogixResourceGrafanaDashboard(filePath) +
 					testAccCoralogixDataSourceGrafanaDashboard_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("data.coralogix_hosted_dashboard.test", "uid"),
+					resource.TestCheckResourceAttrSet(hostedDashboardDataSourceName, "uid"),
 				),
 			},
 		},

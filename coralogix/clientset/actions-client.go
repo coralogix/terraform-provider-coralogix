@@ -3,14 +3,14 @@ package clientset
 import (
 	"context"
 
-	actionsv2 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/actions/v2"
+	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
 )
 
 type ActionsClient struct {
 	callPropertiesCreator *CallPropertiesCreator
 }
 
-func (a ActionsClient) CreateAction(ctx context.Context, req *actionsv2.CreateActionRequest) (*actionsv2.CreateActionResponse, error) {
+func (a ActionsClient) CreateAction(ctx context.Context, req *actions.CreateActionRequest) (*actions.CreateActionResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -18,12 +18,12 @@ func (a ActionsClient) CreateAction(ctx context.Context, req *actionsv2.CreateAc
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := actionsv2.NewActionsServiceClient(conn)
+	client := actions.NewActionsServiceClient(conn)
 
 	return client.CreateAction(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (a ActionsClient) GetAction(ctx context.Context, req *actionsv2.GetActionRequest) (*actionsv2.GetActionResponse, error) {
+func (a ActionsClient) GetAction(ctx context.Context, req *actions.GetActionRequest) (*actions.GetActionResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -31,12 +31,12 @@ func (a ActionsClient) GetAction(ctx context.Context, req *actionsv2.GetActionRe
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := actionsv2.NewActionsServiceClient(conn)
+	client := actions.NewActionsServiceClient(conn)
 
 	return client.GetAction(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (a ActionsClient) UpdateAction(ctx context.Context, req *actionsv2.ReplaceActionRequest) (*actionsv2.ReplaceActionResponse, error) {
+func (a ActionsClient) UpdateAction(ctx context.Context, req *actions.ReplaceActionRequest) (*actions.ReplaceActionResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -44,12 +44,12 @@ func (a ActionsClient) UpdateAction(ctx context.Context, req *actionsv2.ReplaceA
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := actionsv2.NewActionsServiceClient(conn)
+	client := actions.NewActionsServiceClient(conn)
 
 	return client.ReplaceAction(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (a ActionsClient) DeleteAction(ctx context.Context, req *actionsv2.DeleteActionRequest) (*actionsv2.DeleteActionResponse, error) {
+func (a ActionsClient) DeleteAction(ctx context.Context, req *actions.DeleteActionRequest) (*actions.DeleteActionResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (a ActionsClient) DeleteAction(ctx context.Context, req *actionsv2.DeleteAc
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := actionsv2.NewActionsServiceClient(conn)
+	client := actions.NewActionsServiceClient(conn)
 
 	return client.DeleteAction(callProperties.Ctx, req, callProperties.CallOptions...)
 }

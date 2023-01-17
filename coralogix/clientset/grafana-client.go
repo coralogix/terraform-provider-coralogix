@@ -21,7 +21,7 @@ func (g GrafanaDashboardClient) CreateGrafanaDashboard(ctx context.Context, dash
 		return nil, err
 	}
 
-	bodyResp, err := g.client.Post(ctx, "/grafana/api/dashboards/db", string(body))
+	bodyResp, err := g.client.Post(ctx, "/grafana/api/dashboards/db", "application/json", string(body))
 	if err != nil {
 		return nil, err
 	}

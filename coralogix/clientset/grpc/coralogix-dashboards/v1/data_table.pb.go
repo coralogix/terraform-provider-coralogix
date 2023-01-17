@@ -4,7 +4,7 @@
 // 	protoc        v3.21.8
 // source: com/coralogixapis/dashboards/v1/ast/widgets/data_table.proto
 
-package __
+package v1
 
 import (
 	reflect "reflect"

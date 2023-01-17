@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"terraform-provider-coralogix/coralogix/clientset"
-	dashboardv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/coralogix-dashboards"
+	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -69,7 +69,7 @@ func resourceCoralogixDashboardCreate(ctx context.Context, d *schema.ResourceDat
 	if diags != nil {
 		return diags
 	}
-	createDashboardRequest := &dashboardv1.CreateDashboardRequest{
+	createDashboardRequest := &dashboards.CreateDashboardRequest{
 		Dashboard: dashboard,
 	}
 
@@ -87,17 +87,17 @@ func resourceCoralogixDashboardCreate(ctx context.Context, d *schema.ResourceDat
 	return resourceCoralogixDashboardRead(ctx, d, meta)
 }
 
-func extractDashboard(d *schema.ResourceData) (*dashboardv1.Dashboard, diag.Diagnostics) {
+func extractDashboard(d *schema.ResourceData) (*dashboards.Dashboard, diag.Diagnostics) {
 	id := expandUUID(d.Id())
 	name := wrapperspb.String(d.Get("name").(string))
 	description := wrapperspb.String(d.Get("description").(string))
 
-	var layout *dashboardv1.Layout
+	var layout *dashboards.Layout
 	var diags diag.Diagnostics
 	if v, ok := d.GetOk("layout"); ok {
 		layout, diags = expandLayout(v)
 	} else if jsonContent, ok := d.GetOk("layout_json"); ok {
-		layout = new(dashboardv1.Layout)
+		layout = new(dashboards.Layout)
 		err := protojson.Unmarshal([]byte(jsonContent.(string)), layout)
 		diags = diag.FromErr(err)
 	}
@@ -105,7 +105,7 @@ func extractDashboard(d *schema.ResourceData) (*dashboardv1.Dashboard, diag.Diag
 	variables, dgs := expandVariables(d.Get("variables"))
 	diags = append(diags, dgs...)
 
-	return &dashboardv1.Dashboard{
+	return &dashboards.Dashboard{
 		Id:          id,
 		Name:        name,
 		Description: description,
@@ -114,7 +114,7 @@ func extractDashboard(d *schema.ResourceData) (*dashboardv1.Dashboard, diag.Diag
 	}, diags
 }
 
-func expandLayout(v interface{}) (*dashboardv1.Layout, diag.Diagnostics) {
+func expandLayout(v interface{}) (*dashboards.Layout, diag.Diagnostics) {
 	var m map[string]interface{}
 	if v == nil {
 		return nil, nil
@@ -126,18 +126,18 @@ func expandLayout(v interface{}) (*dashboardv1.Layout, diag.Diagnostics) {
 	}
 
 	sections, diags := expandSections(m["sections"])
-	return &dashboardv1.Layout{
+	return &dashboards.Layout{
 		Sections: sections,
 	}, diags
 
 }
 
-func expandSections(v interface{}) ([]*dashboardv1.Section, diag.Diagnostics) {
+func expandSections(v interface{}) ([]*dashboards.Section, diag.Diagnostics) {
 	if v == nil {
 		return nil, nil
 	}
 	sections := v.([]interface{})
-	result := make([]*dashboardv1.Section, 0, len(sections))
+	result := make([]*dashboards.Section, 0, len(sections))
 	var diags diag.Diagnostics
 	for _, s := range sections {
 		section, ds := expandSection(s)
@@ -149,32 +149,32 @@ func expandSections(v interface{}) ([]*dashboardv1.Section, diag.Diagnostics) {
 	return result, diags
 }
 
-func expandSection(v interface{}) (*dashboardv1.Section, diag.Diagnostics) {
+func expandSection(v interface{}) (*dashboards.Section, diag.Diagnostics) {
 	m := v.(map[string]interface{})
 	uuid := expandUUID(m["id"])
 	rows, diags := expandRows(m["rows"])
-	return &dashboardv1.Section{
+	return &dashboards.Section{
 		Id:   uuid,
 		Rows: rows,
 	}, diags
 }
 
-func expandUUID(v interface{}) *dashboardv1.UUID {
+func expandUUID(v interface{}) *dashboards.UUID {
 	var id string
 	if v == nil || v.(string) == "" {
 		id = uuid.NewString()
 	} else {
 		id = v.(string)
 	}
-	return &dashboardv1.UUID{Value: id}
+	return &dashboards.UUID{Value: id}
 }
 
-func expandRows(v interface{}) ([]*dashboardv1.Row, diag.Diagnostics) {
+func expandRows(v interface{}) ([]*dashboards.Row, diag.Diagnostics) {
 	if v == nil {
 		return nil, nil
 	}
 	rows := v.([]interface{})
-	result := make([]*dashboardv1.Row, 0, len(rows))
+	result := make([]*dashboards.Row, 0, len(rows))
 	var diags diag.Diagnostics
 	for _, r := range rows {
 		row, ds := expandRow(r)
@@ -186,19 +186,19 @@ func expandRows(v interface{}) ([]*dashboardv1.Row, diag.Diagnostics) {
 	return result, diags
 }
 
-func expandRow(v interface{}) (*dashboardv1.Row, diag.Diagnostics) {
+func expandRow(v interface{}) (*dashboards.Row, diag.Diagnostics) {
 	m := v.(map[string]interface{})
 	uuid := expandUUID(m["id"])
 	appearance := expandRowAppearance(m["appearance"])
 	widgets, diags := expandWidgets(m["widgets"])
-	return &dashboardv1.Row{
+	return &dashboards.Row{
 		Id:         uuid,
 		Appearance: appearance,
 		Widgets:    widgets,
 	}, diags
 }
 
-func expandRowAppearance(v interface{}) *dashboardv1.Row_Appearance {
+func expandRowAppearance(v interface{}) *dashboards.Row_Appearance {
 	var m map[string]interface{}
 	if v == nil {
 		return nil
@@ -210,17 +210,17 @@ func expandRowAppearance(v interface{}) *dashboardv1.Row_Appearance {
 	}
 
 	height := wrapperspb.Int32(int32(m["height"].(int)))
-	return &dashboardv1.Row_Appearance{
+	return &dashboards.Row_Appearance{
 		Height: height,
 	}
 }
 
-func expandWidgets(v interface{}) ([]*dashboardv1.Widget, diag.Diagnostics) {
+func expandWidgets(v interface{}) ([]*dashboards.Widget, diag.Diagnostics) {
 	if v == nil {
 		return nil, nil
 	}
 	widgets := v.([]interface{})
-	result := make([]*dashboardv1.Widget, 0, len(widgets))
+	result := make([]*dashboards.Widget, 0, len(widgets))
 	var diags diag.Diagnostics
 	for _, w := range widgets {
 		widget, err := expandWidget(w)
@@ -232,7 +232,7 @@ func expandWidgets(v interface{}) ([]*dashboardv1.Widget, diag.Diagnostics) {
 	return result, diags
 }
 
-func expandWidget(v interface{}) (*dashboardv1.Widget, error) {
+func expandWidget(v interface{}) (*dashboards.Widget, error) {
 	m := v.(map[string]interface{})
 	id := expandUUID(m["id"])
 	title := wrapperspb.String(m["title"].(string))
@@ -242,7 +242,7 @@ func expandWidget(v interface{}) (*dashboardv1.Widget, error) {
 		return nil, err
 	}
 	appearance := expandWidgetAppearance(m["appearance"])
-	return &dashboardv1.Widget{
+	return &dashboards.Widget{
 		Id:          id,
 		Title:       title,
 		Description: description,
@@ -251,7 +251,7 @@ func expandWidget(v interface{}) (*dashboardv1.Widget, error) {
 	}, nil
 }
 
-func expandWidgetDefinition(v interface{}) (*dashboardv1.Widget_Definition, error) {
+func expandWidgetDefinition(v interface{}) (*dashboards.Widget_Definition, error) {
 	var m map[string]interface{}
 	if v == nil {
 		return nil, nil
@@ -267,12 +267,12 @@ func expandWidgetDefinition(v interface{}) (*dashboardv1.Widget_Definition, erro
 		if err != nil {
 			return nil, err
 		}
-		return &dashboardv1.Widget_Definition{
+		return &dashboards.Widget_Definition{
 			Value: lineChart,
 		}, nil
 	} else if l, ok = m["data_table"]; ok && len(l.([]interface{})) != 0 {
 		dataTable := expandDataTable(l.([]interface{})[0])
-		return &dashboardv1.Widget_Definition{
+		return &dashboards.Widget_Definition{
 			Value: dataTable,
 		}, nil
 	}
@@ -280,7 +280,7 @@ func expandWidgetDefinition(v interface{}) (*dashboardv1.Widget_Definition, erro
 	return nil, nil
 }
 
-func expandLineChart(v interface{}) (*dashboardv1.Widget_Definition_LineChart, error) {
+func expandLineChart(v interface{}) (*dashboards.Widget_Definition_LineChart, error) {
 	m := v.(map[string]interface{})
 	query, err := expandLineChartQuery(m["query"])
 	if err != nil {
@@ -288,8 +288,8 @@ func expandLineChart(v interface{}) (*dashboardv1.Widget_Definition_LineChart, e
 	}
 	legend := expandLegend(m["legend"])
 	seriesNameTemplate := wrapperspb.String(m["series_name_template"].(string))
-	return &dashboardv1.Widget_Definition_LineChart{
-		LineChart: &dashboardv1.LineChart{
+	return &dashboards.Widget_Definition_LineChart{
+		LineChart: &dashboards.LineChart{
 			Query:              query,
 			Legend:             legend,
 			SeriesNameTemplate: seriesNameTemplate,
@@ -297,7 +297,7 @@ func expandLineChart(v interface{}) (*dashboardv1.Widget_Definition_LineChart, e
 	}, nil
 }
 
-func expandLineChartQuery(v interface{}) (*dashboardv1.LineChart_Query, error) {
+func expandLineChartQuery(v interface{}) (*dashboards.LineChart_Query, error) {
 	var m map[string]interface{}
 	if v == nil {
 		return nil, fmt.Errorf("line chart query cannot be empty")
@@ -310,12 +310,12 @@ func expandLineChartQuery(v interface{}) (*dashboardv1.LineChart_Query, error) {
 
 	if l, ok := m["logs"]; ok && len(l.([]interface{})) != 0 {
 		lineChartQueryLogs := expandLineChartQueryLogs(l.([]interface{})[0])
-		return &dashboardv1.LineChart_Query{
+		return &dashboards.LineChart_Query{
 			Value: lineChartQueryLogs,
 		}, nil
 	} else if l, ok = m["metrics"]; ok && len(l.([]interface{})) != 0 {
 		lineChartQueryMetrics := expandLineChartQueryMetric(l.([]interface{})[0])
-		return &dashboardv1.LineChart_Query{
+		return &dashboards.LineChart_Query{
 			Value: lineChartQueryMetrics,
 		}, nil
 	}
@@ -323,16 +323,16 @@ func expandLineChartQuery(v interface{}) (*dashboardv1.LineChart_Query, error) {
 	return nil, fmt.Errorf("line chart query cannot be empty")
 }
 
-func expandLineChartQueryLogs(v interface{}) *dashboardv1.LineChart_Query_Logs {
+func expandLineChartQueryLogs(v interface{}) *dashboards.LineChart_Query_Logs {
 	if v == nil {
-		return &dashboardv1.LineChart_Query_Logs{}
+		return &dashboards.LineChart_Query_Logs{}
 	}
 	m := v.(map[string]interface{})
-	luceneQuery := &dashboardv1.LuceneQuery{Value: wrapperspb.String(m["lucene_query"].(string))}
+	luceneQuery := &dashboards.LuceneQuery{Value: wrapperspb.String(m["lucene_query"].(string))}
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
 	aggregations := expandAggregations(m["aggregations"])
-	return &dashboardv1.LineChart_Query_Logs{
-		Logs: &dashboardv1.LineChart_LogsQuery{
+	return &dashboards.LineChart_Query_Logs{
+		Logs: &dashboards.LineChart_LogsQuery{
 			LuceneQuery:  luceneQuery,
 			GroupBy:      groupBy,
 			Aggregations: aggregations,
@@ -340,12 +340,12 @@ func expandLineChartQueryLogs(v interface{}) *dashboardv1.LineChart_Query_Logs {
 	}
 }
 
-func expandAggregations(v interface{}) []*dashboardv1.LogsAggregation {
+func expandAggregations(v interface{}) []*dashboards.LogsAggregation {
 	if v == nil {
 		return nil
 	}
 	aggregations := v.([]interface{})
-	result := make([]*dashboardv1.LogsAggregation, 0, len(aggregations))
+	result := make([]*dashboards.LogsAggregation, 0, len(aggregations))
 	for _, a := range aggregations {
 		aggregation := expandAggregation(a)
 		result = append(result, aggregation)
@@ -353,24 +353,24 @@ func expandAggregations(v interface{}) []*dashboardv1.LogsAggregation {
 	return result
 }
 
-func expandAggregation(v interface{}) *dashboardv1.LogsAggregation {
+func expandAggregation(v interface{}) *dashboards.LogsAggregation {
 	if v == nil {
 		return nil
 	}
 	m := v.(map[string]interface{})
 
 	if l, ok := m["count"]; ok && len(l.([]interface{})) != 0 {
-		return &dashboardv1.LogsAggregation{
-			Value: &dashboardv1.LogsAggregation_Count_{
-				Count: &dashboardv1.LogsAggregation_Count{},
+		return &dashboards.LogsAggregation{
+			Value: &dashboards.LogsAggregation_Count_{
+				Count: &dashboards.LogsAggregation_Count{},
 			},
 		}
 	} else if l, ok = m["count_distinct"]; ok && len(l.([]interface{})) != 0 {
 		m = l.([]interface{})[0].(map[string]interface{})
 		field := wrapperspb.String(m["field"].(string))
-		return &dashboardv1.LogsAggregation{
-			Value: &dashboardv1.LogsAggregation_CountDistinct_{
-				CountDistinct: &dashboardv1.LogsAggregation_CountDistinct{
+		return &dashboards.LogsAggregation{
+			Value: &dashboards.LogsAggregation_CountDistinct_{
+				CountDistinct: &dashboards.LogsAggregation_CountDistinct{
 					Field: field,
 				},
 			},
@@ -378,9 +378,9 @@ func expandAggregation(v interface{}) *dashboardv1.LogsAggregation {
 	} else if l, ok = m["sum"]; ok && len(l.([]interface{})) != 0 {
 		m = l.([]interface{})[0].(map[string]interface{})
 		field := wrapperspb.String(m["field"].(string))
-		return &dashboardv1.LogsAggregation{
-			Value: &dashboardv1.LogsAggregation_Sum_{
-				Sum: &dashboardv1.LogsAggregation_Sum{
+		return &dashboards.LogsAggregation{
+			Value: &dashboards.LogsAggregation_Sum_{
+				Sum: &dashboards.LogsAggregation_Sum{
 					Field: field,
 				},
 			},
@@ -388,9 +388,9 @@ func expandAggregation(v interface{}) *dashboardv1.LogsAggregation {
 	} else if l, ok = m["average"]; ok && len(l.([]interface{})) != 0 {
 		m = l.([]interface{})[0].(map[string]interface{})
 		field := wrapperspb.String(m["field"].(string))
-		return &dashboardv1.LogsAggregation{
-			Value: &dashboardv1.LogsAggregation_Average_{
-				Average: &dashboardv1.LogsAggregation_Average{
+		return &dashboards.LogsAggregation{
+			Value: &dashboards.LogsAggregation_Average_{
+				Average: &dashboards.LogsAggregation_Average{
 					Field: field,
 				},
 			},
@@ -398,9 +398,9 @@ func expandAggregation(v interface{}) *dashboardv1.LogsAggregation {
 	} else if l, ok = m["min"]; ok && len(l.([]interface{})) != 0 {
 		m = l.([]interface{})[0].(map[string]interface{})
 		field := wrapperspb.String(m["field"].(string))
-		return &dashboardv1.LogsAggregation{
-			Value: &dashboardv1.LogsAggregation_Min_{
-				Min: &dashboardv1.LogsAggregation_Min{
+		return &dashboards.LogsAggregation{
+			Value: &dashboards.LogsAggregation_Min_{
+				Min: &dashboards.LogsAggregation_Min{
 					Field: field,
 				},
 			},
@@ -408,9 +408,9 @@ func expandAggregation(v interface{}) *dashboardv1.LogsAggregation {
 	} else if l, ok = m["max"]; ok && len(l.([]interface{})) != 0 {
 		m = l.([]interface{})[0].(map[string]interface{})
 		field := wrapperspb.String(m["field"].(string))
-		return &dashboardv1.LogsAggregation{
-			Value: &dashboardv1.LogsAggregation_Max_{
-				Max: &dashboardv1.LogsAggregation_Max{
+		return &dashboards.LogsAggregation{
+			Value: &dashboards.LogsAggregation_Max_{
+				Max: &dashboards.LogsAggregation_Max{
 					Field: field,
 				},
 			},
@@ -420,22 +420,22 @@ func expandAggregation(v interface{}) *dashboardv1.LogsAggregation {
 	return nil
 }
 
-func expandLineChartQueryMetric(v interface{}) *dashboardv1.LineChart_Query_Metrics {
+func expandLineChartQueryMetric(v interface{}) *dashboards.LineChart_Query_Metrics {
 	if v == nil {
-		return &dashboardv1.LineChart_Query_Metrics{}
+		return &dashboards.LineChart_Query_Metrics{}
 	}
 	m := v.(map[string]interface{})
 	promqlQuery := wrapperspb.String(m["promql_query"].(string))
-	return &dashboardv1.LineChart_Query_Metrics{
-		Metrics: &dashboardv1.LineChart_MetricsQuery{
-			PromqlQuery: &dashboardv1.PromQlQuery{
+	return &dashboards.LineChart_Query_Metrics{
+		Metrics: &dashboards.LineChart_MetricsQuery{
+			PromqlQuery: &dashboards.PromQlQuery{
 				Value: promqlQuery,
 			},
 		},
 	}
 }
 
-func expandLegend(v interface{}) *dashboardv1.Legend {
+func expandLegend(v interface{}) *dashboards.Legend {
 	var m map[string]interface{}
 	if v == nil {
 		return nil
@@ -449,18 +449,18 @@ func expandLegend(v interface{}) *dashboardv1.Legend {
 	isVisible := wrapperspb.Bool(m["is_visible"].(bool))
 	columns := expandLegendColumns(m["columns"])
 
-	return &dashboardv1.Legend{
+	return &dashboards.Legend{
 		IsVisible: isVisible,
 		Columns:   columns,
 	}
 }
 
-func expandLegendColumns(v interface{}) []dashboardv1.Legend_LegendColumn {
+func expandLegendColumns(v interface{}) []dashboards.Legend_LegendColumn {
 	if v == nil {
 		return nil
 	}
 	legendColumns := v.([]interface{})
-	result := make([]dashboardv1.Legend_LegendColumn, 0, len(legendColumns))
+	result := make([]dashboards.Legend_LegendColumn, 0, len(legendColumns))
 	for _, lc := range legendColumns {
 		legend := expandLegendColumn(lc.(string))
 		result = append(result, legend)
@@ -468,21 +468,21 @@ func expandLegendColumns(v interface{}) []dashboardv1.Legend_LegendColumn {
 	return result
 }
 
-func expandLegendColumn(legendColumn string) dashboardv1.Legend_LegendColumn {
+func expandLegendColumn(legendColumn string) dashboards.Legend_LegendColumn {
 	legendColumnStr := dashboardSchemaLegendColumnToProtoLegendColumn[legendColumn]
-	legendColumnValue := dashboardv1.Legend_LegendColumn_value[legendColumnStr]
-	return dashboardv1.Legend_LegendColumn(legendColumnValue)
+	legendColumnValue := dashboards.Legend_LegendColumn_value[legendColumnStr]
+	return dashboards.Legend_LegendColumn(legendColumnValue)
 }
 
-func expandDataTable(v interface{}) *dashboardv1.Widget_Definition_DataTable {
+func expandDataTable(v interface{}) *dashboards.Widget_Definition_DataTable {
 	m := v.(map[string]interface{})
 	query := expandDataTableQuery(m["query"])
 	resultsPerPage := wrapperspb.Int32(int32(m["results_per_page"].(int)))
 	rowStyle := expandRowStyle(m["row_style"].(string))
 	columns := expandDataTableColumns(m["columns"])
 
-	return &dashboardv1.Widget_Definition_DataTable{
-		DataTable: &dashboardv1.DataTable{
+	return &dashboards.Widget_Definition_DataTable{
+		DataTable: &dashboards.DataTable{
 			Query:          query,
 			ResultsPerPage: resultsPerPage,
 			RowStyle:       rowStyle,
@@ -491,12 +491,12 @@ func expandDataTable(v interface{}) *dashboardv1.Widget_Definition_DataTable {
 	}
 }
 
-func expandDataTableColumns(v interface{}) []*dashboardv1.DataTable_Column {
+func expandDataTableColumns(v interface{}) []*dashboards.DataTable_Column {
 	if v == nil {
 		return nil
 	}
 	dataTableColumns := v.([]interface{})
-	result := make([]*dashboardv1.DataTable_Column, 0, len(dataTableColumns))
+	result := make([]*dashboards.DataTable_Column, 0, len(dataTableColumns))
 	for _, dtc := range dataTableColumns {
 		dataTableColumn := expandDataTableColumn(dtc)
 		result = append(result, dataTableColumn)
@@ -504,26 +504,26 @@ func expandDataTableColumns(v interface{}) []*dashboardv1.DataTable_Column {
 	return result
 }
 
-func expandDataTableColumn(v interface{}) *dashboardv1.DataTable_Column {
+func expandDataTableColumn(v interface{}) *dashboards.DataTable_Column {
 	if v == nil {
 		return nil
 	}
 	m := v.(map[string]interface{})
 
 	field := wrapperspb.String(m["field"].(string))
-	return &dashboardv1.DataTable_Column{
+	return &dashboards.DataTable_Column{
 		Field: field,
 	}
 
 }
 
-func expandRowStyle(s string) dashboardv1.RowStyle {
+func expandRowStyle(s string) dashboards.RowStyle {
 	rowStyleStr := dashboardSchemaRowStyleToProtoRowStyle[s]
-	rowStyleValue := dashboardv1.RowStyle_value[rowStyleStr]
-	return dashboardv1.RowStyle(rowStyleValue)
+	rowStyleValue := dashboards.RowStyle_value[rowStyleStr]
+	return dashboards.RowStyle(rowStyleValue)
 }
 
-func expandDataTableQuery(v interface{}) *dashboardv1.DataTable_Query {
+func expandDataTableQuery(v interface{}) *dashboards.DataTable_Query {
 	var m map[string]interface{}
 	if v == nil {
 		return nil
@@ -537,9 +537,9 @@ func expandDataTableQuery(v interface{}) *dashboardv1.DataTable_Query {
 
 	luceneQuery := expandLuceneQuery(logsMap["lucene_query"])
 	filters := expandSearchFilters(logsMap["filters"])
-	return &dashboardv1.DataTable_Query{
-		Value: &dashboardv1.DataTable_Query_Logs{
-			Logs: &dashboardv1.DataTable_LogsQuery{
+	return &dashboards.DataTable_Query{
+		Value: &dashboards.DataTable_Query_Logs{
+			Logs: &dashboards.DataTable_LogsQuery{
 				LuceneQuery: luceneQuery,
 				Filters:     filters,
 			},
@@ -547,19 +547,19 @@ func expandDataTableQuery(v interface{}) *dashboardv1.DataTable_Query {
 	}
 }
 
-func expandLuceneQuery(v interface{}) *dashboardv1.LuceneQuery {
+func expandLuceneQuery(v interface{}) *dashboards.LuceneQuery {
 	query := v.(string)
-	return &dashboardv1.LuceneQuery{
+	return &dashboards.LuceneQuery{
 		Value: wrapperspb.String(query),
 	}
 }
 
-func expandSearchFilters(v interface{}) []*dashboardv1.SearchFilter {
+func expandSearchFilters(v interface{}) []*dashboards.SearchFilter {
 	if v == nil {
 		return nil
 	}
 	filters := v.([]interface{})
-	result := make([]*dashboardv1.SearchFilter, 0, len(filters))
+	result := make([]*dashboards.SearchFilter, 0, len(filters))
 	for _, f := range filters {
 		filter := expandSearchFilter(f)
 		result = append(result, filter)
@@ -567,20 +567,20 @@ func expandSearchFilters(v interface{}) []*dashboardv1.SearchFilter {
 	return result
 }
 
-func expandSearchFilter(v interface{}) *dashboardv1.SearchFilter {
+func expandSearchFilter(v interface{}) *dashboards.SearchFilter {
 	if v == nil {
 		return nil
 	}
 	m := v.(map[string]interface{})
 	name := wrapperspb.String(m["name"].(string))
 	values := interfaceSliceToWrappedStringSlice(m["values"].([]interface{}))
-	return &dashboardv1.SearchFilter{
+	return &dashboards.SearchFilter{
 		Name:   name,
 		Values: values,
 	}
 }
 
-func expandWidgetAppearance(v interface{}) *dashboardv1.Widget_Appearance {
+func expandWidgetAppearance(v interface{}) *dashboards.Widget_Appearance {
 	var m map[string]interface{}
 	if v == nil {
 		return nil
@@ -592,17 +592,17 @@ func expandWidgetAppearance(v interface{}) *dashboardv1.Widget_Appearance {
 	}
 
 	width := wrapperspb.Int32(int32(m["width"].(int)))
-	return &dashboardv1.Widget_Appearance{
+	return &dashboards.Widget_Appearance{
 		Width: width,
 	}
 }
 
-func expandVariables(i interface{}) ([]*dashboardv1.Variable, diag.Diagnostics) {
+func expandVariables(i interface{}) ([]*dashboards.Variable, diag.Diagnostics) {
 	if i == nil {
 		return nil, nil
 	}
 	variables := i.([]interface{})
-	result := make([]*dashboardv1.Variable, 0, len(variables))
+	result := make([]*dashboards.Variable, 0, len(variables))
 	var diags diag.Diagnostics
 	for _, v := range variables {
 		variable, dgs := expandVariable(v)
@@ -612,20 +612,20 @@ func expandVariables(i interface{}) ([]*dashboardv1.Variable, diag.Diagnostics) 
 	return result, diags
 }
 
-func expandVariable(v interface{}) (*dashboardv1.Variable, diag.Diagnostics) {
+func expandVariable(v interface{}) (*dashboards.Variable, diag.Diagnostics) {
 	if v == nil {
 		return nil, nil
 	}
 	m := v.(map[string]interface{})
 	name := wrapperspb.String(m["name"].(string))
 	definition, diags := expandVariableDefinition(m["definition"])
-	return &dashboardv1.Variable{
+	return &dashboards.Variable{
 		Name:       name,
 		Definition: definition,
 	}, diags
 }
 
-func expandVariableDefinition(v interface{}) (*dashboardv1.Variable_Definition, diag.Diagnostics) {
+func expandVariableDefinition(v interface{}) (*dashboards.Variable_Definition, diag.Diagnostics) {
 	var m map[string]interface{}
 	if v == nil {
 		return nil, nil
@@ -639,9 +639,9 @@ func expandVariableDefinition(v interface{}) (*dashboardv1.Variable_Definition, 
 	if l, ok := m["constant"]; ok && len(l.([]interface{})) != 0 {
 		constant := l.([]interface{})[0].(map[string]interface{})
 		value := wrapperspb.String(constant["value"].(string))
-		return &dashboardv1.Variable_Definition{
-			Value: &dashboardv1.Variable_Definition_Constant{
-				Constant: &dashboardv1.Constant{
+		return &dashboards.Variable_Definition{
+			Value: &dashboards.Variable_Definition_Constant{
+				Constant: &dashboards.Constant{
 					Value: value,
 				},
 			},
@@ -650,9 +650,9 @@ func expandVariableDefinition(v interface{}) (*dashboardv1.Variable_Definition, 
 		multiSelect := l.([]interface{})[0].(map[string]interface{})
 		selected := interfaceSliceToWrappedStringSlice(multiSelect["selected"].([]interface{}))
 		source, diags := expandSource(multiSelect["source"])
-		return &dashboardv1.Variable_Definition{
-			Value: &dashboardv1.Variable_Definition_MultiSelect{
-				MultiSelect: &dashboardv1.MultiSelect{
+		return &dashboards.Variable_Definition{
+			Value: &dashboards.Variable_Definition_MultiSelect{
+				MultiSelect: &dashboards.MultiSelect{
 					Selected: selected,
 					Source:   source,
 				},
@@ -663,7 +663,7 @@ func expandVariableDefinition(v interface{}) (*dashboardv1.Variable_Definition, 
 	return nil, diag.Errorf("variable definition must contain exactly one of \"constant\" or \"multi_select\"")
 }
 
-func expandSource(v interface{}) (*dashboardv1.MultiSelect_Source, diag.Diagnostics) {
+func expandSource(v interface{}) (*dashboards.MultiSelect_Source, diag.Diagnostics) {
 	var m map[string]interface{}
 	if v == nil {
 		return nil, nil
@@ -677,9 +677,9 @@ func expandSource(v interface{}) (*dashboardv1.MultiSelect_Source, diag.Diagnost
 	if l, ok := m["logs_path"]; ok && len(l.([]interface{})) != 0 {
 		logPath := l.([]interface{})[0].(map[string]interface{})
 		value := wrapperspb.String(logPath["value"].(string))
-		return &dashboardv1.MultiSelect_Source{
-			Value: &dashboardv1.MultiSelect_Source_LogsPath{
-				LogsPath: &dashboardv1.MultiSelect_LogsPathSource{
+		return &dashboards.MultiSelect_Source{
+			Value: &dashboards.MultiSelect_Source_LogsPath{
+				LogsPath: &dashboards.MultiSelect_LogsPathSource{
 					Value: value,
 				},
 			},
@@ -688,9 +688,9 @@ func expandSource(v interface{}) (*dashboardv1.MultiSelect_Source, diag.Diagnost
 		metricLabel := l.([]interface{})[0].(map[string]interface{})
 		metricName := wrapperspb.String(metricLabel["metric_name"].(string))
 		label := wrapperspb.String(metricLabel["label"].(string))
-		return &dashboardv1.MultiSelect_Source{
-			Value: &dashboardv1.MultiSelect_Source_MetricLabel{
-				MetricLabel: &dashboardv1.MultiSelect_MetricLabelSource{
+		return &dashboards.MultiSelect_Source{
+			Value: &dashboards.MultiSelect_Source_MetricLabel{
+				MetricLabel: &dashboards.MultiSelect_MetricLabelSource{
 					MetricName: metricName,
 					Label:      label,
 				},
@@ -699,9 +699,9 @@ func expandSource(v interface{}) (*dashboardv1.MultiSelect_Source, diag.Diagnost
 	} else if l, ok = m["constant_list"]; ok && len(l.([]interface{})) != 0 {
 		constantList := l.([]interface{})[0].(map[string]interface{})
 		values := interfaceSliceToWrappedStringSlice(constantList["values"].([]interface{}))
-		return &dashboardv1.MultiSelect_Source{
-			Value: &dashboardv1.MultiSelect_Source_ConstantList{
-				ConstantList: &dashboardv1.MultiSelect_ConstantListSource{
+		return &dashboards.MultiSelect_Source{
+			Value: &dashboards.MultiSelect_Source_ConstantList{
+				ConstantList: &dashboards.MultiSelect_ConstantListSource{
 					Values: values,
 				},
 			},
@@ -715,7 +715,7 @@ func resourceCoralogixDashboardRead(ctx context.Context, d *schema.ResourceData,
 	id := d.Id()
 	dashboardId := expandUUID(id)
 	log.Printf("[INFO] Reading dashboard %s", id)
-	resp, err := meta.(*clientset.ClientSet).Dashboards().GetDashboard(ctx, &dashboardv1.GetDashboardRequest{DashboardId: dashboardId})
+	resp, err := meta.(*clientset.ClientSet).Dashboards().GetDashboard(ctx, &dashboards.GetDashboardRequest{DashboardId: dashboardId})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcErrorWithID(err, "dashboard", id)
@@ -727,7 +727,7 @@ func resourceCoralogixDashboardRead(ctx context.Context, d *schema.ResourceData,
 	return setDashboard(d, dashboard)
 }
 
-func setDashboard(d *schema.ResourceData, dashboard *dashboardv1.Dashboard) diag.Diagnostics {
+func setDashboard(d *schema.ResourceData, dashboard *dashboards.Dashboard) diag.Diagnostics {
 	if err := d.Set("name", dashboard.GetName().GetValue()); err != nil {
 		return diag.FromErr(err)
 	}
@@ -750,7 +750,7 @@ func setDashboard(d *schema.ResourceData, dashboard *dashboardv1.Dashboard) diag
 	return nil
 }
 
-func flattenLayout(layout *dashboardv1.Layout) interface{} {
+func flattenLayout(layout *dashboards.Layout) interface{} {
 	sections := flattenSections(layout.GetSections())
 	return []interface{}{
 		map[string]interface{}{
@@ -759,7 +759,7 @@ func flattenLayout(layout *dashboardv1.Layout) interface{} {
 	}
 }
 
-func flattenSections(sections []*dashboardv1.Section) interface{} {
+func flattenSections(sections []*dashboards.Section) interface{} {
 	result := make([]interface{}, 0, len(sections))
 	for _, s := range sections {
 		section := flattenSection(s)
@@ -768,7 +768,7 @@ func flattenSections(sections []*dashboardv1.Section) interface{} {
 	return result
 }
 
-func flattenSection(section *dashboardv1.Section) interface{} {
+func flattenSection(section *dashboards.Section) interface{} {
 	id := section.GetId().GetValue()
 	rows := flattenRows(section.GetRows())
 	return map[string]interface{}{
@@ -777,7 +777,7 @@ func flattenSection(section *dashboardv1.Section) interface{} {
 	}
 }
 
-func flattenRows(rows []*dashboardv1.Row) interface{} {
+func flattenRows(rows []*dashboards.Row) interface{} {
 	result := make([]interface{}, 0, len(rows))
 	for _, r := range rows {
 		row := flattenRow(r)
@@ -786,7 +786,7 @@ func flattenRows(rows []*dashboardv1.Row) interface{} {
 	return result
 }
 
-func flattenRow(row *dashboardv1.Row) interface{} {
+func flattenRow(row *dashboards.Row) interface{} {
 	id := row.GetId().GetValue()
 	appearance := flattenRowAppearance(row.GetAppearance())
 	widgets := flattenWidgets(row.GetWidgets())
@@ -797,7 +797,7 @@ func flattenRow(row *dashboardv1.Row) interface{} {
 	}
 }
 
-func flattenRowAppearance(appearance *dashboardv1.Row_Appearance) interface{} {
+func flattenRowAppearance(appearance *dashboards.Row_Appearance) interface{} {
 	return []interface{}{
 		map[string]interface{}{
 			"height": appearance.GetHeight().GetValue(),
@@ -805,7 +805,7 @@ func flattenRowAppearance(appearance *dashboardv1.Row_Appearance) interface{} {
 	}
 }
 
-func flattenWidgets(widgets []*dashboardv1.Widget) interface{} {
+func flattenWidgets(widgets []*dashboards.Widget) interface{} {
 	result := make([]interface{}, 0, len(widgets))
 	for _, w := range widgets {
 		widget := flattenWidget(w)
@@ -814,7 +814,7 @@ func flattenWidgets(widgets []*dashboardv1.Widget) interface{} {
 	return result
 }
 
-func flattenWidget(widget *dashboardv1.Widget) interface{} {
+func flattenWidget(widget *dashboards.Widget) interface{} {
 	id := widget.GetId().GetValue()
 	title := widget.GetTitle().GetValue()
 	description := widget.GetDescription().GetValue()
@@ -829,15 +829,15 @@ func flattenWidget(widget *dashboardv1.Widget) interface{} {
 	}
 }
 
-func flattenWidgetDefinition(definition *dashboardv1.Widget_Definition) interface{} {
+func flattenWidgetDefinition(definition *dashboards.Widget_Definition) interface{} {
 	var widgetDefinition map[string]interface{}
 	switch definitionValue := definition.GetValue().(type) {
-	case *dashboardv1.Widget_Definition_LineChart:
+	case *dashboards.Widget_Definition_LineChart:
 		lineChart := flattenLineChart(definitionValue.LineChart)
 		widgetDefinition = map[string]interface{}{
 			"line_chart": lineChart,
 		}
-	case *dashboardv1.Widget_Definition_DataTable:
+	case *dashboards.Widget_Definition_DataTable:
 		dataTable := flattenDataTable(definitionValue.DataTable)
 		widgetDefinition = map[string]interface{}{
 			"data_table": dataTable,
@@ -849,7 +849,7 @@ func flattenWidgetDefinition(definition *dashboardv1.Widget_Definition) interfac
 	}
 }
 
-func flattenLineChart(lineChart *dashboardv1.LineChart) interface{} {
+func flattenLineChart(lineChart *dashboards.LineChart) interface{} {
 	query := flattenLineChartQuery(lineChart.GetQuery())
 	legend := flattenLegend(lineChart.GetLegend())
 	seriesNameTemplate := lineChart.GetSeriesNameTemplate().GetValue()
@@ -862,14 +862,14 @@ func flattenLineChart(lineChart *dashboardv1.LineChart) interface{} {
 	}
 }
 
-func flattenLineChartQuery(query *dashboardv1.LineChart_Query) interface{} {
+func flattenLineChartQuery(query *dashboards.LineChart_Query) interface{} {
 	var queryMap interface{}
 	switch queryValue := query.GetValue().(type) {
-	case *dashboardv1.LineChart_Query_Logs:
+	case *dashboards.LineChart_Query_Logs:
 		queryMap = map[string]interface{}{
 			"logs": flattenLineChartLogsQuery(queryValue.Logs),
 		}
-	case *dashboardv1.LineChart_Query_Metrics:
+	case *dashboards.LineChart_Query_Metrics:
 		queryMap = map[string]interface{}{
 			"metrics": flattenLineChartMetricsQuery(queryValue.Metrics),
 		}
@@ -880,7 +880,7 @@ func flattenLineChartQuery(query *dashboardv1.LineChart_Query) interface{} {
 	}
 }
 
-func flattenLineChartLogsQuery(logs *dashboardv1.LineChart_LogsQuery) interface{} {
+func flattenLineChartLogsQuery(logs *dashboards.LineChart_LogsQuery) interface{} {
 	luceneQuery := logs.GetLuceneQuery().GetValue().GetValue()
 	groupBy := wrappedStringSliceToStringSlice(logs.GetGroupBy())
 	aggregations := flattenAggregations(logs.GetAggregations())
@@ -893,7 +893,7 @@ func flattenLineChartLogsQuery(logs *dashboardv1.LineChart_LogsQuery) interface{
 	}
 }
 
-func flattenAggregations(aggregations []*dashboardv1.LogsAggregation) interface{} {
+func flattenAggregations(aggregations []*dashboards.LogsAggregation) interface{} {
 	result := make([]interface{}, 0, len(aggregations))
 	for _, a := range aggregations {
 		aggregation := flattenAggregation(a)
@@ -902,15 +902,15 @@ func flattenAggregations(aggregations []*dashboardv1.LogsAggregation) interface{
 	return result
 }
 
-func flattenAggregation(aggregation *dashboardv1.LogsAggregation) interface{} {
+func flattenAggregation(aggregation *dashboards.LogsAggregation) interface{} {
 	switch aggregationValue := aggregation.GetValue().(type) {
-	case *dashboardv1.LogsAggregation_Count_:
+	case *dashboards.LogsAggregation_Count_:
 		return map[string]interface{}{
 			"count": []interface{}{
 				map[string]interface{}{},
 			},
 		}
-	case *dashboardv1.LogsAggregation_CountDistinct_:
+	case *dashboards.LogsAggregation_CountDistinct_:
 		return map[string]interface{}{
 			"count_distinct": []interface{}{
 				map[string]interface{}{
@@ -918,7 +918,7 @@ func flattenAggregation(aggregation *dashboardv1.LogsAggregation) interface{} {
 				},
 			},
 		}
-	case *dashboardv1.LogsAggregation_Sum_:
+	case *dashboards.LogsAggregation_Sum_:
 		return map[string]interface{}{
 			"sum": []interface{}{
 				map[string]interface{}{
@@ -926,7 +926,7 @@ func flattenAggregation(aggregation *dashboardv1.LogsAggregation) interface{} {
 				},
 			},
 		}
-	case *dashboardv1.LogsAggregation_Average_:
+	case *dashboards.LogsAggregation_Average_:
 		return map[string]interface{}{
 			"average": []interface{}{
 				map[string]interface{}{
@@ -934,7 +934,7 @@ func flattenAggregation(aggregation *dashboardv1.LogsAggregation) interface{} {
 				},
 			},
 		}
-	case *dashboardv1.LogsAggregation_Min_:
+	case *dashboards.LogsAggregation_Min_:
 		return map[string]interface{}{
 			"min": []interface{}{
 				map[string]interface{}{
@@ -942,7 +942,7 @@ func flattenAggregation(aggregation *dashboardv1.LogsAggregation) interface{} {
 				},
 			},
 		}
-	case *dashboardv1.LogsAggregation_Max_:
+	case *dashboards.LogsAggregation_Max_:
 		return map[string]interface{}{
 			"max": []interface{}{
 				map[string]interface{}{
@@ -955,7 +955,7 @@ func flattenAggregation(aggregation *dashboardv1.LogsAggregation) interface{} {
 	return nil
 }
 
-func flattenLineChartMetricsQuery(metrics *dashboardv1.LineChart_MetricsQuery) interface{} {
+func flattenLineChartMetricsQuery(metrics *dashboards.LineChart_MetricsQuery) interface{} {
 	promqlQuery := metrics.GetPromqlQuery().GetValue().GetValue()
 	return []interface{}{
 		map[string]interface{}{
@@ -964,7 +964,7 @@ func flattenLineChartMetricsQuery(metrics *dashboardv1.LineChart_MetricsQuery) i
 	}
 }
 
-func flattenLegend(legend *dashboardv1.Legend) interface{} {
+func flattenLegend(legend *dashboards.Legend) interface{} {
 	isVisible := legend.IsVisible.GetValue()
 	columns := flattenLegendColumns(legend.GetColumns())
 	return []interface{}{
@@ -975,7 +975,7 @@ func flattenLegend(legend *dashboardv1.Legend) interface{} {
 	}
 }
 
-func flattenLegendColumns(columns []dashboardv1.Legend_LegendColumn) interface{} {
+func flattenLegendColumns(columns []dashboards.Legend_LegendColumn) interface{} {
 	result := make([]string, 0, len(columns))
 	for _, c := range columns {
 		column := flattenLegendColumn(c)
@@ -985,12 +985,12 @@ func flattenLegendColumns(columns []dashboardv1.Legend_LegendColumn) interface{}
 	return result
 }
 
-func flattenLegendColumn(column dashboardv1.Legend_LegendColumn) string {
-	columnStr := dashboardv1.Legend_LegendColumn_name[int32(column)]
+func flattenLegendColumn(column dashboards.Legend_LegendColumn) string {
+	columnStr := dashboards.Legend_LegendColumn_name[int32(column)]
 	return dashboardProtoLegendColumnToSchemaLegendColumn[columnStr]
 }
 
-func flattenDataTable(dataTable *dashboardv1.DataTable) interface{} {
+func flattenDataTable(dataTable *dashboards.DataTable) interface{} {
 	query := flattenDataTableQuery(dataTable.GetQuery())
 	resultsPerPage := dataTable.GetResultsPerPage().GetValue()
 	rowStyle := flattenRowStyle(dataTable.GetRowStyle())
@@ -1005,7 +1005,7 @@ func flattenDataTable(dataTable *dashboardv1.DataTable) interface{} {
 	}
 }
 
-func flattenDataTableColumns(columns []*dashboardv1.DataTable_Column) interface{} {
+func flattenDataTableColumns(columns []*dashboards.DataTable_Column) interface{} {
 	result := make([]interface{}, 0, len(columns))
 	for _, c := range columns {
 		column := flattenDataTableColumn(c)
@@ -1015,19 +1015,19 @@ func flattenDataTableColumns(columns []*dashboardv1.DataTable_Column) interface{
 	return result
 }
 
-func flattenDataTableColumn(column *dashboardv1.DataTable_Column) interface{} {
+func flattenDataTableColumn(column *dashboards.DataTable_Column) interface{} {
 	field := column.GetField().GetValue()
 	return map[string]interface{}{
 		"field": field,
 	}
 }
 
-func flattenRowStyle(rowStyle dashboardv1.RowStyle) string {
-	rowStyleStr := dashboardv1.RowStyle_name[int32(rowStyle)]
+func flattenRowStyle(rowStyle dashboards.RowStyle) string {
+	rowStyleStr := dashboards.RowStyle_name[int32(rowStyle)]
 	return dashboardProtoRowStyleToSchemaRowStyle[rowStyleStr]
 }
 
-func flattenDataTableQuery(query *dashboardv1.DataTable_Query) interface{} {
+func flattenDataTableQuery(query *dashboards.DataTable_Query) interface{} {
 	logs := flattenDataTableLogsQuery(query.GetLogs())
 	return []interface{}{
 		map[string]interface{}{
@@ -1036,7 +1036,7 @@ func flattenDataTableQuery(query *dashboardv1.DataTable_Query) interface{} {
 	}
 }
 
-func flattenDataTableLogsQuery(logs *dashboardv1.DataTable_LogsQuery) interface{} {
+func flattenDataTableLogsQuery(logs *dashboards.DataTable_LogsQuery) interface{} {
 	luceneQuery := logs.GetLuceneQuery().GetValue().GetValue()
 	filters := flattenDataTableFilters(logs.GetFilters())
 	return []interface{}{
@@ -1047,7 +1047,7 @@ func flattenDataTableLogsQuery(logs *dashboardv1.DataTable_LogsQuery) interface{
 	}
 }
 
-func flattenDataTableFilters(filters []*dashboardv1.SearchFilter) interface{} {
+func flattenDataTableFilters(filters []*dashboards.SearchFilter) interface{} {
 	result := make([]interface{}, 0, len(filters))
 	for _, f := range filters {
 		filter := flattenDataTableFilter(f)
@@ -1056,7 +1056,7 @@ func flattenDataTableFilters(filters []*dashboardv1.SearchFilter) interface{} {
 	return result
 }
 
-func flattenDataTableFilter(filter *dashboardv1.SearchFilter) interface{} {
+func flattenDataTableFilter(filter *dashboards.SearchFilter) interface{} {
 	name := filter.GetName().GetValue()
 	values := wrappedStringSliceToStringSlice(filter.GetValues())
 	return map[string]interface{}{
@@ -1065,7 +1065,7 @@ func flattenDataTableFilter(filter *dashboardv1.SearchFilter) interface{} {
 	}
 }
 
-func flattenWidgetAppearance(appearance *dashboardv1.Widget_Appearance) interface{} {
+func flattenWidgetAppearance(appearance *dashboards.Widget_Appearance) interface{} {
 	return []interface{}{
 		map[string]interface{}{
 			"width": appearance.GetWidth().GetValue(),
@@ -1073,7 +1073,7 @@ func flattenWidgetAppearance(appearance *dashboardv1.Widget_Appearance) interfac
 	}
 }
 
-func flattenVariables(variables []*dashboardv1.Variable) interface{} {
+func flattenVariables(variables []*dashboards.Variable) interface{} {
 	result := make([]interface{}, 0, len(variables))
 	for _, v := range variables {
 		variable := flattenVariable(v)
@@ -1082,7 +1082,7 @@ func flattenVariables(variables []*dashboardv1.Variable) interface{} {
 	return result
 }
 
-func flattenVariable(variable *dashboardv1.Variable) interface{} {
+func flattenVariable(variable *dashboards.Variable) interface{} {
 	name := variable.GetName().GetValue()
 	definition := flattenVariableDefinition(variable.GetDefinition())
 	return map[string]interface{}{
@@ -1091,15 +1091,15 @@ func flattenVariable(variable *dashboardv1.Variable) interface{} {
 	}
 }
 
-func flattenVariableDefinition(definition *dashboardv1.Variable_Definition) interface{} {
+func flattenVariableDefinition(definition *dashboards.Variable_Definition) interface{} {
 	var definitionMap map[string]interface{}
 	switch definitionValue := definition.GetValue().(type) {
-	case *dashboardv1.Variable_Definition_Constant:
+	case *dashboards.Variable_Definition_Constant:
 		constant := flattenConstant(definitionValue.Constant)
 		definitionMap = map[string]interface{}{
 			"constant": constant,
 		}
-	case *dashboardv1.Variable_Definition_MultiSelect:
+	case *dashboards.Variable_Definition_MultiSelect:
 		multiSelect := flattenMultiSelect(definitionValue.MultiSelect)
 		definitionMap = map[string]interface{}{
 			"multi_select": multiSelect,
@@ -1110,7 +1110,7 @@ func flattenVariableDefinition(definition *dashboardv1.Variable_Definition) inte
 	}
 }
 
-func flattenConstant(constant *dashboardv1.Constant) interface{} {
+func flattenConstant(constant *dashboards.Constant) interface{} {
 	return []interface{}{
 		map[string]interface{}{
 			"value": constant.GetValue().GetValue(),
@@ -1118,7 +1118,7 @@ func flattenConstant(constant *dashboardv1.Constant) interface{} {
 	}
 }
 
-func flattenMultiSelect(multiSelect *dashboardv1.MultiSelect) interface{} {
+func flattenMultiSelect(multiSelect *dashboards.MultiSelect) interface{} {
 	selected := wrappedStringSliceToStringSlice(multiSelect.GetSelected())
 	source := flattenMultiSelectSource(multiSelect.GetSource())
 	return []interface{}{
@@ -1129,20 +1129,20 @@ func flattenMultiSelect(multiSelect *dashboardv1.MultiSelect) interface{} {
 	}
 }
 
-func flattenMultiSelectSource(source *dashboardv1.MultiSelect_Source) interface{} {
+func flattenMultiSelectSource(source *dashboards.MultiSelect_Source) interface{} {
 	var sourceMap map[string]interface{}
 	switch sourceValue := source.GetValue().(type) {
-	case *dashboardv1.MultiSelect_Source_LogsPath:
+	case *dashboards.MultiSelect_Source_LogsPath:
 		logsPath := flattenLogPathSource(sourceValue.LogsPath)
 		sourceMap = map[string]interface{}{
 			"log_path": logsPath,
 		}
-	case *dashboardv1.MultiSelect_Source_MetricLabel:
+	case *dashboards.MultiSelect_Source_MetricLabel:
 		metricLabel := flattenMetricLabelSource(sourceValue.MetricLabel)
 		sourceMap = map[string]interface{}{
 			"metric_label": metricLabel,
 		}
-	case *dashboardv1.MultiSelect_Source_ConstantList:
+	case *dashboards.MultiSelect_Source_ConstantList:
 		constantList := flattenConstantListSource(sourceValue.ConstantList)
 		sourceMap = map[string]interface{}{
 			"constant_list": constantList,
@@ -1153,7 +1153,7 @@ func flattenMultiSelectSource(source *dashboardv1.MultiSelect_Source) interface{
 	}
 }
 
-func flattenLogPathSource(logPath *dashboardv1.MultiSelect_LogsPathSource) interface{} {
+func flattenLogPathSource(logPath *dashboards.MultiSelect_LogsPathSource) interface{} {
 	value := logPath.GetValue().GetValue()
 	return []interface{}{
 		map[string]interface{}{
@@ -1162,7 +1162,7 @@ func flattenLogPathSource(logPath *dashboardv1.MultiSelect_LogsPathSource) inter
 	}
 }
 
-func flattenMetricLabelSource(metricLabel *dashboardv1.MultiSelect_MetricLabelSource) interface{} {
+func flattenMetricLabelSource(metricLabel *dashboards.MultiSelect_MetricLabelSource) interface{} {
 	metricName := metricLabel.GetMetricName().GetValue()
 	label := metricLabel.GetLabel().GetValue()
 	return []interface{}{
@@ -1173,7 +1173,7 @@ func flattenMetricLabelSource(metricLabel *dashboardv1.MultiSelect_MetricLabelSo
 	}
 }
 
-func flattenConstantListSource(constantList *dashboardv1.MultiSelect_ConstantListSource) interface{} {
+func flattenConstantListSource(constantList *dashboards.MultiSelect_ConstantListSource) interface{} {
 	values := wrappedStringSliceToStringSlice(constantList.GetValues())
 	return []interface{}{
 		map[string]interface{}{
@@ -1187,7 +1187,7 @@ func resourceCoralogixDashboardUpdate(ctx context.Context, d *schema.ResourceDat
 	if diags != nil {
 		return diags
 	}
-	updateDashboardRequest := &dashboardv1.ReplaceDashboardRequest{
+	updateDashboardRequest := &dashboards.ReplaceDashboardRequest{
 		Dashboard: dashboard,
 	}
 
@@ -1208,7 +1208,7 @@ func resourceCoralogixDashboardUpdate(ctx context.Context, d *schema.ResourceDat
 func resourceCoralogixDashboardDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
 	log.Printf("[INFO] Deleting dashboard %s\n", id)
-	deleteAlertRequest := &dashboardv1.DeleteDashboardRequest{DashboardId: &dashboardv1.UUID{Value: id}}
+	deleteAlertRequest := &dashboards.DeleteDashboardRequest{DashboardId: &dashboards.UUID{Value: id}}
 	_, err := meta.(*clientset.ClientSet).Dashboards().DeleteDashboard(ctx, deleteAlertRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v\n", err)
@@ -1667,7 +1667,7 @@ func DashboardSchema() map[string]*schema.Schema {
 
 func dashboardLayoutJsonValidationFunc() schema.SchemaValidateDiagFunc {
 	return func(v interface{}, _ cty.Path) diag.Diagnostics {
-		err := protojson.Unmarshal([]byte(v.(string)), &dashboardv1.Layout{})
+		err := protojson.Unmarshal([]byte(v.(string)), &dashboards.Layout{})
 		if err != nil {
 			return diag.Errorf("json content is not matching layout schema. got an err while unmarshalling - %s", err)
 		}

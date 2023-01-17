@@ -4,7 +4,7 @@
 // 	protoc        v3.21.8
 // source: com/coralogixapis/dashboards/v1/audit_log.proto
 
-package __
+package v1
 
 import (
 	reflect "reflect"

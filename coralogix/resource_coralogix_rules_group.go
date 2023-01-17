@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	rulesv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/rules/v1"
+	rulesv1 "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"

@@ -8,7 +8,7 @@ import (
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	logs2metricv2 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/logs2metrics/v2"
+	logs2metricv2 "terraform-provider-coralogix/coralogix/clientset/grpc/logs2metrics/v2"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -20,8 +20,9 @@ type logs2MetricTestFields struct {
 	limit             int
 }
 
+var logs2metricResourceName = "coralogix_logs2metric.test"
+
 func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
-	resourceName := "coralogix_logs2metric.test"
 	logs2Metric := getRandomLogs2Metric()
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -32,43 +33,43 @@ func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 
 				Config: testAccCoralogixResourceLogs2Metric(logs2Metric),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "name", logs2Metric.name),
-					resource.TestCheckResourceAttr(resourceName, "description", logs2Metric.description),
-					resource.TestCheckResourceAttr(resourceName, "query.0.lucene", "remote_addr_enriched:/.*/"),
-					resource.TestCheckResourceAttr(resourceName, "query.0.applications.0", "nginx"),
-					resource.TestCheckResourceAttr(resourceName, "query.0.severities.0", "Debug"),
-					resource.TestCheckTypeSetElemNestedAttrs(resourceName, "metric_fields.*",
+					resource.TestCheckResourceAttrSet(logs2metricResourceName, "id"),
+					resource.TestCheckResourceAttr(logs2metricResourceName, "name", logs2Metric.name),
+					resource.TestCheckResourceAttr(logs2metricResourceName, "description", logs2Metric.description),
+					resource.TestCheckResourceAttr(logs2metricResourceName, "query.0.lucene", "remote_addr_enriched:/.*/"),
+					resource.TestCheckResourceAttr(logs2metricResourceName, "query.0.applications.0", "nginx"),
+					resource.TestCheckResourceAttr(logs2metricResourceName, "query.0.severities.0", "Debug"),
+					resource.TestCheckTypeSetElemNestedAttrs(logs2metricResourceName, "metric_fields.*",
 						map[string]string{
 							"source_field":            "remote_addr_geoip.location_geopoint",
 							"target_base_metric_name": "geo_point",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(resourceName, "metric_fields.*",
+					resource.TestCheckTypeSetElemNestedAttrs(logs2metricResourceName, "metric_fields.*",
 						map[string]string{
 							"source_field":            "method",
 							"target_base_metric_name": "method",
 						},
 					),
 
-					resource.TestCheckTypeSetElemNestedAttrs(resourceName, "metric_labels.*",
+					resource.TestCheckTypeSetElemNestedAttrs(logs2metricResourceName, "metric_labels.*",
 						map[string]string{
 							"source_field": "status",
 							"target_label": "Status",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(resourceName, "metric_labels.*",
+					resource.TestCheckTypeSetElemNestedAttrs(logs2metricResourceName, "metric_labels.*",
 						map[string]string{
 							"source_field": "http_referer",
 							"target_label": "Path",
 						},
 					),
-					resource.TestCheckResourceAttr(resourceName, "permutations.0.limit", strconv.Itoa(logs2Metric.limit)),
-					resource.TestCheckResourceAttr(resourceName, "permutations.0.has_exceed_limit", "false"),
+					resource.TestCheckResourceAttr(logs2metricResourceName, "permutations.0.limit", strconv.Itoa(logs2Metric.limit)),
+					resource.TestCheckResourceAttr(logs2metricResourceName, "permutations.0.has_exceed_limit", "false"),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      logs2metricResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},

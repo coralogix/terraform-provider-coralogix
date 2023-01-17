@@ -3,14 +3,14 @@ package clientset
 import (
 	"context"
 
-	"terraform-provider-coralogix/coralogix/clientset/grpc/rules/v1"
+	rulesgroups "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
 )
 
 type RuleGroupsClient struct {
 	callPropertiesCreator *CallPropertiesCreator
 }
 
-func (r RuleGroupsClient) CreateRuleGroup(ctx context.Context, req *__.CreateRuleGroupRequest) (*__.CreateRuleGroupResponse, error) {
+func (r RuleGroupsClient) CreateRuleGroup(ctx context.Context, req *rulesgroups.CreateRuleGroupRequest) (*rulesgroups.CreateRuleGroupResponse, error) {
 	callProperties, err := r.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -18,12 +18,12 @@ func (r RuleGroupsClient) CreateRuleGroup(ctx context.Context, req *__.CreateRul
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := __.NewRuleGroupsServiceClient(conn)
+	client := rulesgroups.NewRuleGroupsServiceClient(conn)
 
 	return client.CreateRuleGroup(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (r RuleGroupsClient) GetRuleGroup(ctx context.Context, req *__.GetRuleGroupRequest) (*__.GetRuleGroupResponse, error) {
+func (r RuleGroupsClient) GetRuleGroup(ctx context.Context, req *rulesgroups.GetRuleGroupRequest) (*rulesgroups.GetRuleGroupResponse, error) {
 	callProperties, err := r.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -31,12 +31,12 @@ func (r RuleGroupsClient) GetRuleGroup(ctx context.Context, req *__.GetRuleGroup
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := __.NewRuleGroupsServiceClient(conn)
+	client := rulesgroups.NewRuleGroupsServiceClient(conn)
 
 	return client.GetRuleGroup(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (r RuleGroupsClient) UpdateRuleGroup(ctx context.Context, req *__.UpdateRuleGroupRequest) (*__.UpdateRuleGroupResponse, error) {
+func (r RuleGroupsClient) UpdateRuleGroup(ctx context.Context, req *rulesgroups.UpdateRuleGroupRequest) (*rulesgroups.UpdateRuleGroupResponse, error) {
 	callProperties, err := r.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -45,12 +45,12 @@ func (r RuleGroupsClient) UpdateRuleGroup(ctx context.Context, req *__.UpdateRul
 	conn := callProperties.Connection
 	defer conn.Close()
 
-	client := __.NewRuleGroupsServiceClient(conn)
+	client := rulesgroups.NewRuleGroupsServiceClient(conn)
 
 	return client.UpdateRuleGroup(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (r RuleGroupsClient) DeleteRuleGroup(ctx context.Context, req *__.DeleteRuleGroupRequest) (*__.DeleteRuleGroupResponse, error) {
+func (r RuleGroupsClient) DeleteRuleGroup(ctx context.Context, req *rulesgroups.DeleteRuleGroupRequest) (*rulesgroups.DeleteRuleGroupResponse, error) {
 	callProperties, err := r.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (r RuleGroupsClient) DeleteRuleGroup(ctx context.Context, req *__.DeleteRul
 	conn := callProperties.Connection
 	defer conn.Close()
 
-	client := __.NewRuleGroupsServiceClient(conn)
+	client := rulesgroups.NewRuleGroupsServiceClient(conn)
 
 	return client.DeleteRuleGroup(callProperties.Ctx, req, callProperties.CallOptions...)
 }

@@ -7,12 +7,13 @@
 package __
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -143,17 +144,17 @@ type AlertEvent struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id          *wrapperspb.StringValue      `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Type        AlertEvent_AlertEventType    `protobuf:"varint,2,opt,name=type,proto3,enum=com.coralogix.alerts.v1.AlertEvent_AlertEventType" json:"type,omitempty"`
-	AlertId     *wrapperspb.StringValue      `protobuf:"bytes,3,opt,name=alert_id,json=alertId,proto3" json:"alert_id,omitempty"`
-	CompanyId   *wrapperspb.StringValue      `protobuf:"bytes,4,opt,name=company_id,json=companyId,proto3" json:"company_id,omitempty"`
-	Severity    AlertSeverity                `protobuf:"varint,5,opt,name=severity,proto3,enum=com.coralogix.alerts.v1.AlertSeverity" json:"severity,omitempty"`
-	Subsystem   *wrapperspb.StringValue      `protobuf:"bytes,6,opt,name=subsystem,proto3" json:"subsystem,omitempty"`
+	Id        *wrapperspb.StringValue      `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Type      AlertEvent_AlertEventType    `protobuf:"varint,2,opt,name=type,proto3,enum=com.coralogix.alerts.v1.AlertEvent_AlertEventType" json:"type,omitempty"`
+	AlertId   *wrapperspb.StringValue      `protobuf:"bytes,3,opt,name=alert_id,json=alertId,proto3" json:"alert_id,omitempty"`
+	CompanyId *wrapperspb.StringValue      `protobuf:"bytes,4,opt,name=company_id,json=companyId,proto3" json:"company_id,omitempty"`
+	Severity  AlertSeverity                `protobuf:"varint,5,opt,name=severity,proto3,enum=com.coralogix.alerts.v1.AlertSeverity" json:"severity,omitempty"`
+	Subsystem *wrapperspb.StringValue      `protobuf:"bytes,6,opt,name=subsystem,proto3" json:"subsystem,omitempty"`
 	Application *wrapperspb.StringValue      `protobuf:"bytes,7,opt,name=application,proto3" json:"application,omitempty"`
 	OccurredOn  *timestamppb.Timestamp       `protobuf:"bytes,8,opt,name=occurred_on,json=occurredOn,proto3" json:"occurred_on,omitempty"`
-	Name        *wrapperspb.StringValue      `protobuf:"bytes,9,opt,name=name,proto3" json:"name,omitempty"`
-	Snoozed     *AlertSnoozed                `protobuf:"bytes,10,opt,name=snoozed,proto3" json:"snoozed,omitempty"`
-	SubType     AlertEvent_AlertEventSubType `protobuf:"varint,11,opt,name=sub_type,json=subType,proto3,enum=com.coralogix.alerts.v1.AlertEvent_AlertEventSubType" json:"sub_type,omitempty"`
+	Name      *wrapperspb.StringValue      `protobuf:"bytes,9,opt,name=name,proto3" json:"name,omitempty"`
+	Snoozed   *AlertSnoozed                `protobuf:"bytes,10,opt,name=snoozed,proto3" json:"snoozed,omitempty"`
+	SubType   AlertEvent_AlertEventSubType `protobuf:"varint,11,opt,name=sub_type,json=subType,proto3,enum=com.coralogix.alerts.v1.AlertEvent_AlertEventSubType" json:"sub_type,omitempty"`
 }
 
 func (x *AlertEvent) Reset() {

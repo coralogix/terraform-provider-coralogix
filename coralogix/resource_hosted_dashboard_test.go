@@ -13,6 +13,8 @@ import (
 	"terraform-provider-coralogix/coralogix/clientset"
 )
 
+var hostedDashboardResourceName = "coralogix_hosted_dashboard.test"
+
 func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -36,18 +38,18 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 				// Test resource creation.
 				Config: testAccCoralogixResourceGrafanaDashboard(filePath),
 				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("coralogix_hosted_dashboard.test", &dashboard),
+					testAccDashboardCheckExists(hostedDashboardResourceName, &dashboard),
 					resource.TestCheckResourceAttr(
-						"coralogix_hosted_dashboard.test", "grafana.0.config_json", expectedInitialConfig,
+						hostedDashboardResourceName, "grafana.0.config_json", expectedInitialConfig,
 					),
 				),
 			},
 			{
 				Config: testAccCoralogixResourceGrafanaDashboard(updatedFilePath),
 				Check: resource.ComposeTestCheckFunc(
-					testAccDashboardCheckExists("coralogix_hosted_dashboard.test", &dashboard),
+					testAccDashboardCheckExists(hostedDashboardResourceName, &dashboard),
 					resource.TestCheckResourceAttr(
-						"coralogix_hosted_dashboard.test", "grafana.0.config_json", expectedUpdatedTitleConfig,
+						hostedDashboardResourceName, "grafana.0.config_json", expectedUpdatedTitleConfig,
 					),
 				),
 			},

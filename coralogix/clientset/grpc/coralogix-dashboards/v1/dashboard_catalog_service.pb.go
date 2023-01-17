@@ -4,7 +4,7 @@
 // 	protoc        v3.21.8
 // source: com/coralogixapis/dashboards/v1/services/dashboard_catalog_service.proto
 
-package __
+package v1
 
 import (
 	reflect "reflect"

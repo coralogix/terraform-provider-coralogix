@@ -20,17 +20,36 @@ func TestAccCoralogixRecordingRulesGroups(t *testing.T) {
 		panic(err)
 	}
 	parent := filepath.Dir(wd)
-	filePath := parent + "/examples/recording_rules_group/rule_groups.yaml"
+	filePath := parent + "/examples/recording_rules_group/rule-groups.yaml"
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRecordingRulesGroupsDestroy,
 		Steps: []resource.TestStep{
 			{
-
 				Config: testAccCoralogixResourceRecordingRulesGroups(filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(recordingRulesGroupsResourceName, "id"),
+					resource.TestCheckTypeSetElemNestedAttrs(
+						recordingRulesGroupsResourceName,
+						"groups.*",
+						map[string]string{
+							"name":     "Bar",
+							"interval": "70",
+							"limit":    "0",
+							//"rules":    " {\n              - expr   = \"sum(rate(http_requests_total[5m])) by (job)\" -> null\n              - labels = {} -> null\n              - record = \"job:http_requests_total:sum\" -> null\n            }\n",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(
+						recordingRulesGroupsResourceName,
+						"groups.*",
+						map[string]string{
+							"name":     "Foo",
+							"interval": "180",
+							"limit":    "0",
+							//"rules":    "{\n              - expr   = \"sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\\\"staging\\\",pod=~\\\"ts3db-live-ingester.*\\\"}[2m])) by (pod)\" -> null\n              - labels = {} -> null\n              - record = \"ts3db_live_ingester_write_latency:3m\" -> null\n            }\n",
+						},
+					),
 				),
 			},
 		},

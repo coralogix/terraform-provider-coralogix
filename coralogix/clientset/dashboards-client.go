@@ -3,14 +3,14 @@ package clientset
 import (
 	"context"
 
-	dashboard "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/coralogix-dashboards"
+	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 )
 
 type DashboardsClient struct {
 	callPropertiesCreator *CallPropertiesCreator
 }
 
-func (d DashboardsClient) CreateDashboard(ctx context.Context, req *dashboard.CreateDashboardRequest) (*dashboard.CreateDashboardResponse, error) {
+func (d DashboardsClient) CreateDashboard(ctx context.Context, req *dashboards.CreateDashboardRequest) (*dashboards.CreateDashboardResponse, error) {
 	callProperties, err := d.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -18,12 +18,12 @@ func (d DashboardsClient) CreateDashboard(ctx context.Context, req *dashboard.Cr
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := dashboard.NewDashboardsServiceClient(conn)
+	client := dashboards.NewDashboardsServiceClient(conn)
 
 	return client.CreateDashboard(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (d DashboardsClient) GetDashboard(ctx context.Context, req *dashboard.GetDashboardRequest) (*dashboard.GetDashboardResponse, error) {
+func (d DashboardsClient) GetDashboard(ctx context.Context, req *dashboards.GetDashboardRequest) (*dashboards.GetDashboardResponse, error) {
 	callProperties, err := d.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -31,12 +31,12 @@ func (d DashboardsClient) GetDashboard(ctx context.Context, req *dashboard.GetDa
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := dashboard.NewDashboardsServiceClient(conn)
+	client := dashboards.NewDashboardsServiceClient(conn)
 
 	return client.GetDashboard(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (d DashboardsClient) UpdateDashboard(ctx context.Context, req *dashboard.ReplaceDashboardRequest) (*dashboard.ReplaceDashboardResponse, error) {
+func (d DashboardsClient) UpdateDashboard(ctx context.Context, req *dashboards.ReplaceDashboardRequest) (*dashboards.ReplaceDashboardResponse, error) {
 	callProperties, err := d.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -44,12 +44,12 @@ func (d DashboardsClient) UpdateDashboard(ctx context.Context, req *dashboard.Re
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := dashboard.NewDashboardsServiceClient(conn)
+	client := dashboards.NewDashboardsServiceClient(conn)
 
 	return client.ReplaceDashboard(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (d DashboardsClient) DeleteDashboard(ctx context.Context, req *dashboard.DeleteDashboardRequest) (*dashboard.DeleteDashboardResponse, error) {
+func (d DashboardsClient) DeleteDashboard(ctx context.Context, req *dashboards.DeleteDashboardRequest) (*dashboards.DeleteDashboardResponse, error) {
 	callProperties, err := d.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -57,7 +57,7 @@ func (d DashboardsClient) DeleteDashboard(ctx context.Context, req *dashboard.De
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := dashboard.NewDashboardsServiceClient(conn)
+	client := dashboards.NewDashboardsServiceClient(conn)
 
 	return client.DeleteDashboard(callProperties.Ctx, req, callProperties.CallOptions...)
 }

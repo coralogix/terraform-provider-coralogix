@@ -13,11 +13,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/enrichment/v1"
+	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 )
 
+var dataSetResourceName = "coralogix_data_set.test"
+
 func TestAccCoralogixResourceDataSet(t *testing.T) {
-	resourceName := "coralogix_data_set.test"
 	name := acctest.RandomWithPrefix("tf-acc-test")
 	description := acctest.RandomWithPrefix("tf-acc-test")
 	wd, err := os.Getwd()
@@ -34,14 +35,14 @@ func TestAccCoralogixResourceDataSet(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceDataSet(name, description, filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "name", name),
-					resource.TestCheckResourceAttr(resourceName, "description", description),
-					resource.TestCheckResourceAttr(resourceName, "version", "1"),
+					resource.TestCheckResourceAttrSet(dataSetResourceName, "id"),
+					resource.TestCheckResourceAttr(dataSetResourceName, "name", name),
+					resource.TestCheckResourceAttr(dataSetResourceName, "description", description),
+					resource.TestCheckResourceAttr(dataSetResourceName, "version", "1"),
 				),
 			},
 			{
-				ResourceName: resourceName,
+				ResourceName: dataSetResourceName,
 				ImportState:  true,
 			},
 		},
@@ -49,7 +50,6 @@ func TestAccCoralogixResourceDataSet(t *testing.T) {
 }
 
 func TestAccCoralogixResourceDataSetWithUploadedFile(t *testing.T) {
-	resourceName := "coralogix_data_set.test"
 	name := acctest.RandomWithPrefix("tf-acc-test")
 	description := acctest.RandomWithPrefix("tf-acc-test")
 	wd, err := os.Getwd()
@@ -66,16 +66,16 @@ func TestAccCoralogixResourceDataSetWithUploadedFile(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceDataSetWithUploadedFile(name, description, filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "name", name),
-					resource.TestCheckResourceAttr(resourceName, "description", description),
-					resource.TestCheckResourceAttr(resourceName, "version", "1"),
-					resource.TestCheckResourceAttr(resourceName, "uploaded_file.0.path", filePath),
-					resource.TestCheckResourceAttr(resourceName, "uploaded_file.0.updated_from_uploading", "false"),
+					resource.TestCheckResourceAttrSet(dataSetResourceName, "id"),
+					resource.TestCheckResourceAttr(dataSetResourceName, "name", name),
+					resource.TestCheckResourceAttr(dataSetResourceName, "description", description),
+					resource.TestCheckResourceAttr(dataSetResourceName, "version", "1"),
+					resource.TestCheckResourceAttr(dataSetResourceName, "uploaded_file.0.path", filePath),
+					resource.TestCheckResourceAttr(dataSetResourceName, "uploaded_file.0.updated_from_uploading", "false"),
 				),
 			},
 			{
-				ResourceName: resourceName,
+				ResourceName: dataSetResourceName,
 				ImportState:  true,
 			},
 			{
@@ -83,23 +83,23 @@ func TestAccCoralogixResourceDataSetWithUploadedFile(t *testing.T) {
 				PlanOnly:  true,
 				Config:    testAccCoralogixResourceDataSetWithUploadedFile(name, description, filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "name", name),
-					resource.TestCheckResourceAttr(resourceName, "description", description),
-					resource.TestCheckResourceAttr(resourceName, "version", "1"),
-					resource.TestCheckResourceAttr(resourceName, "uploaded_file.0.path", filePath),
-					resource.TestCheckResourceAttr(resourceName, "uploaded_file.0.updated_from_uploading", "true"),
-					resource.TestCheckResourceAttr(resourceName, "uploaded_file.0.path", filePath)),
+					resource.TestCheckResourceAttrSet(dataSetResourceName, "id"),
+					resource.TestCheckResourceAttr(dataSetResourceName, "name", name),
+					resource.TestCheckResourceAttr(dataSetResourceName, "description", description),
+					resource.TestCheckResourceAttr(dataSetResourceName, "version", "1"),
+					resource.TestCheckResourceAttr(dataSetResourceName, "uploaded_file.0.path", filePath),
+					resource.TestCheckResourceAttr(dataSetResourceName, "uploaded_file.0.updated_from_uploading", "true"),
+					resource.TestCheckResourceAttr(dataSetResourceName, "uploaded_file.0.path", filePath)),
 			},
 			{
 				Config: testAccCoralogixResourceDataSetWithUploadedFile(name, description, filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "name", name),
-					resource.TestCheckResourceAttr(resourceName, "description", description),
-					resource.TestCheckResourceAttr(resourceName, "version", "1"),
-					resource.TestCheckResourceAttr(resourceName, "uploaded_file.0.path", filePath),
-					resource.TestCheckResourceAttr(resourceName, "uploaded_file.0.updated_from_uploading", "false"),
+					resource.TestCheckResourceAttrSet(dataSetResourceName, "id"),
+					resource.TestCheckResourceAttr(dataSetResourceName, "name", name),
+					resource.TestCheckResourceAttr(dataSetResourceName, "description", description),
+					resource.TestCheckResourceAttr(dataSetResourceName, "version", "1"),
+					resource.TestCheckResourceAttr(dataSetResourceName, "uploaded_file.0.path", filePath),
+					resource.TestCheckResourceAttr(dataSetResourceName, "uploaded_file.0.updated_from_uploading", "false"),
 				),
 			},
 		},

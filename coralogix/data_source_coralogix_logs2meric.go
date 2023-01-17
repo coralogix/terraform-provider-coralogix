@@ -7,9 +7,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	logs2metric "terraform-provider-coralogix/coralogix/clientset/grpc/logs2metrics/v2"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	logs2metric "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/logs2metrics/v2"
 )
 
 func dataSourceCoralogixLogs2Metric() *schema.Resource {

@@ -4,14 +4,14 @@ import (
 	"context"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/enrichment/v1"
+	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 )
 
 type EnrichmentsClient struct {
 	callPropertiesCreator *CallPropertiesCreator
 }
 
-func (e EnrichmentsClient) CreateEnrichments(ctx context.Context, req []*enrichmentv1.EnrichmentRequestModel) ([]*enrichmentv1.Enrichment, error) {
+func (e EnrichmentsClient) CreateEnrichments(ctx context.Context, req []*enrichment.EnrichmentRequestModel) ([]*enrichment.Enrichment, error) {
 	callProperties, err := e.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -19,9 +19,9 @@ func (e EnrichmentsClient) CreateEnrichments(ctx context.Context, req []*enrichm
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := enrichmentv1.NewEnrichmentServiceClient(conn)
+	client := enrichment.NewEnrichmentServiceClient(conn)
 
-	addReq := &enrichmentv1.AddEnrichmentsRequest{RequestEnrichments: req}
+	addReq := &enrichment.AddEnrichmentsRequest{RequestEnrichments: req}
 	resp, err := client.AddEnrichments(callProperties.Ctx, addReq, callProperties.CallOptions...)
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func (e EnrichmentsClient) CreateEnrichments(ctx context.Context, req []*enrichm
 	return enrichments[from:to], nil
 }
 
-func (e EnrichmentsClient) GetEnrichmentsByType(ctx context.Context, enrichmentType string) ([]*enrichmentv1.Enrichment, error) {
+func (e EnrichmentsClient) GetEnrichmentsByType(ctx context.Context, enrichmentType string) ([]*enrichment.Enrichment, error) {
 	callProperties, err := e.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -41,14 +41,14 @@ func (e EnrichmentsClient) GetEnrichmentsByType(ctx context.Context, enrichmentT
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := enrichmentv1.NewEnrichmentServiceClient(conn)
+	client := enrichment.NewEnrichmentServiceClient(conn)
 
-	resp, err := client.GetEnrichments(callProperties.Ctx, &enrichmentv1.GetEnrichmentsRequest{}, callProperties.CallOptions...)
+	resp, err := client.GetEnrichments(callProperties.Ctx, &enrichment.GetEnrichmentsRequest{}, callProperties.CallOptions...)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]*enrichmentv1.Enrichment, 0)
+	result := make([]*enrichment.Enrichment, 0)
 	for _, enrichment := range resp.GetEnrichments() {
 		if enrichment.GetEnrichmentType().String() == enrichmentType+":{}" {
 			result = append(result, enrichment)
@@ -58,7 +58,7 @@ func (e EnrichmentsClient) GetEnrichmentsByType(ctx context.Context, enrichmentT
 	return result, nil
 }
 
-func (e EnrichmentsClient) GetCustomEnrichments(ctx context.Context, customEnrichmentId uint32) ([]*enrichmentv1.Enrichment, error) {
+func (e EnrichmentsClient) GetCustomEnrichments(ctx context.Context, customEnrichmentId uint32) ([]*enrichment.Enrichment, error) {
 	callProperties, err := e.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -66,14 +66,14 @@ func (e EnrichmentsClient) GetCustomEnrichments(ctx context.Context, customEnric
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := enrichmentv1.NewEnrichmentServiceClient(conn)
+	client := enrichment.NewEnrichmentServiceClient(conn)
 
-	resp, err := client.GetEnrichments(callProperties.Ctx, &enrichmentv1.GetEnrichmentsRequest{}, callProperties.CallOptions...)
+	resp, err := client.GetEnrichments(callProperties.Ctx, &enrichment.GetEnrichmentsRequest{}, callProperties.CallOptions...)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]*enrichmentv1.Enrichment, 0)
+	result := make([]*enrichment.Enrichment, 0)
 	for _, enrichment := range resp.GetEnrichments() {
 		if customEnrichment := enrichment.GetEnrichmentType().GetCustomEnrichment(); customEnrichment != nil && customEnrichment.GetId().GetValue() == customEnrichmentId {
 			result = append(result, enrichment)
@@ -83,7 +83,7 @@ func (e EnrichmentsClient) GetCustomEnrichments(ctx context.Context, customEnric
 	return result, nil
 }
 
-func (e EnrichmentsClient) UpdateEnrichments(ctx context.Context, ids []uint32, req []*enrichmentv1.EnrichmentRequestModel) ([]*enrichmentv1.Enrichment, error) {
+func (e EnrichmentsClient) UpdateEnrichments(ctx context.Context, ids []uint32, req []*enrichment.EnrichmentRequestModel) ([]*enrichment.Enrichment, error) {
 	err := e.DeleteEnrichments(ctx, ids)
 	if err != nil {
 		return nil, err
@@ -100,14 +100,14 @@ func (e EnrichmentsClient) DeleteEnrichments(ctx context.Context, ids []uint32) 
 	conn := callProperties.Connection
 	defer conn.Close()
 
-	client := enrichmentv1.NewEnrichmentServiceClient(conn)
+	client := enrichment.NewEnrichmentServiceClient(conn)
 
 	enrichmentIds := make([]*wrapperspb.UInt32Value, 0, len(ids))
 	for _, id := range ids {
 		enrichmentIds = append(enrichmentIds, wrapperspb.UInt32(id))
 	}
 
-	req := &enrichmentv1.RemoveEnrichmentsRequest{
+	req := &enrichment.RemoveEnrichmentsRequest{
 		EnrichmentIds: enrichmentIds,
 	}
 
@@ -129,14 +129,14 @@ func (e EnrichmentsClient) DeleteEnrichmentsByType(ctx context.Context, enrichme
 	conn := callProperties.Connection
 	defer conn.Close()
 
-	client := enrichmentv1.NewEnrichmentServiceClient(conn)
+	client := enrichment.NewEnrichmentServiceClient(conn)
 
 	enrichmentIds := make([]*wrapperspb.UInt32Value, 0, len(enrichmentsToDelete))
 	for _, enrichment := range enrichmentsToDelete {
 		enrichmentIds = append(enrichmentIds, wrapperspb.UInt32(enrichment.GetId()))
 	}
 
-	req := &enrichmentv1.RemoveEnrichmentsRequest{
+	req := &enrichment.RemoveEnrichmentsRequest{
 		EnrichmentIds: enrichmentIds,
 	}
 

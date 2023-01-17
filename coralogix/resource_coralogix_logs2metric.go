@@ -9,14 +9,14 @@ import (
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	logs2metricv2 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/logs2metrics/v2"
+	logs2metrics "terraform-provider-coralogix/coralogix/clientset/grpc/logs2metrics/v2"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var validSeverities = getKeysInt(logs2metricv2.Severity_value)
+var validSeverities = getKeysInt(logs2metrics.Severity_value)
 
 func resourceCoralogixLogs2Metric() *schema.Resource {
 	return &schema.Resource{
@@ -46,7 +46,7 @@ func resourceCoralogixLogs2MetricCreate(ctx context.Context, d *schema.ResourceD
 		return diag.FromErr(err)
 	}
 
-	log2MetricReq := &logs2metricv2.CreateL2MRequest{
+	log2MetricReq := &logs2metrics.CreateL2MRequest{
 		L2M: log2Metric,
 	}
 
@@ -64,7 +64,7 @@ func resourceCoralogixLogs2MetricCreate(ctx context.Context, d *schema.ResourceD
 
 func resourceCoralogixLogs2MetricRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
-	getLogs2MetricRequest := &logs2metricv2.GetL2MRequest{
+	getLogs2MetricRequest := &logs2metrics.GetL2MRequest{
 		Id: wrapperspb.String(id),
 	}
 
@@ -86,7 +86,7 @@ func resourceCoralogixLogs2MetricUpdate(ctx context.Context, d *schema.ResourceD
 	}
 
 	req.Id = wrapperspb.String(d.Id())
-	updateLogs2MetricRequest := &logs2metricv2.ReplaceL2MRequest{
+	updateLogs2MetricRequest := &logs2metrics.ReplaceL2MRequest{
 		L2M: req,
 	}
 
@@ -103,7 +103,7 @@ func resourceCoralogixLogs2MetricUpdate(ctx context.Context, d *schema.ResourceD
 
 func resourceCoralogixLogs2MetricDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
-	deleteLogs2MetricRequest := &logs2metricv2.DeleteL2MRequest{
+	deleteLogs2MetricRequest := &logs2metrics.DeleteL2MRequest{
 		Id: wrapperspb.String(id),
 	}
 
@@ -119,7 +119,7 @@ func resourceCoralogixLogs2MetricDelete(ctx context.Context, d *schema.ResourceD
 	return nil
 }
 
-func extractLogs2Metric(d *schema.ResourceData) (*logs2metricv2.L2M, error) {
+func extractLogs2Metric(d *schema.ResourceData) (*logs2metrics.L2M, error) {
 	name := wrapperspb.String(d.Get("name").(string))
 	description := wrapperspb.String(d.Get("description").(string))
 	query := expandQuery(d.Get("query"))
@@ -127,7 +127,7 @@ func extractLogs2Metric(d *schema.ResourceData) (*logs2metricv2.L2M, error) {
 	fields := expandFields(d.Get("metric_fields"))
 	labels := expandLabels(d.Get("metric_labels"))
 
-	return &logs2metricv2.L2M{
+	return &logs2metrics.L2M{
 		Name:         name,
 		Description:  description,
 		Query:        query,
@@ -137,10 +137,10 @@ func extractLogs2Metric(d *schema.ResourceData) (*logs2metricv2.L2M, error) {
 	}, nil
 }
 
-func expandQuery(v interface{}) *logs2metricv2.LogsQuery {
+func expandQuery(v interface{}) *logs2metrics.LogsQuery {
 	l := v.([]interface{})
 	if len(l) == 0 || l[0] == nil {
-		return &logs2metricv2.LogsQuery{}
+		return &logs2metrics.LogsQuery{}
 	}
 	raw := l[0]
 	m := raw.(map[string]interface{})
@@ -150,7 +150,7 @@ func expandQuery(v interface{}) *logs2metricv2.LogsQuery {
 	subsystems := interfaceSliceToWrappedStringSlice(m["subsystems"].(*schema.Set).List())
 	severities := expandSeverities(m["severities"].(*schema.Set).List())
 
-	return &logs2metricv2.LogsQuery{
+	return &logs2metrics.LogsQuery{
 		Lucene:                 searchQuery,
 		ApplicationnameFilters: applications,
 		SubsystemnameFilters:   subsystems,
@@ -158,19 +158,19 @@ func expandQuery(v interface{}) *logs2metricv2.LogsQuery {
 	}
 }
 
-func expandSeverities(severities []interface{}) []logs2metricv2.Severity {
-	result := make([]logs2metricv2.Severity, 0, len(severities))
+func expandSeverities(severities []interface{}) []logs2metrics.Severity {
+	result := make([]logs2metrics.Severity, 0, len(severities))
 	for _, s := range severities {
-		severity := logs2metricv2.Severity(logs2metricv2.Severity_value[s.(string)])
+		severity := logs2metrics.Severity(logs2metrics.Severity_value[s.(string)])
 		result = append(result, severity)
 	}
 
 	return result
 }
 
-func expandLabels(v interface{}) []*logs2metricv2.MetricLabel {
+func expandLabels(v interface{}) []*logs2metrics.MetricLabel {
 	labels := v.(*schema.Set).List()
-	result := make([]*logs2metricv2.MetricLabel, 0, len(labels))
+	result := make([]*logs2metrics.MetricLabel, 0, len(labels))
 	for _, l := range labels {
 		label := expandLabel(l)
 		result = append(result, label)
@@ -179,20 +179,20 @@ func expandLabels(v interface{}) []*logs2metricv2.MetricLabel {
 	return result
 }
 
-func expandLabel(v interface{}) *logs2metricv2.MetricLabel {
+func expandLabel(v interface{}) *logs2metrics.MetricLabel {
 	m := v.(map[string]interface{})
 	targetLabel := wrapperspb.String(m["target_label"].(string))
 	sourceField := wrapperspb.String(m["source_field"].(string))
-	return &logs2metricv2.MetricLabel{
+	return &logs2metrics.MetricLabel{
 		TargetLabel: targetLabel,
 		SourceField: sourceField,
 	}
 }
 
-func expandFields(v interface{}) []*logs2metricv2.MetricField {
+func expandFields(v interface{}) []*logs2metrics.MetricField {
 	v = v.(*schema.Set).List()
 	fields := v.([]interface{})
-	result := make([]*logs2metricv2.MetricField, 0, len(fields))
+	result := make([]*logs2metrics.MetricField, 0, len(fields))
 	for _, f := range fields {
 		field := expandField(f)
 		result = append(result, field)
@@ -201,32 +201,32 @@ func expandFields(v interface{}) []*logs2metricv2.MetricField {
 	return result
 }
 
-func expandField(v interface{}) *logs2metricv2.MetricField {
+func expandField(v interface{}) *logs2metrics.MetricField {
 	m := v.(map[string]interface{})
 	targetBaseMetricName := wrapperspb.String(m["target_base_metric_name"].(string))
 	sourceField := wrapperspb.String(m["source_field"].(string))
-	return &logs2metricv2.MetricField{
+	return &logs2metrics.MetricField{
 		TargetBaseMetricName: targetBaseMetricName,
 		SourceField:          sourceField,
 	}
 }
 
-func expandPermutations(v interface{}) *logs2metricv2.L2MPermutations {
+func expandPermutations(v interface{}) *logs2metrics.L2MPermutations {
 	l := v.([]interface{})
 	if len(l) == 0 || l[0] == nil {
-		return &logs2metricv2.L2MPermutations{}
+		return &logs2metrics.L2MPermutations{}
 	}
 	raw := l[0]
 	m := raw.(map[string]interface{})
 	limit := int32(m["limit"].(int))
 	hasExceededLimit := m["has_exceed_limit"].(bool)
-	return &logs2metricv2.L2MPermutations{
+	return &logs2metrics.L2MPermutations{
 		Limit:            limit,
 		HasExceededLimit: hasExceededLimit,
 	}
 }
 
-func setLogs2Metric(d *schema.ResourceData, logs2Metric *logs2metricv2.L2M) diag.Diagnostics {
+func setLogs2Metric(d *schema.ResourceData, logs2Metric *logs2metrics.L2M) diag.Diagnostics {
 	if err := d.Set("name", logs2Metric.GetName().GetValue()); err != nil {
 		return diag.FromErr(err)
 	}
@@ -254,7 +254,7 @@ func setLogs2Metric(d *schema.ResourceData, logs2Metric *logs2metricv2.L2M) diag
 	return nil
 }
 
-func flattenMetricFields(fields []*logs2metricv2.MetricField) interface{} {
+func flattenMetricFields(fields []*logs2metrics.MetricField) interface{} {
 	transformed := schema.NewSet(metricFieldsHash(), []interface{}{})
 	for _, f := range fields {
 		field := flattenMetricField(f)
@@ -282,7 +282,7 @@ func metricFields() *schema.Resource {
 	}
 }
 
-func flattenMetricField(field *logs2metricv2.MetricField) interface{} {
+func flattenMetricField(field *logs2metrics.MetricField) interface{} {
 	return map[string]interface{}{
 		"target_base_metric_name": field.GetTargetBaseMetricName().GetValue(),
 		"source_field":            field.GetSourceField().GetValue(),
@@ -308,7 +308,7 @@ func metricLabelsHash() schema.SchemaSetFunc {
 	return schema.HashResource(metricLabels())
 }
 
-func flattenMetricLabels(labels []*logs2metricv2.MetricLabel) interface{} {
+func flattenMetricLabels(labels []*logs2metrics.MetricLabel) interface{} {
 	result := make([]interface{}, 0, len(labels))
 	for _, l := range labels {
 		label := flattenMetricLabel(l)
@@ -317,14 +317,14 @@ func flattenMetricLabels(labels []*logs2metricv2.MetricLabel) interface{} {
 	return result
 }
 
-func flattenMetricLabel(label *logs2metricv2.MetricLabel) interface{} {
+func flattenMetricLabel(label *logs2metrics.MetricLabel) interface{} {
 	return map[string]interface{}{
 		"target_label": label.GetTargetLabel().GetValue(),
 		"source_field": label.GetSourceField().GetValue(),
 	}
 }
 
-func flattenPermutations(permutations *logs2metricv2.L2MPermutations) interface{} {
+func flattenPermutations(permutations *logs2metrics.L2MPermutations) interface{} {
 	return []interface{}{map[string]interface{}{
 		"limit":            permutations.GetLimit(),
 		"has_exceed_limit": permutations.GetHasExceededLimit(),
@@ -332,7 +332,7 @@ func flattenPermutations(permutations *logs2metricv2.L2MPermutations) interface{
 	}
 }
 
-func flattenQuery(query *logs2metricv2.LogsQuery) interface{} {
+func flattenQuery(query *logs2metrics.LogsQuery) interface{} {
 	m := make(map[string]interface{})
 
 	lucene := query.GetLucene().GetValue()
@@ -358,10 +358,10 @@ func flattenQuery(query *logs2metricv2.LogsQuery) interface{} {
 	return []interface{}{m}
 }
 
-func flattenSeverities(severities []logs2metricv2.Severity) []string {
+func flattenSeverities(severities []logs2metrics.Severity) []string {
 	result := make([]string, 0, len(severities))
 	for _, s := range severities {
-		result = append(result, logs2metricv2.Severity_name[int32(s)])
+		result = append(result, logs2metrics.Severity_name[int32(s)])
 	}
 	return result
 }

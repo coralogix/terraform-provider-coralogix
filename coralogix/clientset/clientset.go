@@ -1,14 +1,15 @@
 package clientset
 
 type ClientSet struct {
-	ruleGroups        *RuleGroupsClient
-	alerts            *AlertsClient
-	logs2Metrics      *Logs2MetricsClient
-	enrichments       *EnrichmentsClient
-	dataSet           *DataSetClient
-	dashboards        *DashboardsClient
-	grafanaDashboards *GrafanaDashboardClient
-	actions           *ActionsClient
+	ruleGroups           *RuleGroupsClient
+	alerts               *AlertsClient
+	logs2Metrics         *Logs2MetricsClient
+	enrichments          *EnrichmentsClient
+	dataSet              *DataSetClient
+	dashboards           *DashboardsClient
+	grafanaDashboards    *GrafanaDashboardClient
+	actions              *ActionsClient
+	recordingRulesGroups *RecordingRulesGroupsClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -43,6 +44,10 @@ func (c *ClientSet) Actions() *ActionsClient {
 	return c.actions
 }
 
+func (c *ClientSet) RecordingRulesGroups() *RecordingRulesGroupsClient {
+	return c.recordingRulesGroups
+}
+
 func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 	_ = NewCallPropertiesCreator(targetUrl, teamsApiKey)
@@ -55,15 +60,17 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	dashboards := NewDashboardsClient(apikeyCPC)
 	grafanaDashboards := NewGrafanaClient(apikeyCPC)
 	actions := NewActionsClient(apikeyCPC)
+	recordingRulesGroups := NewRecordingRulesGroupsClient(apikeyCPC)
 
 	return &ClientSet{
-		ruleGroups:        ruleGroupsClient,
-		alerts:            alertsClient,
-		logs2Metrics:      logs2MetricsClient,
-		enrichments:       enrichmentClient,
-		dataSet:           dataSetClient,
-		dashboards:        dashboards,
-		grafanaDashboards: grafanaDashboards,
-		actions:           actions,
+		ruleGroups:           ruleGroupsClient,
+		alerts:               alertsClient,
+		logs2Metrics:         logs2MetricsClient,
+		enrichments:          enrichmentClient,
+		dataSet:              dataSetClient,
+		dashboards:           dashboards,
+		grafanaDashboards:    grafanaDashboards,
+		actions:              actions,
+		recordingRulesGroups: recordingRulesGroups,
 	}
 }

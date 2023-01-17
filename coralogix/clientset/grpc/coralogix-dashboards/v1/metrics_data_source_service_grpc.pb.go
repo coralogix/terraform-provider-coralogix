@@ -4,7 +4,7 @@
 // - protoc             v3.21.8
 // source: com/coralogixapis/dashboards/v1/services/metrics_data_source_service.proto
 
-package __
+package v1
 
 import (
 	context "context"

@@ -12,6 +12,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.20.0
 	google.golang.org/grpc v1.48.0
 	google.golang.org/protobuf v1.28.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

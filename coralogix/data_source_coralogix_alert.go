@@ -4,12 +4,11 @@ import (
 	"context"
 	"log"
 
-	"terraform-provider-coralogix/coralogix/clientset"
-	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/alerts/v1"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	"terraform-provider-coralogix/coralogix/clientset"
+	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v1"
 )
 
 func dataSourceCoralogixAlert() *schema.Resource {

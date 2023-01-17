@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/enrichment/v1"
+	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 )
 
 var validEnrichmentTypes = []string{"geo_ip", "suspicious_ip", "aws", "custom"}
@@ -179,7 +179,7 @@ func resourceCoralogixEnrichmentCreate(ctx context.Context, d *schema.ResourceDa
 func resourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	enrichmentType, customId := extractEnrichmentTypeAndCustomId(d)
 	log.Print("[INFO] Reading enrichment")
-	var enrichmentResp []*enrichmentv1.Enrichment
+	var enrichmentResp []*enrichment.Enrichment
 	var err error
 	if customId == "" {
 		enrichmentResp, err = meta.(*clientset.ClientSet).Enrichments().GetEnrichmentsByType(ctx, enrichmentType)
@@ -262,7 +262,7 @@ func resourceCoralogixEnrichmentDelete(ctx context.Context, d *schema.ResourceDa
 	return nil
 }
 
-func extractEnrichmentRequest(d *schema.ResourceData) ([]*enrichmentv1.EnrichmentRequestModel, string, error) {
+func extractEnrichmentRequest(d *schema.ResourceData) ([]*enrichment.EnrichmentRequestModel, string, error) {
 	if geoIp := d.Get("geo_ip").([]interface{}); len(geoIp) != 0 {
 		return expandGeoIp(geoIp[0]), "geo_ip", nil
 	}
@@ -280,7 +280,7 @@ func extractEnrichmentRequest(d *schema.ResourceData) ([]*enrichmentv1.Enrichmen
 	return nil, "", fmt.Errorf("not valid enrichment")
 }
 
-func setEnrichment(d *schema.ResourceData, enrichmentType string, enrichments []*enrichmentv1.Enrichment) diag.Diagnostics {
+func setEnrichment(d *schema.ResourceData, enrichmentType string, enrichments []*enrichment.Enrichment) diag.Diagnostics {
 	var flattenedEnrichment interface{}
 	switch enrichmentType {
 	case "aws":
@@ -312,12 +312,12 @@ func setEnrichment(d *schema.ResourceData, enrichmentType string, enrichments []
 	return nil
 }
 
-func flattenAwsEnrichment(enrichments []*enrichmentv1.Enrichment) interface{} {
+func flattenAwsEnrichment(enrichments []*enrichment.Enrichment) interface{} {
 	result := schema.NewSet(hashAwsFields(), []interface{}{})
 	for _, e := range enrichments {
 		m := map[string]interface{}{
 			"name":     e.GetFieldName(),
-			"resource": e.GetEnrichmentType().GetType().(*enrichmentv1.EnrichmentType_Aws).Aws.GetResourceType().GetValue(),
+			"resource": e.GetEnrichmentType().GetType().(*enrichment.EnrichmentType_Aws).Aws.GetResourceType().GetValue(),
 			"id":       int(e.GetId()),
 		}
 		result.Add(m)
@@ -325,7 +325,7 @@ func flattenAwsEnrichment(enrichments []*enrichmentv1.Enrichment) interface{} {
 	return result
 }
 
-func flattenEnrichment(enrichments []*enrichmentv1.Enrichment) interface{} {
+func flattenEnrichment(enrichments []*enrichment.Enrichment) interface{} {
 	result := schema.NewSet(hashFields(), []interface{}{})
 	for _, e := range enrichments {
 		m := map[string]interface{}{
@@ -337,18 +337,18 @@ func flattenEnrichment(enrichments []*enrichmentv1.Enrichment) interface{} {
 	return result
 }
 
-func expandGeoIp(v interface{}) []*enrichmentv1.EnrichmentRequestModel {
+func expandGeoIp(v interface{}) []*enrichment.EnrichmentRequestModel {
 	m := v.(map[string]interface{})
 	fields := m["fields"].(*schema.Set).List()
-	result := make([]*enrichmentv1.EnrichmentRequestModel, 0, len(fields))
+	result := make([]*enrichment.EnrichmentRequestModel, 0, len(fields))
 
 	for _, field := range fields {
 		fieldName := wrapperspb.String(field.(map[string]interface{})["name"].(string))
-		e := &enrichmentv1.EnrichmentRequestModel{
+		e := &enrichment.EnrichmentRequestModel{
 			FieldName: fieldName,
-			EnrichmentType: &enrichmentv1.EnrichmentType{
-				Type: &enrichmentv1.EnrichmentType_GeoIp{
-					GeoIp: &enrichmentv1.GeoIpType{},
+			EnrichmentType: &enrichment.EnrichmentType{
+				Type: &enrichment.EnrichmentType_GeoIp{
+					GeoIp: &enrichment.GeoIpType{},
 				},
 			},
 		}
@@ -358,18 +358,18 @@ func expandGeoIp(v interface{}) []*enrichmentv1.EnrichmentRequestModel {
 	return result
 }
 
-func expandSuspiciousIp(v interface{}) []*enrichmentv1.EnrichmentRequestModel {
+func expandSuspiciousIp(v interface{}) []*enrichment.EnrichmentRequestModel {
 	m := v.(map[string]interface{})
 	fields := m["fields"].(*schema.Set).List()
-	result := make([]*enrichmentv1.EnrichmentRequestModel, 0, len(fields))
+	result := make([]*enrichment.EnrichmentRequestModel, 0, len(fields))
 
 	for _, field := range fields {
 		fieldName := wrapperspb.String(field.(map[string]interface{})["name"].(string))
-		e := &enrichmentv1.EnrichmentRequestModel{
+		e := &enrichment.EnrichmentRequestModel{
 			FieldName: fieldName,
-			EnrichmentType: &enrichmentv1.EnrichmentType{
-				Type: &enrichmentv1.EnrichmentType_SuspiciousIp{
-					SuspiciousIp: &enrichmentv1.SuspiciousIpType{},
+			EnrichmentType: &enrichment.EnrichmentType{
+				Type: &enrichment.EnrichmentType_SuspiciousIp{
+					SuspiciousIp: &enrichment.SuspiciousIpType{},
 				},
 			},
 		}
@@ -379,21 +379,21 @@ func expandSuspiciousIp(v interface{}) []*enrichmentv1.EnrichmentRequestModel {
 	return result
 }
 
-func expandAws(v interface{}) []*enrichmentv1.EnrichmentRequestModel {
+func expandAws(v interface{}) []*enrichment.EnrichmentRequestModel {
 	m := v.(map[string]interface{})
 	fields := m["fields"].(*schema.Set).List()
-	result := make([]*enrichmentv1.EnrichmentRequestModel, 0, len(fields))
+	result := make([]*enrichment.EnrichmentRequestModel, 0, len(fields))
 
 	for _, field := range fields {
 		m := field.(map[string]interface{})
 		fieldName := wrapperspb.String(m["name"].(string))
 		resourceType := wrapperspb.String(m["resource_type"].(string))
 
-		e := &enrichmentv1.EnrichmentRequestModel{
+		e := &enrichment.EnrichmentRequestModel{
 			FieldName: fieldName,
-			EnrichmentType: &enrichmentv1.EnrichmentType{
-				Type: &enrichmentv1.EnrichmentType_Aws{
-					Aws: &enrichmentv1.AwsType{
+			EnrichmentType: &enrichment.EnrichmentType{
+				Type: &enrichment.EnrichmentType_Aws{
+					Aws: &enrichment.AwsType{
 						ResourceType: resourceType,
 					},
 				},
@@ -405,22 +405,22 @@ func expandAws(v interface{}) []*enrichmentv1.EnrichmentRequestModel {
 	return result
 }
 
-func expandCustom(v interface{}) ([]*enrichmentv1.EnrichmentRequestModel, string) {
+func expandCustom(v interface{}) ([]*enrichment.EnrichmentRequestModel, string) {
 	m := v.(map[string]interface{})
 	fields := m["fields"].(*schema.Set).List()
 	uintId := uint32(m["custom_enrichment_id"].(int))
 	id := wrapperspb.UInt32(uintId)
-	result := make([]*enrichmentv1.EnrichmentRequestModel, 0, len(fields))
+	result := make([]*enrichment.EnrichmentRequestModel, 0, len(fields))
 
 	for _, field := range fields {
 		m := field.(map[string]interface{})
 		fieldName := wrapperspb.String(m["name"].(string))
 
-		e := &enrichmentv1.EnrichmentRequestModel{
+		e := &enrichment.EnrichmentRequestModel{
 			FieldName: fieldName,
-			EnrichmentType: &enrichmentv1.EnrichmentType{
-				Type: &enrichmentv1.EnrichmentType_CustomEnrichment{
-					CustomEnrichment: &enrichmentv1.CustomEnrichmentType{
+			EnrichmentType: &enrichment.EnrichmentType{
+				Type: &enrichment.EnrichmentType_CustomEnrichment{
+					CustomEnrichment: &enrichment.CustomEnrichmentType{
 						Id: id,
 					},
 				},

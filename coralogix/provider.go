@@ -40,7 +40,7 @@ func Provider() *schema.Provider {
 				Sensitive:    true,
 				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"CORALOGIX_API_KEY"}, nil),
 				ValidateFunc: validation.IsUUID,
-				Description:  "A key for alerts, rules and tags APIs (Auto Generated), appropriate for the defined environment.",
+				Description:  "A key for alerts, rules-groups and tags APIs (Auto Generated), appropriate for the defined environment.",
 				AtLeastOneOf: []string{"api_key", "teams_api_key"},
 			},
 			"teams_api_key": {
@@ -66,14 +66,15 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"coralogix_rules_group":      resourceCoralogixRulesGroup(),
-			"coralogix_alert":            resourceCoralogixAlert(),
-			"coralogix_logs2metric":      resourceCoralogixLogs2Metric(),
-			"coralogix_enrichment":       resourceCoralogixEnrichment(),
-			"coralogix_data_set":         resourceCoralogixDataSet(),
-			"coralogix_dashboard":        resourceCoralogixDashboard(),
-			"coralogix_hosted_dashboard": resourceCoralogixHostedDashboard(),
-			"coralogix_action":           resourceCoralogixAction(),
+			"coralogix_rules_group":           resourceCoralogixRulesGroup(),
+			"coralogix_alert":                 resourceCoralogixAlert(),
+			"coralogix_logs2metric":           resourceCoralogixLogs2Metric(),
+			"coralogix_enrichment":            resourceCoralogixEnrichment(),
+			"coralogix_data_set":              resourceCoralogixDataSet(),
+			"coralogix_dashboard":             resourceCoralogixDashboard(),
+			"coralogix_hosted_dashboard":      resourceCoralogixHostedDashboard(),
+			"coralogix_action":                resourceCoralogixAction(),
+			"coralogix_recording_rules_group": resourceCoralogixRecordingRulesGroup(),
 		},
 
 		ConfigureContextFunc: func(context context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {

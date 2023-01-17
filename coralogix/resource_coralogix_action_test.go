@@ -10,8 +10,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	actionsv2 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/actions/v2"
+	actionsv2 "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
 )
+
+var actionResourceName = "coralogix_action.test"
 
 type actionTestParams struct {
 	name, url, sourceType    string
@@ -20,8 +22,6 @@ type actionTestParams struct {
 }
 
 func TestAccCoralogixResourceAction(t *testing.T) {
-	resourceName := "coralogix_action.test"
-
 	action := actionTestParams{
 		name:         "google search action",
 		url:          "https://www.google.com/",
@@ -50,31 +50,31 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceAction(action),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "name", action.name),
-					resource.TestCheckResourceAttr(resourceName, "url", action.url),
-					resource.TestCheckResourceAttr(resourceName, "source_type", action.sourceType),
-					resource.TestCheckResourceAttr(resourceName, "applications.0", action.applications[0]),
-					resource.TestCheckResourceAttr(resourceName, "subsystems.0", action.subsystems[0]),
-					resource.TestCheckResourceAttr(resourceName, "is_private", fmt.Sprintf("%t", action.isPrivate)),
-					resource.TestCheckResourceAttr(resourceName, "is_hidden", fmt.Sprintf("%t", action.isHidden)),
+					resource.TestCheckResourceAttrSet(actionResourceName, "id"),
+					resource.TestCheckResourceAttr(actionResourceName, "name", action.name),
+					resource.TestCheckResourceAttr(actionResourceName, "url", action.url),
+					resource.TestCheckResourceAttr(actionResourceName, "source_type", action.sourceType),
+					resource.TestCheckResourceAttr(actionResourceName, "applications.0", action.applications[0]),
+					resource.TestCheckResourceAttr(actionResourceName, "subsystems.0", action.subsystems[0]),
+					resource.TestCheckResourceAttr(actionResourceName, "is_private", fmt.Sprintf("%t", action.isPrivate)),
+					resource.TestCheckResourceAttr(actionResourceName, "is_hidden", fmt.Sprintf("%t", action.isHidden)),
 				),
 			},
 			{
-				ResourceName: resourceName,
+				ResourceName: actionResourceName,
 				ImportState:  true,
 			},
 			{
 				Config: testAccCoralogixResourceAction(updatedAction),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "name", updatedAction.name),
-					resource.TestCheckResourceAttr(resourceName, "url", updatedAction.url),
-					resource.TestCheckResourceAttr(resourceName, "source_type", updatedAction.sourceType),
-					resource.TestCheckResourceAttr(resourceName, "applications.0", updatedAction.applications[0]),
-					resource.TestCheckResourceAttr(resourceName, "subsystems.0", updatedAction.subsystems[0]),
-					resource.TestCheckResourceAttr(resourceName, "is_private", fmt.Sprintf("%t", updatedAction.isPrivate)),
-					resource.TestCheckResourceAttr(resourceName, "is_hidden", fmt.Sprintf("%t", updatedAction.isHidden)),
+					resource.TestCheckResourceAttrSet(actionResourceName, "id"),
+					resource.TestCheckResourceAttr(actionResourceName, "name", updatedAction.name),
+					resource.TestCheckResourceAttr(actionResourceName, "url", updatedAction.url),
+					resource.TestCheckResourceAttr(actionResourceName, "source_type", updatedAction.sourceType),
+					resource.TestCheckResourceAttr(actionResourceName, "applications.0", updatedAction.applications[0]),
+					resource.TestCheckResourceAttr(actionResourceName, "subsystems.0", updatedAction.subsystems[0]),
+					resource.TestCheckResourceAttr(actionResourceName, "is_private", fmt.Sprintf("%t", updatedAction.isPrivate)),
+					resource.TestCheckResourceAttr(actionResourceName, "is_hidden", fmt.Sprintf("%t", updatedAction.isHidden)),
 				),
 			},
 		},

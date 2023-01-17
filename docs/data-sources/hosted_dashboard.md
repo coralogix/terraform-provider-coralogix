@@ -24,7 +24,7 @@ data "coralogix_hosted_dashboard" imported_dashboard {
 
 ### Required
 
-- `uid` (String) The unique identifier of a dashboard with the dashboard-type prefix (e.g. - grafana:vgvvfknr)
+- `uid` (String) The unique identifier of a dashboard with the dashboard-type prefix (e.r. - grafana:vgvvfknr)
 
 ### Read-Only
 

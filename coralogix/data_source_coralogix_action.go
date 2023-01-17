@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	actionsv2 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/actions/v2"
+	actionsv2 "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
 )
 
 func dataSourceCoralogixAction() *schema.Resource {
