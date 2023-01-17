@@ -55,14 +55,15 @@ func Provider() *schema.Provider {
 		},
 
 		DataSourcesMap: map[string]*schema.Resource{
-			"coralogix_rules_group":      dataSourceCoralogixRulesGroup(),
-			"coralogix_alert":            dataSourceCoralogixAlert(),
-			"coralogix_logs2metric":      dataSourceCoralogixLogs2Metric(),
-			"coralogix_enrichment":       dataSourceCoralogixEnrichment(),
-			"coralogix_data_set":         dataSourceCoralogixDataSet(),
-			"coralogix_dashboard":        dataSourceCoralogixDashboard(),
-			"coralogix_hosted_dashboard": dataSourceCoralogixHostedDashboard(),
-			"coralogix_action":           dataSourceCoralogixAction(),
+			"coralogix_rules_group":           dataSourceCoralogixRulesGroup(),
+			"coralogix_alert":                 dataSourceCoralogixAlert(),
+			"coralogix_logs2metric":           dataSourceCoralogixLogs2Metric(),
+			"coralogix_enrichment":            dataSourceCoralogixEnrichment(),
+			"coralogix_data_set":              dataSourceCoralogixDataSet(),
+			"coralogix_dashboard":             dataSourceCoralogixDashboard(),
+			"coralogix_hosted_dashboard":      dataSourceCoralogixHostedDashboard(),
+			"coralogix_action":                dataSourceCoralogixAction(),
+			"coralogix_recording_rules_group": dataSourceCoralogixRecordingRulesGroup(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{

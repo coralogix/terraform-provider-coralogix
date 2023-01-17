@@ -24,7 +24,7 @@ func (r RecordingRulesGroupsClient) UpdateRecordingRuleRules(ctx context.Context
 }
 
 func (r RecordingRulesGroupsClient) DeleteRecordingRuleRules(ctx context.Context) error {
-	_, err := r.client.Delete(ctx, "/metrics/rule-groups")
+	_, err := r.client.Put(ctx, "/metrics/rule-groups", "application/yaml", "groups: []")
 	return err
 }
 

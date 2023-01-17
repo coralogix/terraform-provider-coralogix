@@ -658,7 +658,7 @@ func standardSchema() map[string]*schema.Schema {
 					Optional: true,
 					ConflictsWith: []string{"standard.0.condition.0.immediately",
 						"standard.0.condition.0.more_than", "standard.0.condition.0.less_than"},
-					Description: "The key to 'group by' on.",
+					Description: "The key to 'group by' on. When more_than_usual = true, 'group_by_key' (single string) can be set instead of 'group_by'.",
 				},
 				"manage_undetected_values": {
 					Type:     schema.TypeList,
