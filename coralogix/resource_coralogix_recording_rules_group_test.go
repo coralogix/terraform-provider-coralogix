@@ -76,31 +76,31 @@ func testAccCheckRecordingRulesGroupsDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceRecordingRulesGroupsFromYaml(filePath string) string {
-	return fmt.Sprintf(`resource "coralogix_recording_rules_group" "test" {
-  	yaml_content = file("%s")
-}
-`,
-		filePath)
+	return fmt.Sprintf(
+		`resource "coralogix_recording_rules_group" "test" {
+					yaml_content = file("%s")
+				}
+`, filePath)
 }
 
 func testAccCoralogixResourceRecordingRulesGroupsExplicit() string {
 	return `resource "coralogix_recording_rules_group" "test" {
-  		groups {
-    name     = "Foo"
-    interval = 180
-    rules {
-      record = "ts3db_live_ingester_write_latency:3m"
-      expr   = "sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\"staging\",pod=~\"ts3db-live-ingester.*\"}[2m])) by (pod)"
-    }
-  }
-  groups {
-    name     = "Bar"
-    interval = 60
-    rules {
-      record = "job:http_requests_total:sum"
-      expr = "sum(rate(http_requests_total[5m])) by (job)"
-    }
-  }
-}
+  				groups {
+					name     = "Foo"
+    				interval = 180
+    				rules {
+      					record = "ts3db_live_ingester_write_latency:3m"
+      					expr   = "sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\"staging\",pod=~\"ts3db-live-ingester.*\"}[2m])) by (pod)"
+    				}
+  				}
+  				groups {
+   					name     = "Bar"
+    			    interval = 60
+    				rules {
+      					record = "job:http_requests_total:sum"
+      					expr = "sum(rate(http_requests_total[5m])) by (job)"
+    				}
+  				}
+	}
 `
 }
