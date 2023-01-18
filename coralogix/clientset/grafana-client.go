@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	gapi "github.com/grafana/grafana-api-golang-client"
 	"terraform-provider-coralogix/coralogix/clientset/rest"
+
+	gapi "github.com/grafana/grafana-api-golang-client"
 )
 
 type GrafanaDashboardClient struct {
@@ -21,7 +22,7 @@ func (g GrafanaDashboardClient) CreateGrafanaDashboard(ctx context.Context, dash
 		return nil, err
 	}
 
-	bodyResp, err := g.client.Post(ctx, "/grafana/api/dashboards/db", string(body))
+	bodyResp, err := g.client.Post(ctx, "/grafana/api/dashboards/db", "application/json", string(body))
 	if err != nil {
 		return nil, err
 	}

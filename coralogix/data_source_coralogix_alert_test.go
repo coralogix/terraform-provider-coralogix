@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+var alertDataSourceName = "data." + alertResourceName
+
 func TestAccCoralogixDataSourceAlert_basic(t *testing.T) {
 	alert := standardAlertTestParams{
 		alertCommonTestParams: *getRandomAlert(),
@@ -24,7 +26,7 @@ func TestAccCoralogixDataSourceAlert_basic(t *testing.T) {
 				Config: testAccCoralogixResourceAlertStandard(&alert) +
 					testAccCoralogixDataSourceAlert_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.coralogix_alert.test", "name", alert.name),
+					resource.TestCheckResourceAttr(alertDataSourceName, "name", alert.name),
 				),
 			},
 		},

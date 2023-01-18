@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/alerts/v1"
+	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v1"
 
 	"github.com/hashicorp/go-cty/cty"
 

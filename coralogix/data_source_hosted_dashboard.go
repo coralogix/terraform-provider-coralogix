@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"strings"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 func dataSourceCoralogixHostedDashboard() *schema.Resource {
@@ -84,9 +85,6 @@ func dataSourceHostedDashboardRead(ctx context.Context, d *schema.ResourceData, 
 	default:
 		return diag.Errorf("unknown hosted-dashboard type %s", hostedDashboardTypeStr)
 	}
-
-	return nil
-
 }
 
 func extractDashboardTypeAndUIDFromID(uid string) (string, string) {
@@ -96,6 +94,9 @@ func extractDashboardTypeAndUIDFromID(uid string) (string, string) {
 
 func dataSourceHostedGrafanaDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}, uid string) diag.Diagnostics {
 	dashboard, err := meta.(*clientset.ClientSet).GrafanaDashboards().GetGrafanaDashboard(ctx, uid)
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	d.SetId("grafana:" + dashboard.Model["uid"].(string))
 	hostedGrafanaNewSchema := make(map[string]interface{})
@@ -112,6 +113,9 @@ func dataSourceHostedGrafanaDashboardRead(ctx context.Context, d *schema.Resourc
 	hostedGrafanaNewSchema["is_starred"] = dashboard.Meta.IsStarred
 	hostedGrafanaNewSchema["url"] = strings.TrimRight(meta.(*clientset.ClientSet).GrafanaDashboards().GetTargetURL(), "/") + dashboard.Meta.URL
 
-	d.Set("grafana", []interface{}{hostedGrafanaNewSchema})
+	if err = d.Set("grafana", []interface{}{hostedGrafanaNewSchema}); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return nil
 }

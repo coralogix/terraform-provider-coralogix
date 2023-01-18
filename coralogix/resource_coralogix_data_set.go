@@ -10,12 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/enrichment/v1"
 )
 
 var fileContentLimit = int(1e6)
@@ -140,7 +141,7 @@ func setModificationTimeUploaded(d *schema.ResourceData, uploadedFile interface{
 
 func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
-	req := &enrichmentv1.GetCustomEnrichmentRequest{Id: wrapperspb.UInt32(strToUint32(id))}
+	req := &enrichment.GetCustomEnrichmentRequest{Id: wrapperspb.UInt32(strToUint32(id))}
 
 	log.Print("[INFO] Reading enrichment-data")
 	DataSetResp, err := meta.(*clientset.ClientSet).DataSet().GetDataSet(ctx, req)
@@ -177,7 +178,7 @@ func resourceCoralogixDataSetUpdate(ctx context.Context, d *schema.ResourceData,
 
 func resourceCoralogixDataSetDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
-	req := &enrichmentv1.DeleteCustomEnrichmentRequest{CustomEnrichmentId: wrapperspb.UInt32(strToUint32(id))}
+	req := &enrichment.DeleteCustomEnrichmentRequest{CustomEnrichmentId: wrapperspb.UInt32(strToUint32(id))}
 
 	log.Printf("[INFO] Deleting enrichment-data %s\n", id)
 	_, err := meta.(*clientset.ClientSet).DataSet().DeleteDataSet(ctx, req)
@@ -192,7 +193,7 @@ func resourceCoralogixDataSetDelete(ctx context.Context, d *schema.ResourceData,
 	return nil
 }
 
-func setDataSet(d *schema.ResourceData, c *enrichmentv1.CustomEnrichment) diag.Diagnostics {
+func setDataSet(d *schema.ResourceData, c *enrichment.CustomEnrichment) diag.Diagnostics {
 	if err := d.Set("name", c.Name); err != nil {
 		return diag.FromErr(err)
 	}
@@ -216,12 +217,12 @@ func setDataSet(d *schema.ResourceData, c *enrichmentv1.CustomEnrichment) diag.D
 	return nil
 }
 
-func expandDataSetRequest(d *schema.ResourceData) (*enrichmentv1.CreateCustomEnrichmentRequest, string, error) {
+func expandDataSetRequest(d *schema.ResourceData) (*enrichment.CreateCustomEnrichmentRequest, string, error) {
 	name, description, file, modificationTime, err := expandEnrichmentReq(d)
 	if err != nil {
 		return nil, "", err
 	}
-	req := &enrichmentv1.CreateCustomEnrichmentRequest{
+	req := &enrichment.CreateCustomEnrichmentRequest{
 		Name:        name,
 		Description: description,
 		File:        file,
@@ -229,13 +230,13 @@ func expandDataSetRequest(d *schema.ResourceData) (*enrichmentv1.CreateCustomEnr
 	return req, modificationTime, nil
 }
 
-func expandUpdateDataSetRequest(d *schema.ResourceData) (*enrichmentv1.UpdateCustomEnrichmentRequest, string, error) {
+func expandUpdateDataSetRequest(d *schema.ResourceData) (*enrichment.UpdateCustomEnrichmentRequest, string, error) {
 	customEnrichmentId := wrapperspb.UInt32(strToUint32(d.Id()))
 	name, description, file, modificationTime, err := expandEnrichmentReq(d)
 	if err != nil {
 		return nil, "", err
 	}
-	req := &enrichmentv1.UpdateCustomEnrichmentRequest{
+	req := &enrichment.UpdateCustomEnrichmentRequest{
 		CustomEnrichmentId: customEnrichmentId,
 		Name:               name,
 		Description:        description,
@@ -244,23 +245,23 @@ func expandUpdateDataSetRequest(d *schema.ResourceData) (*enrichmentv1.UpdateCus
 	return req, modificationTime, nil
 }
 
-func expandEnrichmentReq(d *schema.ResourceData) (*wrapperspb.StringValue, *wrapperspb.StringValue, *enrichmentv1.File, string, error) {
+func expandEnrichmentReq(d *schema.ResourceData) (*wrapperspb.StringValue, *wrapperspb.StringValue, *enrichment.File, string, error) {
 	name := wrapperspb.String(d.Get("name").(string))
 	description := wrapperspb.String(d.Get("description").(string))
 	file, modificationTime, err := expandFileAndModificationTime(d)
 	return name, description, file, modificationTime, err
 }
 
-func expandFileAndModificationTime(d *schema.ResourceData) (*enrichmentv1.File, string, error) {
+func expandFileAndModificationTime(d *schema.ResourceData) (*enrichment.File, string, error) {
 	fileContent, modificationTime, err := expandFileContent(d)
 	if err != nil {
 		return nil, modificationTime, err
 	}
 
-	return &enrichmentv1.File{
+	return &enrichment.File{
 		Name:      wrapperspb.String(" "),
 		Extension: wrapperspb.String("csv"),
-		Content:   &enrichmentv1.File_Textual{Textual: wrapperspb.String(fileContent)},
+		Content:   &enrichment.File_Textual{Textual: wrapperspb.String(fileContent)},
 	}, modificationTime, nil
 }
 

@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+var actionDataSourceName = "data." + actionResourceName
+
 func TestAccCoralogixDataSourceAction(t *testing.T) {
 	action := actionTestParams{
 		name:         acctest.RandomWithPrefix("tf-acc-test"),
@@ -27,7 +29,7 @@ func TestAccCoralogixDataSourceAction(t *testing.T) {
 				Config: testAccCoralogixResourceAction(action) +
 					testAccCoralogixAction_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.coralogix_action.test", "name", action.name),
+					resource.TestCheckResourceAttr(actionDataSourceName, "name", action.name),
 				),
 			},
 		},

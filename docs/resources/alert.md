@@ -4,8 +4,7 @@
 
 page_title: "coralogix_alert Resource - terraform-provider-coralogix"
 subcategory: ""
-description: "Coralogix alert. Api-key is required for this resource. More info: https://coralogix.com/docs/alerts-api/
-."
+description: "Coralogix alert. Api-key is required for this resource. More info: https://coralogix.com/docs/alerts-api/."
 ---
 
 # coralogix_alert (Resource)
@@ -729,7 +728,6 @@ Optional:
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
 
 <a id="nestedblock--ratio--condition--manage_undetected_values"></a>
-
 ### Nested Schema for `ratio.condition.manage_undetected_values`
 
 Optional:
@@ -828,13 +826,12 @@ Optional:
   filter:contains:xxx
 
 <a id="nestedblock--standard--condition"></a>
-
 ### Nested Schema for `standard.condition`
 
 Optional:
 
 - `group_by` (List of String) The fields to 'group by' on.
-- `group_by_key` (String) The key to 'group by' on.
+- `group_by_key` (String) The key to 'group by' on. When more_than_usual = true, 'group_by_key' (single string) can be set instead of 'group_by'.
 - `immediately` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
   more_than_usual.
 - `less_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
