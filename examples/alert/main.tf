@@ -288,7 +288,7 @@ resource "coralogix_alert" "tracing_alert" {
   alert_severity = "Info"
 
   notification {
-    //on_trigger_and_resolved = true
+    on_trigger_and_resolved = true
     recipients {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
