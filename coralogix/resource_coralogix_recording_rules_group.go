@@ -168,9 +168,7 @@ func resourceCoralogixRecordingRulesGroupDelete(ctx context.Context, d *schema.R
 
 func setRecordingRulesGroups(d *schema.ResourceData, yamlResp string) diag.Diagnostics {
 	var groups recordingRulesGroups
-
 	if err := yaml.Unmarshal([]byte(yamlResp), &groups.Groups); err != nil {
-		panic(fmt.Sprint(groups))
 		return diag.FromErr(err)
 	}
 
@@ -223,6 +221,7 @@ func RecordingRulesGroup() map[string]*schema.Schema {
 			Type:         schema.TypeString,
 			Optional:     true,
 			ExactlyOneOf: []string{"yaml_content", "groups"},
+			ValidateFunc: validateRecordingRulesGroupYamlContent,
 		},
 		"groups": {
 			Type:     schema.TypeSet,
@@ -232,6 +231,16 @@ func RecordingRulesGroup() map[string]*schema.Schema {
 			Set:      hashRecordingRulesGroups(),
 		},
 	}
+}
+
+func validateRecordingRulesGroupYamlContent(config interface{}, _ string) ([]string, []error) {
+	var groups recordingRulesGroups
+	if err := yaml.Unmarshal([]byte(config.(string)), &groups); err != nil {
+		return nil, []error{err}
+	} else if len(groups.Groups) == 0 {
+		return nil, []error{fmt.Errorf("couldn't load rcording-rule-groups from yaml_content")}
+	}
+	return nil, nil
 }
 
 func recordingRulesGroupsSchema() *schema.Resource {
