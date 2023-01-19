@@ -313,7 +313,7 @@ resource "coralogix_alert" "tracing_alert" {
   alert_severity = "Info"
 
   notification {
-    //on_trigger_and_resolved = true
+    on_trigger_and_resolved = true
     recipients {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
@@ -830,7 +830,7 @@ Optional:
 
 Optional:
 
-- `group_by` (List of String) The fields to 'group by' on.
+- `group_by` (List of String) The fields to 'group by' on. In case of immediately = true switch to group_by_key.
 - `group_by_key` (String) The key to 'group by' on. When more_than_usual = true, 'group_by_key' (single string) can be set instead of 'group_by'.
 - `immediately` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
   more_than_usual.

@@ -8,6 +8,11 @@ description: "Coralogix data-set. Api-key is required for this resource. More in
 
 # coralogix_data_set (Resource)
 
+Coralogix data-set.
+Api-key is required for this resource.
+More info: https://coralogix.com/blog/elevate-your-event-data-with-custom-data-enrichment-in-coralogix/
+
+
 ## Example Usage
 
 ### With file content

@@ -463,6 +463,7 @@ func extractTimeRelativeChecks(alert timeRelativeAlertTestParams) []resource.Tes
 	checks := extractCommonChecks(&alert.alertCommonTestParams, "time_relative")
 	checks = append(checks,
 		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.on_trigger_and_resolved", "true"),
 		resource.TestCheckResourceAttr(alertResourceName, "time_relative.0.condition.0.ratio_threshold", strconv.Itoa(alert.ratioThreshold)),
 		resource.TestCheckResourceAttr(alertResourceName, "time_relative.0.condition.0.relative_time_window", alert.relativeTimeWindow),
 		resource.TestCheckResourceAttr(alertResourceName, "time_relative.0.condition.0.group_by.0", alert.groupBy[0]),
@@ -806,6 +807,7 @@ func testAccCoralogixResourceAlertTimeRelative(a *timeRelativeAlertTestParams) s
     }
     notify_every_min = %d
 	notify_only_on_triggered_group_by_values = true
+    on_trigger_and_resolved = true
   }
 
   scheduling {

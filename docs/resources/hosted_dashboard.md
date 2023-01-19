@@ -7,6 +7,9 @@ description: "Hosted dashboard. Can be one of - ["grafana"]."
 
 # coralogix_hosted_dashboard (Resource)
 
+Hosted dashboard.
+Can be one of - ["grafana"].
+Api-key is required for this resource.
 ## Example Usage
 
 ```hcl

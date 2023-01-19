@@ -273,7 +273,7 @@ func AlertSchema() map[string]*schema.Schema {
 					"on_trigger_and_resolved": {
 						Type:          schema.TypeBool,
 						Optional:      true,
-						ConflictsWith: []string{"new_value", "unique_count", "time_relative", "flow", "standard.0.condition.0.immediately", "standard.0.condition.0.more_than_usual"},
+						ConflictsWith: []string{"new_value", "unique_count", "flow", "standard.0.condition.0.immediately", "standard.0.condition.0.more_than_usual"},
 					},
 					"ignore_infinity": {
 						Type:          schema.TypeBool,
@@ -652,7 +652,7 @@ func standardSchema() map[string]*schema.Schema {
 					},
 					ConflictsWith: []string{"standard.0.condition.0.immediately",
 						"standard.0.condition.0.more_than_usual"},
-					Description: "The fields to 'group by' on.",
+					Description: "The fields to 'group by' on. In case of immediately = true switch to group_by_key.",
 				},
 				"group_by_key": {
 					Type:     schema.TypeString,
