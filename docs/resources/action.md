@@ -7,6 +7,11 @@ description: "Coralogix action. Api-key is required for this resource. For more 
 
 # coralogix_action (Resource)
 
+Coralogix action.
+Api-key is required for this resource.
+For more info please review - https://coralogix.com/docs/coralogix-action-extension/.
+
+
 ## Example Usage
 
 ```hcl

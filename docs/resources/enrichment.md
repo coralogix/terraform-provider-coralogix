@@ -9,6 +9,10 @@ description: "Coralogix enrichment. Api-key is required for this resource. More 
 ---
 
 # coralogix_enrichment (Resource)
+Coralogix enrichment.
+Api-key is required for this resource.
+More info: https://coralogix.com/docs/threat-discovery/
+
 
 ## Example Usage
 

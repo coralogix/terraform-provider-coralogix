@@ -9,6 +9,8 @@ description:"Coralogix Dashboard. Api-key is required for this resource."
 
 # coralogix_dashboard (Resource)
 
+Coralogix Dashboard.
+Api-key is required for this resource.
 *Note:* This resource is still in beta and may contain breaking changes later.
 
 ## Example Usage

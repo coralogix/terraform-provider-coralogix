@@ -7,7 +7,11 @@ description: "Coralogix recording-rules-groups-group. Api-key is required for th
 
 # coralogix_recording_rules_group (Resource)
 
-***Please note!*** - all the recording-rule-groups are manged as single resource. Therefore, each definition of recording-rule-groups replaces the entire state. This API is currently in alpha and will be change later.
+Coralogix recording-rules-groups-group.
+Api-key is required for this resource.
+For more information - https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/#recording-rules.
+***Please note!*** - all the recording-rule-groups are manged as single resource. Therefore, each definition of recording-rule-groups replaces the entire state.
+This API is currently in alpha and will be change later.
 
 ## Example Usages
 
