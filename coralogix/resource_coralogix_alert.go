@@ -127,7 +127,7 @@ var (
 	}
 	alertProtoTracingFilterFieldToSchemaTracingFilterField = reverseMapStrings(alertSchemaTracingFilterFieldToProtoTracingFilterField)
 	alertValidTracingFilterField                           = getKeysStrings(alertSchemaTracingFilterFieldToProtoTracingFilterField)
-	alertValidFlowOperator                                 = getKeysInt(alerts.FlowOperator_value)
+	alertValidFlowOperator                                 = getKeysInt32(alerts.FlowOperator_value)
 	alertSchemaMetricTimeFrameToMetricProtoTimeFrame       = map[string]string{
 		"1Min":  "TIMEFRAME_1_MIN",
 		"5Min":  "TIMEFRAME_5_MIN_OR_UNSPECIFIED",

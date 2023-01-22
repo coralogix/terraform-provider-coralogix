@@ -76,6 +76,7 @@ func Provider() *schema.Provider {
 			"coralogix_hosted_dashboard":      resourceCoralogixHostedDashboard(),
 			"coralogix_action":                resourceCoralogixAction(),
 			"coralogix_recording_rules_group": resourceCoralogixRecordingRulesGroup(),
+			"coralogix_tco_policy":            resourceCoralogixTCOPolicy(),
 		},
 
 		ConfigureContextFunc: func(context context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {

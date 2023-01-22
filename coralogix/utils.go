@@ -258,7 +258,15 @@ func getKeysInterface(m map[string]interface{}) []string {
 	return result
 }
 
-func getKeysInt(m map[string]int32) []string {
+func getKeysInt32(m map[string]int32) []string {
+	result := make([]string, 0)
+	for k := range m {
+		result = append(result, k)
+	}
+	return result
+}
+
+func getKeysInt(m map[string]int) []string {
 	result := make([]string, 0)
 	for k := range m {
 		result = append(result, k)
@@ -276,6 +284,14 @@ func getKeysRelativeTimeFrame(m map[string]protoTimeFrameAndRelativeTimeFrame) [
 
 func reverseMapStrings(m map[string]string) map[string]string {
 	n := make(map[string]string)
+	for k, v := range m {
+		n[v] = k
+	}
+	return n
+}
+
+func reverseMapIntToString(m map[string]int) map[int]string {
+	n := make(map[int]string)
 	for k, v := range m {
 		n[v] = k
 	}
