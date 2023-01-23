@@ -50,7 +50,7 @@ func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName, "severities.*", "warning"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName, "severities.*", "error"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName, "severities.*", "critical"),
-					resource.TestCheckResourceAttr(tcoPolicyResourceName, "application_name.0.contains", "true"),
+					resource.TestCheckResourceAttr(tcoPolicyResourceName, "application_name.0.includes", "true"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName, "application_name.0.rule", "dev"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName, "subsystem_name.0.is_not", "true"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName, "subsystem_name.0.rules.#", "2"),
@@ -108,7 +108,7 @@ func testAccCoralogixUpdatedResourceTCOPolicy() string {
   					priority = "low"
   					severities = ["warning", "error", "critical"]
   					application_name {
-    					contains = true
+    					includes = true
     					rule = "dev"
 					}
   					subsystem_name {
