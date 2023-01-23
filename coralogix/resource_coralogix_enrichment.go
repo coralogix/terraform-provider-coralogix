@@ -46,11 +46,11 @@ func EnrichmentSchema() map[string]*schema.Schema {
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"fields": {
-						Type:     schema.TypeSet,
-						Optional: true,
-						Elem:     fields(),
-						Set:      hashFields(),
-						//Description: fmt.Sprintf("An array of log severities that we interested in. Can be one of %q", alertValidLogSeverities),
+						Type:        schema.TypeSet,
+						Optional:    true,
+						Elem:        fields(),
+						Set:         hashFields(),
+						Description: fmt.Sprintf("Set of fields to enrich with geo_ip information."),
 					},
 				},
 			},
@@ -64,11 +64,11 @@ func EnrichmentSchema() map[string]*schema.Schema {
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"fields": {
-						Type:     schema.TypeSet,
-						Optional: true,
-						Elem:     fields(),
-						Set:      hashFields(),
-						//Description: fmt.Sprintf("An array of log severities that we interested in. Can be one of %q", alertValidLogSeverities),
+						Type:        schema.TypeSet,
+						Optional:    true,
+						Elem:        fields(),
+						Set:         hashFields(),
+						Description: fmt.Sprintf("Set of fields to enrich with suspicious_ip information."),
 					},
 				},
 			},
@@ -82,11 +82,11 @@ func EnrichmentSchema() map[string]*schema.Schema {
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"fields": {
-						Type:     schema.TypeSet,
-						Optional: true,
-						Elem:     awsFields(),
-						Set:      hashAwsFields(),
-						//Description: fmt.Sprintf("An array of log severities that we interested in. Can be one of %q", alertValidLogSeverities),
+						Type:        schema.TypeSet,
+						Optional:    true,
+						Elem:        awsFields(),
+						Set:         hashAwsFields(),
+						Description: fmt.Sprintf("Set of fields to enrich with aws information."),
 					},
 				},
 			},
@@ -104,11 +104,11 @@ func EnrichmentSchema() map[string]*schema.Schema {
 						Required: true,
 					},
 					"fields": {
-						Type:     schema.TypeSet,
-						Optional: true,
-						Elem:     fields(),
-						Set:      hashFields(),
-						//Description: fmt.Sprintf("An array of log severities that we interested in. Can be one of %q", alertValidLogSeverities),
+						Type:        schema.TypeSet,
+						Optional:    true,
+						Elem:        fields(),
+						Set:         hashFields(),
+						Description: fmt.Sprintf("Set of fields to enrich with the custom information."),
 					},
 				},
 			},

@@ -64,6 +64,7 @@ func Provider() *schema.Provider {
 			"coralogix_hosted_dashboard":      dataSourceCoralogixHostedDashboard(),
 			"coralogix_action":                dataSourceCoralogixAction(),
 			"coralogix_recording_rules_group": dataSourceCoralogixRecordingRulesGroup(),
+			"coralogix_tco_policy":            dataSourceCoralogixTCOPolicy(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -76,6 +77,7 @@ func Provider() *schema.Provider {
 			"coralogix_hosted_dashboard":      resourceCoralogixHostedDashboard(),
 			"coralogix_action":                resourceCoralogixAction(),
 			"coralogix_recording_rules_group": resourceCoralogixRecordingRulesGroup(),
+			"coralogix_tco_policy":            resourceCoralogixTCOPolicy(),
 		},
 
 		ConfigureContextFunc: func(context context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
