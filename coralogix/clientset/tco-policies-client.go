@@ -21,7 +21,7 @@ func (t TCOPolicies) GetTCOPolicy(ctx context.Context, id string) (string, error
 }
 
 func (t TCOPolicies) UpdateTCOPolicy(ctx context.Context, id string, jsonContent string) (string, error) {
-	return t.client.Post(ctx, fmt.Sprintf("/policies/%s", id), "application/json", jsonContent)
+	return t.client.Put(ctx, fmt.Sprintf("/policies/%s", id), "application/json", jsonContent)
 }
 
 func (t TCOPolicies) DeleteTCOPolicy(ctx context.Context, id string) error {

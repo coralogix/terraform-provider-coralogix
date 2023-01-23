@@ -14,16 +14,14 @@ import (
 )
 
 var (
-	tcoPolicySchemaFilterTypeToTcoPolicyRequestFilterType = map[string]string{
-		"starts_with": "Starts With",
-		"is":          "Is",
-		"is_not":      "Is Not",
-		"includes":    "Includes",
+	tcoPolicyResponseFilterTypeToTcoPolicySchemaFilterType = map[string]string{
+		"Starts With": "starts_with",
+		"Is":          "is",
+		"Is Not":      "is_not",
+		"Includes":    "includes",
 	}
-	tcoPolicyResponseFilterTypeToTcoPolicySchemaFilterType = reverseMapStrings(tcoPolicySchemaFilterTypeToTcoPolicyRequestFilterType)
-	validPolicyFilterTypes                                 = getKeysStrings(tcoPolicySchemaFilterTypeToTcoPolicyRequestFilterType)
-	validPolicyPriorities                                  = []string{"high", "medium", "low", "block"}
-	tcoPolicySchemaSeverityToTcoPolicyRequestSeverity      = map[string]int{
+	validPolicyPriorities                             = []string{"high", "medium", "low", "block"}
+	tcoPolicySchemaSeverityToTcoPolicyRequestSeverity = map[string]int{
 		"debug":    1,
 		"verbose":  2,
 		"info":     3,
@@ -36,18 +34,18 @@ var (
 )
 
 type tcoPolicyRequest struct {
-	Name             string            `json:"name"`
-	Enabled          bool              `json:"enabled"`
-	Priority         string            `json:"priority"`
-	Order            int               `json:"order"`
-	ApplicationNames []tcoPolicyFilter `json:"applicationName"`
-	SubsystemNames   []tcoPolicyFilter `json:"subsystemName"`
-	Severities       []int             `json:"severities"`
+	Name            string           `json:"name"`
+	Priority        string           `json:"priority"`
+	Enabled         bool             `json:"enabled,omitempty"`
+	Order           *int             `json:"order,omitempty"`
+	ApplicationName *tcoPolicyFilter `json:"applicationName,omitempty"`
+	SubsystemName   *tcoPolicyFilter `json:"subsystemName,omitempty"`
+	Severities      *[]int           `json:"severities,omitempty"`
 }
 
 type tcoPolicyFilter struct {
-	Type string   `json:"type"`
-	Rule []string `json:"rule"`
+	Type string      `json:"type"`
+	Rule interface{} `json:"rule"`
 }
 
 func resourceCoralogixTCOPolicy() *schema.Resource {
@@ -70,7 +68,7 @@ func resourceCoralogixTCOPolicy() *schema.Resource {
 
 		Schema: TCOPolicySchema(),
 
-		Description: "Coralogix recording-rules-groups-group. " +
+		Description: "Coralogix TCO-Policy. " +
 			"Api-key is required for this resource. " +
 			"For more information - https://coralogix.com/docs/tco-optimizer-api .",
 	}
@@ -134,6 +132,7 @@ func resourceCoralogixTCOPolicyUpdate(ctx context.Context, d *schema.ResourceDat
 		return diag.FromErr(err)
 	}
 
+	d.SetId(m["id"].(string))
 	return resourceCoralogixTCOPolicyRead(ctx, d, meta)
 }
 
@@ -154,19 +153,19 @@ func resourceCoralogixTCOPolicyDelete(ctx context.Context, d *schema.ResourceDat
 
 func extractTCOPolicyRequest(d *schema.ResourceData) (string, error) {
 	name := d.Get("name").(string)
-	enable := d.Get("enable").(bool)
+	enable := d.Get("enabled").(bool)
 	priority := d.Get("priority").(string)
 	severities := expandTCOPolicySeverities(d.Get("severities"))
-	applicationNames := expandTCOPolicyFilters(d.Get("application_names"))
-	subsystemNames := expandTCOPolicyFilters(d.Get("subsystem_names"))
+	applicationName := expandTCOPolicyFilter(d.Get("application_name"))
+	subsystemName := expandTCOPolicyFilter(d.Get("subsystem_name"))
 
 	reqStruct := tcoPolicyRequest{
-		Name:             name,
-		Enabled:          enable,
-		Priority:         priority,
-		Severities:       severities,
-		ApplicationNames: applicationNames,
-		SubsystemNames:   subsystemNames,
+		Name:            name,
+		Enabled:         enable,
+		Priority:        priority,
+		Severities:      severities,
+		ApplicationName: applicationName,
+		SubsystemName:   subsystemName,
 	}
 
 	requestJson, err := json.Marshal(reqStruct)
@@ -177,34 +176,59 @@ func extractTCOPolicyRequest(d *schema.ResourceData) (string, error) {
 	return string(requestJson), nil
 }
 
-func expandTCOPolicyFilters(v interface{}) []tcoPolicyFilter {
-	filters := v.(*schema.Set).List()
-	result := make([]tcoPolicyFilter, 0, len(filters))
-	for _, filter := range filters {
-		f := expandTCOPolicyFilter(filter)
-		result = append(result, f)
+func expandTCOPolicyFilter(v interface{}) *tcoPolicyFilter {
+	l := v.([]interface{})
+	if len(l) == 0 {
+		return nil
 	}
-	return result
-}
+	m := l[0].(map[string]interface{})
 
-func expandTCOPolicyFilter(v interface{}) tcoPolicyFilter {
-	m := v.(map[string]interface{})
-	filterType := tcoPolicySchemaFilterTypeToTcoPolicyRequestFilterType[m["type"].(string)]
-	rules := interfaceSliceToStringSlice(m["rules"].(*schema.Set).List())
-	return tcoPolicyFilter{
+	filterType := expandTcoPolicyFilterType(m)
+	rule := expandTcoPolicyFilterRule(m)
+
+	return &tcoPolicyFilter{
 		Type: filterType,
-		Rule: rules,
+		Rule: rule,
 	}
 }
 
-func expandTCOPolicySeverities(v interface{}) []int {
+func expandTcoPolicyFilterRule(m map[string]interface{}) interface{} {
+	if rules, ok := m["rules"]; ok && rules != nil {
+		rulesList := rules.(*schema.Set).List()
+		if len(rulesList) == 0 {
+			return m["rule"].(string)
+		} else {
+			return rulesList
+		}
+	}
+	return m["rule"].(string)
+}
+
+func expandTcoPolicyFilterType(m map[string]interface{}) string {
+	var filterType string
+	if is, ok := m["is"]; ok && is.(bool) {
+		filterType = "Is"
+	} else if isNot, ok := m["is_not"]; ok && isNot.(bool) {
+		filterType = "Is Not"
+	} else if starsWith, ok := m["starts_with"]; ok && starsWith.(bool) {
+		filterType = "Starts With"
+	} else {
+		filterType = "Includes"
+	}
+	return filterType
+}
+
+func expandTCOPolicySeverities(v interface{}) *[]int {
+	if v == nil {
+		return nil
+	}
 	severities := v.(*schema.Set).List()
 	result := make([]int, 0, len(severities))
 	for _, severity := range severities {
 		s := tcoPolicySchemaSeverityToTcoPolicyRequestSeverity[severity.(string)]
 		result = append(result, s)
 	}
-	return result
+	return &result
 }
 
 func setTCOPolicy(d *schema.ResourceData, tcoPolicyResp string) diag.Diagnostics {
@@ -217,71 +241,58 @@ func setTCOPolicy(d *schema.ResourceData, tcoPolicyResp string) diag.Diagnostics
 	if err := d.Set("name", m["name"].(string)); err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 	}
-	if err := d.Set("enable", m["enable"].(bool)); err != nil {
+	if err := d.Set("enabled", m["enabled"].(bool)); err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 	}
-	if err := d.Set("priority", m["name"].(string)); err != nil {
+	if err := d.Set("priority", m["priority"].(string)); err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 	}
-	if err := d.Set("severities", flattenTCOPoliciesSeverities(m["severities"])); err != nil {
+	if err := d.Set("severities", flattenTCOPolicySeverities(m["severities"])); err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 	}
-	if err := d.Set("application_names", flattenTCOPoliciesFilters(m["applicationName"])); err != nil {
+	if err := d.Set("application_name", flattenTCOPolicyFilter(m["applicationName"])); err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 	}
-	if err := d.Set("subsystem_names", flattenTCOPoliciesFilters(m["subsystemName"])); err != nil {
+	if err := d.Set("subsystem_name", flattenTCOPolicyFilter(m["subsystemName"])); err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 	}
 
 	return diags
 }
 
-func flattenTCOPoliciesSeverities(v interface{}) interface{} {
+func flattenTCOPolicySeverities(v interface{}) interface{} {
 	if v == nil {
-		return []string{}
+		return nil
 	}
 
-	severities := v.([]int)
+	severities := v.([]interface{})
 	result := make([]string, 0, len(severities))
 	for _, severity := range severities {
-		severityStr := tcoPolicyResponseSeverityToTcoPolicySchemaSeverity[severity]
+		severityStr := tcoPolicyResponseSeverityToTcoPolicySchemaSeverity[int(severity.(float64))]
 		result = append(result, severityStr)
 	}
 
 	return result
 }
 
-func flattenTCOPoliciesFilters(v interface{}) interface{} {
+func flattenTCOPolicyFilter(v interface{}) interface{} {
 	if v == nil {
-		return []string{}
+		return nil
+	}
+	filter := v.(map[string]interface{})
+
+	filterType := tcoPolicyResponseFilterTypeToTcoPolicySchemaFilterType[filter["type"].(string)]
+	flattenedFilter := map[string]interface{}{
+		filterType: true,
 	}
 
-	tcoPoliciesFilters := v.([]interface{})
-	result := make([]interface{}, 0, len(tcoPoliciesFilters))
-	for _, tcoPoliciesFilter := range tcoPoliciesFilters {
-		snf := flattenTcoPolicyFilter(tcoPoliciesFilter)
-		result = append(result, snf)
-	}
-
-	return result
-}
-
-func flattenTcoPolicyFilter(filter interface{}) interface{} {
-	m := filter.(map[string]interface{})
-
-	filterType := tcoPolicyResponseFilterTypeToTcoPolicySchemaFilterType[m["type"].(string)]
-
-	var rules []string
-	if r, ok := m["rules"].([]string); ok {
-		rules = r
+	if rules, ok := filter["rule"].([]interface{}); ok {
+		flattenedFilter["rules"] = interfaceSliceToStringSlice(rules)
 	} else {
-		rules = []string{m["rules"].(string)}
+		flattenedFilter["rule"] = filter["rule"].(string)
 	}
 
-	return map[string]interface{}{
-		"type":  filterType,
-		"rules": rules,
-	}
+	return []interface{}{flattenedFilter}
 }
 
 func TCOPolicySchema() map[string]*schema.Schema {
@@ -292,7 +303,7 @@ func TCOPolicySchema() map[string]*schema.Schema {
 			ValidateFunc: validation.StringIsNotEmpty,
 			Description:  "The policy name.",
 		},
-		"enable": {
+		"enabled": {
 			Type:        schema.TypeBool,
 			Optional:    true,
 			Default:     true,
@@ -308,11 +319,11 @@ func TCOPolicySchema() map[string]*schema.Schema {
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Computed:    true,
-			Description: "Determines the policy's order between the other policies.",
+			Description: "Determines the policy's order between the other policies. By default will be added last.",
 		},
 		"severities": {
 			Type:     schema.TypeSet,
-			Required: true,
+			Optional: true,
 			Elem: &schema.Schema{
 				Type:         schema.TypeString,
 				ValidateFunc: validation.StringInSlice(validPolicySeverities, false),
@@ -321,45 +332,81 @@ func TCOPolicySchema() map[string]*schema.Schema {
 			MinItems:    1,
 			Description: fmt.Sprintf("The severities to apply the policy on. Can be few of %q.", validPolicySeverities),
 		},
-		"application_names": {
-			Type:        schema.TypeSet,
+		"application_name": {
+			Type:        schema.TypeList,
+			MaxItems:    1,
 			Optional:    true,
-			Elem:        tcoPolicyFiltersSchema(),
-			Set:         schema.HashResource(tcoPolicyFiltersSchema()),
-			MinItems:    1,
-			Description: "The application to apply the policy on.",
+			Elem:        tcoPolicyFiltersSchema("application_name"),
+			Description: "The applications to apply the policy on. Applies the policy on all the applications by default.",
 		},
-		"subsystem_names": {
-			Type:        schema.TypeSet,
+		"subsystem_name": {
+			Type:        schema.TypeList,
+			MaxItems:    1,
 			Optional:    true,
-			Elem:        tcoPolicyFiltersSchema(),
-			Set:         schema.HashResource(tcoPolicyFiltersSchema()),
-			MinItems:    1,
-			Description: "The subsystems to apply the policy on.",
+			Elem:        tcoPolicyFiltersSchema("subsystem_name"),
+			Description: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
 		},
 	}
 }
 
-func tcoPolicyFiltersSchema() *schema.Resource {
+func tcoPolicyFiltersSchema(filterName string) *schema.Resource {
+	filterTypesRoutes := filterTypesRoutes(filterName)
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
-			"type": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringInSlice(validPolicyFilterTypes, false),
-				Description:  fmt.Sprintf("the filtering type. Can be one of %q.", validPolicyFilterTypes),
+			"is": {
+				Type:         schema.TypeBool,
+				Optional:     true,
+				ExactlyOneOf: filterTypesRoutes,
+				RequiredWith: []string{fmt.Sprintf("%s.0.rules", filterName)},
+				Description:  "Determines the filter's type. One of is/is_not/starts_with/includes have to be set.",
+			},
+			"is_not": {
+				Type:         schema.TypeBool,
+				Optional:     true,
+				ExactlyOneOf: filterTypesRoutes,
+				RequiredWith: []string{fmt.Sprintf("%s.0.rules", filterName)},
+				Description:  "Determines the filter's type. One of is/is_not/starts_with/includes have to be set.",
+			},
+			"starts_with": {
+				Type:         schema.TypeBool,
+				Optional:     true,
+				ExactlyOneOf: filterTypesRoutes,
+				RequiredWith: []string{fmt.Sprintf("%s.0.rule", filterName)},
+				Description:  "Determines the filter's type. One of is/is_not/starts_with/includes have to be set.",
+			},
+			"includes": {
+				Type:         schema.TypeBool,
+				Optional:     true,
+				ExactlyOneOf: filterTypesRoutes,
+				RequiredWith: []string{fmt.Sprintf("%s.0.rule", filterName)},
+				Description:  "Determines the filter's type. One of is/is_not/starts_with/includes have to be set.",
 			},
 			"rules": {
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
+				MinItems: 1,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 					Set:  schema.HashString,
 				},
-				MinItems: 1,
-				Description: "In case type = start_with/includes, rules need to contain single string." +
-					" Otherwise (is/is_not), rules can contain more strings.",
+				ExactlyOneOf: []string{fmt.Sprintf("%s.0.rule", filterName), fmt.Sprintf("%s.0.rules", filterName)},
+				Description:  "Set of rules to apply the filter on. In case of is=true/is_not=true replace to 'rules' (set of strings).",
+			},
+			"rule": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ExactlyOneOf: []string{fmt.Sprintf("%s.0.rule", filterName), fmt.Sprintf("%s.0.rules", filterName)},
+				Description:  "Single rule to apply the filter on. In case of start_with=true/includes=true replace to 'rule' (single string).",
 			},
 		},
+	}
+}
+
+func filterTypesRoutes(filterName string) []string {
+	return []string{
+		fmt.Sprintf("%s.0.is", filterName),
+		fmt.Sprintf("%s.0.is_not", filterName),
+		fmt.Sprintf("%s.0.starts_with", filterName),
+		fmt.Sprintf("%s.0.includes", filterName),
 	}
 }

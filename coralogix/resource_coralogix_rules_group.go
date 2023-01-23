@@ -134,7 +134,7 @@ func RulesGroupSchema() map[string]*schema.Schema {
 			Type:         schema.TypeInt,
 			Optional:     true,
 			Computed:     true,
-			Description:  "Determines the index of the rule-group between the other rule-groups. By default will be added last. (1 based indexing).",
+			Description:  "Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing).",
 			ValidateFunc: validation.IntAtLeast(1),
 		},
 		"rule_subgroups": {
