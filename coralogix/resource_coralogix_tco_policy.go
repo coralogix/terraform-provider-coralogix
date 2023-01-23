@@ -68,7 +68,7 @@ func resourceCoralogixTCOPolicy() *schema.Resource {
 
 		Schema: TCOPolicySchema(),
 
-		Description: "Coralogix recording-rules-groups-group. " +
+		Description: "Coralogix TCO-Policy. " +
 			"Api-key is required for this resource. " +
 			"For more information - https://coralogix.com/docs/tco-optimizer-api .",
 	}
@@ -358,24 +358,28 @@ func tcoPolicyFiltersSchema(filterName string) *schema.Resource {
 				Optional:     true,
 				ExactlyOneOf: filterTypesRoutes,
 				RequiredWith: []string{fmt.Sprintf("%s.0.rules", filterName)},
+				Description:  "Determines the filter's type. One of is/is_not/starts_with/includes have to be set.",
 			},
 			"is_not": {
 				Type:         schema.TypeBool,
 				Optional:     true,
 				ExactlyOneOf: filterTypesRoutes,
 				RequiredWith: []string{fmt.Sprintf("%s.0.rules", filterName)},
+				Description:  "Determines the filter's type. One of is/is_not/starts_with/includes have to be set.",
 			},
 			"starts_with": {
 				Type:         schema.TypeBool,
 				Optional:     true,
 				ExactlyOneOf: filterTypesRoutes,
 				RequiredWith: []string{fmt.Sprintf("%s.0.rule", filterName)},
+				Description:  "Determines the filter's type. One of is/is_not/starts_with/includes have to be set.",
 			},
 			"includes": {
 				Type:         schema.TypeBool,
 				Optional:     true,
 				ExactlyOneOf: filterTypesRoutes,
 				RequiredWith: []string{fmt.Sprintf("%s.0.rule", filterName)},
+				Description:  "Determines the filter's type. One of is/is_not/starts_with/includes have to be set.",
 			},
 			"rules": {
 				Type:     schema.TypeSet,
