@@ -244,6 +244,9 @@ func setTCOPolicy(d *schema.ResourceData, tcoPolicyResp string) diag.Diagnostics
 	if err := d.Set("enabled", m["enabled"].(bool)); err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 	}
+	if err := d.Set("order", int(m["order"].(float64))); err != nil {
+		diags = append(diags, diag.FromErr(err)...)
+	}
 	if err := d.Set("priority", m["priority"].(string)); err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 	}
@@ -301,7 +304,7 @@ func TCOPolicySchema() map[string]*schema.Schema {
 			Type:         schema.TypeString,
 			Required:     true,
 			ValidateFunc: validation.StringIsNotEmpty,
-			Description:  "The policy name.",
+			Description:  "The policy name. Have to be unique per policy.",
 		},
 		"enabled": {
 			Type:        schema.TypeBool,
@@ -319,7 +322,7 @@ func TCOPolicySchema() map[string]*schema.Schema {
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Computed:    true,
-			Description: "Determines the policy's order between the other policies. By default will be added last.",
+			Description: "Determines the policy's order between the other policies. Currently, will be computed by creation order.",
 		},
 		"severities": {
 			Type:     schema.TypeSet,
