@@ -19,7 +19,28 @@ For more information - https://coralogix.com/docs/tco-optimizer-api .
 resource "coralogix_tco_policy" "tco_policy" {
   name       = "Example tco_policy from terraform"
   priority   = "medium"
+  order      = 1
   severities = ["debug", "verbose", "info"]
+  application_name {
+    starts_with = true
+    rule        = "prod"
+  }
+  subsystem_name {
+    is    = true
+    rules = ["mobile", "web"]
+  }
+}
+
+resource "coralogix_tco_policy" "tco_policy_2" {
+  name     = "Example tco_policy from terraform 2"
+  priority = "high"
+
+  order    = coralogix_tco_policy.tco_policy.order + 1
+  #  currently, for controlling the policies order they have to be created by the order you want them to be.
+  #  for this purpose, defining dependency via the 'order' field can control their creation order.
+  #  can be omitted if the order doesn't matter.
+
+  severities = ["error", "warning", "critical"]
   application_name {
     starts_with = true
     rule        = "prod"
@@ -37,7 +58,7 @@ resource "coralogix_tco_policy" "tco_policy" {
 
 ### Required
 
-- `name` (String) The policy name.
+- `name` (String) The policy name. Have to be unique per policy.
 - `priority` (String) The policy description. Can be one of ["high" "medium" "low" "block"].
 
 ### Optional
@@ -45,11 +66,9 @@ resource "coralogix_tco_policy" "tco_policy" {
 - `application_name` (Block List, Max: 1) The applications to apply the policy on. Applies the policy on all the
   applications by default. (see [below for nested schema](#nestedblock--application_name))
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
-- `order` (Number) Determines the policy's order between the other policies. By default will be added last.
-- `severities` (Set of String) The severities to apply the policy on. Can be few
-  of ["debug" "verbose" "info" "warning" "error" "critical"].
-- `subsystem_name` (Block List, Max: 1) The subsystems to apply the policy on. Applies the policy on all the subsystems
-  by default. (see [below for nested schema](#nestedblock--subsystem_name))
+- `order` (Number) Determines the policy's order between the other policies. Currently, will be computed by creation order.
+- `severities` (Set of String) The severities to apply the policy on. Can be few of ["error" "critical" "debug" "verbose" "info" "warning"].
+- `subsystem_name` (Block List, Max: 1) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedblock--subsystem_name))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
