@@ -27,5 +27,5 @@ feedback and want to improve the schemas. Users that would like to upgrade it sh
 
 - [Getting started](docs/index.md)
 - [Contributing](CONTRIBUTING.md)
-- [Building the provider](CONTRIBUTING.md#Building the provider)
+- [Building the provider](CONTRIBUTING.md#Building-the-provider)
 - [Known issues](known-issues.md)
