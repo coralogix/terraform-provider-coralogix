@@ -322,7 +322,7 @@ func TCOPolicySchema() map[string]*schema.Schema {
 			Type:        schema.TypeInt,
 			Optional:    true,
 			Computed:    true,
-			Description: "Determines the policy's order between the other policies. Currently will be computed by creation order.",
+			Description: "Determines the policy's order between the other policies. Currently, will be computed by creation order.",
 		},
 		"severities": {
 			Type:     schema.TypeSet,

@@ -399,9 +399,9 @@ func commonRulesSchema() map[string]*schema.Schema {
 			Description:  "The rule name.",
 		},
 		"description": {
-			Type:     schema.TypeString,
-			Optional: true,
-			Default:  "The rule description.",
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The rule description.",
 		},
 		"active": {
 			Type:        schema.TypeBool,
