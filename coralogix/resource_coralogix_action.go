@@ -44,7 +44,7 @@ func resourceCoralogixAction() *schema.Resource {
 
 		Schema: ActionSchema(),
 
-		Description: "Coralogix action. Api-key is required for this resource. For more info please review - https://coralogix.com/docs/coralogix-action-extension/.",
+		Description: "Coralogix action. For more info please review - https://coralogix.com/docs/coralogix-action-extension/.",
 	}
 }
 

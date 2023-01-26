@@ -9,7 +9,6 @@ description: "Hosted dashboard. Can be one of - ["grafana"]."
 
 Hosted dashboard.
 Can be one of - ["grafana"].
-Api-key is required for this resource.
 ## Example Usage
 
 ```hcl

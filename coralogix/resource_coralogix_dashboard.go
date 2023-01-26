@@ -61,7 +61,7 @@ func resourceCoralogixDashboard() *schema.Resource {
 
 		Schema: DashboardSchema(),
 
-		Description: "Coralogix Dashboard. Api-key is required for this resource.",
+		Description: "Coralogix Dashboard.",
 	}
 }
 

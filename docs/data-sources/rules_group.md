@@ -7,9 +7,7 @@ description: |-
 ---
 
 # coralogix_rules_group (Data Source)
-Rule-group is list of rule-subgroups with 'and' (&&) operation between.
-Api-key is required for this resource.
-More info: https://coralogix.com/docs/rules-api/.
+Rule-group is list of rule-subgroups with 'and' (&&) operation between. More info: https://coralogix.com/docs/rules-api/.
 
 ## Example Usage
 

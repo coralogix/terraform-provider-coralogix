@@ -199,8 +199,7 @@ func resourceCoralogixAlert() *schema.Resource {
 
 		Schema: AlertSchema(),
 
-		Description: "Coralogix alert. Api-key is required for this resource." +
-			" More info: https://coralogix.com/docs/alerts-api/ .",
+		Description: "Coralogix alert. More info: https://coralogix.com/docs/alerts-api/ .",
 	}
 }
 
@@ -1752,12 +1751,16 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 		}
 	case *alerts.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
+		groupBy := wrappedStringSliceToStringSlice(conditionParams.GroupBy)
 		m := map[string]interface{}{
-			"less_than":                true,
-			"occurrences_threshold":    int(conditionParams.GetThreshold().GetValue()),
-			"group_by":                 wrappedStringSliceToStringSlice(conditionParams.GroupBy),
-			"time_window":              alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
-			"manage_undetected_values": flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData()),
+			"less_than":             true,
+			"occurrences_threshold": int(conditionParams.GetThreshold().GetValue()),
+			"group_by":              groupBy,
+			"time_window":           alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
+		}
+
+		if len(groupBy) > 0 {
+			m["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
 		}
 
 		conditionSchema = []interface{}{m}
@@ -1843,11 +1846,13 @@ func flattenRatioAlert(filters *alerts.AlertFilters, condition interface{}) (ale
 func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_RatioAlert) (ratioParams interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
 	var conditionParams *alerts.ConditionParameters
 	ratioParamsMap := make(map[string]interface{})
+
+	lessThan := false
 	switch condition := condition.(type) {
 	case *alerts.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
 		ratioParamsMap["less_than"] = true
-		ratioParamsMap["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
+		lessThan = true
 	case *alerts.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		ratioParamsMap["more_than"] = true
@@ -1877,6 +1882,10 @@ func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_Ra
 		ratioParamsMap["group_by_q1"] = true
 	}
 	ratioParamsMap["group_by"] = groupBy
+
+	if len(groupBy) > 0 && lessThan {
+		ratioParamsMap["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
+	}
 
 	ratioParams = ratioParamsMap
 	return
@@ -1930,7 +1939,9 @@ func flattenTimeRelativeCondition(condition interface{}) (timeRelativeConditionS
 	case *alerts.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
 		timeRelativeCondition["less_than"] = true
-		timeRelativeCondition["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
+		if len(conditionParams.GroupBy) > 0 {
+			timeRelativeCondition["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
+		}
 	case *alerts.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		timeRelativeCondition["more_than"] = true
