@@ -1751,12 +1751,16 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 		}
 	case *alerts.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
+		groupBy := wrappedStringSliceToStringSlice(conditionParams.GroupBy)
 		m := map[string]interface{}{
-			"less_than":                true,
-			"occurrences_threshold":    int(conditionParams.GetThreshold().GetValue()),
-			"group_by":                 wrappedStringSliceToStringSlice(conditionParams.GroupBy),
-			"time_window":              alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
-			"manage_undetected_values": flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData()),
+			"less_than":             true,
+			"occurrences_threshold": int(conditionParams.GetThreshold().GetValue()),
+			"group_by":              groupBy,
+			"time_window":           alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
+		}
+
+		if len(groupBy) > 0 {
+			m["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
 		}
 
 		conditionSchema = []interface{}{m}
@@ -1842,11 +1846,17 @@ func flattenRatioAlert(filters *alerts.AlertFilters, condition interface{}) (ale
 func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_RatioAlert) (ratioParams interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
 	var conditionParams *alerts.ConditionParameters
 	ratioParamsMap := make(map[string]interface{})
+
+	groupBy := flattenRatioAlertGroupBy(conditionParams, query2, ratioParamsMap)
+	ratioParamsMap["group_by"] = groupBy
+
 	switch condition := condition.(type) {
 	case *alerts.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
 		ratioParamsMap["less_than"] = true
-		ratioParamsMap["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
+		if len(groupBy) > 0 {
+			ratioParamsMap["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
+		}
 	case *alerts.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		ratioParamsMap["more_than"] = true
@@ -1856,11 +1866,14 @@ func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_Ra
 
 	ratioParamsMap["queries_ratio"] = conditionParams.GetThreshold().GetValue()
 	ratioParamsMap["time_window"] = alertProtoTimeFrameToSchemaTimeFrame[conditionParams.GetTimeframe().String()]
-
 	ignoreInfinity = conditionParams.GetIgnoreInfinity()
 	notifyWhenResolved = conditionParams.GetNotifyOnResolved()
 	notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
+	ratioParams = ratioParamsMap
+	return
+}
 
+func flattenRatioAlertGroupBy(conditionParams *alerts.ConditionParameters, query2 *alerts.AlertFilters_RatioAlert, ratioParamsMap map[string]interface{}) []string {
 	groupByQ1 := conditionParams.GetGroupBy()
 	groupByQ2 := query2.GetGroupBy()
 	var groupBy []string
@@ -1875,10 +1888,7 @@ func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_Ra
 		groupBy = wrappedStringSliceToStringSlice(groupByQ2)
 		ratioParamsMap["group_by_q1"] = true
 	}
-	ratioParamsMap["group_by"] = groupBy
-
-	ratioParams = ratioParamsMap
-	return
+	return groupBy
 }
 
 func flattenQuery2ParamsMap(query2 *alerts.AlertFilters_RatioAlert) interface{} {
@@ -1929,7 +1939,9 @@ func flattenTimeRelativeCondition(condition interface{}) (timeRelativeConditionS
 	case *alerts.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
 		timeRelativeCondition["less_than"] = true
-		timeRelativeCondition["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
+		if len(conditionParams.GroupBy) > 0 {
+			timeRelativeCondition["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
+		}
 	case *alerts.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		timeRelativeCondition["more_than"] = true
