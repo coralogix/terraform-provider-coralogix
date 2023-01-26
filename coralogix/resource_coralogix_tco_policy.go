@@ -68,9 +68,7 @@ func resourceCoralogixTCOPolicy() *schema.Resource {
 
 		Schema: TCOPolicySchema(),
 
-		Description: "Coralogix TCO-Policy. " +
-			"Api-key is required for this resource. " +
-			"For more information - https://coralogix.com/docs/tco-optimizer-api .",
+		Description: "Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api .",
 	}
 }
 

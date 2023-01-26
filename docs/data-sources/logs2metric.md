@@ -7,9 +7,7 @@ description: |-
 ---
 
 # coralogix_logs2metric (Data Source)
-Coralogix log2metric.
-Api-key is required for this resource.
-More info: https://coralogix.com/docs/logs2metrics/ .
+Coralogix log2metric. More info: https://coralogix.com/docs/logs2metrics/ .
 ## Example Usage
 
 ```hcl

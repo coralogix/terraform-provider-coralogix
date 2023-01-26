@@ -4,14 +4,12 @@
 
 page_title: "coralogix_dashboard Resource - terraform-provider-coralogix"
 subcategory: ""
-description:"Coralogix Dashboard. Api-key is required for this resource."
+description:"Coralogix Dashboard."
 ---
 
 # coralogix_dashboard (Resource)
 
-Coralogix Dashboard.
-Api-key is required for this resource.
-*Note:* This resource is still in beta and may contain breaking changes later.
+Coralogix Dashboard. *Note:* This resource is still in beta and may contain breaking changes later.
 
 ## Example Usage
 
