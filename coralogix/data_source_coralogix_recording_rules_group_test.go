@@ -26,7 +26,7 @@ func TestAccCoralogixDataSourceRecordingRulesGroups_basic(t *testing.T) {
 				Config: testAccCoralogixResourceRecordingRulesGroupsFromYaml(filePath) +
 					testAccCoralogixDataSourceRecordingRulesGroups_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(recordingRulesGroupsDataSourceName, "groups.#", "2"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsDataSourceName, "group.0.rules.#", "2"),
 				),
 			},
 		},
