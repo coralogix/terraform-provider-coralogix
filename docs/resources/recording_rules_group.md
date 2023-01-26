@@ -7,8 +7,7 @@ description: "Coralogix recording-rules-groups-group. For more information - htt
 
 # coralogix_recording_rules_group (Resource)
 
-Coralogix recording-rules-groups-group.
-For more information - https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/#recording-rules.
+Coralogix recording-rules-groups-group. For more information - https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/#recording-rules.
 
 ## Example Usages
 
@@ -42,38 +41,38 @@ resource "coralogix_recording_rules_group" recording_rules_group_explicit {
 
 ### Optional
 
-- `groups` (Block Set) (see [below for nested schema](#nestedblock--groups))
+- `group` (Block List, Max: 1) An option to defining recording-rule-group explicitly. If not set, will be computed by yaml_content. (see [below for nested schema](#nestedblock--group))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `yaml_content` (String)
+- `yaml_content` (String) An option to import recording-rule-group from yaml file.
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
 
-<a id="nestedblock--groups"></a>
-### Nested Schema for `groups`
+<a id="nestedblock--group"></a>
+### Nested Schema for `group`
 
 Required:
 
-- `interval` (Number)
-- `name` (String)
-- `rules` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--groups--rules))
+- `interval` (Number) How often rules in the group are evaluated (in seconds).
+- `name` (String) The rule-group name. Have to be unique.
+- `rules` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--group--rules))
 
 Optional:
 
-- `limit` (Number)
+- `limit` (Number) Limit the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit.
 
-<a id="nestedblock--groups--rules"></a>
-### Nested Schema for `groups.rules`
+<a id="nestedblock--group--rules"></a>
+### Nested Schema for `group.rules`
 
 Required:
 
-- `expr` (String)
-- `record` (String)
+- `expr` (String) The PromQL expression to evaluate. Every evaluation cycle this is evaluated at the current time, and the result recorded as a new set of time series with the metric name as given by 'record'.
+- `record` (String) The name of the time series to output to. Must be a valid metric name.
 
 Optional:
 
-- `labels` (Map of String)
+- `labels` (Map of String) Labels to add or overwrite before storing the result.
 
 
 
