@@ -1847,7 +1847,7 @@ func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_Ra
 	var conditionParams *alerts.ConditionParameters
 	ratioParamsMap := make(map[string]interface{})
 
-	groupBy := flattenRatioAlertGroupBy(conditionParams, query2, ratioParamsMap)
+	groupBy := flattenRatioAlertGroupBy(conditionParams, query2, &ratioParamsMap)
 	ratioParamsMap["group_by"] = groupBy
 
 	switch condition := condition.(type) {
@@ -1873,20 +1873,20 @@ func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_Ra
 	return
 }
 
-func flattenRatioAlertGroupBy(conditionParams *alerts.ConditionParameters, query2 *alerts.AlertFilters_RatioAlert, ratioParamsMap map[string]interface{}) []string {
+func flattenRatioAlertGroupBy(conditionParams *alerts.ConditionParameters, query2 *alerts.AlertFilters_RatioAlert, ratioParamsMap *map[string]interface{}) []string {
 	groupByQ1 := conditionParams.GetGroupBy()
 	groupByQ2 := query2.GetGroupBy()
 	var groupBy []string
 	if len(groupByQ1) > 0 {
 		groupBy = wrappedStringSliceToStringSlice(groupByQ1)
 		if len(groupByQ2) > 0 {
-			ratioParamsMap["group_by_both"] = true
+			(*ratioParamsMap)["group_by_both"] = true
 		} else {
-			ratioParamsMap["group_by_q1"] = true
+			(*ratioParamsMap)["group_by_q1"] = true
 		}
 	} else if len(groupByQ2) > 0 {
 		groupBy = wrappedStringSliceToStringSlice(groupByQ2)
-		ratioParamsMap["group_by_q1"] = true
+		(*ratioParamsMap)["group_by_q1"] = true
 	}
 	return groupBy
 }
