@@ -1847,7 +1847,27 @@ func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_Ra
 	var conditionParams *alerts.ConditionParameters
 	ratioParamsMap := make(map[string]interface{})
 
-	groupBy := flattenRatioAlertGroupBy(conditionParams, query2, &ratioParamsMap)
+	ratioParamsMap["queries_ratio"] = conditionParams.GetThreshold().GetValue()
+	ratioParamsMap["time_window"] = alertProtoTimeFrameToSchemaTimeFrame[conditionParams.GetTimeframe().String()]
+
+	ignoreInfinity = conditionParams.GetIgnoreInfinity()
+	notifyWhenResolved = conditionParams.GetNotifyOnResolved()
+	notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
+
+	groupByQ1 := conditionParams.GetGroupBy()
+	groupByQ2 := query2.GetGroupBy()
+	var groupBy []string
+	if len(groupByQ1) > 0 {
+		groupBy = wrappedStringSliceToStringSlice(groupByQ1)
+		if len(groupByQ2) > 0 {
+			ratioParamsMap["group_by_both"] = true
+		} else {
+			ratioParamsMap["group_by_q1"] = true
+		}
+	} else if len(groupByQ2) > 0 {
+		groupBy = wrappedStringSliceToStringSlice(groupByQ2)
+		ratioParamsMap["group_by_q1"] = true
+	}
 	ratioParamsMap["group_by"] = groupBy
 
 	switch condition := condition.(type) {
@@ -1864,31 +1884,8 @@ func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_Ra
 		return
 	}
 
-	ratioParamsMap["queries_ratio"] = conditionParams.GetThreshold().GetValue()
-	ratioParamsMap["time_window"] = alertProtoTimeFrameToSchemaTimeFrame[conditionParams.GetTimeframe().String()]
-	ignoreInfinity = conditionParams.GetIgnoreInfinity()
-	notifyWhenResolved = conditionParams.GetNotifyOnResolved()
-	notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
 	ratioParams = ratioParamsMap
 	return
-}
-
-func flattenRatioAlertGroupBy(conditionParams *alerts.ConditionParameters, query2 *alerts.AlertFilters_RatioAlert, ratioParamsMap *map[string]interface{}) []string {
-	groupByQ1 := conditionParams.GetGroupBy()
-	groupByQ2 := query2.GetGroupBy()
-	var groupBy []string
-	if len(groupByQ1) > 0 {
-		groupBy = wrappedStringSliceToStringSlice(groupByQ1)
-		if len(groupByQ2) > 0 {
-			(*ratioParamsMap)["group_by_both"] = true
-		} else {
-			(*ratioParamsMap)["group_by_q1"] = true
-		}
-	} else if len(groupByQ2) > 0 {
-		groupBy = wrappedStringSliceToStringSlice(groupByQ2)
-		(*ratioParamsMap)["group_by_q1"] = true
-	}
-	return groupBy
 }
 
 func flattenQuery2ParamsMap(query2 *alerts.AlertFilters_RatioAlert) interface{} {
