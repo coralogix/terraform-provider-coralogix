@@ -72,7 +72,7 @@ func testAccCheckRecordingRulesGroupDestroy(s *terraform.State) error {
 		req := &recordingrules.FetchRuleGroup{Name: rs.Primary.ID}
 		resp, err := client.GetRecordingRuleGroup(ctx, req)
 		if err == nil {
-			if resp.RuleGroup.Name == rs.Primary.ID {
+			if resp != nil && resp.RuleGroup != nil && resp.RuleGroup.Name == rs.Primary.ID {
 				return fmt.Errorf("coralogix_recording_rules_group still exists: %s", rs.Primary.ID)
 			}
 		}
