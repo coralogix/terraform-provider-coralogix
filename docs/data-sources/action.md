@@ -4,7 +4,7 @@
 
 page_title: "coralogix_action Data Source - terraform-provider-coralogix"
 subcategory: ""
-description: "Coralogix action. Api-key is required for this resource. For more info please review - https://coralogix.com/docs/coralogix-action-extension/."
+description: "Coralogix action. For more info please review - https://coralogix.com/docs/coralogix-action-extension/."
   
 ---
 

@@ -68,7 +68,7 @@ func resourceCoralogixRulesGroup() *schema.Resource {
 
 		Schema: RulesGroupSchema(),
 
-		Description: "Rule-group is list of rule-subgroups with 'and' (&&) operation between. Api-key is required for this resource.",
+		Description: "Rule-group is list of rule-subgroups with 'and' (&&) operation between. For more info please review - https://coralogix.com/docs/log-parsing-rules/ .",
 	}
 }
 
@@ -399,9 +399,9 @@ func commonRulesSchema() map[string]*schema.Schema {
 			Description:  "The rule name.",
 		},
 		"description": {
-			Type:     schema.TypeString,
-			Optional: true,
-			Default:  "The rule description.",
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The rule description.",
 		},
 		"active": {
 			Type:        schema.TypeBool,

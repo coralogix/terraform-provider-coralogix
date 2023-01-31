@@ -4,14 +4,12 @@
 
 page_title: "coralogix_rules_group Resource - terraform-provider-coralogix"
 subcategory: ""
-description: "Rule-group is list of rule-subgroups with 'and' (&&) operation between. Api-key is required for this resource. More info: https://coralogix.com/docs/rules-api/."
+description: "Rule-group is list of rule-subgroups with 'and' (&&) operation between. More info: https://coralogix.com/docs/rules-api/."
 ---
 
 # coralogix_rules_group (Resource)
 
-Rule-group is list of rule-subgroups with 'and' (&&) operation between.
-Api-key is required for this resource.
-More info: https://coralogix.com/docs/rules-api/.
+Rule-group is list of rule-subgroups with 'and' (&&) operation between. More info: https://coralogix.com/docs/rules-api/.
 
 ## Example Usage
 
@@ -220,17 +218,15 @@ parse_json_field {
 - `creator` (String) Rule-group creator.
 - `description` (String) Rule-group description
 - `hidden` (Boolean)
-- `rule_subgroups` (Block List) List of rule-subgroups. Every rule-subgroup is list of rules with 'or' (||) operation
-  between. (see [below for nested schema](#nestedblock--rule_subgroups))
-- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one
-  of ["Warning" "Error" "Critical" "Debug" "Verbose" "Info"]
+- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing).
+- `rule_subgroups` (Block List) List of rule-subgroups. Every rule-subgroup is list of rules with 'or' (||) operation between. (see [below for nested schema](#nestedblock--rule_subgroups))
+- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
 - `id` (String) The ID of this resource.
-- `order` (Number) Determines the index (1-based index) of the rule-group between the other rule-groups. By default will be added last.
 
 <a id="nestedblock--rule_subgroups"></a>
 
@@ -243,6 +239,7 @@ Required:
 Optional:
 
 - `active` (Boolean) Determines whether the rule-subgroup will be active.
+- `order` (Number) Determines the index of the rule-subgroup inside the rule-group.When not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
@@ -272,22 +269,22 @@ Optional:
 
 Required:
 
-- `name` (String)
+- `name` (String) The rule name.
 - `regular_expression` (String) Regular expiration. More info: https://coralogix.com/blog/regex-101/
 - `source_field` (String) The field on which the Regex will operate on.
 
 Optional:
 
-- `active` (Boolean)
-- `blocking_all_matching_blocks` (Boolean) Block Logic. If true or nor set - blocking all matching blocks, if false -
-  blocking all non-matching blocks.
-- `description` (String)
+- `active` (Boolean) Determines whether to rule will be active or not.
+- `blocking_all_matching_blocks` (Boolean) Block Logic. If true or nor set - blocking all matching blocks, if false - blocking all non-matching blocks.
+- `description` (String) The rule description.
 - `keep_blocked_logs` (Boolean) Determines if to view blocked logs in LiveTail and archive to S3.
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
-- `id` (String) The ID of this resource.
-- `order` (Number)
+- `id` (String) The rule id.
+
 
 <a id="nestedblock--rule_subgroups--rules--extract"></a>
 
@@ -295,19 +292,20 @@ Read-Only:
 
 Required:
 
-- `name` (String)
+- `name` (String) The rule name.
 - `regular_expression` (String) Regular expiration. More info: https://coralogix.com/blog/regex-101/
 - `source_field` (String) The field on which the Regex will operate on.
 
 Optional:
 
-- `active` (Boolean)
-- `description` (String)
+- `active` (Boolean) Determines whether to rule will be active or not.
+- `description` (String) The rule description.
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
-- `id` (String) The ID of this resource.
-- `order` (Number)
+- `id` (String) The rule id.
+
 
 <a id="nestedblock--rule_subgroups--rules--extract_timestamp"></a>
 
@@ -322,13 +320,14 @@ Required:
 
 Optional:
 
-- `active` (Boolean)
-- `description` (String)
+- `active` (Boolean) Determines whether to rule will be active or not.
+- `description` (String) The rule description.
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
-- `id` (String) The ID of this resource.
-- `order` (Number)
+- `id` (String) The rule id.
+
 
 <a id="nestedblock--rule_subgroups--rules--json_extract"></a>
 
@@ -336,20 +335,20 @@ Read-Only:
 
 Required:
 
-- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one
-  of [Method ThreadID Severity Category Class].
+- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [ThreadID Severity Category Class Method].
 - `json_key` (String) JSON key to extract its value directly into a Coralogix metadata field.
-- `name` (String)
+- `name` (String) The rule name.
 
 Optional:
 
-- `active` (Boolean)
-- `description` (String)
+- `active` (Boolean) Determines whether to rule will be active or not.
+- `description` (String) The rule description.
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
-- `id` (String) The ID of this resource.
-- `order` (Number)
+- `id` (String) The rule id.
+
 
 <a id="nestedblock--rule_subgroups--rules--json_stringify"></a>
 
@@ -358,19 +357,20 @@ Read-Only:
 Required:
 
 - `destination_field` (String) The field that will be populated by the results of the RegEx operation.
-- `name` (String)
+- `name` (String) The rule name.
 - `source_field` (String) The field on which the Regex will operate on.
 
 Optional:
 
-- `active` (Boolean)
-- `description` (String)
+- `active` (Boolean) Determines whether to rule will be active or not.
+- `description` (String) The rule description.
 - `keep_source_field` (Boolean) Determines whether to keep or to delete the source field.
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
-- `id` (String) The ID of this resource.
-- `order` (Number)
+- `id` (String) The rule id.
+
 
 <a id="nestedblock--rule_subgroups--rules--parse"></a>
 
@@ -379,19 +379,20 @@ Read-Only:
 Required:
 
 - `destination_field` (String) The field that will be populated by the results of the RegEx operation.
-- `name` (String)
+- `name` (String) The rule name.
 - `regular_expression` (String) Regular expiration. More info: https://coralogix.com/blog/regex-101/
 - `source_field` (String) The field on which the Regex will operate on.
 
 Optional:
 
-- `active` (Boolean)
-- `description` (String)
+- `active` (Boolean) Determines whether to rule will be active or not.
+- `description` (String) The rule description.
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
-- `id` (String) The ID of this resource.
-- `order` (Number)
+- `id` (String) The rule id.
+
 
 <a id="nestedblock--rule_subgroups--rules--parse_json_field"></a>
 ### Nested Schema for `rule_subgroups.rules.parse_json_field`
@@ -399,20 +400,20 @@ Read-Only:
 Required:
 
 - `destination_field` (String) The field that will be populated by the results of the RegEx operation.
-- `name` (String)
+- `name` (String) The rule name.
 - `source_field` (String) The field on which the Regex will operate on.
 
 Optional:
 
-- `active` (Boolean)
-- `description` (String)
+- `active` (Boolean) Determines whether to rule will be active or not.
+- `description` (String) The rule description.
 - `keep_destination_field` (Boolean) Determines whether to keep or to delete the destination field.
 - `keep_source_field` (Boolean) Determines whether to keep or to delete the source field.
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
-- `id` (String) The ID of this resource.
-- `order` (Number)
+- `id` (String) The rule id.
 
 
 <a id="nestedblock--rule_subgroups--rules--remove_fields"></a>
@@ -422,17 +423,18 @@ Read-Only:
 Required:
 
 - `excluded_fields` (List of String) Excluded fields won't be indexed.
-- `name` (String)
+- `name` (String) The rule name.
 
 Optional:
 
-- `active` (Boolean)
-- `description` (String)
+- `active` (Boolean) Determines whether to rule will be active or not.
+- `description` (String) The rule description.
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
-- `id` (String) The ID of this resource.
-- `order` (Number)
+- `id` (String) The rule id.
+
 
 <a id="nestedblock--rule_subgroups--rules--replace"></a>
 
@@ -441,20 +443,23 @@ Read-Only:
 Required:
 
 - `destination_field` (String) The field that will be populated by the results of the RegEx operation.
-- `name` (String)
+- `name` (String) The rule name.
 - `regular_expression` (String) Regular expiration. More info: https://coralogix.com/blog/regex-101/
 - `source_field` (String) The field on which the Regex will operate on.
 
 Optional:
 
-- `active` (Boolean)
-- `description` (String)
+- `active` (Boolean) Determines whether to rule will be active or not.
+- `description` (String) The rule description.
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
 - `replacement_string` (String) The string that will replace the matched RegEx
 
 Read-Only:
 
-- `id` (String) The ID of this resource.
-- `order` (Number)
+- `id` (String) The rule id.
+
+
+
 
 <a id="nestedblock--timeouts"></a>
 

@@ -2,34 +2,73 @@ package clientset
 
 import (
 	"context"
-	"strings"
 
-	"terraform-provider-coralogix/coralogix/clientset/rest"
+	"google.golang.org/protobuf/types/known/emptypb"
+	recordingrules "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups/v1"
 )
 
 type RecordingRulesGroupsClient struct {
-	client *rest.Client
+	callPropertiesCreator *CallPropertiesCreator
 }
 
-func (r RecordingRulesGroupsClient) CreateRecordingRuleRules(ctx context.Context, yamlContent string) (string, error) {
-	return r.client.Put(ctx, "/metrics/rule-groups", "application/yaml", yamlContent)
+func (r RecordingRulesGroupsClient) CreateRecordingRuleGroup(ctx context.Context, req *recordingrules.RecordingRuleGroup) (*emptypb.Empty, error) {
+	callProperties, err := r.callPropertiesCreator.GetCallProperties(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	conn := callProperties.Connection
+	defer conn.Close()
+	client := recordingrules.NewRuleGroupsClient(conn)
+
+	ctx = createAuthContext(ctx, r.callPropertiesCreator.apiKey)
+	return client.Save(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (r RecordingRulesGroupsClient) GetRecordingRuleRules(ctx context.Context) (string, error) {
-	return r.client.Get(ctx, "/metrics/rule-groups")
+func (r RecordingRulesGroupsClient) GetRecordingRuleGroup(ctx context.Context, req *recordingrules.FetchRuleGroup) (*recordingrules.FetchRuleGroupResult, error) {
+	callProperties, err := r.callPropertiesCreator.GetCallProperties(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	conn := callProperties.Connection
+	defer conn.Close()
+	client := recordingrules.NewRuleGroupsClient(conn)
+
+	return client.Fetch(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (r RecordingRulesGroupsClient) UpdateRecordingRuleRules(ctx context.Context, yamlContent string) (string, error) {
-	return r.CreateRecordingRuleRules(ctx, yamlContent)
+func (r RecordingRulesGroupsClient) UpdateRecordingRuleGroup(ctx context.Context, req *recordingrules.RecordingRuleGroup) (*emptypb.Empty, error) {
+	return r.CreateRecordingRuleGroup(ctx, req)
 }
 
-func (r RecordingRulesGroupsClient) DeleteRecordingRuleRules(ctx context.Context) error {
-	_, err := r.client.Put(ctx, "/metrics/rule-groups", "application/yaml", "groups: []")
-	return err
+func (r RecordingRulesGroupsClient) DeleteRecordingRuleGroup(ctx context.Context, req *recordingrules.DeleteRuleGroup) (*emptypb.Empty, error) {
+	callProperties, err := r.callPropertiesCreator.GetCallProperties(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	conn := callProperties.Connection
+	defer conn.Close()
+	client := recordingrules.NewRuleGroupsClient(conn)
+
+	return client.Delete(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func NewRecordingRulesGroupsClient(c *CallPropertiesCreator) *RecordingRulesGroupsClient {
-	targetUrl := "https://" + strings.Replace(c.targetUrl, "grpc", "http", 1)
-	client := rest.NewRestClient(targetUrl, c.apiKey)
-	return &RecordingRulesGroupsClient{client: client}
+func (r RecordingRulesGroupsClient) ListRecordingRuleGroup(ctx context.Context) (*recordingrules.RuleGroupListing, error) {
+	callProperties, err := r.callPropertiesCreator.GetCallProperties(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	conn := callProperties.Connection
+	defer conn.Close()
+	client := recordingrules.NewRuleGroupsClient(conn)
+
+	ctx = createAuthContext(ctx, r.callPropertiesCreator.apiKey)
+	return client.List(callProperties.Ctx, &emptypb.Empty{}, callProperties.CallOptions...)
+}
+
+func NewRecordingRuleGroupsClient(c *CallPropertiesCreator) *RecordingRulesGroupsClient {
+	return &RecordingRulesGroupsClient{callPropertiesCreator: c}
 }
