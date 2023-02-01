@@ -30,6 +30,8 @@ func (c *Client) Request(ctx context.Context, method, path, contentType string, 
 		if err != nil {
 			return "", err
 		}
+    
+		request, _ = http.NewRequest(method, c.url+path, bodyReader)
 		request.Header.Set("Content-Type", contentType)
 	} else {
 		request, _ = http.NewRequest(method, c.url+path, nil)
