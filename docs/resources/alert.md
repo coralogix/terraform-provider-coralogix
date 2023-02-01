@@ -377,12 +377,7 @@ resource "coralogix_alert" "flow_alert" {
     stages {
       groups {
         sub_alerts {
-          /*
-          change for existing alert's id.
-           soon it will be possible to consume from the id of an alert created from the terraform in the following way -
-           'user_alert_id = coralogix_alert.unique_count_alert.id'
-           */
-          user_alert_id = "c3c2936e-0b7e-44d7-9295-3aacba1e2366"
+          user_alert_id = coralogix_alert.unique_count_alert.id
         }
         operator = "OR"
       }
@@ -390,20 +385,10 @@ resource "coralogix_alert" "flow_alert" {
     stages {
       groups {
         sub_alerts {
-          /*
-          change for existing alert's id.
-           soon it will be possible to consume from the id of an alert created from the terraform in the following way -
-           'user_alert_id = coralogix_alert.unique_count_alert.id'
-           */
-          user_alert_id = "615f4b56-5441-417d-9eb6-c183f9374557"
+          user_alert_id = coralogix_alert.standard_alert.id
         }
         sub_alerts {
-          /*
-           change for existing alert's id.
-            soon it will be possible to consume from the id of an alert created from the terraform in the following way -
-            'user_alert_id = coralogix_alert.unique_count_alert.id'
-            */
-          user_alert_id = "a9836075-7164-4499-897f-e97404d33c3f"
+          user_alert_id = coralogix_alert.metric_promql_alert.id
         }
         operator = "OR"
       }
