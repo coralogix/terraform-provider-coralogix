@@ -13,19 +13,19 @@ provider "coralogix" {
 }
 
 resource "coralogix_webhook" "slack_webhook" {
+  name = "slack-webhook"
   slack {
-    name = "slack-webhook"
-    url  = "https://join.slack.com/example"
+    url = "https://join.slack.com/example"
   }
 }
 
-data "coralogix_webhook" "imported_coralogix_webhook_example"{
+data "coralogix_webhook" "imported_coralogix_webhook_example" {
   id = coralogix_webhook.slack_webhook.id
 }
 
 resource "coralogix_webhook" "custom_webhook" {
+  name = "custom-webhook"
   custom {
-    name    = "webhook-webhook"
     url     = "https://example-url.com/"
     method  = "post"
     headers = jsonencode({ "Content-Type" : "application/json" })
@@ -144,29 +144,29 @@ resource "coralogix_webhook" "custom_webhook" {
 }
 
 resource "coralogix_webhook" "pager_duty_webhook" {
+  name = "pagerduty-webhook"
   pager_duty {
-    name        = "pagerduty-webhook"
     service_key = "service-key"
   }
 }
 
 resource "coralogix_webhook" "email_group_webhook" {
+  name = "email-group-webhook"
   email_group {
-    name   = "email-group-webhook"
     emails = ["user@example.com"]
   }
 }
 
 resource "coralogix_webhook" "microsoft_teams_webhook" {
+  name = "microsoft-teams-webhook"
   microsoft_teams {
-    name = "microsoft-teams-webhook"
-    url  = "https://example-url.com/"
+    url = "https://example-url.com/"
   }
 }
 
 resource "coralogix_webhook" "jira_webhook" {
+  name = "jira-webhook"
   jira {
-    name        = "jira-webhook"
     url         = "https://coralogix.atlassian.net/jira/your-work"
     api_token   = "api-token"
     email       = "example@coralogix.com"
@@ -175,15 +175,15 @@ resource "coralogix_webhook" "jira_webhook" {
 }
 
 resource "coralogix_webhook" "opsgenie_webhook" {
+  name = "opsgenie-webhook"
   opsgenie {
-    name = "opsgenie-webhook"
-    url  = "https://example-url.com/"
+    url = "https://example-url.com/"
   }
 }
 
 resource "coralogix_webhook" "demisto_webhook" {
+  name = "demisto-webhook"
   demisto {
-    name    = "demisto-webhook"
     payload = jsonencode({
       "privateKey" : "<send-your-logs-privatekey>",
       "applicationName" : "Coralogix Alerts",
@@ -212,8 +212,8 @@ resource "coralogix_webhook" "demisto_webhook" {
 }
 
 resource "coralogix_webhook" "sendlog_webhook" {
+  name = "sendlog-webhook"
   sendlog {
-    name    = "sendlog-webhook"
     payload = jsonencode({
       "privateKey" : "<send-your-logs-privatekey>",
       "applicationName" : "$APPLICATION_NAME",
@@ -246,8 +246,8 @@ resource "coralogix_alert" "standard_alert" {
 
   notification {
     recipients {
-      emails      = ["user@example.com"]
-      webhooks = [coralogix_webhook.slack_webhook.slack.0.name, coralogix_webhook.custom_webhook.custom.0.name] //change here for existing webhook from your account
+      emails   = ["user@example.com"]
+      webhooks = [coralogix_webhook.slack_webhook.name, coralogix_webhook.custom_webhook.name]
     }
     notify_every_min = 1
   }

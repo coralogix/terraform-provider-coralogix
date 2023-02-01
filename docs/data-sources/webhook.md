@@ -39,7 +39,6 @@ Read-Only:
 
 - `headers` (String)
 - `method` (String)
-- `name` (String)
 - `payload` (String)
 - `url` (String)
 - `uuid` (String)
@@ -50,7 +49,6 @@ Read-Only:
 
 Read-Only:
 
-- `name` (String)
 - `payload` (String)
 - `url` (String)
 - `uuid` (String)
@@ -62,7 +60,6 @@ Read-Only:
 Read-Only:
 
 - `emails` (Set of String)
-- `name` (String)
 
 
 <a id="nestedatt--jira"></a>
@@ -72,7 +69,6 @@ Read-Only:
 
 - `api_token` (String)
 - `email` (String)
-- `name` (String)
 - `project_key` (String)
 - `url` (String)
 
@@ -82,7 +78,6 @@ Read-Only:
 
 Read-Only:
 
-- `name` (String)
 - `url` (String)
 
 
@@ -91,7 +86,6 @@ Read-Only:
 
 Read-Only:
 
-- `name` (String)
 - `url` (String)
 
 
@@ -100,7 +94,6 @@ Read-Only:
 
 Read-Only:
 
-- `name` (String)
 - `service_key` (String)
 
 
@@ -109,7 +102,6 @@ Read-Only:
 
 Read-Only:
 
-- `name` (String)
 - `payload` (String)
 - `url` (String)
 - `uuid` (String)
@@ -120,7 +112,6 @@ Read-Only:
 
 Read-Only:
 
-- `name` (String)
 - `url` (String)
 
 

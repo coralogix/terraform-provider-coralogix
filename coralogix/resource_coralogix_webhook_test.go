@@ -50,7 +50,7 @@ func TestAccCoralogixResourceSlackWebhook(t *testing.T) {
 				Config: testAccCoralogixResourceSlackWebhook(webhook),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "slack.0.name", webhook.name),
+					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
 					resource.TestCheckResourceAttr(resourceName, "slack.0.url", webhook.url),
 				),
 			},
@@ -79,7 +79,7 @@ func TestAccCoralogixResourceCustomWebhook(t *testing.T) {
 				Config: testAccCoralogixResourceCustomWebhook(webhook),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "custom.0.name", webhook.name),
+					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
 					resource.TestCheckResourceAttr(resourceName, "custom.0.url", webhook.url),
 					resource.TestCheckResourceAttr(resourceName, "custom.0.method", webhook.method),
 				),
@@ -109,7 +109,7 @@ func TestAccCoralogixResourcePagerDutyWebhook(t *testing.T) {
 				Config: testAccCoralogixResourcePagerdutyWebhook(webhook),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "pager_duty.0.name", webhook.name),
+					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
 					resource.TestCheckResourceAttr(resourceName, "pager_duty.0.service_key", webhook.serviceKey),
 				),
 			},
@@ -138,7 +138,7 @@ func TestAccCoralogixResourceEmailGroupWebhook(t *testing.T) {
 				Config: testAccCoralogixResourceEmailGroupWebhook(webhook),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "email_group.0.name", webhook.name),
+					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
 					resource.TestCheckResourceAttr(resourceName, "email_group.0.emails.0", webhook.emails[0]),
 				),
 			},
@@ -169,7 +169,7 @@ func TestAccCoralogixResourceJiraWebhook(t *testing.T) {
 				Config: testAccCoralogixResourceJiraWebhook(webhook),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "jira.0.name", webhook.name),
+					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
 					resource.TestCheckResourceAttr(resourceName, "jira.0.url", webhook.url),
 					resource.TestCheckResourceAttr(resourceName, "jira.0.api_token", webhook.apiToken),
 					resource.TestCheckResourceAttr(resourceName, "jira.0.project_key", webhook.projectKey),
@@ -198,7 +198,7 @@ func TestAccCoralogixResourceMicrosoftTeamsWebhook(t *testing.T) {
 				Config: testAccCoralogixResourceMicrosoftTeamsWebhook(webhook),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "microsoft_teams.0.name", webhook.name),
+					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
 					resource.TestCheckResourceAttr(resourceName, "microsoft_teams.0.url", webhook.url),
 				),
 			},
@@ -224,7 +224,7 @@ func TestAccCoralogixResourceSendLogWebhook(t *testing.T) {
 				Config: testAccCoralogixResourceSendLogWebhook(webhook),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "sendlog.0.name", webhook.name),
+					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
 				),
 			},
 			{
@@ -249,7 +249,7 @@ func TestAccCoralogixResourceOpsgenieTeamsWebhook(t *testing.T) {
 				Config: testAccCoralogixResourceOpsgenieWebhook(webhook),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "opsgenie.0.name", webhook.name),
+					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
 					resource.TestCheckResourceAttr(resourceName, "opsgenie.0.url", webhook.url),
 				),
 			},
@@ -275,7 +275,7 @@ func TestAccCoralogixResourceDemistoTeamsWebhook(t *testing.T) {
 				Config: testAccCoralogixResourceDemistoWebhook(webhook),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "demisto.0.name", webhook.name),
+					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
 				),
 			},
 			{

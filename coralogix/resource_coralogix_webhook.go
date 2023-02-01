@@ -117,15 +117,15 @@ func resourceCoralogixWebhookDelete(ctx context.Context, d *schema.ResourceData,
 
 func WebhookSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
+		"name": {
+			Type:     schema.TypeString,
+			Required: true,
+		},
 		"slack": {
 			Type:     schema.TypeList,
 			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"name": {
-						Type:     schema.TypeString,
-						Required: true,
-					},
 					"url": {
 						Type:             schema.TypeString,
 						Optional:         true,
@@ -141,10 +141,6 @@ func WebhookSchema() map[string]*schema.Schema {
 			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"name": {
-						Type:     schema.TypeString,
-						Required: true,
-					},
 					"url": {
 						Type:             schema.TypeString,
 						Required:         true,
@@ -178,10 +174,6 @@ func WebhookSchema() map[string]*schema.Schema {
 			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"name": {
-						Type:     schema.TypeString,
-						Required: true,
-					},
 					"service_key": {
 						Type:     schema.TypeString,
 						Optional: true,
@@ -196,10 +188,6 @@ func WebhookSchema() map[string]*schema.Schema {
 			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"name": {
-						Type:     schema.TypeString,
-						Required: true,
-					},
 					"emails": {
 						Type:     schema.TypeSet,
 						Required: true,
@@ -219,10 +207,6 @@ func WebhookSchema() map[string]*schema.Schema {
 			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"name": {
-						Type:     schema.TypeString,
-						Required: true,
-					},
 					"url": {
 						Type:             schema.TypeString,
 						Required:         true,
@@ -238,10 +222,6 @@ func WebhookSchema() map[string]*schema.Schema {
 			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"name": {
-						Type:     schema.TypeString,
-						Required: true,
-					},
 					"url": {
 						Type:             schema.TypeString,
 						Required:         true,
@@ -270,10 +250,6 @@ func WebhookSchema() map[string]*schema.Schema {
 			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"name": {
-						Type:     schema.TypeString,
-						Required: true,
-					},
 					"url": {
 						Type:             schema.TypeString,
 						Required:         true,
@@ -289,10 +265,6 @@ func WebhookSchema() map[string]*schema.Schema {
 			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"name": {
-						Type:     schema.TypeString,
-						Required: true,
-					},
 					"url": {
 						Type:     schema.TypeString,
 						Computed: true,
@@ -315,10 +287,6 @@ func WebhookSchema() map[string]*schema.Schema {
 			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"name": {
-						Type:     schema.TypeString,
-						Required: true,
-					},
 					"url": {
 						Type:     schema.TypeString,
 						Computed: true,
@@ -367,6 +335,8 @@ func extractCreateWebhookRequest(d *schema.ResourceData) (string, error) {
 		webhookTypeMap = expandDemisto(webhookType)
 	}
 
+	webhookTypeMap["alias"] = d.Get("name").(string)
+
 	if d.Id() != "" {
 		if n, err := strconv.Atoi(d.Id()); err != nil {
 			return "", err
@@ -383,10 +353,8 @@ func extractCreateWebhookRequest(d *schema.ResourceData) (string, error) {
 }
 
 func expandSlack(webhookType map[string]interface{}) map[string]interface{} {
-	alias := webhookType["name"].(string)
 	url := webhookType["url"].(string)
 	return map[string]interface{}{
-		"alias":               alias,
 		"integration_type_id": 0,
 		"integration_type": map[string]interface{}{
 			"label": "Slack",
@@ -398,7 +366,6 @@ func expandSlack(webhookType map[string]interface{}) map[string]interface{} {
 }
 
 func expandWebhook(webhookType map[string]interface{}) map[string]interface{} {
-	alias := webhookType["name"].(string)
 	url := webhookType["url"].(string)
 	method := valueFormat(webhookType["method"].(string))
 	integrationTypeFields := toArrayFormat([]string{
@@ -407,7 +374,6 @@ func expandWebhook(webhookType map[string]interface{}) map[string]interface{} {
 		integrationTypeFieldsFormat("payload", webhookType["payload"].(string)),
 	})
 	return map[string]interface{}{
-		"alias":                   alias,
 		"url":                     url,
 		"integration_type_fields": integrationTypeFields,
 		"integration_type_id":     1,
@@ -420,13 +386,11 @@ func expandWebhook(webhookType map[string]interface{}) map[string]interface{} {
 }
 
 func expandPagerDuty(webhookType map[string]interface{}) map[string]interface{} {
-	alias := webhookType["name"].(string)
 	serviceKey := valueFormat(webhookType["service_key"].(string))
 	integrationTypeFields := toArrayFormat([]string{
 		integrationTypeFieldsFormat("serviceKey", serviceKey),
 	})
 	return map[string]interface{}{
-		"alias":                   alias,
 		"integration_type_fields": integrationTypeFields,
 		"integration_type_id":     2,
 		"integration_type": map[string]interface{}{
@@ -438,13 +402,11 @@ func expandPagerDuty(webhookType map[string]interface{}) map[string]interface{} 
 }
 
 func expandSendlog(webhookType map[string]interface{}) map[string]interface{} {
-	alias := webhookType["name"].(string)
 	url := webhookType["url"].(string)
 	integrationTypeFields := toArrayFormat([]string{
 		integrationTypeFieldsFormat("payload", webhookType["payload"].(string)),
 	})
 	return map[string]interface{}{
-		"alias":                   alias,
 		"url":                     url,
 		"integration_type_fields": integrationTypeFields,
 		"integration_type_id":     3,
@@ -457,14 +419,12 @@ func expandSendlog(webhookType map[string]interface{}) map[string]interface{} {
 }
 
 func expandEmailGroup(m map[string]interface{}) map[string]interface{} {
-	alias := m["name"].(string)
 	emails := interfaceSliceToStringSlice(m["emails"].(*schema.Set).List())
 	emailsStr := sliceToString(emails)
 	integrationTypeFields := toArrayFormat([]string{
 		integrationTypeFieldsFormat("payload", emailsStr),
 	})
 	return map[string]interface{}{
-		"alias":                   alias,
 		"integration_type_fields": integrationTypeFields,
 		"integration_type_id":     4,
 		"integration_type": map[string]interface{}{
@@ -476,10 +436,8 @@ func expandEmailGroup(m map[string]interface{}) map[string]interface{} {
 }
 
 func expandMicrosoftTeams(webhookType map[string]interface{}) map[string]interface{} {
-	alias := webhookType["name"].(string)
 	url := webhookType["url"].(string)
 	return map[string]interface{}{
-		"alias":               alias,
 		"url":                 url,
 		"integration_type_id": 5,
 		"integration_type": map[string]interface{}{
@@ -491,7 +449,6 @@ func expandMicrosoftTeams(webhookType map[string]interface{}) map[string]interfa
 }
 
 func expandJira(webhookType map[string]interface{}) map[string]interface{} {
-	alias := webhookType["name"].(string)
 	url := webhookType["url"].(string)
 	integrationTypeFields := toArrayFormat([]string{
 		integrationTypeFieldsFormat("apiToken", valueFormat(webhookType["api_token"].(string))),
@@ -499,7 +456,6 @@ func expandJira(webhookType map[string]interface{}) map[string]interface{} {
 		integrationTypeFieldsFormat("projectKey", valueFormat(webhookType["project_key"].(string))),
 	})
 	return map[string]interface{}{
-		"alias":                   alias,
 		"url":                     url,
 		"integration_type_fields": integrationTypeFields,
 		"integration_type_id":     6,
@@ -512,10 +468,8 @@ func expandJira(webhookType map[string]interface{}) map[string]interface{} {
 }
 
 func expandOpsgenie(webhookType map[string]interface{}) map[string]interface{} {
-	alias := webhookType["name"].(string)
 	url := webhookType["url"].(string)
 	return map[string]interface{}{
-		"alias":               alias,
 		"url":                 url,
 		"integration_type_id": 7,
 		"integration_type": map[string]interface{}{
@@ -527,12 +481,10 @@ func expandOpsgenie(webhookType map[string]interface{}) map[string]interface{} {
 }
 
 func expandDemisto(webhookType map[string]interface{}) map[string]interface{} {
-	alias := webhookType["name"].(string)
 	integrationTypeFields := toArrayFormat([]string{
 		integrationTypeFieldsFormat("payload", webhookType["payload"].(string)),
 	})
 	return map[string]interface{}{
-		"alias":                   alias,
 		"integration_type_fields": integrationTypeFields,
 		"integration_type_id":     8,
 		"integration_type": map[string]interface{}{
@@ -579,14 +531,18 @@ func setWebhook(d *schema.ResourceData, resp map[string]interface{}) diag.Diagno
 	if err := d.Set(webhookTypeStr, webhook); err != nil {
 		return diag.FromErr(err)
 	}
+
+	if err := d.Set("name", resp["alias"]); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return nil
 }
 
 func flattenSlack(resp map[string]interface{}) interface{} {
 	return []map[string]interface{}{
 		{
-			"name": resp["alias"],
-			"url":  resp["url"],
+			"url": resp["url"],
 		},
 	}
 }
@@ -598,7 +554,6 @@ func flattenWebhook(resp map[string]interface{}) interface{} {
 	headers := marshalMap(integrationTypeFields["headers"])
 	return []map[string]interface{}{
 		{
-			"name":    resp["alias"],
 			"url":     resp["url"],
 			"uuid":    integrationTypeFields["uuid"],
 			"method":  integrationTypeFields["method"],
@@ -615,7 +570,6 @@ func flattenPagerDuty(resp map[string]interface{}) interface{} {
 	return []map[string]interface{}{
 		{
 			"service_key": serviceKey,
-			"name":        resp["alias"],
 		},
 	}
 }
@@ -626,7 +580,6 @@ func flattenSendlog(resp map[string]interface{}) interface{} {
 	payload := marshalMap(integrationTypeFields["payload"])
 	return []map[string]interface{}{
 		{
-			"name":    resp["alias"],
 			"url":     resp["url"],
 			"payload": payload,
 		},
@@ -639,7 +592,6 @@ func flattenEmailGroup(resp map[string]interface{}) interface{} {
 	return []map[string]interface{}{
 		{
 			"emails": integrationTypeFields["payload"],
-			"name":   resp["alias"],
 		},
 	}
 }
@@ -647,8 +599,7 @@ func flattenEmailGroup(resp map[string]interface{}) interface{} {
 func flattenMicrosoftTeams(resp map[string]interface{}) interface{} {
 	return []map[string]interface{}{
 		{
-			"name": resp["alias"],
-			"url":  resp["url"],
+			"url": resp["url"],
 		},
 	}
 }
@@ -661,7 +612,6 @@ func flattenJira(resp map[string]interface{}) interface{} {
 			"api_token":   integrationTypeFields["apiToken"],
 			"email":       integrationTypeFields["email"],
 			"project_key": integrationTypeFields["projectKey"],
-			"name":        resp["alias"],
 			"url":         resp["url"],
 		},
 	}
@@ -670,8 +620,7 @@ func flattenJira(resp map[string]interface{}) interface{} {
 func flattenOpsgenie(resp map[string]interface{}) interface{} {
 	return []map[string]interface{}{
 		{
-			"name": resp["alias"],
-			"url":  resp["url"],
+			"url": resp["url"],
 		},
 	}
 }
@@ -682,7 +631,6 @@ func flattenDemisto(resp map[string]interface{}) interface{} {
 	payload := marshalMap(integrationTypeFields["payload"])
 	return []map[string]interface{}{
 		{
-			"name":    resp["alias"],
 			"url":     resp["url"],
 			"payload": payload,
 		},

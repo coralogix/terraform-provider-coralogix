@@ -17,23 +17,133 @@ Webhook defines integration. More info - https://coralogix.com/integrations/ (Al
 
 ```hcl
 resource "coralogix_webhook" "slack_webhook" {
+  name = "slack-webhook"
   slack {
-    name = "slack-webhook"
     url  = "https://join.slack.com/example"
   }
 }
 ```
 
-### Webhook Webhook
+### Custom Webhook
 
 ```hcl
 resource "coralogix_webhook" "custom_webhook" {
+  name    = "custom-webhook"
   custom {
-    name    = "webhook-webhook"
     url     = "https://example-url.com/"
     method  = "post"
     headers = jsonencode({ "Content-Type" : "application/json" })
-    payload = jsonencode({ "custom" : "payload" })
+    payload = jsonencode({
+      "uuid" : "80019a4b-5ad3-5dd1-4f17-f61a386f0221",
+      "alert_id" : "$ALERT_ID",
+      "name" : "$ALERT_NAME",
+      "description" : "$ALERT_DESCRIPTION",
+      "threshold" : "$ALERT_THRESHOLD",
+      "timewindow" : "$ALERT_TIMEWINDOW_MINUTES",
+      "group_by_labels" : "$ALERT_GROUPBY_LABELS",
+      "alert_action" : "$ALERT_ACTION",
+      "alert_url" : "$ALERT_URL",
+      "log_url" : "$LOG_URL",
+      "icon_url" : "$CORALOGIX_ICON_URL",
+      "service" : "$SERVICE",
+      "duration" : "$DURATION",
+      "errors" : "$ERRORS",
+      "spans" : "$SPANS",
+      "fields" : [
+        {
+          "key" : "team",
+          "value" : "$TEAM_NAME"
+        },
+        {
+          "key" : "application",
+          "value" : "$APPLICATION_NAME"
+        },
+        {
+          "key" : "subsystem",
+          "value" : "$SUBSYSTEM_NAME"
+        },
+        {
+          "key" : "severity",
+          "value" : "$EVENT_SEVERITY"
+        },
+        {
+          "key" : "computer",
+          "value" : "$COMPUTER_NAME"
+        },
+        {
+          "key" : "ipAddress",
+          "value" : "$IP_ADDRESS"
+        },
+        {
+          "key" : "timestamp",
+          "value" : "$EVENT_TIMESTAMP"
+        },
+        {
+          "key" : "hitCount",
+          "value" : "$HIT_COUNT"
+        },
+        {
+          "key" : "text",
+          "value" : "$LOG_TEXT"
+        },
+        {
+          "key" : "Custom field",
+          "value" : "$JSON_KEY"
+        },
+        {
+          "key" : "metricKey",
+          "value" : "$METRIC_KEY"
+        },
+        {
+          "key" : "metricOperator",
+          "value" : "$METRIC_OPERATOR"
+        },
+        {
+          "key" : "timeframe",
+          "value" : "$TIMEFRAME"
+        },
+        {
+          "key" : "timeframePercentageOverThreshold",
+          "value" : "$TIMEFRAME_OVER_THRESHOLD"
+        },
+        {
+          "key" : "metricCriteria",
+          "value" : "$METRIC_CRITERIA"
+        },
+        {
+          "key" : "ratioQueryOne",
+          "value" : "$RATIO_QUERY_ONE"
+        },
+        {
+          "key" : "ratioQueryTwo",
+          "value" : "$RATIO_QUERY_TWO"
+        },
+        {
+          "key" : "ratioTimeframe",
+          "value" : "$RATIO_TIMEFRAME"
+        },
+        {
+          "key" : "ratioGroupByKeys",
+          "value" : "$RATIO_GROUP_BY_KEYS"
+        },
+        {
+          "key" : "ratioGroupByTable",
+          "value" : "$RATIO_GROUP_BY_TABLE"
+        },
+        {
+          "key" : "uniqueCountValuesList",
+          "value" : "$UNIQUE_COUNT_VALUES_LIST"
+        },
+        {
+          "key" : "newValueTrackedKey",
+          "value" : "$NEW_VALUE_TRACKED_KEY"
+        },
+        {
+          "key" : "metaLabels",
+          "value" : "$META_LABELS"
+        }
+      ]
+    })
   }
 }
 ```
@@ -42,8 +152,8 @@ resource "coralogix_webhook" "custom_webhook" {
 
 ```hcl
 resource "coralogix_webhook" "pager_duty_webhook" {
+  name        = "pagerduty-webhook"
   pager_duty {
-    name        = "pagerduty-webhook"
     service_key = "service-key"
   }
 }
@@ -53,9 +163,9 @@ resource "coralogix_webhook" "pager_duty_webhook" {
 
 ```hcl
 resource "coralogix_webhook" "email_group_webhook" {
+  name   = "email-group-webhook"
   email_group {
-    name   = "email-group-webhook"
-    emails = ["example@coralgix.com"]
+    emails = ["user@example.com"]
   }
 }
 ```
@@ -64,8 +174,8 @@ resource "coralogix_webhook" "email_group_webhook" {
 
 ```hcl
 resource "coralogix_webhook" "microsoft_teams_webhook" {
+  name = "microsoft-teams-webhook"
   microsoft_teams {
-    name = "microsoft-teams-webhook"
     url  = "https://example-url.com/"
   }
 }
@@ -75,8 +185,8 @@ resource "coralogix_webhook" "microsoft_teams_webhook" {
 
 ```hcl
 resource "coralogix_webhook" "jira_webhook" {
+  name        = "jira-webhook"
   jira {
-    name        = "jira-webhook"
     url         = "https://coralogix.atlassian.net/jira/your-work"
     api_token   = "api-token"
     email       = "example@coralogix.com"
@@ -89,8 +199,8 @@ resource "coralogix_webhook" "jira_webhook" {
 
 ```hcl
 resource "coralogix_webhook" "opsgenie_webhook" {
+  name = "opsgenie-webhook"
   opsgenie {
-    name = "opsgenie-webhook"
     url  = "https://example-url.com/"
   }
 }
@@ -100,9 +210,32 @@ resource "coralogix_webhook" "opsgenie_webhook" {
 
 ```hcl
 resource "coralogix_webhook" "demisto_webhook" {
+  name    = "demisto-webhook"
   demisto {
-    name    = "demisto-webhook"
-    payload = jsonencode({ "custom" : "payload" })
+    payload = jsonencode({
+      "privateKey" : "<send-your-logs-privatekey>",
+      "applicationName" : "Coralogix Alerts",
+      "subsystemName" : "Coralogix Alerts",
+      "computerName" : "$COMPUTER_NAME",
+      "logEntries" : [
+        {
+          "severity" : 3,
+          "timestamp" : "$EVENT_TIMESTAMP_MS",
+          "text" : {
+            "integration_text" : "Security Incident",
+            "alert_application" : "$APPLICATION_NAME",
+            "alert_subsystem" : "$SUBSYSTEM_NAME",
+            "alert_severity" : "$EVENT_SEVERITY",
+            "alert_id" : "$ALERT_ID",
+            "alert_name" : "$ALERT_NAME",
+            "alert_url" : "$ALERT_URL",
+            "hit_count" : "$HIT_COUNT",
+            "alert_type_id" : "53d222e2-e7b2-4fa6-80d4-9935425d47dd"
+          }
+        }
+      ],
+      "uuid" : "45c2d83a-1c75-2360-8741-dd75aabc8d57"
+    })
   }
 }
 ```
@@ -111,15 +244,63 @@ resource "coralogix_webhook" "demisto_webhook" {
 
 ```hcl
 resource "coralogix_webhook" "sendlog_webhook" {
+  name    = "sendlog-webhook"
   sendlog {
-    name    = "sendlog-webhook"
-    payload = jsonencode({ "custom" : "payload" })
+    payload = jsonencode({
+      "privateKey" : "<send-your-logs-privatekey>",
+      "applicationName" : "$APPLICATION_NAME",
+      "subsystemName" : "$SUBSYSTEM_NAME",
+      "computerName" : "$COMPUTER_NAME",
+      "logEntries" : [
+        {
+          "severity" : 3,
+          "timestamp" : "$EVENT_TIMESTAMP_MS",
+          "text" : {
+            "integration_text" : "<Insert your desired integration description>",
+            "alert_severity" : "$EVENT_SEVERITY",
+            "alert_id" : "$ALERT_ID",
+            "alert_name" : "$ALERT_NAME",
+            "alert_url" : "$ALERT_URL",
+            "hit_count" : "$HIT_COUNT"
+          }
+        }
+      ],
+      "uuid" : "<same-uuid>"
+    })
   }
 }
 ```
 
+### Example of usage of webhooks in alert's recipients
+
+```hcl
+resource "coralogix_alert" "standard_alert" {
+  name           = "Standard alert example"
+  description    = "Example of standard alert from terraform"
+  alert_severity = "Critical"
+
+  notification {
+    recipients {
+      emails    = ["user@example.com"]
+      webhooks  = [coralogix_webhook.slack_webhook.name, coralogix_webhook.custom_webhook.name]
+    }
+    notify_every_min = 1
+  }
+
+  standard {
+    search_query = "remote_addr_enriched:/.*/"
+    condition {
+      immediately = true
+    }
+  }
+}
+```
 <!-- schema generated by tfplugindocs -->
 ## Schema
+
+### Required
+
+- `name` (String)
 
 ### Optional
 
@@ -144,7 +325,6 @@ resource "coralogix_webhook" "sendlog_webhook" {
 Required:
 
 - `method` (String)
-- `name` (String)
 - `url` (String)
 
 Optional:
@@ -159,10 +339,6 @@ Read-Only:
 
 <a id="nestedblock--demisto"></a>
 ### Nested Schema for `demisto`
-
-Required:
-
-- `name` (String)
 
 Optional:
 
@@ -180,7 +356,6 @@ Read-Only:
 Required:
 
 - `emails` (Set of String)
-- `name` (String)
 
 
 <a id="nestedblock--jira"></a>
@@ -190,7 +365,6 @@ Required:
 
 - `api_token` (String)
 - `email` (String)
-- `name` (String)
 - `project_key` (String)
 - `url` (String)
 
@@ -200,7 +374,6 @@ Required:
 
 Required:
 
-- `name` (String)
 - `url` (String)
 
 
@@ -209,16 +382,11 @@ Required:
 
 Required:
 
-- `name` (String)
 - `url` (String)
 
 
 <a id="nestedblock--pager_duty"></a>
 ### Nested Schema for `pager_duty`
-
-Required:
-
-- `name` (String)
 
 Optional:
 
@@ -227,10 +395,6 @@ Optional:
 
 <a id="nestedblock--sendlog"></a>
 ### Nested Schema for `sendlog`
-
-Required:
-
-- `name` (String)
 
 Optional:
 
@@ -244,10 +408,6 @@ Read-Only:
 
 <a id="nestedblock--slack"></a>
 ### Nested Schema for `slack`
-
-Required:
-
-- `name` (String)
 
 Optional:
 
