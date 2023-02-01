@@ -1796,7 +1796,7 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 }
 
 func flattenManageUndetectedValues(data *alerts.RelatedExtendedData) interface{} {
-	if data == nil || (data.GetShouldTriggerDeadman() == nil && data.GetShouldTriggerDeadman().GetValue()) {
+	if data == nil {
 		return []map[string]interface{}{
 			{
 				"enable_triggering_on_undetected_values": true,
@@ -2793,7 +2793,6 @@ func expandMetricCondition(m map[string]interface{}, notifyWhenResolved, notifyO
 	swapNullValues := wrapperspb.Bool(conditionMap["replace_missing_value_with_zero"].(bool))
 	timeFrame := expandMetricTimeFrame(conditionMap["time_window"].(string))
 	relatedExtendedData := expandRelatedExtendedData(conditionMap)
-
 	parameters := &alerts.ConditionParameters{
 		Threshold:               threshold,
 		NotifyOnResolved:        notifyWhenResolved,
