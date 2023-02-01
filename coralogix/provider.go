@@ -65,7 +65,6 @@ func Provider() *schema.Provider {
 			"coralogix_action":                dataSourceCoralogixAction(),
 			"coralogix_recording_rules_group": dataSourceCoralogixRecordingRulesGroup(),
 			"coralogix_tco_policy":            dataSourceCoralogixTCOPolicy(),
-			"coralogix_webhook":               dataSourceCoralogixWebhook(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -79,7 +78,6 @@ func Provider() *schema.Provider {
 			"coralogix_action":                resourceCoralogixAction(),
 			"coralogix_recording_rules_group": resourceCoralogixRecordingRulesGroup(),
 			"coralogix_tco_policy":            resourceCoralogixTCOPolicy(),
-			"coralogix_webhook":               resourceCoralogixWebhook(),
 		},
 
 		ConfigureContextFunc: func(context context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
