@@ -17,7 +17,7 @@ type webhookTestFields struct {
 	name, url string
 }
 
-type webhookWebhookTestFields struct {
+type customWebhookTestFields struct {
 	webhookTestFields
 	method string
 }
@@ -63,9 +63,9 @@ func TestAccCoralogixResourceSlackWebhook(t *testing.T) {
 	})
 }
 
-func TestAccCoralogixResourceWebhookWebhook(t *testing.T) {
+func TestAccCoralogixResourceCustomWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
-	webhook := &webhookWebhookTestFields{
+	webhook := &customWebhookTestFields{
 		webhookTestFields: *getRandomWebhook(),
 		method:            selectRandomlyFromSlice(validMethods),
 	}
@@ -76,12 +76,12 @@ func TestAccCoralogixResourceWebhookWebhook(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 
-				Config: testAccCoralogixResourceWebhookWebhook(webhook),
+				Config: testAccCoralogixResourceCustomWebhook(webhook),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "webhook.0.name", webhook.name),
-					resource.TestCheckResourceAttr(resourceName, "webhook.0.url", webhook.url),
-					resource.TestCheckResourceAttr(resourceName, "webhook.0.method", webhook.method),
+					resource.TestCheckResourceAttr(resourceName, "custom.0.name", webhook.name),
+					resource.TestCheckResourceAttr(resourceName, "custom.0.url", webhook.url),
+					resource.TestCheckResourceAttr(resourceName, "custom.0.method", webhook.method),
 				),
 			},
 			{
@@ -332,15 +332,15 @@ func testAccCoralogixResourceSlackWebhook(w *webhookTestFields) string {
 		w.name, w.url)
 }
 
-func testAccCoralogixResourceWebhookWebhook(w *webhookWebhookTestFields) string {
+func testAccCoralogixResourceCustomWebhook(w *customWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	 webhook {
-    name    = "%s"
-    url     = "%s"
-    method  = "%s"
-    headers = jsonencode({ "custom" : "header" })
-  	payload = jsonencode({ "custom" : "payload" })
-  }
+  	 custom {
+    	name    = "%s"
+    	url     = "%s"
+    	method  = "%s"
+    	headers = jsonencode({ "custom" : "header" })
+  		payload = jsonencode({ "custom" : "payload" })
+  	}
 }
 `,
 		w.name, w.url, w.method)

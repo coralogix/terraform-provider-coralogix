@@ -26,10 +26,10 @@ resource "coralogix_webhook" "slack_webhook" {
 ### Webhook Webhook
 
 ```hcl
-resource "coralogix_webhook" "webhook_webhook" {
-  webhook {
+resource "coralogix_webhook" "custom_webhook" {
+  custom {
     name    = "webhook-webhook"
-    url     = "https://api.eu2.coralogix.com/api/v1/external/integrations/"
+    url     = "https://example-url.com/"
     method  = "post"
     headers = jsonencode({ "Content-Type" : "application/json" })
     payload = jsonencode({ "custom" : "payload" })
@@ -54,7 +54,7 @@ resource "coralogix_webhook" "pager_duty_webhook" {
 resource "coralogix_webhook" "email_group_webhook" {
   email_group {
     name   = "email-group-webhook"
-    emails = ["or.novog@gmail.com", "or.novogroder@coralgix.com"]
+    emails = ["example@coralgix.com"]
   }
 }
 ```
@@ -65,7 +65,7 @@ resource "coralogix_webhook" "email_group_webhook" {
 resource "coralogix_webhook" "microsoft_teams_webhook" {
   microsoft_teams {
     name = "microsoft-teams-webhook"
-    url  = "https://api.eu2.coralogix.com/api/v1/external/integrations/"
+    url  = "https://example-url.com/"
   }
 }
 ```
@@ -90,7 +90,7 @@ resource "coralogix_webhook" "jira_webhook" {
 resource "coralogix_webhook" "opsgenie_webhook" {
   opsgenie {
     name = "opsgenie-webhook"
-    url  = "https://api.eu2.coralogix.com/api/v1/external/integrations/"
+    url  = "https://example-url.com/"
   }
 }
 ```

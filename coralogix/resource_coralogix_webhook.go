@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	validWebhookTypes = []string{"slack", "webhook", "pager_duty", "email_group", "microsoft_teams", "jira", "opsgenie", "sendlog", "demisto"}
+	validWebhookTypes = []string{"slack", "custom", "pager_duty", "email_group", "microsoft_teams", "jira", "opsgenie", "sendlog", "demisto"}
 	validMethods      = []string{"get", "post", "put"}
 )
 
@@ -41,7 +41,7 @@ func resourceCoralogixWebhook() *schema.Resource {
 
 		Schema: WebhookSchema(),
 
-		//Description: "Webhook defines integration. Api-key is required for this resource.",
+		Description: "Webhook defines integration. More info - https://coralogix.com/integrations/ (Alerting section).",
 	}
 }
 
@@ -136,7 +136,7 @@ func WebhookSchema() map[string]*schema.Schema {
 			MaxItems:     1,
 			ExactlyOneOf: validWebhookTypes,
 		},
-		"webhook": {
+		"custom": {
 			Type:     schema.TypeList,
 			Optional: true,
 			Elem: &schema.Resource{
