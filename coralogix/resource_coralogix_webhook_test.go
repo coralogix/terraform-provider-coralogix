@@ -2,6 +2,7 @@ package coralogix
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"testing"
@@ -298,7 +299,11 @@ func testAccCheckWebhookDestroy(s *terraform.State) error {
 
 		resp, err := client.GetWebhook(ctx, rs.Primary.ID)
 		if err == nil {
-			id := strconv.Itoa(int(resp["id"].(float64)))
+			var m map[string]interface{}
+			if err = json.Unmarshal([]byte(resp), &m); err != nil {
+				return nil
+			}
+			id := strconv.Itoa(int(m["id"].(float64)))
 			if id == rs.Primary.ID {
 				return fmt.Errorf("webhook still exists: %s", rs.Primary.ID)
 			}
