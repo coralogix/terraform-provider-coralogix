@@ -238,19 +238,11 @@ resource "coralogix_webhook" "sendlog_webhook" {
   }
 }
 
+//example of how to use webhooks that was created via terraform
 resource "coralogix_alert" "standard_alert" {
   name           = "Standard alert example"
   description    = "Example of standard alert from terraform"
   alert_severity = "Critical"
-
-  meta_labels {
-    key   = "alert_type"
-    value = "security"
-  }
-  meta_labels {
-    key   = "security_severity"
-    value = "high"
-  }
 
   notification {
     recipients {
@@ -260,19 +252,7 @@ resource "coralogix_alert" "standard_alert" {
     notify_every_min = 1
   }
 
-  scheduling {
-    time_zone = "UTC+2"
-    time_frames {
-      days_enabled = ["Wednesday", "Thursday"]
-      start_time   = "08:30"
-      end_time     = "20:30"
-    }
-  }
-
   standard {
-    applications = ["filter:contains:nginx"] //change here for existing applications from your account
-    subsystems   = ["filter:startsWith:subsystem-name"] //change here for existing subsystems from your account
-    severities   = ["Warning", "Info"]
     search_query = "remote_addr_enriched:/.*/"
     condition {
       immediately = true

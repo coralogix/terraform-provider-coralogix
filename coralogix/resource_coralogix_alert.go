@@ -316,8 +316,7 @@ func AlertSchema() map[string]*schema.Schema {
 					},
 					"notify_every_min": {
 						Type:         schema.TypeInt,
-						Optional:     true,
-						Computed:     true,
+						Required:     true,
 						ValidateFunc: validation.IntAtLeast(1),
 						Description: "By default, notify_every_min will be populated with min for immediate," +
 							" more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time" +
