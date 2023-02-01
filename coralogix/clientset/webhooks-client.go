@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"terraform-provider-coralogix/coralogix/clientset/REST"
+	"terraform-provider-coralogix/coralogix/clientset/rest"
 )
 
 type WebhooksClient struct {
