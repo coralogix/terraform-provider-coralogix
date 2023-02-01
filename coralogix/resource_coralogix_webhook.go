@@ -349,7 +349,7 @@ func extractCreateWebhookRequest(d *schema.ResourceData) (string, error) {
 	switch webhookTypeStr {
 	case "slack":
 		webhookTypeMap = expandSlack(webhookType)
-	case "webhook":
+	case "custom":
 		webhookTypeMap = expandWebhook(webhookType)
 	case "pager_duty":
 		webhookTypeMap = expandPagerDuty(webhookType)
@@ -551,7 +551,7 @@ func setWebhook(d *schema.ResourceData, resp map[string]interface{}) diag.Diagno
 		webhookTypeStr = "slack"
 		webhook = flattenSlack(resp)
 	case 1:
-		webhookTypeStr = "webhook"
+		webhookTypeStr = "custom"
 		webhook = flattenWebhook(resp)
 	case 2:
 		webhookTypeStr = "pager_duty"
