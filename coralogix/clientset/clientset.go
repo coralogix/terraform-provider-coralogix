@@ -1,33 +1,16 @@
 package clientset
 
-import (
-	"terraform-provider-coralogix/coralogix/clientset/REST"
-)
-
-var (
-	EnvToGrpcUrl = map[string]string{
-		"APAC1":   "ng-api-grpc.app.coralogix.in:443",
-		"APAC2":   "ng-api-grpc.coralogixsg.com:443",
-		"EUROPE1": "ng-api-grpc.coralogix.com:443",
-		"EUROPE2": "ng-api-grpc.eu2.coralogix.com:443",
-		"USA1":    "ng-api-grpc.coralogix.us:443",
-	}
-	EnvToRESTUrl = map[string]string{
-		"APAC1":   "https://api.app.coralogix.in/api/v1/external/",
-		"APAC2":   "https://api.coralogixsg.com/api/v1/external/",
-		"EUROPE1": "https://api.coralogix.com/api/v1/external/",
-		"EUROPE2": "https://api.eu2.coralogix.com/api/v1/external/",
-		"USA1":    "https://api.coralogix.us/api/v1/external/",
-	}
-)
-
 type ClientSet struct {
-	ruleGroups   *RuleGroupsClient
-	alerts       *AlertsClient
-	logs2Metrics *Logs2MetricsClient
-	enrichments  *EnrichmentsClient
-	dataSet      *DataSetClient
-	webhooks     *WebhooksClient
+	ruleGroups          *RuleGroupsClient
+	alerts              *AlertsClient
+	logs2Metrics        *Logs2MetricsClient
+	enrichments         *EnrichmentsClient
+	dataSet             *DataSetClient
+	dashboards          *DashboardsClient
+	grafanaDashboards   *GrafanaDashboardClient
+	actions             *ActionsClient
+	recordingRuleGroups *RecordingRulesGroupsClient
+	tcoPolicies         *TCOPolicies
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -50,31 +33,40 @@ func (c *ClientSet) DataSet() *DataSetClient {
 	return c.dataSet
 }
 
-func (c *ClientSet) Webhooks() *WebhooksClient {
-	return c.webhooks
+func (c *ClientSet) Dashboards() *DashboardsClient {
+	return c.dashboards
 }
 
-func NewClientSet(env, apiKey, teamsApiKey string) *ClientSet {
-	targetUrl := EnvToGrpcUrl[env]
-	targetRESTUrl := EnvToRESTUrl[env]
+func (c *ClientSet) GrafanaDashboards() *GrafanaDashboardClient {
+	return c.grafanaDashboards
+}
 
+func (c *ClientSet) Actions() *ActionsClient {
+	return c.actions
+}
+
+func (c *ClientSet) RecordingRuleGroups() *RecordingRulesGroupsClient {
+	return c.recordingRuleGroups
+}
+
+func (c *ClientSet) TCOPolicies() *TCOPolicies {
+	return c.tcoPolicies
+}
+
+func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
-	restClient := REST.NewRESTClient(targetRESTUrl, apiKey)
 	_ = NewCallPropertiesCreator(targetUrl, teamsApiKey)
 
-	ruleGroupsClient := NewRuleGroupsClient(apikeyCPC)
-	alertsClient := NewAlertsClient(apikeyCPC)
-	logs2MetricsClient := NewLogs2MetricsClient(apikeyCPC)
-	enrichmentClient := NewEnrichmentClient(apikeyCPC)
-	dataSetClient := NewDataSetClient(apikeyCPC)
-	webhooksClient := NewWebhooksClient(restClient)
-
 	return &ClientSet{
-		ruleGroups:   ruleGroupsClient,
-		alerts:       alertsClient,
-		logs2Metrics: logs2MetricsClient,
-		enrichments:  enrichmentClient,
-		dataSet:      dataSetClient,
-		webhooks:     webhooksClient,
+		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
+		alerts:              NewAlertsClient(apikeyCPC),
+		logs2Metrics:        NewLogs2MetricsClient(apikeyCPC),
+		enrichments:         NewEnrichmentClient(apikeyCPC),
+		dataSet:             NewDataSetClient(apikeyCPC),
+		dashboards:          NewDashboardsClient(apikeyCPC),
+		grafanaDashboards:   NewGrafanaClient(apikeyCPC),
+		actions:             NewActionsClient(apikeyCPC),
+		recordingRuleGroups: NewRecordingRuleGroupsClient(apikeyCPC),
+		tcoPolicies:         NewTCOPoliciesClient(apikeyCPC),
 	}
 }

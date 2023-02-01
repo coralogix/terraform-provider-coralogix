@@ -4,16 +4,17 @@ import (
 	"context"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/enrichment/v1"
 )
 
 func dataSourceCoralogixDataSet() *schema.Resource {
-	DataSetSchema := datasourceSchemaFromResourceSchema(DataSetSchema())
-	DataSetSchema["id"] = &schema.Schema{
+	dataSetSchema := datasourceSchemaFromResourceSchema(DataSetSchema())
+	dataSetSchema["id"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Required: true,
 	}
@@ -21,7 +22,7 @@ func dataSourceCoralogixDataSet() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceCoralogixDataSetRead,
 
-		Schema: DataSetSchema,
+		Schema: dataSetSchema,
 	}
 }
 

@@ -41,16 +41,11 @@ resource "coralogix_alert" "standard_alert" {
       start_time   = "08:30"
       end_time     = "20:30"
     }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
-    }
   }
 
   standard {
-    applications = ["nginx"] //change here for existing applications from your account
-    subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
+    applications = ["filter:contains:nginx"] //change here for existing applications from your account
+    subsystems   = ["filter:startsWith:subsystem-name"] //change here for existing subsystems from your account
     severities   = ["Warning", "Info"]
     search_query = "remote_addr_enriched:/.*/"
     condition {
@@ -84,11 +79,6 @@ resource "coralogix_alert" "ratio_alert" {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
-    }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
     }
   }
 
@@ -206,11 +196,11 @@ resource "coralogix_alert" "metric_lucene_alert" {
       search_query = "name:\"Frontend transactions\""
       condition {
         metric_field                 = "subsystem"
-        arithmetic_operator          = "Avg"
+        arithmetic_operator          = "Percentile"
+        arithmetic_operator_modifier = 20
         less_than                    = true
         group_by                     = ["coralogix.metadata.sdkId"]
         threshold                    = 60
-        arithmetic_operator_modifier = 2
         sample_threshold_percentage  = 50
         time_window                  = "30Min"
         manage_undetected_values {
@@ -278,11 +268,6 @@ resource "coralogix_alert" "unique_count_alert" {
       start_time   = "08:30"
       end_time     = "20:30"
     }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
-    }
   }
 
   unique_count {
@@ -303,7 +288,7 @@ resource "coralogix_alert" "tracing_alert" {
   alert_severity = "Info"
 
   notification {
-    //on_trigger_and_resolved = true
+    on_trigger_and_resolved = true
     recipients {
       emails      = ["user@example.com"]
       webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
@@ -317,11 +302,6 @@ resource "coralogix_alert" "tracing_alert" {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
-    }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
     }
   }
 
@@ -363,11 +343,6 @@ resource "coralogix_alert" "flow_alert" {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
-    }
-    time_frames {
-      days_enabled = ["Sunday", "Monday"]
-      start_time   = "10:30"
-      end_time     = "00:30"
     }
   }
 

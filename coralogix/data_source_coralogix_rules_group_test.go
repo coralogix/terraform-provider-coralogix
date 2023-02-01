@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+var rulesGroupDataSourceName = "data." + rulesGroupResourceName
+
 func TestAccCoralogixDataSourceRuleGroup_basic(t *testing.T) {
 	r := getRandomRuleGroup()
 	resource.Test(t, resource.TestCase{
@@ -17,8 +19,8 @@ func TestAccCoralogixDataSourceRuleGroup_basic(t *testing.T) {
 				Config: testAccCoralogixDataSourceRuleGroup_basic(r) +
 					testAccCoralogixDataSourceRuleGroup_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.coralogix_rules_group.test", "name", r.name),
-					resource.TestCheckResourceAttr("data.coralogix_rules_group.test", "rule_subgroups.0.rules.0.extract.0.name", r.ruleParams.name),
+					resource.TestCheckResourceAttr(rulesGroupDataSourceName, "name", r.name),
+					resource.TestCheckResourceAttr(rulesGroupDataSourceName, "rule_subgroups.0.rules.0.extract.0.name", r.ruleParams.name),
 				),
 			},
 		},

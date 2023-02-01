@@ -1,12 +1,12 @@
-package REST
+package rest
 
 import (
 	"bytes"
 	"context"
-	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 )
 
 // Client for Coralogix API
@@ -16,75 +16,65 @@ type Client struct {
 	client *http.Client
 }
 
-func NewRESTClient(url string, apiKey string) *Client {
+func NewRestClient(url string, apiKey string) *Client {
 	return &Client{url, apiKey, &http.Client{}}
 }
 
 // Request executes request to Coralogix API
-func (c *Client) Request(ctx context.Context, method string, path string, body interface{}) (map[string]interface{}, error) {
+func (c *Client) Request(ctx context.Context, method, path, contentType string, body interface{}) (string, error) {
 	var request *http.Request
-
 	if body != nil {
-		bodyJSON, err := json.Marshal(body)
-		if err != nil {
-			return nil, err
-		}
-		request, _ = http.NewRequest(method, c.url+path, bytes.NewBuffer(bodyJSON))
+		bodyReader := bytes.NewBuffer([]byte(body.(string)))
+		request, _ = http.NewRequest(method, c.url+path, bodyReader)
+		request.Header.Set("Content-Type", contentType)
 	} else {
 		request, _ = http.NewRequest(method, c.url+path, nil)
 	}
 
 	request = request.WithContext(ctx)
-
-	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Cache-Control", "no-cache")
 	request.Header.Set("Authorization", "Bearer "+c.apiKey)
 
 	response, err := c.client.Do(request)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-
-	defer response.Body.Close()
-	responseBytes, _ := io.ReadAll(response.Body)
 
 	if response.StatusCode == 200 || response.StatusCode == 201 {
-		if method != "DELETE" && len(responseBytes) > 0 {
-			var responseJSON interface{}
+		defer response.Body.Close()
 
-			err = json.Unmarshal(responseBytes, &responseJSON)
-			if err != nil {
-				return nil, nil
-			}
-			// some responses are not map but dont fail, just return nil
-			if _, ok := responseJSON.(map[string]interface{}); ok {
-				return responseJSON.(map[string]interface{}), nil
-			} else {
-				return nil, nil
-			}
+		bodyResp, err := io.ReadAll(response.Body)
+		if err != nil {
+			return "", err
 		}
-		return nil, nil
+
+		return string(bodyResp), nil
 	}
 
-	return nil, errors.New("API Error: " + string(responseBytes))
+	responseBody, err := httputil.DumpResponse(response, true)
+	if err != nil {
+		return "", err
+	}
+
+	return "", fmt.Errorf("API Error: %s. Status code: %s", string(responseBody), response.Status)
 }
 
 // Get executes GET request to Coralogix API
-func (c *Client) Get(ctx context.Context, path string) (map[string]interface{}, error) {
-	return c.Request(ctx, "GET", path, nil)
+func (c *Client) Get(ctx context.Context, path string) (string, error) {
+	return c.Request(ctx, "GET", path, "", nil)
 }
 
 // Post executes POST request to Coralogix API
-func (c *Client) Post(ctx context.Context, path string, body interface{}) (map[string]interface{}, error) {
-	return c.Request(ctx, "POST", path, body)
+func (c *Client) Post(ctx context.Context, path, contentType, body string) (string, error) {
+	return c.Request(ctx, "POST", path, contentType, body)
 }
 
 // Put executes PUT request to Coralogix API
-func (c *Client) Put(ctx context.Context, path string, body interface{}) (map[string]interface{}, error) {
-	return c.Request(ctx, "PUT", path, body)
+func (c *Client) Put(ctx context.Context, path, contentType, body string) (string, error) {
+	return c.Request(ctx, "PUT", path, contentType, body)
 }
 
 // Delete executes DELETE request to Coralogix API
-func (c *Client) Delete(ctx context.Context, path string) (map[string]interface{}, error) {
-	return c.Request(ctx, "DELETE", path, nil)
+func (c *Client) Delete(ctx context.Context, path string) (string, error) {
+	return c.Request(ctx, "DELETE", path, "", nil)
 }

@@ -6,8 +6,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+var enrichmentDataSourceName = "data." + enrichmentResourceName
+
 func TestAccCoralogixDataSourceEnrichment_basic(t *testing.T) {
-	resourceName := "data.coralogix_enrichment.test"
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -18,8 +19,8 @@ func TestAccCoralogixDataSourceEnrichment_basic(t *testing.T) {
 				Config: testAccCoralogixResourceGeoIpEnrichment(fieldName) +
 					testAccCoralogixDataSourceEnrichment_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttr(resourceName, "geo_ip.0.fields.0.name", fieldName),
+					resource.TestCheckResourceAttrSet(enrichmentDataSourceName, "id"),
+					resource.TestCheckResourceAttr(enrichmentDataSourceName, "geo_ip.0.fields.0.name", fieldName),
 				),
 			},
 		},

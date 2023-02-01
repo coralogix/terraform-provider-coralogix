@@ -3,10 +3,11 @@ package coralogix
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	rulesv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/rules/v1"
+	rulesgroups "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -16,7 +17,7 @@ import (
 /*
 func TestAccCoralogixResourceRuleGroup_minimal(t *testing.T) {
 	name := acctest.RandomWithPrefix("tf-acc-test")
-	resourceName := "coralogix_rules_group.test"
+	alertResourceName := "coralogix_rules_group.test"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -26,7 +27,7 @@ func TestAccCoralogixResourceRuleGroup_minimal(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRuleGroupMinimal(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
+					resource.TestCheckResourceAttrSet(alertResourceName, "id"),
 				),
 			},
 			{
@@ -37,13 +38,13 @@ func TestAccCoralogixResourceRuleGroup_minimal(t *testing.T) {
 	})
 }*/
 
+var rulesGroupResourceName = "coralogix_rules_group.test"
+
 func TestAccCoralogixResourceRuleGroup_block(t *testing.T) {
 	r := getRandomRuleGroup()
 
 	keepBlockedLogs := "true"
 	regEx := `sql_error_code\\s*=\\s*28000`
-
-	resourceName := "coralogix_rules_group.test"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -53,26 +54,26 @@ func TestAccCoralogixResourceRuleGroup_block(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRuleGroupBlock(r, regEx, keepBlockedLogs),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r.description),
-					resource.TestCheckResourceAttrSet(resourceName, "rule_subgroups.0.rules.0.block.0.id"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.order", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.name", r.ruleParams.name),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.description", r.ruleParams.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.source_field", "text"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.keep_blocked_logs", keepBlockedLogs),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.blocking_all_matching_blocks", "true"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.regular_expression", "sql_error_code\\s*=\\s*28000"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r.description),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.id"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.order", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.name", r.ruleParams.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.description", r.ruleParams.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.source_field", "text"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.keep_blocked_logs", keepBlockedLogs),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.blocking_all_matching_blocks", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.regular_expression", "sql_error_code\\s*=\\s*28000"),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      rulesGroupResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -86,8 +87,6 @@ func TestAccCoralogixResourceRuleGroup_allow(t *testing.T) {
 	keepBlockedLogs := "true"
 	regEx := `sql_error_code\\s*=\\s*28000`
 
-	resourceName := "coralogix_rules_group.test"
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
@@ -96,25 +95,25 @@ func TestAccCoralogixResourceRuleGroup_allow(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRuleGroupAllow(r, regEx, keepBlockedLogs),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r.description),
-					resource.TestCheckResourceAttrSet(resourceName, "rule_subgroups.0.rules.0.block.0.id"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.order", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.name", r.ruleParams.name),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.description", r.ruleParams.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.keep_blocked_logs", keepBlockedLogs),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.blocking_all_matching_blocks", "false"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.block.0.regular_expression", "sql_error_code\\s*=\\s*28000"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r.description),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.id"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.order", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.name", r.ruleParams.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.description", r.ruleParams.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.keep_blocked_logs", keepBlockedLogs),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.blocking_all_matching_blocks", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.block.0.regular_expression", "sql_error_code\\s*=\\s*28000"),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      rulesGroupResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -128,8 +127,6 @@ func TestAccCoralogixResourceRuleGroup_jsonExtract(t *testing.T) {
 	jsonKey := "worker"
 	destinationField := "Category"
 
-	resourceName := "coralogix_rules_group.test"
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
@@ -138,24 +135,24 @@ func TestAccCoralogixResourceRuleGroup_jsonExtract(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRuleGroupJsonExtract(r, jsonKey, destinationField),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r.description),
-					resource.TestCheckResourceAttrSet(resourceName, "rule_subgroups.0.rules.0.json_extract.0.id"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.json_extract.0.order", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.json_extract.0.active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.json_extract.0.name", r.ruleParams.name),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.json_extract.0.description", r.ruleParams.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.json_extract.0.destination_field", destinationField),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.json_extract.0.json_key", jsonKey),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r.description),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_extract.0.id"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_extract.0.order", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_extract.0.active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_extract.0.name", r.ruleParams.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_extract.0.description", r.ruleParams.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_extract.0.destination_field", destinationField),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_extract.0.json_key", jsonKey),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      rulesGroupResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -179,22 +176,22 @@ func TestAccCoralogixResourceRuleGroup_replace(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRuleGroupReplace(r, regEx, replacementString),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r.description),
-					resource.TestCheckResourceAttrSet(resourceName, "rule_subgroups.0.rules.0.replace.0.id"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.replace.0.order", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.replace.0.active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.replace.0.name", r.ruleParams.name),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.replace.0.description", r.ruleParams.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.replace.0.source_field", "text"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.replace.0.destination_field", "text"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.replace.0.regular_expression", regEx),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.replace.0.replacement_string", replacementString),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r.description),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "rule_subgroups.0.rules.0.replace.0.id"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.replace.0.order", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.replace.0.active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.replace.0.name", r.ruleParams.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.replace.0.description", r.ruleParams.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.replace.0.source_field", "text"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.replace.0.destination_field", "text"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.replace.0.regular_expression", regEx),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.replace.0.replacement_string", replacementString),
 				),
 			},
 			{
@@ -223,20 +220,20 @@ func TestAccCoralogixResourceRuleGroup_extractTimestamp(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRuleGroupExtractTimestamp(r, timeFormat, fieldFormatStandard),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r.description),
-					resource.TestCheckResourceAttrSet(resourceName, "rule_subgroups.0.rules.0.extract_timestamp.0.id"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract_timestamp.0.order", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract_timestamp.0.active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract_timestamp.0.name", r.ruleParams.name),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract_timestamp.0.description", r.ruleParams.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract_timestamp.0.time_format", timeFormat),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract_timestamp.0.field_format_standard", fieldFormatStandard),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r.description),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract_timestamp.0.id"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract_timestamp.0.order", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract_timestamp.0.active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract_timestamp.0.name", r.ruleParams.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract_timestamp.0.description", r.ruleParams.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract_timestamp.0.time_format", timeFormat),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract_timestamp.0.field_format_standard", fieldFormatStandard),
 				),
 			},
 			{
@@ -263,20 +260,20 @@ func TestAccCoralogixResourceRuleGroup_removeFields(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRuleGroupRemoveFields(r, excludedFields),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r.description),
-					resource.TestCheckResourceAttrSet(resourceName, "rule_subgroups.0.rules.0.remove_fields.0.id"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.remove_fields.0.order", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.remove_fields.0.active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.remove_fields.0.name", r.ruleParams.name),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.remove_fields.0.description", r.ruleParams.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.remove_fields.0.excluded_fields.0", "coralogix.metadata.applicationName"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.remove_fields.0.excluded_fields.1", "coralogix.metadata.className"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r.description),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "rule_subgroups.0.rules.0.remove_fields.0.id"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.remove_fields.0.order", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.remove_fields.0.active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.remove_fields.0.name", r.ruleParams.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.remove_fields.0.description", r.ruleParams.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.remove_fields.0.excluded_fields.0", "coralogix.metadata.applicationName"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.remove_fields.0.excluded_fields.1", "coralogix.metadata.className"),
 				),
 			},
 			{
@@ -293,8 +290,6 @@ func TestAccCoralogixResourceRuleGroup_jsonStringify(t *testing.T) {
 
 	keepSourceField := "true"
 
-	resourceName := "coralogix_rules_group.test"
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
@@ -303,25 +298,25 @@ func TestAccCoralogixResourceRuleGroup_jsonStringify(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRuleGroupJsonStringify(r, keepSourceField),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r.description),
-					resource.TestCheckResourceAttrSet(resourceName, "rule_subgroups.0.rules.0.json_stringify.0.id"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.json_stringify.0.order", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.json_stringify.0.active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.json_stringify.0.name", r.ruleParams.name),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.json_stringify.0.description", r.ruleParams.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.json_stringify.0.source_field", "text"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.json_stringify.0.destination_field", "text"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.json_stringify.0.keep_source_field", keepSourceField),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r.description),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_stringify.0.id"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_stringify.0.order", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_stringify.0.active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_stringify.0.name", r.ruleParams.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_stringify.0.description", r.ruleParams.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_stringify.0.source_field", "text"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_stringify.0.destination_field", "text"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.json_stringify.0.keep_source_field", keepSourceField),
 				),
 			},
 			{
-				ResourceName:      resourceName,
+				ResourceName:      rulesGroupResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -344,20 +339,20 @@ func TestAccCoralogixResourceRuleGroup_extract(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRuleGroupExtract(r, regEx),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r.description),
-					resource.TestCheckResourceAttrSet(resourceName, "rule_subgroups.0.rules.0.extract.0.id"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract.0.order", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract.0.active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract.0.name", r.ruleParams.name),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract.0.description", r.ruleParams.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract.0.source_field", "text"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract.0.regular_expression",
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r.description),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract.0.id"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract.0.order", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract.0.active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract.0.name", r.ruleParams.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract.0.description", r.ruleParams.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract.0.source_field", "text"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract.0.regular_expression",
 						"\\b(?P<severity>DEBUG|TRACE|INFO|WARN|ERROR|FATAL|EXCEPTION|[Dd]ebug|[Tt]race|[Ii]nfo|[Ww]arn|[Ee]rror|[Ff]atal|[Ee]xception)\\b"),
 				),
 			},
@@ -385,21 +380,21 @@ func TestAccCoralogixResourceRuleGroup_parse(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRuleGroupParse(r, regEx),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r.description),
-					resource.TestCheckResourceAttrSet(resourceName, "rule_subgroups.0.rules.0.parse.0.id"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.0.order", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.0.active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.0.name", r.ruleParams.name),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.0.description", r.ruleParams.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.0.source_field", "text"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.0.destination_field", "text"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.0.regular_expression",
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r.description),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.0.id"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.0.order", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.0.active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.0.name", r.ruleParams.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.0.description", r.ruleParams.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.0.source_field", "text"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.0.destination_field", "text"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.0.regular_expression",
 						"(?P<remote_addr>\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3})\\s*-\\s*(?P<user>[^ ]+)\\s*\\[(?P<timestemp>\\d{4}-\\d{2}\\-\\d{2}T\\d{2}\\:\\d{2}\\:\\d{2}\\.\\d{1,6}Z)\\]\\s*\\\\\\\"(?P<method>[A-z]+)\\s[\\/\\\\]+(?P<request>[^\\s]+)\\s*(?P<protocol>[A-z0-9\\/\\.]+)\\\\\\\"\\s*(?P<status>\\d+)\\s*(?P<body_bytes_sent>\\d+)?\\s*?\\\\\\\"(?P<http_referer>[^\"]+)\\\"\\s*\\\\\\\"(?P<http_user_agent>[^\"]+)\\\"\\s(?P<request_time>\\d{1,6})\\s*(?P<response_time>\\d{1,6})"),
 				),
 			},
@@ -426,22 +421,22 @@ func TestAccCoralogixResourceRuleGroup_parseJsonField(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRuleGroupParseJsonField(r, keepSourceField, keepDestinationField),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r.description),
-					resource.TestCheckResourceAttrSet(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.id"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.order", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.name", r.ruleParams.name),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.description", r.ruleParams.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.source_field", "text"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.destination_field", "text"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.keep_source_field", keepSourceField),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse_json_field.0.keep_destination_field", keepDestinationField),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r.description),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.id"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.order", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.name", r.ruleParams.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.description", r.ruleParams.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.source_field", "text"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.destination_field", "text"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.keep_source_field", keepSourceField),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.keep_destination_field", keepDestinationField),
 				),
 			},
 			{
@@ -465,25 +460,25 @@ func TestAccCoralogixResourceRuleGroup_rules_combination(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRuleRulesCombination(r),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.#", "3"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.0.name", "rule1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.0.order", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.1.extract.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.1.extract.0.name", "rule2"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.1.extract.0.order", "2"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.2.parse.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.2.parse.0.name", "rule3"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.2.parse.0.order", "3"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.1.rules.0.extract_timestamp.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.1.rules.0.extract_timestamp.0.name", "rule1"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.#", "3"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.0.name", "rule1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.0.order", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.1.extract.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.1.extract.0.name", "rule2"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.1.extract.0.order", "2"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.2.parse.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.2.parse.0.name", "rule3"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.2.parse.0.order", "3"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.1.rules.0.extract_timestamp.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.1.rules.0.extract_timestamp.0.name", "rule1"),
 				),
 			},
 			{
@@ -508,22 +503,22 @@ func TestAccCoralogixResourceRuleGroup_update(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRuleRulesCombination(r1),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r1.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r1.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r1.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.#", "3"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.0.name", "rule1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.1.extract.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.1.extract.0.name", "rule2"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.2.parse.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.2.parse.0.name", "rule3"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.1.rules.0.extract_timestamp.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.1.rules.0.extract_timestamp.0.name", "rule1"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r1.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r1.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r1.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.#", "3"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.0.name", "rule1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.1.extract.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.1.extract.0.name", "rule2"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.2.parse.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.2.parse.0.name", "rule3"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.1.rules.0.extract_timestamp.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.1.rules.0.extract_timestamp.0.name", "rule1"),
 				),
 			},
 			{
@@ -534,22 +529,22 @@ func TestAccCoralogixResourceRuleGroup_update(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRuleRulesCombination(r2),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r2.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r2.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r2.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.#", "3"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.0.name", "rule1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.1.extract.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.1.extract.0.name", "rule2"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.2.parse.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.2.parse.0.name", "rule3"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.1.rules.0.extract_timestamp.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.1.rules.0.extract_timestamp.0.name", "rule1"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r2.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r2.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r2.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.#", "3"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.0.name", "rule1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.1.extract.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.1.extract.0.name", "rule2"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.2.parse.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.2.parse.0.name", "rule3"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.1.rules.0.extract_timestamp.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.1.rules.0.extract_timestamp.0.name", "rule1"),
 				),
 			},
 		},
@@ -568,25 +563,25 @@ func TestAccCoralogixResourceRuleGroup_update_order_inside_rule_group(t *testing
 			{
 				Config: testAccCoralogixResourceRuleRulesCombination(r),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.#", "3"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.0.name", "rule1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.parse.0.order", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.1.extract.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.1.extract.0.name", "rule2"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.1.extract.0.order", "2"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.2.parse.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.2.parse.0.name", "rule3"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.2.parse.0.order", "3"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.1.rules.0.extract_timestamp.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.1.rules.0.extract_timestamp.0.name", "rule1"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.#", "3"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.0.name", "rule1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse.0.order", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.1.extract.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.1.extract.0.name", "rule2"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.1.extract.0.order", "2"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.2.parse.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.2.parse.0.name", "rule3"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.2.parse.0.order", "3"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.1.rules.0.extract_timestamp.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.1.rules.0.extract_timestamp.0.name", "rule1"),
 				),
 			},
 			{
@@ -597,25 +592,47 @@ func TestAccCoralogixResourceRuleGroup_update_order_inside_rule_group(t *testing
 			{
 				Config: testAccCoralogixResourceRuleRulesCombinationDifferentOrders(r),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(resourceName, "id"),
-					resource.TestCheckResourceAttrSet(resourceName, "order"),
-					resource.TestCheckResourceAttr(resourceName, "active", "true"),
-					resource.TestCheckResourceAttr(resourceName, "hidden", "false"),
-					resource.TestCheckResourceAttr(resourceName, "name", r.name),
-					resource.TestCheckResourceAttr(resourceName, "creator", r.creator),
-					resource.TestCheckResourceAttr(resourceName, "description", r.description),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.#", "3"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract.0.name", "rule2"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.0.extract.0.order", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.1.parse.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.1.parse.0.name", "rule3"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.1.parse.0.order", "2"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.2.parse.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.2.parse.0.name", "rule1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.0.rules.2.parse.0.order", "3"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.1.rules.0.extract_timestamp.#", "1"),
-					resource.TestCheckResourceAttr(resourceName, "rule_subgroups.1.rules.0.extract_timestamp.0.name", "rule1"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "id"),
+					resource.TestCheckResourceAttrSet(rulesGroupResourceName, "order"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "hidden", "false"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", r.name),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "creator", r.creator),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", r.description),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.#", "3"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract.0.name", "rule2"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.extract.0.order", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.1.parse.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.1.parse.0.name", "rule3"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.1.parse.0.order", "2"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.2.parse.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.2.parse.0.name", "rule1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.2.parse.0.order", "3"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.1.rules.0.extract_timestamp.#", "1"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.1.rules.0.extract_timestamp.0.name", "rule1"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceRuleGroupOrder(t *testing.T) {
+	firstRuleGroupOrder := acctest.RandIntRange(1, 2)
+	secondRuleGroupOrder := 2
+	if firstRuleGroupOrder == 2 {
+		secondRuleGroupOrder = 1
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckRuleGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceRuleRulesGroupsOrders(firstRuleGroupOrder, secondRuleGroupOrder),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coralogix_rules_group.test1", "order", strconv.Itoa(firstRuleGroupOrder)),
+					resource.TestCheckResourceAttr("coralogix_rules_group.test2", "order", strconv.Itoa(secondRuleGroupOrder)),
 				),
 			},
 		},
@@ -644,7 +661,7 @@ func testAccCheckRuleGroupDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &rulesv1.GetRuleGroupRequest{
+		req := &rulesgroups.GetRuleGroupRequest{
 			GroupId: rs.Primary.ID,
 		}
 
@@ -965,6 +982,42 @@ func testAccCoralogixResourceRuleRulesCombinationDifferentOrders(r *ruleGroupPar
   }
  }
 `, r.name, r.description, r.creator)
+}
+
+func testAccCoralogixResourceRuleRulesGroupsOrders(firstRuleGroupOrder, secondRuleGroupOrder int) string {
+	return fmt.Sprintf(`resource "coralogix_rules_group" "test1" {
+  name         = "name1"
+  description  = "description1"
+  creator      = "creator1"
+ order = %d
+  rule_subgroups {
+	rules{
+     extract {
+       name               = "rule2"
+       description        = "description"
+       source_field       = "text"
+       regular_expression  = "(?P<remote_addr>\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3})\\s*-\\s*(?P<user>[^ ]+)\\s*\\[(?P<timestemp>\\d{4}-\\d{2}\\-\\d{2}T\\d{2}\\:\\d{2}\\:\\d{2}\\.\\d{1,6}Z)\\]\\s*\\\\\\\"(?P<method>[A-z]+)\\s[\\/\\\\]+(?P<request>[^\\s]+)\\s*(?P<protocol>[A-z0-9\\/\\.]+)\\\\\\\"\\s*(?P<status>\\d+)\\s*(?P<body_bytes_sent>\\d+)?\\s*?\\\\\\\"(?P<http_referer>[^\"]+)\\\"\\s*\\\\\\\"(?P<http_user_agent>[^\"]+)\\\"\\s(?P<request_time>\\d{1,6})\\s*(?P<response_time>\\d{1,6})"
+     }
+    }
+  }
+}
+resource "coralogix_rules_group" "test2" {
+  name         = "name2"
+  description  = "description2"
+  creator      = "creator2"
+  order = %d
+  rule_subgroups {
+	rules{
+     extract {
+       name               = "rule2"
+       description        = "description"
+       source_field       = "text"
+       regular_expression  = "(?P<remote_addr>\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3})\\s*-\\s*(?P<user>[^ ]+)\\s*\\[(?P<timestemp>\\d{4}-\\d{2}\\-\\d{2}T\\d{2}\\:\\d{2}\\:\\d{2}\\.\\d{1,6}Z)\\]\\s*\\\\\\\"(?P<method>[A-z]+)\\s[\\/\\\\]+(?P<request>[^\\s]+)\\s*(?P<protocol>[A-z0-9\\/\\.]+)\\\\\\\"\\s*(?P<status>\\d+)\\s*(?P<body_bytes_sent>\\d+)?\\s*?\\\\\\\"(?P<http_referer>[^\"]+)\\\"\\s*\\\\\\\"(?P<http_user_agent>[^\"]+)\\\"\\s(?P<request_time>\\d{1,6})\\s*(?P<response_time>\\d{1,6})"
+     }
+    }
+  }
+}
+`, firstRuleGroupOrder, secondRuleGroupOrder)
 }
 
 type ruleParams struct {

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/alerts/v1"
+	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -16,9 +16,9 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func TestAccCoralogixResourceAlert_standard(t *testing.T) {
-	resourceName := "coralogix_alert.test"
+var alertResourceName = "coralogix_alert.test"
 
+func TestAccCoralogixResourceAlert_standard(t *testing.T) {
 	alert := standardAlertTestParams{
 		alertCommonTestParams: *getRandomAlert(),
 		groupBy:               []string{"EventType"},
@@ -26,21 +26,16 @@ func TestAccCoralogixResourceAlert_standard(t *testing.T) {
 		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
 		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
 	}
+	checks := extractStandardAlertChecks(alert)
 
-	checks := extractCommonChecks(&alert.alertCommonTestParams, resourceName, "standard")
-	checks = append(checks,
-		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
-		resource.TestCheckResourceAttr(resourceName, "meta_labels.0.key", "alert_type"),
-		resource.TestCheckResourceAttr(resourceName, "meta_labels.0.value", "security"),
-		resource.TestCheckResourceAttr(resourceName, "meta_labels.1.key", "security_severity"),
-		resource.TestCheckResourceAttr(resourceName, "meta_labels.1.value", "High"),
-		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.occurrences_threshold", strconv.Itoa(alert.occurrencesThreshold)),
-		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.time_window", alert.timeWindow),
-		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.group_by.0", alert.groupBy[0]),
-		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.less_than", "true"),
-		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "true"),
-		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.manage_undetected_values.0.auto_retire_ratio", alert.deadmanRatio),
-	)
+	updatedAlert := standardAlertTestParams{
+		alertCommonTestParams: *getRandomAlert(),
+		groupBy:               []string{"EventType"},
+		occurrencesThreshold:  acctest.RandIntRange(1, 1000),
+		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
+		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
+	}
+	updatedAlertChecks := extractStandardAlertChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -52,16 +47,18 @@ func TestAccCoralogixResourceAlert_standard(t *testing.T) {
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
-				ResourceName: resourceName,
+				ResourceName: alertResourceName,
 				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
 	})
 }
 
 func TestAccCoralogixResourceAlert_ratio(t *testing.T) {
-	resourceName := "coralogix_alert.test"
-
 	alert := ratioAlertTestParams{
 		alertCommonTestParams: *getRandomAlert(),
 		q2Severities:          selectManyRandomlyFromSlice(alertValidLogSeverities),
@@ -70,23 +67,17 @@ func TestAccCoralogixResourceAlert_ratio(t *testing.T) {
 		groupBy:               []string{"EventType"},
 		q2SearchQuery:         "remote_addr_enriched:/.*/",
 	}
+	checks := extractRatioAlertChecks(alert)
 
-	checks := extractCommonChecks(&alert.alertCommonTestParams, resourceName, "ratio.0.query_1")
-	checks = append(checks,
-		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
-		resource.TestCheckResourceAttr(resourceName, "ratio.0.query_2.0.search_query", alert.q2SearchQuery),
-		resource.TestCheckResourceAttr(resourceName, "ratio.0.condition.0.more_than", "true"),
-		resource.TestCheckResourceAttr(resourceName, "ratio.0.condition.0.queries_ratio", fmt.Sprintf("%f", alert.ratio)),
-		resource.TestCheckResourceAttr(resourceName, "ratio.0.condition.0.time_window", alert.timeWindow),
-		resource.TestCheckResourceAttr(resourceName, "ratio.0.condition.0.group_by.0", alert.groupBy[0]),
-		resource.TestCheckResourceAttr(resourceName, "ratio.0.condition.0.group_by_q1", "true"),
-	)
-
-	for i, s := range alert.q2Severities {
-		checks = append(checks,
-			resource.TestCheckResourceAttr(resourceName,
-				fmt.Sprintf("ratio.0.query_2.0.severities.%d", i), s))
+	updatedAlert := ratioAlertTestParams{
+		alertCommonTestParams: *getRandomAlert(),
+		q2Severities:          selectManyRandomlyFromSlice(alertValidLogSeverities),
+		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
+		ratio:                 randFloat(),
+		groupBy:               []string{"EventType"},
+		q2SearchQuery:         "remote_addr_enriched:/.*/",
 	}
+	updatedAlertChecks := extractRatioAlertChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -98,27 +89,31 @@ func TestAccCoralogixResourceAlert_ratio(t *testing.T) {
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
-				ResourceName: resourceName,
+				ResourceName: alertResourceName,
 				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertRatio(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
 	})
 }
 
 func TestAccCoralogixResourceAlert_newValue(t *testing.T) {
-	resourceName := "coralogix_alert.test"
-
 	alert := newValueAlertTestParams{
 		alertCommonTestParams: *getRandomAlert(),
 		keyToTrack:            "EventType",
 		timeWindow:            selectRandomlyFromSlice(alertValidNewValueTimeFrames),
 	}
+	checks := extractNewValueChecks(alert)
 
-	checks := extractCommonChecks(&alert.alertCommonTestParams, resourceName, "new_value")
-	checks = append(checks,
-		resource.TestCheckResourceAttr(resourceName, "new_value.0.condition.0.key_to_track", alert.keyToTrack),
-		resource.TestCheckResourceAttr(resourceName, "new_value.0.condition.0.time_window", alert.timeWindow),
-	)
+	updatedAlert := newValueAlertTestParams{
+		alertCommonTestParams: *getRandomAlert(),
+		keyToTrack:            "EventType",
+		timeWindow:            selectRandomlyFromSlice(alertValidNewValueTimeFrames),
+	}
+	updatedAlertChecks := extractNewValueChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -130,16 +125,18 @@ func TestAccCoralogixResourceAlert_newValue(t *testing.T) {
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
-				ResourceName: resourceName,
+				ResourceName: alertResourceName,
 				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertNewValue(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
 	})
 }
 
 func TestAccCoralogixResourceAlert_uniqueCount(t *testing.T) {
-	resourceName := "coralogix_alert.test"
-
 	alert := uniqueCountAlertTestParams{
 		alertCommonTestParams:     *getRandomAlert(),
 		uniqueCountKey:            "EventType",
@@ -148,15 +145,17 @@ func TestAccCoralogixResourceAlert_uniqueCount(t *testing.T) {
 		maxUniqueValues:           2,
 		maxUniqueValuesForGroupBy: 20,
 	}
+	checks := extractUniqueCountAlertChecks(alert)
 
-	checks := extractCommonChecks(&alert.alertCommonTestParams, resourceName, "unique_count")
-	checks = append(checks,
-		resource.TestCheckResourceAttr(resourceName, "unique_count.0.condition.0.unique_count_key", alert.uniqueCountKey),
-		resource.TestCheckResourceAttr(resourceName, "unique_count.0.condition.0.unique_count_key", alert.uniqueCountKey),
-		resource.TestCheckResourceAttr(resourceName, "unique_count.0.condition.0.time_window", alert.timeWindow),
-		resource.TestCheckResourceAttr(resourceName, "unique_count.0.condition.0.max_unique_values", strconv.Itoa(alert.maxUniqueValues)),
-		resource.TestCheckResourceAttr(resourceName, "unique_count.0.condition.0.max_unique_values_for_group_by", strconv.Itoa(alert.maxUniqueValuesForGroupBy)),
-	)
+	updatedAlert := uniqueCountAlertTestParams{
+		alertCommonTestParams:     *getRandomAlert(),
+		uniqueCountKey:            "EventType",
+		timeWindow:                selectRandomlyFromSlice(alertValidUniqueCountTimeFrames),
+		groupByKey:                "metadata.name",
+		maxUniqueValues:           2,
+		maxUniqueValuesForGroupBy: 20,
+	}
+	updatedAlertChecks := extractUniqueCountAlertChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -168,30 +167,33 @@ func TestAccCoralogixResourceAlert_uniqueCount(t *testing.T) {
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
-				ResourceName: resourceName,
+				ResourceName: alertResourceName,
 				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertUniqueCount(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
 	})
 }
 
 func TestAccCoralogixResourceAlert_timeRelative(t *testing.T) {
-	resourceName := "coralogix_alert.test"
-
 	alert := timeRelativeAlertTestParams{
 		alertCommonTestParams: *getRandomAlert(),
 		ratioThreshold:        acctest.RandIntRange(0, 1000),
 		relativeTimeWindow:    selectRandomlyFromSlice(alertValidRelativeTimeFrames),
 		groupBy:               []string{"EventType"},
 	}
+	checks := extractTimeRelativeChecks(alert)
 
-	checks := extractCommonChecks(&alert.alertCommonTestParams, resourceName, "time_relative")
-	checks = append(checks,
-		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
-		resource.TestCheckResourceAttr(resourceName, "time_relative.0.condition.0.ratio_threshold", strconv.Itoa(alert.ratioThreshold)),
-		resource.TestCheckResourceAttr(resourceName, "time_relative.0.condition.0.relative_time_window", alert.relativeTimeWindow),
-		resource.TestCheckResourceAttr(resourceName, "time_relative.0.condition.0.group_by.0", alert.groupBy[0]),
-	)
+	updatedAlert := timeRelativeAlertTestParams{
+		alertCommonTestParams: *getRandomAlert(),
+		ratioThreshold:        acctest.RandIntRange(0, 1000),
+		relativeTimeWindow:    selectRandomlyFromSlice(alertValidRelativeTimeFrames),
+		groupBy:               []string{"EventType"},
+	}
+	updatedAlertChecks := extractTimeRelativeChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -203,52 +205,43 @@ func TestAccCoralogixResourceAlert_timeRelative(t *testing.T) {
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
-				ResourceName: resourceName,
+				ResourceName: alertResourceName,
 				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertTimeRelative(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
 	})
 }
 
 func TestAccCoralogixResourceAlert_metricLucene(t *testing.T) {
-	resourceName := "coralogix_alert.test"
-
 	alert := metricLuceneAlertTestParams{
-		alertCommonTestParams:      *getRandomAlert(),
-		groupBy:                    []string{"EventType"},
-		metricField:                "subsystem",
-		timeWindow:                 selectRandomlyFromSlice(alertValidMetricTimeFrames),
-		threshold:                  acctest.RandIntRange(0, 1000),
-		arithmeticOperator:         selectRandomlyFromSlice(alertValidArithmeticOperators),
-		arithmeticOperatorModifier: acctest.RandIntRange(0, 1000),
+		alertCommonTestParams: *getRandomAlert(),
+		groupBy:               []string{"EventType"},
+		metricField:           "subsystem",
+		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
+		threshold:             acctest.RandIntRange(0, 1000),
+		arithmeticOperator:    selectRandomlyFromSlice(alertValidArithmeticOperators),
 	}
-
 	if alert.arithmeticOperator == "Percentile" {
 		alert.arithmeticOperatorModifier = acctest.RandIntRange(0, 100)
 	}
+	checks := extractLuceneMetricChecks(alert)
 
-	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttrSet(resourceName, "id"),
-		resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
-		resource.TestCheckResourceAttr(resourceName, "name", alert.name),
-		resource.TestCheckResourceAttr(resourceName, "description", alert.description),
-		resource.TestCheckResourceAttr(resourceName, "alert_severity", alert.severity),
-		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
-		resource.TestCheckResourceAttr(resourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
-		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.search_query", alert.searchQuery),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.metric_field", alert.metricField),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.arithmetic_operator", alert.arithmeticOperator),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.less_than", "true"),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.threshold", strconv.Itoa(alert.threshold)),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.arithmetic_operator_modifier", strconv.Itoa(alert.arithmeticOperatorModifier)),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.sample_threshold_percentage", strconv.Itoa(alert.sampleThresholdPercentage)),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.time_window", alert.timeWindow),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.group_by.0", alert.groupBy[0]),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values", "true"),
+	/*updatedAlert := metricLuceneAlertTestParams{
+		alertCommonTestParams: *getRandomAlert(),
+		groupBy:               []string{"EventType"},
+		metricField:           "subsystem",
+		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
+		threshold:             acctest.RandIntRange(0, 1000),
+		arithmeticOperator:    selectRandomlyFromSlice(alertValidArithmeticOperators),
 	}
-
-	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds, resourceName)
+	if updatedAlert.arithmeticOperator == "Percentile" {
+		alert.arithmeticOperatorModifier = acctest.RandIntRange(0, 100)
+	}
+	updatedAlertChecks := extractLuceneMetricChecks(updatedAlert)*/
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -260,42 +253,33 @@ func TestAccCoralogixResourceAlert_metricLucene(t *testing.T) {
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
-				ResourceName: resourceName,
+				ResourceName: alertResourceName,
 				ImportState:  true,
 			},
+			/*{
+				Config: testAccCoralogixResourceAlertMetricLucene(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			},*/
 		},
 	})
 }
 
 func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
-	resourceName := "coralogix_alert.test"
-
 	alert := metricPromqlAlertTestParams{
 		alertCommonTestParams: *getRandomAlert(),
 		threshold:             acctest.RandIntRange(0, 1000),
 		nonNullPercentage:     acctest.RandIntRange(0, 100),
 		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
 	}
+	checks := extractMetricPromqlAlertChecks(alert)
 
-	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttrSet(resourceName, "id"),
-		resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
-		resource.TestCheckResourceAttr(resourceName, "name", alert.name),
-		resource.TestCheckResourceAttr(resourceName, "description", alert.description),
-		resource.TestCheckResourceAttr(resourceName, "alert_severity", alert.severity),
-		resource.TestCheckResourceAttr(resourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
-		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.search_query", "http_requests_total{status!~\"4..\"}"),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.threshold", strconv.Itoa(alert.threshold)),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.less_than", "true"),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.sample_threshold_percentage", strconv.Itoa(alert.sampleThresholdPercentage)),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.min_non_null_values_percentage", strconv.Itoa(alert.nonNullPercentage)),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.time_window", alert.timeWindow),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "true"),
-		resource.TestCheckResourceAttr(resourceName, "metric.0.promql.0.condition.0.manage_undetected_values.0.auto_retire_ratio", "Never"),
+	/*updatedAlert := metricPromqlAlertTestParams{
+		alertCommonTestParams: *getRandomAlert(),
+		threshold:             acctest.RandIntRange(0, 1000),
+		nonNullPercentage:     acctest.RandIntRange(0, 100),
+		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
 	}
-
-	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds, resourceName)
+	updatedAlertChecks := extractMetricPromqlAlertChecks(updatedAlert)*/
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -307,16 +291,18 @@ func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
-				ResourceName: resourceName,
+				ResourceName: alertResourceName,
 				ImportState:  true,
 			},
+			/*{
+				Config: testAccCoralogixResourceAlertMetricPromql(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			},*/
 		},
 	})
 }
 
 func TestAccCoralogixResourceAlert_tracing(t *testing.T) {
-	resourceName := "coralogix_alert.test"
-
 	alert := tracingAlertTestParams{
 		alertCommonTestParams: *getRandomAlert(),
 		conditionLatencyMs:    math.Round(randFloat()*1000) / 1000,
@@ -324,28 +310,16 @@ func TestAccCoralogixResourceAlert_tracing(t *testing.T) {
 		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
 		groupBy:               []string{"EventType"},
 	}
+	checks := extractTracingAlertChecks(alert)
 
-	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttrSet(resourceName, "id"),
-		resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
-		resource.TestCheckResourceAttr(resourceName, "name", alert.name),
-		resource.TestCheckResourceAttr(resourceName, "description", alert.description),
-		resource.TestCheckResourceAttr(resourceName, "alert_severity", alert.severity),
-		resource.TestCheckResourceAttr(resourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
-		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
-		resource.TestCheckResourceAttr(resourceName, "notification.0.on_trigger_and_resolved", "true"),
-		resource.TestCheckResourceAttr(resourceName, "tracing.0.latency_threshold_ms", fmt.Sprintf("%.3f", alert.conditionLatencyMs)),
-		resource.TestCheckResourceAttr(resourceName, "tracing.0.condition.0.more_than", "true"),
-		resource.TestCheckResourceAttr(resourceName, "tracing.0.condition.0.time_window", alert.timeWindow),
-		resource.TestCheckResourceAttr(resourceName, "tracing.0.condition.0.occurrences_threshold", strconv.Itoa(alert.occurrencesThreshold)),
-		resource.TestCheckResourceAttr(resourceName, "tracing.0.field_filters.0.field", "Application"),
-		resource.TestCheckResourceAttr(resourceName, "tracing.0.field_filters.0.filters.0.operator", "Equals"),
-		resource.TestCheckResourceAttr(resourceName, "tracing.0.field_filters.0.filters.0.values.0", "nginx"),
+	updatedAlert := tracingAlertTestParams{
+		alertCommonTestParams: *getRandomAlert(),
+		conditionLatencyMs:    math.Round(randFloat()*1000) / 1000,
+		occurrencesThreshold:  acctest.RandIntRange(1, 10000),
+		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
+		groupBy:               []string{"EventType"},
 	}
-
-	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds, resourceName)
-
-	checks = appendSeveritiesCheck(checks, alert.alertFilters.severities, resourceName, "tracing")
+	updatedAlertChecks := extractTracingAlertChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -357,8 +331,12 @@ func TestAccCoralogixResourceAlert_tracing(t *testing.T) {
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
-				ResourceName: resourceName,
+				ResourceName: alertResourceName,
 				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertTracing(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
 	})
@@ -375,22 +353,17 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 		activeWhen:      randActiveWhen(),
 		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
 	}
+	checks := extractFlowAlertChecks(alert)
 
-	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttrSet(resourceName, "id"),
-		resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
-		resource.TestCheckResourceAttr(resourceName, "name", alert.name),
-		resource.TestCheckResourceAttr(resourceName, "description", alert.description),
-		resource.TestCheckResourceAttr(resourceName, "alert_severity", alert.severity),
-		resource.TestCheckResourceAttr(resourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
-		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
-		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.time_window.0.hours", "0"),
-		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.time_window.0.minutes", "20"),
-		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.time_window.0.seconds", "0"),
-		resource.TestCheckResourceAttr(resourceName, "flow.0.stages.1.groups.0.operator", "OR"),
+	updatedAlert := flowAlertTestParams{
+		name:            acctest.RandomWithPrefix("tf-acc-test"),
+		description:     acctest.RandomWithPrefix("tf-acc-test"),
+		emailRecipients: []string{"user@example.com"},
+		severity:        selectRandomlyFromSlice(alertValidSeverities),
+		activeWhen:      randActiveWhen(),
+		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
 	}
-
-	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds, resourceName)
+	updatedAlertChecks := extractFlowAlertChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -405,55 +378,9 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 				ResourceName: resourceName,
 				ImportState:  true,
 			},
-		},
-	})
-}
-
-func TestAccCoralogixResourceAlert_update(t *testing.T) {
-	resourceName := "coralogix_alert.test"
-
-	alert1 := standardAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		groupBy:               []string{"EventType"},
-		occurrencesThreshold:  10,
-		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
-		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
-	}
-
-	checks1 := extractCommonChecks(&alert1.alertCommonTestParams, resourceName, "standard")
-	checks1 = append(checks1,
-		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.group_by.0", alert1.groupBy[0]),
-	)
-
-	alert2 := standardAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		groupBy:               []string{"metadata.uid"},
-		occurrencesThreshold:  10,
-		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
-		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
-	}
-
-	checks2 := extractCommonChecks(&alert2.alertCommonTestParams, resourceName, "standard")
-	checks2 = append(checks2,
-		resource.TestCheckResourceAttr(resourceName, "standard.0.condition.0.group_by.0", alert2.groupBy[0]),
-	)
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckAlertDestroy,
-		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertStandard(&alert1),
-				Check:  resource.ComposeAggregateTestCheckFunc(checks1...),
-			},
-			{
-				ResourceName: resourceName,
-				ImportState:  true,
-			},
-			{
-				Config: testAccCoralogixResourceAlertStandard(&alert2),
-				Check:  resource.ComposeAggregateTestCheckFunc(checks2...),
+				Config: testAccCoralogixResourceAlertFLow(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
 	})
@@ -467,46 +394,204 @@ func getRandomAlert() *alertCommonTestParams {
 		searchQuery:     "remote_addr_enriched:/.*/",
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen:      randActiveWhen(),
-		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
+		notifyEveryMin:  acctest.RandIntRange(2160 /*to avoid notify_every < condition.0.time_window*/, 3600),
 		alertFilters: alertFilters{
 			severities: selectManyRandomlyFromSlice(alertValidLogSeverities),
 		},
 	}
 }
 
-func extractCommonChecks(a *alertCommonTestParams, resourceName, alertType string) []resource.TestCheckFunc {
+func extractStandardAlertChecks(alert standardAlertTestParams) []resource.TestCheckFunc {
+	checks := extractCommonChecks(&alert.alertCommonTestParams, "standard")
+	checks = append(checks,
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "meta_labels.0.key", "alert_type"),
+		resource.TestCheckResourceAttr(alertResourceName, "meta_labels.0.value", "security"),
+		resource.TestCheckResourceAttr(alertResourceName, "meta_labels.1.key", "security_severity"),
+		resource.TestCheckResourceAttr(alertResourceName, "meta_labels.1.value", "High"),
+		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.occurrences_threshold", strconv.Itoa(alert.occurrencesThreshold)),
+		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.time_window", alert.timeWindow),
+		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.group_by.0", alert.groupBy[0]),
+		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.less_than", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.manage_undetected_values.0.auto_retire_ratio", alert.deadmanRatio),
+	)
+	return checks
+}
+
+func extractRatioAlertChecks(alert ratioAlertTestParams) []resource.TestCheckFunc {
+	checks := extractCommonChecks(&alert.alertCommonTestParams, "ratio.0.query_1")
+	checks = append(checks,
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.query_2.0.search_query", alert.q2SearchQuery),
+		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.more_than", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.queries_ratio", fmt.Sprintf("%f", alert.ratio)),
+		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.time_window", alert.timeWindow),
+		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.group_by.0", alert.groupBy[0]),
+		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.group_by_q1", "true"),
+	)
+	for i, s := range alert.q2Severities {
+		checks = append(checks,
+			resource.TestCheckResourceAttr(alertResourceName,
+				fmt.Sprintf("ratio.0.query_2.0.severities.%d", i), s))
+	}
+	return checks
+}
+
+func extractNewValueChecks(alert newValueAlertTestParams) []resource.TestCheckFunc {
+	checks := extractCommonChecks(&alert.alertCommonTestParams, "new_value")
+	checks = append(checks,
+		resource.TestCheckResourceAttr(alertResourceName, "new_value.0.condition.0.key_to_track", alert.keyToTrack),
+		resource.TestCheckResourceAttr(alertResourceName, "new_value.0.condition.0.time_window", alert.timeWindow),
+	)
+	return checks
+}
+
+func extractUniqueCountAlertChecks(alert uniqueCountAlertTestParams) []resource.TestCheckFunc {
+	checks := extractCommonChecks(&alert.alertCommonTestParams, "unique_count")
+	checks = append(checks,
+		resource.TestCheckResourceAttr(alertResourceName, "unique_count.0.condition.0.unique_count_key", alert.uniqueCountKey),
+		resource.TestCheckResourceAttr(alertResourceName, "unique_count.0.condition.0.unique_count_key", alert.uniqueCountKey),
+		resource.TestCheckResourceAttr(alertResourceName, "unique_count.0.condition.0.time_window", alert.timeWindow),
+		resource.TestCheckResourceAttr(alertResourceName, "unique_count.0.condition.0.max_unique_values", strconv.Itoa(alert.maxUniqueValues)),
+		resource.TestCheckResourceAttr(alertResourceName, "unique_count.0.condition.0.max_unique_values_for_group_by", strconv.Itoa(alert.maxUniqueValuesForGroupBy)),
+	)
+	return checks
+}
+
+func extractTimeRelativeChecks(alert timeRelativeAlertTestParams) []resource.TestCheckFunc {
+	checks := extractCommonChecks(&alert.alertCommonTestParams, "time_relative")
+	checks = append(checks,
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.on_trigger_and_resolved", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "time_relative.0.condition.0.ratio_threshold", strconv.Itoa(alert.ratioThreshold)),
+		resource.TestCheckResourceAttr(alertResourceName, "time_relative.0.condition.0.relative_time_window", alert.relativeTimeWindow),
+		resource.TestCheckResourceAttr(alertResourceName, "time_relative.0.condition.0.group_by.0", alert.groupBy[0]),
+	)
+	return checks
+}
+
+func extractLuceneMetricChecks(alert metricLuceneAlertTestParams) []resource.TestCheckFunc {
 	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttrSet(resourceName, "id"),
-		resource.TestCheckResourceAttr(resourceName, "enabled", "true"),
-		resource.TestCheckResourceAttr(resourceName, "name", a.name),
-		resource.TestCheckResourceAttr(resourceName, "description", a.description),
-		resource.TestCheckResourceAttr(resourceName, "alert_severity", a.severity),
-		resource.TestCheckResourceAttr(resourceName, "notification.0.recipients.0.emails.0", a.emailRecipients[0]),
-		resource.TestCheckResourceAttr(resourceName, "notification.0.notify_every_min", strconv.Itoa(a.notifyEveryMin)),
-		resource.TestCheckResourceAttr(resourceName, fmt.Sprintf("%s.0.search_query", alertType), a.searchQuery),
+		resource.TestCheckResourceAttrSet(alertResourceName, "id"),
+		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
+		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
+		resource.TestCheckResourceAttr(alertResourceName, "alert_severity", alert.severity),
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.search_query", alert.searchQuery),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.metric_field", alert.metricField),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.arithmetic_operator", alert.arithmeticOperator),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.less_than", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.threshold", strconv.Itoa(alert.threshold)),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.arithmetic_operator_modifier", strconv.Itoa(alert.arithmeticOperatorModifier)),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.sample_threshold_percentage", strconv.Itoa(alert.sampleThresholdPercentage)),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.time_window", alert.timeWindow),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.group_by.0", alert.groupBy[0]),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values", "true"),
+	}
+	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
+	return checks
+}
+
+func extractMetricPromqlAlertChecks(alert metricPromqlAlertTestParams) []resource.TestCheckFunc {
+	checks := []resource.TestCheckFunc{
+		resource.TestCheckResourceAttrSet(alertResourceName, "id"),
+		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
+		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
+		resource.TestCheckResourceAttr(alertResourceName, "alert_severity", alert.severity),
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.search_query", "http_requests_total{status!~\"4..\"}"),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.threshold", strconv.Itoa(alert.threshold)),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.less_than", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.sample_threshold_percentage", strconv.Itoa(alert.sampleThresholdPercentage)),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.min_non_null_values_percentage", strconv.Itoa(alert.nonNullPercentage)),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.time_window", alert.timeWindow),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.manage_undetected_values.0.auto_retire_ratio", "Never"),
+	}
+	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
+	return checks
+}
+
+func extractTracingAlertChecks(alert tracingAlertTestParams) []resource.TestCheckFunc {
+	checks := []resource.TestCheckFunc{
+		resource.TestCheckResourceAttrSet(alertResourceName, "id"),
+		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
+		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
+		resource.TestCheckResourceAttr(alertResourceName, "alert_severity", alert.severity),
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.on_trigger_and_resolved", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.latency_threshold_ms", fmt.Sprintf("%.3f", alert.conditionLatencyMs)),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.more_than", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.time_window", alert.timeWindow),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.occurrences_threshold", strconv.Itoa(alert.occurrencesThreshold)),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.field", "Application"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.operator", "Equals"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.values.0", "nginx"),
+	}
+	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
+	checks = appendSeveritiesCheck(checks, alert.alertFilters.severities, "tracing")
+	return checks
+}
+
+func extractFlowAlertChecks(alert flowAlertTestParams) []resource.TestCheckFunc {
+	checks := []resource.TestCheckFunc{
+		resource.TestCheckResourceAttrSet(alertResourceName, "id"),
+		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
+		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
+		resource.TestCheckResourceAttr(alertResourceName, "alert_severity", alert.severity),
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
+		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stages.1.time_window.0.hours", "0"),
+		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stages.1.time_window.0.minutes", "20"),
+		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stages.1.time_window.0.seconds", "0"),
+		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stages.1.groups.0.operator", "OR"),
+	}
+	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
+	return checks
+}
+
+func extractCommonChecks(a *alertCommonTestParams, alertType string) []resource.TestCheckFunc {
+	checks := []resource.TestCheckFunc{
+		resource.TestCheckResourceAttrSet(alertResourceName, "id"),
+		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "name", a.name),
+		resource.TestCheckResourceAttr(alertResourceName, "description", a.description),
+		resource.TestCheckResourceAttr(alertResourceName, "alert_severity", a.severity),
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", a.emailRecipients[0]),
+		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(a.notifyEveryMin)),
+		resource.TestCheckResourceAttr(alertResourceName, fmt.Sprintf("%s.0.search_query", alertType), a.searchQuery),
 	}
 
-	checks = appendSchedulingChecks(checks, a.daysOfWeek, a.activityStarts, a.activityEnds, resourceName)
+	checks = appendSchedulingChecks(checks, a.daysOfWeek, a.activityStarts, a.activityEnds)
 
-	checks = appendSeveritiesCheck(checks, a.alertFilters.severities, resourceName, alertType)
+	checks = appendSeveritiesCheck(checks, a.alertFilters.severities, alertType)
 
 	return checks
 }
 
-func appendSeveritiesCheck(checks []resource.TestCheckFunc, severities []string, resourceName string, alertType string) []resource.TestCheckFunc {
+func appendSeveritiesCheck(checks []resource.TestCheckFunc, severities []string, alertType string) []resource.TestCheckFunc {
 	for _, s := range severities {
 		checks = append(checks,
-			resource.TestCheckTypeSetElemAttr(resourceName, fmt.Sprintf("%s.0.severities.*", alertType), s))
+			resource.TestCheckTypeSetElemAttr(alertResourceName, fmt.Sprintf("%s.0.severities.*", alertType), s))
 	}
 	return checks
 }
 
-func appendSchedulingChecks(checks []resource.TestCheckFunc, daysOfWeek []string, startTime, endTime, resourceName string) []resource.TestCheckFunc {
+func appendSchedulingChecks(checks []resource.TestCheckFunc, daysOfWeek []string, startTime, endTime string) []resource.TestCheckFunc {
 	for _, d := range daysOfWeek {
-		checks = append(checks, resource.TestCheckTypeSetElemAttr(resourceName, "scheduling.0.time_frames.0.days_enabled.*", d))
+		checks = append(checks, resource.TestCheckTypeSetElemAttr(alertResourceName, "scheduling.0.time_frames.0.days_enabled.*", d))
 	}
-	checks = append(checks, resource.TestCheckResourceAttr(resourceName, "scheduling.0.time_frames.0.start_time", startTime))
-	checks = append(checks, resource.TestCheckResourceAttr(resourceName, "scheduling.0.time_frames.0.end_time", endTime))
+	checks = append(checks, resource.TestCheckResourceAttr(alertResourceName, "scheduling.0.time_frames.0.start_time", startTime))
+	checks = append(checks, resource.TestCheckResourceAttr(alertResourceName, "scheduling.0.time_frames.0.end_time", endTime))
 	return checks
 }
 
@@ -722,6 +807,7 @@ func testAccCoralogixResourceAlertTimeRelative(a *timeRelativeAlertTestParams) s
     }
     notify_every_min = %d
 	notify_only_on_triggered_group_by_values = true
+    on_trigger_and_resolved = true
   }
 
   scheduling {

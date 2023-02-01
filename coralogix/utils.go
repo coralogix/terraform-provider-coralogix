@@ -10,7 +10,9 @@ import (
 	"strings"
 	"time"
 
-	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/alerts/v1"
+	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v1"
+
+	"github.com/hashicorp/go-cty/cty"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
@@ -30,7 +32,7 @@ var (
 func handleRpcError(err error, resource string) diag.Diagnostics {
 	switch status.Code(err) {
 	case codes.PermissionDenied, codes.Unauthenticated:
-		return diag.Errorf("permission denied for %s, check your api-key", resource)
+		return diag.Errorf("permission denied for %s endpoint, check your api-key", resource)
 	case codes.Internal:
 		return diag.Errorf("internal error for %s in Coralogix backend - %s", resource, err)
 	case codes.InvalidArgument:
@@ -256,7 +258,15 @@ func getKeysInterface(m map[string]interface{}) []string {
 	return result
 }
 
-func getKeysInt(m map[string]int32) []string {
+func getKeysInt32(m map[string]int32) []string {
+	result := make([]string, 0)
+	for k := range m {
+		result = append(result, k)
+	}
+	return result
+}
+
+func getKeysInt(m map[string]int) []string {
 	result := make([]string, 0)
 	for k := range m {
 		result = append(result, k)
@@ -280,6 +290,14 @@ func reverseMapStrings(m map[string]string) map[string]string {
 	return n
 }
 
+func reverseMapIntToString(m map[string]int) map[int]string {
+	n := make(map[int]string)
+	for k, v := range m {
+		n[v] = k
+	}
+	return n
+}
+
 func reverseMapRelativeTimeFrame(m map[string]protoTimeFrameAndRelativeTimeFrame) map[protoTimeFrameAndRelativeTimeFrame]string {
 	n := make(map[protoTimeFrameAndRelativeTimeFrame]string)
 	for k, v := range m {
@@ -297,22 +315,22 @@ func uint32ToStr(n uint32) string {
 	return strconv.FormatUint(uint64(n), 10)
 }
 
-func mailValidationFunc() schema.SchemaValidateFunc {
-	return validation.StringMatch(
-		regexp.MustCompile(`^[a-z/d._%+\-]+@[a-z/d.\-]+\.[a-z]{2,4}$`), "not valid mail address")
+func mailValidationFunc() schema.SchemaValidateDiagFunc {
+	return func(v interface{}, _ cty.Path) diag.Diagnostics {
+		mailStr := v.(string)
+		matched, _ := regexp.MatchString(`^[a-z/d._%+\-]+@[a-z/d.\-]+\.[a-z]{2,4}$`, mailStr)
+		if !matched {
+			return diag.Errorf("%s is not a valid mail address", mailStr)
+		}
+		return nil
+	}
 }
 
-func urlValidationFunc() schema.SchemaValidateFunc {
-	return func(i interface{}, k string) ([]string, []error) {
-		v, ok := i.(string)
-		if !ok {
-			return nil, []error{fmt.Errorf("expected type of %s to be string", k)}
+func urlValidationFunc() schema.SchemaValidateDiagFunc {
+	return func(v interface{}, _ cty.Path) diag.Diagnostics {
+		if _, err := url.ParseRequestURI(v.(string)); err != nil {
+			return diag.Errorf("%s in not valid url - %s", v.(string), err.Error())
 		}
-
-		if _, err := url.ParseRequestURI(v); err != nil {
-			return nil, []error{fmt.Errorf("%s in not valid url - %s", k, err.Error())}
-		}
-		return nil, nil
+		return nil
 	}
-
 }

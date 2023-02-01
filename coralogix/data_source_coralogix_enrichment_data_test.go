@@ -1,7 +1,6 @@
 package coralogix
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -10,8 +9,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+var dataSetDataSourceName = "data." + dataSetResourceName
+
 func TestAccCoralogixDataSourceDataSet_basic(t *testing.T) {
-	resourceName := "coralogix_data_set.test"
 	name := acctest.RandomWithPrefix("tf-acc-test")
 	description := acctest.RandomWithPrefix("tf-acc-test")
 	wd, err := os.Getwd()
@@ -20,6 +20,7 @@ func TestAccCoralogixDataSourceDataSet_basic(t *testing.T) {
 	}
 	parent := filepath.Dir(wd)
 	filePath := parent + "/examples/data_set/date-to-day-of-the-week.csv"
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
@@ -29,7 +30,7 @@ func TestAccCoralogixDataSourceDataSet_basic(t *testing.T) {
 				Config: testAccCoralogixResourceDataSet(name, description, filePath) +
 					testAccCoralogixDataSourceDataSet_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(fmt.Sprintf("data.%s", resourceName), "name", name),
+					resource.TestCheckResourceAttr(dataSetDataSourceName, "name", name),
 				),
 			},
 		},

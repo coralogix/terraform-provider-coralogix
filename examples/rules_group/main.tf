@@ -18,9 +18,9 @@ resource "coralogix_rules_group" "rules_group_example" {
   applications = ["nginx"] //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
+  order        = 1
 
   rule_subgroups {
-    order = 3
     rules {
       extract {
         name               = "Severity Rule"
@@ -104,9 +104,9 @@ resource "coralogix_rules_group" "extract_timestamp_example" {
   applications = ["nginx"] //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
+  order        = 4
 
   rule_subgroups {
-    order = 2
     rules {
       extract_timestamp {
         name                  = "example extract-timestamp rule from terraform"
@@ -125,8 +125,8 @@ resource "coralogix_rules_group" "remove_fields_example" {
   applications = ["nginx"] //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
+  order        = 3
   rule_subgroups {
-    order = 1
     rules {
       remove_fields {
         name            = "Example remove-fields rule from terraform"
@@ -138,16 +138,16 @@ resource "coralogix_rules_group" "remove_fields_example" {
 }
 
 resource "coralogix_rules_group" "parse_json_field_example" {
-  order = 0
   name         = "Example parse-json-field rule-group from terraform"
   description  = "rule_group created by coralogix terraform provider"
   applications = ["nginx"] //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
-  severities   = ["Info"]
+  severities   = ["Warning"]
+  order = 2
   rule_subgroups {
     rules {
       parse_json_field {
-        name                   = "Example remove-fields rule from terraform"
+        name                   = "Example parse-json-field rule from terraform"
         description            = "rule created by coralogix terraform provider"
         source_field           = "text"
         destination_field      = "text"

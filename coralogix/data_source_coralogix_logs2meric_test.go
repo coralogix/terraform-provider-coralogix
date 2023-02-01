@@ -6,6 +6,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+var logs2metricDataSourceName = "data." + logs2metricResourceName
+
 func TestAccCoralogixDataSourceLogs2Metric_basic(t *testing.T) {
 	logsToMetric := getRandomLogs2Metric()
 	resource.Test(t, resource.TestCase{
@@ -16,7 +18,7 @@ func TestAccCoralogixDataSourceLogs2Metric_basic(t *testing.T) {
 				Config: testAccCoralogixResourceLogs2Metric(logsToMetric) +
 					testAccCoralogixDataSourceLogs2Metric_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.coralogix_logs2metric.test", "name", logsToMetric.name),
+					resource.TestCheckResourceAttr(logs2metricDataSourceName, "name", logsToMetric.name),
 				),
 			},
 		},

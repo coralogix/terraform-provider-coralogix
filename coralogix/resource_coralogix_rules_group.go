@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	rulesv1 "terraform-provider-coralogix/coralogix/clientset/grpc/com/coralogix/rules/v1"
+	rulesv1 "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -68,7 +68,7 @@ func resourceCoralogixRulesGroup() *schema.Resource {
 
 		Schema: RulesGroupSchema(),
 
-		Description: "Rule-group is list of rule-subgroups with 'and' (&&) operation between. Api-key is required for this resource.",
+		Description: "Rule-group is list of rule-subgroups with 'and' (&&) operation between. For more info please review - https://coralogix.com/docs/log-parsing-rules/ .",
 	}
 }
 
@@ -131,9 +131,11 @@ func RulesGroupSchema() map[string]*schema.Schema {
 			Description: "Rule-group creator.",
 		},
 		"order": {
-			Type:        schema.TypeInt,
-			Computed:    true,
-			Description: "Determines the index of the rule-group between the other rule-groups. By default will be added last.",
+			Type:         schema.TypeInt,
+			Optional:     true,
+			Computed:     true,
+			Description:  "Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing).",
+			ValidateFunc: validation.IntAtLeast(1),
 		},
 		"rule_subgroups": {
 			Type:     schema.TypeList,
@@ -153,9 +155,11 @@ func RulesGroupSchema() map[string]*schema.Schema {
 					},
 					"order": {
 						Type:     schema.TypeInt,
+						Optional: true,
 						Computed: true,
 						Description: "Determines the index of the rule-subgroup inside the rule-group." +
-							"Will be computed by the order it was declarer.",
+							"When not set, will be computed by the order it was declared. (1 based indexing).",
+						ValidateFunc: validation.IntAtLeast(1),
 					},
 					"rules": {
 						Type: schema.TypeList,
@@ -318,7 +322,7 @@ func extractTimestampSchema() map[string]*schema.Schema {
 		Type:         schema.TypeString,
 		Required:     true,
 		ValidateFunc: validation.StringInSlice(rulesValidFormatStandards, false),
-		Description:  fmt.Sprintf("The format standard you want to use. Can be one of %q", rulesValidDestinationFields),
+		Description:  fmt.Sprintf("The format standard you want to use. Can be one of %q", rulesValidFormatStandards),
 	}
 	extractTimestampSchema["time_format"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -384,27 +388,34 @@ func parseJsonFieldSchema() map[string]*schema.Schema {
 func commonRulesSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"id": {
-			Type:     schema.TypeString,
-			Computed: true,
+			Type:        schema.TypeString,
+			Computed:    true,
+			Description: "The rule id.",
 		},
 		"name": {
 			Type:         schema.TypeString,
 			Required:     true,
 			ValidateFunc: validation.StringIsNotEmpty,
+			Description:  "The rule name.",
 		},
 		"description": {
-			Type:     schema.TypeString,
-			Optional: true,
-			Default:  "",
+			Type:        schema.TypeString,
+			Optional:    true,
+			Description: "The rule description.",
 		},
 		"active": {
-			Type:     schema.TypeBool,
-			Optional: true,
-			Default:  true,
+			Type:        schema.TypeBool,
+			Optional:    true,
+			Default:     true,
+			Description: "Determines whether to rule will be active or not.",
 		},
 		"order": {
 			Type:     schema.TypeInt,
 			Computed: true,
+			Optional: true,
+			Description: "Determines the index of the rule inside the rule-subgroup." +
+				"When not set, will be computed by the order it was declared. (1 based indexing).",
+			ValidateFunc: validation.IntAtLeast(1),
 		},
 	}
 }
@@ -486,7 +497,7 @@ func resourceCoralogixRulesGroupUpdate(ctx context.Context, d *schema.ResourceDa
 		RuleGroup: req,
 	}
 
-	log.Printf("[INFO] Updating rule-group %s", updateRuleGroupRequest)
+	log.Printf("[INFO] Updating rule-group %s to %s", id, updateRuleGroupRequest)
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().UpdateRuleGroup(ctx, updateRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
@@ -632,7 +643,11 @@ func expandRuleSubgroups(v interface{}) ([]*rulesv1.CreateRuleGroupRequest_Creat
 		if err != nil {
 			return nil, err
 		}
-		rsg.Order = wrapperspb.UInt32(uint32(i + 1))
+
+		if rsg.Order == nil {
+			rsg.Order = wrapperspb.UInt32(uint32(i + 1))
+		}
+
 		ruleSubgroups = append(ruleSubgroups, rsg)
 	}
 
@@ -644,9 +659,18 @@ func expandRuleSubgroup(m map[string]interface{}) (*rulesv1.CreateRuleGroupReque
 	if err != nil {
 		return nil, err
 	}
+
+	active := wrapperspb.Bool(m["active"].(bool))
+
+	var order *wrapperspb.UInt32Value
+	if o, ok := m["order"].(int); ok && o != 0 {
+		order = wrapperspb.UInt32(uint32(o))
+	}
+
 	return &rulesv1.CreateRuleGroupRequest_CreateRuleSubgroup{
 		Rules:   rules,
-		Enabled: wrapperspb.Bool(m["active"].(bool)),
+		Enabled: active,
+		Order:   order,
 	}, nil
 }
 
@@ -657,7 +681,11 @@ func expandRules(s []interface{}) ([]*rulesv1.CreateRuleGroupRequest_CreateRuleS
 		if err != nil {
 			return nil, err
 		}
-		rule.Order = wrapperspb.UInt32(uint32(i + 1))
+
+		if rule.Order == nil {
+			rule.Order = wrapperspb.UInt32(uint32(i + 1))
+		}
+
 		rules = append(rules, rule)
 	}
 	return rules, nil
@@ -671,18 +699,24 @@ func expandRule(i interface{}) (*rulesv1.CreateRuleGroupRequest_CreateRuleSubgro
 			if rule == nil {
 				rule = expandRuleForSpecificRuleType(k, r[0])
 			} else {
-				return nil, fmt.Errorf("exactly one of %q must be provided inside rule. more than one rule type where provided.", getKeysInterface(m))
+				return nil, fmt.Errorf("exactly one of %q must be provided inside rule. more than one rule type where provided", getKeysInterface(m))
 			}
 		}
 	}
 	if rule == nil {
-		return nil, fmt.Errorf("exactly one of %q must be provided inside rule. no rule type was provided.", getKeysInterface(m))
+		return nil, fmt.Errorf("exactly one of %q must be provided inside rule. no rule type was provided", getKeysInterface(m))
 	}
 	return rule, nil
 }
 
 func expandRuleForSpecificRuleType(rulesType string, i interface{}) *rulesv1.CreateRuleGroupRequest_CreateRuleSubgroup_CreateRule {
 	m := i.(map[string]interface{})
+
+	var order *wrapperspb.UInt32Value
+	if o, ok := m["order"].(int); ok && o != 0 {
+		order = wrapperspb.UInt32(uint32(o))
+	}
+
 	return &rulesv1.CreateRuleGroupRequest_CreateRuleSubgroup_CreateRule{
 		Name:        wrapperspb.String(m["name"].(string)),
 		Description: wrapperspb.String(m["description"].(string)),
@@ -693,7 +727,7 @@ func expandRuleForSpecificRuleType(rulesType string, i interface{}) *rulesv1.Cre
 			return wrapperspb.String("text")
 		}(),
 		Enabled:    wrapperspb.Bool(m["active"].(bool)),
-		Order:      wrapperspb.UInt32(uint32(m["order"].(int))),
+		Order:      order,
 		Parameters: expandParameters(rulesType, m),
 	}
 }
