@@ -12,7 +12,7 @@ on:
   runs-on: ubuntu-latest
 
   steps:
-- name: Clone repo
-  uses: actions/checkout@master
-- name: tfsec
-uses: aquasecurity/tfsec-action@v1.0.0
+    - name: Clone repo
+      uses: actions/checkout@master
+    - name: tfsec
+    - uses: aquasecurity/tfsec-action@v1.0.0
