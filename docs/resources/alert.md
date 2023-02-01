@@ -657,13 +657,13 @@ Required:
 
 ### Nested Schema for `notification`
 
+Required:
+
+- `notify_every_min` (Number) By default, notify_every_min will be populated with min for immediate, more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time frame for the less_than condition (in minutes). You may choose to change the suppress window so the alert will be suppressed for a longer period.
+
 Optional:
 
 - `ignore_infinity` (Boolean)
-- `notify_every_min` (Number) By default, notify_every_min will be populated with min for immediate, more_than and
-  more_than_usual alerts. For less_than alert it will be populated with the chosen time frame for the less_than
-  condition (in minutes). You may choose to change the suppress window so the alert will be suppressed for a longer
-  period.
 - `notify_only_on_triggered_group_by_values` (Boolean) Notifications will contain only triggered group-by values.
 - `on_trigger_and_resolved` (Boolean)
 - `payload_fields` (Set of String) A list of log fields out of the log example which will be included with the alert
