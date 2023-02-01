@@ -15,7 +15,7 @@ provider "coralogix" {
 resource "coralogix_webhook" "slack_webhook" {
   slack {
     name = "slack-webhook"
-    url  = "https://coralogix-dev.slack.com/archives/C03NAS1N7FC"
+    url  = "https://join.slack.com/example"
   }
 }
 
@@ -153,7 +153,7 @@ resource "coralogix_webhook" "pager_duty_webhook" {
 resource "coralogix_webhook" "email_group_webhook" {
   email_group {
     name   = "email-group-webhook"
-    emails = ["or.novog@gmail.com", "or.novogroder@coralgix.com"]
+    emails = ["user@example.com"]
   }
 }
 
@@ -185,7 +185,7 @@ resource "coralogix_webhook" "demisto_webhook" {
   demisto {
     name    = "demisto-webhook"
     payload = jsonencode({
-      "privateKey" : "d3bd1e44-5603-09db-52b6-cce4c850dc9e",
+      "privateKey" : "<send-your-logs-privatekey>",
       "applicationName" : "Coralogix Alerts",
       "subsystemName" : "Coralogix Alerts",
       "computerName" : "$COMPUTER_NAME",
@@ -235,5 +235,47 @@ resource "coralogix_webhook" "sendlog_webhook" {
       ],
       "uuid" : "<same-uuid>"
     })
+  }
+}
+
+resource "coralogix_alert" "standard_alert" {
+  name           = "Standard alert example"
+  description    = "Example of standard alert from terraform"
+  alert_severity = "Critical"
+
+  meta_labels {
+    key   = "alert_type"
+    value = "security"
+  }
+  meta_labels {
+    key   = "security_severity"
+    value = "high"
+  }
+
+  notification {
+    recipients {
+      emails      = ["user@example.com"]
+      webhooks = [coralogix_webhook.slack_webhook.slack.0.name, coralogix_webhook.custom_webhook.custom.0.name] //change here for existing webhook from your account
+    }
+    notify_every_min = 1
+  }
+
+  scheduling {
+    time_zone = "UTC+2"
+    time_frames {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+  }
+
+  standard {
+    applications = ["filter:contains:nginx"] //change here for existing applications from your account
+    subsystems   = ["filter:startsWith:subsystem-name"] //change here for existing subsystems from your account
+    severities   = ["Warning", "Info"]
+    search_query = "remote_addr_enriched:/.*/"
+    condition {
+      immediately = true
+    }
   }
 }

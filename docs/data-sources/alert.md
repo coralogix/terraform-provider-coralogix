@@ -229,7 +229,7 @@ Read-Only:
 Read-Only:
 
 - `emails` (Set of String)
-- `webhook_ids` (Set of String)
+- `webhooks` (Set of String)
 
 
 
