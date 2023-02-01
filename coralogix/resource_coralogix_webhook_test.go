@@ -323,8 +323,8 @@ func getRandomWebhook() *webhookTestFields {
 
 func testAccCoralogixResourceSlackWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	slack {
-    	name = "%s"
+  	name    = "%s"
+	slack {
         url  = "%s"
   	}
 }
@@ -334,8 +334,8 @@ func testAccCoralogixResourceSlackWebhook(w *webhookTestFields) string {
 
 func testAccCoralogixResourceCustomWebhook(w *customWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	 custom {
-    	name    = "%s"
+  	 name    = "%s"
+     custom {
     	url     = "%s"
     	method  = "%s"
     	headers = jsonencode({ "custom" : "header" })
@@ -348,8 +348,8 @@ func testAccCoralogixResourceCustomWebhook(w *customWebhookTestFields) string {
 
 func testAccCoralogixResourcePagerdutyWebhook(w *pagerDutyWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	pager_duty {
-    	name = "%s"
+  	name    = "%s"
+	pager_duty {
         service_key  = "%s"
   	}
 }
@@ -359,8 +359,8 @@ func testAccCoralogixResourcePagerdutyWebhook(w *pagerDutyWebhookTestFields) str
 
 func testAccCoralogixResourceEmailGroupWebhook(w *emailGroupWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	email_group {
-    	name = "%s"
+  	name = "%s"
+	email_group {
         emails  = %s
   	}
 }
@@ -370,8 +370,8 @@ func testAccCoralogixResourceEmailGroupWebhook(w *emailGroupWebhookTestFields) s
 
 func testAccCoralogixResourceSendLogWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" test {
-sendlog {
-    name    = "%s"
+	name    = "%s"
+	sendlog {
     payload  = jsonencode({ "custom" : "payload" })
   	}
 }
@@ -381,8 +381,8 @@ sendlog {
 
 func testAccCoralogixResourceMicrosoftTeamsWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  microsoft_teams {
-    	name = "%s"
+  	name = "%s"
+	microsoft_teams {
         url  = "%s"
   	}
 }
@@ -392,8 +392,8 @@ func testAccCoralogixResourceMicrosoftTeamsWebhook(w *webhookTestFields) string 
 
 func testAccCoralogixResourceJiraWebhook(w *jiraWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	jira {
-    name        = "%s"
+  	name        = "%s"
+	jira {
     url         = "%s"
     api_token   = "%s"
     email       = "%s"
@@ -406,8 +406,8 @@ func testAccCoralogixResourceJiraWebhook(w *jiraWebhookTestFields) string {
 
 func testAccCoralogixResourceOpsgenieWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	opsgenie {
-    	name = "%s"
+  	name = "%s"
+	opsgenie {
         url  = "%s"
   	}
 }
@@ -417,8 +417,8 @@ func testAccCoralogixResourceOpsgenieWebhook(w *webhookTestFields) string {
 
 func testAccCoralogixResourceDemistoWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	demisto {
-    	name = "%s"
+  	name = "%s"
+	demisto {
         payload = jsonencode({ "custom" : "payload" })
   	}
 }

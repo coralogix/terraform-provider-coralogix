@@ -16,8 +16,8 @@ func TestAccCoralogixDataSourceWebhook_basic(t *testing.T) {
 				Config: testAccCoralogixResourceSlackWebhook(w) +
 					testAccCoralogixDataSourceWebhook_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.coralogix_webhook.test", "name", w.name),
 					resource.TestCheckResourceAttr("data.coralogix_webhook.test", "slack.0.url", w.url),
-					resource.TestCheckResourceAttr("data.coralogix_webhook.test", "slack.0.name", w.name),
 				),
 			},
 		},
