@@ -60,7 +60,7 @@ func resourceCoralogixWebhookCreate(ctx context.Context, d *schema.ResourceData,
 	log.Printf("[INFO] Submitted new webhook: %#v", resp)
 
 	var m map[string]interface{}
-	if err = json.Unmarshal([]byte(resp), m); err != nil {
+	if err = json.Unmarshal([]byte(resp), &m); err != nil {
 		return diag.FromErr(err)
 	}
 	id := strconv.Itoa(int(m["id"].(float64)))
@@ -79,7 +79,7 @@ func resourceCoralogixWebhookRead(ctx context.Context, d *schema.ResourceData, m
 	log.Printf("[INFO] Received webhook: %#v", resp)
 
 	var m map[string]interface{}
-	if err = json.Unmarshal([]byte(resp), m); err != nil {
+	if err = json.Unmarshal([]byte(resp), &m); err != nil {
 		return diag.FromErr(err)
 	}
 	return setWebhook(d, m)

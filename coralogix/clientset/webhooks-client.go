@@ -13,19 +13,19 @@ type WebhooksClient struct {
 }
 
 func (w WebhooksClient) CreateWebhook(ctx context.Context, body string) (string, error) {
-	return w.client.Post(ctx, "api/v1/external/integrations", "application/json", body)
+	return w.client.Post(ctx, "/api/v1/external/integrations", "application/json", body)
 }
 
 func (w WebhooksClient) GetWebhook(ctx context.Context, webhookId string) (string, error) {
-	return w.client.Get(ctx, fmt.Sprintf("api/v1/external/integrations/%s", webhookId))
+	return w.client.Get(ctx, fmt.Sprintf("/api/v1/external/integrations/%s", webhookId))
 }
 
 func (w WebhooksClient) UpdateWebhook(ctx context.Context, body string) (string, error) {
-	return w.client.Post(ctx, "api/v1/external/integrations", "application/json", body)
+	return w.client.Post(ctx, "/api/v1/external/integrations", "application/json", body)
 }
 
 func (w WebhooksClient) DeleteWebhook(ctx context.Context, webhookId string) (string, error) {
-	return w.client.Delete(ctx, fmt.Sprintf("api/v1/external/integrations/%s", webhookId))
+	return w.client.Delete(ctx, fmt.Sprintf("/api/v1/external/integrations/%s", webhookId))
 }
 
 func NewWebhooksClient(c *CallPropertiesCreator) *WebhooksClient {

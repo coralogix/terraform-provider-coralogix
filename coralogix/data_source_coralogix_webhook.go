@@ -2,6 +2,7 @@ package coralogix
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"strconv"
 
@@ -28,13 +29,17 @@ func dataSourceCoralogixWebhookRead(ctx context.Context, d *schema.ResourceData,
 	id := d.Get("id").(string)
 
 	log.Printf("[INFO] Reading webhook %s", id)
-	webhook, err := meta.(*clientset.ClientSet).Webhooks().GetWebhook(ctx, id)
+	resp, err := meta.(*clientset.ClientSet).Webhooks().GetWebhook(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcErrorWithID(err, "webhook", id)
 	}
-	log.Printf("[INFO] Received webhook: %#v", webhook)
+	log.Printf("[INFO] Received webhook: %#v", resp)
 
-	d.SetId(strconv.Itoa(int(webhook["id"].(float64))))
-	return setWebhook(d, webhook)
+	var m map[string]interface{}
+	if err = json.Unmarshal([]byte(resp), &m); err != nil {
+		return diag.FromErr(err)
+	}
+	d.SetId(strconv.Itoa(int(m["id"].(float64))))
+	return setWebhook(d, m)
 }
