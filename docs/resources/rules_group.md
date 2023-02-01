@@ -101,7 +101,7 @@ resource "coralogix_rules_group" "rules_group_example" {
 ### Extract Rule
 
 ```hcl
-    extract {
+extract {
   name               = "Severity Rule"
   description        = "Look for default severity text"
   source_field       = "text"
