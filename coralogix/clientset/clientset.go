@@ -11,6 +11,7 @@ type ClientSet struct {
 	actions             *ActionsClient
 	recordingRuleGroups *RecordingRulesGroupsClient
 	tcoPolicies         *TCOPolicies
+	webhooks            *WebhooksClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -53,6 +54,10 @@ func (c *ClientSet) TCOPolicies() *TCOPolicies {
 	return c.tcoPolicies
 }
 
+func (c *ClientSet) Webhooks() *WebhooksClient {
+	return c.webhooks
+}
+
 func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 	_ = NewCallPropertiesCreator(targetUrl, teamsApiKey)
@@ -68,5 +73,6 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 		actions:             NewActionsClient(apikeyCPC),
 		recordingRuleGroups: NewRecordingRuleGroupsClient(apikeyCPC),
 		tcoPolicies:         NewTCOPoliciesClient(apikeyCPC),
+		webhooks:            NewWebhooksClient(apikeyCPC),
 	}
 }
