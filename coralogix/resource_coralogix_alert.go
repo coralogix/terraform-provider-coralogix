@@ -316,7 +316,8 @@ func AlertSchema() map[string]*schema.Schema {
 					},
 					"notify_every_min": {
 						Type:         schema.TypeInt,
-						Required:     true,
+						Optional:     true,
+						Computed:     true,
 						ValidateFunc: validation.IntAtLeast(1),
 						Description: "By default, notify_every_min will be populated with min for immediate," +
 							" more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time" +
@@ -2216,7 +2217,7 @@ func expandNotification(i interface{}) *notification {
 	raw := l[0]
 	m := raw.(map[string]interface{})
 
-	notifyEverySec := wrapperspb.Double(float64(m["notify_every_min"].(int) * 60))
+	notifyEverySec := extractNotifyEverySec(m["notify_every_min"])
 	notifyWhenResolved := wrapperspb.Bool(m["on_trigger_and_resolved"].(bool))
 	ignoreInfinity := wrapperspb.Bool(m["ignore_infinity"].(bool))
 	notifyOnlyOnTriggeredGroupByValues := wrapperspb.Bool(m["notify_only_on_triggered_group_by_values"].(bool))
@@ -2231,6 +2232,19 @@ func expandNotification(i interface{}) *notification {
 		recipients:                         recipients,
 		payloadFields:                      payloadFields,
 	}
+}
+
+func extractNotifyEverySec(i interface{}) *wrapperspb.DoubleValue {
+	if i == nil {
+		return nil
+	}
+	v := i.(int)
+	notifyEveryMin := float64(v * 60)
+	var notifyEverySec *wrapperspb.DoubleValue
+	if notifyEveryMin > 0 {
+		notifyEverySec = wrapperspb.Double(notifyEveryMin * 60)
+	}
+	return notifyEverySec
 }
 
 func expandRecipients(i interface{}) *alerts.AlertNotifications {
