@@ -301,13 +301,13 @@ func AlertSchema() map[string]*schema.Schema {
 									Description: "The emails for anyone that should receive this alert.",
 									Set:         schema.HashString,
 								},
-								"webhook_ids": {
+								"webhooks": {
 									Type:     schema.TypeSet,
 									Optional: true,
 									Elem: &schema.Schema{
 										Type: schema.TypeString,
 									},
-									Description: "The Webhook-integrations to send the alert to.",
+									Description: "The Webhook-integrations name to send the alert to.",
 									Set:         schema.HashString,
 								},
 							},
@@ -455,7 +455,7 @@ func timeFrames() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"days_enabled": {
 				Type:     schema.TypeSet,
-				Optional: true,
+				Required: true,
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
 					ValidateFunc: validation.StringInSlice(alertValidDaysOfWeek, false),
@@ -1604,10 +1604,14 @@ func flattenNotification(alert *alerts.Alert, ignoreInfinity, notifyWhenResolved
 }
 
 func flattenRecipients(notifications *alerts.AlertNotifications) interface{} {
+	if len(notifications.GetEmails()) == 0 && len(notifications.GetIntegrations()) == 0 {
+		return nil
+	}
+
 	return []interface{}{
 		map[string]interface{}{
-			"emails":      wrappedStringSliceToStringSlice(notifications.GetEmails()),
-			"webhook_ids": wrappedStringSliceToStringSlice(notifications.GetIntegrations()),
+			"emails":   wrappedStringSliceToStringSlice(notifications.GetEmails()),
+			"webhooks": wrappedStringSliceToStringSlice(notifications.GetIntegrations()),
 		},
 	}
 }
@@ -2213,7 +2217,7 @@ func expandNotification(i interface{}) *notification {
 	raw := l[0]
 	m := raw.(map[string]interface{})
 
-	notifyEverySec := wrapperspb.Double(float64(m["notify_every_min"].(int) * 60))
+	notifyEverySec := extractNotifyEverySec(m["notify_every_min"])
 	notifyWhenResolved := wrapperspb.Bool(m["on_trigger_and_resolved"].(bool))
 	ignoreInfinity := wrapperspb.Bool(m["ignore_infinity"].(bool))
 	notifyOnlyOnTriggeredGroupByValues := wrapperspb.Bool(m["notify_only_on_triggered_group_by_values"].(bool))
@@ -2230,6 +2234,19 @@ func expandNotification(i interface{}) *notification {
 	}
 }
 
+func extractNotifyEverySec(i interface{}) *wrapperspb.DoubleValue {
+	if i == nil {
+		return nil
+	}
+	v := i.(int)
+	notifyEveryMin := float64(v * 60)
+	var notifyEverySec *wrapperspb.DoubleValue
+	if notifyEveryMin > 0 {
+		notifyEverySec = wrapperspb.Double(notifyEveryMin)
+	}
+	return notifyEverySec
+}
+
 func expandRecipients(i interface{}) *alerts.AlertNotifications {
 	l := i.([]interface{})
 	if len(l) == 0 || l[0] == nil {
@@ -2238,7 +2255,7 @@ func expandRecipients(i interface{}) *alerts.AlertNotifications {
 	raw := l[0]
 	m := raw.(map[string]interface{})
 	emailRecipients := interfaceSliceToWrappedStringSlice(m["emails"].(*schema.Set).List())
-	webhookRecipients := interfaceSliceToWrappedStringSlice(m["webhook_ids"].(*schema.Set).List())
+	webhookRecipients := interfaceSliceToWrappedStringSlice(m["webhooks"].(*schema.Set).List())
 	return &alerts.AlertNotifications{
 		Emails:       emailRecipients,
 		Integrations: webhookRecipients,
