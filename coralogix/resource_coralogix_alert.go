@@ -2242,7 +2242,7 @@ func extractNotifyEverySec(i interface{}) *wrapperspb.DoubleValue {
 	notifyEveryMin := float64(v * 60)
 	var notifyEverySec *wrapperspb.DoubleValue
 	if notifyEveryMin > 0 {
-		notifyEverySec = wrapperspb.Double(notifyEveryMin * 60)
+		notifyEverySec = wrapperspb.Double(notifyEveryMin)
 	}
 	return notifyEverySec
 }
