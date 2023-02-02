@@ -1603,6 +1603,10 @@ func flattenNotification(alert *alerts.Alert, ignoreInfinity, notifyWhenResolved
 }
 
 func flattenRecipients(notifications *alerts.AlertNotifications) interface{} {
+	if len(notifications.GetEmails()) == 0 && len(notifications.GetIntegrations()) == 0 {
+		return nil
+	}
+
 	return []interface{}{
 		map[string]interface{}{
 			"emails":   wrappedStringSliceToStringSlice(notifications.GetEmails()),
