@@ -454,7 +454,7 @@ func timeFrames() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"days_enabled": {
 				Type:     schema.TypeSet,
-				Optional: true,
+				Required: true,
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
 					ValidateFunc: validation.StringInSlice(alertValidDaysOfWeek, false),

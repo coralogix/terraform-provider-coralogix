@@ -774,13 +774,11 @@ Optional:
 
 Required:
 
+- `days_enabled` (Set of String) Days of week. Can be one of ["Friday" "Saturday" "Sunday" "Monday" "Tuesday" "Wednesday" "Thursday"]
 - `end_time` (String) Limit the triggering of this alert to end at specific hour.
 - `start_time` (String) Limit the triggering of this alert to start at specific hour.
 
-Optional:
 
-- `days_enabled` (Set of String) Days of week. Can be one
-  of ["Sunday" "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday"]
 
 <a id="nestedblock--standard"></a>
 
