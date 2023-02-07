@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	recordingrules "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups/v1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -34,77 +35,63 @@ func resourceCoralogixRecordingRulesGroup() *schema.Resource {
 
 		Schema: RecordingRulesGroup(),
 
-		Description: "Coralogix recording-rules-groups-group. " +
-			"Api-key is required for this resource. " +
-			"For more information - https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/#recording-rules. " +
-			"***Please note!*** - all the recording-rule-groups are manged as single resource. " +
-			"Therefore, each definition of recording-rule-groups replaces the entire state. " +
-			"This API is currently in alpha and will be change later.",
+		Description: "Coralogix recording-rules-groups-group. For more information - https://prometheus.io/docs/prometheus/latest/configuration/recording_rules/#recording-rules.",
 	}
 }
 
 func resourceCoralogixRecordingRulesGroupCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	yamlContent, err := expandYamlContent(d)
+	req, err := expandRecordingRulesGroup(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	log.Printf("[INFO] Creating new recording-rule-groups: %#v", yamlContent)
-	resp, err := meta.(*clientset.ClientSet).RecordingRulesGroups().CreateRecordingRuleRules(ctx, yamlContent)
+	log.Printf("[INFO] Creating new recording-rule-group: %#v", req)
+	resp, err := meta.(*clientset.ClientSet).RecordingRuleGroups().CreateRecordingRuleGroup(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		return handleRpcErrorWithID(err, "recording-rule-group", req.Name)
 	}
 	log.Printf("[INFO] Submitted new recording-rule-groups: %#v", resp)
 
-	d.SetId("recording-rule-groups")
+	d.SetId(req.Name)
 	return resourceCoralogixRecordingRulesGroupRead(ctx, d, meta)
 }
 
-func expandYamlContent(d *schema.ResourceData) (string, error) {
+func expandRecordingRulesGroup(d *schema.ResourceData) (*recordingrules.RecordingRuleGroup, error) {
 	if yamlContent, ok := d.GetOk("yaml_content"); ok {
-		return yamlContent.(string), nil
+		return expandRecordingRulesGroupFromYaml(yamlContent.(string))
 	}
 
-	groups := expandRecordingRulesGroups(d.Get("groups"))
-	b, err := yaml.Marshal(groups)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil
+	return expandRecordingRulesGroupExplicitly(d.Get("group")), nil
 }
 
-func expandRecordingRulesGroups(v interface{}) recordingRulesGroups {
-	l := v.(*schema.Set).List()
-	result := make([]recordingRulesGroup, 0, len(l))
-	for _, recordingRulesGroup := range l {
-		r := expandRecordingRulesGroup(recordingRulesGroup)
-		result = append(result, r)
+func expandRecordingRulesGroupFromYaml(yamlContent string) (*recordingrules.RecordingRuleGroup, error) {
+	var result recordingrules.RecordingRuleGroup
+	if err := yaml.Unmarshal([]byte(yamlContent), &result); err != nil {
+		return nil, err
 	}
-
-	return recordingRulesGroups{
-		Groups: result,
-	}
+	return &result, nil
 }
 
-func expandRecordingRulesGroup(v interface{}) recordingRulesGroup {
-	m := v.(map[string]interface{})
+func expandRecordingRulesGroupExplicitly(v interface{}) *recordingrules.RecordingRuleGroup {
+	l := v.([]interface{})
+	m := l[0].(map[string]interface{})
 	name := m["name"].(string)
-	interval := uint(m["interval"].(int))
-	limit := uint(m["limit"].(int))
+	interval := uint32(m["interval"].(int))
+	limit := uint64(m["limit"].(int))
 	rules := expandRecordingRules(m["rules"])
 
-	return recordingRulesGroup{
+	return &recordingrules.RecordingRuleGroup{
 		Name:     name,
-		Interval: interval,
-		Limit:    limit,
+		Interval: &interval,
+		Limit:    &limit,
 		Rules:    rules,
 	}
 }
 
-func expandRecordingRules(v interface{}) []recordingRules {
+func expandRecordingRules(v interface{}) []*recordingrules.RecordingRule {
 	l := v.(*schema.Set).List()
-	result := make([]recordingRules, 0, len(l))
+	result := make([]*recordingrules.RecordingRule, 0, len(l))
 	for _, recordingRule := range l {
 		r := expandRecordingRule(recordingRule)
 		result = append(result, r)
@@ -112,93 +99,98 @@ func expandRecordingRules(v interface{}) []recordingRules {
 	return result
 }
 
-func expandRecordingRule(v interface{}) recordingRules {
+func expandRecordingRule(v interface{}) *recordingrules.RecordingRule {
 	m := v.(map[string]interface{})
 
 	record := m["record"].(string)
 	expr := m["expr"].(string)
-	labels := m["labels"].(map[string]interface{})
+	labels := expandRecordingRuleLabels(m["labels"].(map[string]interface{}))
 
-	return recordingRules{
+	return &recordingrules.RecordingRule{
 		Record: record,
 		Expr:   expr,
 		Labels: labels,
 	}
 }
 
+func expandRecordingRuleLabels(m map[string]interface{}) map[string]string {
+	form := make(map[string]string)
+	for k, v := range m {
+		form[k] = v.(string)
+	}
+	return form
+}
+
 func resourceCoralogixRecordingRulesGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Print("[INFO] Reading recording-rule-groups")
-	yamlResp, err := meta.(*clientset.ClientSet).RecordingRulesGroups().GetRecordingRuleRules(ctx)
+	name := d.Id()
+	log.Printf("[INFO] Reading recording-rule-group %s", name)
+	req := &recordingrules.FetchRuleGroup{
+		Name: name,
+	}
+	resp, err := meta.(*clientset.ClientSet).RecordingRuleGroups().GetRecordingRuleGroup(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		return handleRpcErrorWithID(err, "recording-rule-group", req.Name)
 	}
-	log.Printf("[INFO] Received recording-rule-groups: %#v", yamlResp)
 
-	setRecordingRulesGroups(d, yamlResp)
+	log.Printf("[INFO] Received recording-rule-group: %#v", resp)
+	setRecordingRulesGroup(d, resp.RuleGroup)
 	return nil
 }
 
 func resourceCoralogixRecordingRulesGroupUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	yamlContent, err := expandYamlContent(d)
+	req, err := expandRecordingRulesGroup(d)
 	if err != nil {
 		return diag.FromErr(err)
 	}
 
-	log.Printf("[INFO] Updating recording-rule-groups: %#v", yamlContent)
-	resp, err := meta.(*clientset.ClientSet).RecordingRulesGroups().UpdateRecordingRuleRules(ctx, yamlContent)
+	log.Printf("[INFO] Updating recording-rule-group: %#v", req)
+	resp, err := meta.(*clientset.ClientSet).RecordingRuleGroups().UpdateRecordingRuleGroup(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		return handleRpcErrorWithID(err, "recording-rule-group", req.Name)
 	}
-	log.Printf("[INFO] Submitted updated recording-rule-groups: %#v", resp)
+	log.Printf("[INFO] Submitted updated recording-rule-group: %#v", resp)
 
 	return resourceCoralogixRecordingRulesGroupRead(ctx, d, meta)
 }
 
 func resourceCoralogixRecordingRulesGroupDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Print("[INFO] Deleting recording-rule-groups")
-	err := meta.(*clientset.ClientSet).RecordingRulesGroups().DeleteRecordingRuleRules(ctx)
+	name := d.Id()
+	req := &recordingrules.DeleteRuleGroup{Name: name}
+	log.Printf("[INFO] Deleting recording-rule-group %s", name)
+	_, err := meta.(*clientset.ClientSet).RecordingRuleGroups().DeleteRecordingRuleGroup(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		return handleRpcErrorWithID(err, "recording-rule-group", req.Name)
 	}
-	log.Printf("[INFO] recording-rule-groups deleted")
+	log.Printf("[INFO] recording-rule-group %s deleted", name)
 
 	d.SetId("")
 	return nil
 }
 
-func setRecordingRulesGroups(d *schema.ResourceData, yamlResp string) diag.Diagnostics {
-	var groups recordingRulesGroups
-	if err := yaml.Unmarshal([]byte(yamlResp), &groups.Groups); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set("groups", flattenRecordingRulesGroups(groups)); err != nil {
+func setRecordingRulesGroup(d *schema.ResourceData, group *recordingrules.RecordingRuleGroup) diag.Diagnostics {
+	if err := d.Set("group", flattenRecordingRulesGroup(group)); err != nil {
 		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func flattenRecordingRulesGroups(groups recordingRulesGroups) interface{} {
-	result := make([]interface{}, 0, len(groups.Groups))
-	for _, group := range groups.Groups {
-		flattenedGroup := flattenRecordingRulesGroup(group)
-		result = append(result, flattenedGroup)
-	}
-	return result
-}
-
-func flattenRecordingRulesGroup(group recordingRulesGroup) interface{} {
+func flattenRecordingRulesGroup(group *recordingrules.RecordingRuleGroup) interface{} {
 	rules := flattenRecordingRules(group.Rules)
-	return map[string]interface{}{
-		"name":     group.Name,
-		"interval": group.Interval,
-		"limit":    group.Limit,
-		"rules":    rules,
+	return []interface{}{
+		map[string]interface{}{
+			"name":     group.Name,
+			"interval": group.Interval,
+			"limit":    group.Limit,
+			"rules":    rules,
+		},
 	}
 }
 
-func flattenRecordingRules(rules []recordingRules) interface{} {
+func flattenRecordingRules(rules []*recordingrules.RecordingRule) interface{} {
 	result := make([]interface{}, 0, len(rules))
 	for _, rule := range rules {
 		flattenedRecordingRule := flattenRecordingRule(rule)
@@ -207,12 +199,21 @@ func flattenRecordingRules(rules []recordingRules) interface{} {
 	return result
 }
 
-func flattenRecordingRule(rule recordingRules) interface{} {
+func flattenRecordingRule(rule *recordingrules.RecordingRule) interface{} {
+	labels := flattenRecordingRuleLabels(rule.Labels)
 	return map[string]interface{}{
 		"record": rule.Record,
 		"expr":   rule.Expr,
-		"labels": rule.Labels,
+		"labels": labels,
 	}
+}
+
+func flattenRecordingRuleLabels(labels map[string]string) map[string]interface{} {
+	form := make(map[string]interface{}, len(labels))
+	for k, v := range labels {
+		form[k] = v
+	}
+	return form
 }
 
 func RecordingRulesGroup() map[string]*schema.Schema {
@@ -220,95 +221,84 @@ func RecordingRulesGroup() map[string]*schema.Schema {
 		"yaml_content": {
 			Type:         schema.TypeString,
 			Optional:     true,
-			ExactlyOneOf: []string{"yaml_content", "groups"},
+			ExactlyOneOf: []string{"yaml_content", "group"},
 			ValidateFunc: validateRecordingRulesGroupYamlContent,
+			Description:  "An option to import recording-rule-group from yaml file.",
 		},
-		"groups": {
-			Type:     schema.TypeSet,
-			Optional: true,
-			Computed: true,
-			Elem:     recordingRulesGroupsSchema(),
-			Set:      hashRecordingRulesGroups(),
+		"group": {
+			Type:         schema.TypeList,
+			MaxItems:     1,
+			Optional:     true,
+			Computed:     true,
+			ExactlyOneOf: []string{"yaml_content", "group"},
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"name": {
+						Type:         schema.TypeString,
+						Required:     true,
+						ValidateFunc: validation.StringIsNotEmpty,
+						Description:  "The rule-group name. Have to be unique.",
+					},
+					"interval": {
+						Type:         schema.TypeInt,
+						Required:     true,
+						ValidateFunc: validation.IntAtLeast(0),
+						Description:  "How often rules in the group are evaluated (in seconds).",
+					},
+					"limit": {
+						Type:        schema.TypeInt,
+						Optional:    true,
+						Description: "Limit the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit.",
+					},
+					"rules": {
+						Type:     schema.TypeSet,
+						Required: true,
+						Elem:     recordingRulesSchema(),
+						Set:      schema.HashResource(recordingRulesSchema()),
+					},
+				},
+			},
+			Description: "An option to defining recording-rule-group explicitly. If not set, will be computed by yaml_content.",
 		},
 	}
 }
 
 func validateRecordingRulesGroupYamlContent(config interface{}, _ string) ([]string, []error) {
-	var groups recordingRulesGroups
-	if err := yaml.Unmarshal([]byte(config.(string)), &groups); err != nil {
+	var group recordingrules.RecordingRuleGroup
+	if err := yaml.Unmarshal([]byte(config.(string)), &group); err != nil {
 		return nil, []error{err}
-	} else if len(groups.Groups) == 0 {
-		return nil, []error{fmt.Errorf("couldn't load rcording-rule-groups from yaml_content")}
+	}
+	if group.Name == "" {
+		return nil, []error{fmt.Errorf("groups' name can not be empty")}
+	}
+	if group.Interval == nil {
+		return nil, []error{fmt.Errorf("groups' limit have to be set")}
+	} else if *group.Interval < 0 {
+		return nil, []error{fmt.Errorf("groups' limit can not be negative")}
 	}
 	return nil, nil
-}
-
-func recordingRulesGroupsSchema() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"name": {
-				Type:     schema.TypeString,
-				Required: true,
-			},
-			"interval": {
-				Type:         schema.TypeInt,
-				Required:     true,
-				ValidateFunc: validation.IntAtLeast(0),
-			},
-			"limit": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-			"rules": {
-				Type:     schema.TypeSet,
-				Required: true,
-				Elem:     recordingRulesSchema(),
-				Set:      hashRecordingRules(),
-			},
-		},
-	}
 }
 
 func recordingRulesSchema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"record": {
-				Type:     schema.TypeString,
-				Required: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The name of the time series to output to. Must be a valid metric name.",
 			},
 			"expr": {
 				Type:     schema.TypeString,
 				Required: true,
+				Description: "The PromQL expression to evaluate. " +
+					"Every evaluation cycle this is evaluated at the current time," +
+					" and the result recorded as a new set of time series with the metric name as given by 'record'.",
 			},
 			"labels": {
-				Type:     schema.TypeMap,
-				Optional: true,
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Description: "Labels to add or overwrite before storing the result.",
 			},
 		},
 	}
-}
-
-func hashRecordingRulesGroups() schema.SchemaSetFunc {
-	return schema.HashResource(recordingRulesGroupsSchema())
-}
-
-func hashRecordingRules() schema.SchemaSetFunc {
-	return schema.HashResource(recordingRulesSchema())
-}
-
-type recordingRulesGroups struct {
-	Groups []recordingRulesGroup `yaml:"groups"`
-}
-
-type recordingRulesGroup struct {
-	Name     string           `yaml:"name"`
-	Interval uint             `yaml:"interval"`
-	Limit    uint             `yaml:"limit"`
-	Rules    []recordingRules `yaml:"rules"`
-}
-
-type recordingRules struct {
-	Record string                 `yaml:"record"`
-	Expr   string                 `yaml:"expr"`
-	Labels map[string]interface{} `yaml:"labels"`
 }

@@ -6,6 +6,7 @@ Terraform Provider for Coralogix
 [![Github All Releases](https://img.shields.io/github/downloads/coralogix/terraform-provider-coralogix/total.svg?style=plastic)]()
 ![Go Report Card](https://goreportcard.com/badge/github.com/coralogix/terraform-provider-coralogix)
 ![acc-tests](https://github.com/coralogix/terraform-provider-coralogix/actions/workflows/acc-test.yml/badge.svg?style=plastic)
+![tfsec](https://github.com/coralogix/terraform-provider-coralogix/actions/workflows/tfsec.yml/badge.svg?style=plastic)
 
 The [Coralogix provider](https://registry.terraform.io/providers/coralogix/coralogix/latest/docs) is used to interact
 with [Coralogix](https://coralogix.com/) resources.
@@ -27,5 +28,5 @@ feedback and want to improve the schemas. Users that would like to upgrade it sh
 
 - [Getting started](docs/index.md)
 - [Contributing](CONTRIBUTING.md)
-- [Building the provider](CONTRIBUTING.md#Building the provider)
+- [Building the provider](CONTRIBUTING.md#Building-the-provider)
 - [Known issues](known-issues.md)

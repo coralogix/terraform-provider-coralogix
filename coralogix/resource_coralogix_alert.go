@@ -199,8 +199,7 @@ func resourceCoralogixAlert() *schema.Resource {
 
 		Schema: AlertSchema(),
 
-		Description: "Coralogix alert. Api-key is required for this resource." +
-			" More info: https://coralogix.com/docs/alerts-api/ .",
+		Description: "Coralogix alert. More info: https://coralogix.com/docs/alerts-api/ .",
 	}
 }
 
@@ -302,13 +301,13 @@ func AlertSchema() map[string]*schema.Schema {
 									Description: "The emails for anyone that should receive this alert.",
 									Set:         schema.HashString,
 								},
-								"webhook_ids": {
+								"webhooks": {
 									Type:     schema.TypeSet,
 									Optional: true,
 									Elem: &schema.Schema{
 										Type: schema.TypeString,
 									},
-									Description: "The Webhook-integrations to send the alert to.",
+									Description: "The Webhook-integrations name to send the alert to.",
 									Set:         schema.HashString,
 								},
 							},
@@ -456,7 +455,7 @@ func timeFrames() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"days_enabled": {
 				Type:     schema.TypeSet,
-				Optional: true,
+				Required: true,
 				Elem: &schema.Schema{
 					Type:         schema.TypeString,
 					ValidateFunc: validation.StringInSlice(alertValidDaysOfWeek, false),
@@ -664,6 +663,7 @@ func standardSchema() map[string]*schema.Schema {
 				"manage_undetected_values": {
 					Type:     schema.TypeList,
 					Optional: true,
+					Computed: true,
 					MaxItems: 1,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
@@ -1604,10 +1604,14 @@ func flattenNotification(alert *alerts.Alert, ignoreInfinity, notifyWhenResolved
 }
 
 func flattenRecipients(notifications *alerts.AlertNotifications) interface{} {
+	if len(notifications.GetEmails()) == 0 && len(notifications.GetIntegrations()) == 0 {
+		return nil
+	}
+
 	return []interface{}{
 		map[string]interface{}{
-			"emails":      wrappedStringSliceToStringSlice(notifications.GetEmails()),
-			"webhook_ids": wrappedStringSliceToStringSlice(notifications.GetIntegrations()),
+			"emails":   wrappedStringSliceToStringSlice(notifications.GetEmails()),
+			"webhooks": wrappedStringSliceToStringSlice(notifications.GetIntegrations()),
 		},
 	}
 }
@@ -1751,12 +1755,16 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 		}
 	case *alerts.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
+		groupBy := wrappedStringSliceToStringSlice(conditionParams.GroupBy)
 		m := map[string]interface{}{
-			"less_than":                true,
-			"occurrences_threshold":    int(conditionParams.GetThreshold().GetValue()),
-			"group_by":                 wrappedStringSliceToStringSlice(conditionParams.GroupBy),
-			"time_window":              alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
-			"manage_undetected_values": flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData()),
+			"less_than":             true,
+			"occurrences_threshold": int(conditionParams.GetThreshold().GetValue()),
+			"group_by":              groupBy,
+			"time_window":           alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
+		}
+
+		if len(groupBy) > 0 {
+			m["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
 		}
 
 		conditionSchema = []interface{}{m}
@@ -1792,7 +1800,7 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 }
 
 func flattenManageUndetectedValues(data *alerts.RelatedExtendedData) interface{} {
-	if data == nil || (data.GetShouldTriggerDeadman() == nil && data.GetShouldTriggerDeadman().GetValue()) {
+	if data == nil {
 		return []map[string]interface{}{
 			{
 				"enable_triggering_on_undetected_values": true,
@@ -1842,11 +1850,13 @@ func flattenRatioAlert(filters *alerts.AlertFilters, condition interface{}) (ale
 func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_RatioAlert) (ratioParams interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
 	var conditionParams *alerts.ConditionParameters
 	ratioParamsMap := make(map[string]interface{})
+
+	lessThan := false
 	switch condition := condition.(type) {
 	case *alerts.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
 		ratioParamsMap["less_than"] = true
-		ratioParamsMap["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
+		lessThan = true
 	case *alerts.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		ratioParamsMap["more_than"] = true
@@ -1876,6 +1886,10 @@ func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_Ra
 		ratioParamsMap["group_by_q1"] = true
 	}
 	ratioParamsMap["group_by"] = groupBy
+
+	if len(groupBy) > 0 && lessThan {
+		ratioParamsMap["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
+	}
 
 	ratioParams = ratioParamsMap
 	return
@@ -1929,7 +1943,9 @@ func flattenTimeRelativeCondition(condition interface{}) (timeRelativeConditionS
 	case *alerts.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
 		timeRelativeCondition["less_than"] = true
-		timeRelativeCondition["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
+		if len(conditionParams.GroupBy) > 0 {
+			timeRelativeCondition["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
+		}
 	case *alerts.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		timeRelativeCondition["more_than"] = true
@@ -2201,7 +2217,7 @@ func expandNotification(i interface{}) *notification {
 	raw := l[0]
 	m := raw.(map[string]interface{})
 
-	notifyEverySec := wrapperspb.Double(float64(m["notify_every_min"].(int) * 60))
+	notifyEverySec := extractNotifyEverySec(m["notify_every_min"])
 	notifyWhenResolved := wrapperspb.Bool(m["on_trigger_and_resolved"].(bool))
 	ignoreInfinity := wrapperspb.Bool(m["ignore_infinity"].(bool))
 	notifyOnlyOnTriggeredGroupByValues := wrapperspb.Bool(m["notify_only_on_triggered_group_by_values"].(bool))
@@ -2218,6 +2234,19 @@ func expandNotification(i interface{}) *notification {
 	}
 }
 
+func extractNotifyEverySec(i interface{}) *wrapperspb.DoubleValue {
+	if i == nil {
+		return nil
+	}
+	v := i.(int)
+	notifyEveryMin := float64(v * 60)
+	var notifyEverySec *wrapperspb.DoubleValue
+	if notifyEveryMin > 0 {
+		notifyEverySec = wrapperspb.Double(notifyEveryMin)
+	}
+	return notifyEverySec
+}
+
 func expandRecipients(i interface{}) *alerts.AlertNotifications {
 	l := i.([]interface{})
 	if len(l) == 0 || l[0] == nil {
@@ -2226,7 +2255,7 @@ func expandRecipients(i interface{}) *alerts.AlertNotifications {
 	raw := l[0]
 	m := raw.(map[string]interface{})
 	emailRecipients := interfaceSliceToWrappedStringSlice(m["emails"].(*schema.Set).List())
-	webhookRecipients := interfaceSliceToWrappedStringSlice(m["webhook_ids"].(*schema.Set).List())
+	webhookRecipients := interfaceSliceToWrappedStringSlice(m["webhooks"].(*schema.Set).List())
 	return &alerts.AlertNotifications{
 		Emails:       emailRecipients,
 		Integrations: webhookRecipients,
@@ -2781,7 +2810,6 @@ func expandMetricCondition(m map[string]interface{}, notifyWhenResolved, notifyO
 	swapNullValues := wrapperspb.Bool(conditionMap["replace_missing_value_with_zero"].(bool))
 	timeFrame := expandMetricTimeFrame(conditionMap["time_window"].(string))
 	relatedExtendedData := expandRelatedExtendedData(conditionMap)
-
 	parameters := &alerts.ConditionParameters{
 		Threshold:               threshold,
 		NotifyOnResolved:        notifyWhenResolved,

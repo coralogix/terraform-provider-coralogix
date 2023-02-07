@@ -29,7 +29,7 @@ resource "coralogix_alert" "standard_alert" {
   notification {
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
   }
@@ -67,7 +67,7 @@ resource "coralogix_alert" "ratio_alert" {
     on_trigger_and_resolved = true
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min                         = 10
     notify_only_on_triggered_group_by_values = true
@@ -112,7 +112,7 @@ resource "coralogix_alert" "new_value_alert" {
   notification {
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
   }
@@ -143,7 +143,7 @@ resource "coralogix_alert" "time_relative_alert" {
   notification {
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
   }
@@ -177,7 +177,7 @@ resource "coralogix_alert" "metric_lucene_alert" {
     on_trigger_and_resolved = true
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 60
   }
@@ -220,7 +220,7 @@ resource "coralogix_alert" "metric_promql_alert" {
     on_trigger_and_resolved = true
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1440
   }
@@ -256,7 +256,7 @@ resource "coralogix_alert" "unique_count_alert" {
   notification {
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
   }
@@ -291,7 +291,7 @@ resource "coralogix_alert" "tracing_alert" {
     on_trigger_and_resolved = true
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
   }
@@ -332,7 +332,7 @@ resource "coralogix_alert" "flow_alert" {
   notification {
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
   }

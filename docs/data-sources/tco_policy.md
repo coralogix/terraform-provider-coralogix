@@ -4,16 +4,13 @@
 
 page_title: "coralogix_tco_policy Data Source - terraform-provider-coralogix"
 subcategory: ""
-description: "Coralogix TCO-Policy. Api-key is required for this resource. For more information
-
-- https://coralogix.com/docs/tco-optimizer-api ."
+description: "Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api ."
 
 ---
 
 # coralogix_tco_policy (Data Source)
 
-Coralogix TCO-Policy. Api-key is required for this resource.
-For more information - https://coralogix.com/docs/tco-optimizer-api .
+Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api .
 
 ## Example Usage
 
