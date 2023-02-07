@@ -8,7 +8,7 @@ description: "The Coralogix provider is used to interact with the resources supp
 
 The Coralogix provider is used to interact with the resources supported by [Coralogix](https://coralogix.com/). The provider needs to be configured with the proper credentials before it can be used.
 
-**Note! The Coralogix terraform registry has now been updated to v1.3.x.** The new version contains many [breaking changes](https://github.com/coralogix/terraform-provider-coralogix/blob/master/CHANGELOG.md) and does not support webhooks. It should be configured by following the instructions below.
+**Note! The Coralogix terraform registry has now been updated to v1.3.x.** The new version contains many [breaking changes](https://github.com/coralogix/terraform-provider-coralogix/blob/master/CHANGELOG.md). It should be configured by following the instructions below.
 
 ## Example Usage
 
@@ -46,5 +46,5 @@ $ export CORALOGIX_ENV="<add the environment you want to work at>"
 
 ## Argument Reference
 
-- `api_key` (String, Sensitive) A key for alerts, rules and logs2metric APIs (Auto Generated), appropriate for the defined environment.
+- `api_key` (String, Sensitive) A key for using coralogix APIs (Auto Generated), appropriate for the defined environment.
 - `env` (String) The Coralogix API environment. can be one of ["APAC1" "APAC2" "EUROPE1" "EUROPE2" "USA1"]
