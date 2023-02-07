@@ -230,18 +230,18 @@ func TestAccCoralogixResourceAlert_metricLucene(t *testing.T) {
 	}
 	checks := extractLuceneMetricChecks(alert)
 
-	//updatedAlert := metricLuceneAlertTestParams{
-	//	alertCommonTestParams: *getRandomAlert(),
-	//	groupBy:               []string{"EventType"},
-	//	metricField:           "subsystem",
-	//	timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
-	//	threshold:             acctest.RandIntRange(0, 1000),
-	//	arithmeticOperator:    selectRandomlyFromSlice(alertValidArithmeticOperators),
-	//}
-	//if updatedAlert.arithmeticOperator == "Percentile" {
-	//	alert.arithmeticOperatorModifier = acctest.RandIntRange(0, 100)
-	//}
-	//updatedAlertChecks := extractLuceneMetricChecks(updatedAlert)
+	updatedAlert := metricLuceneAlertTestParams{
+		alertCommonTestParams: *getRandomAlert(),
+		groupBy:               []string{"EventType"},
+		metricField:           "subsystem",
+		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
+		threshold:             acctest.RandIntRange(0, 1000),
+		arithmeticOperator:    selectRandomlyFromSlice(alertValidArithmeticOperators),
+	}
+	if updatedAlert.arithmeticOperator == "Percentile" {
+		alert.arithmeticOperatorModifier = acctest.RandIntRange(0, 100)
+	}
+	updatedAlertChecks := extractLuceneMetricChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -256,10 +256,10 @@ func TestAccCoralogixResourceAlert_metricLucene(t *testing.T) {
 				ResourceName: alertResourceName,
 				ImportState:  true,
 			},
-			//{
-			//	Config: testAccCoralogixResourceAlertMetricLucene(&updatedAlert),
-			//	Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-			//},
+			{
+				Config: testAccCoralogixResourceAlertMetricLucene(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			},
 		},
 	})
 }

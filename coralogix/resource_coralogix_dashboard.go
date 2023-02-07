@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
 	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 
-	"github.com/google/uuid"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 
@@ -163,11 +163,21 @@ func expandSection(v interface{}) (*dashboards.Section, diag.Diagnostics) {
 func expandUUID(v interface{}) *dashboards.UUID {
 	var id string
 	if v == nil || v.(string) == "" {
-		id = uuid.NewString()
+		id = RandStringBytes(21)
 	} else {
 		id = v.(string)
 	}
 	return &dashboards.UUID{Value: id}
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func RandStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
 }
 
 func expandRows(v interface{}) ([]*dashboards.Row, diag.Diagnostics) {

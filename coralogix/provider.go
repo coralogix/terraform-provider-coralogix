@@ -40,7 +40,7 @@ func Provider() *schema.Provider {
 				Sensitive:    true,
 				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"CORALOGIX_API_KEY"}, nil),
 				ValidateFunc: validation.IsUUID,
-				Description:  "A key for alerts, rules-groups and tags APIs (Auto Generated), appropriate for the defined environment.",
+				Description:  "A key for using coralogix APIs (Auto Generated), appropriate for the defined environment.",
 				AtLeastOneOf: []string{"api_key", "teams_api_key"},
 			},
 			"teams_api_key": {
