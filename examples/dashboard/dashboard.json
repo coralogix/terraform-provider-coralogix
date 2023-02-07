@@ -2,12 +2,12 @@
   "sections": [
     {
       "id": {
-        "value": "516e4c6b-f21f-4224-2a3a-71a4cab2de6e"
+        "value": "jyFMEvjUGSuzXlqewnZyJ"
       },
       "rows": [
         {
           "id": {
-            "value": "770c6f4b-7920-3016-c5cb-fe3b56456cd7"
+            "value": "acijlLEtkdoEzOsQGUhEV"
           },
           "appearance": {
             "height": 19
@@ -15,7 +15,7 @@
           "widgets": [
             {
               "id": {
-                "value": "9582603b-bd2b-61c4-bbe2-a414b93eec39"
+                "value": "kDPRjjpUQoAeNkAlWvYvb"
               },
               "title": "process_cpu_cores_available",
               "definition": {
@@ -43,7 +43,7 @@
             },
             {
               "id": {
-                "value": "60cd91c4-3428-9af6-34f8-028a056f2ffc"
+                "value": "FbRChvZQzZCPgwbbAQimI"
               },
               "title":  "count",
               "definition": {
@@ -75,7 +75,7 @@
             },
             {
               "id": {
-                "value": "81ec98f7-f24b-9617-edd4-46552338e7a8"
+                "value": "becCcvfhRasjRswYufdmZ"
               },
               "title":  "error throwing pods",
               "definition": {
@@ -111,7 +111,7 @@
         },
         {
           "id": {
-            "value": "ff37a826-14ab-3ad1-6e38-1ecd89ac5d72"
+            "value": "EOpnAkimDnyGsOKzVFuuQ"
           },
           "appearance": {
             "height": 28
@@ -119,7 +119,7 @@
           "widgets": [
             {
               "id": {
-                "value": "9d13a070-a2da-dd08-1352-7a8a7894b044"
+                "value": "pHJPvPBdMIZrbGVmxLSaV"
               },
               "title":  "dashboards-api logz",
               "description":  "warnings, errors, criticals",
