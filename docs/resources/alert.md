@@ -682,6 +682,7 @@ Optional:
   condition (in minutes). You may choose to change the suppress window so the alert will be suppressed for a longer
   period.
 - `notify_only_on_triggered_group_by_values` (Boolean) Notifications will contain only triggered group-by values.
+- `notify_per_group_by_value` (Boolean) Notifications will be triggered per group-by value. For using this feature, make sure it's enabled for your company.
 - `on_trigger_and_resolved` (Boolean)
 - `payload_fields` (Set of String) A list of log fields out of the log example which will be included with the alert
   notification.
