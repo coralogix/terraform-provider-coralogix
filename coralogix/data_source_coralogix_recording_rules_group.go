@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	recordingrules "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups/v1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -25,15 +26,19 @@ func dataSourceCoralogixRecordingRulesGroup() *schema.Resource {
 }
 
 func dataSourceCoralogixRecordingRulesGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	log.Print("[INFO] Reading recording-rule-groups")
-	yamlResp, err := meta.(*clientset.ClientSet).RecordingRulesGroups().GetRecordingRuleRules(ctx)
+	id := d.Get("id").(string)
+	req := &recordingrules.FetchRuleGroup{
+		Name: id,
+	}
+	log.Printf("[INFO] Reading recording-rule-group %s", id)
+	resp, err := meta.(*clientset.ClientSet).RecordingRuleGroups().GetRecordingRuleGroup(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		return handleRpcErrorWithID(err, "recording-rule-group", req.Name)
 	}
 
-	log.Printf("[INFO] Received recording-rule-groups: %#v", yamlResp)
+	log.Printf("[INFO] Received recording-rule-group: %#v", resp)
 
-	d.SetId("recording-rule-groups")
-
-	return setRecordingRulesGroups(d, yamlResp)
+	d.SetId(resp.RuleGroup.Name)
+	return setRecordingRulesGroup(d, resp.RuleGroup)
 }

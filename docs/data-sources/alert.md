@@ -7,9 +7,7 @@ description: |-
 ---
 
 # coralogix_alert (Data Source)
-Coralogix alert.
-Api-key is required for this resource.
-More info: https://coralogix.com/docs/alerts-api/ .
+Coralogix alert. More info: https://coralogix.com/docs/alerts-api/ .
 
 ## Example Usage
 
@@ -231,7 +229,7 @@ Read-Only:
 Read-Only:
 
 - `emails` (Set of String)
-- `webhook_ids` (Set of String)
+- `webhooks` (Set of String)
 
 
 

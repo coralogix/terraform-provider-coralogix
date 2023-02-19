@@ -32,7 +32,7 @@ var (
 func handleRpcError(err error, resource string) diag.Diagnostics {
 	switch status.Code(err) {
 	case codes.PermissionDenied, codes.Unauthenticated:
-		return diag.Errorf("permission denied for %s, check your api-key", resource)
+		return diag.Errorf("permission denied for %s endpoint, check your api-key", resource)
 	case codes.Internal:
 		return diag.Errorf("internal error for %s in Coralogix backend - %s", resource, err)
 	case codes.InvalidArgument:

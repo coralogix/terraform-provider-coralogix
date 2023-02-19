@@ -25,6 +25,12 @@ func (c *Client) Request(ctx context.Context, method, path, contentType string, 
 	var request *http.Request
 	if body != nil {
 		bodyReader := bytes.NewBuffer([]byte(body.(string)))
+		var err error
+		request, err = http.NewRequest(method, c.url+path, bodyReader)
+		if err != nil {
+			return "", err
+		}
+    
 		request, _ = http.NewRequest(method, c.url+path, bodyReader)
 		request.Header.Set("Content-Type", contentType)
 	} else {

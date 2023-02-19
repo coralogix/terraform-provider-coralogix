@@ -16,7 +16,7 @@ func TestAccCoralogixDataSourceRecordingRulesGroups_basic(t *testing.T) {
 		panic(err)
 	}
 	parent := filepath.Dir(wd)
-	filePath := parent + "/examples/recording_rules_group/rule-groups.yaml"
+	filePath := parent + "/examples/recording_rules_group/rule-group.yaml"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -26,7 +26,7 @@ func TestAccCoralogixDataSourceRecordingRulesGroups_basic(t *testing.T) {
 				Config: testAccCoralogixResourceRecordingRulesGroupsFromYaml(filePath) +
 					testAccCoralogixDataSourceRecordingRulesGroups_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(recordingRulesGroupsDataSourceName, "groups.#", "2"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsDataSourceName, "group.0.rules.#", "2"),
 				),
 			},
 		},

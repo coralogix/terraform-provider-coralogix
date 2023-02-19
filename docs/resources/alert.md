@@ -4,14 +4,12 @@
 
 page_title: "coralogix_alert Resource - terraform-provider-coralogix"
 subcategory: ""
-description: "Coralogix alert. Api-key is required for this resource. More info: https://coralogix.com/docs/alerts-api/."
+description: "Coralogix alert. More info: https://coralogix.com/docs/alerts-api/."
 ---
 
 # coralogix_alert (Resource)
 
-Coralogix alert.
-Api-key is required for this resource.
-More info: https://coralogix.com/docs/alerts-api/ .
+Coralogix alert. More info: https://coralogix.com/docs/alerts-api/ .
 
 ## Example Usage
 
@@ -35,7 +33,7 @@ resource "coralogix_alert" "standard_alert" {
   notification {
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
   }
@@ -73,7 +71,7 @@ resource "coralogix_alert" "ratio_alert" {
     on_trigger_and_resolved = true
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min                         = 10
     notify_only_on_triggered_group_by_values = true
@@ -122,7 +120,7 @@ resource "coralogix_alert" "new_value_alert" {
   notification {
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
   }
@@ -157,7 +155,7 @@ resource "coralogix_alert" "time_relative_alert" {
   notification {
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
   }
@@ -195,7 +193,7 @@ resource "coralogix_alert" "metric_lucene_alert" {
     on_trigger_and_resolved = true
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
   }
@@ -237,7 +235,7 @@ resource "coralogix_alert" "metric_promql_alert" {
     on_trigger_and_resolved = true
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
   }
@@ -277,7 +275,7 @@ resource "coralogix_alert" "unique_count_alert" {
   notification {
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
   }
@@ -316,7 +314,7 @@ resource "coralogix_alert" "tracing_alert" {
     on_trigger_and_resolved = true
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
   }
@@ -361,7 +359,7 @@ resource "coralogix_alert" "flow_alert" {
   notification {
     recipients {
       emails      = ["user@example.com"]
-      webhook_ids = ["WebhookAlerts"] //change here for existing webhook from your account
+      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
   }
@@ -379,12 +377,7 @@ resource "coralogix_alert" "flow_alert" {
     stages {
       groups {
         sub_alerts {
-          /*
-          change for existing alert's id.
-           soon it will be possible to consume from the id of an alert created from the terraform in the following way -
-           'user_alert_id = coralogix_alert.unique_count_alert.id'
-           */
-          user_alert_id = "c3c2936e-0b7e-44d7-9295-3aacba1e2366"
+          user_alert_id = coralogix_alert.unique_count_alert.id
         }
         operator = "OR"
       }
@@ -392,20 +385,10 @@ resource "coralogix_alert" "flow_alert" {
     stages {
       groups {
         sub_alerts {
-          /*
-          change for existing alert's id.
-           soon it will be possible to consume from the id of an alert created from the terraform in the following way -
-           'user_alert_id = coralogix_alert.unique_count_alert.id'
-           */
-          user_alert_id = "615f4b56-5441-417d-9eb6-c183f9374557"
+          user_alert_id = coralogix_alert.standard_alert.id
         }
         sub_alerts {
-          /*
-           change for existing alert's id.
-            soon it will be possible to consume from the id of an alert created from the terraform in the following way -
-            'user_alert_id = coralogix_alert.unique_count_alert.id'
-            */
-          user_alert_id = "a9836075-7164-4499-897f-e97404d33c3f"
+          user_alert_id = coralogix_alert.metric_promql_alert.id
         }
         operator = "OR"
       }
@@ -677,10 +660,7 @@ Required:
 Optional:
 
 - `ignore_infinity` (Boolean)
-- `notify_every_min` (Number) By default, notify_every_min will be populated with min for immediate, more_than and
-  more_than_usual alerts. For less_than alert it will be populated with the chosen time frame for the less_than
-  condition (in minutes). You may choose to change the suppress window so the alert will be suppressed for a longer
-  period.
+- `notify_every_min` (Number) By default, notify_every_min will be populated with min for immediate, more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time frame for the less_than condition (in minutes). You may choose to change the suppress window so the alert will be suppressed for a longer period.
 - `notify_only_on_triggered_group_by_values` (Boolean) Notifications will contain only triggered group-by values.
 - `on_trigger_and_resolved` (Boolean)
 - `payload_fields` (Set of String) A list of log fields out of the log example which will be included with the alert
@@ -694,7 +674,7 @@ Optional:
 Optional:
 
 - `emails` (Set of String) The emails for anyone that should receive this alert.
-- `webhook_ids` (Set of String) The Webhook-integrations to send the alert to.
+- `webhooks` (Set of String) The Webhook-integrations names to send the alert to.
 
 <a id="nestedblock--ratio"></a>
 
@@ -791,13 +771,11 @@ Optional:
 
 Required:
 
+- `days_enabled` (Set of String) Days of week. Can be one of ["Sunday" "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday"]
 - `end_time` (String) Limit the triggering of this alert to end at specific hour.
 - `start_time` (String) Limit the triggering of this alert to start at specific hour.
 
-Optional:
 
-- `days_enabled` (Set of String) Days of week. Can be one
-  of ["Sunday" "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday"]
 
 <a id="nestedblock--standard"></a>
 

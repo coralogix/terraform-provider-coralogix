@@ -40,7 +40,7 @@ func Provider() *schema.Provider {
 				Sensitive:    true,
 				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"CORALOGIX_API_KEY"}, nil),
 				ValidateFunc: validation.IsUUID,
-				Description:  "A key for alerts, rules-groups and tags APIs (Auto Generated), appropriate for the defined environment.",
+				Description:  "A key for using coralogix APIs (Auto Generated), appropriate for the defined environment.",
 				AtLeastOneOf: []string{"api_key", "teams_api_key"},
 			},
 			"teams_api_key": {
@@ -65,6 +65,7 @@ func Provider() *schema.Provider {
 			"coralogix_action":                dataSourceCoralogixAction(),
 			"coralogix_recording_rules_group": dataSourceCoralogixRecordingRulesGroup(),
 			"coralogix_tco_policy":            dataSourceCoralogixTCOPolicy(),
+			"coralogix_webhook":               dataSourceCoralogixWebhook(),
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -78,6 +79,7 @@ func Provider() *schema.Provider {
 			"coralogix_action":                resourceCoralogixAction(),
 			"coralogix_recording_rules_group": resourceCoralogixRecordingRulesGroup(),
 			"coralogix_tco_policy":            resourceCoralogixTCOPolicy(),
+			"coralogix_webhook":               resourceCoralogixWebhook(),
 		},
 
 		ConfigureContextFunc: func(context context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
