@@ -477,7 +477,7 @@ func extractLuceneMetricChecks(alert metricLuceneAlertTestParams) []resource.Tes
 		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
 		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
 		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
-		resource.TestCheckResourceAttr(alertResourceName, "alert_severity", alert.severity),
+		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
 		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
 		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
 		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
@@ -502,7 +502,7 @@ func extractMetricPromqlAlertChecks(alert metricPromqlAlertTestParams) []resourc
 		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
 		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
 		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
-		resource.TestCheckResourceAttr(alertResourceName, "alert_severity", alert.severity),
+		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
 		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
 		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.search_query", "http_requests_total{status!~\"4..\"}"),
@@ -524,7 +524,7 @@ func extractTracingAlertChecks(alert tracingAlertTestParams) []resource.TestChec
 		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
 		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
 		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
-		resource.TestCheckResourceAttr(alertResourceName, "alert_severity", alert.severity),
+		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
 		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
 		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
 		resource.TestCheckResourceAttr(alertResourceName, "notification.0.on_trigger_and_resolved", "true"),
@@ -547,7 +547,7 @@ func extractFlowAlertChecks(alert flowAlertTestParams) []resource.TestCheckFunc 
 		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
 		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
 		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
-		resource.TestCheckResourceAttr(alertResourceName, "alert_severity", alert.severity),
+		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
 		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
 		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
 		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stages.1.time_window.0.hours", "0"),
@@ -565,7 +565,7 @@ func extractCommonChecks(a *alertCommonTestParams, alertType string) []resource.
 		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
 		resource.TestCheckResourceAttr(alertResourceName, "name", a.name),
 		resource.TestCheckResourceAttr(alertResourceName, "description", a.description),
-		resource.TestCheckResourceAttr(alertResourceName, "alert_severity", a.severity),
+		resource.TestCheckResourceAttr(alertResourceName, "severity", a.severity),
 		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", a.emailRecipients[0]),
 		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(a.notifyEveryMin)),
 		resource.TestCheckResourceAttr(alertResourceName, fmt.Sprintf("%s.0.search_query", alertType), a.searchQuery),
@@ -624,7 +624,7 @@ func testAccCoralogixResourceAlertStandard(a *standardAlertTestParams) string {
 	return fmt.Sprintf(`resource "coralogix_alert" "test" {
   name               = "%s"
   description        = "%s"
-  alert_severity     = "%s"
+  severity           = "%s"
   
   notification {
     recipients {
@@ -678,7 +678,7 @@ func testAccCoralogixResourceAlertRatio(a *ratioAlertTestParams) string {
 	return fmt.Sprintf(`resource "coralogix_alert" "test" {
   name               = "%s"
   description        = "%s"
-  alert_severity     = "%s"
+  severity           = "%s"
   notification {
     recipients {
       emails      = %s
@@ -725,7 +725,7 @@ func testAccCoralogixResourceAlertNewValue(a *newValueAlertTestParams) string {
 	return fmt.Sprintf(`resource "coralogix_alert" "test" {
   name               = "%s"
   description        = "%s"
-  alert_severity     = "%s"
+  severity           = "%s"
   notification {
     recipients {
       emails      = %s
@@ -761,7 +761,7 @@ func testAccCoralogixResourceAlertUniqueCount(a *uniqueCountAlertTestParams) str
 	return fmt.Sprintf(`resource "coralogix_alert" "test" {
   name               = "%s"
   description        = "%s"
-  alert_severity     = "%s"
+  severity           = "%s"
   notification {
     recipients {
       emails      = %s
@@ -800,7 +800,7 @@ func testAccCoralogixResourceAlertTimeRelative(a *timeRelativeAlertTestParams) s
 	return fmt.Sprintf(`resource "coralogix_alert" "test" {
   name               = "%s"
   description        = "%s"
-  alert_severity     = "%s"
+  severity           = "%s"
   notification {
     recipients {
       emails      = %s
@@ -840,7 +840,7 @@ func testAccCoralogixResourceAlertMetricLucene(a *metricLuceneAlertTestParams) s
 	return fmt.Sprintf(`resource "coralogix_alert" "test" {
   name               = "%s"
   description        = "%s"
-  alert_severity     = "%s"
+  severity           = "%s"
   notification {
     recipients {
       emails      = %s
@@ -887,7 +887,7 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
 	return fmt.Sprintf(`resource "coralogix_alert" "test" {
   name               = "%s"
   description        = "%s"
-  alert_severity     = "%s"
+  severity           = "%s"
   notification {
     recipients {
       emails      = %s
@@ -927,7 +927,7 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
 	return fmt.Sprintf(`resource "coralogix_alert" "test" {
   name               = "%s"
   description        = "%s"
-  alert_severity     = "%s"
+  severity           = "%s"
   notification {
 	on_trigger_and_resolved = true
     recipients {
@@ -972,7 +972,7 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
 func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
 	return fmt.Sprintf(`resource "coralogix_alert" "standard_alert" {
 	name               = "standard"
-	alert_severity     = "Info"
+	severity           = "Info"
 	standard {
 		condition {
 			immediately = true
@@ -983,7 +983,7 @@ func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
 	resource "coralogix_alert" "test" {
   		name               = "%s"
   		description        = "%s"
-	  	alert_severity     = "%s"
+	  	severity           = "%s"
 		notification {
     		recipients {
       			emails      = %s

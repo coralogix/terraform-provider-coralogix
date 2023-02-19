@@ -406,8 +406,8 @@ resource "coralogix_alert" "flow_alert" {
 
 ### Required
 
-- `alert_severity` (String) Determines the alert's severity. Can be one of ["Error" "Info" "Warning" "Critical"]
 - `name` (String) Alert name.
+- `severity` (String) Determines the alert's severity. Can be one of ["Info" "Warning" "Critical" "Error"]
 
 ### Optional
 
