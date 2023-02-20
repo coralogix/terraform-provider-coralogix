@@ -668,23 +668,15 @@ func standardSchema() map[string]*schema.Schema {
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"enable_triggering_on_undetected_values": {
-								Type:         schema.TypeBool,
-								Optional:     true,
-								ExactlyOneOf: []string{"standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "standard.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-								RequiredWith: []string{"standard.0.condition.0.manage_undetected_values.0.auto_retire_ratio"},
-							},
-							"disable_triggering_on_undetected_values": {
-								Type:         schema.TypeBool,
-								Optional:     true,
-								ExactlyOneOf: []string{"standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "standard.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+								Type:        schema.TypeBool,
+								Required:    true,
+								Description: fmt.Sprintf("Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted."),
 							},
 							"auto_retire_ratio": {
-								Type:          schema.TypeString,
-								Optional:      true,
-								RequiredWith:  []string{"standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
-								ConflictsWith: []string{"standard.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-								ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
-								Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+								Type:         schema.TypeString,
+								Optional:     true,
+								ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+								Description:  fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
 							},
 						},
 					},
@@ -824,23 +816,15 @@ func ratioSchema() map[string]*schema.Schema {
 						Elem: &schema.Resource{
 							Schema: map[string]*schema.Schema{
 								"enable_triggering_on_undetected_values": {
-									Type:         schema.TypeBool,
-									Optional:     true,
-									ExactlyOneOf: []string{"ratio.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "ratio.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-									RequiredWith: []string{"ratio.0.condition.0.manage_undetected_values.0.auto_retire_ratio"},
-								},
-								"disable_triggering_on_undetected_values": {
-									Type:         schema.TypeBool,
-									Optional:     true,
-									ExactlyOneOf: []string{"ratio.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "ratio.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+									Type:        schema.TypeBool,
+									Required:    true,
+									Description: fmt.Sprintf("Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted."),
 								},
 								"auto_retire_ratio": {
-									Type:          schema.TypeString,
-									Optional:      true,
-									RequiredWith:  []string{"ratio.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
-									ConflictsWith: []string{"ratio.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-									ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
-									Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+									Type:         schema.TypeString,
+									Optional:     true,
+									ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+									Description:  fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
 								},
 							},
 						},
@@ -974,23 +958,15 @@ func timeRelativeSchema() map[string]*schema.Schema {
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"enable_triggering_on_undetected_values": {
-								Type:         schema.TypeBool,
-								Optional:     true,
-								ExactlyOneOf: []string{"time_relative.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "time_relative.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-								RequiredWith: []string{"time_relative.0.condition.0.manage_undetected_values.0.auto_retire_ratio"},
-							},
-							"disable_triggering_on_undetected_values": {
-								Type:         schema.TypeBool,
-								Optional:     true,
-								ExactlyOneOf: []string{"time_relative.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "time_relative.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+								Type:        schema.TypeBool,
+								Required:    true,
+								Description: fmt.Sprintf("Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted."),
 							},
 							"auto_retire_ratio": {
-								Type:          schema.TypeString,
-								Optional:      true,
-								RequiredWith:  []string{"time_relative.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
-								ConflictsWith: []string{"time_relative.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-								ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
-								Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+								Type:         schema.TypeString,
+								Optional:     true,
+								ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+								Description:  fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
 							},
 						},
 					},
@@ -1102,23 +1078,15 @@ func metricSchema() map[string]*schema.Schema {
 									Elem: &schema.Resource{
 										Schema: map[string]*schema.Schema{
 											"enable_triggering_on_undetected_values": {
-												Type:         schema.TypeBool,
-												Optional:     true,
-												ExactlyOneOf: []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-												RequiredWith: []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.auto_retire_ratio"},
-											},
-											"disable_triggering_on_undetected_values": {
-												Type:         schema.TypeBool,
-												Optional:     true,
-												ExactlyOneOf: []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+												Type:        schema.TypeBool,
+												Required:    true,
+												Description: fmt.Sprintf("Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted."),
 											},
 											"auto_retire_ratio": {
-												Type:          schema.TypeString,
-												Optional:      true,
-												RequiredWith:  []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
-												ConflictsWith: []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-												ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
-												Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+												Type:         schema.TypeString,
+												Optional:     true,
+												ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+												Description:  fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
 											},
 										},
 									},
@@ -1200,23 +1168,15 @@ func metricSchema() map[string]*schema.Schema {
 									Elem: &schema.Resource{
 										Schema: map[string]*schema.Schema{
 											"enable_triggering_on_undetected_values": {
-												Type:         schema.TypeBool,
-												Optional:     true,
-												ExactlyOneOf: []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "metric.0.promql.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-												RequiredWith: []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.auto_retire_ratio"},
-											},
-											"disable_triggering_on_undetected_values": {
-												Type:         schema.TypeBool,
-												Optional:     true,
-												ExactlyOneOf: []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "metric.0.promql.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+												Type:        schema.TypeBool,
+												Required:    true,
+												Description: fmt.Sprintf("Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted."),
 											},
 											"auto_retire_ratio": {
-												Type:          schema.TypeString,
-												Optional:      true,
-												RequiredWith:  []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
-												ConflictsWith: []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-												ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
-												Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+												Type:         schema.TypeString,
+												Optional:     true,
+												ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+												Description:  fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
 											},
 										},
 									},
@@ -1823,7 +1783,7 @@ func flattenManageUndetectedValues(data *alerts.RelatedExtendedData) interface{}
 
 	return []map[string]interface{}{
 		{
-			"disable_triggering_on_undetected_values": true,
+			"enable_triggering_on_undetected_values": false,
 		},
 	}
 }
@@ -2497,19 +2457,23 @@ func expandRelatedExtendedData(m map[string]interface{}) (*alerts.RelatedExtende
 	if v, ok := m["manage_undetected_values"]; ok {
 		if manageUndetectedValues, ok := v.([]interface{}); ok && len(manageUndetectedValues) != 0 {
 			raw := manageUndetectedValues[0].(map[string]interface{})
-			if enable, ok := raw["enable_triggering_on_undetected_values"]; ok && enable.(bool) {
-				cleanupDeadmanDurationStr := alertSchemaDeadmanRatiosToProtoDeadmanRatios[raw["auto_retire_ratio"].(string)]
+			if enable, autoRetireRatio := raw["enable_triggering_on_undetected_values"], raw["auto_retire_ratio"]; enable.(bool) {
+				if autoRetireRatio == nil || autoRetireRatio.(string) == "" {
+					return nil, fmt.Errorf("auto_retire_ratio is required when enable_triggering_on_undetected_values = true")
+				}
+				cleanupDeadmanDurationStr := alertSchemaDeadmanRatiosToProtoDeadmanRatios[autoRetireRatio.(string)]
 				cleanupDeadmanDuration := alerts.CleanupDeadmanDuration(alerts.CleanupDeadmanDuration_value[cleanupDeadmanDurationStr])
 				return &alerts.RelatedExtendedData{
 					CleanupDeadmanDuration: &cleanupDeadmanDuration,
 					ShouldTriggerDeadman:   wrapperspb.Bool(true),
 				}, nil
-			} else if disable, ok := raw["disable_triggering_on_undetected_values"]; ok && disable.(bool) {
+			} else {
+				if autoRetireRatio != nil && autoRetireRatio.(string) != "" {
+					return nil, fmt.Errorf("auto_retire_ratio is not allowed when enable_triggering_on_undetected_values = false")
+				}
 				return &alerts.RelatedExtendedData{
 					ShouldTriggerDeadman: wrapperspb.Bool(false),
 				}, nil
-			} else {
-				return nil, fmt.Errorf("exactly one of enable_triggering_on_undetected_values/disable_triggering_on_undetected_values have to be set to true")
 			}
 		}
 	}

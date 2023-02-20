@@ -490,7 +490,7 @@ func extractLuceneMetricChecks(alert metricLuceneAlertTestParams) []resource.Tes
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.sample_threshold_percentage", strconv.Itoa(alert.sampleThresholdPercentage)),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.time_window", alert.timeWindow),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.group_by.0", alert.groupBy[0]),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "false"),
 	}
 	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
 	return checks
@@ -872,7 +872,7 @@ func testAccCoralogixResourceAlertMetricLucene(a *metricLuceneAlertTestParams) s
         time_window                  = "%s"
 		group_by = %s
 		manage_undetected_values{
-			disable_triggering_on_undetected_values = true
+			enable_triggering_on_undetected_values = false
 		}
       }
     }

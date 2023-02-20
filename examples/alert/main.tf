@@ -2,7 +2,7 @@ terraform {
   required_providers {
     coralogix = {
       version = "~> 1.3"
-      source  = "locally/debug/coralogix"
+      source  = "coralogix/coralogix"
     }
   }
 }
@@ -204,7 +204,7 @@ resource "coralogix_alert" "metric_lucene_alert" {
         sample_threshold_percentage  = 50
         time_window                  = "30Min"
         manage_undetected_values {
-          disable_triggering_on_undetected_values = true
+          enable_triggering_on_undetected_values = false
         }
       }
     }

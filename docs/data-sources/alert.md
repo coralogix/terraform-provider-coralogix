@@ -144,7 +144,6 @@ Read-Only:
 Read-Only:
 
 - `auto_retire_ratio` (String)
-- `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
 
@@ -178,7 +177,6 @@ Read-Only:
 Read-Only:
 
 - `auto_retire_ratio` (String)
-- `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
 
@@ -263,7 +261,6 @@ Read-Only:
 Read-Only:
 
 - `auto_retire_ratio` (String)
-- `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
 
@@ -353,7 +350,6 @@ Read-Only:
 Read-Only:
 
 - `auto_retire_ratio` (String)
-- `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
 
@@ -393,7 +389,6 @@ Read-Only:
 Read-Only:
 
 - `auto_retire_ratio` (String)
-- `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
 
