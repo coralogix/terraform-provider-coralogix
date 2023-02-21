@@ -4,15 +4,14 @@
 // 	protoc        v3.21.8
 // source: com/coralogixapis/dashboards/v1/audit_log.proto
 
-package v1
+package __
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (

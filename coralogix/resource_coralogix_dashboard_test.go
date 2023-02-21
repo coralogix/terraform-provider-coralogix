@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
 	dashboard "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 
@@ -56,10 +57,8 @@ func TestAccCoralogixResourceDashboard(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.appearance.0.height", "28"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.title", "dashboards-api logz"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.description", "warnings, errors, criticals"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.query.0.logs.0.filters.0.name", "coralogix.metadata.severity"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.query.0.logs.0.filters.0.values.0", "6"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.query.0.logs.0.filters.0.values.1", "5"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.query.0.logs.0.filters.0.values.2", "4"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.query.0.logs.0.filters.0.field", "coralogix.metadata.applicationName"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.query.0.logs.0.filters.0.operator.0.operator.equals.0.selection.0.list.0", "staging"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.query.0.logs.0.filters.1.name", "coralogix.metadata.subsystemName"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.query.0.logs.0.filters.1.values.0", "coralogix-terraform-provider"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.results_per_page", "20"),
@@ -106,8 +105,6 @@ func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 				Config: testAccCoralogixResourceDashboardFromJson(filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "name", "dont drop me!"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "description", "dashboards team is messing with this 🗿"),
 				),
 			},
 		},
@@ -124,7 +121,8 @@ func testAccCheckDashboardDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.GetDashboard(ctx, &dashboard.GetDashboardRequest{DashboardId: expandUUID(rs.Primary.ID)})
+		dashboardId := wrapperspb.String(expandUUID(rs.Primary.ID))
+		resp, err := client.GetDashboard(ctx, &dashboard.GetDashboardRequest{DashboardId: dashboardId})
 		if err == nil {
 			if resp.GetDashboard().GetId().GetValue() == rs.Primary.ID {
 				return fmt.Errorf("dashboard still exists: %s", rs.Primary.ID)
@@ -138,13 +136,13 @@ func testAccCheckDashboardDestroy(s *terraform.State) error {
 func testAccCoralogixResourceDashboard() string {
 	return `resource "coralogix_dashboard" test {
   	name        = "dont drop me!"
-    description = "dashboards team is messing with this 🗿"
-   	layout {
-    	sections {
-      		rows {
-       		 appearance {
-          		height = 19
-			 }
+  	description = "dashboards team is messing with this 🗿"
+    layout {
+    sections {
+      rows {
+        appearance {
+          height = 19
+        }
         widgets {
           title = "status 4XX"
           definition {
@@ -192,7 +190,7 @@ func testAccCoralogixResourceDashboard() string {
             line_chart {
               query {
                 logs {
-                  lucene_query = "coralogix.metadata.severity=\"5\" OR coralogix.metadata.severity=\"6\" OR coralogix.metadata.severity=\"4\""
+                  lucene_query = "coralogix.metadata.severity=5 OR coralogix.metadata.severity=\"6\" OR coralogix.metadata.severity=\"4\""
                   group_by     = ["coralogix.metadata.subsystemName"]
                   aggregations {
                     count {
@@ -223,37 +221,39 @@ func testAccCoralogixResourceDashboard() string {
               query {
                 logs {
                   filters {
-                    name   = "coralogix.metadata.severity"
-                    values = ["6", "5", "4"]
-                  }
-                  filters {
-                    name   = "coralogix.metadata.subsystemName"
-                    values = ["coralogix-terraform-provider"]
+                    field = "coralogix.metadata.applicationName"
+                    operator {
+                      equals {
+                        selection {
+                          list = ["staging"]
+                        }
+                      }
+                    }
                   }
                 }
               }
               results_per_page = 20
               row_style        = "One_Line"
               columns {
-                field           = "coralogix.timestamp"
+                field = "coralogix.timestamp"
               }
               columns {
-                field           = "textObject.textObject.textObject.kubernetes.pod_id"
+                field = "textObject.textObject.textObject.kubernetes.pod_id"
               }
               columns {
-                field           = "coralogix.text"
+                field = "coralogix.text"
               }
               columns {
-                field           = "coralogix.metadata.applicationName"
+                field = "coralogix.metadata.applicationName"
               }
               columns {
-                field           = "coralogix.metadata.subsystemName"
+                field = "coralogix.metadata.subsystemName"
               }
               columns {
-                field           = "coralogix.metadata.sdkId"
+                field = "coralogix.metadata.sdkId"
               }
               columns {
-                field           = "textObject.log_obj.e2e_test.config"
+                field = "textObject.log_obj.e2e_test.config"
               }
             }
           }
@@ -265,16 +265,16 @@ func testAccCoralogixResourceDashboard() string {
     }
   }
   variables {
-	name = "test_variable"
-	definition{
-        multi_select{
-          selected = ["1", "2", "3"]
-          source{
-            constant_list{
-              values =["1", "2", "3"]
-            }
-          }
+    name = "test_variable"
+    definition {
+      multi_select {
+        selection {
+          list = ["1", "2", "3"]
         }
+        source {
+          constant_list = ["1", "2", "3"]
+        }
+      }
     }
   }
 }
@@ -283,9 +283,7 @@ func testAccCoralogixResourceDashboard() string {
 
 func testAccCoralogixResourceDashboardFromJson(jsonFilePath string) string {
 	return fmt.Sprintf(`resource "coralogix_dashboard" test {
-  	name        = "dont drop me!"
-    description = "dashboards team is messing with this 🗿"
-   	layout_json = file("%s")
+   		content_json = file("%s")
 	}
 `, jsonFilePath)
 }
