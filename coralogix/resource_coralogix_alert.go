@@ -670,7 +670,7 @@ func standardSchema() map[string]*schema.Schema {
 							"enable_triggering_on_undetected_values": {
 								Type:        schema.TypeBool,
 								Required:    true,
-								Description: fmt.Sprintf("Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted."),
+								Description: "Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.",
 							},
 							"auto_retire_ratio": {
 								Type:         schema.TypeString,
@@ -818,7 +818,7 @@ func ratioSchema() map[string]*schema.Schema {
 								"enable_triggering_on_undetected_values": {
 									Type:        schema.TypeBool,
 									Required:    true,
-									Description: fmt.Sprintf("Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted."),
+									Description: "Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.",
 								},
 								"auto_retire_ratio": {
 									Type:         schema.TypeString,
@@ -960,7 +960,7 @@ func timeRelativeSchema() map[string]*schema.Schema {
 							"enable_triggering_on_undetected_values": {
 								Type:        schema.TypeBool,
 								Required:    true,
-								Description: fmt.Sprintf("Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted."),
+								Description: "Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.",
 							},
 							"auto_retire_ratio": {
 								Type:         schema.TypeString,

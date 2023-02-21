@@ -1170,13 +1170,13 @@ func expandGaugeThresholds(v interface{}) []*dashboards.Gauge_Threshold {
 	l := v.([]interface{})
 	result := make([]*dashboards.Gauge_Threshold, 0, len(l))
 	for _, gaugeThreshold := range l {
-		threshold := expandThreshold(gaugeThreshold)
+		threshold := expandGaugeThreshold(gaugeThreshold)
 		result = append(result, threshold)
 	}
 	return result
 }
 
-func expandThreshold(v interface{}) *dashboards.Gauge_Threshold {
+func expandGaugeThreshold(v interface{}) *dashboards.Gauge_Threshold {
 	m := v.(map[string]interface{})
 	from := wrapperspb.Double(m["from"].(float64))
 	color := wrapperspb.String(m["color"].(string))
@@ -1444,6 +1444,7 @@ func expandDataTable(v interface{}) *dashboards.Widget_Definition_DataTable {
 	resultsPerPage := wrapperspb.Int32(int32(m["results_per_page"].(int)))
 	rowStyle := expandRowStyle(m["row_style"].(string))
 	columns := expandDataTableColumns(m["columns"])
+	orderBy := expandOrderBy(m["order_by"])
 
 	return &dashboards.Widget_Definition_DataTable{
 		DataTable: &dashboards.DataTable{
@@ -1451,6 +1452,7 @@ func expandDataTable(v interface{}) *dashboards.Widget_Definition_DataTable {
 			ResultsPerPage: resultsPerPage,
 			RowStyle:       rowStyle,
 			Columns:        columns,
+			OrderBy:        orderBy,
 		},
 	}
 }
@@ -1479,6 +1481,33 @@ func expandDataTableColumn(v interface{}) *dashboards.DataTable_Column {
 		Field: field,
 	}
 
+}
+
+func expandOrderBy(v interface{}) *dashboards.OrderingField {
+	var m map[string]interface{}
+	if v == nil {
+		return nil
+	}
+	if l := v.([]interface{}); len(l) == 0 {
+		return nil
+	} else {
+		m = l[0].(map[string]interface{})
+	}
+
+	field := wrapperspb.String(m["field"].(string))
+	orderDirection := expandOrderDirection(m["order_direction"])
+
+	return &dashboards.OrderingField{
+		Field:          field,
+		OrderDirection: orderDirection,
+	}
+
+}
+
+func expandOrderDirection(v interface{}) dashboards.OrderDirection {
+	s := v.(string)
+	orderDirectionStr := dashboardSchemaOrderDirectionToProtoOrderDirection[s]
+	return dashboards.OrderDirection(dashboards.OrderDirection_value[orderDirectionStr])
 }
 
 func expandRowStyle(s string) dashboards.RowStyle {
@@ -1900,10 +1929,82 @@ func flattenWidgetDefinition(definition *dashboards.Widget_Definition) interface
 		widgetDefinition = map[string]interface{}{
 			"data_table": dataTable,
 		}
+	case *dashboards.Widget_Definition_Gauge:
+		gauge := flattenGauge(definitionValue.Gauge)
+		widgetDefinition = map[string]interface{}{
+			"gauge": gauge,
+		}
 	}
 
 	return []interface{}{
 		widgetDefinition,
+	}
+}
+
+func flattenGauge(gauge *dashboards.Gauge) interface{} {
+	query := flattenGaugeQuery(gauge.GetQuery())
+	min := gauge.GetMin().GetValue()
+	max := gauge.GetMax().GetValue()
+	showInnerArc := gauge.GetShowInnerArc().GetValue()
+	showOuterArc := gauge.GetShowOuterArc().GetValue()
+	unit := flattenGaugeUnit(gauge.GetUnit())
+	thresholds := flattenGaugeThresholds(gauge.GetThresholds())
+
+	return []interface{}{
+		map[string]interface{}{
+			"query":          query,
+			"min":            min,
+			"max":            max,
+			"show_inner_arc": showInnerArc,
+			"show_outer_arc": showOuterArc,
+			"unit":           unit,
+			"thresholds":     thresholds,
+		},
+	}
+}
+
+func flattenGaugeQuery(query *dashboards.Gauge_Query) interface{} {
+	metrics := query.GetMetrics()
+	promqlQuery := metrics.GetPromqlQuery().GetValue().GetValue()
+	aggregation := flattenGaugeAggregation(metrics.GetAggregation())
+
+	return []interface{}{
+		map[string]interface{}{
+			"metrics": []interface{}{
+				map[string]interface{}{
+					"promql_query": promqlQuery,
+					"aggregation":  aggregation,
+				},
+			},
+		},
+	}
+}
+
+func flattenGaugeAggregation(aggregation dashboards.Gauge_Aggregation) interface{} {
+	return dashboardProtoAggregationToSchemaAggregation[aggregation.String()]
+}
+
+func flattenGaugeUnit(unit dashboards.Gauge_Unit) interface{} {
+	return dashboardProtoGaugeUnitToSchemaGaugeUnit[unit.String()]
+}
+
+func flattenGaugeThresholds(thresholds []*dashboards.Gauge_Threshold) interface{} {
+	result := make([]interface{}, 0, len(thresholds))
+	for _, t := range thresholds {
+		threshold := flattenGaugeThreshold(t)
+		result = append(result, threshold)
+	}
+
+	return result
+}
+
+func flattenGaugeThreshold(threshold *dashboards.Gauge_Threshold) interface{} {
+	from := threshold.GetFrom().GetValue()
+	color := threshold.GetColor().GetValue()
+
+	return map[string]interface{}{
+		"from":  from,
+		"color": color,
 	}
 }
 
@@ -2053,12 +2154,15 @@ func flattenDataTable(dataTable *dashboards.DataTable) interface{} {
 	resultsPerPage := dataTable.GetResultsPerPage().GetValue()
 	rowStyle := flattenRowStyle(dataTable.GetRowStyle())
 	columns := flattenDataTableColumns(dataTable.GetColumns())
+	orderBy := flattenOrderBy(dataTable.GetOrderBy())
+
 	return []interface{}{
 		map[string]interface{}{
 			"query":            query,
 			"results_per_page": resultsPerPage,
 			"row_style":        rowStyle,
 			"columns":          columns,
+			"order_by":         orderBy,
 		},
 	}
 }
@@ -2077,6 +2181,18 @@ func flattenDataTableColumn(column *dashboards.DataTable_Column) interface{} {
 	field := column.GetField().GetValue()
 	return map[string]interface{}{
 		"field": field,
+	}
+}
+
+func flattenOrderBy(orderBy *dashboards.OrderingField) interface{} {
+	field := orderBy.GetField().GetValue()
+	orderDirection := dashboardProtoOrderDirectionToSchemaOrderDirection[orderBy.GetOrderDirection().String()]
+
+	return []interface{}{
+		map[string]interface{}{
+			"field":           field,
+			"order_direction": orderDirection,
+		},
 	}
 }
 
