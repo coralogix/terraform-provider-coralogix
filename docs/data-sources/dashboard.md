@@ -22,12 +22,65 @@ data "coralogix_dashboard" "imported_dashboard" {
 
 ### Read-Only
 
+- `content_json` (String) an option to set the dashboard content from a json file.
 - `description` (String) Dashboard description.
+- `filters` (List of Object) (see [below for nested schema](#nestedatt--filters))
 - `id` (String) The ID of this resource.
 - `layout` (List of Object) (see [below for nested schema](#nestedatt--layout))
-- `layout_json` (String) an option to set the layout from a json string.
 - `name` (String) Dashboard name.
 - `variables` (List of Object) (see [below for nested schema](#nestedatt--variables))
+
+<a id="nestedatt--filters"></a>
+### Nested Schema for `filters`
+
+Read-Only:
+
+- `collapsed` (Boolean)
+- `enabled` (Boolean)
+- `source` (List of Object) (see [below for nested schema](#nestedobjatt--filters--source))
+
+<a id="nestedobjatt--filters--source"></a>
+### Nested Schema for `filters.source`
+
+Read-Only:
+
+- `logs` (List of Object) (see [below for nested schema](#nestedobjatt--filters--source--logs))
+
+<a id="nestedobjatt--filters--source--logs"></a>
+### Nested Schema for `filters.source.logs`
+
+Read-Only:
+
+- `field` (String)
+- `operator` (List of Object) (see [below for nested schema](#nestedobjatt--filters--source--logs--operator))
+
+<a id="nestedobjatt--filters--source--logs--operator"></a>
+### Nested Schema for `filters.source.logs.operator`
+
+Read-Only:
+
+- `equals` (List of Object) (see [below for nested schema](#nestedobjatt--filters--source--logs--operator--equals))
+
+<a id="nestedobjatt--filters--source--logs--operator--equals"></a>
+### Nested Schema for `filters.source.logs.operator.equals`
+
+Read-Only:
+
+- `selection` (List of Object) (see [below for nested schema](#nestedobjatt--filters--source--logs--operator--equals--selection))
+
+<a id="nestedobjatt--filters--source--logs--operator--equals--selection"></a>
+### Nested Schema for `filters.source.logs.operator.equals.selection`
+
+Read-Only:
+
+- `all` (Boolean)
+- `list` (List of String)
+
+
+
+
+
+
 
 <a id="nestedatt--layout"></a>
 ### Nested Schema for `layout`
@@ -86,6 +139,7 @@ Read-Only:
 Read-Only:
 
 - `data_table` (List of Object) (see [below for nested schema](#nestedobjatt--layout--sections--rows--widgets--definition--data_table))
+- `gauge` (List of Object) (see [below for nested schema](#nestedobjatt--layout--sections--rows--widgets--definition--gauge))
 - `line_chart` (List of Object) (see [below for nested schema](#nestedobjatt--layout--sections--rows--widgets--definition--line_chart))
 
 <a id="nestedobjatt--layout--sections--rows--widgets--definition--data_table"></a>
@@ -94,6 +148,7 @@ Read-Only:
 Read-Only:
 
 - `columns` (List of Object) (see [below for nested schema](#nestedobjatt--layout--sections--rows--widgets--definition--line_chart--columns))
+- `order_by` (List of Object) (see [below for nested schema](#nestedobjatt--layout--sections--rows--widgets--definition--line_chart--order_by))
 - `query` (List of Object) (see [below for nested schema](#nestedobjatt--layout--sections--rows--widgets--definition--line_chart--query))
 - `results_per_page` (Number)
 - `row_style` (String)
@@ -104,6 +159,16 @@ Read-Only:
 Read-Only:
 
 - `field` (String)
+- `width` (Number)
+
+
+<a id="nestedobjatt--layout--sections--rows--widgets--definition--line_chart--order_by"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.row_style`
+
+Read-Only:
+
+- `field` (String)
+- `order_direction` (String)
 
 
 <a id="nestedobjatt--layout--sections--rows--widgets--definition--line_chart--query"></a>
@@ -126,10 +191,75 @@ Read-Only:
 
 Read-Only:
 
-- `name` (String)
-- `values` (List of String)
+- `field` (String)
+- `operator` (List of Object) (see [below for nested schema](#nestedobjatt--layout--sections--rows--widgets--definition--line_chart--row_style--logs--filters--operator))
+
+<a id="nestedobjatt--layout--sections--rows--widgets--definition--line_chart--row_style--logs--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.row_style.logs.filters.operator`
+
+Read-Only:
+
+- `equals` (List of Object) (see [below for nested schema](#nestedobjatt--layout--sections--rows--widgets--definition--line_chart--row_style--logs--filters--operator--equals))
+
+<a id="nestedobjatt--layout--sections--rows--widgets--definition--line_chart--row_style--logs--filters--operator--equals"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.row_style.logs.filters.operator.equals`
+
+Read-Only:
+
+- `selection` (List of Object) (see [below for nested schema](#nestedobjatt--layout--sections--rows--widgets--definition--line_chart--row_style--logs--filters--operator--equals--selection))
+
+<a id="nestedobjatt--layout--sections--rows--widgets--definition--line_chart--row_style--logs--filters--operator--equals--selection"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.row_style.logs.filters.operator.equals.selection`
+
+Read-Only:
+
+- `all` (Boolean)
+- `list` (List of String)
 
 
+
+
+
+
+
+
+<a id="nestedobjatt--layout--sections--rows--widgets--definition--gauge"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart`
+
+Read-Only:
+
+- `max` (Number)
+- `min` (Number)
+- `query` (List of Object) (see [below for nested schema](#nestedobjatt--layout--sections--rows--widgets--definition--line_chart--query))
+- `show_inner_arc` (Boolean)
+- `show_outer_arc` (Boolean)
+- `thresholds` (List of Object) (see [below for nested schema](#nestedobjatt--layout--sections--rows--widgets--definition--line_chart--thresholds))
+- `unit` (String)
+
+<a id="nestedobjatt--layout--sections--rows--widgets--definition--line_chart--query"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.unit`
+
+Read-Only:
+
+- `metrics` (List of Object) (see [below for nested schema](#nestedobjatt--layout--sections--rows--widgets--definition--line_chart--unit--metrics))
+
+<a id="nestedobjatt--layout--sections--rows--widgets--definition--line_chart--unit--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.unit.metrics`
+
+Read-Only:
+
+- `aggregation` (String)
+- `promql_query` (String)
+
+
+
+<a id="nestedobjatt--layout--sections--rows--widgets--definition--line_chart--thresholds"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.unit`
+
+Read-Only:
+
+- `color` (String)
+- `from` (Number)
 
 
 
@@ -140,6 +270,7 @@ Read-Only:
 
 - `legend` (List of Object) (see [below for nested schema](#nestedobjatt--layout--sections--rows--widgets--definition--line_chart--legend))
 - `query` (List of Object) (see [below for nested schema](#nestedobjatt--layout--sections--rows--widgets--definition--line_chart--query))
+- `series_count_limit` (Number)
 - `series_name_template` (String)
 
 <a id="nestedobjatt--layout--sections--rows--widgets--definition--line_chart--legend"></a>
@@ -250,6 +381,7 @@ Read-Only:
 Read-Only:
 
 - `definition` (List of Object) (see [below for nested schema](#nestedobjatt--variables--definition))
+- `display_name` (String)
 - `name` (String)
 
 <a id="nestedobjatt--variables--definition"></a>
@@ -257,52 +389,38 @@ Read-Only:
 
 Read-Only:
 
-- `constant` (List of Object) (see [below for nested schema](#nestedobjatt--variables--definition--constant))
+- `constant` (String)
 - `multi_select` (List of Object) (see [below for nested schema](#nestedobjatt--variables--definition--multi_select))
-
-<a id="nestedobjatt--variables--definition--constant"></a>
-### Nested Schema for `variables.definition.constant`
-
-Read-Only:
-
-- `value` (String)
-
 
 <a id="nestedobjatt--variables--definition--multi_select"></a>
 ### Nested Schema for `variables.definition.multi_select`
 
 Read-Only:
 
-- `selected` (List of String)
+- `selection` (List of Object) (see [below for nested schema](#nestedobjatt--variables--definition--multi_select--selection))
 - `source` (List of Object) (see [below for nested schema](#nestedobjatt--variables--definition--multi_select--source))
+- `values_order_direction` (String)
+
+<a id="nestedobjatt--variables--definition--multi_select--selection"></a>
+### Nested Schema for `variables.definition.multi_select.values_order_direction`
+
+Read-Only:
+
+- `all` (Boolean)
+- `list` (List of String)
+
 
 <a id="nestedobjatt--variables--definition--multi_select--source"></a>
-### Nested Schema for `variables.definition.multi_select.source`
+### Nested Schema for `variables.definition.multi_select.values_order_direction`
 
 Read-Only:
 
-- `constant_list` (List of Object) (see [below for nested schema](#nestedobjatt--variables--definition--multi_select--source--constant_list))
-- `logs_path` (List of Object) (see [below for nested schema](#nestedobjatt--variables--definition--multi_select--source--logs_path))
-- `metric_label` (List of Object) (see [below for nested schema](#nestedobjatt--variables--definition--multi_select--source--metric_label))
+- `constant_list` (List of String)
+- `logs_path` (String)
+- `metric_label` (List of Object) (see [below for nested schema](#nestedobjatt--variables--definition--multi_select--values_order_direction--metric_label))
 
-<a id="nestedobjatt--variables--definition--multi_select--source--constant_list"></a>
-### Nested Schema for `variables.definition.multi_select.source.constant_list`
-
-Read-Only:
-
-- `values` (List of String)
-
-
-<a id="nestedobjatt--variables--definition--multi_select--source--logs_path"></a>
-### Nested Schema for `variables.definition.multi_select.source.logs_path`
-
-Read-Only:
-
-- `value` (String)
-
-
-<a id="nestedobjatt--variables--definition--multi_select--source--metric_label"></a>
-### Nested Schema for `variables.definition.multi_select.source.metric_label`
+<a id="nestedobjatt--variables--definition--multi_select--values_order_direction--metric_label"></a>
+### Nested Schema for `variables.definition.multi_select.values_order_direction.metric_label`
 
 Read-Only:
 
