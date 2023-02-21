@@ -15,7 +15,7 @@ provider "coralogix" {
 resource "coralogix_alert" "standard_alert" {
   name           = "Standard alert example"
   description    = "Example of standard alert from terraform"
-  alert_severity = "Critical"
+  severity = "Critical"
 
   meta_labels {
     key   = "alert_type"
@@ -61,7 +61,7 @@ data "coralogix_alert" "imported_standard_alert" {
 resource "coralogix_alert" "ratio_alert" {
   name           = "Ratio alert example"
   description    = "Example of ratio alert from terraform"
-  alert_severity = "Critical"
+  severity = "Critical"
 
   notification {
     on_trigger_and_resolved = true
@@ -108,7 +108,7 @@ resource "coralogix_alert" "ratio_alert" {
 resource "coralogix_alert" "new_value_alert" {
   name           = "New value alert example"
   description    = "Example of new value alert from terraform"
-  alert_severity = "Info"
+  severity = "Info"
   notification {
     recipients {
       emails      = ["user@example.com"]
@@ -139,7 +139,7 @@ resource "coralogix_alert" "new_value_alert" {
 resource "coralogix_alert" "time_relative_alert" {
   name           = "Time relative alert example"
   description    = "Example of time relative alert from terraform"
-  alert_severity = "Critical"
+  severity = "Critical"
   notification {
     recipients {
       emails      = ["user@example.com"]
@@ -171,7 +171,7 @@ resource "coralogix_alert" "time_relative_alert" {
 resource "coralogix_alert" "metric_lucene_alert" {
   name           = "Metric lucene alert example"
   description    = "Example of metric lucene alert from terraform"
-  alert_severity = "Critical"
+  severity = "Critical"
 
   notification {
     on_trigger_and_resolved = true
@@ -204,7 +204,7 @@ resource "coralogix_alert" "metric_lucene_alert" {
         sample_threshold_percentage  = 50
         time_window                  = "30Min"
         manage_undetected_values {
-          disable_triggering_on_undetected_values = true
+          enable_triggering_on_undetected_values = false
         }
       }
     }
@@ -214,7 +214,7 @@ resource "coralogix_alert" "metric_lucene_alert" {
 resource "coralogix_alert" "metric_promql_alert" {
   name           = "Metric promql alert example"
   description    = "Example of metric promql alert from terraform"
-  alert_severity = "Critical"
+  severity = "Critical"
 
   notification {
     on_trigger_and_resolved = true
@@ -251,7 +251,7 @@ resource "coralogix_alert" "metric_promql_alert" {
 resource "coralogix_alert" "unique_count_alert" {
   name           = "Unique count alert example"
   description    = "Example of unique count alert from terraform"
-  alert_severity = "Info"
+  severity = "Info"
 
   notification {
     recipients {
@@ -285,7 +285,7 @@ resource "coralogix_alert" "unique_count_alert" {
 resource "coralogix_alert" "tracing_alert" {
   name           = "Tracing alert example"
   description    = "Example of tracing alert from terraform"
-  alert_severity = "Info"
+  severity = "Info"
 
   notification {
     on_trigger_and_resolved = true
@@ -327,7 +327,7 @@ resource "coralogix_alert" "tracing_alert" {
 resource "coralogix_alert" "flow_alert" {
   name           = "Flow alert example"
   description    = "Example of flow alert from terraform"
-  alert_severity = "Info"
+  severity = "Info"
 
   notification {
     recipients {

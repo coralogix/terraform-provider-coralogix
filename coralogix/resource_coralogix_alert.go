@@ -222,7 +222,7 @@ func AlertSchema() map[string]*schema.Schema {
 			Optional:    true,
 			Description: "Alert description.",
 		},
-		"alert_severity": {
+		"severity": {
 			Type:         schema.TypeString,
 			Required:     true,
 			ValidateFunc: validation.StringInSlice(alertValidSeverities, false),
@@ -375,7 +375,7 @@ func AlertSchema() map[string]*schema.Schema {
 			},
 			MaxItems:     1,
 			ExactlyOneOf: validAlertTypes,
-			Description:  "Alert on a never before seen log value.",
+			Description:  "Alert on never before seen log value.",
 		},
 		"unique_count": {
 			Type:     schema.TypeList,
@@ -668,22 +668,15 @@ func standardSchema() map[string]*schema.Schema {
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"enable_triggering_on_undetected_values": {
-								Type:         schema.TypeBool,
-								Optional:     true,
-								ExactlyOneOf: []string{"standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "standard.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-							},
-							"disable_triggering_on_undetected_values": {
-								Type:         schema.TypeBool,
-								Optional:     true,
-								ExactlyOneOf: []string{"standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "standard.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+								Type:        schema.TypeBool,
+								Required:    true,
+								Description: "Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.",
 							},
 							"auto_retire_ratio": {
-								Type:          schema.TypeString,
-								Optional:      true,
-								RequiredWith:  []string{"standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
-								ConflictsWith: []string{"standard.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-								ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
-								Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+								Type:         schema.TypeString,
+								Optional:     true,
+								ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+								Description:  fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
 							},
 						},
 					},
@@ -823,22 +816,15 @@ func ratioSchema() map[string]*schema.Schema {
 						Elem: &schema.Resource{
 							Schema: map[string]*schema.Schema{
 								"enable_triggering_on_undetected_values": {
-									Type:         schema.TypeBool,
-									Optional:     true,
-									ExactlyOneOf: []string{"ratio.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "ratio.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-								},
-								"disable_triggering_on_undetected_values": {
-									Type:         schema.TypeBool,
-									Optional:     true,
-									ExactlyOneOf: []string{"ratio.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "ratio.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+									Type:        schema.TypeBool,
+									Required:    true,
+									Description: "Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.",
 								},
 								"auto_retire_ratio": {
-									Type:          schema.TypeString,
-									Optional:      true,
-									RequiredWith:  []string{"ratio.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
-									ConflictsWith: []string{"ratio.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-									ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
-									Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+									Type:         schema.TypeString,
+									Optional:     true,
+									ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+									Description:  fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
 								},
 							},
 						},
@@ -972,22 +958,15 @@ func timeRelativeSchema() map[string]*schema.Schema {
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"enable_triggering_on_undetected_values": {
-								Type:         schema.TypeBool,
-								Optional:     true,
-								ExactlyOneOf: []string{"time_relative.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "time_relative.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-							},
-							"disable_triggering_on_undetected_values": {
-								Type:         schema.TypeBool,
-								Optional:     true,
-								ExactlyOneOf: []string{"time_relative.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "time_relative.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+								Type:        schema.TypeBool,
+								Required:    true,
+								Description: "Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.",
 							},
 							"auto_retire_ratio": {
-								Type:          schema.TypeString,
-								Optional:      true,
-								RequiredWith:  []string{"time_relative.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
-								ConflictsWith: []string{"time_relative.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-								ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
-								Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+								Type:         schema.TypeString,
+								Optional:     true,
+								ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+								Description:  fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
 							},
 						},
 					},
@@ -1099,22 +1078,15 @@ func metricSchema() map[string]*schema.Schema {
 									Elem: &schema.Resource{
 										Schema: map[string]*schema.Schema{
 											"enable_triggering_on_undetected_values": {
-												Type:         schema.TypeBool,
-												Optional:     true,
-												ExactlyOneOf: []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-											},
-											"disable_triggering_on_undetected_values": {
-												Type:         schema.TypeBool,
-												Optional:     true,
-												ExactlyOneOf: []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+												Type:        schema.TypeBool,
+												Required:    true,
+												Description: fmt.Sprintf("Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted."),
 											},
 											"auto_retire_ratio": {
-												Type:          schema.TypeString,
-												Optional:      true,
-												RequiredWith:  []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
-												ConflictsWith: []string{"metric.0.lucene.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-												ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
-												Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+												Type:         schema.TypeString,
+												Optional:     true,
+												ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+												Description:  fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
 											},
 										},
 									},
@@ -1196,22 +1168,15 @@ func metricSchema() map[string]*schema.Schema {
 									Elem: &schema.Resource{
 										Schema: map[string]*schema.Schema{
 											"enable_triggering_on_undetected_values": {
-												Type:         schema.TypeBool,
-												Optional:     true,
-												ExactlyOneOf: []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "metric.0.promql.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-											},
-											"disable_triggering_on_undetected_values": {
-												Type:         schema.TypeBool,
-												Optional:     true,
-												ExactlyOneOf: []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "metric.0.promql.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
+												Type:        schema.TypeBool,
+												Required:    true,
+												Description: fmt.Sprintf("Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted."),
 											},
 											"auto_retire_ratio": {
-												Type:          schema.TypeString,
-												Optional:      true,
-												RequiredWith:  []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values"},
-												ConflictsWith: []string{"metric.0.promql.0.condition.0.manage_undetected_values.0.disable_triggering_on_undetected_values"},
-												ValidateFunc:  validation.StringInSlice(alertValidDeadmanRatioValues, false),
-												Description:   fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
+												Type:         schema.TypeString,
+												Optional:     true,
+												ValidateFunc: validation.StringInSlice(alertValidDeadmanRatioValues, false),
+												Description:  fmt.Sprintf("Defines the triggering auto-retire ratio. Can be one of %q", alertValidDeadmanRatioValues),
 											},
 										},
 									},
@@ -1456,7 +1421,7 @@ func extractCreateAlertRequest(d *schema.ResourceData) (*alerts.CreateAlertReque
 	enabled := wrapperspb.Bool(d.Get("enabled").(bool))
 	name := wrapperspb.String(d.Get("name").(string))
 	description := wrapperspb.String(d.Get("description").(string))
-	severity := expandAlertSeverity(d.Get("alert_severity").(string))
+	severity := expandAlertSeverity(d.Get("severity").(string))
 	metaLabels := extractMetaLabels(d.Get("meta_labels"))
 	expirationDate := expandExpirationDate(d.Get("expiration_date"))
 	notifications := expandNotification(d.Get("notification"))
@@ -1490,7 +1455,7 @@ func extractAlert(d *schema.ResourceData) (*alerts.Alert, error) {
 	enabled := wrapperspb.Bool(d.Get("enabled").(bool))
 	name := wrapperspb.String(d.Get("name").(string))
 	description := wrapperspb.String(d.Get("description").(string))
-	severity := expandAlertSeverity(d.Get("alert_severity").(string))
+	severity := expandAlertSeverity(d.Get("severity").(string))
 	metaLabels := extractMetaLabels(d.Get("meta_labels"))
 	expirationDate := expandExpirationDate(d.Get("expiration_date"))
 	notifications := expandNotification(d.Get("notification"))
@@ -1533,7 +1498,7 @@ func setAlert(d *schema.ResourceData, alert *alerts.Alert) diag.Diagnostics {
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("alert_severity", flattenAlertSeverity(alert.GetSeverity().String())); err != nil {
+	if err := d.Set("severity", flattenAlertSeverity(alert.GetSeverity().String())); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -1818,7 +1783,7 @@ func flattenManageUndetectedValues(data *alerts.RelatedExtendedData) interface{}
 
 	return []map[string]interface{}{
 		{
-			"disable_triggering_on_undetected_values": true,
+			"enable_triggering_on_undetected_values": false,
 		},
 	}
 }
@@ -2466,7 +2431,10 @@ func expandStandardCondition(m map[string]interface{}, notifyOnResolved, notifyO
 			},
 		}, nil
 	} else {
-		parameters := expandStandardConditionParameters(m, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
+		parameters, err := expandStandardConditionParameters(m, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
+		if err != nil {
+			return nil, err
+		}
 		if lessThan := m["less_than"]; lessThan != nil && lessThan.(bool) {
 			return &alerts.AlertCondition{
 				Condition: &alerts.AlertCondition_LessThan{
@@ -2485,33 +2453,42 @@ func expandStandardCondition(m map[string]interface{}, notifyOnResolved, notifyO
 	return nil, fmt.Errorf("immediately, less_than, more_than or more_than_usual have to be true")
 }
 
-func expandRelatedExtendedData(m map[string]interface{}) *alerts.RelatedExtendedData {
+func expandRelatedExtendedData(m map[string]interface{}) (*alerts.RelatedExtendedData, error) {
 	if v, ok := m["manage_undetected_values"]; ok {
 		if manageUndetectedValues, ok := v.([]interface{}); ok && len(manageUndetectedValues) != 0 {
 			raw := manageUndetectedValues[0].(map[string]interface{})
-			if enable, ok := raw["enable_triggering_on_undetected_values"]; ok && enable.(bool) {
-				cleanupDeadmanDurationStr := alertSchemaDeadmanRatiosToProtoDeadmanRatios[raw["auto_retire_ratio"].(string)]
+			if enable, autoRetireRatio := raw["enable_triggering_on_undetected_values"], raw["auto_retire_ratio"]; enable.(bool) {
+				if autoRetireRatio == nil || autoRetireRatio.(string) == "" {
+					return nil, fmt.Errorf("auto_retire_ratio is required when enable_triggering_on_undetected_values = true")
+				}
+				cleanupDeadmanDurationStr := alertSchemaDeadmanRatiosToProtoDeadmanRatios[autoRetireRatio.(string)]
 				cleanupDeadmanDuration := alerts.CleanupDeadmanDuration(alerts.CleanupDeadmanDuration_value[cleanupDeadmanDurationStr])
 				return &alerts.RelatedExtendedData{
 					CleanupDeadmanDuration: &cleanupDeadmanDuration,
 					ShouldTriggerDeadman:   wrapperspb.Bool(true),
+				}, nil
+			} else {
+				if autoRetireRatio != nil && autoRetireRatio.(string) != "" {
+					return nil, fmt.Errorf("auto_retire_ratio is not allowed when enable_triggering_on_undetected_values = false")
 				}
-			} else if disable, ok := raw["disable_triggering_on_undetected_values"]; ok && disable.(bool) {
 				return &alerts.RelatedExtendedData{
 					ShouldTriggerDeadman: wrapperspb.Bool(false),
-				}
+				}, nil
 			}
 		}
 	}
 
-	return nil
+	return nil, nil
 }
 
-func expandStandardConditionParameters(m map[string]interface{}, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) *alerts.ConditionParameters {
+func expandStandardConditionParameters(m map[string]interface{}, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alerts.ConditionParameters, error) {
 	timeFrame := expandTimeFrame(m["time_window"].(string))
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
 	threshold := wrapperspb.Double(float64(m["occurrences_threshold"].(int)))
-	relatedExtendedData := expandRelatedExtendedData(m)
+	relatedExtendedData, err := expandRelatedExtendedData(m)
+	if err != nil {
+		return nil, err
+	}
 
 	return &alerts.ConditionParameters{
 		Threshold:               threshold,
@@ -2520,6 +2497,19 @@ func expandStandardConditionParameters(m map[string]interface{}, notifyOnResolve
 		NotifyOnResolved:        notifyOnResolved,
 		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
 		RelatedExtendedData:     relatedExtendedData,
+	}, nil
+}
+
+func expandTracingConditionParameters(m map[string]interface{}, notifyOnResolved *wrapperspb.BoolValue) *alerts.ConditionParameters {
+	timeFrame := expandTimeFrame(m["time_window"].(string))
+	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
+	threshold := wrapperspb.Double(float64(m["occurrences_threshold"].(int)))
+
+	return &alerts.ConditionParameters{
+		Threshold:        threshold,
+		Timeframe:        timeFrame,
+		GroupBy:          groupBy,
+		NotifyOnResolved: notifyOnResolved,
 	}
 }
 
@@ -2569,14 +2559,21 @@ func expandRatioFilters(m map[string]interface{}, groupBy []*wrapperspb.StringVa
 }
 
 func expandRatioCondition(m map[string]interface{}, groupBy []*wrapperspb.StringValue, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alerts.AlertCondition, error) {
-	parameters := expandRatioParams(m, groupBy, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
+	parameters, err := expandRatioParams(m, groupBy, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
+	if err != nil {
+		return nil, err
+	}
+
 	return expandLessThanOrMoreThanAlertCondition(m, parameters)
 }
 
-func expandRatioParams(m map[string]interface{}, groupBy []*wrapperspb.StringValue, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) *alerts.ConditionParameters {
+func expandRatioParams(m map[string]interface{}, groupBy []*wrapperspb.StringValue, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alerts.ConditionParameters, error) {
 	threshold := wrapperspb.Double(m["queries_ratio"].(float64))
 	timeFrame := expandTimeFrame(m["time_window"].(string))
-	relatedExtendedData := expandRelatedExtendedData(m)
+	relatedExtendedData, err := expandRelatedExtendedData(m)
+	if err != nil {
+		return nil, err
+	}
 
 	return &alerts.ConditionParameters{
 		Threshold:               threshold,
@@ -2586,7 +2583,7 @@ func expandRatioParams(m map[string]interface{}, groupBy []*wrapperspb.StringVal
 		IgnoreInfinity:          ignoreInfinity,
 		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
 		RelatedExtendedData:     relatedExtendedData,
-	}
+	}, nil
 }
 
 func expandQuery2(v interface{}, groupBy []*wrapperspb.StringValue) *alerts.AlertFilters_RatioAlert {
@@ -2716,7 +2713,11 @@ func expandTimeRelative(m map[string]interface{}, ignoreInfinity, notifyOnResolv
 }
 
 func expandTimeRelativeCondition(m map[string]interface{}, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alerts.AlertCondition, error) {
-	parameters := expandTimeRelativeConditionParameters(m, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
+	parameters, err := expandTimeRelativeConditionParameters(m, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
+	if err != nil {
+		return nil, err
+	}
+
 	return expandLessThanOrMoreThanAlertCondition(m, parameters)
 }
 
@@ -2751,11 +2752,15 @@ func trueIfIsLessThanFalseIfMoreThanAndErrorOtherwise(m map[string]interface{}) 
 	return false, fmt.Errorf("less_than or more_than have to be true")
 }
 
-func expandTimeRelativeConditionParameters(m map[string]interface{}, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) *alerts.ConditionParameters {
+func expandTimeRelativeConditionParameters(m map[string]interface{}, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alerts.ConditionParameters, error) {
 	timeFrame, relativeTimeframe := expandTimeFrameAndRelativeTimeframe(m["relative_time_window"].(string))
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
 	threshold := wrapperspb.Double(m["ratio_threshold"].(float64))
-	relatedExtendedData := expandRelatedExtendedData(m)
+	relatedExtendedData, err := expandRelatedExtendedData(m)
+	if err != nil {
+		return nil, err
+	}
+
 	return &alerts.ConditionParameters{
 		Timeframe:               timeFrame,
 		RelativeTimeframe:       relativeTimeframe,
@@ -2765,7 +2770,7 @@ func expandTimeRelativeConditionParameters(m map[string]interface{}, ignoreInfin
 		NotifyOnResolved:        notifyOnResolved,
 		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
 		RelatedExtendedData:     relatedExtendedData,
-	}
+	}, nil
 }
 
 func expandTimeFrameAndRelativeTimeframe(relativeTimeframeStr string) (alerts.Timeframe, alerts.RelativeTimeframe) {
@@ -2809,7 +2814,11 @@ func expandMetricCondition(m map[string]interface{}, notifyWhenResolved, notifyO
 	nonNullPercentage := wrapperspb.UInt32(uint32(conditionMap["min_non_null_values_percentage"].(int)))
 	swapNullValues := wrapperspb.Bool(conditionMap["replace_missing_value_with_zero"].(bool))
 	timeFrame := expandMetricTimeFrame(conditionMap["time_window"].(string))
-	relatedExtendedData := expandRelatedExtendedData(conditionMap)
+	relatedExtendedData, err := expandRelatedExtendedData(conditionMap)
+	if err != nil {
+		return nil, err
+	}
+
 	parameters := &alerts.ConditionParameters{
 		Threshold:               threshold,
 		NotifyOnResolved:        notifyWhenResolved,
@@ -2978,7 +2987,7 @@ func expandTracingCondition(m map[string]interface{}, notifyOnResolved *wrappers
 			Condition: &alerts.AlertCondition_Immediate{},
 		}, nil
 	} else if moreThan := m["more_than"]; moreThan != nil && moreThan.(bool) {
-		parameters := expandStandardConditionParameters(m, notifyOnResolved, nil)
+		parameters := expandTracingConditionParameters(m, notifyOnResolved)
 		return &alerts.AlertCondition{
 			Condition: &alerts.AlertCondition_MoreThan{
 				MoreThan: &alerts.MoreThanCondition{Parameters: parameters},
@@ -2986,7 +2995,7 @@ func expandTracingCondition(m map[string]interface{}, notifyOnResolved *wrappers
 		}, nil
 	}
 
-	return nil, fmt.Errorf("immediately, less_than, more_than or more_than_usual have to be true")
+	return nil, fmt.Errorf("immediately or more_than have to be true")
 }
 
 func expandTracingFilter(m map[string]interface{}) *alerts.AlertFilters {

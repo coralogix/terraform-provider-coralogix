@@ -406,8 +406,8 @@ resource "coralogix_alert" "flow_alert" {
 
 ### Required
 
-- `alert_severity` (String) Determines the alert's severity. Can be one of ["Error" "Info" "Warning" "Critical"]
 - `name` (String) Alert name.
+- `severity` (String) Determines the alert's severity. Can be one of ["Info" "Warning" "Critical" "Error"]
 
 ### Optional
 
@@ -568,12 +568,16 @@ Optional:
 
 ### Nested Schema for `metric.lucene.condition.manage_undetected_values`
 
+Required:
+
+- `enable_triggering_on_undetected_values` (Boolean) Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.
+
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one
-  of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
-- `disable_triggering_on_undetected_values` (Boolean)
-- `enable_triggering_on_undetected_values` (Boolean)
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["2H" "6H" "12H" "24H" "Never" "5Min" "10Min" "1H"]
+
+
+
 
 <a id="nestedblock--metric--promql"></a>
 
@@ -610,12 +614,17 @@ Optional:
 
 ### Nested Schema for `metric.promql.condition.manage_undetected_values`
 
+Required:
+
+- `enable_triggering_on_undetected_values` (Boolean) Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.
+
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one
-  of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
-- `disable_triggering_on_undetected_values` (Boolean)
-- `enable_triggering_on_undetected_values` (Boolean)
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["2H" "6H" "12H" "24H" "Never" "5Min" "10Min" "1H"]
+
+
+
+
 
 <a id="nestedblock--new_value"></a>
 
@@ -710,12 +719,15 @@ Optional:
 <a id="nestedblock--ratio--condition--manage_undetected_values"></a>
 ### Nested Schema for `ratio.condition.manage_undetected_values`
 
+Required:
+
+- `enable_triggering_on_undetected_values` (Boolean) Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.
+
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one
-  of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
-- `disable_triggering_on_undetected_values` (Boolean)
-- `enable_triggering_on_undetected_values` (Boolean)
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["2H" "6H" "12H" "24H" "Never" "5Min" "10Min" "1H"]
+
+
 
 <a id="nestedblock--ratio--query_1"></a>
 
@@ -828,12 +840,16 @@ Optional:
 
 ### Nested Schema for `standard.condition.manage_undetected_values`
 
+Required:
+
+- `enable_triggering_on_undetected_values` (Boolean) Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.
+
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one
-  of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
-- `disable_triggering_on_undetected_values` (Boolean)
-- `enable_triggering_on_undetected_values` (Boolean)
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["2H" "6H" "12H" "24H" "Never" "5Min" "10Min" "1H"]
+
+
+
 
 <a id="nestedblock--time_relative"></a>
 
@@ -885,12 +901,16 @@ Optional:
 
 ### Nested Schema for `time_relative.condition.manage_undetected_values`
 
+Required:
+
+- `enable_triggering_on_undetected_values` (Boolean) Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.
+
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one
-  of ["Never" "5Min" "10Min" "1H" "2H" "6H" "12H" "24H"]
-- `disable_triggering_on_undetected_values` (Boolean)
-- `enable_triggering_on_undetected_values` (Boolean)
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["2H" "6H" "12H" "24H" "Never" "5Min" "10Min" "1H"]
+
+
+
 
 <a id="nestedblock--timeouts"></a>
 

@@ -4,11 +4,10 @@
 // - protoc             v3.21.8
 // source: com/coralogixapis/dashboards/v1/services/dashboard_catalog_service.proto
 
-package v1
+package __
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -24,9 +23,6 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DashboardCatalogServiceClient interface {
 	GetDashboardCatalog(ctx context.Context, in *GetDashboardCatalogRequest, opts ...grpc.CallOption) (*GetDashboardCatalogResponse, error)
-	ReplaceDefaultDashboard(ctx context.Context, in *ReplaceDefaultDashboardRequest, opts ...grpc.CallOption) (*ReplaceDefaultDashboardResponse, error)
-	PinDashboard(ctx context.Context, in *PinDashboardRequest, opts ...grpc.CallOption) (*PinDashboardResponse, error)
-	UnpinDashboard(ctx context.Context, in *UnpinDashboardRequest, opts ...grpc.CallOption) (*UnpinDashboardResponse, error)
 }
 
 type dashboardCatalogServiceClient struct {
@@ -46,41 +42,11 @@ func (c *dashboardCatalogServiceClient) GetDashboardCatalog(ctx context.Context,
 	return out, nil
 }
 
-func (c *dashboardCatalogServiceClient) ReplaceDefaultDashboard(ctx context.Context, in *ReplaceDefaultDashboardRequest, opts ...grpc.CallOption) (*ReplaceDefaultDashboardResponse, error) {
-	out := new(ReplaceDefaultDashboardResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogixapis.dashboards.v1.services.DashboardCatalogService/ReplaceDefaultDashboard", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *dashboardCatalogServiceClient) PinDashboard(ctx context.Context, in *PinDashboardRequest, opts ...grpc.CallOption) (*PinDashboardResponse, error) {
-	out := new(PinDashboardResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogixapis.dashboards.v1.services.DashboardCatalogService/PinDashboard", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *dashboardCatalogServiceClient) UnpinDashboard(ctx context.Context, in *UnpinDashboardRequest, opts ...grpc.CallOption) (*UnpinDashboardResponse, error) {
-	out := new(UnpinDashboardResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogixapis.dashboards.v1.services.DashboardCatalogService/UnpinDashboard", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // DashboardCatalogServiceServer is the server API for DashboardCatalogService service.
 // All implementations must embed UnimplementedDashboardCatalogServiceServer
 // for forward compatibility
 type DashboardCatalogServiceServer interface {
 	GetDashboardCatalog(context.Context, *GetDashboardCatalogRequest) (*GetDashboardCatalogResponse, error)
-	ReplaceDefaultDashboard(context.Context, *ReplaceDefaultDashboardRequest) (*ReplaceDefaultDashboardResponse, error)
-	PinDashboard(context.Context, *PinDashboardRequest) (*PinDashboardResponse, error)
-	UnpinDashboard(context.Context, *UnpinDashboardRequest) (*UnpinDashboardResponse, error)
 	mustEmbedUnimplementedDashboardCatalogServiceServer()
 }
 
@@ -90,15 +56,6 @@ type UnimplementedDashboardCatalogServiceServer struct {
 
 func (UnimplementedDashboardCatalogServiceServer) GetDashboardCatalog(context.Context, *GetDashboardCatalogRequest) (*GetDashboardCatalogResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDashboardCatalog not implemented")
-}
-func (UnimplementedDashboardCatalogServiceServer) ReplaceDefaultDashboard(context.Context, *ReplaceDefaultDashboardRequest) (*ReplaceDefaultDashboardResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReplaceDefaultDashboard not implemented")
-}
-func (UnimplementedDashboardCatalogServiceServer) PinDashboard(context.Context, *PinDashboardRequest) (*PinDashboardResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method PinDashboard not implemented")
-}
-func (UnimplementedDashboardCatalogServiceServer) UnpinDashboard(context.Context, *UnpinDashboardRequest) (*UnpinDashboardResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UnpinDashboard not implemented")
 }
 func (UnimplementedDashboardCatalogServiceServer) mustEmbedUnimplementedDashboardCatalogServiceServer() {
 }
@@ -132,60 +89,6 @@ func _DashboardCatalogService_GetDashboardCatalog_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DashboardCatalogService_ReplaceDefaultDashboard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ReplaceDefaultDashboardRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DashboardCatalogServiceServer).ReplaceDefaultDashboard(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/com.coralogixapis.dashboards.v1.services.DashboardCatalogService/ReplaceDefaultDashboard",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DashboardCatalogServiceServer).ReplaceDefaultDashboard(ctx, req.(*ReplaceDefaultDashboardRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DashboardCatalogService_PinDashboard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PinDashboardRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DashboardCatalogServiceServer).PinDashboard(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/com.coralogixapis.dashboards.v1.services.DashboardCatalogService/PinDashboard",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DashboardCatalogServiceServer).PinDashboard(ctx, req.(*PinDashboardRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _DashboardCatalogService_UnpinDashboard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UnpinDashboardRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DashboardCatalogServiceServer).UnpinDashboard(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/com.coralogixapis.dashboards.v1.services.DashboardCatalogService/UnpinDashboard",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DashboardCatalogServiceServer).UnpinDashboard(ctx, req.(*UnpinDashboardRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // DashboardCatalogService_ServiceDesc is the grpc.ServiceDesc for DashboardCatalogService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -196,18 +99,6 @@ var DashboardCatalogService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetDashboardCatalog",
 			Handler:    _DashboardCatalogService_GetDashboardCatalog_Handler,
-		},
-		{
-			MethodName: "ReplaceDefaultDashboard",
-			Handler:    _DashboardCatalogService_ReplaceDefaultDashboard_Handler,
-		},
-		{
-			MethodName: "PinDashboard",
-			Handler:    _DashboardCatalogService_PinDashboard_Handler,
-		},
-		{
-			MethodName: "UnpinDashboard",
-			Handler:    _DashboardCatalogService_UnpinDashboard_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

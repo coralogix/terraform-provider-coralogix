@@ -273,9 +273,8 @@ func validateRecordingRulesGroupYamlContent(config interface{}, _ string) ([]str
 	}
 	if group.Interval == nil {
 		return nil, []error{fmt.Errorf("groups' limit have to be set")}
-	} else if *group.Interval < 0 {
-		return nil, []error{fmt.Errorf("groups' limit can not be negative")}
 	}
+
 	return nil, nil
 }
 
