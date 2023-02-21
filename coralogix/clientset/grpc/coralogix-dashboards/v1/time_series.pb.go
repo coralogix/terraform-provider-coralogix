@@ -4,16 +4,15 @@
 // 	protoc        v3.21.8
 // source: com/coralogixapis/dashboards/v1/common/time_series.proto
 
-package v1
+package __
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (

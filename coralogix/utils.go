@@ -1,10 +1,12 @@
 package coralogix
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/url"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -333,4 +335,46 @@ func urlValidationFunc() schema.SchemaValidateDiagFunc {
 		}
 		return nil
 	}
+}
+
+const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func RandStringBytes(n int) string {
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+	}
+	return string(b)
+}
+
+func SuppressEquivalentJSONDiffs(k, old, new string, d *schema.ResourceData) bool {
+	return JSONStringsEqual(old, new)
+}
+
+func JSONStringsEqual(s1, s2 string) bool {
+	b1 := bytes.NewBufferString("")
+	if err := json.Compact(b1, []byte(s1)); err != nil {
+		return false
+	}
+
+	b2 := bytes.NewBufferString("")
+	if err := json.Compact(b2, []byte(s2)); err != nil {
+		return false
+	}
+
+	return JSONBytesEqual(b1.Bytes(), b2.Bytes())
+}
+
+func JSONBytesEqual(b1, b2 []byte) bool {
+	var o1 interface{}
+	if err := json.Unmarshal(b1, &o1); err != nil {
+		return false
+	}
+
+	var o2 interface{}
+	if err := json.Unmarshal(b2, &o2); err != nil {
+		return false
+	}
+
+	return reflect.DeepEqual(o1, o2)
 }

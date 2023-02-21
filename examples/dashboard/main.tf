@@ -99,12 +99,14 @@ resource "coralogix_dashboard" dashboard {
               query {
                 logs {
                   filters {
-                    name   = "coralogix.metadata.severity"
-                    values = ["6", "5", "4"]
-                  }
-                  filters {
-                    name   = "coralogix.metadata.subsystemName"
-                    values = ["coralogix-terraform-provider"]
+                    field = "coralogix.metadata.applicationName"
+                    operator {
+                      equals {
+                        selection {
+                          list = ["staging"]
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -144,11 +146,11 @@ resource "coralogix_dashboard" dashboard {
     name = "test_variable"
     definition {
       multi_select {
-        selected = ["1", "2", "3"]
+        selection {
+          list = ["1", "2", "3"]
+        }
         source {
-          constant_list {
-            values = ["1", "2", "3"]
-          }
+          constant_list = ["1", "2", "3"]
         }
       }
     }
@@ -156,21 +158,6 @@ resource "coralogix_dashboard" dashboard {
 }
 
 resource "coralogix_dashboard" dashboard_from_json {
-  name        = "dont drop me!"
-  description = "dashboards team is messing with this 🗿"
-  layout_json = file("./dashboard.json")
-  variables {
-    name = "test_variable"
-    definition {
-      multi_select {
-        selected = ["1", "2", "3"]
-        source {
-          constant_list {
-            values = ["1", "2", "3"]
-          }
-        }
-      }
-    }
-  }
+  content_json = file("./dashboard.json")
 }
 

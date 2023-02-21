@@ -4,11 +4,10 @@
 // - protoc             v3.21.8
 // source: com/coralogixapis/dashboards/v1/services/logs_data_source_service.proto
 
-package v1
+package __
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"

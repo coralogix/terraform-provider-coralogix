@@ -4,11 +4,10 @@
 // - protoc             v3.21.8
 // source: com/coralogixapis/dashboards/v1/services/metrics_data_source_service.proto
 
-package v1
+package __
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -24,6 +23,10 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MetricsDataSourceServiceClient interface {
 	SearchMetricsTimeSeries(ctx context.Context, in *SearchMetricsTimeSeriesRequest, opts ...grpc.CallOption) (*SearchMetricsTimeSeriesResponse, error)
+	SearchMetrics(ctx context.Context, in *SearchMetricsRequest, opts ...grpc.CallOption) (*SearchMetricsResponse, error)
+	SearchMetricsLabels(ctx context.Context, in *SearchMetricsLabelsRequest, opts ...grpc.CallOption) (*SearchMetricsLabelsResponse, error)
+	SearchMetricsLabelValues(ctx context.Context, in *SearchMetricsLabelValuesRequest, opts ...grpc.CallOption) (*SearchMetricsLabelValuesResponse, error)
+	SearchMetricsSeries(ctx context.Context, in *SearchMetricsSeriesRequest, opts ...grpc.CallOption) (*SearchMetricsSeriesResponse, error)
 }
 
 type metricsDataSourceServiceClient struct {
@@ -43,11 +46,51 @@ func (c *metricsDataSourceServiceClient) SearchMetricsTimeSeries(ctx context.Con
 	return out, nil
 }
 
+func (c *metricsDataSourceServiceClient) SearchMetrics(ctx context.Context, in *SearchMetricsRequest, opts ...grpc.CallOption) (*SearchMetricsResponse, error) {
+	out := new(SearchMetricsResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogixapis.dashboards.v1.services.MetricsDataSourceService/SearchMetrics", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metricsDataSourceServiceClient) SearchMetricsLabels(ctx context.Context, in *SearchMetricsLabelsRequest, opts ...grpc.CallOption) (*SearchMetricsLabelsResponse, error) {
+	out := new(SearchMetricsLabelsResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogixapis.dashboards.v1.services.MetricsDataSourceService/SearchMetricsLabels", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metricsDataSourceServiceClient) SearchMetricsLabelValues(ctx context.Context, in *SearchMetricsLabelValuesRequest, opts ...grpc.CallOption) (*SearchMetricsLabelValuesResponse, error) {
+	out := new(SearchMetricsLabelValuesResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogixapis.dashboards.v1.services.MetricsDataSourceService/SearchMetricsLabelValues", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *metricsDataSourceServiceClient) SearchMetricsSeries(ctx context.Context, in *SearchMetricsSeriesRequest, opts ...grpc.CallOption) (*SearchMetricsSeriesResponse, error) {
+	out := new(SearchMetricsSeriesResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogixapis.dashboards.v1.services.MetricsDataSourceService/SearchMetricsSeries", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MetricsDataSourceServiceServer is the server API for MetricsDataSourceService service.
 // All implementations must embed UnimplementedMetricsDataSourceServiceServer
 // for forward compatibility
 type MetricsDataSourceServiceServer interface {
 	SearchMetricsTimeSeries(context.Context, *SearchMetricsTimeSeriesRequest) (*SearchMetricsTimeSeriesResponse, error)
+	SearchMetrics(context.Context, *SearchMetricsRequest) (*SearchMetricsResponse, error)
+	SearchMetricsLabels(context.Context, *SearchMetricsLabelsRequest) (*SearchMetricsLabelsResponse, error)
+	SearchMetricsLabelValues(context.Context, *SearchMetricsLabelValuesRequest) (*SearchMetricsLabelValuesResponse, error)
+	SearchMetricsSeries(context.Context, *SearchMetricsSeriesRequest) (*SearchMetricsSeriesResponse, error)
 	mustEmbedUnimplementedMetricsDataSourceServiceServer()
 }
 
@@ -57,6 +100,18 @@ type UnimplementedMetricsDataSourceServiceServer struct {
 
 func (UnimplementedMetricsDataSourceServiceServer) SearchMetricsTimeSeries(context.Context, *SearchMetricsTimeSeriesRequest) (*SearchMetricsTimeSeriesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SearchMetricsTimeSeries not implemented")
+}
+func (UnimplementedMetricsDataSourceServiceServer) SearchMetrics(context.Context, *SearchMetricsRequest) (*SearchMetricsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchMetrics not implemented")
+}
+func (UnimplementedMetricsDataSourceServiceServer) SearchMetricsLabels(context.Context, *SearchMetricsLabelsRequest) (*SearchMetricsLabelsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchMetricsLabels not implemented")
+}
+func (UnimplementedMetricsDataSourceServiceServer) SearchMetricsLabelValues(context.Context, *SearchMetricsLabelValuesRequest) (*SearchMetricsLabelValuesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchMetricsLabelValues not implemented")
+}
+func (UnimplementedMetricsDataSourceServiceServer) SearchMetricsSeries(context.Context, *SearchMetricsSeriesRequest) (*SearchMetricsSeriesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchMetricsSeries not implemented")
 }
 func (UnimplementedMetricsDataSourceServiceServer) mustEmbedUnimplementedMetricsDataSourceServiceServer() {
 }
@@ -90,6 +145,78 @@ func _MetricsDataSourceService_SearchMetricsTimeSeries_Handler(srv interface{}, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MetricsDataSourceService_SearchMetrics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchMetricsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetricsDataSourceServiceServer).SearchMetrics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogixapis.dashboards.v1.services.MetricsDataSourceService/SearchMetrics",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetricsDataSourceServiceServer).SearchMetrics(ctx, req.(*SearchMetricsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MetricsDataSourceService_SearchMetricsLabels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchMetricsLabelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetricsDataSourceServiceServer).SearchMetricsLabels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogixapis.dashboards.v1.services.MetricsDataSourceService/SearchMetricsLabels",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetricsDataSourceServiceServer).SearchMetricsLabels(ctx, req.(*SearchMetricsLabelsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MetricsDataSourceService_SearchMetricsLabelValues_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchMetricsLabelValuesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetricsDataSourceServiceServer).SearchMetricsLabelValues(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogixapis.dashboards.v1.services.MetricsDataSourceService/SearchMetricsLabelValues",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetricsDataSourceServiceServer).SearchMetricsLabelValues(ctx, req.(*SearchMetricsLabelValuesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MetricsDataSourceService_SearchMetricsSeries_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchMetricsSeriesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MetricsDataSourceServiceServer).SearchMetricsSeries(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogixapis.dashboards.v1.services.MetricsDataSourceService/SearchMetricsSeries",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MetricsDataSourceServiceServer).SearchMetricsSeries(ctx, req.(*SearchMetricsSeriesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MetricsDataSourceService_ServiceDesc is the grpc.ServiceDesc for MetricsDataSourceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -100,6 +227,22 @@ var MetricsDataSourceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SearchMetricsTimeSeries",
 			Handler:    _MetricsDataSourceService_SearchMetricsTimeSeries_Handler,
+		},
+		{
+			MethodName: "SearchMetrics",
+			Handler:    _MetricsDataSourceService_SearchMetrics_Handler,
+		},
+		{
+			MethodName: "SearchMetricsLabels",
+			Handler:    _MetricsDataSourceService_SearchMetricsLabels_Handler,
+		},
+		{
+			MethodName: "SearchMetricsLabelValues",
+			Handler:    _MetricsDataSourceService_SearchMetricsLabelValues_Handler,
+		},
+		{
+			MethodName: "SearchMetricsSeries",
+			Handler:    _MetricsDataSourceService_SearchMetricsSeries_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

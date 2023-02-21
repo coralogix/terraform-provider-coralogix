@@ -22,7 +22,6 @@ data "coralogix_alert" "imported_standard_alert" {
 
 ### Read-Only
 
-- `alert_severity` (String) Determines the alert's severity. Can be one of ["Error" "Info" "Warning" "Critical"]
 - `description` (String) Alert description.
 - `enabled` (Boolean) Determines whether the alert will be active. True by default.
 - `expiration_date` (List of Object) The expiration date of the alert (if declared). (see [below for nested schema](#nestedatt--expiration_date))
@@ -35,6 +34,7 @@ data "coralogix_alert" "imported_standard_alert" {
 - `notification` (List of Object) The Alert notification info. (see [below for nested schema](#nestedatt--notification))
 - `ratio` (List of Object) Alert based on the ratio between queries. (see [below for nested schema](#nestedatt--ratio))
 - `scheduling` (List of Object) Limit the triggering of this alert to specific time frames. Active always by default. (see [below for nested schema](#nestedatt--scheduling))
+- `severity` (String) Determines the alert's severity. Can be one of ["Info" "Warning" "Critical" "Error"]
 - `standard` (List of Object) Alert based on number of log occurrences. (see [below for nested schema](#nestedatt--standard))
 - `time_relative` (List of Object) Alert based on ratio between timeframes. (see [below for nested schema](#nestedatt--time_relative))
 - `tracing` (List of Object) Alert based on tracing latency. (see [below for nested schema](#nestedatt--tracing))
@@ -144,7 +144,6 @@ Read-Only:
 Read-Only:
 
 - `auto_retire_ratio` (String)
-- `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
 
@@ -178,7 +177,6 @@ Read-Only:
 Read-Only:
 
 - `auto_retire_ratio` (String)
-- `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
 
@@ -263,7 +261,6 @@ Read-Only:
 Read-Only:
 
 - `auto_retire_ratio` (String)
-- `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
 
@@ -353,7 +350,6 @@ Read-Only:
 Read-Only:
 
 - `auto_retire_ratio` (String)
-- `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
 
@@ -393,7 +389,6 @@ Read-Only:
 Read-Only:
 
 - `auto_retire_ratio` (String)
-- `disable_triggering_on_undetected_values` (Boolean)
 - `enable_triggering_on_undetected_values` (Boolean)
 
 
