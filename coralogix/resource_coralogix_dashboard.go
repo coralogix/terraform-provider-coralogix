@@ -513,6 +513,7 @@ func DashboardSchema() map[string]*schema.Schema {
 																						},
 																					},
 																					Optional: true,
+																					Computed: true,
 																				},
 																			},
 																		},
