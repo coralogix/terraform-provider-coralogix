@@ -91,54 +91,54 @@ resource "coralogix_dashboard" dashboard {
         appearance {
           height = 28
         }
-#        widgets {
-#          title       = "dashboards-api logz"
-#          description = "warnings, errors, criticals"
-#          definition {
-#            data_table {
-#              query {
-#                logs {
-#                  filters {
-#                    field = "coralogix.metadata.applicationName"
-#                    operator {
-#                      equals {
-#                        selection {
-#                          list = ["staging"]
-#                        }
-#                      }
-#                    }
-#                  }
-#                }
-#              }
-#              results_per_page = 20
-#              row_style        = "One_Line"
-#              columns {
-#                field = "coralogix.timestamp"
-#              }
-#              columns {
-#                field = "textObject.textObject.textObject.kubernetes.pod_id"
-#              }
-#              columns {
-#                field = "coralogix.text"
-#              }
-#              columns {
-#                field = "coralogix.metadata.applicationName"
-#              }
-#              columns {
-#                field = "coralogix.metadata.subsystemName"
-#              }
-#              columns {
-#                field = "coralogix.metadata.sdkId"
-#              }
-#              columns {
-#                field = "textObject.log_obj.e2e_test.config"
-#              }
-#            }
-#          }
-#          appearance {
-#            width = 0
-#          }
-#        }
+        widgets {
+          title       = "dashboards-api logz"
+          description = "warnings, errors, criticals"
+          definition {
+            data_table {
+              query {
+                logs {
+                  filters {
+                    field = "coralogix.metadata.applicationName"
+                    operator {
+                      equals {
+                        selection {
+                          list = ["staging"]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              results_per_page = 20
+              row_style        = "One_Line"
+              columns {
+                field = "coralogix.timestamp"
+              }
+              columns {
+                field = "textObject.textObject.textObject.kubernetes.pod_id"
+              }
+              columns {
+                field = "coralogix.text"
+              }
+              columns {
+                field = "coralogix.metadata.applicationName"
+              }
+              columns {
+                field = "coralogix.metadata.subsystemName"
+              }
+              columns {
+                field = "coralogix.metadata.sdkId"
+              }
+              columns {
+                field = "textObject.log_obj.e2e_test.config"
+              }
+            }
+          }
+          appearance {
+            width = 0
+          }
+        }
       }
     }
   }
