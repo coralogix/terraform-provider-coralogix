@@ -268,13 +268,13 @@ resource "coralogix_alert" "metric_promql_alert" {
 
 ```hcl
 resource "coralogix_alert" "unique_count_alert" {
-  name           = "Unique count alert example"
-  description    = "Example of unique count alert from terraform"
-  alert_severity = "Info"
+  name        = "Unique count alert example"
+  description = "Example of unique count alert from terraform"
+  severity    = "Info"
 
   notification {
     recipients {
-      emails      = ["user@example.com"]
+      emails   = ["user@example.com"]
       webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
@@ -928,26 +928,13 @@ Optional:
 
 Required:
 
-- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--tracing--condition))
+- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert.
+  (see [below for nested schema](#nestedblock--tracing--condition))
 
 Optional:
 
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on.
-  Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:
-  endsWith:xxx, filter:contains:xxx
-- `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
-- `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
-- `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
 - `field_filters` (Block List) (see [below for nested schema](#nestedblock--tracing--field_filters))
-- `ip_addresses` (Set of String) An array that contains log’s IP addresses that we want to be notified on.
 - `latency_threshold_ms` (Number)
-- `methods` (Set of String) An array that contains log’s method names that we want to be notified on.
-- `search_query` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of log severities that we interested in. Can be one
-  of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems
-  can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx,
-  filter:contains:xxx
 - `tag_filters` (Block List) (see [below for nested schema](#nestedblock--tracing--tag_filters))
 
 <a id="nestedblock--tracing--condition"></a>
@@ -1032,12 +1019,10 @@ Required:
 
 - `max_unique_values` (Number)
 - `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be
-  one of ["10Min" "15Min" "20Min" "30Min" "1H" "2H" "4H" "6H" "12H" "24H"]
+  one of ["1Min" "10Min" "15Min" "20Min" "30Min" "1H" "2H" "4H" "6H" "12H" "24H"]
 - `unique_count_key` (String) Defines the key to match to track its unique count.
 
 Optional:
 
 - `group_by_key` (String) The key to 'group by' on.
 - `max_unique_values_for_group_by` (Number)
-
-

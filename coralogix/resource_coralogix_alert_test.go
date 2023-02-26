@@ -533,8 +533,15 @@ func extractTracingAlertChecks(alert tracingAlertTestParams) []resource.TestChec
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.time_window", alert.timeWindow),
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.occurrences_threshold", strconv.Itoa(alert.occurrencesThreshold)),
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.field", "Application"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.operator", "Equals"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.operator", "Contains"),
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.values.0", "nginx"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.1.field", "Subsystem"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.1.filters.0.operator", "Equals"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.1.filters.0.values.0", "subsystem-name"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.tag_filters.0.field", "Status"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.operator", "Contains"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.values.0", "400"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.values.1", "500"),
 	}
 	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
 	checks = appendSeveritiesCheck(checks, alert.alertFilters.severities, "tracing")
@@ -938,7 +945,6 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
 
   scheduling {
     time_zone =  "%s"
-	
 	time_frames {
     	days_enabled = %s
     	start_time = "%s"
@@ -947,13 +953,24 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
   }
 
   tracing {
-    severities           = %s
     latency_threshold_ms = %f
+	filters {
+        values   = ["nginx"]
+        operator = "Contains"
+      }
+    }	
 	field_filters {
-      field = "Application"
-      filters{
-        values = ["nginx"]
+      field = "Subsystem"
+      filters {
+        values   = ["subsystem-name"]
         operator = "Equals"
+      }
+    }
+	tag_filters {
+      field = "Status"
+      filters {
+        values   = ["400", "500"]
+        operator = "Contains"
       }
     }
     condition {
@@ -966,7 +983,7 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
 }`,
 		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
-		sliceToString(a.severities), a.conditionLatencyMs, a.timeWindow, a.occurrencesThreshold, sliceToString(a.groupBy))
+		a.conditionLatencyMs, a.timeWindow, a.occurrencesThreshold, sliceToString(a.groupBy))
 }
 
 func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
