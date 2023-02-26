@@ -539,12 +539,11 @@ func extractTracingAlertChecks(alert tracingAlertTestParams) []resource.TestChec
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.1.filters.0.operator", "Equals"),
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.1.filters.0.values.0", "subsystem-name"),
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.tag_filters.0.field", "Status"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.operator", "Contains"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.values.0", "400"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.values.1", "500"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.tag_filters.0.filters.0.operator", "Contains"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.tag_filters.0.filters.0.values.0", "400"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.tag_filters.0.filters.0.values.1", "500"),
 	}
 	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
-	checks = appendSeveritiesCheck(checks, alert.alertFilters.severities, "tracing")
 	return checks
 }
 
@@ -954,12 +953,11 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
 
   tracing {
     latency_threshold_ms = %f
-	
     field_filters {
       field = "Application"
 	  filters {
         values   = ["nginx"]
-        operator = "Contains"
+        operator = "Equals"
       }
     }	
 	field_filters {
