@@ -533,7 +533,7 @@ func extractTracingAlertChecks(alert tracingAlertTestParams) []resource.TestChec
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.time_window", alert.timeWindow),
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.occurrences_threshold", strconv.Itoa(alert.occurrencesThreshold)),
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.field", "Application"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.operator", "Contains"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.operator", "Equals"),
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.values.0", "nginx"),
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.1.field", "Subsystem"),
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.1.filters.0.operator", "Equals"),
@@ -954,7 +954,10 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
 
   tracing {
     latency_threshold_ms = %f
-	filters {
+	
+    field_filters {
+      field = "Application"
+	  filters {
         values   = ["nginx"]
         operator = "Contains"
       }
