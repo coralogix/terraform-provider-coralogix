@@ -2987,7 +2987,7 @@ func expandTracingParams(m map[string]interface{}, notifyOnResolved *wrapperspb.
 	if err != nil {
 		return nil, err
 	}
-	filters := expandTracingFilter(m)
+	filters := expandTracingFilter()
 	return &alertParams{
 		Condition: condition,
 		Filters:   filters,
@@ -3011,10 +3011,10 @@ func expandTracingCondition(m map[string]interface{}, notifyOnResolved *wrappers
 	return nil, fmt.Errorf("immediately or more_than have to be true")
 }
 
-func expandTracingFilter(m map[string]interface{}) *alerts.AlertFilters {
-	filters := expandCommonAlertFilter(m)
-	filters.FilterType = alerts.AlertFilters_FILTER_TYPE_TRACING
-	return filters
+func expandTracingFilter() *alerts.AlertFilters {
+	return &alerts.AlertFilters{
+		FilterType: alerts.AlertFilters_FILTER_TYPE_TRACING,
+	}
 }
 
 func expandTracingAlert(m map[string]interface{}) *alerts.TracingAlert {
