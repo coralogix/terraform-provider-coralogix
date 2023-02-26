@@ -929,7 +929,8 @@ Optional:
 
 Required:
 
-- `condition` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--tracing--condition))
+- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert.
+  (see [below for nested schema](#nestedblock--tracing--condition))
 
 Optional:
 

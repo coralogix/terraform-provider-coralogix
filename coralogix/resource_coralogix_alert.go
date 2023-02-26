@@ -1251,6 +1251,7 @@ func tracingSchema() map[string]*schema.Schema {
 					},
 				},
 			},
+			Description: "Defines the conditions for triggering and notify by the alert",
 		},
 	}
 }
