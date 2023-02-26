@@ -68,6 +68,7 @@ var (
 	alertProtoTimeFrameToSchemaTimeFrame            = reverseMapStrings(alertSchemaTimeFrameToProtoTimeFrame)
 	alertValidTimeFrames                            = getKeysStrings(alertSchemaTimeFrameToProtoTimeFrame)
 	alertSchemaUniqueCountTimeFrameToProtoTimeFrame = map[string]string{
+		"1Min":  "TIMEFRAME_1_MIN",
 		"10Min": "TIMEFRAME_10_MIN",
 		"15Min": "TIMEFRAME_15_MIN",
 		"20Min": "TIMEFRAME_20_MIN",
@@ -540,6 +541,7 @@ func commonAlertSchema() map[string]*schema.Schema {
 				Type: schema.TypeString,
 			},
 			Description: "An array that contains log’s computer names that we want to be notified on.",
+			Set:         schema.HashString,
 		},
 		"classes": {
 			Type:     schema.TypeSet,
@@ -1067,11 +1069,10 @@ func metricSchema() map[string]*schema.Schema {
 									Description:   "If set to true, missing data will be considered as 0, otherwise, it will not be considered at all.",
 								},
 								"min_non_null_values_percentage": {
-									Type:          schema.TypeInt,
-									Optional:      true,
-									ValidateFunc:  validation.IntBetween(0, 100),
-									ConflictsWith: []string{"metric.0.lucene.0.condition.0.replace_missing_value_with_zero"},
-									Description:   "The minimum percentage of the timeframe that should have values for this alert to trigger",
+									Type:         schema.TypeInt,
+									Optional:     true,
+									ValidateFunc: validation.All(validation.IntDivisibleBy(10), validation.IntBetween(0, 100)), ConflictsWith: []string{"metric.0.lucene.0.condition.0.replace_missing_value_with_zero"},
+									Description: "The minimum percentage of the timeframe that should have values for this alert to trigger",
 								},
 								"manage_undetected_values": {
 									Type:     schema.TypeList,
@@ -1158,11 +1159,13 @@ func metricSchema() map[string]*schema.Schema {
 									Type:          schema.TypeBool,
 									Optional:      true,
 									ConflictsWith: []string{"metric.0.promql.0.condition.0.min_non_null_values_percentage"},
+									ValidateFunc:  validation.All(validation.IntDivisibleBy(10), validation.IntBetween(0, 100)),
 								},
 								"min_non_null_values_percentage": {
 									Type:          schema.TypeInt,
 									Optional:      true,
 									ConflictsWith: []string{"metric.0.promql.0.condition.0.replace_missing_value_with_zero"},
+									ValidateFunc:  validation.All(validation.IntDivisibleBy(10), validation.IntBetween(0, 100)),
 								},
 								"manage_undetected_values": {
 									Type:     schema.TypeList,
@@ -1199,64 +1202,63 @@ func metricSchema() map[string]*schema.Schema {
 }
 
 func tracingSchema() map[string]*schema.Schema {
-	tracingSchema := commonAlertSchema()
-	tracingSchema["latency_threshold_ms"] = &schema.Schema{
-		Type:         schema.TypeFloat,
-		Optional:     true,
-		ValidateFunc: validation.FloatAtLeast(0),
-	}
-	tracingSchema["tag_filters"] = filtersSchema(false)
-	tracingSchema["field_filters"] = filtersSchema(true)
-	tracingSchema["condition"] = &schema.Schema{
-		Type:     schema.TypeList,
-		Required: true,
-		MaxItems: 1,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"immediately": {
-					Type:         schema.TypeBool,
-					Optional:     true,
-					ExactlyOneOf: []string{"tracing.0.condition.0.immediately", "tracing.0.condition.0.more_than"},
-					Description: "Determines the condition operator." +
-						" Must be one of - immediately or more_than.",
-				},
-				"more_than": {
-					Type:         schema.TypeBool,
-					Optional:     true,
-					ExactlyOneOf: []string{"tracing.0.condition.0.immediately", "tracing.0.condition.0.more_than"},
-					RequiredWith: []string{"tracing.0.condition.0.time_window"},
-					Description: "Determines the condition operator." +
-						" Must be one of - immediately or more_than.",
-				},
-				"occurrences_threshold": {
-					Type:          schema.TypeInt,
-					Optional:      true,
-					ConflictsWith: []string{"tracing.0.condition.0.immediately"},
-					Description:   "The number of log occurrences that is needed to trigger the alert.",
-				},
-				"time_window": {
-					Type:          schema.TypeString,
-					Optional:      true,
-					ValidateFunc:  validation.StringInSlice(alertValidTimeFrames, false),
-					ConflictsWith: []string{"tracing.0.condition.0.immediately"},
-					RequiredWith:  []string{"tracing.0.condition.0.more_than"},
-					Description:   fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidTimeFrames),
-				},
-				"group_by": {
-					Type:     schema.TypeList,
-					Optional: true,
-					Elem: &schema.Schema{
-						Type: schema.TypeString,
+	return map[string]*schema.Schema{
+		"latency_threshold_ms": {
+			Type:         schema.TypeFloat,
+			Optional:     true,
+			ValidateFunc: validation.FloatAtLeast(0),
+		},
+		"tag_filters":   filtersSchema(false),
+		"field_filters": filtersSchema(true),
+		"condition": {
+			Type:     schema.TypeList,
+			Required: true,
+			MaxItems: 1,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"immediately": {
+						Type:         schema.TypeBool,
+						Optional:     true,
+						ExactlyOneOf: []string{"tracing.0.condition.0.immediately", "tracing.0.condition.0.more_than"},
+						Description: "Determines the condition operator." +
+							" Must be one of - immediately or more_than.",
 					},
-					ConflictsWith: []string{"tracing.0.condition.0.immediately"},
-					Description:   "The fields to 'group by' on.",
+					"more_than": {
+						Type:         schema.TypeBool,
+						Optional:     true,
+						ExactlyOneOf: []string{"tracing.0.condition.0.immediately", "tracing.0.condition.0.more_than"},
+						RequiredWith: []string{"tracing.0.condition.0.time_window"},
+						Description: "Determines the condition operator." +
+							" Must be one of - immediately or more_than.",
+					},
+					"occurrences_threshold": {
+						Type:          schema.TypeInt,
+						Optional:      true,
+						ConflictsWith: []string{"tracing.0.condition.0.immediately"},
+						Description:   "The number of log occurrences that is needed to trigger the alert.",
+					},
+					"time_window": {
+						Type:          schema.TypeString,
+						Optional:      true,
+						ValidateFunc:  validation.StringInSlice(alertValidTimeFrames, false),
+						ConflictsWith: []string{"tracing.0.condition.0.immediately"},
+						RequiredWith:  []string{"tracing.0.condition.0.more_than"},
+						Description:   fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidTimeFrames),
+					},
+					"group_by": {
+						Type:     schema.TypeList,
+						Optional: true,
+						Elem: &schema.Schema{
+							Type: schema.TypeString,
+						},
+						ConflictsWith: []string{"tracing.0.condition.0.immediately"},
+						Description:   "The fields to 'group by' on.",
+					},
 				},
 			},
+			Description: "Defines the conditions for triggering and notify by the alert",
 		},
-		Description: "Defines the conditions for triggering and notify by the alert",
 	}
-
-	return tracingSchema
 }
 
 func filtersSchema(isFieldFilterSchema bool) *schema.Schema {
@@ -1683,7 +1685,7 @@ func flattenAlertType(a *alerts.Alert) (alertType string, alertSchema interface{
 		alertSchema, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues = flattenMetricAlert(filters, condition)
 	case alerts.AlertFilters_FILTER_TYPE_TRACING:
 		alertType = "tracing"
-		alertSchema, notifyWhenResolved = flattenTracingAlert(filters, condition, a.TracingAlert)
+		alertSchema, notifyWhenResolved = flattenTracingAlert(condition, a.TracingAlert)
 	case alerts.AlertFilters_FILTER_TYPE_FLOW:
 		alertType = "flow"
 		alertSchema = flattenFlowAlert(condition)
@@ -2021,14 +2023,19 @@ func flattenLuceneCondition(params *alerts.ConditionParameters) (luceneCondition
 	return
 }
 
-func flattenTracingAlert(filters *alerts.AlertFilters, condition interface{}, tracingAlert *alerts.TracingAlert) (alertSchema interface{}, notifyWhenResolved *wrapperspb.BoolValue) {
-	alertMap := flattenCommonAlert(filters)
+func flattenTracingAlert(condition interface{}, tracingAlert *alerts.TracingAlert) (alertSchema interface{}, notifyWhenResolved *wrapperspb.BoolValue) {
+	latencyThresholdMS := float64(tracingAlert.GetConditionLatency()) / float64(time.Millisecond.Microseconds())
+	fieldFilters := flattenFiltersData(tracingAlert.GetFieldFilters(), true)
+	tagFilters := flattenFiltersData(tracingAlert.GetTagFilters(), false)
 	conditionSchema, notifyWhenResolved := flattenTracingCondition(condition)
-	alertMap["latency_threshold_ms"] = float64(tracingAlert.GetConditionLatency()) / float64(time.Millisecond.Microseconds())
-	alertMap["field_filters"] = flattenFiltersData(tracingAlert.GetFieldFilters(), true)
-	alertMap["tag_filters"] = flattenFiltersData(tracingAlert.GetTagFilters(), false)
-	alertMap["condition"] = conditionSchema
-	alertSchema = []interface{}{alertMap}
+	alertSchema = []interface{}{
+		map[string]interface{}{
+			"latency_threshold_ms": latencyThresholdMS,
+			"field_filters":        fieldFilters,
+			"tag_filters":          tagFilters,
+			"condition":            conditionSchema,
+		},
+	}
 	return
 }
 
@@ -2980,7 +2987,7 @@ func expandTracingParams(m map[string]interface{}, notifyOnResolved *wrapperspb.
 	if err != nil {
 		return nil, err
 	}
-	filters := expandTracingFilter(m)
+	filters := expandTracingFilter()
 	return &alertParams{
 		Condition: condition,
 		Filters:   filters,
@@ -3004,10 +3011,10 @@ func expandTracingCondition(m map[string]interface{}, notifyOnResolved *wrappers
 	return nil, fmt.Errorf("immediately or more_than have to be true")
 }
 
-func expandTracingFilter(m map[string]interface{}) *alerts.AlertFilters {
-	filters := expandCommonAlertFilter(m)
-	filters.FilterType = alerts.AlertFilters_FILTER_TYPE_TRACING
-	return filters
+func expandTracingFilter() *alerts.AlertFilters {
+	return &alerts.AlertFilters{
+		FilterType: alerts.AlertFilters_FILTER_TYPE_TRACING,
+	}
 }
 
 func expandTracingAlert(m map[string]interface{}) *alerts.TracingAlert {

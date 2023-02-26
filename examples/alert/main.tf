@@ -13,9 +13,9 @@ provider "coralogix" {
 }
 
 resource "coralogix_alert" "standard_alert" {
-  name           = "Standard alert example"
-  description    = "Example of standard alert from terraform"
-  severity = "Critical"
+  name        = "Standard alert example"
+  description = "Example of standard alert from terraform"
+  severity    = "Critical"
 
   meta_labels {
     key   = "alert_type"
@@ -28,7 +28,7 @@ resource "coralogix_alert" "standard_alert" {
 
   notification {
     recipients {
-      emails      = ["user@example.com"]
+      emails   = ["user@example.com"]
       webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
@@ -59,14 +59,14 @@ data "coralogix_alert" "imported_standard_alert" {
 }
 
 resource "coralogix_alert" "ratio_alert" {
-  name           = "Ratio alert example"
-  description    = "Example of ratio alert from terraform"
-  severity = "Critical"
+  name        = "Ratio alert example"
+  description = "Example of ratio alert from terraform"
+  severity    = "Critical"
 
   notification {
     on_trigger_and_resolved = true
     recipients {
-      emails      = ["user@example.com"]
+      emails   = ["user@example.com"]
       webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min                         = 10
@@ -106,12 +106,12 @@ resource "coralogix_alert" "ratio_alert" {
 }
 
 resource "coralogix_alert" "new_value_alert" {
-  name           = "New value alert example"
-  description    = "Example of new value alert from terraform"
-  severity = "Info"
+  name        = "New value alert example"
+  description = "Example of new value alert from terraform"
+  severity    = "Info"
   notification {
     recipients {
-      emails      = ["user@example.com"]
+      emails   = ["user@example.com"]
       webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
@@ -126,7 +126,6 @@ resource "coralogix_alert" "new_value_alert" {
     }
   }
 
-
   new_value {
     severities = ["Info"]
     condition {
@@ -137,12 +136,12 @@ resource "coralogix_alert" "new_value_alert" {
 }
 
 resource "coralogix_alert" "time_relative_alert" {
-  name           = "Time relative alert example"
-  description    = "Example of time relative alert from terraform"
-  severity = "Critical"
+  name        = "Time relative alert example"
+  description = "Example of time relative alert from terraform"
+  severity    = "Critical"
   notification {
     recipients {
-      emails      = ["user@example.com"]
+      emails   = ["user@example.com"]
       webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
@@ -169,14 +168,14 @@ resource "coralogix_alert" "time_relative_alert" {
 }
 
 resource "coralogix_alert" "metric_lucene_alert" {
-  name           = "Metric lucene alert example"
-  description    = "Example of metric lucene alert from terraform"
-  severity = "Critical"
+  name        = "Metric lucene alert example"
+  description = "Example of metric lucene alert from terraform"
+  severity    = "Critical"
 
   notification {
     on_trigger_and_resolved = true
     recipients {
-      emails      = ["user@example.com"]
+      emails   = ["user@example.com"]
       webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 60
@@ -212,14 +211,14 @@ resource "coralogix_alert" "metric_lucene_alert" {
 }
 
 resource "coralogix_alert" "metric_promql_alert" {
-  name           = "Metric promql alert example"
-  description    = "Example of metric promql alert from terraform"
-  severity = "Critical"
+  name        = "Metric promql alert example"
+  description = "Example of metric promql alert from terraform"
+  severity    = "Critical"
 
   notification {
     on_trigger_and_resolved = true
     recipients {
-      emails      = ["user@example.com"]
+      emails   = ["user@example.com"]
       webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1440
@@ -242,20 +241,20 @@ resource "coralogix_alert" "metric_promql_alert" {
         threshold                      = 3
         sample_threshold_percentage    = 50
         time_window                    = "12H"
-        min_non_null_values_percentage = 55
+        min_non_null_values_percentage = 10
       }
     }
   }
 }
 
 resource "coralogix_alert" "unique_count_alert" {
-  name           = "Unique count alert example"
-  description    = "Example of unique count alert from terraform"
-  severity = "Info"
+  name        = "Unique count alert example"
+  description = "Example of unique count alert from terraform"
+  severity    = "Info"
 
   notification {
     recipients {
-      emails      = ["user@example.com"]
+      emails   = ["user@example.com"]
       webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
@@ -283,14 +282,14 @@ resource "coralogix_alert" "unique_count_alert" {
 }
 
 resource "coralogix_alert" "tracing_alert" {
-  name           = "Tracing alert example"
-  description    = "Example of tracing alert from terraform"
-  severity = "Info"
+  name        = "Tracing alert example"
+  description = "Example of tracing alert from terraform"
+  severity    = "Info"
 
   notification {
     on_trigger_and_resolved = true
     recipients {
-      emails      = ["user@example.com"]
+      emails   = ["user@example.com"]
       webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
@@ -307,13 +306,35 @@ resource "coralogix_alert" "tracing_alert" {
 
 
   tracing {
-    severities           = ["Info"]
     latency_threshold_ms = 20.5
     field_filters {
       field = "Application"
       filters {
-        values   = ["nginx"]
+        values   = ["Info"]
         operator = "Equals"
+      }
+    }
+    field_filters {
+      field = "Subsystem"
+      filters {
+        values   = ["subsystem-name"]
+        operator = "Equals"
+      }
+    }
+
+    tag_filters {
+      field = "status"
+      filters {
+        values   = ["400", "500"]
+        operator = "Contains"
+      }
+    }
+
+    tag_filters {
+      field = "status"
+      filters {
+        values   = ["500"]
+        operator = "Contains"
       }
     }
     condition {
@@ -325,13 +346,13 @@ resource "coralogix_alert" "tracing_alert" {
 }
 
 resource "coralogix_alert" "flow_alert" {
-  name           = "Flow alert example"
-  description    = "Example of flow alert from terraform"
-  severity = "Info"
+  name        = "Flow alert example"
+  description = "Example of flow alert from terraform"
+  severity    = "Info"
 
   notification {
     recipients {
-      emails      = ["user@example.com"]
+      emails   = ["user@example.com"]
       webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
