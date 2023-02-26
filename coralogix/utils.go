@@ -328,6 +328,17 @@ func mailValidationFunc() schema.SchemaValidateDiagFunc {
 	}
 }
 
+func utcValidationFunc() schema.SchemaValidateDiagFunc {
+	return func(v interface{}, _ cty.Path) diag.Diagnostics {
+		mailStr := v.(string)
+		matched, _ := regexp.MatchString(`/^UTC[+-]\d{2}:\d{2}$/g`, mailStr)
+		if !matched {
+			return diag.Errorf("%s is not a valid mail address", mailStr)
+		}
+		return nil
+	}
+}
+
 func urlValidationFunc() schema.SchemaValidateDiagFunc {
 	return func(v interface{}, _ cty.Path) diag.Diagnostics {
 		if _, err := url.ParseRequestURI(v.(string)); err != nil {

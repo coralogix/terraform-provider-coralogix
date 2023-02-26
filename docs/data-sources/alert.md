@@ -399,18 +399,9 @@ Read-Only:
 
 Read-Only:
 
-- `applications` (Set of String)
-- `categories` (Set of String)
-- `classes` (Set of String)
-- `computers` (Set of String)
 - `condition` (List of Object) (see [below for nested schema](#nestedobjatt--tracing--condition))
 - `field_filters` (List of Object) (see [below for nested schema](#nestedobjatt--tracing--field_filters))
-- `ip_addresses` (Set of String)
 - `latency_threshold_ms` (Number)
-- `methods` (Set of String)
-- `search_query` (String)
-- `severities` (Set of String)
-- `subsystems` (Set of String)
 - `tag_filters` (List of Object) (see [below for nested schema](#nestedobjatt--tracing--tag_filters))
 
 <a id="nestedobjatt--tracing--condition"></a>
