@@ -155,9 +155,22 @@ resource "coralogix_dashboard" dashboard {
       }
     }
   }
+  filters{
+    source{
+      logs{
+        field = "coralogix.metadata.applicationName"
+        operator {
+          equals {
+            selection {
+              all = true
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 resource "coralogix_dashboard" dashboard_from_json {
   content_json = file("./dashboard.json")
 }
-

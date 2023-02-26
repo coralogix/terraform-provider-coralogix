@@ -979,6 +979,8 @@ func expandOperatorEquals(v interface{}) *dashboards.Filter_Equals {
 		m = l[0].(map[string]interface{})
 	}
 
+	m = m["selection"].([]interface{})[0].(map[string]interface{})
+
 	if all, ok := m["all"].(bool); ok && all {
 		return &dashboards.Filter_Equals{
 			Selection: &dashboards.Filter_Selection{
@@ -2430,10 +2432,10 @@ func flattenLogFilter(logs *dashboards.Filter_LogFilter) interface{} {
 }
 
 func flattenLogFilterOperator(operator *dashboards.Filter_LogFilter_Operator) interface{} {
-	equal := flattenEquals(operator.GetEquals())
+	equals := flattenEquals(operator.GetEquals())
 	return []interface{}{
 		map[string]interface{}{
-			"equal": equal,
+			"equals": equals,
 		},
 	}
 }

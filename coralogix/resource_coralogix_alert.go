@@ -687,8 +687,7 @@ func standardSchema() map[string]*schema.Schema {
 				},
 			},
 		},
-		Description: fmt.Sprintf("Target alert by subsystems contained within the logs. Can be one of %q",
-			alertValidSeverities),
+		Description: "Defines the conditions for triggering and notify by the alert",
 	}
 	return standardSchema
 }
@@ -835,6 +834,7 @@ func ratioSchema() map[string]*schema.Schema {
 					},
 				},
 			},
+			Description: "Defines the conditions for triggering and notify by the alert",
 		},
 	}
 }
@@ -862,6 +862,7 @@ func newValueSchema() map[string]*schema.Schema {
 				},
 			},
 		},
+		Description: "Defines the conditions for triggering and notify by the alert",
 	}
 	return newValueSchema
 }
@@ -905,6 +906,7 @@ func uniqueCountSchema() map[string]*schema.Schema {
 				},
 			},
 		},
+		Description: "Defines the conditions for triggering and notify by the alert",
 	}
 	return uniqueCountSchema
 }
@@ -977,6 +979,7 @@ func timeRelativeSchema() map[string]*schema.Schema {
 				},
 			},
 		},
+		Description: "Defines the conditions for triggering and notify by the alert",
 	}
 	return timeRelativeSchema
 }
@@ -1097,6 +1100,7 @@ func metricSchema() map[string]*schema.Schema {
 								},
 							},
 						},
+						Description: "Defines the conditions for triggering and notify by the alert",
 					},
 				},
 			},
@@ -1188,6 +1192,7 @@ func metricSchema() map[string]*schema.Schema {
 								},
 							},
 						},
+						Description: "Defines the conditions for triggering and notify by the alert",
 					},
 				},
 			},
@@ -1253,6 +1258,7 @@ func tracingSchema() map[string]*schema.Schema {
 			},
 			Description: "Defines the conditions for triggering and notify by the alert",
 		},
+		Description: "Defines the conditions for triggering and notify by the alert",
 	}
 }
 

@@ -529,7 +529,7 @@ Optional:
 
 Required:
 
-- `condition` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--metric--lucene--condition))
+- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--metric--lucene--condition))
 - `search_query` (String) Regular expiration. More info: https://coralogix.com/blog/regex-101/
 
 <a id="nestedblock--metric--lucene--condition"></a>
@@ -585,7 +585,7 @@ Optional:
 
 Required:
 
-- `condition` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--metric--promql--condition))
+- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--metric--promql--condition))
 - `search_query` (String) Regular expiration. More info: https://coralogix.com/blog/regex-101/
 
 <a id="nestedblock--metric--promql--condition"></a>
@@ -632,7 +632,7 @@ Optional:
 
 Required:
 
-- `condition` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--new_value--condition))
+- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--new_value--condition))
 
 Optional:
 
@@ -691,7 +691,7 @@ Optional:
 
 Required:
 
-- `condition` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--ratio--condition))
+- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--ratio--condition))
 - `query_1` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--ratio--query_1))
 - `query_2` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--ratio--query_2))
 
@@ -795,8 +795,7 @@ Required:
 
 Required:
 
-- `condition` (Block List, Min: 1, Max: 1) Target alert by subsystems contained within the logs. Can be one
-  of ["Error" "Info" "Warning" "Critical"] (see [below for nested schema](#nestedblock--standard--condition))
+- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--standard--condition))
 
 Optional:
 
@@ -857,7 +856,7 @@ Optional:
 
 Required:
 
-- `condition` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--time_relative--condition))
+- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--time_relative--condition))
 
 Optional:
 
@@ -993,7 +992,7 @@ Required:
 
 Required:
 
-- `condition` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--unique_count--condition))
+- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--unique_count--condition))
 
 Optional:
 
