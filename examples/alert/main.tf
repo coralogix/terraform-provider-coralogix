@@ -241,7 +241,7 @@ resource "coralogix_alert" "metric_promql_alert" {
         threshold                      = 3
         sample_threshold_percentage    = 50
         time_window                    = "12H"
-        min_non_null_values_percentage = 55
+        min_non_null_values_percentage = 10
       }
     }
   }

@@ -268,7 +268,7 @@ func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
 	alert := metricPromqlAlertTestParams{
 		alertCommonTestParams: *getRandomAlert(),
 		threshold:             acctest.RandIntRange(0, 1000),
-		nonNullPercentage:     acctest.RandIntRange(0, 100),
+		nonNullPercentage:     10 * acctest.RandIntRange(0, 10),
 		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
 	}
 	checks := extractMetricPromqlAlertChecks(alert)
@@ -276,7 +276,7 @@ func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
 	updatedAlert := metricPromqlAlertTestParams{
 		alertCommonTestParams: *getRandomAlert(),
 		threshold:             acctest.RandIntRange(0, 1000),
-		nonNullPercentage:     acctest.RandIntRange(0, 100),
+		nonNullPercentage:     10 * acctest.RandIntRange(0, 10),
 		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
 	}
 	updatedAlertChecks := extractMetricPromqlAlertChecks(updatedAlert)
