@@ -126,10 +126,8 @@ resource "coralogix_alert" "new_value_alert" {
     }
   }
 
-
   new_value {
     severities = ["Info"]
-    se
     condition {
       key_to_track = "remote_addr_geoip.country_name"
       time_window  = "12H"
