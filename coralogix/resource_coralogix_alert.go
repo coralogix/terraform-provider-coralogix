@@ -1260,7 +1260,6 @@ func filtersSchema(isFieldFilterSchema bool) *schema.Schema {
 		Type:     schema.TypeString,
 		Required: true,
 	}
-
 	if isFieldFilterSchema {
 		fieldSchema.ValidateFunc = validation.StringInSlice(alertValidTracingFilterField, false)
 	}
