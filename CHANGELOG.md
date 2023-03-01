@@ -85,7 +85,7 @@ BREAKING CHANGES:
 
 #### resource/alert
 
-`categories` ,`classes`, `computers`, `ip_addresses`, `methods` and `search_query` are not supported
+* `categories` ,`classes`, `computers`, `ip_addresses`, `methods` and `search_query` are not supported
 filters for tracing alert, Therefore they were deleted from the tracing-alert scheme.
-`applications`,`severities` and `subsystems` filters have currently different format in tracing-alert (`field_filters`),
+* `applications`,`severities` and `subsystems` filters have currently different format in tracing-alert (`field_filters`),
 Therefore they were deleted from the tracing-alert scheme.
