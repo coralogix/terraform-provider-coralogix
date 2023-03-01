@@ -1,4 +1,4 @@
-## Release 1.3.x
+## Release 1.3.0
 
 BREAKING CHANGES:
 
@@ -59,3 +59,33 @@ IMPROVEMENTS:
 
 * Add Acceptance Tests.
 * Moved to Coralogix grpc endpoint.
+
+## Release 1.3.27
+
+BREAKING CHANGES:
+
+#### resource/alert
+
+* `webhook_ids` was changed to `webhooks`.
+
+## Release 1.3.29
+
+BREAKING CHANGES:
+
+#### resource/alert
+
+* `alert_severity` was changed to `severity`.
+* `manage_undetected_values.disable_triggering_on_undetected_values` was omitted.
+  Instead, it's possible to set `manage_undetected_values.enable_triggering_on_undetected_values = false`
+  (`manage_undetected_values.auto_retire_ratio` is not allowed in that case).
+
+## Release 1.3.31
+
+BREAKING CHANGES:
+
+#### resource/alert
+
+* `categories` ,`classes`, `computers`, `ip_addresses`, `methods` and `search_query` are not supported
+filters for tracing alert, Therefore they were deleted from the tracing-alert scheme.
+* `applications`,`severities` and `subsystems` filters have currently different format in tracing-alert (`field_filters`),
+Therefore they were deleted from the tracing-alert scheme.
