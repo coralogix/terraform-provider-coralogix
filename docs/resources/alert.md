@@ -19,7 +19,7 @@ Coralogix alert. More info: https://coralogix.com/docs/alerts-api/ .
 resource "coralogix_alert" "standard_alert" {
   name           = "Standard alert example"
   description    = "Example of standard alert from terraform"
-  alert_severity = "Critical"
+  severity = "Critical"
 
   meta_labels {
     key   = "alert_type"
@@ -65,7 +65,7 @@ resource "coralogix_alert" "standard_alert" {
 resource "coralogix_alert" "ratio_alert" {
   name           = "Ratio alert example"
   description    = "Example of ratio alert from terraform"
-  alert_severity = "Critical"
+  severity = "Critical"
 
   notification {
     on_trigger_and_resolved = true
@@ -116,7 +116,7 @@ resource "coralogix_alert" "ratio_alert" {
 resource "coralogix_alert" "new_value_alert" {
   name           = "New value alert example"
   description    = "Example of new value alert from terraform"
-  alert_severity = "Info"
+  severity = "Info"
   notification {
     recipients {
       emails      = ["user@example.com"]
@@ -151,7 +151,7 @@ resource "coralogix_alert" "new_value_alert" {
 resource "coralogix_alert" "time_relative_alert" {
   name           = "Time relative alert example"
   description    = "Example of time relative alert from terraform"
-  alert_severity = "Critical"
+  severity = "Critical"
   notification {
     recipients {
       emails      = ["user@example.com"]
@@ -187,7 +187,7 @@ resource "coralogix_alert" "time_relative_alert" {
 resource "coralogix_alert" "metric_lucene_alert" {
   name           = "Metric lucene alert example"
   description    = "Example of metric lucene alert from terraform"
-  alert_severity = "Critical"
+  severity = "Critical"
 
   notification {
     on_trigger_and_resolved = true
@@ -229,7 +229,7 @@ resource "coralogix_alert" "metric_lucene_alert" {
 resource "coralogix_alert" "metric_promql_alert" {
   name           = "Metric promql alert example"
   description    = "Example of metric promql alert from terraform"
-  alert_severity = "Critical"
+  severity = "Critical"
 
   notification {
     on_trigger_and_resolved = true
@@ -306,14 +306,14 @@ resource "coralogix_alert" "unique_count_alert" {
 
 ```hcl
 resource "coralogix_alert" "tracing_alert" {
-  name           = "Tracing alert example"
-  description    = "Example of tracing alert from terraform"
-  alert_severity = "Info"
+  name        = "Tracing alert example"
+  description = "Example of tracing alert from terraform"
+  severity    = "Info"
 
   notification {
     on_trigger_and_resolved = true
     recipients {
-      emails      = ["user@example.com"]
+      emails   = ["user@example.com"]
       webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
     }
     notify_every_min = 1
@@ -330,13 +330,35 @@ resource "coralogix_alert" "tracing_alert" {
 
 
   tracing {
-    severities           = ["Info"]
     latency_threshold_ms = 20.5
     field_filters {
       field = "Application"
       filters {
-        values   = ["nginx"]
+        values   = ["Info"]
         operator = "Equals"
+      }
+    }
+    field_filters {
+      field = "Subsystem"
+      filters {
+        values   = ["subsystem-name"]
+        operator = "Equals"
+      }
+    }
+
+    tag_filters {
+      field = "status"
+      filters {
+        values   = ["400", "500"]
+        operator = "Contains"
+      }
+    }
+
+    tag_filters {
+      field = "status"
+      filters {
+        values   = ["500"]
+        operator = "Contains"
       }
     }
     condition {
@@ -354,7 +376,7 @@ resource "coralogix_alert" "tracing_alert" {
 resource "coralogix_alert" "flow_alert" {
   name           = "Flow alert example"
   description    = "Example of flow alert from terraform"
-  alert_severity = "Info"
+  severity = "Info"
 
   notification {
     recipients {

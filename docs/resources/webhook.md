@@ -277,7 +277,7 @@ resource "coralogix_webhook" "sendlog_webhook" {
 resource "coralogix_alert" "standard_alert" {
   name           = "Standard alert example"
   description    = "Example of standard alert from terraform"
-  alert_severity = "Critical"
+  severity = "Critical"
 
   notification {
     recipients {
