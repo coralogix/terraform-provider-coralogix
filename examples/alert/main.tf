@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.3"
+      version = "~> 1.4"
       source  = "coralogix/coralogix"
     }
   }
@@ -17,26 +17,38 @@ resource "coralogix_alert" "standard_alert" {
   description = "Example of standard alert from terraform"
   severity    = "Critical"
 
-  meta_labels {
-    key   = "alert_type"
-    value = "security"
-  }
-  meta_labels {
-    key   = "security_severity"
-    value = "high"
+  meta_labels = {
+    alert_type        = "security"
+    security_severity = "high"
   }
 
-  notification {
-    recipients {
-      emails   = ["user@example.com"]
-      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
+  notifications_group {
+    group_by_fields = ["coralogix.metadata.sdkId"]
+    notification {
+      integration_id              = coralogix_webhook.slack_webhook.id
+      retriggering_period_minutes = 60
     }
-    notify_every_min = 1
+    notification {
+      notify_on                   = "Triggered_and_resolved"
+      email_recipients            = ["example@coralogix.com"]
+      retriggering_period_minutes = 60
+    }
+  }
+  notifications_group {
+    notification {
+      email_recipients            = ["example@coralogix.com"]
+      retriggering_period_minutes = 60
+    }
+  }
+
+  show_in_insights {
+    retriggering_period_minutes = 60
+    notify_on                   = "Triggered_and_resolved"
   }
 
   scheduling {
     time_zone = "UTC+2"
-    time_frames {
+    time_frame {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
@@ -49,7 +61,10 @@ resource "coralogix_alert" "standard_alert" {
     severities   = ["Warning", "Info"]
     search_query = "remote_addr_enriched:/.*/"
     condition {
-      immediately = true
+      less_than   = true
+      threshold   = 5
+      time_window = "30Min"
+      group_by    = ["coralogix.metadata.sdkId"]
     }
   }
 }
@@ -63,19 +78,21 @@ resource "coralogix_alert" "ratio_alert" {
   description = "Example of ratio alert from terraform"
   severity    = "Critical"
 
-  notification {
-    on_trigger_and_resolved = true
-    recipients {
-      emails   = ["user@example.com"]
-      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
+  notifications_group {
+    notification {
+      integration_id              = coralogix_webhook.slack_webhook.id
+      retriggering_period_minutes = 1
     }
-    notify_every_min                         = 10
-    notify_only_on_triggered_group_by_values = true
+    notification {
+      notify_on                   = "Triggered_and_resolved"
+      email_recipients            = ["example@coralogix.com"]
+      retriggering_period_minutes = 1
+    }
   }
 
   scheduling {
     time_zone = "UTC+2"
-    time_frames {
+    time_frame {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
@@ -92,11 +109,11 @@ resource "coralogix_alert" "ratio_alert" {
       severities   = ["Warning"]
     }
     condition {
-      less_than     = true
-      queries_ratio = 2
-      time_window   = "10Min"
-      group_by      = ["coralogix.metadata.sdkId"]
-      group_by_q1   = true
+      less_than       = true
+      ratio_threshold = 2
+      time_window     = "10Min"
+      group_by        = ["coralogix.metadata.sdkId"]
+      group_by_q1     = true
       manage_undetected_values {
         enable_triggering_on_undetected_values = true
         auto_retire_ratio                      = "5Min"
@@ -109,17 +126,22 @@ resource "coralogix_alert" "new_value_alert" {
   name        = "New value alert example"
   description = "Example of new value alert from terraform"
   severity    = "Info"
-  notification {
-    recipients {
-      emails   = ["user@example.com"]
-      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
+
+  notifications_group {
+    notification {
+      integration_id              = coralogix_webhook.slack_webhook.id
+      retriggering_period_minutes = 1
     }
-    notify_every_min = 1
+    notification {
+      notify_on                   = "Triggered_and_resolved"
+      email_recipients            = ["example@coralogix.com"]
+      retriggering_period_minutes = 1
+    }
   }
 
   scheduling {
     time_zone = "UTC+2"
-    time_frames {
+    time_frame {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
@@ -139,23 +161,27 @@ resource "coralogix_alert" "time_relative_alert" {
   name        = "Time relative alert example"
   description = "Example of time relative alert from terraform"
   severity    = "Critical"
-  notification {
-    recipients {
-      emails   = ["user@example.com"]
-      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
+
+  notifications_group {
+    notification {
+      integration_id              = coralogix_webhook.slack_webhook.id
+      retriggering_period_minutes = 1
     }
-    notify_every_min = 1
+    notification {
+      notify_on                   = "Triggered_and_resolved"
+      email_recipients            = ["example@coralogix.com"]
+      retriggering_period_minutes = 1
+    }
   }
 
   scheduling {
     time_zone = "UTC+2"
-    time_frames {
+    time_frame {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
     }
   }
-
 
   time_relative {
     severities = ["Error"]
@@ -172,18 +198,21 @@ resource "coralogix_alert" "metric_lucene_alert" {
   description = "Example of metric lucene alert from terraform"
   severity    = "Critical"
 
-  notification {
-    on_trigger_and_resolved = true
-    recipients {
-      emails   = ["user@example.com"]
-      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
+  notifications_group {
+    notification {
+      integration_id              = coralogix_webhook.slack_webhook.id
+      retriggering_period_minutes = 60
     }
-    notify_every_min = 60
+    notification {
+      notify_on                   = "Triggered_and_resolved"
+      email_recipients            = ["example@coralogix.com"]
+      retriggering_period_minutes = 60
+    }
   }
 
   scheduling {
     time_zone = "UTC+2"
-    time_frames {
+    time_frame {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
@@ -215,18 +244,21 @@ resource "coralogix_alert" "metric_promql_alert" {
   description = "Example of metric promql alert from terraform"
   severity    = "Critical"
 
-  notification {
-    on_trigger_and_resolved = true
-    recipients {
-      emails   = ["user@example.com"]
-      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
+  notifications_group {
+    notification {
+      integration_id              = coralogix_webhook.slack_webhook.id
+      retriggering_period_minutes = 1
     }
-    notify_every_min = 1440
+    notification {
+      notify_on                   = "Triggered_and_resolved"
+      email_recipients            = ["example@coralogix.com"]
+      retriggering_period_minutes = 24*60
+    }
   }
 
   scheduling {
     time_zone = "UTC-8"
-    time_frames {
+    time_frame {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
@@ -252,17 +284,22 @@ resource "coralogix_alert" "unique_count_alert" {
   description = "Example of unique count alert from terraform"
   severity    = "Info"
 
-  notification {
-    recipients {
-      emails   = ["user@example.com"]
-      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
+  notifications_group {
+    group_by_fields = ["EventType"]
+    notification {
+      integration_id              = coralogix_webhook.slack_webhook.id
+      retriggering_period_minutes = 1
     }
-    notify_every_min = 1
+    notification {
+      notify_on                   = "Triggered_and_resolved"
+      email_recipients            = ["example@coralogix.com"]
+      retriggering_period_minutes = 1
+    }
   }
 
   scheduling {
     time_zone = "UTC+2"
-    time_frames {
+    time_frame {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
@@ -286,61 +323,53 @@ resource "coralogix_alert" "tracing_alert" {
   description = "Example of tracing alert from terraform"
   severity    = "Info"
 
-  notification {
-    on_trigger_and_resolved = true
-    recipients {
-      emails   = ["user@example.com"]
-      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
+  notifications_group {
+    notification {
+      notify_on                   = "Triggered_and_resolved"
+      email_recipients            = ["user@example.com"]
+      retriggering_period_minutes = 1
     }
-    notify_every_min = 1
+    notification {
+      notify_on                   = "Triggered_and_resolved"
+      integration_id              = coralogix_webhook.slack_webhook.id
+      retriggering_period_minutes = 1
+    }
   }
 
   scheduling {
     time_zone = "UTC+2"
-    time_frames {
+    time_frame {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
     }
   }
 
-
   tracing {
-    latency_threshold_ms = 20.5
-    field_filters {
-      field = "Application"
-      filters {
-        values   = ["Info"]
-        operator = "Equals"
-      }
+    latency_threshold_milliseconds = 20.5
+    applications         = [
+      "application_name", "filter:contains:application-name2", "filter:endsWith:application-name3",
+      "filter:startsWith:application-name4"
+    ]
+    subsystems = [
+      "subsystemName", "filter:contains:subsystemName", "filter:endsWith:subsystemName",
+      "filter:startsWith:subsystemName"
+    ]
+    services = [
+      "serviceName", "filter:contains:serviceName", "filter:endsWith:serviceName", "filter:startsWith:serviceName"
+    ]
+    tag_filter {
+      field  = "status"
+      values = ["filter:contains:400", "500"]
     }
-    field_filters {
-      field = "Subsystem"
-      filters {
-        values   = ["subsystem-name"]
-        operator = "Equals"
-      }
-    }
-
-    tag_filters {
-      field = "status"
-      filters {
-        values   = ["400", "500"]
-        operator = "Contains"
-      }
-    }
-
-    tag_filters {
-      field = "status"
-      filters {
-        values   = ["500"]
-        operator = "Contains"
-      }
+    tag_filter {
+      field  = "key"
+      values = ["value"]
     }
     condition {
-      more_than             = true
-      time_window           = "5Min"
-      occurrences_threshold = 2
+      more_than   = true
+      time_window = "5Min"
+      threshold   = 2
     }
   }
 }
@@ -350,17 +379,22 @@ resource "coralogix_alert" "flow_alert" {
   description = "Example of flow alert from terraform"
   severity    = "Info"
 
-  notification {
-    recipients {
-      emails   = ["user@example.com"]
-      webhooks = ["WebhookAlerts"] //change here for existing webhook from your account
+  notifications_group {
+    notification {
+      notify_on                   = "Triggered_and_resolved"
+      email_recipients            = ["user@example.com"]
+      retriggering_period_minutes = 1
     }
-    notify_every_min = 1
+    notification {
+      notify_on                   = "Triggered_and_resolved"
+      integration_id              = coralogix_webhook.slack_webhook.id
+      retriggering_period_minutes = 1
+    }
   }
 
   scheduling {
     time_zone = "UTC+2"
-    time_frames {
+    time_frame {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
       end_time     = "20:30"
@@ -368,27 +402,51 @@ resource "coralogix_alert" "flow_alert" {
   }
 
   flow {
-    stages {
-      groups {
+    stage {
+      group {
         sub_alerts {
-          user_alert_id = coralogix_alert.unique_count_alert.id
+          operator = "OR"
+          flow_alert{
+            user_alert_id = coralogix_alert.new_value_alert.id
+          }
         }
-        operator = "OR"
+        next_operator = "OR"
       }
-    }
-    stages {
-      groups {
+      group {
         sub_alerts {
-          user_alert_id = coralogix_alert.standard_alert.id
+          operator = "AND"
+          flow_alert{
+            not = true
+            user_alert_id = coralogix_alert.unique_count_alert.id
+          }
         }
-        sub_alerts {
-          user_alert_id = coralogix_alert.metric_promql_alert.id
-        }
-        operator = "OR"
+        next_operator = "AND"
       }
       time_window {
         minutes = 20
       }
     }
+    stage {
+      group {
+        sub_alerts {
+          operator = "AND"
+          flow_alert {
+            user_alert_id = coralogix_alert.standard_alert.id
+          }
+          flow_alert {
+            not = true
+            user_alert_id = coralogix_alert.metric_promql_alert.id
+          }
+        }
+        next_operator = "OR"
+      }
+    }
+  }
+}
+
+resource "coralogix_webhook" "slack_webhook" {
+  name = "slack-webhook"
+  slack {
+    url = "https://join.slack.com/example"
   }
 }

@@ -2,13 +2,12 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.8
-// source: com/coralogix/alerts/v1/alert_service.proto
+// source: com/coralogix/alerts/v2/alert_service.proto
 
 package __
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -47,7 +46,7 @@ func NewAlertServiceClient(cc grpc.ClientConnInterface) AlertServiceClient {
 
 func (c *alertServiceClient) GetAlert(ctx context.Context, in *GetAlertRequest, opts ...grpc.CallOption) (*GetAlertResponse, error) {
 	out := new(GetAlertResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/GetAlert", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v2.AlertService/GetAlert", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +55,7 @@ func (c *alertServiceClient) GetAlert(ctx context.Context, in *GetAlertRequest, 
 
 func (c *alertServiceClient) GetAlerts(ctx context.Context, in *GetAlertsRequest, opts ...grpc.CallOption) (*GetAlertsResponse, error) {
 	out := new(GetAlertsResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/GetAlerts", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v2.AlertService/GetAlerts", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +64,7 @@ func (c *alertServiceClient) GetAlerts(ctx context.Context, in *GetAlertsRequest
 
 func (c *alertServiceClient) GetAlertByUniqueId(ctx context.Context, in *GetAlertByUniqueIdRequest, opts ...grpc.CallOption) (*GetAlertByUniqueIdResponse, error) {
 	out := new(GetAlertByUniqueIdResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/GetAlertByUniqueId", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v2.AlertService/GetAlertByUniqueId", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +73,7 @@ func (c *alertServiceClient) GetAlertByUniqueId(ctx context.Context, in *GetAler
 
 func (c *alertServiceClient) GetAlertModelMapping(ctx context.Context, in *GetAlertModelMappingRequest, opts ...grpc.CallOption) (*GetAlertModelMappingResponse, error) {
 	out := new(GetAlertModelMappingResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/GetAlertModelMapping", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v2.AlertService/GetAlertModelMapping", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +82,7 @@ func (c *alertServiceClient) GetAlertModelMapping(ctx context.Context, in *GetAl
 
 func (c *alertServiceClient) CreateAlert(ctx context.Context, in *CreateAlertRequest, opts ...grpc.CallOption) (*CreateAlertResponse, error) {
 	out := new(CreateAlertResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/CreateAlert", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v2.AlertService/CreateAlert", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +91,7 @@ func (c *alertServiceClient) CreateAlert(ctx context.Context, in *CreateAlertReq
 
 func (c *alertServiceClient) UpdateAlert(ctx context.Context, in *UpdateAlertRequest, opts ...grpc.CallOption) (*UpdateAlertResponse, error) {
 	out := new(UpdateAlertResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/UpdateAlert", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v2.AlertService/UpdateAlert", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +100,7 @@ func (c *alertServiceClient) UpdateAlert(ctx context.Context, in *UpdateAlertReq
 
 func (c *alertServiceClient) UpdateAlertByUniqueId(ctx context.Context, in *UpdateAlertByUniqueIdRequest, opts ...grpc.CallOption) (*UpdateAlertByUniqueIdResponse, error) {
 	out := new(UpdateAlertByUniqueIdResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/UpdateAlertByUniqueId", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v2.AlertService/UpdateAlertByUniqueId", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +109,7 @@ func (c *alertServiceClient) UpdateAlertByUniqueId(ctx context.Context, in *Upda
 
 func (c *alertServiceClient) DeleteAlert(ctx context.Context, in *DeleteAlertRequest, opts ...grpc.CallOption) (*DeleteAlertResponse, error) {
 	out := new(DeleteAlertResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/DeleteAlert", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v2.AlertService/DeleteAlert", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +118,7 @@ func (c *alertServiceClient) DeleteAlert(ctx context.Context, in *DeleteAlertReq
 
 func (c *alertServiceClient) DeleteAlertByUniqueId(ctx context.Context, in *DeleteAlertByUniqueIdRequest, opts ...grpc.CallOption) (*DeleteAlertByUniqueIdResponse, error) {
 	out := new(DeleteAlertByUniqueIdResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/DeleteAlertByUniqueId", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v2.AlertService/DeleteAlertByUniqueId", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +127,7 @@ func (c *alertServiceClient) DeleteAlertByUniqueId(ctx context.Context, in *Dele
 
 func (c *alertServiceClient) GetAlertEvents(ctx context.Context, in *GetAlertEventsRequest, opts ...grpc.CallOption) (*GetAlertEventsResponse, error) {
 	out := new(GetAlertEventsResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/GetAlertEvents", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v2.AlertService/GetAlertEvents", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +136,7 @@ func (c *alertServiceClient) GetAlertEvents(ctx context.Context, in *GetAlertEve
 
 func (c *alertServiceClient) ValidateAlert(ctx context.Context, in *ValidateAlertRequest, opts ...grpc.CallOption) (*ValidateAlertResponse, error) {
 	out := new(ValidateAlertResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/ValidateAlert", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v2.AlertService/ValidateAlert", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +145,7 @@ func (c *alertServiceClient) ValidateAlert(ctx context.Context, in *ValidateAler
 
 func (c *alertServiceClient) GetAlertEventsCountBySeverity(ctx context.Context, in *GetAlertEventsCountBySeverityRequest, opts ...grpc.CallOption) (*GetAlertEventsCountBySeverityResponse, error) {
 	out := new(GetAlertEventsCountBySeverityResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v1.AlertService/GetAlertEventsCountBySeverity", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v2.AlertService/GetAlertEventsCountBySeverity", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +234,7 @@ func _AlertService_GetAlert_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogix.alerts.v1.AlertService/GetAlert",
+		FullMethod: "/com.coralogix.alerts.v2.AlertService/GetAlert",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AlertServiceServer).GetAlert(ctx, req.(*GetAlertRequest))
@@ -253,7 +252,7 @@ func _AlertService_GetAlerts_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogix.alerts.v1.AlertService/GetAlerts",
+		FullMethod: "/com.coralogix.alerts.v2.AlertService/GetAlerts",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AlertServiceServer).GetAlerts(ctx, req.(*GetAlertsRequest))
@@ -271,7 +270,7 @@ func _AlertService_GetAlertByUniqueId_Handler(srv interface{}, ctx context.Conte
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogix.alerts.v1.AlertService/GetAlertByUniqueId",
+		FullMethod: "/com.coralogix.alerts.v2.AlertService/GetAlertByUniqueId",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AlertServiceServer).GetAlertByUniqueId(ctx, req.(*GetAlertByUniqueIdRequest))
@@ -289,7 +288,7 @@ func _AlertService_GetAlertModelMapping_Handler(srv interface{}, ctx context.Con
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogix.alerts.v1.AlertService/GetAlertModelMapping",
+		FullMethod: "/com.coralogix.alerts.v2.AlertService/GetAlertModelMapping",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AlertServiceServer).GetAlertModelMapping(ctx, req.(*GetAlertModelMappingRequest))
@@ -307,7 +306,7 @@ func _AlertService_CreateAlert_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogix.alerts.v1.AlertService/CreateAlert",
+		FullMethod: "/com.coralogix.alerts.v2.AlertService/CreateAlert",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AlertServiceServer).CreateAlert(ctx, req.(*CreateAlertRequest))
@@ -325,7 +324,7 @@ func _AlertService_UpdateAlert_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogix.alerts.v1.AlertService/UpdateAlert",
+		FullMethod: "/com.coralogix.alerts.v2.AlertService/UpdateAlert",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AlertServiceServer).UpdateAlert(ctx, req.(*UpdateAlertRequest))
@@ -343,7 +342,7 @@ func _AlertService_UpdateAlertByUniqueId_Handler(srv interface{}, ctx context.Co
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogix.alerts.v1.AlertService/UpdateAlertByUniqueId",
+		FullMethod: "/com.coralogix.alerts.v2.AlertService/UpdateAlertByUniqueId",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AlertServiceServer).UpdateAlertByUniqueId(ctx, req.(*UpdateAlertByUniqueIdRequest))
@@ -361,7 +360,7 @@ func _AlertService_DeleteAlert_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogix.alerts.v1.AlertService/DeleteAlert",
+		FullMethod: "/com.coralogix.alerts.v2.AlertService/DeleteAlert",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AlertServiceServer).DeleteAlert(ctx, req.(*DeleteAlertRequest))
@@ -379,7 +378,7 @@ func _AlertService_DeleteAlertByUniqueId_Handler(srv interface{}, ctx context.Co
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogix.alerts.v1.AlertService/DeleteAlertByUniqueId",
+		FullMethod: "/com.coralogix.alerts.v2.AlertService/DeleteAlertByUniqueId",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AlertServiceServer).DeleteAlertByUniqueId(ctx, req.(*DeleteAlertByUniqueIdRequest))
@@ -397,7 +396,7 @@ func _AlertService_GetAlertEvents_Handler(srv interface{}, ctx context.Context, 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogix.alerts.v1.AlertService/GetAlertEvents",
+		FullMethod: "/com.coralogix.alerts.v2.AlertService/GetAlertEvents",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AlertServiceServer).GetAlertEvents(ctx, req.(*GetAlertEventsRequest))
@@ -415,7 +414,7 @@ func _AlertService_ValidateAlert_Handler(srv interface{}, ctx context.Context, d
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogix.alerts.v1.AlertService/ValidateAlert",
+		FullMethod: "/com.coralogix.alerts.v2.AlertService/ValidateAlert",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AlertServiceServer).ValidateAlert(ctx, req.(*ValidateAlertRequest))
@@ -433,7 +432,7 @@ func _AlertService_GetAlertEventsCountBySeverity_Handler(srv interface{}, ctx co
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogix.alerts.v1.AlertService/GetAlertEventsCountBySeverity",
+		FullMethod: "/com.coralogix.alerts.v2.AlertService/GetAlertEventsCountBySeverity",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AlertServiceServer).GetAlertEventsCountBySeverity(ctx, req.(*GetAlertEventsCountBySeverityRequest))
@@ -445,7 +444,7 @@ func _AlertService_GetAlertEventsCountBySeverity_Handler(srv interface{}, ctx co
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var AlertService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "com.coralogix.alerts.v1.AlertService",
+	ServiceName: "com.coralogix.alerts.v2.AlertService",
 	HandlerType: (*AlertServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -498,5 +497,5 @@ var AlertService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "com/coralogix/alerts/v1/alert_service.proto",
+	Metadata: "com/coralogix/alerts/v2/alert_service.proto",
 }

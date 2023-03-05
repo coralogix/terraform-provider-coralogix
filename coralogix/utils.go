@@ -9,13 +9,9 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
-	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v1"
-
 	"github.com/hashicorp/go-cty/cty"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -129,23 +125,6 @@ func timeInDaySchema(description string) *schema.Schema {
 		ValidateFunc: validation.StringMatch(timeRegex, "not valid time, only HH:MM format is allowed"),
 		Description:  description,
 	}
-}
-
-func expandTimeInDay(v interface{}) *alertsv1.Time {
-	timeArr := strings.Split(v.(string), ":")
-	hours, _ := strconv.Atoi(timeArr[0])
-	minutes, _ := strconv.Atoi(timeArr[1])
-	return &alertsv1.Time{
-		Hours:   int32(hours),
-		Minutes: int32(minutes),
-	}
-}
-
-func flattenTimeInDay(t *alertsv1.Time, utc int32) string {
-	hours := convertGmtToUtc(t.GetHours(), utc)
-	hoursStr := toTwoDigitsFormat(hours)
-	minStr := toTwoDigitsFormat(t.GetMinutes())
-	return fmt.Sprintf("%s:%s", hoursStr, minStr)
 }
 
 func toTwoDigitsFormat(digit int32) string {
@@ -377,4 +356,8 @@ func JSONBytesEqual(b1, b2 []byte) bool {
 	}
 
 	return reflect.DeepEqual(o1, o2)
+}
+
+func randBool() bool {
+	return rand.Int()%2 == 0
 }

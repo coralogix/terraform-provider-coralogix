@@ -294,7 +294,10 @@ func recordingRulesSchema() *schema.Resource {
 					" and the result recorded as a new set of time series with the metric name as given by 'record'.",
 			},
 			"labels": {
-				Type:        schema.TypeMap,
+				Type: schema.TypeMap,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 				Optional:    true,
 				Description: "Labels to add or overwrite before storing the result.",
 			},

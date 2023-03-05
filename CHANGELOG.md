@@ -89,3 +89,25 @@ BREAKING CHANGES:
 filters for tracing alert, Therefore they were deleted from the tracing-alert scheme.
 * `applications`,`severities` and `subsystems` filters have currently different format in tracing-alert (`field_filters`),
 Therefore they were deleted from the tracing-alert scheme.
+
+## Release 1.4.0
+
+BREAKING CHANGES:
+
+#### resource/alert
+
+* `meta_labels` was changed to key-value map. (e.g. - `meta_labels {key = "alert_type" value = "security"} meta_labels {key = "security_severity" value = "high"}` => `meta_labels = {alert_type = "security" security_severity = "high" }`).
+([example-usage](docs/resources/alert.md#standard-alert)).
+* `scheduling.time_frames` was changed to `time_frame`.
+* `standard.occurrences_threshold` and `tracing.occurrences_threshold` were changed to `threshold`.
+* `ratio.queries_ratio` was changed to `ratio_threshold`.
+* `notification` was changed to list of `notifications_group` and have entire different schema ([nested-schema-for-notifications](docs/resources/alert.md#nested-schema-for-notifications_group)).
+* `notification.ignore_infinity` was moved to `ratio.condition.ignore_infinity` and `time_relative.condition.ignore_infinity`.
+* `notification.notify_every_min` was changed to `notifications_group.notification.retriggering_period_minutes`.
+* `notification.on_trigger_and_resolved` (boolean) was changed to `notifications_group.notification.notify_on` (string).
+* `notification.recipients.webhook_id` replaced with `notifications_group.notification.integration_id` and should contain the integration's (webhook's) id instead of the integration's name.
+* flow-alert's (`flow`) schema was fixed. Any earlier version contained wrong schema of flow-alert. ([nested-schema-for-flow](docs/resources/alert.md#nested-schema-for-flow)).
+* `tracing.field_filters` was removed, and `tracing.applications`, `tracing.applications` and `tracing.services` were added instead.
+* `tracing.tag_filters` was changed to `tracing.tag_filter` and contains only `field` and `values`.
+* `tracing.tag_filter.values`, `tracing.applications`, `tracing.applications` and `tracing.services` have the same format as the other alerts' filters. ([example-usage](docs/resources/alert.md#tracing-alert)).
+* `tracing.latency_threshold_ms` was changed to `latency_threshold_milliseconds`.
