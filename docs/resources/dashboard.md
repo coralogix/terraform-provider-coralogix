@@ -4,7 +4,7 @@
 
 page_title: "coralogix_dashboard Resource - terraform-provider-coralogix"
 subcategory: ""
-description:"Coralogix Dashboard."
+description: "Coralogix Dashboard."
 ---
 
 # coralogix_dashboard (Resource)

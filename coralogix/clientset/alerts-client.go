@@ -3,7 +3,7 @@ package clientset
 import (
 	"context"
 
-	alerts "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v1"
+	alerts "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v2"
 )
 
 type AlertsClient struct {

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v1"
+	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v2"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -66,6 +66,7 @@ func TestAccCoralogixResourceAlert_ratio(t *testing.T) {
 		ratio:                 randFloat(),
 		groupBy:               []string{"EventType"},
 		q2SearchQuery:         "remote_addr_enriched:/.*/",
+		ignoreInfinity:        randBool(),
 	}
 	checks := extractRatioAlertChecks(alert)
 
@@ -76,6 +77,7 @@ func TestAccCoralogixResourceAlert_ratio(t *testing.T) {
 		ratio:                 randFloat(),
 		groupBy:               []string{"EventType"},
 		q2SearchQuery:         "remote_addr_enriched:/.*/",
+		ignoreInfinity:        randBool(),
 	}
 	updatedAlertChecks := extractRatioAlertChecks(updatedAlert)
 
@@ -184,6 +186,7 @@ func TestAccCoralogixResourceAlert_timeRelative(t *testing.T) {
 		ratioThreshold:        acctest.RandIntRange(0, 1000),
 		relativeTimeWindow:    selectRandomlyFromSlice(alertValidRelativeTimeFrames),
 		groupBy:               []string{"EventType"},
+		ignoreInfinity:        randBool(),
 	}
 	checks := extractTimeRelativeChecks(alert)
 
@@ -192,6 +195,7 @@ func TestAccCoralogixResourceAlert_timeRelative(t *testing.T) {
 		ratioThreshold:        acctest.RandIntRange(0, 1000),
 		relativeTimeWindow:    selectRandomlyFromSlice(alertValidRelativeTimeFrames),
 		groupBy:               []string{"EventType"},
+		ignoreInfinity:        randBool(),
 	}
 	updatedAlertChecks := extractTimeRelativeChecks(updatedAlert)
 
@@ -349,6 +353,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 		name:            acctest.RandomWithPrefix("tf-acc-test"),
 		description:     acctest.RandomWithPrefix("tf-acc-test"),
 		emailRecipients: []string{"user@example.com"},
+		webhookID:       "2235",
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen:      randActiveWhen(),
 		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
@@ -359,6 +364,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 		name:            acctest.RandomWithPrefix("tf-acc-test"),
 		description:     acctest.RandomWithPrefix("tf-acc-test"),
 		emailRecipients: []string{"user@example.com"},
+		webhookID:       "2235",
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen:      randActiveWhen(),
 		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
@@ -390,6 +396,7 @@ func getRandomAlert() *alertCommonTestParams {
 	return &alertCommonTestParams{
 		name:            acctest.RandomWithPrefix("tf-acc-test"),
 		description:     acctest.RandomWithPrefix("tf-acc-test"),
+		webhookID:       "2235",
 		emailRecipients: []string{"user@example.com"},
 		searchQuery:     "remote_addr_enriched:/.*/",
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
@@ -404,12 +411,20 @@ func getRandomAlert() *alertCommonTestParams {
 func extractStandardAlertChecks(alert standardAlertTestParams) []resource.TestCheckFunc {
 	checks := extractCommonChecks(&alert.alertCommonTestParams, "standard")
 	checks = append(checks,
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "meta_labels.0.key", "alert_type"),
-		resource.TestCheckResourceAttr(alertResourceName, "meta_labels.0.value", "security"),
-		resource.TestCheckResourceAttr(alertResourceName, "meta_labels.1.key", "security_severity"),
-		resource.TestCheckResourceAttr(alertResourceName, "meta_labels.1.value", "High"),
-		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.occurrences_threshold", strconv.Itoa(alert.occurrencesThreshold)),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"integration_id":              alert.webhookID,
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"email_recipients.0":          alert.emailRecipients[0],
+				"notify_on":                   "Triggered_and_resolved",
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
+		resource.TestCheckResourceAttr(alertResourceName, "meta_labels.alert_type", "security"),
+		resource.TestCheckResourceAttr(alertResourceName, "meta_labels.security_severity", "high"),
+		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.threshold", strconv.Itoa(alert.occurrencesThreshold)),
 		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.time_window", alert.timeWindow),
 		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.group_by.0", alert.groupBy[0]),
 		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.less_than", "true"),
@@ -422,19 +437,28 @@ func extractStandardAlertChecks(alert standardAlertTestParams) []resource.TestCh
 func extractRatioAlertChecks(alert ratioAlertTestParams) []resource.TestCheckFunc {
 	checks := extractCommonChecks(&alert.alertCommonTestParams, "ratio.0.query_1")
 	checks = append(checks,
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"integration_id":              alert.webhookID,
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"email_recipients.0":          alert.emailRecipients[0],
+				"notify_on":                   "Triggered_and_resolved",
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
 		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.query_2.0.search_query", alert.q2SearchQuery),
 		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.more_than", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.queries_ratio", fmt.Sprintf("%f", alert.ratio)),
+		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.ratio_threshold", fmt.Sprintf("%f", alert.ratio)),
 		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.time_window", alert.timeWindow),
 		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.group_by.0", alert.groupBy[0]),
 		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.group_by_q1", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.ignore_infinity", fmt.Sprintf("%t", alert.ignoreInfinity)),
 	)
-	for i, s := range alert.q2Severities {
-		checks = append(checks,
-			resource.TestCheckResourceAttr(alertResourceName,
-				fmt.Sprintf("ratio.0.query_2.0.severities.%d", i), s))
-	}
+
+	checks = appendSeveritiesCheck(checks, alert.alertFilters.severities, "ratio.0.query_2")
+
 	return checks
 }
 
@@ -462,12 +486,23 @@ func extractUniqueCountAlertChecks(alert uniqueCountAlertTestParams) []resource.
 func extractTimeRelativeChecks(alert timeRelativeAlertTestParams) []resource.TestCheckFunc {
 	checks := extractCommonChecks(&alert.alertCommonTestParams, "time_relative")
 	checks = append(checks,
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.on_trigger_and_resolved", "true"),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"integration_id":              alert.webhookID,
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"email_recipients.0":          alert.emailRecipients[0],
+				"notify_on":                   "Triggered_and_resolved",
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
 		resource.TestCheckResourceAttr(alertResourceName, "time_relative.0.condition.0.ratio_threshold", strconv.Itoa(alert.ratioThreshold)),
 		resource.TestCheckResourceAttr(alertResourceName, "time_relative.0.condition.0.relative_time_window", alert.relativeTimeWindow),
 		resource.TestCheckResourceAttr(alertResourceName, "time_relative.0.condition.0.group_by.0", alert.groupBy[0]),
+		resource.TestCheckResourceAttr(alertResourceName, "time_relative.0.condition.0.ignore_infinity", fmt.Sprintf("%t", alert.ignoreInfinity)),
 	)
+
 	return checks
 }
 
@@ -478,9 +513,17 @@ func extractLuceneMetricChecks(alert metricLuceneAlertTestParams) []resource.Tes
 		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
 		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
 		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_only_on_triggered_group_by_values", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"integration_id":              alert.webhookID,
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"email_recipients.0":          alert.emailRecipients[0],
+				"notify_on":                   "Triggered_and_resolved",
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.search_query", alert.searchQuery),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.metric_field", alert.metricField),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.arithmetic_operator", alert.arithmeticOperator),
@@ -503,8 +546,17 @@ func extractMetricPromqlAlertChecks(alert metricPromqlAlertTestParams) []resourc
 		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
 		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
 		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"integration_id":              alert.webhookID,
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"email_recipients.0":          alert.emailRecipients[0],
+				"notify_on":                   "Triggered_and_resolved",
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.search_query", "http_requests_total{status!~\"4..\"}"),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.threshold", strconv.Itoa(alert.threshold)),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.less_than", "true"),
@@ -525,23 +577,26 @@ func extractTracingAlertChecks(alert tracingAlertTestParams) []resource.TestChec
 		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
 		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
 		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.on_trigger_and_resolved", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.latency_threshold_ms", fmt.Sprintf("%.3f", alert.conditionLatencyMs)),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"integration_id":              alert.webhookID,
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"email_recipients.0":          alert.emailRecipients[0],
+				"notify_on":                   "Triggered_and_resolved",
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.latency_threshold_milliseconds", fmt.Sprintf("%.3f", alert.conditionLatencyMs)),
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.more_than", "true"),
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.time_window", alert.timeWindow),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.occurrences_threshold", strconv.Itoa(alert.occurrencesThreshold)),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.field", "Application"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.operator", "Equals"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.0.filters.0.values.0", "nginx"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.1.field", "Subsystem"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.1.filters.0.operator", "Equals"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.field_filters.1.filters.0.values.0", "subsystem-name"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.tag_filters.0.field", "Status"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.tag_filters.0.filters.0.operator", "Contains"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.tag_filters.0.filters.0.values.0", "400"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.tag_filters.0.filters.0.values.1", "500"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.threshold", strconv.Itoa(alert.occurrencesThreshold)),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.applications.0", "nginx"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.subsystems.0", "subsystem-name"),
+		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.tag_filter.0.field", "Status"),
+		resource.TestCheckTypeSetElemAttr(alertResourceName, "tracing.0.tag_filter.0.values.*", "filter:contains:400"),
+		resource.TestCheckTypeSetElemAttr(alertResourceName, "tracing.0.tag_filter.0.values.*", "500"),
 	}
 	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
 	return checks
@@ -554,32 +609,52 @@ func extractFlowAlertChecks(alert flowAlertTestParams) []resource.TestCheckFunc 
 		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
 		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
 		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", alert.emailRecipients[0]),
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(alert.notifyEveryMin)),
-		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stages.1.time_window.0.hours", "0"),
-		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stages.1.time_window.0.minutes", "20"),
-		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stages.1.time_window.0.seconds", "0"),
-		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stages.1.groups.0.operator", "OR"),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"integration_id":              alert.webhookID,
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"email_recipients.0":          alert.emailRecipients[0],
+				"notify_on":                   "Triggered_and_resolved",
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
+		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.group.0.sub_alerts.0.operator", "OR"),
+		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.group.0.next_operator", "OR"),
+		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.group.1.sub_alerts.0.operator", "AND"),
+		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.group.1.sub_alerts.0.flow_alert.0.not", "true"),
+		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.group.1.next_operator", "AND"),
+		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.time_window.0.minutes", "20"),
 	}
 	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
 	return checks
 }
 
-func extractCommonChecks(a *alertCommonTestParams, alertType string) []resource.TestCheckFunc {
+func extractCommonChecks(alert *alertCommonTestParams, alertType string) []resource.TestCheckFunc {
 	checks := []resource.TestCheckFunc{
 		resource.TestCheckResourceAttrSet(alertResourceName, "id"),
 		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "name", a.name),
-		resource.TestCheckResourceAttr(alertResourceName, "description", a.description),
-		resource.TestCheckResourceAttr(alertResourceName, "severity", a.severity),
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.recipients.0.emails.0", a.emailRecipients[0]),
-		resource.TestCheckResourceAttr(alertResourceName, "notification.0.notify_every_min", strconv.Itoa(a.notifyEveryMin)),
-		resource.TestCheckResourceAttr(alertResourceName, fmt.Sprintf("%s.0.search_query", alertType), a.searchQuery),
+		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
+		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
+		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"integration_id":              alert.webhookID,
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
+		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
+			map[string]string{
+				"email_recipients.0":          alert.emailRecipients[0],
+				"notify_on":                   "Triggered_and_resolved",
+				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+			}),
+		resource.TestCheckResourceAttr(alertResourceName, fmt.Sprintf("%s.0.search_query", alertType), alert.searchQuery),
 	}
 
-	checks = appendSchedulingChecks(checks, a.daysOfWeek, a.activityStarts, a.activityEnds)
+	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
 
-	checks = appendSeveritiesCheck(checks, a.alertFilters.severities, alertType)
+	checks = appendSeveritiesCheck(checks, alert.alertFilters.severities, alertType)
 
 	return checks
 }
@@ -594,10 +669,10 @@ func appendSeveritiesCheck(checks []resource.TestCheckFunc, severities []string,
 
 func appendSchedulingChecks(checks []resource.TestCheckFunc, daysOfWeek []string, startTime, endTime string) []resource.TestCheckFunc {
 	for _, d := range daysOfWeek {
-		checks = append(checks, resource.TestCheckTypeSetElemAttr(alertResourceName, "scheduling.0.time_frames.0.days_enabled.*", d))
+		checks = append(checks, resource.TestCheckTypeSetElemAttr(alertResourceName, "scheduling.0.time_frame.0.days_enabled.*", d))
 	}
-	checks = append(checks, resource.TestCheckResourceAttr(alertResourceName, "scheduling.0.time_frames.0.start_time", startTime))
-	checks = append(checks, resource.TestCheckResourceAttr(alertResourceName, "scheduling.0.time_frames.0.end_time", endTime))
+	checks = append(checks, resource.TestCheckResourceAttr(alertResourceName, "scheduling.0.time_frame.0.start_time", startTime))
+	checks = append(checks, resource.TestCheckResourceAttr(alertResourceName, "scheduling.0.time_frame.0.end_time", endTime))
 	return checks
 }
 
@@ -631,32 +706,31 @@ func testAccCoralogixResourceAlertStandard(a *standardAlertTestParams) string {
   name               = "%s"
   description        = "%s"
   severity           = "%s"
-  
-  notification {
-    recipients {
-      emails      = %s
+
+  notifications_group {
+	notification {
+		integration_id       = "%s"
+        retriggering_period_minutes = %d
+	}
+    notification {
+        email_recipients             = %s
+        notify_on          = "Triggered_and_resolved"
+        retriggering_period_minutes   = %d
     }
-    notify_every_min = %d
-	notify_only_on_triggered_group_by_values = true
   }
 
   scheduling {
     time_zone =  "%s"
-	
-	time_frames {
+	time_frame {
     	days_enabled = %s
     	start_time = "%s"
     	end_time = "%s"
   	}
   }
 
-   meta_labels {
-   	key   = "alert_type"
-    value = "security"
-   }
-   meta_labels {
-	key   = "security_severity"
-	value = "High"
+   meta_labels = {
+   	    alert_type        = "security"
+    	security_severity = "high"
    }
 
   standard {
@@ -665,7 +739,7 @@ func testAccCoralogixResourceAlertStandard(a *standardAlertTestParams) string {
     condition {
 	  group_by = %s
       less_than = true
-      occurrences_threshold = %d
+      threshold = %d
       time_window = "%s"
       manage_undetected_values {
 			enable_triggering_on_undetected_values = true
@@ -675,7 +749,7 @@ func testAccCoralogixResourceAlertStandard(a *standardAlertTestParams) string {
   }
 }
 `,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
+		a.name, a.description, a.severity, a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
 		sliceToString(a.severities), a.searchQuery, sliceToString(a.groupBy), a.occurrencesThreshold, a.timeWindow, a.deadmanRatio)
 }
@@ -685,18 +759,23 @@ func testAccCoralogixResourceAlertRatio(a *ratioAlertTestParams) string {
   name               = "%s"
   description        = "%s"
   severity           = "%s"
-  notification {
-    recipients {
-      emails      = %s
-    }
-    notify_every_min = %d
-    notify_only_on_triggered_group_by_values = true
+
+  notifications_group {
+  	notification {
+        integration_id       = "%s"
+        retriggering_period_minutes = %d
+	}
+	notification {
+		email_recipients             = %s
+        notify_on          = "Triggered_and_resolved"
+        retriggering_period_minutes   = %d
+	}
   }
 
   scheduling {
     time_zone =  "%s"
 	
-	time_frames {
+	time_frame {
     	days_enabled = %s
     	start_time = "%s"
     	end_time = "%s"
@@ -714,17 +793,18 @@ func testAccCoralogixResourceAlertRatio(a *ratioAlertTestParams) string {
     }
     condition {
       more_than     = true
-      queries_ratio = %f
+      ratio_threshold = %f
       time_window   = "%s"
       group_by      = %s
       group_by_q1   = true
+	  ignore_infinity = %t
     }
   }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
+		a.name, a.description, a.severity, a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
 		sliceToString(a.severities), a.searchQuery, sliceToString(a.q2Severities), a.q2SearchQuery,
-		a.ratio, a.timeWindow, sliceToString(a.groupBy))
+		a.ratio, a.timeWindow, sliceToString(a.groupBy), a.ignoreInfinity)
 }
 
 func testAccCoralogixResourceAlertNewValue(a *newValueAlertTestParams) string {
@@ -732,17 +812,23 @@ func testAccCoralogixResourceAlertNewValue(a *newValueAlertTestParams) string {
   name               = "%s"
   description        = "%s"
   severity           = "%s"
-  notification {
-    recipients {
-      emails      = %s
-    }
-    notify_every_min = %d
-  }
+  
+  notifications_group {
+		notification {
+        	integration_id       = "%s"
+        	retriggering_period_minutes = %d
+		}
+		notification{
+     		email_recipients             = %s
+			notify_on          = "Triggered_and_resolved"
+       	 	retriggering_period_minutes   = %d
+     	}
+	}
 
   scheduling {
     time_zone =  "%s"
 	
-	time_frames {
+	time_frame {
     	days_enabled = %s
     	start_time = "%s"
     	end_time = "%s"
@@ -758,7 +844,7 @@ func testAccCoralogixResourceAlertNewValue(a *newValueAlertTestParams) string {
     }
   }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
+		a.name, a.description, a.severity, a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
 		sliceToString(a.severities), a.searchQuery, a.keyToTrack, a.timeWindow)
 }
@@ -768,17 +854,23 @@ func testAccCoralogixResourceAlertUniqueCount(a *uniqueCountAlertTestParams) str
   name               = "%s"
   description        = "%s"
   severity           = "%s"
-  notification {
-    recipients {
-      emails      = %s
-    }
-    notify_every_min = %d
-  }
+  
+  notifications_group {
+  		group_by_fields = %s
+		notification {
+        	integration_id       = "%s"
+        	retriggering_period_minutes = %d
+		}
+		notification{
+     		email_recipients             = %s
+			notify_on          = "Triggered_and_resolved"
+       	 	retriggering_period_minutes   = %d
+     	}
+	}
 
   scheduling {
     time_zone =  "%s"
-	
-	time_frames {
+	time_frame {
     	days_enabled = %s
     	start_time = "%s"
     	end_time = "%s"
@@ -797,7 +889,7 @@ func testAccCoralogixResourceAlertUniqueCount(a *uniqueCountAlertTestParams) str
     }
   }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
+		a.name, a.description, a.severity, sliceToString([]string{a.groupByKey}), a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds, sliceToString(a.severities),
 		a.searchQuery, a.uniqueCountKey, a.maxUniqueValues, a.timeWindow, a.groupByKey, a.maxUniqueValuesForGroupBy)
 }
@@ -807,19 +899,23 @@ func testAccCoralogixResourceAlertTimeRelative(a *timeRelativeAlertTestParams) s
   name               = "%s"
   description        = "%s"
   severity           = "%s"
-  notification {
-    recipients {
-      emails      = %s
-    }
-    notify_every_min = %d
-	notify_only_on_triggered_group_by_values = true
-    on_trigger_and_resolved = true
-  }
+  
+  notifications_group {
+		notification {
+        	integration_id       = "%s"
+        	retriggering_period_minutes = %d
+		}
+		notification{
+     		email_recipients             = %s
+			notify_on          = "Triggered_and_resolved"
+       	 	retriggering_period_minutes   = %d
+     	}
+	}
 
   scheduling {
     time_zone =  "%s"
 	
-	time_frames {
+	time_frame {
     	days_enabled = %s
     	start_time = "%s"
     	end_time = "%s"
@@ -834,12 +930,13 @@ func testAccCoralogixResourceAlertTimeRelative(a *timeRelativeAlertTestParams) s
       group_by             = %s
       ratio_threshold      = %d
       relative_time_window = "%s"
+      ignore_infinity = %t
     }
   }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
+		a.name, a.description, a.severity, a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
-		sliceToString(a.severities), a.searchQuery, sliceToString(a.groupBy), a.ratioThreshold, a.relativeTimeWindow)
+		sliceToString(a.severities), a.searchQuery, sliceToString(a.groupBy), a.ratioThreshold, a.relativeTimeWindow, a.ignoreInfinity)
 }
 
 func testAccCoralogixResourceAlertMetricLucene(a *metricLuceneAlertTestParams) string {
@@ -847,18 +944,23 @@ func testAccCoralogixResourceAlertMetricLucene(a *metricLuceneAlertTestParams) s
   name               = "%s"
   description        = "%s"
   severity           = "%s"
-  notification {
-    recipients {
-      emails      = %s
-    }
-    notify_every_min = %d
-	notify_only_on_triggered_group_by_values = true
-  }
+  
+  notifications_group {
+		notification {
+        	integration_id       = "%s"
+        	retriggering_period_minutes = %d
+		}
+		notification{
+     		email_recipients             = %s
+			notify_on          = "Triggered_and_resolved"
+       	 	retriggering_period_minutes   = %d
+     	}
+	}
 
   scheduling {
     time_zone =  "%s"
 	
-	time_frames {
+	time_frame {
     	days_enabled = %s
     	start_time = "%s"
     	end_time = "%s"
@@ -884,7 +986,7 @@ func testAccCoralogixResourceAlertMetricLucene(a *metricLuceneAlertTestParams) s
     }
   }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
+		a.name, a.description, a.severity, a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds, a.searchQuery, a.metricField, a.arithmeticOperator,
 		a.threshold, a.arithmeticOperatorModifier, a.sampleThresholdPercentage, a.timeWindow, sliceToString(a.groupBy))
 }
@@ -894,17 +996,22 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
   name               = "%s"
   description        = "%s"
   severity           = "%s"
-  notification {
-    recipients {
-      emails      = %s
-    }
-    notify_every_min = %d
-  }
+  
+  notifications_group {
+		notification {
+        	integration_id       = "%s"
+        	retriggering_period_minutes = %d
+		}
+		notification{
+     		email_recipients             = %s
+			notify_on          = "Triggered_and_resolved"
+       	 	retriggering_period_minutes   = %d
+     	}
+	}
 
   scheduling {
     time_zone =  "%s"
-	
-	time_frames {
+	time_frame {
     	days_enabled = %s
     	start_time = "%s"
     	end_time = "%s"
@@ -919,12 +1026,12 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
         threshold                    = %d
         sample_threshold_percentage  = %d
         time_window                  = "%s"
-        min_non_null_values_percentage          = %d
+        min_non_null_values_percentage = %d
       }
     }
   }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
+		a.name, a.description, a.severity, a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds, a.threshold, a.sampleThresholdPercentage,
 		a.timeWindow, a.nonNullPercentage)
 }
@@ -934,17 +1041,23 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
   name               = "%s"
   description        = "%s"
   severity           = "%s"
-  notification {
-	on_trigger_and_resolved = true
-    recipients {
-      emails      = %s
-    }
-    notify_every_min = %d
-  }
+  
+	notifications_group {
+  		group_by_fields = %s
+		notification {
+        	integration_id       = "%s"
+        	retriggering_period_minutes = %d
+		}
+		notification{
+     		email_recipients             = %s
+			notify_on          = "Triggered_and_resolved"
+       	 	retriggering_period_minutes   = %d
+     	}
+	}
 
   scheduling {
     time_zone =  "%s"
-	time_frames {
+	time_frame {
     	days_enabled = %s
     	start_time = "%s"
     	end_time = "%s"
@@ -952,37 +1065,23 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
   }
 
   tracing {
-    latency_threshold_ms = %f
-    field_filters {
-      field = "Application"
-	  filters {
-        values   = ["nginx"]
-        operator = "Equals"
-      }
-    }	
-	field_filters {
-      field = "Subsystem"
-      filters {
-        values   = ["subsystem-name"]
-        operator = "Equals"
-      }
-    }
-	tag_filters {
+    latency_threshold_milliseconds = %f
+    applications = ["nginx"]
+    subsystems = ["subsystem-name"]
+	tag_filter {
       field = "Status"
-      filters {
-        values   = ["400", "500"]
-        operator = "Contains"
-      }
+      values = ["filter:contains:400", "500"]
     }
+
     condition {
       more_than             = true
       time_window           = "%s"
-      occurrences_threshold = %d
+      threshold = %d
       group_by = %s
     }
   }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
+		a.name, a.description, a.severity, sliceToString(a.groupBy), a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
 		a.conditionLatencyMs, a.timeWindow, a.occurrencesThreshold, sliceToString(a.groupBy))
 }
@@ -1002,48 +1101,71 @@ func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
   		name               = "%s"
   		description        = "%s"
 	  	severity           = "%s"
+		
+	  notifications_group {
 		notification {
-    		recipients {
-      			emails      = %s
-    		}
-    	notify_every_min = %d
-  		}
-
-  		scheduling {
-    		time_zone =  "%s"
-			time_frames {
-    			days_enabled = %s
-    			start_time = "%s"
-    			end_time = "%s"
-  			}
+        	integration_id       = "%s"
+        	retriggering_period_minutes = %d
 		}
+		notification{
+     		email_recipients             = %s
+			notify_on          = "Triggered_and_resolved"
+       	 	retriggering_period_minutes   = %d
+     	}
+	}
+
+  	scheduling {
+    	time_zone =  "%s"
+		time_frame {
+    		days_enabled = %s
+    		start_time = "%s"
+			end_time = "%s"
+  		}
+	}
 
   	flow {
-    	stages {
-      		groups {
+    	stage {
+      		group {
         		sub_alerts {
-          			user_alert_id = coralogix_alert.standard_alert.id
+          			operator = "OR"
+          			flow_alert{
+            			user_alert_id = coralogix_alert.standard_alert.id
+          			}
         		}
-        		operator = "OR"
-      		}
-    	}
-    	stages {
-      		groups {
-        		sub_alerts {
-          			user_alert_id = coralogix_alert.standard_alert.id
-				}
-        		sub_alerts {
-          			user_alert_id = coralogix_alert.standard_alert.id
-        		}
-        		operator = "OR"
-      		}
-      		time_window {
-        		minutes = 20
-      		}
-		}
-  	}
+        next_operator = "OR"
+      }
+      group {
+        sub_alerts {
+          operator = "AND"
+          flow_alert{
+            not = true
+            user_alert_id = coralogix_alert.standard_alert.id
+          }
+        }
+        next_operator = "AND"
+      }
+      time_window {
+        minutes = 20
+      }
+    }
+    stage {
+      group {
+        sub_alerts {
+          operator = "AND"
+          flow_alert {
+            user_alert_id = coralogix_alert.standard_alert.id
+          }
+          flow_alert {
+            not = true
+            user_alert_id = coralogix_alert.standard_alert.id
+          }
+        }
+        next_operator = "OR"
+      }
+    }
+  }
 }`,
-		a.name, a.description, a.severity, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
+		a.name, a.description, a.severity, a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds)
 }
 
@@ -1059,6 +1181,7 @@ type ratioAlertTestParams struct {
 	q2Severities, groupBy     []string
 	ratio                     float64
 	timeWindow, q2SearchQuery string
+	ignoreInfinity            bool
 	alertCommonTestParams
 }
 
@@ -1078,6 +1201,7 @@ type timeRelativeAlertTestParams struct {
 	ratioThreshold     int
 	relativeTimeWindow string
 	groupBy            []string
+	ignoreInfinity     bool
 }
 
 type metricLuceneAlertTestParams struct {
@@ -1104,12 +1228,14 @@ type tracingAlertTestParams struct {
 type flowAlertTestParams struct {
 	name, description, severity string
 	emailRecipients             []string
+	webhookID                   string
 	notifyEveryMin              int
 	activeWhen
 }
 
 type alertCommonTestParams struct {
 	name, description, severity string
+	webhookID                   string
 	emailRecipients             []string
 	notifyEveryMin              int
 	searchQuery                 string

@@ -27,14 +27,16 @@ data "coralogix_alert" "imported_standard_alert" {
 - `expiration_date` (List of Object) The expiration date of the alert (if declared). (see [below for nested schema](#nestedatt--expiration_date))
 - `flow` (List of Object) Alert based on a combination of alerts in a specific timeframe. (see [below for nested schema](#nestedatt--flow))
 - `id` (String) The ID of this resource.
-- `meta_labels` (Set of Object) Labels allow you to easily filter by alert type and create views. Insert a new label or use an existing one. You can nest a label using key:value. (see [below for nested schema](#nestedatt--meta_labels))
+- `meta_labels` (Map of String) Labels allow you to easily filter by alert type and create views. Insert a new label or use an existing one. You can nest a label using key:value.
 - `metric` (List of Object) Alert based on arithmetic operators for metrics. (see [below for nested schema](#nestedatt--metric))
 - `name` (String) Alert name.
 - `new_value` (List of Object) Alert on never before seen log value. (see [below for nested schema](#nestedatt--new_value))
-- `notification` (List of Object) The Alert notification info. (see [below for nested schema](#nestedatt--notification))
+- `notifications_group` (Set of Object) Defines notifications settings over list of group-by keys (or on empty list). (see [below for nested schema](#nestedatt--notifications_group))
+- `payload_filters` (Set of String) A list of log fields out of the log example which will be included with the alert notification.
 - `ratio` (List of Object) Alert based on the ratio between queries. (see [below for nested schema](#nestedatt--ratio))
 - `scheduling` (List of Object) Limit the triggering of this alert to specific time frames. Active always by default. (see [below for nested schema](#nestedatt--scheduling))
 - `severity` (String) Determines the alert's severity. Can be one of ["Info" "Warning" "Critical" "Error"]
+- `show_in_insights` (List of Object) (see [below for nested schema](#nestedatt--show_in_insights))
 - `standard` (List of Object) Alert based on number of log occurrences. (see [below for nested schema](#nestedatt--standard))
 - `time_relative` (List of Object) Alert based on ratio between timeframes. (see [below for nested schema](#nestedatt--time_relative))
 - `tracing` (List of Object) Alert based on tracing latency. (see [below for nested schema](#nestedatt--tracing))
@@ -55,26 +57,34 @@ Read-Only:
 
 Read-Only:
 
-- `stages` (List of Object) (see [below for nested schema](#nestedobjatt--flow--stages))
+- `stage` (List of Object) (see [below for nested schema](#nestedobjatt--flow--stage))
 
-<a id="nestedobjatt--flow--stages"></a>
-### Nested Schema for `flow.stages`
-
-Read-Only:
-
-- `groups` (List of Object) (see [below for nested schema](#nestedobjatt--flow--stages--groups))
-- `time_window` (List of Object) (see [below for nested schema](#nestedobjatt--flow--stages--time_window))
-
-<a id="nestedobjatt--flow--stages--groups"></a>
-### Nested Schema for `flow.stages.groups`
+<a id="nestedobjatt--flow--stage"></a>
+### Nested Schema for `flow.stage`
 
 Read-Only:
 
+- `group` (List of Object) (see [below for nested schema](#nestedobjatt--flow--stage--group))
+- `time_window` (List of Object) (see [below for nested schema](#nestedobjatt--flow--stage--time_window))
+
+<a id="nestedobjatt--flow--stage--group"></a>
+### Nested Schema for `flow.stage.group`
+
+Read-Only:
+
+- `next_operator` (String)
+- `sub_alerts` (List of Object) (see [below for nested schema](#nestedobjatt--flow--stage--group--sub_alerts))
+
+<a id="nestedobjatt--flow--stage--group--sub_alerts"></a>
+### Nested Schema for `flow.stage.group.sub_alerts`
+
+Read-Only:
+
+- `flow_alert` (List of Object) (see [below for nested schema](#nestedobjatt--flow--stage--group--sub_alerts--flow_alert))
 - `operator` (String)
-- `sub_alerts` (List of Object) (see [below for nested schema](#nestedobjatt--flow--stages--groups--sub_alerts))
 
-<a id="nestedobjatt--flow--stages--groups--sub_alerts"></a>
-### Nested Schema for `flow.stages.groups.sub_alerts`
+<a id="nestedobjatt--flow--stage--group--sub_alerts--flow_alert"></a>
+### Nested Schema for `flow.stage.group.sub_alerts.flow_alert`
 
 Read-Only:
 
@@ -83,8 +93,9 @@ Read-Only:
 
 
 
-<a id="nestedobjatt--flow--stages--time_window"></a>
-### Nested Schema for `flow.stages.time_window`
+
+<a id="nestedobjatt--flow--stage--time_window"></a>
+### Nested Schema for `flow.stage.time_window`
 
 Read-Only:
 
@@ -93,15 +104,6 @@ Read-Only:
 - `seconds` (Number)
 
 
-
-
-<a id="nestedatt--meta_labels"></a>
-### Nested Schema for `meta_labels`
-
-Read-Only:
-
-- `key` (String)
-- `value` (String)
 
 
 <a id="nestedatt--metric"></a>
@@ -209,25 +211,23 @@ Read-Only:
 
 
 
-<a id="nestedatt--notification"></a>
-### Nested Schema for `notification`
+<a id="nestedatt--notifications_group"></a>
+### Nested Schema for `notifications_group`
 
 Read-Only:
 
-- `ignore_infinity` (Boolean)
-- `notify_every_min` (Number)
-- `notify_only_on_triggered_group_by_values` (Boolean)
-- `on_trigger_and_resolved` (Boolean)
-- `payload_fields` (Set of String)
-- `recipients` (List of Object) (see [below for nested schema](#nestedobjatt--notification--recipients))
+- `group_by_fields` (Set of String)
+- `notification` (Set of Object) (see [below for nested schema](#nestedobjatt--notifications_group--notification))
 
-<a id="nestedobjatt--notification--recipients"></a>
-### Nested Schema for `notification.recipients`
+<a id="nestedobjatt--notifications_group--notification"></a>
+### Nested Schema for `notifications_group.notification`
 
 Read-Only:
 
-- `emails` (Set of String)
-- `webhooks` (Set of String)
+- `email_recipients` (Set of String)
+- `integration_id` (String)
+- `notify_on` (String)
+- `retriggering_period_minutes` (Number)
 
 
 
@@ -249,10 +249,11 @@ Read-Only:
 - `group_by_both` (Boolean)
 - `group_by_q1` (Boolean)
 - `group_by_q2` (Boolean)
+- `ignore_infinity` (Boolean)
 - `less_than` (Boolean)
 - `manage_undetected_values` (List of Object) (see [below for nested schema](#nestedobjatt--ratio--condition--manage_undetected_values))
 - `more_than` (Boolean)
-- `queries_ratio` (Number)
+- `ratio_threshold` (Number)
 - `time_window` (String)
 
 <a id="nestedobjatt--ratio--condition--manage_undetected_values"></a>
@@ -288,10 +289,10 @@ Read-Only:
 Read-Only:
 
 - `alias` (String)
-- `applications` (List of String)
+- `applications` (Set of String)
 - `search_query` (String)
-- `severities` (List of String)
-- `subsystems` (List of String)
+- `severities` (Set of String)
+- `subsystems` (Set of String)
 
 
 
@@ -300,17 +301,27 @@ Read-Only:
 
 Read-Only:
 
-- `time_frames` (Set of Object) (see [below for nested schema](#nestedobjatt--scheduling--time_frames))
+- `time_frame` (Set of Object) (see [below for nested schema](#nestedobjatt--scheduling--time_frame))
 - `time_zone` (String)
 
-<a id="nestedobjatt--scheduling--time_frames"></a>
-### Nested Schema for `scheduling.time_frames`
+<a id="nestedobjatt--scheduling--time_frame"></a>
+### Nested Schema for `scheduling.time_frame`
 
 Read-Only:
 
 - `days_enabled` (Set of String)
 - `end_time` (String)
 - `start_time` (String)
+
+
+
+<a id="nestedatt--show_in_insights"></a>
+### Nested Schema for `show_in_insights`
+
+Read-Only:
+
+- `notify_on` (String)
+- `retriggering_period_minutes` (Number)
 
 
 <a id="nestedatt--standard"></a>
@@ -341,7 +352,7 @@ Read-Only:
 - `manage_undetected_values` (List of Object) (see [below for nested schema](#nestedobjatt--standard--condition--manage_undetected_values))
 - `more_than` (Boolean)
 - `more_than_usual` (Boolean)
-- `occurrences_threshold` (Number)
+- `threshold` (Number)
 - `time_window` (String)
 
 <a id="nestedobjatt--standard--condition--manage_undetected_values"></a>
@@ -377,6 +388,7 @@ Read-Only:
 Read-Only:
 
 - `group_by` (List of String)
+- `ignore_infinity` (Boolean)
 - `less_than` (Boolean)
 - `manage_undetected_values` (List of Object) (see [below for nested schema](#nestedobjatt--time_relative--condition--manage_undetected_values))
 - `more_than` (Boolean)
@@ -399,10 +411,12 @@ Read-Only:
 
 Read-Only:
 
+- `applications` (Set of String)
 - `condition` (List of Object) (see [below for nested schema](#nestedobjatt--tracing--condition))
-- `field_filters` (List of Object) (see [below for nested schema](#nestedobjatt--tracing--field_filters))
-- `latency_threshold_ms` (Number)
-- `tag_filters` (List of Object) (see [below for nested schema](#nestedobjatt--tracing--tag_filters))
+- `latency_threshold_milliseconds` (Number)
+- `services` (Set of String)
+- `subsystems` (Set of String)
+- `tag_filter` (Set of Object) (see [below for nested schema](#nestedobjatt--tracing--tag_filter))
 
 <a id="nestedobjatt--tracing--condition"></a>
 ### Nested Schema for `tracing.condition`
@@ -412,44 +426,17 @@ Read-Only:
 - `group_by` (List of String)
 - `immediately` (Boolean)
 - `more_than` (Boolean)
-- `occurrences_threshold` (Number)
+- `threshold` (Number)
 - `time_window` (String)
 
 
-<a id="nestedobjatt--tracing--field_filters"></a>
-### Nested Schema for `tracing.field_filters`
+<a id="nestedobjatt--tracing--tag_filter"></a>
+### Nested Schema for `tracing.tag_filter`
 
 Read-Only:
 
 - `field` (String)
-- `filters` (List of Object) (see [below for nested schema](#nestedobjatt--tracing--field_filters--filters))
-
-<a id="nestedobjatt--tracing--field_filters--filters"></a>
-### Nested Schema for `tracing.field_filters.filters`
-
-Read-Only:
-
-- `operator` (String)
-- `values` (List of String)
-
-
-
-<a id="nestedobjatt--tracing--tag_filters"></a>
-### Nested Schema for `tracing.tag_filters`
-
-Read-Only:
-
-- `field` (String)
-- `filters` (List of Object) (see [below for nested schema](#nestedobjatt--tracing--tag_filters--filters))
-
-<a id="nestedobjatt--tracing--tag_filters--filters"></a>
-### Nested Schema for `tracing.tag_filters.filters`
-
-Read-Only:
-
-- `operator` (String)
-- `values` (List of String)
-
+- `values` (Set of String)
 
 
 

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	alerts "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v1"
+	alerts "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v2"
 
 	. "github.com/ahmetalpbalkan/go-linq"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -114,22 +114,8 @@ var (
 	}
 	alertProtoArithmeticOperatorToSchemaArithmetic   = reverseMapStrings(alertSchemaArithmeticOperatorToProtoArithmetic)
 	alertValidArithmeticOperators                    = getKeysStrings(alertSchemaArithmeticOperatorToProtoArithmetic)
-	alertSchemaTracingOperatorToProtoTracingOperator = map[string]string{
-		"Equals":     "equals",
-		"Contains":   "contains",
-		"Start_with": "startsWith",
-		"End_with":   "endsWith"}
-	alertProtoTracingOperatorToSchemaTracingOperator       = reverseMapStrings(alertSchemaTracingOperatorToProtoTracingOperator)
-	alertValidTracingOperator                              = getKeysStrings(alertSchemaTracingOperatorToProtoTracingOperator)
-	alertSchemaTracingFilterFieldToProtoTracingFilterField = map[string]string{
-		"Application": "applicationName",
-		"Subsystem":   "subsystemName",
-		"Service":     "serviceName",
-	}
-	alertProtoTracingFilterFieldToSchemaTracingFilterField = reverseMapStrings(alertSchemaTracingFilterFieldToProtoTracingFilterField)
-	alertValidTracingFilterField                           = getKeysStrings(alertSchemaTracingFilterFieldToProtoTracingFilterField)
-	alertValidFlowOperator                                 = getKeysInt32(alerts.FlowOperator_value)
-	alertSchemaMetricTimeFrameToMetricProtoTimeFrame       = map[string]string{
+	alertValidFlowOperator                           = getKeysInt32(alerts.FlowOperator_value)
+	alertSchemaMetricTimeFrameToMetricProtoTimeFrame = map[string]string{
 		"1Min":  "TIMEFRAME_1_MIN",
 		"5Min":  "TIMEFRAME_5_MIN_OR_UNSPECIFIED",
 		"10Min": "TIMEFRAME_10_MIN",
@@ -159,20 +145,20 @@ var (
 	alertValidDeadmanRatioValues                 = getKeysStrings(alertSchemaDeadmanRatiosToProtoDeadmanRatios)
 	alertValidTimeZones                          = []string{"UTC-11", "UTC-10", "UTC-9", "UTC-8", "UTC-7", "UTC-6", "UTC-5", "UTC-4", "UTC-3", "UTC-2", "UTC-1",
 		"UTC+0", "UTC+1", "UTC+2", "UTC+3", "UTC+4", "UTC+5", "UTC+6", "UTC+7", "UTC+8", "UTC+9", "UTC+10", "UTC+11", "UTC+12", "UTC+13", "UTC+14"}
+	alertSchemaNotifyOnToProtoNotifyOn = map[string]alerts.NotifyOn{
+		"Triggered_only":         alerts.NotifyOn_TRIGGERED_ONLY,
+		"Triggered_and_resolved": alerts.NotifyOn_TRIGGERED_AND_RESOLVED,
+	}
+	alertProtoNotifyOnToSchemaNotifyOn = map[alerts.NotifyOn]string{
+		alerts.NotifyOn_TRIGGERED_ONLY:         "Triggered_only",
+		alerts.NotifyOn_TRIGGERED_AND_RESOLVED: "Triggered_and_resolved",
+	}
+	validNotifyOn = []string{"Triggered_only", "Triggered_and_resolved"}
 )
 
 type alertParams struct {
 	Condition *alerts.AlertCondition
 	Filters   *alerts.AlertFilters
-}
-
-type notification struct {
-	notifyEverySec                     *wrapperspb.DoubleValue
-	ignoreInfinity                     *wrapperspb.BoolValue
-	notifyWhenResolved                 *wrapperspb.BoolValue
-	notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue
-	recipients                         *alerts.AlertNotifications
-	payloadFields                      []*wrapperspb.StringValue
 }
 
 type protoTimeFrameAndRelativeTimeFrame struct {
@@ -230,11 +216,13 @@ func AlertSchema() map[string]*schema.Schema {
 			Description:  fmt.Sprintf("Determines the alert's severity. Can be one of %q", alertValidSeverities),
 		},
 		"meta_labels": {
-			Type:        schema.TypeSet,
-			Optional:    true,
-			Elem:        metaLabels(),
-			Set:         hashMetaLabels(),
-			Description: "Labels allow you to easily filter by alert type and create views. Insert a new label or use an existing one. You can nest a label using key:value.",
+			Type: schema.TypeMap,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			Optional:         true,
+			Description:      "Labels allow you to easily filter by alert type and create views. Insert a new label or use an existing one. You can nest a label using key:value.",
+			ValidateDiagFunc: validation.MapKeyMatch(regexp.MustCompile(`^[A-Za-z\d_-]*$`), "not valid key for meta_label"),
 		},
 		"expiration_date": {
 			Type:     schema.TypeList,
@@ -264,80 +252,48 @@ func AlertSchema() map[string]*schema.Schema {
 			},
 			Description: "The expiration date of the alert (if declared).",
 		},
-		"notification": {
+		"notifications_group": {
+			Type:        schema.TypeSet,
+			Optional:    true,
+			Elem:        notificationGroupSchema(),
+			Set:         schema.HashResource(notificationGroupSchema()),
+			Description: "Defines notifications settings over list of group-by keys (or on empty list).",
+		},
+		"payload_filters": {
+			Type:     schema.TypeSet,
+			Optional: true,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			Description: "A list of log fields out of the log example which will be included with the alert notification.",
+			Set:         schema.HashString,
+		},
+		"show_in_insights": {
 			Type:     schema.TypeList,
+			MaxItems: 1,
 			Optional: true,
 			Computed: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"on_trigger_and_resolved": {
-						Type:          schema.TypeBool,
-						Optional:      true,
-						ConflictsWith: []string{"new_value", "unique_count", "flow", "standard.0.condition.0.immediately", "standard.0.condition.0.more_than_usual"},
-					},
-					"ignore_infinity": {
-						Type:          schema.TypeBool,
-						Optional:      true,
-						ConflictsWith: []string{"standard", "new_value", "unique_count", "metric", "tracing", "flow"},
-					},
-					"notify_only_on_triggered_group_by_values": {
-						Type:          schema.TypeBool,
-						Optional:      true,
-						Default:       false,
-						Description:   "Notifications will contain only triggered group-by values.",
-						ConflictsWith: []string{"new_value", "unique_count", "metric.0.promql", "tracing", "flow"},
-					},
-					"recipients": {
-						Type:     schema.TypeList,
-						Optional: true,
-						Elem: &schema.Resource{
-							Schema: map[string]*schema.Schema{
-								"emails": {
-									Type:     schema.TypeSet,
-									Optional: true,
-									Elem: &schema.Schema{
-										Type:             schema.TypeString,
-										ValidateDiagFunc: mailValidationFunc(),
-									},
-									Description: "The emails for anyone that should receive this alert.",
-									Set:         schema.HashString,
-								},
-								"webhooks": {
-									Type:     schema.TypeSet,
-									Optional: true,
-									Elem: &schema.Schema{
-										Type: schema.TypeString,
-									},
-									Description: "The Webhook-integrations name to send the alert to.",
-									Set:         schema.HashString,
-								},
-							},
-						},
-						MaxItems: 1,
-					},
-					"notify_every_min": {
+					"retriggering_period_minutes": {
 						Type:         schema.TypeInt,
 						Optional:     true,
 						Computed:     true,
 						ValidateFunc: validation.IntAtLeast(1),
-						Description: "By default, notify_every_min will be populated with min for immediate," +
+						Description: "By default, retriggering_period_minutes will be populated with minute for immediate," +
 							" more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time" +
 							" frame for the less_than condition (in minutes). You may choose to change the suppress window so the " +
 							"alert will be suppressed for a longer period.",
 					},
-					"payload_fields": {
-						Type:     schema.TypeSet,
-						Optional: true,
-						Elem: &schema.Schema{
-							Type: schema.TypeString,
-						},
-						Description: "A list of log fields out of the log example which will be included with the alert notification.",
-						Set:         schema.HashString,
+					"notify_on": {
+						Type:         schema.TypeString,
+						Optional:     true,
+						Default:      "Triggered_only",
+						ValidateFunc: validation.StringInSlice(validNotifyOn, false),
+						Description:  fmt.Sprintf("Defines the alert's triggering logic. Can be one of %q. Triggered_and_resolved conflicts with new_value, unique_count and flow alerts, and with immediately and more_than_usual conditions", validNotifyOn),
 					},
 				},
 			},
-			MaxItems:    1,
-			Description: "The Alert notification info.",
 		},
 		"scheduling": {
 			Type:     schema.TypeList,
@@ -431,6 +387,69 @@ func AlertSchema() map[string]*schema.Schema {
 	}
 }
 
+func notificationGroupSchema() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"group_by_fields": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
+				Set:         schema.HashString,
+				Description: "List of group-by fields to apply the notification logic on (can be empty). Every notification should contain unique group_by_fields permutation (the order doesn't matter).",
+			},
+			"notification": {
+				Type:        schema.TypeSet,
+				Optional:    true,
+				Elem:        notificationSubgroupSchema(),
+				Set:         schema.HashResource(notificationSubgroupSchema()),
+				Description: "Defines notification logic with optional recipients. Can contain single webhook or email recipients list.",
+			},
+		},
+	}
+}
+
+func notificationSubgroupSchema() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"retriggering_period_minutes": {
+				Type:         schema.TypeInt,
+				Optional:     true,
+				Computed:     true,
+				ValidateFunc: validation.IntAtLeast(1),
+				Description: "By default, retriggering_period_minutes will be populated with min for immediate," +
+					" more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time" +
+					" frame for the less_than condition (in minutes). You may choose to change the suppress window so the " +
+					"alert will be suppressed for a longer period.",
+			},
+			"notify_on": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "Triggered_only",
+				ValidateFunc: validation.StringInSlice(validNotifyOn, false),
+				Description:  fmt.Sprintf("Defines the alert's triggering logic. Can be one of %q. Triggered_and_resolved conflicts with new_value, unique_count and flow alerts, and with immediately and more_than_usual conditions", validNotifyOn),
+			},
+			"integration_id": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validation.StringIsNotEmpty,
+				Description:  "Conflicts with emails.",
+			},
+			"email_recipients": {
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type:             schema.TypeString,
+					ValidateDiagFunc: mailValidationFunc(),
+				},
+				Set:         schema.HashString,
+				Description: "Conflicts with integration_id.",
+			},
+		},
+	}
+}
+
 func schedulingSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"time_zone": {
@@ -440,13 +459,13 @@ func schedulingSchema() map[string]*schema.Schema {
 			ValidateFunc: validation.StringInSlice(alertValidTimeZones, false),
 			Description:  fmt.Sprintf("Specifies the time zone to be used in interpreting the schedule. Can be one of %q", alertValidTimeZones),
 		},
-		"time_frames": {
+		"time_frame": {
 			Type:        schema.TypeSet,
 			MaxItems:    1,
 			Required:    true,
 			Elem:        timeFrames(),
 			Set:         hashTimeFrames(),
-			Description: "time_frames is a set of days and hours when the alert will be active. ***Currently, supported only for one time_frames***",
+			Description: "time_frame is a set of days and hours when the alert will be active. ***Currently, supported only for one time_frame***",
 		},
 	}
 }
@@ -472,24 +491,6 @@ func timeFrames() *schema.Resource {
 
 func hashTimeFrames() schema.SchemaSetFunc {
 	return schema.HashResource(timeFrames())
-}
-
-func metaLabels() *schema.Resource {
-	return &schema.Resource{
-		Schema: map[string]*schema.Schema{
-			"key": {
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringMatch(regexp.MustCompile(`^[A-Za-z\d_-]*$`), "not valid key"),
-				Description:  "Label key.",
-			},
-			"value": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "Label value.",
-			},
-		},
-	}
 }
 
 func commonAlertSchema() map[string]*schema.Schema {
@@ -609,7 +610,7 @@ func standardSchema() map[string]*schema.Schema {
 						"standard.0.condition.0.more_than_usual"},
 					Description: "Determines the condition operator." +
 						" Must be one of - immediately, less_than, more_than or more_than_usual.",
-					RequiredWith: []string{"standard.0.condition.0.time_window"},
+					RequiredWith: []string{"standard.0.condition.0.time_window", "standard.0.condition.0.threshold"},
 				},
 				"more_than": {
 					Type:     schema.TypeBool,
@@ -618,7 +619,7 @@ func standardSchema() map[string]*schema.Schema {
 						"standard.0.condition.0.more_than",
 						"standard.0.condition.0.less_than",
 						"standard.0.condition.0.more_than_usual"},
-					RequiredWith: []string{"standard.0.condition.0.time_window"},
+					RequiredWith: []string{"standard.0.condition.0.time_window", "standard.0.condition.0.threshold"},
 					Description: "Determines the condition operator." +
 						" Must be one of - immediately, less_than, more_than or more_than_usual.",
 				},
@@ -632,7 +633,7 @@ func standardSchema() map[string]*schema.Schema {
 					Description: "Determines the condition operator." +
 						" Must be one of - immediately, less_than, more_than or more_than_usual.",
 				},
-				"occurrences_threshold": {
+				"threshold": {
 					Type:          schema.TypeInt,
 					Optional:      true,
 					ConflictsWith: []string{"standard.0.condition.0.immediately"},
@@ -723,30 +724,35 @@ func ratioSchema() map[string]*schema.Schema {
 						Description: "Query2 alias.",
 					},
 					"search_query": searchQuerySchema(),
-					"applications": {
-						Type:     schema.TypeList,
-						Optional: true,
-						Elem: &schema.Schema{
-							Type: schema.TypeString,
-						},
-						Description: "Target alert by application contained within the logs.",
-					},
-					"subsystems": {
-						Type:     schema.TypeList,
-						Optional: true,
-						Elem: &schema.Schema{
-							Type: schema.TypeString,
-						},
-						Description: "Target alert by subsystems contained within the logs.",
-					},
 					"severities": {
-						Type:     schema.TypeList,
+						Type:     schema.TypeSet,
 						Optional: true,
 						Elem: &schema.Schema{
 							Type:         schema.TypeString,
 							ValidateFunc: validation.StringInSlice(alertValidLogSeverities, false),
 						},
-						Description: fmt.Sprintf("Target alert by severities contained within the logs. Can be one of %q", alertValidLogSeverities),
+						Description: fmt.Sprintf("An array of log severities that we interested in. Can be one of %q", alertValidLogSeverities),
+						Set:         schema.HashString,
+					},
+					"applications": {
+						Type:     schema.TypeSet,
+						Optional: true,
+						Elem: &schema.Schema{
+							Type: schema.TypeString,
+						},
+						Description: "An array that contains log’s application names that we want to be alerted on." +
+							" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+						Set: schema.HashString,
+					},
+					"subsystems": {
+						Type:     schema.TypeSet,
+						Optional: true,
+						Elem: &schema.Schema{
+							Type: schema.TypeString,
+						},
+						Description: "An array that contains log’s subsystem names that we want to be notified on. " +
+							"Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+						Set: schema.HashString,
 					},
 				},
 			},
@@ -760,7 +766,6 @@ func ratioSchema() map[string]*schema.Schema {
 					"more_than": {
 						Type:         schema.TypeBool,
 						Optional:     true,
-						Computed:     true,
 						ExactlyOneOf: []string{"ratio.0.condition.0.more_than", "ratio.0.condition.0.less_than"},
 						Description: "Determines the condition operator." +
 							" Must be one of - less_than or more_than.",
@@ -768,17 +773,22 @@ func ratioSchema() map[string]*schema.Schema {
 					"less_than": {
 						Type:         schema.TypeBool,
 						Optional:     true,
-						Computed:     true,
 						ExactlyOneOf: []string{"ratio.0.condition.0.more_than", "ratio.0.condition.0.less_than"},
 					},
-					"queries_ratio": {
-						Type:     schema.TypeFloat,
-						Required: true,
+					"ratio_threshold": {
+						Type:        schema.TypeFloat,
+						Required:    true,
+						Description: "The ratio(between the queries) threshold that is needed to trigger the alert.",
 					},
 					"time_window": {
 						Type:         schema.TypeString,
 						Required:     true,
 						ValidateFunc: validation.StringInSlice(alertValidTimeFrames, false),
+					},
+					"ignore_infinity": {
+						Type:        schema.TypeBool,
+						Optional:    true,
+						Description: "Not triggered when threshold is infinity (divided by zero).",
 					},
 					"group_by": {
 						Type:     schema.TypeList,
@@ -946,6 +956,11 @@ func timeRelativeSchema() map[string]*schema.Schema {
 					ValidateFunc: validation.StringInSlice(alertValidRelativeTimeFrames, false),
 					Description:  fmt.Sprintf("Time-window to compare with. Can be one of %q.", alertValidRelativeTimeFrames),
 				},
+				"ignore_infinity": {
+					Type:        schema.TypeBool,
+					Optional:    true,
+					Description: "Not triggered when threshold is infinity (divided by zero).",
+				},
 				"group_by": {
 					Type:     schema.TypeList,
 					Optional: true,
@@ -1084,7 +1099,7 @@ func metricSchema() map[string]*schema.Schema {
 											"enable_triggering_on_undetected_values": {
 												Type:        schema.TypeBool,
 												Required:    true,
-												Description: fmt.Sprintf("Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted."),
+												Description: "Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.",
 											},
 											"auto_retire_ratio": {
 												Type:         schema.TypeString,
@@ -1203,13 +1218,47 @@ func metricSchema() map[string]*schema.Schema {
 
 func tracingSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"latency_threshold_ms": {
+		"applications": {
+			Type:     schema.TypeSet,
+			Optional: true,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			Description: "An array that contains log’s application names that we want to be alerted on." +
+				" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+			Set: schema.HashString,
+		},
+		"subsystems": {
+			Type:     schema.TypeSet,
+			Optional: true,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			Description: "An array that contains log’s subsystems names that we want to be alerted on." +
+				" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+			Set: schema.HashString,
+		},
+		"services": {
+			Type:     schema.TypeSet,
+			Optional: true,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+			Description: "An array that contains log’s services names that we want to be alerted on." +
+				" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+			Set: schema.HashString,
+		},
+		"tag_filter": {
+			Type:     schema.TypeSet,
+			Optional: true,
+			Elem:     tagFilterSchema(),
+			Set:      schema.HashResource(tagFilterSchema()),
+		},
+		"latency_threshold_milliseconds": {
 			Type:         schema.TypeFloat,
 			Optional:     true,
 			ValidateFunc: validation.FloatAtLeast(0),
 		},
-		"tag_filters":   filtersSchema(false),
-		"field_filters": filtersSchema(true),
 		"condition": {
 			Type:     schema.TypeList,
 			Required: true,
@@ -1231,7 +1280,7 @@ func tracingSchema() map[string]*schema.Schema {
 						Description: "Determines the condition operator." +
 							" Must be one of - immediately or more_than.",
 					},
-					"occurrences_threshold": {
+					"threshold": {
 						Type:          schema.TypeInt,
 						Optional:      true,
 						ConflictsWith: []string{"tracing.0.condition.0.immediately"},
@@ -1240,6 +1289,7 @@ func tracingSchema() map[string]*schema.Schema {
 					"time_window": {
 						Type:          schema.TypeString,
 						Optional:      true,
+						ForceNew:      true,
 						ValidateFunc:  validation.StringInSlice(alertValidTimeFrames, false),
 						ConflictsWith: []string{"tracing.0.condition.0.immediately"},
 						RequiredWith:  []string{"tracing.0.condition.0.more_than"},
@@ -1261,43 +1311,20 @@ func tracingSchema() map[string]*schema.Schema {
 	}
 }
 
-func filtersSchema(isFieldFilterSchema bool) *schema.Schema {
-	fieldSchema := &schema.Schema{
-		Type:     schema.TypeString,
-		Required: true,
-	}
-
-	if isFieldFilterSchema {
-		fieldSchema.ValidateFunc = validation.StringInSlice(alertValidTracingFilterField, false)
-	}
-
-	return &schema.Schema{
-		Type:     schema.TypeList,
-		Optional: true,
-		Elem: &schema.Resource{
-			Schema: map[string]*schema.Schema{
-				"field": fieldSchema,
-				"filters": {
-					Type:     schema.TypeList,
-					Required: true,
-					Elem: &schema.Resource{
-						Schema: map[string]*schema.Schema{
-							"values": {
-								Type:     schema.TypeList,
-								Required: true,
-								MinItems: 1,
-								Elem: &schema.Schema{
-									Type: schema.TypeString,
-								},
-							},
-							"operator": {
-								Type:         schema.TypeString,
-								Required:     true,
-								ValidateFunc: validation.StringInSlice(alertValidTracingOperator, false),
-							},
-						},
-					},
+func tagFilterSchema() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"field": {
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"values": {
+				Type:     schema.TypeSet,
+				Required: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
 				},
+				Set: schema.HashString,
 			},
 		},
 	}
@@ -1305,34 +1332,48 @@ func filtersSchema(isFieldFilterSchema bool) *schema.Schema {
 
 func flowSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"stages": {
+		"stage": {
 			Type:     schema.TypeList,
 			Required: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"groups": {
+					"group": {
 						Type:     schema.TypeList,
 						Required: true,
 						Elem: &schema.Resource{
 							Schema: map[string]*schema.Schema{
 								"sub_alerts": {
 									Type:     schema.TypeList,
+									MaxItems: 1,
 									Required: true,
 									Elem: &schema.Resource{
 										Schema: map[string]*schema.Schema{
-											"not": {
-												Type:     schema.TypeBool,
-												Optional: true,
-												Default:  false,
+											"operator": {
+												Type:         schema.TypeString,
+												Required:     true,
+												ValidateFunc: validation.StringInSlice(alertValidFlowOperator, false),
 											},
-											"user_alert_id": {
-												Type:     schema.TypeString,
+											"flow_alert": {
+												Type:     schema.TypeList,
 												Required: true,
+												Elem: &schema.Resource{
+													Schema: map[string]*schema.Schema{
+														"not": {
+															Type:     schema.TypeBool,
+															Optional: true,
+															Default:  false,
+														},
+														"user_alert_id": {
+															Type:     schema.TypeString,
+															Required: true,
+														},
+													},
+												},
 											},
 										},
 									},
 								},
-								"operator": {
+								"next_operator": {
 									Type:         schema.TypeString,
 									Required:     true,
 									ValidateFunc: validation.StringInSlice(alertValidFlowOperator, false),
@@ -1348,13 +1389,14 @@ func flowSchema() map[string]*schema.Schema {
 }
 
 func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	createAlertRequest, err := extractCreateAlertRequest(d)
-	if err != nil {
-		return diag.FromErr(err)
+	createAlertRequest, diags := extractCreateAlertRequest(d)
+	if len(diags) != 0 {
+		return diags
 	}
 
 	log.Printf("[INFO] Creating new alert: %#v", createAlertRequest)
 	AlertResp, err := meta.(*clientset.ClientSet).Alerts().CreateAlert(ctx, createAlertRequest)
+
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcError(err, "alert")
@@ -1385,9 +1427,9 @@ func resourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, met
 }
 
 func resourceCoralogixAlertUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	req, err := extractAlert(d)
-	if err != nil {
-		return diag.FromErr(err)
+	req, diags := extractAlert(d)
+	if len(diags) != 0 {
+		return diags
 	}
 
 	id := d.Id()
@@ -1425,40 +1467,41 @@ func resourceCoralogixAlertDelete(ctx context.Context, d *schema.ResourceData, m
 	return nil
 }
 
-func extractCreateAlertRequest(d *schema.ResourceData) (*alerts.CreateAlertRequest, error) {
+func extractCreateAlertRequest(d *schema.ResourceData) (*alerts.CreateAlertRequest, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	enabled := wrapperspb.Bool(d.Get("enabled").(bool))
 	name := wrapperspb.String(d.Get("name").(string))
 	description := wrapperspb.String(d.Get("description").(string))
 	severity := expandAlertSeverity(d.Get("severity").(string))
 	metaLabels := extractMetaLabels(d.Get("meta_labels"))
 	expirationDate := expandExpirationDate(d.Get("expiration_date"))
-	notifications := expandNotification(d.Get("notification"))
+	showInInsight := expandShowInInsight(d.Get("show_in_insights"))
+	notificationGroups, dgs := expandNotificationGroups(d.Get("notifications_group"))
+	diags = append(diags, dgs...)
+	payloadFilters := expandPayloadFilters(d.Get("payload_filters"))
 	scheduling := expandActiveWhen(d.Get("scheduling"))
-	alertTypeParams, tracingAlert, err := expandAlertType(d, notifications)
-	if err != nil {
-		return nil, err
-	}
+	alertTypeParams, tracingAlert, dgs := expandAlertType(d)
+	diags = append(diags, dgs...)
 
-	createAlertRequest := &alerts.CreateAlertRequest{
+	return &alerts.CreateAlertRequest{
 		Name:                       name,
 		Description:                description,
 		IsActive:                   enabled,
 		Severity:                   severity,
 		MetaLabels:                 metaLabels,
 		Expiration:                 expirationDate,
-		Notifications:              notifications.recipients,
-		NotifyEvery:                notifications.notifyEverySec,
-		NotificationPayloadFilters: notifications.payloadFields,
+		ShowInInsight:              showInInsight,
+		NotificationGroups:         notificationGroups,
+		NotificationPayloadFilters: payloadFilters,
 		ActiveWhen:                 scheduling,
 		Filters:                    alertTypeParams.Filters,
 		Condition:                  alertTypeParams.Condition,
 		TracingAlert:               tracingAlert,
-	}
-
-	return createAlertRequest, nil
+	}, diags
 }
 
-func extractAlert(d *schema.ResourceData) (*alerts.Alert, error) {
+func extractAlert(d *schema.ResourceData) (*alerts.Alert, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	id := wrapperspb.String(d.Id())
 	enabled := wrapperspb.Bool(d.Get("enabled").(bool))
 	name := wrapperspb.String(d.Get("name").(string))
@@ -1466,14 +1509,15 @@ func extractAlert(d *schema.ResourceData) (*alerts.Alert, error) {
 	severity := expandAlertSeverity(d.Get("severity").(string))
 	metaLabels := extractMetaLabels(d.Get("meta_labels"))
 	expirationDate := expandExpirationDate(d.Get("expiration_date"))
-	notifications := expandNotification(d.Get("notification"))
+	showInInsight := expandShowInInsight(d.Get("show_in_insights"))
+	notificationGroups, dgs := expandNotificationGroups(d.Get("notifications_group"))
+	diags = append(diags, dgs...)
+	payloadFilters := expandPayloadFilters(d.Get("payload_filters"))
 	scheduling := expandActiveWhen(d.Get("scheduling"))
-	alertTypeParams, tracingAlert, err := expandAlertType(d, notifications)
-	if err != nil {
-		return nil, err
-	}
+	alertTypeParams, tracingAlert, dgs := expandAlertType(d)
+	diags = append(diags, dgs...)
 
-	createAlertRequest := &alerts.Alert{
+	return &alerts.Alert{
 		UniqueIdentifier:           id,
 		Name:                       name,
 		Description:                description,
@@ -1481,16 +1525,18 @@ func extractAlert(d *schema.ResourceData) (*alerts.Alert, error) {
 		Severity:                   severity,
 		MetaLabels:                 metaLabels,
 		Expiration:                 expirationDate,
-		Notifications:              notifications.recipients,
-		NotifyEvery:                notifications.notifyEverySec,
-		NotificationPayloadFilters: notifications.payloadFields,
+		ShowInInsight:              showInInsight,
+		NotificationGroups:         notificationGroups,
+		NotificationPayloadFilters: payloadFilters,
 		ActiveWhen:                 scheduling,
 		Filters:                    alertTypeParams.Filters,
 		Condition:                  alertTypeParams.Condition,
 		TracingAlert:               tracingAlert,
-	}
+	}, diags
+}
 
-	return createAlertRequest, nil
+func expandPayloadFilters(v interface{}) []*wrapperspb.StringValue {
+	return interfaceSliceToWrappedStringSlice(v.(*schema.Set).List())
 }
 
 func setAlert(d *schema.ResourceData, alert *alerts.Alert) diag.Diagnostics {
@@ -1518,9 +1564,15 @@ func setAlert(d *schema.ResourceData, alert *alerts.Alert) diag.Diagnostics {
 		return diag.FromErr(err)
 	}
 
-	alertType, alertTypeParams, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues := flattenAlertType(alert)
+	if err := d.Set("notifications_group", flattenNotificationGroups(alert.GetNotificationGroups())); err != nil {
+		return diag.FromErr(err)
+	}
 
-	if err := d.Set("notification", flattenNotification(alert, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues)); err != nil {
+	if err := d.Set("payload_filters", wrappedStringSliceToStringSlice(alert.GetNotificationPayloadFilters())); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("show_in_insights", flattenShowInInsight(alert.GetShowInInsight())); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -1528,6 +1580,7 @@ func setAlert(d *schema.ResourceData, alert *alerts.Alert) diag.Diagnostics {
 		return diag.FromErr(err)
 	}
 
+	alertType, alertTypeParams := flattenAlertType(alert)
 	if err := d.Set(alertType, alertTypeParams); err != nil {
 		return diag.FromErr(err)
 	}
@@ -1540,53 +1593,70 @@ func flattenAlertSeverity(str string) string {
 }
 
 func flattenMetaLabels(labels []*alerts.MetaLabel) interface{} {
-	result := schema.NewSet(hashMetaLabels(), []interface{}{})
+	result := make(map[string]interface{})
 	for _, l := range labels {
-		m := make(map[string]interface{})
-		m["key"] = l.GetKey().GetValue()
-		m["value"] = l.GetValue().GetValue()
-		result.Add(m)
+		key := l.GetKey().GetValue()
+		val := l.GetValue().GetValue()
+		result[key] = val
 	}
 	return result
 }
 
-func hashMetaLabels() schema.SchemaSetFunc {
-	return schema.HashResource(metaLabels())
-}
-
-func flattenNotification(alert *alerts.Alert, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) interface{} {
-	recipients := flattenRecipients(alert.GetNotifications())
-	notificationMap := map[string]interface{}{
-		"notify_every_min": int(alert.GetNotifyEvery().GetValue() / 60),
-		"recipients":       recipients,
-		"payload_fields":   wrappedStringSliceToStringSlice(alert.NotificationPayloadFilters),
+func flattenShowInInsight(showInInsight *alerts.ShowInInsight) interface{} {
+	notifyEveryMin := int(showInInsight.GetRetriggeringPeriodSeconds().GetValue() / 60)
+	notifyOn := alertProtoNotifyOnToSchemaNotifyOn[showInInsight.GetNotifyOn()]
+	showInInsightSchema := map[string]interface{}{
+		"retriggering_period_minutes": notifyEveryMin,
+		"notify_on":                   notifyOn,
 	}
-	if ignoreInfinity != nil {
-		notificationMap["ignore_infinity"] = ignoreInfinity.GetValue()
-	}
-	if notifyWhenResolved != nil {
-		notificationMap["on_trigger_and_resolved"] = notifyWhenResolved.GetValue()
-	}
-	if notifyOnlyOnTriggeredGroupByValues != nil {
-		notificationMap["notify_only_on_triggered_group_by_values"] = notifyOnlyOnTriggeredGroupByValues.GetValue()
-	}
-
 	return []interface{}{
-		notificationMap,
+		showInInsightSchema,
 	}
 }
 
-func flattenRecipients(notifications *alerts.AlertNotifications) interface{} {
-	if len(notifications.GetEmails()) == 0 && len(notifications.GetIntegrations()) == 0 {
-		return nil
+func flattenNotificationGroups(notificationGroups []*alerts.AlertNotificationGroups) interface{} {
+	result := make([]interface{}, 0, len(notificationGroups))
+	for _, group := range notificationGroups {
+		notificationGroup := flattenNotificationGroup(group)
+		result = append(result, notificationGroup)
+	}
+	return result
+}
+
+func flattenNotificationGroup(notificationGroup *alerts.AlertNotificationGroups) interface{} {
+	groupByFields := wrappedStringSliceToStringSlice(notificationGroup.GetGroupByFields())
+	notifications := flattenNotifications(notificationGroup.GetNotifications())
+	return map[string]interface{}{
+		"group_by_fields": groupByFields,
+		"notification":    notifications,
+	}
+}
+
+func flattenNotifications(notifications []*alerts.AlertNotification) interface{} {
+	result := make([]interface{}, 0, len(notifications))
+	for _, n := range notifications {
+		notificationSubgroup := flattenNotificationSubgroup(n)
+		result = append(result, notificationSubgroup)
+	}
+	return result
+}
+
+func flattenNotificationSubgroup(notification *alerts.AlertNotification) interface{} {
+	notifyEveryMin := int(notification.GetRetriggeringPeriodSeconds().GetValue() / 60)
+	notifyOn := alertProtoNotifyOnToSchemaNotifyOn[notification.GetNotifyOn()]
+	notificationSchema := map[string]interface{}{
+		"retriggering_period_minutes": notifyEveryMin,
+		"notify_on":                   notifyOn,
 	}
 
-	return []interface{}{
-		map[string]interface{}{
-			"emails":   wrappedStringSliceToStringSlice(notifications.GetEmails()),
-			"webhooks": wrappedStringSliceToStringSlice(notifications.GetIntegrations()),
-		},
+	switch integration := notification.GetIntegrationType().(type) {
+	case *alerts.AlertNotification_IntegrationId:
+		notificationSchema["integration_id"] = strconv.Itoa(int(integration.IntegrationId.GetValue()))
+	case *alerts.AlertNotification_Recipients:
+		notificationSchema["email_recipients"] = wrappedStringSliceToStringSlice(integration.Recipients.Emails)
 	}
+
+	return notificationSchema
 }
 
 func flattenScheduling(d *schema.ResourceData, activeWhen *alerts.AlertActiveWhen) interface{} {
@@ -1601,8 +1671,8 @@ func flattenScheduling(d *schema.ResourceData, activeWhen *alerts.AlertActiveWhe
 
 	return []interface{}{
 		map[string]interface{}{
-			"time_zone":   timeZone,
-			"time_frames": timeFrames,
+			"time_zone":  timeZone,
+			"time_frame": timeFrames,
 		},
 	}
 }
@@ -1648,6 +1718,13 @@ func getDaysOffsetFromGMT(activityStartGMT *alerts.Time, utc int32) int32 {
 	return daysOffset
 }
 
+func flattenTimeInDay(t *alerts.Time, utc int32) string {
+	hours := convertGmtToUtc(t.GetHours(), utc)
+	hoursStr := toTwoDigitsFormat(hours)
+	minStr := toTwoDigitsFormat(t.GetMinutes())
+	return fmt.Sprintf("%s:%s", hoursStr, minStr)
+}
+
 func flattenDaysOfWeek(daysOfWeek []alerts.DayOfWeek, daysOffset int32) interface{} {
 	result := schema.NewSet(schema.HashString, []interface{}{})
 	for _, d := range daysOfWeek {
@@ -1658,7 +1735,7 @@ func flattenDaysOfWeek(daysOfWeek []alerts.DayOfWeek, daysOffset int32) interfac
 	return result
 }
 
-func flattenAlertType(a *alerts.Alert) (alertType string, alertSchema interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
+func flattenAlertType(a *alerts.Alert) (alertType string, alertSchema interface{}) {
 	filters := a.GetFilters()
 	condition := a.GetCondition().GetCondition()
 
@@ -1669,23 +1746,23 @@ func flattenAlertType(a *alerts.Alert) (alertType string, alertSchema interface{
 			alertSchema = flattenNewValueAlert(filters, condition)
 		} else {
 			alertType = "standard"
-			alertSchema, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues = flattenStandardAlert(filters, condition)
+			alertSchema = flattenStandardAlert(filters, condition)
 		}
 	case alerts.AlertFilters_FILTER_TYPE_RATIO:
 		alertType = "ratio"
-		alertSchema, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues = flattenRatioAlert(filters, condition)
+		alertSchema = flattenRatioAlert(filters, condition)
 	case alerts.AlertFilters_FILTER_TYPE_UNIQUE_COUNT:
 		alertType = "unique_count"
 		alertSchema = flattenUniqueCountAlert(filters, condition)
 	case alerts.AlertFilters_FILTER_TYPE_TIME_RELATIVE:
 		alertType = "time_relative"
-		alertSchema, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues = flattenTimeRelativeAlert(filters, condition)
+		alertSchema = flattenTimeRelativeAlert(filters, condition)
 	case alerts.AlertFilters_FILTER_TYPE_METRIC:
 		alertType = "metric"
-		alertSchema, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues = flattenMetricAlert(filters, condition)
+		alertSchema = flattenMetricAlert(filters, condition)
 	case alerts.AlertFilters_FILTER_TYPE_TRACING:
 		alertType = "tracing"
-		alertSchema, notifyWhenResolved = flattenTracingAlert(condition, a.TracingAlert)
+		alertSchema = flattenTracingAlert(condition, a.TracingAlert)
 	case alerts.AlertFilters_FILTER_TYPE_FLOW:
 		alertType = "flow"
 		alertSchema = flattenFlowAlert(condition)
@@ -1709,15 +1786,14 @@ func flattenNewValueCondition(condition interface{}) interface{} {
 	}
 }
 
-func flattenStandardAlert(filters *alerts.AlertFilters, condition interface{}) (alertSchema interface{}, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
+func flattenStandardAlert(filters *alerts.AlertFilters, condition interface{}) interface{} {
 	alertSchemaMap := flattenCommonAlert(filters)
-	conditionSchema, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues := flattenStandardCondition(condition)
+	conditionSchema := flattenStandardCondition(condition)
 	alertSchemaMap["condition"] = conditionSchema
-	alertSchema = []interface{}{alertSchemaMap}
-	return
+	return []interface{}{alertSchemaMap}
 }
 
-func flattenStandardCondition(condition interface{}) (conditionSchema interface{}, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
+func flattenStandardCondition(condition interface{}) (conditionSchema interface{}) {
 	var conditionParams *alerts.ConditionParameters
 	switch condition := condition.(type) {
 	case *alerts.AlertCondition_Immediate:
@@ -1730,10 +1806,10 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 		conditionParams = condition.LessThan.GetParameters()
 		groupBy := wrappedStringSliceToStringSlice(conditionParams.GroupBy)
 		m := map[string]interface{}{
-			"less_than":             true,
-			"occurrences_threshold": int(conditionParams.GetThreshold().GetValue()),
-			"group_by":              groupBy,
-			"time_window":           alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
+			"less_than":   true,
+			"threshold":   int(conditionParams.GetThreshold().GetValue()),
+			"group_by":    groupBy,
+			"time_window": alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
 		}
 
 		if len(groupBy) > 0 {
@@ -1741,25 +1817,21 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 		}
 
 		conditionSchema = []interface{}{m}
-		notifyWhenResolved = conditionParams.GetNotifyOnResolved()
-		notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
 	case *alerts.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		conditionSchema = []interface{}{
 			map[string]interface{}{
-				"more_than":             true,
-				"occurrences_threshold": int(conditionParams.GetThreshold().GetValue()),
-				"group_by":              wrappedStringSliceToStringSlice(conditionParams.GroupBy),
-				"time_window":           alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
+				"more_than":   true,
+				"threshold":   int(conditionParams.GetThreshold().GetValue()),
+				"group_by":    wrappedStringSliceToStringSlice(conditionParams.GroupBy),
+				"time_window": alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
 			},
 		}
-		notifyWhenResolved = conditionParams.GetNotifyOnResolved()
-		notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
 	case *alerts.AlertCondition_MoreThanUsual:
 		conditionParams = condition.MoreThanUsual.GetParameters()
 		conditionMap := map[string]interface{}{
-			"more_than_usual":       true,
-			"occurrences_threshold": int(conditionParams.GetThreshold().GetValue()),
+			"more_than_usual": true,
+			"threshold":       int(conditionParams.GetThreshold().GetValue()),
 		}
 		if groupBy := conditionParams.GetGroupBy(); len(groupBy) > 0 {
 			conditionMap["group_by_key"] = groupBy[0].Value
@@ -1802,25 +1874,23 @@ func flattenDeadmanRatio(cleanupDeadmanDuration alerts.CleanupDeadmanDuration) s
 	return deadmanRatio
 }
 
-func flattenRatioAlert(filters *alerts.AlertFilters, condition interface{}) (alertSchema interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
+func flattenRatioAlert(filters *alerts.AlertFilters, condition interface{}) interface{} {
 	query1Map := flattenCommonAlert(filters)
 	query1Map["alias"] = filters.GetAlias().GetValue()
 	query2 := filters.GetRatioAlerts()[0]
 	query2Map := flattenQuery2ParamsMap(query2)
-	conditionMap, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues := flattenRatioCondition(condition, query2)
+	conditionMap := flattenRatioCondition(condition, query2)
 
-	alertSchema = []interface{}{
+	return []interface{}{
 		map[string]interface{}{
 			"query_1":   []interface{}{query1Map},
 			"query_2":   []interface{}{query2Map},
 			"condition": []interface{}{conditionMap},
 		},
 	}
-
-	return
 }
 
-func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_RatioAlert) (ratioParams interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
+func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_RatioAlert) interface{} {
 	var conditionParams *alerts.ConditionParameters
 	ratioParamsMap := make(map[string]interface{})
 
@@ -1834,15 +1904,12 @@ func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_Ra
 		conditionParams = condition.MoreThan.GetParameters()
 		ratioParamsMap["more_than"] = true
 	default:
-		return
+		return nil
 	}
 
-	ratioParamsMap["queries_ratio"] = conditionParams.GetThreshold().GetValue()
+	ratioParamsMap["ratio_threshold"] = conditionParams.GetThreshold().GetValue()
 	ratioParamsMap["time_window"] = alertProtoTimeFrameToSchemaTimeFrame[conditionParams.GetTimeframe().String()]
-
-	ignoreInfinity = conditionParams.GetIgnoreInfinity()
-	notifyWhenResolved = conditionParams.GetNotifyOnResolved()
-	notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
+	ratioParamsMap["ignore_infinity"] = conditionParams.GetIgnoreInfinity().GetValue()
 
 	groupByQ1 := conditionParams.GetGroupBy()
 	groupByQ2 := query2.GetGroupBy()
@@ -1864,8 +1931,7 @@ func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_Ra
 		ratioParamsMap["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
 	}
 
-	ratioParams = ratioParamsMap
-	return
+	return ratioParamsMap
 }
 
 func flattenQuery2ParamsMap(query2 *alerts.AlertFilters_RatioAlert) interface{} {
@@ -1901,15 +1967,14 @@ func flattenUniqueCountCondition(condition interface{}) interface{} {
 	return conditionMap
 }
 
-func flattenTimeRelativeAlert(filters *alerts.AlertFilters, condition interface{}) (timeRelativeSchema interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
+func flattenTimeRelativeAlert(filters *alerts.AlertFilters, condition interface{}) interface{} {
 	alertSchema := flattenCommonAlert(filters)
-	conditionMap, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues := flattenTimeRelativeCondition(condition)
+	conditionMap := flattenTimeRelativeCondition(condition)
 	alertSchema["condition"] = []interface{}{conditionMap}
-	timeRelativeSchema = []interface{}{alertSchema}
-	return
+	return []interface{}{alertSchema}
 }
 
-func flattenTimeRelativeCondition(condition interface{}) (timeRelativeConditionSchema interface{}, ignoreInfinity, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
+func flattenTimeRelativeCondition(condition interface{}) interface{} {
 	var conditionParams *alerts.ConditionParameters
 	timeRelativeCondition := make(map[string]interface{})
 	switch condition := condition.(type) {
@@ -1923,21 +1988,17 @@ func flattenTimeRelativeCondition(condition interface{}) (timeRelativeConditionS
 		conditionParams = condition.MoreThan.GetParameters()
 		timeRelativeCondition["more_than"] = true
 	default:
-		return
+		return nil
 	}
 
+	timeRelativeCondition["ignore_infinity"] = conditionParams.GetIgnoreInfinity().GetValue()
 	timeRelativeCondition["ratio_threshold"] = int(conditionParams.GetThreshold().GetValue())
 	timeRelativeCondition["group_by"] = wrappedStringSliceToStringSlice(conditionParams.GroupBy)
-	timeFrame := conditionParams.Timeframe
+	timeFrame := conditionParams.GetTimeframe()
 	relativeTimeFrame := conditionParams.GetRelativeTimeframe()
 	timeRelativeCondition["relative_time_window"] = flattenRelativeTimeWindow(timeFrame, relativeTimeFrame)
 
-	ignoreInfinity = conditionParams.GetIgnoreInfinity()
-	notifyWhenResolved = conditionParams.GetNotifyOnResolved()
-	notifyOnlyOnTriggeredGroupByValues = conditionParams.GetNotifyGroupByOnlyAlerts()
-	timeRelativeConditionSchema = timeRelativeCondition
-
-	return
+	return timeRelativeCondition
 }
 
 func flattenRelativeTimeWindow(timeFrame alerts.Timeframe, relativeTimeFrame alerts.RelativeTimeframe) string {
@@ -1945,7 +2006,7 @@ func flattenRelativeTimeWindow(timeFrame alerts.Timeframe, relativeTimeFrame ale
 	return alertProtoTimeFrameAndRelativeTimeFrameToSchemaRelativeTimeFrame[p]
 }
 
-func flattenMetricAlert(filters *alerts.AlertFilters, condition interface{}) (metricAlertSchema interface{}, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
+func flattenMetricAlert(filters *alerts.AlertFilters, condition interface{}) interface{} {
 	var conditionParams *alerts.ConditionParameters
 	var conditionStr string
 	switch condition := condition.(type) {
@@ -1956,7 +2017,7 @@ func flattenMetricAlert(filters *alerts.AlertFilters, condition interface{}) (me
 		conditionParams = condition.MoreThan.GetParameters()
 		conditionStr = "more_than"
 	default:
-		return
+		return nil
 	}
 
 	var metricTypeStr string
@@ -1966,11 +2027,11 @@ func flattenMetricAlert(filters *alerts.AlertFilters, condition interface{}) (me
 	if promqlParams != nil {
 		metricTypeStr = "promql"
 		searchQuery = promqlParams.GetPromqlText().GetValue()
-		conditionMap, notifyWhenResolved = flattenPromQLCondition(conditionParams)
+		conditionMap = flattenPromQLCondition(conditionParams)
 	} else {
 		metricTypeStr = "lucene"
 		searchQuery = filters.GetText().GetValue()
-		conditionMap, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues = flattenLuceneCondition(conditionParams)
+		conditionMap = flattenLuceneCondition(conditionParams)
 	}
 	conditionMap[conditionStr] = true
 	if conditionStr == "less_than" {
@@ -1982,16 +2043,14 @@ func flattenMetricAlert(filters *alerts.AlertFilters, condition interface{}) (me
 		"condition":    []interface{}{conditionMap},
 	}
 
-	metricAlertSchema = []interface{}{
+	return []interface{}{
 		map[string]interface{}{
 			metricTypeStr: []interface{}{metricMap},
 		},
 	}
-
-	return
 }
 
-func flattenPromQLCondition(params *alerts.ConditionParameters) (promQLConditionMap map[string]interface{}, notifyWhenResolved *wrapperspb.BoolValue) {
+func flattenPromQLCondition(params *alerts.ConditionParameters) (promQLConditionMap map[string]interface{}) {
 	promqlParams := params.GetMetricAlertPromqlParameters()
 	promQLConditionMap =
 		map[string]interface{}{
@@ -2001,13 +2060,12 @@ func flattenPromQLCondition(params *alerts.ConditionParameters) (promQLCondition
 			"replace_missing_value_with_zero": promqlParams.GetSwapNullValues().GetValue(),
 			"min_non_null_values_percentage":  promqlParams.GetNonNullPercentage().GetValue(),
 		}
-	notifyWhenResolved = params.GetNotifyOnResolved()
 	return
 }
 
-func flattenLuceneCondition(params *alerts.ConditionParameters) (luceneConditionMap map[string]interface{}, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) {
+func flattenLuceneCondition(params *alerts.ConditionParameters) map[string]interface{} {
 	metricParams := params.GetMetricAlertParameters()
-	luceneConditionMap = map[string]interface{}{
+	return map[string]interface{}{
 		"metric_field":                    metricParams.GetMetricField().GetValue(),
 		"arithmetic_operator":             alertProtoArithmeticOperatorToSchemaArithmetic[metricParams.GetArithmeticOperator().String()],
 		"threshold":                       params.GetThreshold().GetValue(),
@@ -2018,24 +2076,31 @@ func flattenLuceneCondition(params *alerts.ConditionParameters) (luceneCondition
 		"replace_missing_value_with_zero": metricParams.GetSwapNullValues().GetValue(),
 		"min_non_null_values_percentage":  metricParams.GetNonNullPercentage().GetValue(),
 	}
-	notifyWhenResolved = params.GetNotifyOnResolved()
-	notifyOnlyOnTriggeredGroupByValues = params.GetNotifyGroupByOnlyAlerts()
-	return
 }
 
-func flattenTracingAlert(condition interface{}, tracingAlert *alerts.TracingAlert) (alertSchema interface{}, notifyWhenResolved *wrapperspb.BoolValue) {
+func flattenTracingAlert(condition interface{}, tracingAlert *alerts.TracingAlert) interface{} {
 	latencyThresholdMS := float64(tracingAlert.GetConditionLatency()) / float64(time.Millisecond.Microseconds())
-	fieldFilters := flattenFiltersData(tracingAlert.GetFieldFilters(), true)
-	tagFilters := flattenFiltersData(tracingAlert.GetTagFilters(), false)
-	conditionSchema, notifyWhenResolved := flattenTracingCondition(condition)
-	alertSchema = []interface{}{
+	applications, subsystems, services := flattenTracingFilters(tracingAlert.GetFieldFilters())
+	tagFilters := flattenTagFiltersData(tracingAlert.GetTagFilters())
+	conditionSchema := flattenTracingCondition(condition)
+
+	return []interface{}{
 		map[string]interface{}{
-			"latency_threshold_ms": latencyThresholdMS,
-			"field_filters":        fieldFilters,
-			"tag_filters":          tagFilters,
-			"condition":            conditionSchema,
+			"latency_threshold_milliseconds": latencyThresholdMS,
+			"applications":                   applications,
+			"subsystems":                     subsystems,
+			"services":                       services,
+			"tag_filter":                     tagFilters,
+			"condition":                      conditionSchema,
 		},
 	}
+}
+
+func flattenTracingFilters(tracingFilters []*alerts.FilterData) (applications, subsystems, services interface{}) {
+	filtersData := flattenFiltersData(tracingFilters)
+	applications = filtersData["applicationName"]
+	subsystems = filtersData["subsystemName"]
+	services = filtersData["serviceName"]
 	return
 }
 
@@ -2046,7 +2111,7 @@ func flattenFlowAlert(condition interface{}) interface{} {
 func flattenFlowAlertsCondition(condition *alerts.AlertCondition_Flow) interface{} {
 	stages := flattenStages(condition.Flow.GetStages())
 	return map[string]interface{}{
-		"stages": stages,
+		"stage": stages,
 	}
 }
 
@@ -2061,7 +2126,7 @@ func flattenStages(stages []*alerts.FlowStage) []interface{} {
 func flattenStage(stage *alerts.FlowStage) interface{} {
 	timeMS := int(stage.GetTimeframe().GetMs().GetValue())
 	return map[string]interface{}{
-		"groups":      flattenGroups(stage.GetGroups()),
+		"group":       flattenGroups(stage.GetGroups()),
 		"time_window": flattenTimeframe(timeMS),
 	}
 }
@@ -2074,81 +2139,95 @@ func flattenGroups(groups []*alerts.FlowGroup) []interface{} {
 	return result
 }
 
-func flattenGroup(g *alerts.FlowGroup) interface{} {
-	subAlerts := flattenSubAlerts(g.GetAlerts().GetValues())
-	operator := g.GetNextOp().String()
+func flattenGroup(fg *alerts.FlowGroup) interface{} {
+	subAlerts := flattenSubAlerts(fg.GetAlerts())
+	operator := fg.GetNextOp().String()
 	return map[string]interface{}{
-		"sub_alerts": subAlerts,
-		"operator":   operator,
+		"sub_alerts":    subAlerts,
+		"next_operator": operator,
 	}
 }
 
-func flattenSubAlerts(subAlerts []*alerts.FlowAlert) interface{} {
-	result := make([]interface{}, 0, len(subAlerts))
-	for _, s := range subAlerts {
-		result = append(result, flattenSubAlert(s))
+func flattenSubAlerts(subAlerts *alerts.FlowAlerts) interface{} {
+	operator := subAlerts.GetOp().String()
+	flowAlerts := make([]interface{}, 0, len(subAlerts.GetValues()))
+	for _, sa := range subAlerts.GetValues() {
+		flowAlerts = append(flowAlerts, flattenInnerFlowAlert(sa))
 	}
-	return result
+
+	return []interface{}{
+		map[string]interface{}{
+			"operator":   operator,
+			"flow_alert": flowAlerts,
+		},
+	}
 }
 
-func flattenSubAlert(subAlert *alerts.FlowAlert) interface{} {
+func flattenInnerFlowAlert(subAlert *alerts.FlowAlert) interface{} {
 	return map[string]interface{}{
 		"not":           subAlert.GetNot().GetValue(),
 		"user_alert_id": subAlert.GetId().GetValue(),
 	}
 }
 
-func flattenFiltersData(filtersData []*alerts.FilterData, isFieldFilters bool) []interface{} {
-	result := make([]interface{}, 0, len(filtersData))
-	for _, f := range filtersData {
-		field := f.GetField()
-		if isFieldFilters {
-			field = alertProtoTracingFilterFieldToSchemaTracingFilterField[field]
-		}
-		m := map[string]interface{}{
-			"field":   field,
-			"filters": flattenFilters(f.GetFilters()),
-		}
-		result = append(result, m)
+func flattenFiltersData(filtersData []*alerts.FilterData) map[string]interface{} {
+	result := make(map[string]interface{}, len(filtersData))
+	for _, filter := range filtersData {
+		field := filter.GetField()
+		result[field] = flattenFilters(filter.GetFilters())
 	}
 	return result
 }
 
-func flattenFilters(filters []*alerts.Filters) []interface{} {
-	result := make([]interface{}, 0, len(filters))
+func flattenTagFiltersData(filtersData []*alerts.FilterData) interface{} {
+	fieldToFilters := flattenFiltersData(filtersData)
+	result := make([]interface{}, 0, len(fieldToFilters))
+	for field, filters := range fieldToFilters {
+		filterSchema := map[string]interface{}{
+			"field":  field,
+			"values": filters,
+		}
+		result = append(result, filterSchema)
+	}
+	return result
+}
+
+func flattenFilters(filters []*alerts.Filters) []string {
+	result := make([]string, 0)
 	for _, f := range filters {
-		m := map[string]interface{}{
-			"values":   f.GetValues(),
-			"operator": alertProtoTracingOperatorToSchemaTracingOperator[f.GetOperator()],
+		values := f.GetValues()
+		switch operator := f.GetOperator(); operator {
+		case "contains", "startsWith", "endsWith":
+			for i, val := range values {
+				values[i] = fmt.Sprintf("filter:%s:%s", operator, val)
+			}
 		}
-		result = append(result, m)
+		result = append(result, values...)
 	}
 	return result
 }
 
-func flattenTracingCondition(condition interface{}) (conditionSchema interface{}, notifyWhenResolved *wrapperspb.BoolValue) {
+func flattenTracingCondition(condition interface{}) interface{} {
 	switch condition := condition.(type) {
 	case *alerts.AlertCondition_Immediate:
-		conditionSchema = []interface{}{
+		return []interface{}{
 			map[string]interface{}{
 				"immediately": true,
 			},
 		}
 	case *alerts.AlertCondition_MoreThan:
 		conditionParams := condition.MoreThan.GetParameters()
-		conditionSchema = []interface{}{
+		return []interface{}{
 			map[string]interface{}{
-				"more_than":             true,
-				"occurrences_threshold": conditionParams.GetThreshold().GetValue(),
-				"time_window":           alertProtoTimeFrameToSchemaTimeFrame[conditionParams.GetTimeframe().String()],
-				"group_by":              wrappedStringSliceToStringSlice(conditionParams.GetGroupBy()),
+				"more_than":   true,
+				"threshold":   conditionParams.GetThreshold().GetValue(),
+				"time_window": alertProtoTimeFrameToSchemaTimeFrame[conditionParams.GetTimeframe().String()],
+				"group_by":    wrappedStringSliceToStringSlice(conditionParams.GetGroupBy()),
 			},
 		}
-		notifyWhenResolved = conditionParams.GetNotifyOnResolved()
 	default:
-		return
+		return nil
 	}
-	return
 }
 
 func flattenCommonAlert(filters *alerts.AlertFilters) map[string]interface{} {
@@ -2187,59 +2266,6 @@ func flattenExpirationDate(expiration *alerts.Date) []map[string]int {
 	return []map[string]int{m}
 }
 
-func expandNotification(i interface{}) *notification {
-	l := i.([]interface{})
-	if len(l) == 0 || l[0] == nil {
-		return &notification{}
-	}
-	raw := l[0]
-	m := raw.(map[string]interface{})
-
-	notifyEverySec := extractNotifyEverySec(m["notify_every_min"])
-	notifyWhenResolved := wrapperspb.Bool(m["on_trigger_and_resolved"].(bool))
-	ignoreInfinity := wrapperspb.Bool(m["ignore_infinity"].(bool))
-	notifyOnlyOnTriggeredGroupByValues := wrapperspb.Bool(m["notify_only_on_triggered_group_by_values"].(bool))
-	recipients := expandRecipients(m["recipients"])
-	payloadFields := interfaceSliceToWrappedStringSlice(m["payload_fields"].(*schema.Set).List())
-
-	return &notification{
-		notifyEverySec:                     notifyEverySec,
-		notifyWhenResolved:                 notifyWhenResolved,
-		notifyOnlyOnTriggeredGroupByValues: notifyOnlyOnTriggeredGroupByValues,
-		ignoreInfinity:                     ignoreInfinity,
-		recipients:                         recipients,
-		payloadFields:                      payloadFields,
-	}
-}
-
-func extractNotifyEverySec(i interface{}) *wrapperspb.DoubleValue {
-	if i == nil {
-		return nil
-	}
-	v := i.(int)
-	notifyEveryMin := float64(v * 60)
-	var notifyEverySec *wrapperspb.DoubleValue
-	if notifyEveryMin > 0 {
-		notifyEverySec = wrapperspb.Double(notifyEveryMin)
-	}
-	return notifyEverySec
-}
-
-func expandRecipients(i interface{}) *alerts.AlertNotifications {
-	l := i.([]interface{})
-	if len(l) == 0 || l[0] == nil {
-		return &alerts.AlertNotifications{}
-	}
-	raw := l[0]
-	m := raw.(map[string]interface{})
-	emailRecipients := interfaceSliceToWrappedStringSlice(m["emails"].(*schema.Set).List())
-	webhookRecipients := interfaceSliceToWrappedStringSlice(m["webhooks"].(*schema.Set).List())
-	return &alerts.AlertNotifications{
-		Emails:       emailRecipients,
-		Integrations: webhookRecipients,
-	}
-}
-
 func expandAlertSeverity(severity string) alerts.AlertSeverity {
 	severityStr := alertSchemaSeverityToProtoSeverity[severity]
 	formatStandardVal := alerts.AlertSeverity_value[severityStr]
@@ -2260,25 +2286,117 @@ func expandExpirationDate(v interface{}) *alerts.Date {
 	}
 }
 
-func extractMetaLabels(v interface{}) []*alerts.MetaLabel {
+func expandShowInInsight(v interface{}) *alerts.ShowInInsight {
+	l := v.([]interface{})
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+	raw := l[0]
+	m := raw.(map[string]interface{})
+
+	retriggeringPeriodSeconds := wrapperspb.UInt32(uint32(m["retriggering_period_minutes"].(int)) * 60)
+	notifyOn := alertSchemaNotifyOnToProtoNotifyOn[m["notify_on"].(string)]
+	return &alerts.ShowInInsight{
+		RetriggeringPeriodSeconds: retriggeringPeriodSeconds,
+		NotifyOn:                  &notifyOn,
+	}
+}
+
+func expandNotificationGroups(v interface{}) ([]*alerts.AlertNotificationGroups, diag.Diagnostics) {
 	v = v.(*schema.Set).List()
 	l := v.([]interface{})
-	result := make([]*alerts.MetaLabel, 0, len(l))
+	result := make([]*alerts.AlertNotificationGroups, 0, len(l))
+	var diags diag.Diagnostics
 	for _, s := range l {
-		ml := expandMetaLabel(s)
+		ml, dgs := expandNotificationGroup(s)
+		diags = append(diags, dgs...)
+		result = append(result, ml)
+	}
+	return result, diags
+}
+
+func expandNotificationGroup(v interface{}) (*alerts.AlertNotificationGroups, diag.Diagnostics) {
+	if v == nil {
+		return nil, nil
+	}
+	m := v.(map[string]interface{})
+
+	groupByFields := interfaceSliceToWrappedStringSlice(m["group_by_fields"].(*schema.Set).List())
+	notifications, diags := expandNotificationSubgroups(m["notification"])
+	if len(diags) != 0 {
+		return nil, diags
+	}
+
+	return &alerts.AlertNotificationGroups{
+		GroupByFields: groupByFields,
+		Notifications: notifications,
+	}, nil
+}
+
+func expandNotificationSubgroups(v interface{}) ([]*alerts.AlertNotification, diag.Diagnostics) {
+	v = v.(*schema.Set).List()
+	notifications := v.([]interface{})
+	result := make([]*alerts.AlertNotification, 0, len(notifications))
+	var diags diag.Diagnostics
+	for _, n := range notifications {
+		notification, err := expandNotificationSubgroup(n)
+		if err != nil {
+			diags = append(diags, diag.FromErr(err)...)
+		}
+		result = append(result, notification)
+	}
+	return result, diags
+}
+
+func expandNotificationSubgroup(v interface{}) (*alerts.AlertNotification, error) {
+	if v == nil {
+		return nil, nil
+	}
+	m := v.(map[string]interface{})
+
+	notifyEverySec := wrapperspb.UInt32(uint32(m["retriggering_period_minutes"].(int)) * 60)
+	notifyOn := alertSchemaNotifyOnToProtoNotifyOn[m["notify_on"].(string)]
+
+	notification := &alerts.AlertNotification{
+		RetriggeringPeriodSeconds: notifyEverySec,
+		NotifyOn:                  &notifyOn,
+	}
+
+	var isWebhookIdDefined bool
+	if webhookID, ok := m["integration_id"].(string); ok && webhookID != "" {
+		isWebhookIdDefined = true
+		id, _ := strconv.Atoi(webhookID)
+		notification.IntegrationType = &alerts.AlertNotification_IntegrationId{
+			IntegrationId: wrapperspb.UInt32(uint32(id)),
+		}
+	}
+
+	if emails := m["email_recipients"].(*schema.Set).List(); len(emails) != 0 {
+		if isWebhookIdDefined {
+			return nil, fmt.Errorf("required exactly on of 'integration_id' or 'email_recipients'")
+		}
+
+		notification.IntegrationType = &alerts.AlertNotification_Recipients{
+			Recipients: &alerts.Recipients{
+				Emails: interfaceSliceToWrappedStringSlice(emails),
+			},
+		}
+	}
+
+	return notification, nil
+}
+
+func extractMetaLabels(v interface{}) []*alerts.MetaLabel {
+	m := v.(map[string]interface{})
+	result := make([]*alerts.MetaLabel, 0, len(m))
+	for key, val := range m {
+		ml := &alerts.MetaLabel{
+			Key:   wrapperspb.String(key),
+			Value: wrapperspb.String(val.(string)),
+		}
 		result = append(result, ml)
 	}
 	return result
-}
-
-func expandMetaLabel(v interface{}) *alerts.MetaLabel {
-	m := v.(map[string]interface{})
-	key := wrapperspb.String(m["key"].(string))
-	value := wrapperspb.String(m["value"].(string))
-	return &alerts.MetaLabel{
-		Key:   key,
-		Value: value,
-	}
 }
 
 func expandActiveWhen(v interface{}) *alerts.AlertActiveWhen {
@@ -2289,7 +2407,7 @@ func expandActiveWhen(v interface{}) *alerts.AlertActiveWhen {
 
 	schedulingMap := l[0].(map[string]interface{})
 	utc := flattenUtc(schedulingMap["time_zone"].(string))
-	timeFrames := schedulingMap["time_frames"].(*schema.Set).List()
+	timeFrames := schedulingMap["time_frame"].(*schema.Set).List()
 
 	expandedTimeframes := expandActiveTimeframes(timeFrames, utc)
 
@@ -2384,7 +2502,7 @@ func expandRange(activityStarts, activityEnds interface{}) *alerts.TimeRange {
 	}
 }
 
-func expandAlertType(d *schema.ResourceData, notification *notification) (alertTypeParams *alertParams, tracingAlert *alerts.TracingAlert, err error) {
+func expandAlertType(d *schema.ResourceData) (alertTypeParams *alertParams, tracingAlert *alerts.TracingAlert, diags diag.Diagnostics) {
 	alertTypeStr := From(validAlertTypes).FirstWith(func(key interface{}) bool {
 		return len(d.Get(key.(string)).([]interface{})) > 0
 	}).(string)
@@ -2393,19 +2511,19 @@ func expandAlertType(d *schema.ResourceData, notification *notification) (alertT
 
 	switch alertTypeStr {
 	case "standard":
-		alertTypeParams, err = expandStandard(alertType, notification.notifyWhenResolved, notification.notifyOnlyOnTriggeredGroupByValues)
+		alertTypeParams, diags = expandStandard(alertType)
 	case "ratio":
-		alertTypeParams, err = expandRatio(alertType, notification.ignoreInfinity, notification.notifyWhenResolved, notification.notifyOnlyOnTriggeredGroupByValues)
+		alertTypeParams, diags = expandRatio(alertType)
 	case "new_value":
 		alertTypeParams = expandNewValue(alertType)
 	case "unique_count":
 		alertTypeParams = expandUniqueCount(alertType)
 	case "time_relative":
-		alertTypeParams, err = expandTimeRelative(alertType, notification.ignoreInfinity, notification.notifyWhenResolved, notification.notifyOnlyOnTriggeredGroupByValues)
+		alertTypeParams, diags = expandTimeRelative(alertType)
 	case "metric":
-		alertTypeParams, err = expandMetric(alertType, notification.notifyWhenResolved, notification.notifyOnlyOnTriggeredGroupByValues)
+		alertTypeParams, diags = expandMetric(alertType)
 	case "tracing":
-		alertTypeParams, tracingAlert = expandTracing(alertType, notification.notifyWhenResolved)
+		alertTypeParams, tracingAlert = expandTracing(alertType)
 	case "flow":
 		alertTypeParams = expandFlow(alertType)
 	}
@@ -2413,11 +2531,11 @@ func expandAlertType(d *schema.ResourceData, notification *notification) (alertT
 	return
 }
 
-func expandStandard(m map[string]interface{}, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alertParams, error) {
+func expandStandard(m map[string]interface{}) (*alertParams, diag.Diagnostics) {
 	conditionMap := extractConditionMap(m)
-	condition, err := expandStandardCondition(conditionMap, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
+	condition, err := expandStandardCondition(conditionMap)
 	if err != nil {
-		return nil, err
+		return nil, diag.FromErr(err)
 	}
 	filters := expandStandardFilter(m)
 	return &alertParams{
@@ -2426,13 +2544,13 @@ func expandStandard(m map[string]interface{}, notifyOnResolved, notifyOnlyOnTrig
 	}, nil
 }
 
-func expandStandardCondition(m map[string]interface{}, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alerts.AlertCondition, error) {
+func expandStandardCondition(m map[string]interface{}) (*alerts.AlertCondition, error) {
 	if immediately := m["immediately"]; immediately != nil && immediately.(bool) {
 		return &alerts.AlertCondition{
 			Condition: &alerts.AlertCondition_Immediate{},
 		}, nil
 	} else if moreThenUsual := m["more_than_usual"]; moreThenUsual != nil && moreThenUsual.(bool) {
-		threshold := wrapperspb.Double(float64(m["occurrences_threshold"].(int)))
+		threshold := wrapperspb.Double(float64(m["threshold"].(int)))
 		groupBy := []*wrapperspb.StringValue{wrapperspb.String(m["group_by_key"].(string))}
 		parameters := &alerts.ConditionParameters{
 			Threshold: threshold,
@@ -2444,7 +2562,7 @@ func expandStandardCondition(m map[string]interface{}, notifyOnResolved, notifyO
 			},
 		}, nil
 	} else {
-		parameters, err := expandStandardConditionParameters(m, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
+		parameters, err := expandStandardConditionParameters(m)
 		if err != nil {
 			return nil, err
 		}
@@ -2494,35 +2612,32 @@ func expandRelatedExtendedData(m map[string]interface{}) (*alerts.RelatedExtende
 	return nil, nil
 }
 
-func expandStandardConditionParameters(m map[string]interface{}, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alerts.ConditionParameters, error) {
+func expandStandardConditionParameters(m map[string]interface{}) (*alerts.ConditionParameters, error) {
 	timeFrame := expandTimeFrame(m["time_window"].(string))
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
-	threshold := wrapperspb.Double(float64(m["occurrences_threshold"].(int)))
+	threshold := wrapperspb.Double(float64(m["threshold"].(int)))
 	relatedExtendedData, err := expandRelatedExtendedData(m)
 	if err != nil {
 		return nil, err
 	}
 
 	return &alerts.ConditionParameters{
-		Threshold:               threshold,
-		Timeframe:               timeFrame,
-		GroupBy:                 groupBy,
-		NotifyOnResolved:        notifyOnResolved,
-		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
-		RelatedExtendedData:     relatedExtendedData,
+		Threshold:           threshold,
+		Timeframe:           timeFrame,
+		GroupBy:             groupBy,
+		RelatedExtendedData: relatedExtendedData,
 	}, nil
 }
 
-func expandTracingConditionParameters(m map[string]interface{}, notifyOnResolved *wrapperspb.BoolValue) *alerts.ConditionParameters {
+func expandTracingConditionParameters(m map[string]interface{}) *alerts.ConditionParameters {
 	timeFrame := expandTimeFrame(m["time_window"].(string))
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
-	threshold := wrapperspb.Double(float64(m["occurrences_threshold"].(int)))
+	threshold := wrapperspb.Double(float64(m["threshold"].(int)))
 
 	return &alerts.ConditionParameters{
-		Threshold:        threshold,
-		Timeframe:        timeFrame,
-		GroupBy:          groupBy,
-		NotifyOnResolved: notifyOnResolved,
+		Threshold: threshold,
+		Timeframe: timeFrame,
+		GroupBy:   groupBy,
 	}
 }
 
@@ -2532,7 +2647,7 @@ func expandStandardFilter(m map[string]interface{}) *alerts.AlertFilters {
 	return filters
 }
 
-func expandRatio(m map[string]interface{}, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alertParams, error) {
+func expandRatio(m map[string]interface{}) (*alertParams, diag.Diagnostics) {
 	conditionMap := extractConditionMap(m)
 	groupBy := interfaceSliceToWrappedStringSlice(conditionMap["group_by"].([]interface{}))
 	var groupByQ1, groupByQ2 []*wrapperspb.StringValue
@@ -2545,13 +2660,13 @@ func expandRatio(m map[string]interface{}, ignoreInfinity, notifyOnResolved, not
 			groupByQ1 = groupBy
 			groupByQ2 = groupBy
 		} else {
-			return nil, fmt.Errorf("group_by is required with one of - group_by_q1/group_by_q1/group_by_both")
+			return nil, diag.Errorf("group_by is required with one of - group_by_q1/group_by_q1/group_by_both")
 		}
 	}
 
-	condition, err := expandRatioCondition(conditionMap, groupByQ1, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
+	condition, err := expandRatioCondition(conditionMap, groupByQ1)
 	if err != nil {
-		return nil, err
+		return nil, diag.FromErr(err)
 	}
 	filters := expandRatioFilters(m, groupByQ2)
 
@@ -2571,8 +2686,8 @@ func expandRatioFilters(m map[string]interface{}, groupBy []*wrapperspb.StringVa
 	return filters
 }
 
-func expandRatioCondition(m map[string]interface{}, groupBy []*wrapperspb.StringValue, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alerts.AlertCondition, error) {
-	parameters, err := expandRatioParams(m, groupBy, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
+func expandRatioCondition(m map[string]interface{}, groupBy []*wrapperspb.StringValue) (*alerts.AlertCondition, error) {
+	parameters, err := expandRatioParams(m, groupBy)
 	if err != nil {
 		return nil, err
 	}
@@ -2580,22 +2695,21 @@ func expandRatioCondition(m map[string]interface{}, groupBy []*wrapperspb.String
 	return expandLessThanOrMoreThanAlertCondition(m, parameters)
 }
 
-func expandRatioParams(m map[string]interface{}, groupBy []*wrapperspb.StringValue, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alerts.ConditionParameters, error) {
-	threshold := wrapperspb.Double(m["queries_ratio"].(float64))
+func expandRatioParams(m map[string]interface{}, groupBy []*wrapperspb.StringValue) (*alerts.ConditionParameters, error) {
+	threshold := wrapperspb.Double(m["ratio_threshold"].(float64))
 	timeFrame := expandTimeFrame(m["time_window"].(string))
+	ignoreInfinity := wrapperspb.Bool(m["ignore_infinity"].(bool))
 	relatedExtendedData, err := expandRelatedExtendedData(m)
 	if err != nil {
 		return nil, err
 	}
 
 	return &alerts.ConditionParameters{
-		Threshold:               threshold,
-		Timeframe:               timeFrame,
-		GroupBy:                 groupBy,
-		NotifyOnResolved:        notifyOnResolved,
-		IgnoreInfinity:          ignoreInfinity,
-		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
-		RelatedExtendedData:     relatedExtendedData,
+		Threshold:           threshold,
+		Timeframe:           timeFrame,
+		GroupBy:             groupBy,
+		IgnoreInfinity:      ignoreInfinity,
+		RelatedExtendedData: relatedExtendedData,
 	}, nil
 }
 
@@ -2603,9 +2717,9 @@ func expandQuery2(v interface{}, groupBy []*wrapperspb.StringValue) *alerts.Aler
 	m := v.([]interface{})[0].(map[string]interface{})
 	alias := wrapperspb.String(m["alias"].(string))
 	text := wrapperspb.String(m["search_query"].(string))
-	severities := expandAlertFiltersSeverities(m["severities"])
-	applications := interfaceSliceToWrappedStringSlice(m["applications"].([]interface{}))
-	subsystems := interfaceSliceToWrappedStringSlice(m["subsystems"].([]interface{}))
+	severities := expandAlertFiltersSeverities(m["severities"].(*schema.Set).List())
+	applications := interfaceSliceToWrappedStringSlice(m["applications"].(*schema.Set).List())
+	subsystems := interfaceSliceToWrappedStringSlice(m["subsystems"].(*schema.Set).List())
 	return &alerts.AlertFilters_RatioAlert{
 		Alias:        alias,
 		Text:         text,
@@ -2711,11 +2825,11 @@ func expandCommonAlertFilter(m map[string]interface{}) *alerts.AlertFilters {
 	}
 }
 
-func expandTimeRelative(m map[string]interface{}, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alertParams, error) {
+func expandTimeRelative(m map[string]interface{}) (*alertParams, diag.Diagnostics) {
 	conditionMap := extractConditionMap(m)
-	condition, err := expandTimeRelativeCondition(conditionMap, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
+	condition, err := expandTimeRelativeCondition(conditionMap)
 	if err != nil {
-		return nil, err
+		return nil, diag.FromErr(err)
 	}
 	filters := expandTimeRelativeFilters(m)
 
@@ -2725,8 +2839,8 @@ func expandTimeRelative(m map[string]interface{}, ignoreInfinity, notifyOnResolv
 	}, nil
 }
 
-func expandTimeRelativeCondition(m map[string]interface{}, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alerts.AlertCondition, error) {
-	parameters, err := expandTimeRelativeConditionParameters(m, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues)
+func expandTimeRelativeCondition(m map[string]interface{}) (*alerts.AlertCondition, error) {
+	parameters, err := expandTimeRelativeConditionParameters(m)
 	if err != nil {
 		return nil, err
 	}
@@ -2765,8 +2879,9 @@ func trueIfIsLessThanFalseIfMoreThanAndErrorOtherwise(m map[string]interface{}) 
 	return false, fmt.Errorf("less_than or more_than have to be true")
 }
 
-func expandTimeRelativeConditionParameters(m map[string]interface{}, ignoreInfinity, notifyOnResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alerts.ConditionParameters, error) {
+func expandTimeRelativeConditionParameters(m map[string]interface{}) (*alerts.ConditionParameters, error) {
 	timeFrame, relativeTimeframe := expandTimeFrameAndRelativeTimeframe(m["relative_time_window"].(string))
+	ignoreInfinity := wrapperspb.Bool(m["ignore_infinity"].(bool))
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
 	threshold := wrapperspb.Double(m["ratio_threshold"].(float64))
 	relatedExtendedData, err := expandRelatedExtendedData(m)
@@ -2775,14 +2890,12 @@ func expandTimeRelativeConditionParameters(m map[string]interface{}, ignoreInfin
 	}
 
 	return &alerts.ConditionParameters{
-		Timeframe:               timeFrame,
-		RelativeTimeframe:       relativeTimeframe,
-		GroupBy:                 groupBy,
-		Threshold:               threshold,
-		IgnoreInfinity:          ignoreInfinity,
-		NotifyOnResolved:        notifyOnResolved,
-		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
-		RelatedExtendedData:     relatedExtendedData,
+		Timeframe:           timeFrame,
+		RelativeTimeframe:   relativeTimeframe,
+		GroupBy:             groupBy,
+		Threshold:           threshold,
+		IgnoreInfinity:      ignoreInfinity,
+		RelatedExtendedData: relatedExtendedData,
 	}, nil
 }
 
@@ -2797,10 +2910,10 @@ func expandTimeRelativeFilters(m map[string]interface{}) *alerts.AlertFilters {
 	return filters
 }
 
-func expandMetric(m map[string]interface{}, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alertParams, error) {
-	condition, err := expandMetricCondition(m, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues)
+func expandMetric(m map[string]interface{}) (*alertParams, diag.Diagnostics) {
+	condition, err := expandMetricCondition(m)
 	if err != nil {
-		return nil, err
+		return nil, diag.FromErr(err)
 	}
 	filters := expandMetricFilters(m)
 
@@ -2810,7 +2923,7 @@ func expandMetric(m map[string]interface{}, notifyWhenResolved, notifyOnlyOnTrig
 	}, nil
 }
 
-func expandMetricCondition(m map[string]interface{}, notifyWhenResolved, notifyOnlyOnTriggeredGroupByValues *wrapperspb.BoolValue) (*alerts.AlertCondition, error) {
+func expandMetricCondition(m map[string]interface{}) (*alerts.AlertCondition, error) {
 	isPromQL := len(m["promql"].([]interface{})) > 0
 	var metricType string
 	if isPromQL {
@@ -2833,11 +2946,9 @@ func expandMetricCondition(m map[string]interface{}, notifyWhenResolved, notifyO
 	}
 
 	parameters := &alerts.ConditionParameters{
-		Threshold:               threshold,
-		NotifyOnResolved:        notifyWhenResolved,
-		NotifyGroupByOnlyAlerts: notifyOnlyOnTriggeredGroupByValues,
-		Timeframe:               timeFrame,
-		RelatedExtendedData:     relatedExtendedData,
+		Threshold:           threshold,
+		Timeframe:           timeFrame,
+		RelatedExtendedData: relatedExtendedData,
 	}
 
 	if isPromQL {
@@ -2888,7 +2999,7 @@ func expandMetricFilters(m map[string]interface{}) *alerts.AlertFilters {
 }
 
 func expandFlow(m map[string]interface{}) *alertParams {
-	stages := expandFlowStages(m["stages"])
+	stages := expandFlowStages(m["stage"])
 	return &alertParams{
 		Condition: &alerts.AlertCondition{
 			Condition: &alerts.AlertCondition_Flow{
@@ -2916,47 +3027,61 @@ func expandFlowStages(i interface{}) []*alerts.FlowStage {
 
 func expandFlowStage(i interface{}) *alerts.FlowStage {
 	m := i.(map[string]interface{})
-	groups := expandGroups(m["groups"])
+	groups := expandGroups(m["group"])
 	timeFrame := expandFlowTimeFrame(m["time_window"])
 	return &alerts.FlowStage{Groups: groups, Timeframe: timeFrame}
 }
 
-func expandGroups(i interface{}) []*alerts.FlowGroup {
-	l := i.([]interface{})
-	result := make([]*alerts.FlowGroup, 0, len(l))
-	for _, v := range l {
-		group := expandFlowGroup(v)
+func expandGroups(v interface{}) []*alerts.FlowGroup {
+	groups := v.([]interface{})
+	result := make([]*alerts.FlowGroup, 0, len(groups))
+	for _, g := range groups {
+		group := expandFlowGroup(g)
 		result = append(result, group)
 	}
 
 	return result
 }
 
-func expandFlowGroup(i interface{}) *alerts.FlowGroup {
-	m := i.(map[string]interface{})
+func expandFlowGroup(v interface{}) *alerts.FlowGroup {
+	m := v.(map[string]interface{})
 	subAlerts := expandSubAlerts(m["sub_alerts"])
-	operator := expandOperator(m["operator"])
+	operator := expandOperator(m["next_operator"])
 	return &alerts.FlowGroup{
 		Alerts: subAlerts,
 		NextOp: operator,
 	}
 }
 
-func expandSubAlerts(i interface{}) *alerts.FlowAlerts {
-	l := i.([]interface{})
-	result := make([]*alerts.FlowAlert, 0, len(l))
-	for _, v := range l {
-		subAlert := expandSubAlert(v)
-		result = append(result, subAlert)
+func expandSubAlerts(v interface{}) *alerts.FlowAlerts {
+	l := v.([]interface{})
+	if len(l) == 0 || l[0] == nil {
+		return nil
 	}
+	raw := l[0]
+	m := raw.(map[string]interface{})
+
+	operator := expandOperator(m["operator"])
+	values := expandInnerFlowAlerts(m["flow_alert"])
 
 	return &alerts.FlowAlerts{
-		Values: result,
+		Op:     operator,
+		Values: values,
 	}
 }
 
-func expandSubAlert(i interface{}) *alerts.FlowAlert {
-	m := i.(map[string]interface{})
+func expandInnerFlowAlerts(v interface{}) []*alerts.FlowAlert {
+	flowAlerts := v.([]interface{})
+	result := make([]*alerts.FlowAlert, 0, len(flowAlerts))
+	for _, fa := range flowAlerts {
+		flowAlert := expandInnerFlowAlert(fa)
+		result = append(result, flowAlert)
+	}
+	return result
+}
+
+func expandInnerFlowAlert(v interface{}) *alerts.FlowAlert {
+	m := v.(map[string]interface{})
 	return &alerts.FlowAlert{
 		Id:  wrapperspb.String(m["user_alert_id"].(string)),
 		Not: wrapperspb.Bool(m["not"].(bool)),
@@ -2974,16 +3099,16 @@ func expandFlowTimeFrame(i interface{}) *alerts.FlowTimeframe {
 	}
 }
 
-func expandTracing(m map[string]interface{}, notifyOnResolved *wrapperspb.BoolValue) (*alertParams, *alerts.TracingAlert) {
-	tracingParams, _ := expandTracingParams(m, notifyOnResolved)
+func expandTracing(m map[string]interface{}) (*alertParams, *alerts.TracingAlert) {
+	tracingParams, _ := expandTracingParams(m)
 	tracingAlert := expandTracingAlert(m)
 
 	return tracingParams, tracingAlert
 }
 
-func expandTracingParams(m map[string]interface{}, notifyOnResolved *wrapperspb.BoolValue) (*alertParams, error) {
+func expandTracingParams(m map[string]interface{}) (*alertParams, error) {
 	conditionMap := extractConditionMap(m)
-	condition, err := expandTracingCondition(conditionMap, notifyOnResolved)
+	condition, err := expandTracingCondition(conditionMap)
 	if err != nil {
 		return nil, err
 	}
@@ -2994,13 +3119,13 @@ func expandTracingParams(m map[string]interface{}, notifyOnResolved *wrapperspb.
 	}, nil
 }
 
-func expandTracingCondition(m map[string]interface{}, notifyOnResolved *wrapperspb.BoolValue) (*alerts.AlertCondition, error) {
+func expandTracingCondition(m map[string]interface{}) (*alerts.AlertCondition, error) {
 	if immediately := m["immediately"]; immediately != nil && immediately.(bool) {
 		return &alerts.AlertCondition{
 			Condition: &alerts.AlertCondition_Immediate{},
 		}, nil
 	} else if moreThan := m["more_than"]; moreThan != nil && moreThan.(bool) {
-		parameters := expandTracingConditionParameters(m, notifyOnResolved)
+		parameters := expandTracingConditionParameters(m)
 		return &alerts.AlertCondition{
 			Condition: &alerts.AlertCondition_MoreThan{
 				MoreThan: &alerts.MoreThanCondition{Parameters: parameters},
@@ -3018,9 +3143,12 @@ func expandTracingFilter() *alerts.AlertFilters {
 }
 
 func expandTracingAlert(m map[string]interface{}) *alerts.TracingAlert {
-	conditionLatency := uint32(m["latency_threshold_ms"].(float64) * (float64)(time.Millisecond.Microseconds()))
-	fieldFilters := expandFiltersData(m["field_filters"], true)
-	tagFilters := expandFiltersData(m["tag_filters"], false)
+	conditionLatency := uint32(m["latency_threshold_milliseconds"].(float64) * (float64)(time.Millisecond.Microseconds()))
+	applications := m["applications"].(*schema.Set).List()
+	subsystems := m["subsystems"].(*schema.Set).List()
+	services := m["services"].(*schema.Set).List()
+	fieldFilters := expandFiltersData(applications, subsystems, services)
+	tagFilters := expandTagFilters(m["tag_filter"])
 	return &alerts.TracingAlert{
 		ConditionLatency: conditionLatency,
 		FieldFilters:     fieldFilters,
@@ -3028,37 +3156,61 @@ func expandTracingAlert(m map[string]interface{}) *alerts.TracingAlert {
 	}
 }
 
-func expandFiltersData(i interface{}, isFieldFilters bool) []*alerts.FilterData {
-	l := i.([]interface{})
+func expandFiltersData(applications, subsystems, services []interface{}) []*alerts.FilterData {
+	result := make([]*alerts.FilterData, 0, len(applications)+len(subsystems)+len(services))
+	result = append(result, expandSpecificFilter("applicationName", applications))
+	result = append(result, expandSpecificFilter("subsystemName", subsystems))
+	result = append(result, expandSpecificFilter("serviceName", services))
+	return result
+}
+
+func expandTagFilters(i interface{}) []*alerts.FilterData {
+	if i == nil {
+		return nil
+	}
+	l := i.(*schema.Set).List()
+
 	result := make([]*alerts.FilterData, 0, len(l))
 	for _, v := range l {
 		m := v.(map[string]interface{})
 		field := m["field"].(string)
-		if isFieldFilters {
-			field = alertSchemaTracingFilterFieldToProtoTracingFilterField[field]
-		}
-		filters := expandFilter(m["filters"])
-		fd := &alerts.FilterData{
-			Field:   field,
-			Filters: filters,
-		}
-		result = append(result, fd)
+		values := m["values"].(*schema.Set).List()
+		result = append(result, expandSpecificFilter(field, values))
 	}
 	return result
 }
 
-func expandFilter(i interface{}) []*alerts.Filters {
-	l := i.([]interface{})
-	result := make([]*alerts.Filters, 0, len(l))
-	for _, v := range l {
-		m := v.(map[string]interface{})
-		fd := &alerts.Filters{
-			Values:   interfaceSliceToStringSlice(m["values"].([]interface{})),
-			Operator: alertSchemaTracingOperatorToProtoTracingOperator[m["operator"].(string)],
+func expandSpecificFilter(filterName string, values []interface{}) *alerts.FilterData {
+	operatorToFilterValues := make(map[string]*alerts.Filters)
+	for _, val := range values {
+		operator, filterValue := expandFilter(val.(string))
+		if _, ok := operatorToFilterValues[operator]; !ok {
+			operatorToFilterValues[operator] = new(alerts.Filters)
+			operatorToFilterValues[operator].Operator = operator
+			operatorToFilterValues[operator].Values = make([]string, 0)
 		}
-		result = append(result, fd)
+		operatorToFilterValues[operator].Values = append(operatorToFilterValues[operator].Values, filterValue)
 	}
-	return result
+
+	filterResult := make([]*alerts.Filters, 0, len(operatorToFilterValues))
+	for _, filters := range operatorToFilterValues {
+		filterResult = append(filterResult, filters)
+	}
+
+	return &alerts.FilterData{
+		Field:   filterName,
+		Filters: filterResult,
+	}
+}
+
+func expandFilter(filterString string) (operator, filterValue string) {
+	operator, filterValue = "Equals", filterString
+	if strings.HasPrefix(filterValue, "filter:") {
+		arr := strings.SplitN(filterValue, ":", 3)
+		operator, filterValue = arr[1], arr[2]
+	}
+
+	return
 }
 
 func extractConditionMap(m map[string]interface{}) map[string]interface{} {
@@ -3115,4 +3267,14 @@ func expandNewValueTimeFrame(s string) alerts.Timeframe {
 func expandUniqueValueTimeFrame(s string) alerts.Timeframe {
 	protoTimeFrame := alertSchemaUniqueCountTimeFrameToProtoTimeFrame[s]
 	return alerts.Timeframe(alerts.Timeframe_value[protoTimeFrame])
+}
+
+func expandTimeInDay(v interface{}) *alerts.Time {
+	timeArr := strings.Split(v.(string), ":")
+	hours, _ := strconv.Atoi(timeArr[0])
+	minutes, _ := strconv.Atoi(timeArr[1])
+	return &alerts.Time{
+		Hours:   int32(hours),
+		Minutes: int32(minutes),
+	}
 }
