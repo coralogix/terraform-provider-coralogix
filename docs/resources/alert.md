@@ -651,7 +651,7 @@ Optional:
 - `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--metric--promql--condition--manage_undetected_values))
 - `min_non_null_values_percentage` (Number)
 - `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `replace_missing_value_with_zero` (Boolean)
+- `replace_missing_value_with_zero` (Boolean) If set to true, missing data will be considered as 0, otherwise, it will not be considered at all.
 
 <a id="nestedblock--metric--promql--condition--manage_undetected_values"></a>
 ### Nested Schema for `metric.promql.condition.manage_undetected_values`
