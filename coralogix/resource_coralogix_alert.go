@@ -1084,10 +1084,11 @@ func metricSchema() map[string]*schema.Schema {
 									Description:   "If set to true, missing data will be considered as 0, otherwise, it will not be considered at all.",
 								},
 								"min_non_null_values_percentage": {
-									Type:         schema.TypeInt,
-									Optional:     true,
-									ValidateFunc: validation.All(validation.IntDivisibleBy(10), validation.IntBetween(0, 100)), ConflictsWith: []string{"metric.0.lucene.0.condition.0.replace_missing_value_with_zero"},
-									Description: "The minimum percentage of the timeframe that should have values for this alert to trigger",
+									Type:          schema.TypeInt,
+									Optional:      true,
+									ValidateFunc:  validation.All(validation.IntDivisibleBy(10), validation.IntBetween(0, 100)),
+									ConflictsWith: []string{"metric.0.lucene.0.condition.0.replace_missing_value_with_zero"},
+									Description:   "The minimum percentage of the timeframe that should have values for this alert to trigger",
 								},
 								"manage_undetected_values": {
 									Type:     schema.TypeList,
@@ -1168,13 +1169,13 @@ func metricSchema() map[string]*schema.Schema {
 								"sample_threshold_percentage": {
 									Type:         schema.TypeInt,
 									Required:     true,
-									ValidateFunc: validation.IntBetween(0, 100),
+									ValidateFunc: validation.All(validation.IntDivisibleBy(10), validation.IntBetween(0, 100)),
 								},
 								"replace_missing_value_with_zero": {
 									Type:          schema.TypeBool,
 									Optional:      true,
 									ConflictsWith: []string{"metric.0.promql.0.condition.0.min_non_null_values_percentage"},
-									ValidateFunc:  validation.All(validation.IntDivisibleBy(10), validation.IntBetween(0, 100)),
+									Description:   "If set to true, missing data will be considered as 0, otherwise, it will not be considered at all.",
 								},
 								"min_non_null_values_percentage": {
 									Type:          schema.TypeInt,

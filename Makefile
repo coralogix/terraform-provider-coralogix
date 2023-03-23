@@ -3,7 +3,7 @@ HOSTNAME=locally
 NAMESPACE=debug
 NAME=coralogix
 BINARY=terraform-provider-${NAME}
-VERSION=1.3
+VERSION=1.4
 OS_ARCH=darwin_arm64
 
 default: install
