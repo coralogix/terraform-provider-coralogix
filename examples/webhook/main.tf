@@ -242,14 +242,13 @@ resource "coralogix_webhook" "sendlog_webhook" {
 resource "coralogix_alert" "standard_alert" {
   name           = "Standard alert example"
   description    = "Example of standard alert from terraform"
-  alert_severity = "Critical"
+  severity = "Critical"
 
-  notification {
-    recipients {
-      emails   = ["user@example.com"]
-      webhooks = [coralogix_webhook.slack_webhook.name, coralogix_webhook.custom_webhook.name]
+  notifications_group {
+    notification {
+      integration_id              = coralogix_webhook.slack_webhook.id
+      retriggering_period_minutes = 60
     }
-    notify_every_min = 1
   }
 
   standard {
