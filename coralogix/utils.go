@@ -299,7 +299,7 @@ func uint32ToStr(n uint32) string {
 func mailValidationFunc() schema.SchemaValidateDiagFunc {
 	return func(v interface{}, _ cty.Path) diag.Diagnostics {
 		mailStr := v.(string)
-		matched, _ := regexp.MatchString(`^[a-z/d._%+\-]+@[a-z/d.\-]+\.[a-z]{2,4}$`, mailStr)
+		matched, _ := regexp.MatchString(`^[a-zA-Z\d.!#$%&'*+/=?^_]+@[a-zA-Z\d.!#$%&'*+/=?^_]+\.[a-z]{2,4}$`, mailStr)
 		if !matched {
 			return diag.Errorf("%s is not a valid mail address", mailStr)
 		}

@@ -440,8 +440,8 @@ func notificationSubgroupSchema() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Schema{
-					Type:             schema.TypeString,
-					ValidateDiagFunc: mailValidationFunc(),
+					Type: schema.TypeString,
+					//ValidateDiagFunc: mailValidationFunc(),
 				},
 				Set:         schema.HashString,
 				Description: "Conflicts with integration_id.",

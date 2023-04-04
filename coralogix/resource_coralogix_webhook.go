@@ -194,8 +194,8 @@ func WebhookSchema() map[string]*schema.Schema {
 						Type:     schema.TypeSet,
 						Required: true,
 						Elem: &schema.Schema{
-							Type:             schema.TypeString,
-							ValidateDiagFunc: mailValidationFunc(),
+							Type: schema.TypeString,
+							//ValidateDiagFunc: mailValidationFunc(),
 						},
 						Set: schema.HashString,
 					},
@@ -234,9 +234,9 @@ func WebhookSchema() map[string]*schema.Schema {
 						Required: true,
 					},
 					"email": {
-						Type:             schema.TypeString,
-						Required:         true,
-						ValidateDiagFunc: mailValidationFunc(),
+						Type:     schema.TypeString,
+						Required: true,
+						//ValidateDiagFunc: mailValidationFunc(),
 					},
 					"project_key": {
 						Type:     schema.TypeString,
