@@ -111,3 +111,11 @@ BREAKING CHANGES:
 * `tracing.tag_filters` was changed to `tracing.tag_filter` and contains only `field` and `values`.
 * `tracing.tag_filter.values`, `tracing.applications`, `tracing.applications` and `tracing.services` have the same format as the other alerts' filters. ([example-usage](docs/resources/alert.md#tracing-alert)).
 * `tracing.latency_threshold_ms` was changed to `latency_threshold_milliseconds`.
+
+## Release 1.4.4
+
+BREAKING CHANGES:
+
+#### resource/alert
+
+* `notifications_group.group_by_fields` was changed from _TypeSet_ (doesn't keep order of declaration) to _TypeList_ (keeps order of declaration). This change can cause to diffs in state.

@@ -23,7 +23,7 @@ resource "coralogix_alert" "standard_alert" {
   }
 
   notifications_group {
-    group_by_fields = ["coralogix.metadata.sdkId"]
+    group_by_fields = ["coralogix.metadata.sdkId", "EventType"]
     notification {
       integration_id              = coralogix_webhook.slack_webhook.id
       retriggering_period_minutes = 60
@@ -64,7 +64,7 @@ resource "coralogix_alert" "standard_alert" {
       less_than   = true
       threshold   = 5
       time_window = "30Min"
-      group_by    = ["coralogix.metadata.sdkId"]
+      group_by    = ["coralogix.metadata.sdkId", "EventType"]
     }
   }
 }

@@ -391,12 +391,11 @@ func notificationGroupSchema() *schema.Resource {
 	return &schema.Resource{
 		Schema: map[string]*schema.Schema{
 			"group_by_fields": {
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Set:         schema.HashString,
 				Description: "List of group-by fields to apply the notification logic on (can be empty). Every notification should contain unique group_by_fields permutation (the order doesn't matter).",
 			},
 			"notification": {
@@ -2322,7 +2321,7 @@ func expandNotificationGroup(v interface{}) (*alerts.AlertNotificationGroups, di
 	}
 	m := v.(map[string]interface{})
 
-	groupByFields := interfaceSliceToWrappedStringSlice(m["group_by_fields"].(*schema.Set).List())
+	groupByFields := interfaceSliceToWrappedStringSlice(m["group_by_fields"].([]interface{}))
 	notifications, diags := expandNotificationSubgroups(m["notification"])
 	if len(diags) != 0 {
 		return nil, diags

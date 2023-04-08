@@ -216,7 +216,7 @@ Read-Only:
 
 Read-Only:
 
-- `group_by_fields` (Set of String)
+- `group_by_fields` (List of String)
 - `notification` (Set of Object) (see [below for nested schema](#nestedobjatt--notifications_group--notification))
 
 <a id="nestedobjatt--notifications_group--notification"></a>
