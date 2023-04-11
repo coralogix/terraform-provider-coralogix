@@ -61,10 +61,11 @@ resource "coralogix_alert" "standard_alert" {
     severities   = ["Warning", "Info"]
     search_query = "remote_addr_enriched:/.*/"
     condition {
-      less_than   = true
+      more_than   = true
       threshold   = 5
       time_window = "30Min"
       group_by    = ["coralogix.metadata.sdkId", "EventType"]
+      evaluation_window = "Dynamic"
     }
   }
 }

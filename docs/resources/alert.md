@@ -702,7 +702,7 @@ Required:
 
 Optional:
 
-- `group_by_fields` (Set of String) List of group-by fields to apply the notification logic on (can be empty). Every notification should contain unique group_by_fields permutation (the order doesn't matter).
+- `group_by_fields` (List of String) List of group-by fields to apply the notification logic on (can be empty). Every notification should contain unique group_by_fields permutation (the order doesn't matter).
 - `notification` (Block Set) Defines notification logic with optional recipients. Can contain single webhook or email recipients list. (see [below for nested schema](#nestedblock--notifications_group--notification))
 
 <a id="nestedblock--notifications_group--notification"></a>
@@ -732,7 +732,8 @@ Required:
 Required:
 
 - `ratio_threshold` (Number) The ratio(between the queries) threshold that is needed to trigger the alert.
-- `time_window` (String)
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["5Min" "10Min" "15Min" "20Min" "30Min" "1H" "2H" "4H" "6H" "12H" "24H" "36H"]
+
 
 Optional:
 
@@ -843,6 +844,7 @@ Optional:
 
 Optional:
 
+- `evaluation_window` (String) Defines the evaluation-window logic to determine if the threshold has been crossed. Relevant only for more_than condition. Can be one of ["Rolling" "Dynamic"].
 - `group_by` (List of String) The fields to 'group by' on. In case of immediately = true switch to group_by_key.
 - `group_by_key` (String) The key to 'group by' on. When more_than_usual = true, 'group_by_key' (single string) can be set instead of 'group_by'.
 - `immediately` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
@@ -851,7 +853,7 @@ Optional:
 - `more_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
 - `more_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
 - `threshold` (Number) The number of log occurrences that is needed to trigger the alert.
-- `time_window` (String)
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["5Min" "10Min" "15Min" "20Min" "30Min" "1H" "2H" "4H" "6H" "12H" "24H" "36H"]
 
 <a id="nestedblock--standard--condition--manage_undetected_values"></a>
 ### Nested Schema for `standard.condition.manage_undetected_values`
