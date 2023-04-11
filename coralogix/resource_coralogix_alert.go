@@ -153,7 +153,16 @@ var (
 		alerts.NotifyOn_TRIGGERED_ONLY:         "Triggered_only",
 		alerts.NotifyOn_TRIGGERED_AND_RESOLVED: "Triggered_and_resolved",
 	}
-	validNotifyOn = []string{"Triggered_only", "Triggered_and_resolved"}
+	validNotifyOn                      = []string{"Triggered_only", "Triggered_and_resolved"}
+	alertSchemaToProtoEvaluationWindow = map[string]alerts.EvaluationWindow{
+		"Rolling": alerts.EvaluationWindow_EVALUATION_WINDOW_ROLLING_OR_UNSPECIFIED,
+		"Dynamic": alerts.EvaluationWindow_EVALUATION_WINDOW_DYNAMIC,
+	}
+	alertProtoToSchemaEvaluationWindow = map[alerts.EvaluationWindow]string{
+		alerts.EvaluationWindow_EVALUATION_WINDOW_ROLLING_OR_UNSPECIFIED: "Rolling",
+		alerts.EvaluationWindow_EVALUATION_WINDOW_DYNAMIC:                "Dynamic",
+	}
+	validEvaluationWindow = []string{"Rolling", "Dynamic"}
 )
 
 type alertParams struct {
@@ -644,6 +653,7 @@ func standardSchema() map[string]*schema.Schema {
 					ValidateFunc: validation.StringInSlice(alertValidTimeFrames, false),
 					ConflictsWith: []string{"standard.0.condition.0.immediately",
 						"standard.0.condition.0.more_than_usual"},
+					Description: fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidTimeFrames),
 				},
 				"group_by": {
 					Type:     schema.TypeList,
@@ -684,6 +694,14 @@ func standardSchema() map[string]*schema.Schema {
 					},
 					RequiredWith: []string{"standard.0.condition.0.less_than", "standard.0.condition.0.group_by"},
 					Description:  "Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER.",
+				},
+				"evaluation_window": {
+					Type:         schema.TypeString,
+					Optional:     true,
+					Computed:     true,
+					ValidateFunc: validation.StringInSlice(validEvaluationWindow, false),
+					RequiredWith: []string{"standard.0.condition.0.more_than"},
+					Description:  fmt.Sprintf("Defines the evaluation-window logic to determine if the threshold has been crossed. Relevant only for more_than condition. Can be one of %q.", validEvaluationWindow),
 				},
 			},
 		},
@@ -783,6 +801,7 @@ func ratioSchema() map[string]*schema.Schema {
 						Type:         schema.TypeString,
 						Required:     true,
 						ValidateFunc: validation.StringInSlice(alertValidTimeFrames, false),
+						Description:  fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidTimeFrames),
 					},
 					"ignore_infinity": {
 						Type:        schema.TypeBool,
@@ -1821,10 +1840,11 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 		conditionParams = condition.MoreThan.GetParameters()
 		conditionSchema = []interface{}{
 			map[string]interface{}{
-				"more_than":   true,
-				"threshold":   int(conditionParams.GetThreshold().GetValue()),
-				"group_by":    wrappedStringSliceToStringSlice(conditionParams.GroupBy),
-				"time_window": alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
+				"more_than":         true,
+				"threshold":         int(conditionParams.GetThreshold().GetValue()),
+				"group_by":          wrappedStringSliceToStringSlice(conditionParams.GroupBy),
+				"time_window":       alertProtoTimeFrameToSchemaTimeFrame[conditionParams.Timeframe.String()],
+				"evaluation_window": alertProtoToSchemaEvaluationWindow[condition.MoreThan.GetEvaluationWindow()],
 			},
 		}
 	case *alerts.AlertCondition_MoreThanUsual:
@@ -2573,15 +2593,28 @@ func expandStandardCondition(m map[string]interface{}) (*alerts.AlertCondition, 
 				},
 			}, nil
 		} else if moreThan := m["more_than"]; moreThan != nil && moreThan.(bool) {
+			evaluationWindow := expandEvaluationWindow(m)
 			return &alerts.AlertCondition{
 				Condition: &alerts.AlertCondition_MoreThan{
-					MoreThan: &alerts.MoreThanCondition{Parameters: parameters},
+					MoreThan: &alerts.MoreThanCondition{
+						Parameters:       parameters,
+						EvaluationWindow: evaluationWindow,
+					},
 				},
 			}, nil
 		}
 	}
 
 	return nil, fmt.Errorf("immediately, less_than, more_than or more_than_usual have to be true")
+}
+
+func expandEvaluationWindow(m map[string]interface{}) *alerts.EvaluationWindow {
+	var evaluationWindow *alerts.EvaluationWindow
+	if evaluationWindowStr, ok := m["evaluation_window"].(string); ok && evaluationWindowStr != "" {
+		evaluationWindow = new(alerts.EvaluationWindow)
+		*evaluationWindow = alertSchemaToProtoEvaluationWindow[evaluationWindowStr]
+	}
+	return evaluationWindow
 }
 
 func expandRelatedExtendedData(m map[string]interface{}) (*alerts.RelatedExtendedData, error) {

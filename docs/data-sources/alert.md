@@ -345,6 +345,7 @@ Read-Only:
 
 Read-Only:
 
+- `evaluation_window` (String)
 - `group_by` (List of String)
 - `group_by_key` (String)
 - `immediately` (Boolean)
