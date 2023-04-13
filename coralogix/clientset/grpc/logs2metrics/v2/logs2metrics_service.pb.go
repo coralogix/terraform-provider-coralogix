@@ -816,8 +816,8 @@ func file_com_coralogixapis_logs2metrics_v2_logs2metrics_service_proto_init() {
 		return
 	}
 	//file_google_api_annotations_proto_init()
-	file_com_coralogixapis_logs2metrics_v2_audit_log_proto_init()
-	file_com_coralogixapis_logs2metrics_v2_logs_query_proto_init()
+	File_com_coralogixapis_logs2metrics_v2_audit_log_proto_init()
+	File_com_coralogixapis_logs2metrics_v2_logs_query_proto_init()
 	file_com_coralogixapis_logs2metrics_v2_logs2metrics_definition_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_com_coralogixapis_logs2metrics_v2_logs2metrics_service_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {

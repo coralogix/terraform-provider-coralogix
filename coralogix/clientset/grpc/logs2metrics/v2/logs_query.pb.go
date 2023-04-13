@@ -238,8 +238,8 @@ var file_com_coralogixapis_logs2metrics_v2_logs_query_proto_depIdxs = []int32{
 	0, // [0:5] is the sub-list for field type_name
 }
 
-func init() { file_com_coralogixapis_logs2metrics_v2_logs_query_proto_init() }
-func file_com_coralogixapis_logs2metrics_v2_logs_query_proto_init() {
+func init() { File_com_coralogixapis_logs2metrics_v2_logs_query_proto_init() }
+func File_com_coralogixapis_logs2metrics_v2_logs_query_proto_init() {
 	if File_com_coralogixapis_logs2metrics_v2_logs_query_proto != nil {
 		return
 	}
