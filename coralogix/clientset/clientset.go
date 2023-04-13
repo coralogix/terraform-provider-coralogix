@@ -3,7 +3,6 @@ package clientset
 type ClientSet struct {
 	ruleGroups          *RuleGroupsClient
 	alerts              *AlertsClient
-	logs2Metrics        *Logs2MetricsClient
 	enrichments         *EnrichmentsClient
 	dataSet             *DataSetClient
 	dashboards          *DashboardsClient
@@ -12,6 +11,7 @@ type ClientSet struct {
 	recordingRuleGroups *RecordingRulesGroupsClient
 	tcoPolicies         *TCOPolicies
 	webhooks            *WebhooksClient
+	events2Metrics      *Events2MetricsClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -20,10 +20,6 @@ func (c *ClientSet) RuleGroups() *RuleGroupsClient {
 
 func (c *ClientSet) Alerts() *AlertsClient {
 	return c.alerts
-}
-
-func (c *ClientSet) Logs2Metrics() *Logs2MetricsClient {
-	return c.logs2Metrics
 }
 
 func (c *ClientSet) Enrichments() *EnrichmentsClient {
@@ -58,6 +54,10 @@ func (c *ClientSet) Webhooks() *WebhooksClient {
 	return c.webhooks
 }
 
+func (c *ClientSet) Events2Metrics() *Events2MetricsClient {
+	return c.events2Metrics
+}
+
 func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 	_ = NewCallPropertiesCreator(targetUrl, teamsApiKey)
@@ -65,7 +65,7 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	return &ClientSet{
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
 		alerts:              NewAlertsClient(apikeyCPC),
-		logs2Metrics:        NewLogs2MetricsClient(apikeyCPC),
+		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
 		enrichments:         NewEnrichmentClient(apikeyCPC),
 		dataSet:             NewDataSetClient(apikeyCPC),
 		dashboards:          NewDashboardsClient(apikeyCPC),

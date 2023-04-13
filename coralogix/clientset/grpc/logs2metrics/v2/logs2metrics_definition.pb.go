@@ -430,7 +430,7 @@ func file_com_coralogixapis_logs2metrics_v2_logs2metrics_definition_proto_init()
 	if File_com_coralogixapis_logs2metrics_v2_logs2metrics_definition_proto != nil {
 		return
 	}
-	file_com_coralogixapis_logs2metrics_v2_logs_query_proto_init()
+	File_com_coralogixapis_logs2metrics_v2_logs_query_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_com_coralogixapis_logs2metrics_v2_logs2metrics_definition_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*L2M); i {
