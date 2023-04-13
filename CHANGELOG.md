@@ -119,3 +119,11 @@ BREAKING CHANGES:
 #### resource/alert
 
 * `notifications_group.group_by_fields` was changed from _TypeSet_ (doesn't keep order of declaration) to _TypeList_ (keeps order of declaration). This change can cause to diffs in state.
+
+## Release 1.5.0
+
+BREAKING CHANGES:
+
+#### resource/events2metric (~~logs2metric~~)
+
+* resource and data-source name _logs2metric_ was changed to _events2metric_ and contains `logs_query` and `span_query` option.

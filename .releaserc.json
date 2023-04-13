@@ -12,7 +12,7 @@
         "releaseRules": [
           {"message": "major*", "release": "major"},
           {"message": "minor*", "release": "minor"},
-          {"message": "*", "release": "patch"}
+          {"message": "patch*", "release": "patch"}
         ]
       }
     ],
