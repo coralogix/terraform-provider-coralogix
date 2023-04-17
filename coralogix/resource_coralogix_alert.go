@@ -910,9 +910,8 @@ func uniqueCountSchema() map[string]*schema.Schema {
 					Description:  "Defines the key to match to track its unique count.",
 				},
 				"max_unique_values": {
-					Type:         schema.TypeInt,
-					Required:     true,
-					ValidateFunc: validation.IntBetween(1, 1000),
+					Type:     schema.TypeInt,
+					Required: true,
 				},
 				"time_window": {
 					Type:         schema.TypeString,
@@ -929,7 +928,6 @@ func uniqueCountSchema() map[string]*schema.Schema {
 				"max_unique_values_for_group_by": {
 					Type:         schema.TypeInt,
 					Optional:     true,
-					ValidateFunc: validation.IntBetween(1, 1000),
 					RequiredWith: []string{"unique_count.0.condition.0.group_by_key"},
 				},
 			},
