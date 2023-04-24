@@ -17,7 +17,36 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
-var validSeverities = getKeysInt32(l2m.Severity_value)
+var (
+	validSeverities              = getKeysInt32(l2m.Severity_value)
+	schemaToProtoAggregationType = map[string]e2m.Aggregation_AggType{
+		"min":       e2m.Aggregation_AGG_TYPE_MIN,
+		"max":       e2m.Aggregation_AGG_TYPE_MAX,
+		"count":     e2m.Aggregation_AGG_TYPE_COUNT,
+		"avg":       e2m.Aggregation_AGG_TYPE_AVG,
+		"sum":       e2m.Aggregation_AGG_TYPE_SUM,
+		"histogram": e2m.Aggregation_AGG_TYPE_HISTOGRAM,
+		"samples":   e2m.Aggregation_AGG_TYPE_SAMPLES,
+	}
+	protoToSchemaAggregationType = map[e2m.Aggregation_AggType]string{
+		e2m.Aggregation_AGG_TYPE_MIN:       "min",
+		e2m.Aggregation_AGG_TYPE_MAX:       "max",
+		e2m.Aggregation_AGG_TYPE_COUNT:     "count",
+		e2m.Aggregation_AGG_TYPE_AVG:       "avg",
+		e2m.Aggregation_AGG_TYPE_SUM:       "sum",
+		e2m.Aggregation_AGG_TYPE_HISTOGRAM: "histogram",
+		e2m.Aggregation_AGG_TYPE_SAMPLES:   "samples",
+	}
+	schemaToProtoAggregationSampleType = map[string]e2m.E2MAggSamples_SampleType{
+		"Min": e2m.E2MAggSamples_SAMPLE_TYPE_MIN,
+		"Max": e2m.E2MAggSamples_SAMPLE_TYPE_MAX,
+	}
+	protoToSchemaAggregationSampleType = map[e2m.E2MAggSamples_SampleType]string{
+		e2m.E2MAggSamples_SAMPLE_TYPE_MIN: "Min",
+		e2m.E2MAggSamples_SAMPLE_TYPE_MAX: "Max",
+	}
+	validSampleTypes = []string{"Min", "Max"}
+)
 
 func resourceCoralogixEvents2Metric() *schema.Resource {
 	return &schema.Resource{
@@ -45,13 +74,13 @@ func resourceCoralogixEvents2MetricCreate(ctx context.Context, d *schema.Resourc
 	e2mCreateReq := extractCreateE2M(d)
 
 	log.Printf("[INFO] Creating new Events2metric: %#v", *e2mCreateReq)
-	Events2MetricResp, err := meta.(*clientset.ClientSet).Events2Metrics().CreateEvents2Metric(ctx, e2mCreateReq)
+	e2mCreateResp, err := meta.(*clientset.ClientSet).Events2Metrics().CreateEvents2Metric(ctx, e2mCreateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcError(err, "Events2metric")
 	}
-	log.Printf("[INFO] Submitted new Events2metric: %#v", Events2MetricResp)
-	d.SetId(Events2MetricResp.GetE2M().GetId().GetValue())
+	log.Printf("[INFO] Submitted new Events2metric: %#v", e2mCreateResp)
+	d.SetId(e2mCreateResp.GetE2M().GetId().GetValue())
 
 	return resourceCoralogixEvents2MetricRead(ctx, d, meta)
 }
@@ -238,8 +267,7 @@ func expandE2MLabel(v interface{}) *e2m.MetricLabel {
 }
 
 func expandE2MFields(v interface{}) []*e2m.MetricField {
-	v = v.(*schema.Set).List()
-	fields := v.([]interface{})
+	fields := v.(*schema.Set).List()
 	result := make([]*e2m.MetricField, 0, len(fields))
 	for _, f := range fields {
 		field := expandE2MField(f)
@@ -253,10 +281,77 @@ func expandE2MField(v interface{}) *e2m.MetricField {
 	m := v.(map[string]interface{})
 	targetBaseMetricName := wrapperspb.String(m["target_base_metric_name"].(string))
 	sourceField := wrapperspb.String(m["source_field"].(string))
+	aggregations := expandE2MAggregations(m["aggregations"])
+
 	return &e2m.MetricField{
 		TargetBaseMetricName: targetBaseMetricName,
 		SourceField:          sourceField,
+		Aggregations:         aggregations,
 	}
+}
+
+func expandE2MAggregations(v interface{}) []*e2m.Aggregation {
+	l := v.([]interface{})
+	if len(l) == 0 || l[0] == nil {
+		return nil
+	}
+	raw := l[0]
+	m := raw.(map[string]interface{})
+
+	var aggregations []*e2m.Aggregation
+	for aggType := range schemaToProtoAggregationType {
+		if l, ok := m[aggType].([]interface{}); ok && len(l) > 0 {
+			aggregation := expandE2MAggregation(l, aggType)
+			aggregations = append(aggregations, aggregation)
+		}
+	}
+
+	return aggregations
+}
+
+func expandE2MAggregation(l []interface{}, aggType string) *e2m.Aggregation {
+	m := l[0].(map[string]interface{})
+
+	enabled := m["enable"].(bool)
+	aggTypeProto := schemaToProtoAggregationType[aggType]
+
+	aggregation := &e2m.Aggregation{
+		Enabled:          enabled,
+		AggType:          aggTypeProto,
+		TargetMetricName: aggType,
+	}
+
+	if aggType == "histogram" {
+		buckets := m["buckets"].([]interface{})
+		aggregation.AggMetadata = &e2m.Aggregation_Histogram{
+			Histogram: &e2m.E2MAggHistogram{
+				Buckets: expandBuckets(buckets),
+			},
+		}
+	} else if aggType == "samples" {
+		samplesType := m["type"].(string)
+		aggregation.AggMetadata = &e2m.Aggregation_Samples{
+			Samples: &e2m.E2MAggSamples{
+				SampleType: schemaToProtoAggregationSampleType[samplesType],
+			},
+		}
+	}
+
+	return aggregation
+}
+
+func expandBuckets(v interface{}) []float32 {
+	l := v.([]interface{})
+	if len(l) == 0 {
+		return nil
+	}
+
+	buckets := make([]float32, 0, len(l))
+	for _, bucket := range l {
+		buckets = append(buckets, float32(bucket.(float64)))
+	}
+
+	return buckets
 }
 
 func expandE2MQuery(d *schema.ResourceData) (spansQuery *e2m.E2MCreateParams_SpansQuery, logsQuery *e2m.E2MCreateParams_LogsQuery) {
@@ -506,7 +601,9 @@ func Events2MetricSchema() map[string]*schema.Schema {
 }
 
 func metricFieldsHash() schema.SchemaSetFunc {
-	return schema.HashResource(metricFields())
+	m := metricFields()
+	delete(m.Schema, "aggregations")
+	return schema.HashResource(m)
 }
 
 func metricFields() *schema.Resource {
@@ -519,6 +616,165 @@ func metricFields() *schema.Resource {
 			"source_field": {
 				Type:     schema.TypeString,
 				Required: true,
+			},
+			"aggregations": {
+				Type:     schema.TypeList,
+				MaxItems: 1,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"min": {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							Optional: true,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"enable": {
+										Type:     schema.TypeBool,
+										Optional: true,
+										Computed: true,
+										//Default:  true,
+									},
+									"target_metric_name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"max": {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							Optional: true,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"enable": {
+										Type:     schema.TypeBool,
+										Optional: true,
+										Computed: true,
+									},
+									"target_metric_name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"count": {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							Optional: true,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"enable": {
+										Type:     schema.TypeBool,
+										Optional: true,
+										Computed: true,
+									},
+									"target_metric_name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"avg": {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							Optional: true,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"enable": {
+										Type:     schema.TypeBool,
+										Optional: true,
+										Computed: true,
+									},
+									"target_metric_name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"sum": {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							Optional: true,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"enable": {
+										Type:     schema.TypeBool,
+										Optional: true,
+										Computed: true,
+									},
+									"target_metric_name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+								},
+							},
+						},
+						"samples": {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							Optional: true,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"enable": {
+										Type:     schema.TypeBool,
+										Optional: true,
+										Computed: true,
+									},
+									"target_metric_name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"type": {
+										Type:         schema.TypeString,
+										Required:     true,
+										ValidateFunc: validation.StringInSlice(validSampleTypes, false),
+										Description:  fmt.Sprintf("Can be one of %q.", validSampleTypes),
+									},
+								},
+							},
+						},
+						"histogram": {
+							Type:     schema.TypeList,
+							MaxItems: 1,
+							Optional: true,
+							Computed: true,
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"enable": {
+										Type:     schema.TypeBool,
+										Optional: true,
+										Computed: true,
+									},
+									"target_metric_name": {
+										Type:     schema.TypeString,
+										Computed: true,
+									},
+									"buckets": {
+										Type:     schema.TypeList,
+										Required: true,
+										MinItems: 1,
+										Elem: &schema.Schema{
+											Type: schema.TypeFloat,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				Description: "For each metric, you can choose an aggregation function that will aggregate the stream of the data and calculate Max/Min/Count/Avg/Sum/Histogram/Samples in 1 minute granularity.",
 			},
 		},
 	}
@@ -552,19 +808,60 @@ func flattenE2MPermutations(permutations *e2m.E2MPermutations) interface{} {
 }
 
 func flattenE2MMetricFields(fields []*e2m.MetricField) interface{} {
-	transformed := schema.NewSet(metricFieldsHash(), []interface{}{})
+	result := make([]interface{}, 0, len(fields))
 	for _, f := range fields {
 		field := flattenE2MMetricField(f)
-		transformed.Add(field)
+		result = append(result, field)
 	}
-	return transformed
+	return result
 }
 
 func flattenE2MMetricField(field *e2m.MetricField) interface{} {
+	aggregations := flattenE2MAggregations(field.GetAggregations())
 	return map[string]interface{}{
 		"target_base_metric_name": field.GetTargetBaseMetricName().GetValue(),
 		"source_field":            field.GetSourceField().GetValue(),
+		"aggregations":            aggregations,
 	}
+}
+
+func flattenE2MAggregations(aggregations []*e2m.Aggregation) interface{} {
+	aggregationsSchema := make(map[string]interface{})
+
+	for _, agg := range aggregations {
+		aggTypeStr := protoToSchemaAggregationType[agg.GetAggType()]
+		aggregation := flattenE2MAggregation(agg)
+		aggregationsSchema[aggTypeStr] = aggregation
+
+	}
+
+	return []interface{}{
+		aggregationsSchema,
+	}
+}
+
+func flattenE2MAggregation(agg *e2m.Aggregation) interface{} {
+	aggregationSchema := map[string]interface{}{
+		"enable":             agg.GetEnabled(),
+		"target_metric_name": agg.GetTargetMetricName(),
+	}
+
+	if agg.AggType == e2m.Aggregation_AGG_TYPE_HISTOGRAM {
+		buckets := floatSliceToInterfaceSlice(agg.GetAggMetadata().(*e2m.Aggregation_Histogram).Histogram.GetBuckets())
+		aggregationSchema["buckets"] = buckets
+	} else if agg.AggType == e2m.Aggregation_AGG_TYPE_SAMPLES {
+		aggregationType := agg.GetAggMetadata().(*e2m.Aggregation_Samples).Samples.GetSampleType()
+		aggregationSchema["type"] = protoToSchemaAggregationSampleType[aggregationType]
+	}
+	return []interface{}{aggregationSchema}
+}
+
+func floatSliceToInterfaceSlice(arr []float32) []interface{} {
+	result := make([]interface{}, 0, len(arr))
+	for _, n := range arr {
+		result = append(result, n)
+	}
+	return result
 }
 
 func flattenE2MMetricLabels(labels []*e2m.MetricLabel) interface{} {

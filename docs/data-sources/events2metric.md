@@ -47,8 +47,88 @@ Read-Only:
 
 Read-Only:
 
+- `aggregations` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations))
 - `source_field` (String)
 - `target_base_metric_name` (String)
+
+<a id="nestedobjatt--metric_fields--aggregations"></a>
+### Nested Schema for `metric_fields.aggregations`
+
+Read-Only:
+
+- `avg` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations--avg))
+- `count` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations--count))
+- `histogram` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations--histogram))
+- `max` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations--max))
+- `min` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations--min))
+- `samples` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations--samples))
+- `sum` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations--sum))
+
+<a id="nestedobjatt--metric_fields--aggregations--avg"></a>
+### Nested Schema for `metric_fields.aggregations.avg`
+
+Read-Only:
+
+- `enable` (Boolean)
+- `target_metric_name` (String)
+
+
+<a id="nestedobjatt--metric_fields--aggregations--count"></a>
+### Nested Schema for `metric_fields.aggregations.count`
+
+Read-Only:
+
+- `enable` (Boolean)
+- `target_metric_name` (String)
+
+
+<a id="nestedobjatt--metric_fields--aggregations--histogram"></a>
+### Nested Schema for `metric_fields.aggregations.histogram`
+
+Read-Only:
+
+- `buckets` (List of Number)
+- `enable` (Boolean)
+- `target_metric_name` (String)
+
+
+<a id="nestedobjatt--metric_fields--aggregations--max"></a>
+### Nested Schema for `metric_fields.aggregations.max`
+
+Read-Only:
+
+- `enable` (Boolean)
+- `target_metric_name` (String)
+
+
+<a id="nestedobjatt--metric_fields--aggregations--min"></a>
+### Nested Schema for `metric_fields.aggregations.min`
+
+Read-Only:
+
+- `enable` (Boolean)
+- `target_metric_name` (String)
+
+
+<a id="nestedobjatt--metric_fields--aggregations--samples"></a>
+### Nested Schema for `metric_fields.aggregations.samples`
+
+Read-Only:
+
+- `enable` (Boolean)
+- `target_metric_name` (String)
+- `type` (String)
+
+
+<a id="nestedobjatt--metric_fields--aggregations--sum"></a>
+### Nested Schema for `metric_fields.aggregations.sum`
+
+Read-Only:
+
+- `enable` (Boolean)
+- `target_metric_name` (String)
+
+
 
 
 <a id="nestedatt--metric_labels"></a>

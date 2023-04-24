@@ -127,3 +127,10 @@ BREAKING CHANGES:
 #### resource/events2metric (~~logs2metric~~)
 
 * resource and data-source name _logs2metric_ was changed to _events2metric_ and contains `logs_query` and `span_query` option.
+
+## Release 1.5.2
+
+FEATURES:
+
+#### resource/events2metric
+* Adding [aggregations](docs/resources/events2metric.md#nested-schema-for-metric_fieldsaggregations) option to `metric_fields`.

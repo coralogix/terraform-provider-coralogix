@@ -64,7 +64,7 @@ resource "coralogix_tco_policy" "tco_policy_2" {
 - `application_name` (Block List, Max: 1) The applications to apply the policy on. Applies the policy on all the
   applications by default. (see [below for nested schema](#nestedblock--application_name))
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
-- `order` (Number) Determines the policy's order between the other policies. Currently, will be computed by creation order.
+- `order` (Number) Determines the policy's order between the other policies. **[Currently, will be computed by creation order](../../known-issues.md#tco-policy---_order_-can-not-be-configured-via-terraform)**.
 - `severities` (Set of String) The severities to apply the policy on. Can be few of ["error" "critical" "debug" "verbose" "info" "warning"].
 - `subsystem_name` (Block List, Max: 1) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedblock--subsystem_name))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
