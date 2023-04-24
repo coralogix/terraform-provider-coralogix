@@ -221,6 +221,24 @@ func testAccCoralogixResourceSpans2Metric(l *events2MetricTestFields) string {
   metric_fields {
     target_base_metric_name = "geo_point"
     source_field            = "remote_addr_geoip.location_geopoint"
+	aggregations {
+     min{
+        enable = false
+      }      
+	 max{
+        enable = false
+      }
+      avg{
+        enable = false
+      }
+      histogram{
+		buckets = [1.3, 2, 2.7]
+      }
+  	}
+  }
+  metric_fields {
+    target_base_metric_name = "method"
+    source_field            = "method"
   }
 
   metric_labels {
