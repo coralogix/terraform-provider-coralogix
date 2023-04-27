@@ -244,6 +244,8 @@ func TestAccCoralogixResourceAlert_metricLucene(t *testing.T) {
 	}
 	if updatedAlert.arithmeticOperator == "Percentile" {
 		alert.arithmeticOperatorModifier = acctest.RandIntRange(0, 100)
+	} else {
+		alert.arithmeticOperatorModifier = 0
 	}
 	updatedAlertChecks := extractLuceneMetricChecks(updatedAlert)
 
