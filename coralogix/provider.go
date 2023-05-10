@@ -96,10 +96,10 @@ func Provider() *schema.Provider {
 			var targetUrl string
 			if env, ok := d.GetOk("env"); ok && env.(string) != "" {
 				targetUrl = envToGrpcUrl[env.(string)]
-			} else if env = os.Getenv("CORALOGIX_ENV"); env != "" {
-				targetUrl = envToGrpcUrl[env.(string)]
 			} else if url, ok := d.GetOk("url"); ok && url.(string) != "" {
 				targetUrl = url.(string)
+			} else if env = os.Getenv("CORALOGIX_ENV"); env != "" {
+				targetUrl = envToGrpcUrl[env.(string)]
 			} else if url = os.Getenv("CORALOGIX_URL"); url != "" {
 				targetUrl = url.(string)
 			} else {
