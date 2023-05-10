@@ -34,14 +34,14 @@ func Provider() *schema.Provider {
 				DefaultFunc:   schema.EnvDefaultFunc("CORALOGIX_ENV", nil),
 				ValidateFunc:  validation.StringInSlice(validEnvs, false),
 				Description:   fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvs),
-				ConflictsWith: []string{"url"},
+				ConflictsWith: []string{"domain"},
 			},
-			"url": {
+			"domain": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
-				DefaultFunc:   schema.EnvDefaultFunc("CORALOGIX_URL", nil),
-				Description:   "The Coralogix endpoint. Conflict With 'env'. environment variable 'CORALOGIX_URL' can be defined instead.",
+				DefaultFunc:   schema.EnvDefaultFunc("CORALOGIX_DOMAIN", nil),
+				Description:   "The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
 				ConflictsWith: []string{"env"},
 			},
 			"api_key": {
@@ -96,12 +96,12 @@ func Provider() *schema.Provider {
 			var targetUrl string
 			if env, ok := d.GetOk("env"); ok && env.(string) != "" {
 				targetUrl = envToGrpcUrl[env.(string)]
-			} else if url, ok := d.GetOk("url"); ok && url.(string) != "" {
-				targetUrl = url.(string)
+			} else if domain, ok := d.GetOk("domain"); ok && domain.(string) != "" {
+				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
 			} else if env = os.Getenv("CORALOGIX_ENV"); env != "" {
 				targetUrl = envToGrpcUrl[env.(string)]
-			} else if url = os.Getenv("CORALOGIX_URL"); url != "" {
-				targetUrl = url.(string)
+			} else if domain = os.Getenv("CORALOGIX_DOMAIN"); domain != "" {
+				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
 			} else {
 				return nil, diag.Errorf("At least one of the fields 'env' or 'url, or one of the environment variables 'CORALOGIX_ENV' or 'CORALOGIX_URL' have to be define")
 			}

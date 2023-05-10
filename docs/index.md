@@ -42,8 +42,23 @@ $ export CORALOGIX_API_KEY="<add your api key>"
 $ export CORALOGIX_ENV="<add the environment you want to work at>" 
 ```  
 
+## Private Domains
+For private domain the `domain` field or the environment variables `CORALOGIX_DOMAIN` have to be defined (instead of `env` or `CORALOGIX_ENV`).
+
+```sh
+provider "coralogix" {
+  api_key = "<add your api key>"
+  domain = "cx.coralogix.com"
+}
+```
+OR
+
+```sh
+$ export CORALOGIX_DOMAIN="<add the environment you want to work at>" 
+```
+
 ## Argument Reference
 - `api_key` (String, Sensitive) A key for using coralogix APIs (Auto Generated), appropriate for the defined environment. environment variable 'CORALOGIX_API_KEY' can be defined instead.
-- `env` (String) The Coralogix API environment. can be one of ["APAC1" "APAC2" "EUROPE1" "EUROPE2" "USA1"]. environment variable 'CORALOGIX_ENV' can be defined instead.
+- `domain` (String) The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.
+- `env` (String) The Coralogix API environment. can be one of ["USA1" "APAC1" "APAC2" "EUROPE1" "EUROPE2"]. environment variable 'CORALOGIX_ENV' can be defined instead.
 - `teams_api_key` (String, Sensitive) A key for accessing teams API, appropriate for the defined environment.
-- `url` (String) The Coralogix endpoint. Conflict With 'env'. environment variable 'CORALOGIX_URL' can be define instead.
