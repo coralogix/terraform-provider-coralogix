@@ -103,7 +103,7 @@ func Provider() *schema.Provider {
 			} else if domain = os.Getenv("CORALOGIX_DOMAIN"); domain != "" {
 				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
 			} else {
-				return nil, diag.Errorf("At least one of the fields 'env' or 'url, or one of the environment variables 'CORALOGIX_ENV' or 'CORALOGIX_URL' have to be define")
+				return nil, diag.Errorf("At least one of the fields 'env' or 'domain', or one of the environment variables 'CORALOGIX_ENV' or 'CORALOGIX_DOMAIN' have to be define")
 			}
 
 			apikey := d.Get("api_key").(string)
