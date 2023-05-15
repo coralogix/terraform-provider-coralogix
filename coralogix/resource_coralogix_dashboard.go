@@ -6,7 +6,8 @@ import (
 	"log"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 
@@ -118,7 +119,7 @@ func resourceCoralogixDashboardRead(ctx context.Context, d *schema.ResourceData,
 	resp, err := meta.(*clientset.ClientSet).Dashboards().GetDashboard(ctx, &dashboards.GetDashboardRequest{DashboardId: dashboardId})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		if errors.IsNotFound(err) {
+		if status.Code(err) == codes.NotFound {
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{
 				Severity: diag.Warning,

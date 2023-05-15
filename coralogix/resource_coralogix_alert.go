@@ -9,7 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	alerts "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v2"
 
@@ -1436,7 +1437,7 @@ func resourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, met
 	alertResp, err := meta.(*clientset.ClientSet).Alerts().GetAlert(ctx, getAlertRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		if errors.IsNotFound(err) {
+		if status.Code(err) == codes.NotFound {
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{
 				Severity: diag.Warning,

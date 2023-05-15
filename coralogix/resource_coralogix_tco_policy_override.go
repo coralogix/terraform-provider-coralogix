@@ -10,7 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 )
 
@@ -75,7 +76,7 @@ func resourceCoralogixTCOPolicyOverrideRead(ctx context.Context, d *schema.Resou
 	tcoPolicyResp, err := meta.(*clientset.ClientSet).TCOPoliciesOverrides().GetTCOPolicyOverride(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		if errors.IsNotFound(err) {
+		if status.Code(err) == codes.NotFound {
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{
 				Severity: diag.Warning,

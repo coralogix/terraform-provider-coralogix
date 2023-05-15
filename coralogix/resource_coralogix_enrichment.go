@@ -6,7 +6,8 @@ import (
 	"log"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 
@@ -191,7 +192,7 @@ func resourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData
 
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		if customId != "" && errors.IsNotFound(err) {
+		if customId != "" && status.Code(err) == codes.NotFound {
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{
 				Severity: diag.Warning,

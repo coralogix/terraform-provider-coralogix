@@ -6,7 +6,8 @@ import (
 	"log"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	rulesv1 "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
 
@@ -478,7 +479,7 @@ func resourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceData
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().GetRuleGroup(ctx, getRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		if errors.IsNotFound(err) {
+		if status.Code(err) == codes.NotFound {
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{
 				Severity: diag.Warning,

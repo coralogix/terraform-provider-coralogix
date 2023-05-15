@@ -6,7 +6,8 @@ import (
 	"log"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	actionsv2 "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
 
@@ -76,7 +77,7 @@ func resourceCoralogixActionRead(ctx context.Context, d *schema.ResourceData, me
 	resp, err := meta.(*clientset.ClientSet).Actions().GetAction(ctx, getActionRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		if errors.IsNotFound(err) {
+		if status.Code(err) == codes.NotFound {
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{
 				Severity: diag.Warning,
