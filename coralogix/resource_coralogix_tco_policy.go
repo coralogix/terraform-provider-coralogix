@@ -324,7 +324,7 @@ func TCOPolicySchema() map[string]*schema.Schema {
 			Type:         schema.TypeString,
 			Required:     true,
 			ValidateFunc: validation.StringInSlice(validPolicyPriorities, false),
-			Description:  fmt.Sprintf("The policy priority. Can be one of %q.", validPolicyPriorities),
+			Description:  fmt.Sprintf("The policy description. Can be one of %q.", validPolicyPriorities),
 		},
 		"order": {
 			Type:        schema.TypeInt,

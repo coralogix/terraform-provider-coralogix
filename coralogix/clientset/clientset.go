@@ -1,18 +1,17 @@
 package clientset
 
 type ClientSet struct {
-	ruleGroups           *RuleGroupsClient
-	alerts               *AlertsClient
-	enrichments          *EnrichmentsClient
-	dataSet              *DataSetClient
-	dashboards           *DashboardsClient
-	grafanaDashboards    *GrafanaDashboardClient
-	actions              *ActionsClient
-	recordingRuleGroups  *RecordingRulesGroupsClient
-	tcoPolicies          *TCOPolicies
-	tcoPoliciesOverrides *TCOPoliciesOverrides
-	webhooks             *WebhooksClient
-	events2Metrics       *Events2MetricsClient
+	ruleGroups          *RuleGroupsClient
+	alerts              *AlertsClient
+	enrichments         *EnrichmentsClient
+	dataSet             *DataSetClient
+	dashboards          *DashboardsClient
+	grafanaDashboards   *GrafanaDashboardClient
+	actions             *ActionsClient
+	recordingRuleGroups *RecordingRulesGroupsClient
+	tcoPolicies         *TCOPolicies
+	webhooks            *WebhooksClient
+	events2Metrics      *Events2MetricsClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -51,10 +50,6 @@ func (c *ClientSet) TCOPolicies() *TCOPolicies {
 	return c.tcoPolicies
 }
 
-func (c *ClientSet) TCOPoliciesOverrides() *TCOPoliciesOverrides {
-	return c.tcoPoliciesOverrides
-}
-
 func (c *ClientSet) Webhooks() *WebhooksClient {
 	return c.webhooks
 }
@@ -68,17 +63,16 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	_ = NewCallPropertiesCreator(targetUrl, teamsApiKey)
 
 	return &ClientSet{
-		ruleGroups:           NewRuleGroupsClient(apikeyCPC),
-		alerts:               NewAlertsClient(apikeyCPC),
-		events2Metrics:       NewEvents2MetricsClient(apikeyCPC),
-		enrichments:          NewEnrichmentClient(apikeyCPC),
-		dataSet:              NewDataSetClient(apikeyCPC),
-		dashboards:           NewDashboardsClient(apikeyCPC),
-		grafanaDashboards:    NewGrafanaClient(apikeyCPC),
-		actions:              NewActionsClient(apikeyCPC),
-		recordingRuleGroups:  NewRecordingRuleGroupsClient(apikeyCPC),
-		tcoPolicies:          NewTCOPoliciesClient(apikeyCPC),
-		tcoPoliciesOverrides: NewTCOPoliciesOverridesClient(apikeyCPC),
-		webhooks:             NewWebhooksClient(apikeyCPC),
+		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
+		alerts:              NewAlertsClient(apikeyCPC),
+		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
+		enrichments:         NewEnrichmentClient(apikeyCPC),
+		dataSet:             NewDataSetClient(apikeyCPC),
+		dashboards:          NewDashboardsClient(apikeyCPC),
+		grafanaDashboards:   NewGrafanaClient(apikeyCPC),
+		actions:             NewActionsClient(apikeyCPC),
+		recordingRuleGroups: NewRecordingRuleGroupsClient(apikeyCPC),
+		tcoPolicies:         NewTCOPoliciesClient(apikeyCPC),
+		webhooks:            NewWebhooksClient(apikeyCPC),
 	}
 }

@@ -57,7 +57,7 @@ resource "coralogix_tco_policy" "tco_policy_2" {
 ### Required
 
 - `name` (String) The policy name. Have to be unique per policy.
-- `priority` (String) The policy priority. Can be one of ["high" "medium" "low" "block"].
+- `priority` (String) The policy description. Can be one of ["high" "medium" "low" "block"].
 
 ### Optional
 
