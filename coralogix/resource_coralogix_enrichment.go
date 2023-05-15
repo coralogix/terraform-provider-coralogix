@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"terraform-provider-coralogix/coralogix/clientset"
 	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 
@@ -187,8 +188,17 @@ func resourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData
 	} else {
 		enrichmentResp, err = meta.(*clientset.ClientSet).Enrichments().GetCustomEnrichments(ctx, strToUint32(customId))
 	}
+
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		if customId != "" && errors.IsNotFound(err) {
+			d.SetId("")
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("Events2Metric %q is in state, but no longer exists in Coralogix backend", customId),
+				Detail:   fmt.Sprintf("%s will be recreated when you apply", customId),
+			}}
+		}
 		return handleRpcError(err, "enrichment")
 	}
 	log.Printf("[INFO] Received enrichment: %#v", enrichmentResp)

@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"terraform-provider-coralogix/coralogix/clientset"
 	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 
@@ -117,6 +118,14 @@ func resourceCoralogixDashboardRead(ctx context.Context, d *schema.ResourceData,
 	resp, err := meta.(*clientset.ClientSet).Dashboards().GetDashboard(ctx, &dashboards.GetDashboardRequest{DashboardId: dashboardId})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		if errors.IsNotFound(err) {
+			d.SetId("")
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("Dashboard %q is in state, but no longer exists in Coralogix backend", id),
+				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
+			}}
+		}
 		return handleRpcErrorWithID(err, "dashboard", id)
 	}
 

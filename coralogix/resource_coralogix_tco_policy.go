@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"terraform-provider-coralogix/coralogix/clientset"
 )
 
@@ -102,6 +103,14 @@ func resourceCoralogixTCOPolicyRead(ctx context.Context, d *schema.ResourceData,
 	tcoPolicyResp, err := meta.(*clientset.ClientSet).TCOPolicies().GetTCOPolicy(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		if errors.IsNotFound(err) {
+			d.SetId("")
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("Tco-Policy %q is in state, but no longer exists in Coralogix backend", id),
+				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
+			}}
+		}
 	}
 
 	log.Printf("[INFO] Received tco-policy: %#v", tcoPolicyResp)

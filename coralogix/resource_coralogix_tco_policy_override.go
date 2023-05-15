@@ -77,7 +77,11 @@ func resourceCoralogixTCOPolicyOverrideRead(ctx context.Context, d *schema.Resou
 		log.Printf("[ERROR] Received error: %#v", err)
 		if errors.IsNotFound(err) {
 			d.SetId("")
-			return diag.Diagnostics{}
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("Tco-Policy-override %q is in state, but no longer exists in Coralogix backend", id),
+				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
+			}}
 		}
 		return diag.FromErr(err)
 	}

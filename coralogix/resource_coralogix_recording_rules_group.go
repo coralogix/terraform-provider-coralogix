@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"terraform-provider-coralogix/coralogix/clientset"
 	recordingrules "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups/v1"
 
@@ -130,6 +131,10 @@ func resourceCoralogixRecordingRulesGroupRead(ctx context.Context, d *schema.Res
 	resp, err := meta.(*clientset.ClientSet).RecordingRuleGroups().GetRecordingRuleGroup(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		if errors.IsNotFound(err) {
+			d.SetId("")
+			return diag.Diagnostics{}
+		}
 		return handleRpcErrorWithID(err, "recording-rule-group", req.Name)
 	}
 

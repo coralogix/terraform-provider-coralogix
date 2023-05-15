@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"terraform-provider-coralogix/coralogix/clientset"
 	actionsv2 "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
 
@@ -75,6 +76,14 @@ func resourceCoralogixActionRead(ctx context.Context, d *schema.ResourceData, me
 	resp, err := meta.(*clientset.ClientSet).Actions().GetAction(ctx, getActionRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		if errors.IsNotFound(err) {
+			d.SetId("")
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("Action %q is in state, but no longer exists in Coralogix backend", id),
+				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
+			}}
+		}
 		return handleRpcErrorWithID(err, "action", id.GetValue())
 	}
 

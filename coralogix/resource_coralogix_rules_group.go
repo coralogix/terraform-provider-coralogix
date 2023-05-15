@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"terraform-provider-coralogix/coralogix/clientset"
 	rulesv1 "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
 
@@ -477,6 +478,14 @@ func resourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceData
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().GetRuleGroup(ctx, getRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		if errors.IsNotFound(err) {
+			d.SetId("")
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("Rule-Group %q is in state, but no longer exists in Coralogix backend", id),
+				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
+			}}
+		}
 		return handleRpcErrorWithID(err, "rule-group", id)
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
