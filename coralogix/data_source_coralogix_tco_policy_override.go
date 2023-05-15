@@ -36,5 +36,5 @@ func dataSourceCoralogixTCOPolicyOverrideRead(ctx context.Context, d *schema.Res
 
 	d.SetId(id)
 
-	return setTCOPolicy(d, tcoPolicyOverride)
+	return setTCOPolicyOverride(d, tcoPolicyOverride)
 }
