@@ -65,6 +65,7 @@ func Provider() *schema.Provider {
 			"coralogix_action":                dataSourceCoralogixAction(),
 			"coralogix_recording_rules_group": dataSourceCoralogixRecordingRulesGroup(),
 			"coralogix_tco_policy":            dataSourceCoralogixTCOPolicy(),
+			"coralogix_tco_policy_override":   dataSourceCoralogixTCOPolicyOverride(),
 			"coralogix_webhook":               dataSourceCoralogixWebhook(),
 		},
 
@@ -79,6 +80,7 @@ func Provider() *schema.Provider {
 			"coralogix_action":                resourceCoralogixAction(),
 			"coralogix_recording_rules_group": resourceCoralogixRecordingRulesGroup(),
 			"coralogix_tco_policy":            resourceCoralogixTCOPolicy(),
+			"coralogix_tco_policy_override":   resourceCoralogixTCOPolicyOverride(),
 			"coralogix_webhook":               resourceCoralogixWebhook(),
 		},
 
