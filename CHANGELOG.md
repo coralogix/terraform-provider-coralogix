@@ -134,3 +134,15 @@ FEATURES:
 
 #### resource/events2metric
 * Adding [aggregations](docs/resources/events2metric.md#nested-schema-for-metric_fieldsaggregations) option to `metric_fields`.
+
+## Release 1.5.2
+
+FEATURES:
+
+* Adding [tco_policy_override](docs/resources/tco_policy_override.md).
+* Adding [Custom Domain option](docs/index.md#private-domains)
+
+Bug Fixing: 
+* Fixing [TF doesn't detect manually deleted resources](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1683820712917899)
+
+
