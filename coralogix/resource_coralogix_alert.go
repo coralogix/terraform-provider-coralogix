@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	alerts "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v2"
 
@@ -1435,6 +1437,14 @@ func resourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, met
 	alertResp, err := meta.(*clientset.ClientSet).Alerts().GetAlert(ctx, getAlertRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		if status.Code(err) == codes.NotFound {
+			d.SetId("")
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("Alert %q is in state, but no longer exists in Coralogix backend", id),
+				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
+			}}
+		}
 		return handleRpcErrorWithID(err, "alert", id.GetValue())
 	}
 	alert := alertResp.GetAlert()

@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
 	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
@@ -95,6 +97,14 @@ func resourceCoralogixEvents2MetricRead(ctx context.Context, d *schema.ResourceD
 	getE2MResp, err := meta.(*clientset.ClientSet).Events2Metrics().GetEvents2Metric(ctx, getE2MRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		if status.Code(err) == codes.NotFound {
+			d.SetId("")
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("Events2Metric %q is in state, but no longer exists in Coralogix backend", id),
+				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
+			}}
+		}
 		return handleRpcErrorWithID(err, "Events2metric", id)
 	}
 	log.Printf("[INFO] Received Events2metric: %#v", getE2MResp)

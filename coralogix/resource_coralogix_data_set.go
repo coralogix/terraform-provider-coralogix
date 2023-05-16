@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 
@@ -147,6 +149,14 @@ func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, m
 	DataSetResp, err := meta.(*clientset.ClientSet).DataSet().GetDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		if status.Code(err) == codes.NotFound {
+			d.SetId("")
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("DataSet %q is in state, but no longer exists in Coralogix backend", id),
+				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
+			}}
+		}
 		return handleRpcErrorWithID(err, "enrichment-data", id)
 	}
 
