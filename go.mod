@@ -1,6 +1,6 @@
 module terraform-provider-coralogix
 
-go 1.19
+go 1.20
 
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
