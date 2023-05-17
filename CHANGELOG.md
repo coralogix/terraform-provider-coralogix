@@ -162,4 +162,4 @@ DEVELOPERS:
 
 FEATURES:
 
-* Adding [tco_policy_override](docs/resources/tco_policy_override.md).
+* Adding [tco_policy_override](docs/resources/tco_policy_override.md) resource and data source.
