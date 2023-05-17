@@ -77,7 +77,7 @@ func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "name", "Example updated tco_policy from terraform"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "priority", "low"),
-					resource.TestCheckResourceAttr(tcoPolicyResourceName2, "order", "3"),
+					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "order", "2"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "severities.#", "3"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName1, "severities.*", "warning"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName1, "severities.*", "error"),
@@ -91,7 +91,7 @@ func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
 
 					resource.TestCheckResourceAttr(tcoPolicyResourceName2, "name", "Example tco_policy from terraform 2"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName2, "priority", "medium"),
-					resource.TestCheckResourceAttr(tcoPolicyResourceName2, "order", "2"),
+					resource.TestCheckResourceAttr(tcoPolicyResourceName2, "order", "3"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName2, "severities.#", "3"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName2, "severities.*", "debug"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName2, "severities.*", "verbose"),
@@ -196,7 +196,7 @@ func testAccCoralogixUpdatedResourceTCOPolicy() string {
 	return fmt.Sprintf(
 		`resource "coralogix_tco_policy" test_1 {
  					name     = "Example updated tco_policy from terraform"
-                    order    = 3
+                    order    = 2
   					priority = "low"
   					severities = ["warning", "error", "critical"]
   					application_name {
@@ -211,7 +211,7 @@ func testAccCoralogixUpdatedResourceTCOPolicy() string {
 
 				resource "coralogix_tco_policy" test_2 {
  					name     = "Example tco_policy from terraform 2"
-                    order    = 2
+                    order    = 3
   					priority = "medium"
   					severities = ["debug", "verbose", "info"]
   					application_name {
