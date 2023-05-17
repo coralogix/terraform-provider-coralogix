@@ -29,6 +29,14 @@ func (t TCOPolicies) DeleteTCOPolicy(ctx context.Context, id string) error {
 	return err
 }
 
+func (t TCOPolicies) GetTCOPolicies(ctx context.Context) (string, error) {
+	return t.client.Get(ctx, fmt.Sprintf("/policies"))
+}
+
+func (t TCOPolicies) ReorderTCOPolicies(ctx context.Context, jsonContent string) (string, error) {
+	return t.client.Put(ctx, "/policies/reorder", "application/json", jsonContent)
+}
+
 func NewTCOPoliciesClient(c *CallPropertiesCreator) *TCOPolicies {
 	targetUrl := "https://" + strings.Replace(c.targetUrl, "ng-api-grpc", "api", 1) + "/api/v1/external/tco"
 	client := rest.NewRestClient(targetUrl, c.apiKey)

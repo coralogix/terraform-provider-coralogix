@@ -95,7 +95,42 @@ func resourceCoralogixTCOPolicyCreate(ctx context.Context, d *schema.ResourceDat
 	}
 
 	d.SetId(m["id"].(string))
+
+	if err = updatePoliciesOrder(ctx, d, meta); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return resourceCoralogixTCOPolicyRead(ctx, d, meta)
+}
+
+func updatePoliciesOrder(ctx context.Context, d *schema.ResourceData, meta interface{}) error {
+	tcoPoliciesResp, err := meta.(*clientset.ClientSet).TCOPolicies().GetTCOPolicies(ctx)
+	var policies []map[string]interface{}
+	if err = json.Unmarshal([]byte(tcoPoliciesResp), &policies); err != nil {
+		return err
+	}
+
+	policiesOrders := make([]string, len(policies))
+	var currentIndex int
+	for i, policy := range policies {
+		id := policy["id"].(string)
+		policiesOrders[i] = id
+		if id == d.Id() {
+			currentIndex = i
+		}
+	}
+	desiredIndex := d.Get("order").(int) - 1
+	if desiredIndex >= len(policies) {
+		desiredIndex = len(policies) - 1
+	}
+	policiesOrders[currentIndex], policiesOrders[desiredIndex] = policiesOrders[desiredIndex], policiesOrders[currentIndex]
+
+	reorderRequest, err := json.Marshal(policiesOrders)
+	if _, err = meta.(*clientset.ClientSet).TCOPolicies().ReorderTCOPolicies(ctx, string(reorderRequest)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func resourceCoralogixTCOPolicyRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
@@ -141,6 +176,11 @@ func resourceCoralogixTCOPolicyUpdate(ctx context.Context, d *schema.ResourceDat
 	}
 
 	d.SetId(m["id"].(string))
+
+	if err = updatePoliciesOrder(ctx, d, meta); err != nil {
+		return diag.FromErr(err)
+	}
+
 	return resourceCoralogixTCOPolicyRead(ctx, d, meta)
 }
 
@@ -327,14 +367,14 @@ func TCOPolicySchema() map[string]*schema.Schema {
 			Description:  fmt.Sprintf("The policy description. Can be one of %q.", validPolicyPriorities),
 		},
 		"order": {
-			Type:        schema.TypeInt,
-			Optional:    true,
-			Computed:    true,
-			Description: "Determines the policy's order between the other policies. Currently, will be computed by creation order.",
+			Type:         schema.TypeInt,
+			Required:     true,
+			ValidateFunc: validation.IntAtLeast(1),
+			Description:  "Determines the policy's order between the other policies. Currently, will be computed by creation order.",
 		},
 		"severities": {
 			Type:     schema.TypeSet,
-			Optional: true,
+			Required: true,
 			Elem: &schema.Schema{
 				Type:         schema.TypeString,
 				ValidateFunc: validation.StringInSlice(validPolicySeverities, false),

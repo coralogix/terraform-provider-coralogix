@@ -12,7 +12,7 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_tco_policy" "tco_policy" {
+resource "coralogix_tco_policy" "tco_policy_1" {
   name       = "Example tco_policy from terraform"
   priority   = "medium"
   order      = 1
@@ -31,10 +31,9 @@ resource "coralogix_tco_policy" "tco_policy_2" {
   name     = "Example tco_policy from terraform 2"
   priority = "high"
 
-  order    = coralogix_tco_policy.tco_policy.order + 1
+  order    = coralogix_tco_policy.tco_policy_1.order + 1
 #  currently, for controlling the policies order they have to be created by the order you want them to be.
 #  for this purpose, defining dependency via the 'order' field can control their creation order.
-#  can be omitted if the order doesn't matter.
 
   severities = ["error", "warning", "critical"]
   application_name {

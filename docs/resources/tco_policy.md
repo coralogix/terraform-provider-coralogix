@@ -11,6 +11,7 @@ description: "Coralogix TCO-Policy. For more information - https://coralogix.com
 
 Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api .
 
+**Please note** - [Policies order issue](../../known-issues.md#tco-policy---_order_-can-not-be-configured-via-terraform-on-creation)
 ## Example Usage
 
 ```hcl
@@ -57,15 +58,14 @@ resource "coralogix_tco_policy" "tco_policy_2" {
 ### Required
 
 - `name` (String) The policy name. Have to be unique per policy.
+- `order` (Number) Determines the policy's order between the other policies. Currently, will be computed by creation order.
 - `priority` (String) The policy description. Can be one of ["high" "medium" "low" "block"].
+- `severities` (Set of String) The severities to apply the policy on. Can be few of ["warning" "error" "critical" "debug" "verbose" "info"].
 
 ### Optional
 
-- `application_name` (Block List, Max: 1) The applications to apply the policy on. Applies the policy on all the
-  applications by default. (see [below for nested schema](#nestedblock--application_name))
+- `application_name` (Block List, Max: 1) The applications to apply the policy on. Applies the policy on all the applications by default. (see [below for nested schema](#nestedblock--application_name))
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
-- `order` (Number) Determines the policy's order between the other policies. **[Currently, will be computed by creation order](../../known-issues.md#tco-policy---_order_-can-not-be-configured-via-terraform)**.
-- `severities` (Set of String) The severities to apply the policy on. Can be few of ["error" "critical" "debug" "verbose" "info" "warning"].
 - `subsystem_name` (Block List, Max: 1) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedblock--subsystem_name))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
@@ -74,7 +74,6 @@ resource "coralogix_tco_policy" "tco_policy_2" {
 - `id` (String) The ID of this resource.
 
 <a id="nestedblock--application_name"></a>
-
 ### Nested Schema for `application_name`
 
 Optional:
@@ -82,14 +81,12 @@ Optional:
 - `includes` (Boolean) Determines the filter's type. One of is/is_not/starts_with/includes have to be set.
 - `is` (Boolean) Determines the filter's type. One of is/is_not/starts_with/includes have to be set.
 - `is_not` (Boolean) Determines the filter's type. One of is/is_not/starts_with/includes have to be set.
-- `rule` (String) Single rule to apply the filter on. In case of start_with=true/includes=true replace to 'rule' (single
-  string).
-- `rules` (Set of String) Set of rules to apply the filter on. In case of is=true/is_not=true replace to 'rules' (set of
-  strings).
+- `rule` (String) Single rule to apply the filter on. In case of start_with=true/includes=true replace to 'rule' (single string).
+- `rules` (Set of String) Set of rules to apply the filter on. In case of is=true/is_not=true replace to 'rules' (set of strings).
 - `starts_with` (Boolean) Determines the filter's type. One of is/is_not/starts_with/includes have to be set.
 
-<a id="nestedblock--subsystem_name"></a>
 
+<a id="nestedblock--subsystem_name"></a>
 ### Nested Schema for `subsystem_name`
 
 Optional:
@@ -97,14 +94,12 @@ Optional:
 - `includes` (Boolean) Determines the filter's type. One of is/is_not/starts_with/includes have to be set.
 - `is` (Boolean) Determines the filter's type. One of is/is_not/starts_with/includes have to be set.
 - `is_not` (Boolean) Determines the filter's type. One of is/is_not/starts_with/includes have to be set.
-- `rule` (String) Single rule to apply the filter on. In case of start_with=true/includes=true replace to 'rule' (single
-  string).
-- `rules` (Set of String) Set of rules to apply the filter on. In case of is=true/is_not=true replace to 'rules' (set of
-  strings).
+- `rule` (String) Single rule to apply the filter on. In case of start_with=true/includes=true replace to 'rule' (single string).
+- `rules` (Set of String) Set of rules to apply the filter on. In case of is=true/is_not=true replace to 'rules' (set of strings).
 - `starts_with` (Boolean) Determines the filter's type. One of is/is_not/starts_with/includes have to be set.
 
-<a id="nestedblock--timeouts"></a>
 
+<a id="nestedblock--timeouts"></a>
 ### Nested Schema for `timeouts`
 
 Optional:

@@ -134,3 +134,18 @@ FEATURES:
 
 #### resource/events2metric
 * Adding [aggregations](docs/resources/events2metric.md#nested-schema-for-metric_fieldsaggregations) option to `metric_fields`.
+
+## Release 1.5.3
+
+BREAKING CHANGES:
+
+#### resource/tco_policy
+
+* `severities` is now required.
+* `order` is now required.
+
+BUG FIXING:
+
+#### resource/tco_policy
+
+* the order of policies can be updated after creation.
