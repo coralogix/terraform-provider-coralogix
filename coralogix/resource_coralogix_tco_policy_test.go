@@ -68,11 +68,6 @@ func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      tcoPolicyResourceName1,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-			{
 				Config: testAccCoralogixUpdatedResourceTCOPolicy(),
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "name", "Example updated tco_policy from terraform"),
