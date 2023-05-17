@@ -147,5 +147,11 @@ BREAKING CHANGES:
 BUG FIXING:
 
 #### resource/tco_policy
+* Fixing [TF doesn't detect manually deleted resources](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1683820712917899)
+* Fixing [Oder of policies can be updated after creation](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1681995853325159)
 
-* the order of policies can be updated after creation.
+FEATURES:
+
+* Adding [Custom Domain option](docs/index.md#private-domains)
+
+Bug Fixing:
