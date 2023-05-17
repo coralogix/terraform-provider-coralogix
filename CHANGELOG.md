@@ -148,7 +148,7 @@ BUG FIXING:
 
 #### resource/tco_policy
 * Fixing [TF doesn't detect manually deleted resources](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1683820712917899)
-* Fixing [Order of policies can be manged by TF](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1681995853325159)
+* Fixing [Order of policies can't be manged by TF](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1681995853325159)
 
 FEATURES:
 
