@@ -111,7 +111,7 @@ func updatePoliciesOrder(ctx context.Context, d *schema.ResourceData, meta inter
 	}
 
 	policiesOrders := make([]string, len(policies))
-	var currentIndex int
+	currentIndex := -1
 	for i, policy := range policies {
 		id := policy["id"].(string)
 		policiesOrders[i] = id
@@ -122,6 +122,9 @@ func updatePoliciesOrder(ctx context.Context, d *schema.ResourceData, meta inter
 	desiredIndex := d.Get("order").(int) - 1
 	if desiredIndex >= len(policies) {
 		desiredIndex = len(policies) - 1
+	}
+	if currentIndex == desiredIndex {
+		return nil
 	}
 	policiesOrders[currentIndex], policiesOrders[desiredIndex] = policiesOrders[desiredIndex], policiesOrders[currentIndex]
 

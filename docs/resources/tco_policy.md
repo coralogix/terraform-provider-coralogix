@@ -11,7 +11,7 @@ description: "Coralogix TCO-Policy. For more information - https://coralogix.com
 
 Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api .
 
-**Please note** - [Policies order issue](../../known-issues.md#tco-policy---_order_-can-not-be-configured-via-terraform-on-creation)
+**Please note** - [Policies order issue](../../known-issues.md#tco-policy---_order_-gets-an-incorrect-value-via-terraform)
 ## Example Usage
 
 ```hcl
@@ -34,11 +34,7 @@ resource "coralogix_tco_policy" "tco_policy_2" {
   name     = "Example tco_policy from terraform 2"
   priority = "high"
 
-  order    = coralogix_tco_policy.tco_policy.order + 1
-  #  currently, for controlling the policies order they have to be created by the order you want them to be.
-  #  for this purpose, defining dependency via the 'order' field can control their creation order.
-  #  can be omitted if the order doesn't matter.
-
+  order    = 2
   severities = ["error", "warning", "critical"]
   application_name {
     starts_with = true

@@ -6,39 +6,10 @@
   update `is_hidden` to true after creation.
 * TCO-Policy lose tracking of terraform if they are updated externally - this bug will be fixed later.
 
-#### TCO-Policy - _order_ can not be configured via terraform on creation.
+#### TCO-Policy - _order_ gets an incorrect value via terraform.
 
 * Currently, there is no support in the backend side to control the order of TCO policies on creation several Policies in parallel (it is planned to be supported).
-Because of the way terraform works (applies creating requests in parallel) there are few ways the Policies order via terraform -
- 1. Creating the policies in the desired order - manually, or by adding dependency in their creation order.
-
-  e.g -
-
- ```
- resource "coralogix_tco_policy" "tco_policy_1" {
-    ...
-    order = 1
-  }
-
-  resource "coralogix_tco_policy" "tco_policy_2" {
-    ....
-    order = coralogix_tco_policy.tco_policy_1.order + 1
- }
- ```
-
-2. Updating the state (terraform apply) after creation.
-
- ```
- resource "coralogix_tco_policy" "tco_policy_1" {
-    ...
-    order = 1
-  }
-
-  resource "coralogix_tco_policy" "tco_policy_2" {
-    ....
-    order = 2
- }
- ```
+Therefore, it required to apply the policies without parallelism (`terraform apply -auto-approve -parallelism=1`).
 
 #### Events2Metrics - issue with `aggregations` updating
 

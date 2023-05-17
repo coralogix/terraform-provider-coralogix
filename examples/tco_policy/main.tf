@@ -2,7 +2,7 @@ terraform {
   required_providers {
     coralogix = {
       version = "~> 1.5"
-      source  = "coralogix/coralogix"
+      source  = "locally/debug/coralogix"
     }
   }
 }
@@ -13,9 +13,9 @@ provider "coralogix" {
 }
 
 resource "coralogix_tco_policy" "tco_policy_1" {
-  name       = "Example tco_policy from terraform"
-  priority   = "medium"
-  order      = 1
+  name       = "Example tco_policy from terraform 1"
+  priority   = "low"
+  order      = 2
   severities = ["debug", "verbose", "info"]
   application_name {
     starts_with = true
@@ -29,11 +29,47 @@ resource "coralogix_tco_policy" "tco_policy_1" {
 
 resource "coralogix_tco_policy" "tco_policy_2" {
   name     = "Example tco_policy from terraform 2"
+  priority = "medium"
+
+  order = 3
+
+  severities = ["error", "warning", "critical"]
+  application_name {
+    starts_with = true
+    rule        = "prod"
+  }
+  subsystem_name {
+    is    = true
+    rules = ["mobile", "web"]
+  }
+}
+
+resource "coralogix_tco_policy" "tco_policy_3" {
+  name     = "Example tco_policy from terraform 3"
   priority = "high"
 
-  order    = coralogix_tco_policy.tco_policy_1.order + 1
-#  currently, for controlling the policies order they have to be created by the order you want them to be.
-#  for this purpose, defining dependency via the 'order' field can control their creation order.
+  order = 1
+  #  currently, for controlling the policies order they have to be created by the order you want them to be.
+  #  for this purpose, defining dependency via the 'order' field can control their creation order.
+
+  severities = ["error", "warning", "critical"]
+  application_name {
+    starts_with = true
+    rule        = "prod"
+  }
+  subsystem_name {
+    is    = true
+    rules = ["mobile", "web"]
+  }
+}
+
+resource "coralogix_tco_policy" "tco_policy_4" {
+  name     = "Example tco_policy from terraform 4"
+  priority = "high"
+
+  order = 4
+  #  currently, for controlling the policies order they have to be created by the order you want them to be.
+  #  for this purpose, defining dependency via the 'order' field can control their creation order.
 
   severities = ["error", "warning", "critical"]
   application_name {
