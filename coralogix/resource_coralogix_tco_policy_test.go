@@ -11,7 +11,7 @@ import (
 	"terraform-provider-coralogix/coralogix/clientset"
 )
 
-var tcoPolicyResourceName = "coralogix_tco_policy.test"
+var tcoPolicyResourceName = "coralogix_tco_policy.test_1"
 var tcoPolicyResourceName2 = "coralogix_tco_policy.test_2"
 
 func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
@@ -150,7 +150,7 @@ func testAccCoralogixResourceTCOPolicy() string {
 
 func testAccCoralogixUpdatedResourceTCOPolicy() string {
 	return fmt.Sprintf(
-		`resource "coralogix_tco_policy" test {
+		`resource "coralogix_tco_policy" test_1 {
  					name     = "Example updated tco_policy from terraform"
                     order    = 2
   					priority = "low"
