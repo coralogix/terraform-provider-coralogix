@@ -55,7 +55,7 @@ resource "coralogix_tco_policy" "tco_policy_2" {
 
 - `name` (String) The policy name. Have to be unique per policy.
 - `order` (Number) Determines the policy's order between the other policies. Currently, will be computed by creation order.
-- `priority` (String) The policy description. Can be one of ["high" "medium" "low" "block"].
+- `priority` (String) The policy priority. Can be one of ["high" "medium" "low" "block"].
 - `severities` (Set of String) The severities to apply the policy on. Can be few of ["warning" "error" "critical" "debug" "verbose" "info"].
 
 ### Optional
