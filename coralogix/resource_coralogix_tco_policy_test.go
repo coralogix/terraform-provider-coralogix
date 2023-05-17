@@ -22,7 +22,8 @@ func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
 		CheckDestroy:      testAccTCOPolicyCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceTCOPolicy(),
+				Config:  testAccCoralogixResourceTCOPolicy(),
+				Destroy: false,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "name", "Example tco_policy from terraform"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "priority", "medium"),
