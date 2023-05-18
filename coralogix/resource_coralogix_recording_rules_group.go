@@ -134,7 +134,11 @@ func resourceCoralogixRecordingRulesGroupRead(ctx context.Context, d *schema.Res
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
 			d.SetId("")
-			return diag.Diagnostics{}
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("RecordingRuleGroup %q is in state, but no longer exists in Coralogix backend", name),
+				Detail:   fmt.Sprintf("%s will be recreated when you apply", name),
+			}}
 		}
 		return handleRpcErrorWithID(err, "recording-rule-group", req.Name)
 	}

@@ -30,7 +30,7 @@ data "coralogix_tco_policy" "imported_coralogix_tco_policy" {
 - `id` (String) The ID of this resource.
 - `name` (String) The policy name. Have to be unique per policy.
 - `order` (Number) Determines the policy's order between the other policies. Currently, will be computed by creation order.
-- `priority` (String) The policy description. Can be one of ["high" "medium" "low" "block"].
+- `priority` (String) The policy priority. Can be one of ["high" "medium" "low" "block"].
 - `severities` (Set of String) The severities to apply the policy on. Can be few of ["warning" "error" "critical" "debug" "verbose" "info"].
 - `subsystem_name` (List of Object) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--subsystem_name))
 

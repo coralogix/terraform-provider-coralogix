@@ -296,17 +296,6 @@ func uint32ToStr(n uint32) string {
 	return strconv.FormatUint(uint64(n), 10)
 }
 
-func mailValidationFunc() schema.SchemaValidateDiagFunc {
-	return func(v interface{}, _ cty.Path) diag.Diagnostics {
-		mailStr := v.(string)
-		matched, _ := regexp.MatchString(`^[a-zA-Z\d.!#$%&'*+/=?^_]+@[a-zA-Z\d.!#$%&'*+/=?^_]+\.[a-z]{2,4}$`, mailStr)
-		if !matched {
-			return diag.Errorf("%s is not a valid mail address", mailStr)
-		}
-		return nil
-	}
-}
-
 func urlValidationFunc() schema.SchemaValidateDiagFunc {
 	return func(v interface{}, _ cty.Path) diag.Diagnostics {
 		if _, err := url.ParseRequestURI(v.(string)); err != nil {

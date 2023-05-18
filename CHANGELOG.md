@@ -158,3 +158,8 @@ DEVELOPERS:
 
 * go version was update to 1.20.x
 
+## Release 1.5.4
+
+FEATURES:
+
+* Adding [tco_policy_override](docs/resources/tco_policy_override.md) resource and data source.
