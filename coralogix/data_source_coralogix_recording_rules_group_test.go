@@ -23,7 +23,7 @@ func TestAccCoralogixDataSourceRecordingRulesGroups_basic(t *testing.T) {
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceRecordingRulesGroupsFromYaml(filePath) +
+				Config: testAccCoralogixResourceRecordingRulesGroupsSetFromYaml(filePath) +
 					testAccCoralogixDataSourceRecordingRulesGroups_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(recordingRulesGroupsDataSourceName, "group.0.rules.#", "2"),
@@ -34,8 +34,8 @@ func TestAccCoralogixDataSourceRecordingRulesGroups_basic(t *testing.T) {
 }
 
 func testAccCoralogixDataSourceRecordingRulesGroups_read() string {
-	return `data "coralogix_recording_rules_group" "test" {
-		id = coralogix_recording_rules_group.test.id
+	return `data "coralogix_recording_rules_groups_set" "test" {
+		id = coralogix_recording_rules_groups_set.test.id
 }
 `
 }
