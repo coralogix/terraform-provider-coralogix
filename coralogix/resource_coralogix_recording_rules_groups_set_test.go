@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
-var recordingRulesGroupsResourceName = "coralogix_recording_rules_groups_set.test"
+var recordingRulesGroupsSetResourceName = "coralogix_recording_rules_groups_set.test"
 
 func TestAccCoralogixRecordingRulesGroupsSetFromYaml(t *testing.T) {
 	wd, err := os.Getwd()
@@ -31,10 +31,10 @@ func TestAccCoralogixRecordingRulesGroupsSetFromYaml(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRecordingRulesGroupsSetFromYaml(filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(recordingRulesGroupsResourceName, "id"),
-					resource.TestCheckResourceAttr(recordingRulesGroupsResourceName, "group.0.name", "Foo"),
-					resource.TestCheckResourceAttr(recordingRulesGroupsResourceName, "group.0.interval", "180"),
-					resource.TestCheckResourceAttr(recordingRulesGroupsResourceName, "group.0.rules.#", "2"),
+					resource.TestCheckResourceAttrSet(recordingRulesGroupsSetResourceName, "id"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "group.0.name", "Foo"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "group.0.interval", "180"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "group.0.rules.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "group.0.rules.*",
 						map[string]string{
 							"record": "ts3db_live_ingester_write_latency:3m",
@@ -47,10 +47,10 @@ func TestAccCoralogixRecordingRulesGroupsSetFromYaml(t *testing.T) {
 							"expr":   "sum(rate(http_requests_total[5m])) by (job)",
 						},
 					),
-					resource.TestCheckResourceAttrSet(recordingRulesGroupsResourceName, "id"),
-					resource.TestCheckResourceAttr(recordingRulesGroupsResourceName, "group.1.name", "Bar"),
-					resource.TestCheckResourceAttr(recordingRulesGroupsResourceName, "group.1.interval", "60"),
-					resource.TestCheckResourceAttr(recordingRulesGroupsResourceName, "group.1.rules.#", "2"),
+					resource.TestCheckResourceAttrSet(recordingRulesGroupsSetResourceName, "id"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "group.1.name", "Bar"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "group.1.interval", "60"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "group.1.rules.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "group.0.rules.*",
 						map[string]string{
 							"record": "ts3db_live_ingester_write_latency:3m",
@@ -78,10 +78,10 @@ func TestAccCoralogixRecordingRulesGroupsExplicit(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceRecordingRulesGroupsSetExplicit(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(recordingRulesGroupsResourceName, "id"),
-					resource.TestCheckResourceAttr(recordingRulesGroupsResourceName, "group.0.name", "Foo"),
-					resource.TestCheckResourceAttr(recordingRulesGroupsResourceName, "group.0.interval", "180"),
-					resource.TestCheckResourceAttr(recordingRulesGroupsResourceName, "group.0.rules.#", "2"),
+					resource.TestCheckResourceAttrSet(recordingRulesGroupsSetResourceName, "id"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "group.0.name", "Foo"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "group.0.interval", "180"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "group.0.rules.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "group.0.rules.*",
 						map[string]string{
 							"record": "ts3db_live_ingester_write_latency:3m",
@@ -94,10 +94,10 @@ func TestAccCoralogixRecordingRulesGroupsExplicit(t *testing.T) {
 							"expr":   "sum(rate(http_requests_total[5m])) by (job)",
 						},
 					),
-					resource.TestCheckResourceAttrSet(recordingRulesGroupsResourceName, "id"),
-					resource.TestCheckResourceAttr(recordingRulesGroupsResourceName, "group.1.name", "Bar"),
-					resource.TestCheckResourceAttr(recordingRulesGroupsResourceName, "group.1.interval", "60"),
-					resource.TestCheckResourceAttr(recordingRulesGroupsResourceName, "group.1.rules.#", "2"),
+					resource.TestCheckResourceAttrSet(recordingRulesGroupsSetResourceName, "id"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "group.1.name", "Bar"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "group.1.interval", "60"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "group.1.rules.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "group.0.rules.*",
 						map[string]string{
 							"record": "ts3db_live_ingester_write_latency:3m",

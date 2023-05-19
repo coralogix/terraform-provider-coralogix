@@ -13,7 +13,7 @@ provider "coralogix" {
 }
 
 resource "coralogix_recording_rules_groups_set" recording_rules_group {
-  yaml_content = file("./rule-group.yaml")
+  yaml_content = file("./rule-group-set.yaml")
 }
 
 resource "coralogix_recording_rules_groups_set" recording_rules_groups_set_explicit {

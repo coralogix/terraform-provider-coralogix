@@ -163,3 +163,10 @@ DEVELOPERS:
 FEATURES:
 
 * Adding [tco_policy_override](docs/resources/tco_policy_override.md) resource and data source.
+
+## Release 1.5.5
+
+BREAKING CHANGES:
+
+#### resource/recording_rules_group
+* Deprecated, and replaced with [recording_rules_groups_set](./docs/resources/recording_rules_groups_set.md) .
