@@ -55,8 +55,8 @@ resource "coralogix_recording_rules_groups_set" recording_rules_groups_set_expli
 
 ### Optional
 
-- `group` (Block List) An option to defining recording-rule-group-set explicitly. If not set, will be computed by yaml_content. (see [below for nested schema](#nestedblock--group))
-- `name` (String)
+- `group` (Block Set) An option to define recording-rule-groups explicitly. Will be computed in a case of importing by yaml_content. (see [below for nested schema](#nestedblock--group))
+- `name` (String) recording-rule-groups-set name. Optional in a case of defining the recording-rule-groups ('group') explicitly, and computed in a case of importing by yaml_content
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 - `yaml_content` (String) An option to import recording-rule-group-set from yaml file.
 
@@ -71,7 +71,7 @@ Required:
 
 - `interval` (Number) How often rules in the group are evaluated (in seconds).
 - `name` (String) The rule-group name. Have to be unique.
-- `rule` (Block Set, Min: 1) (see [below for nested schema](#nestedblock--group--rule))
+- `rule` (Block List, Min: 1) (see [below for nested schema](#nestedblock--group--rule))
 
 Optional:
 

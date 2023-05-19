@@ -90,14 +90,15 @@ func expandRecordingRulesGroupSetExplicitly(d *schema.ResourceData) *rrgs.Create
 }
 
 func expandRecordingRulesGroups(v interface{}) []*rrgs.InRuleGroup {
-	groups := v.([]interface{})
+	groups := v.(*schema.Set).List()
 	results := make([]*rrgs.InRuleGroup, 0, len(groups))
+
 	for _, g := range groups {
 		group := expandRecordingRuleGroup(g)
 		results = append(results, group)
 	}
-	return results
 
+	return results
 }
 
 func expandRecordingRuleGroup(v interface{}) *rrgs.InRuleGroup {
@@ -117,7 +118,7 @@ func expandRecordingRuleGroup(v interface{}) *rrgs.InRuleGroup {
 }
 
 func expandRecordingRules(v interface{}) []*rrgs.InRule {
-	l := v.(*schema.Set).List()
+	l := v.([]interface{})
 	result := make([]*rrgs.InRule, 0, len(l))
 	for _, recordingRule := range l {
 		r := expandRecordingRule(recordingRule)
@@ -234,13 +235,11 @@ func flattenRecordingRulesGroups(groups []*rrgs.OutRuleGroup) interface{} {
 
 func flattenRecordingRulesGroup(group *rrgs.OutRuleGroup) interface{} {
 	rules := flattenRecordingRules(group.Rules)
-	return []interface{}{
-		map[string]interface{}{
-			"name":     group.Name,
-			"interval": group.Interval,
-			"limit":    group.Limit,
-			"rule":     rules,
-		},
+	return map[string]interface{}{
+		"name":     group.Name,
+		"interval": group.Interval,
+		"limit":    group.Limit,
+		"rule":     rules,
 	}
 }
 
@@ -280,38 +279,13 @@ func RecordingRulesGroupsSetSchema() map[string]*schema.Schema {
 			Description:  "An option to import recording-rule-group-set from yaml file.",
 		},
 		"group": {
-			Type:         schema.TypeList,
+			Type:         schema.TypeSet,
 			Optional:     true,
 			Computed:     true,
 			ExactlyOneOf: []string{"yaml_content", "group"},
-			Elem: &schema.Resource{
-				Schema: map[string]*schema.Schema{
-					"name": {
-						Type:         schema.TypeString,
-						Required:     true,
-						ValidateFunc: validation.StringIsNotEmpty,
-						Description:  "The rule-group name. Have to be unique.",
-					},
-					"interval": {
-						Type:         schema.TypeInt,
-						Required:     true,
-						ValidateFunc: validation.IntAtLeast(0),
-						Description:  "How often rules in the group are evaluated (in seconds).",
-					},
-					"limit": {
-						Type:        schema.TypeInt,
-						Optional:    true,
-						Description: "Limit the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit.",
-					},
-					"rule": {
-						Type:     schema.TypeSet,
-						Required: true,
-						Elem:     recordingRulesSchema(),
-						Set:      schema.HashResource(recordingRulesSchema()),
-					},
-				},
-			},
-			Description: "An option to define recording-rule-groups explicitly. Will be computed in a case of importing by yaml_content.",
+			Elem:         recordingRuleGroupSchema(),
+			Set:          schema.HashResource(recordingRuleGroupSchema()),
+			Description:  "An option to define recording-rule-groups explicitly. Will be computed in a case of importing by yaml_content.",
 		},
 		"name": {
 			Type:          schema.TypeString,
@@ -319,6 +293,35 @@ func RecordingRulesGroupsSetSchema() map[string]*schema.Schema {
 			Computed:      true,
 			ConflictsWith: []string{"yaml_content"},
 			Description:   "recording-rule-groups-set name. Optional in a case of defining the recording-rule-groups ('group') explicitly, and computed in a case of importing by yaml_content",
+		},
+	}
+}
+
+func recordingRuleGroupSchema() *schema.Resource {
+	return &schema.Resource{
+		Schema: map[string]*schema.Schema{
+			"name": {
+				Type:         schema.TypeString,
+				Required:     true,
+				ValidateFunc: validation.StringIsNotEmpty,
+				Description:  "The rule-group name. Have to be unique.",
+			},
+			"interval": {
+				Type:         schema.TypeInt,
+				Required:     true,
+				ValidateFunc: validation.IntAtLeast(0),
+				Description:  "How often rules in the group are evaluated (in seconds).",
+			},
+			"limit": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "Limit the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit.",
+			},
+			"rule": {
+				Type:     schema.TypeList,
+				Required: true,
+				Elem:     recordingRulesSchema(),
+			},
 		},
 	}
 }

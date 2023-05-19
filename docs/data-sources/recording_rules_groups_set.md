@@ -17,9 +17,9 @@ description: |-
 
 ### Read-Only
 
-- `group` (List of Object) An option to defining recording-rule-group-set explicitly. If not set, will be computed by yaml_content. (see [below for nested schema](#nestedatt--group))
+- `group` (Set of Object) An option to define recording-rule-groups explicitly. Will be computed in a case of importing by yaml_content. (see [below for nested schema](#nestedatt--group))
 - `id` (String) The ID of this resource.
-- `name` (String)
+- `name` (String) recording-rule-groups-set name. Optional in a case of defining the recording-rule-groups ('group') explicitly, and computed in a case of importing by yaml_content
 - `yaml_content` (String) An option to import recording-rule-group-set from yaml file.
 
 <a id="nestedatt--group"></a>
@@ -30,7 +30,7 @@ Read-Only:
 - `interval` (Number)
 - `limit` (Number)
 - `name` (String)
-- `rule` (Set of Object) (see [below for nested schema](#nestedobjatt--group--rule))
+- `rule` (List of Object) (see [below for nested schema](#nestedobjatt--group--rule))
 
 <a id="nestedobjatt--group--rule"></a>
 ### Nested Schema for `group.rule`
