@@ -5,11 +5,16 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	oldSchema "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"terraform-provider-coralogix/coralogix/clientset"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 )
 
 var (
@@ -24,50 +29,39 @@ var (
 )
 
 // Provider returns a *schema.Provider.
-func Provider() *schema.Provider {
-	return &schema.Provider{
-		Schema: map[string]*schema.Schema{
+func Provider() *oldSchema.Provider {
+	return &oldSchema.Provider{
+		Schema: map[string]*oldSchema.Schema{
 			"env": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				DefaultFunc:   schema.EnvDefaultFunc("CORALOGIX_ENV", nil),
-				ValidateFunc:  validation.StringInSlice(validEnvs, false),
-				Description:   fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvs),
-				ConflictsWith: []string{"domain"},
+				Type:     oldSchema.TypeString,
+				Optional: true,
+				//ForceNew: true,
+				//DefaultFunc:   oldSchema.EnvDefaultFunc("CORALOGIX_ENV", nil),
+				//ValidateFunc:  validation.StringInSlice(validEnvs, false),
+				Description: fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvs),
+				//ConflictsWith: []string{"domain"},
 			},
 			"domain": {
-				Type:          schema.TypeString,
-				Optional:      true,
-				ForceNew:      true,
-				DefaultFunc:   schema.EnvDefaultFunc("CORALOGIX_DOMAIN", nil),
-				Description:   "The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
-				ConflictsWith: []string{"env"},
+				Type:     oldSchema.TypeString,
+				Optional: true,
+				//ForceNew: true,
+				//DefaultFunc:   oldSchema.EnvDefaultFunc("CORALOGIX_DOMAIN", nil),
+				Description: "The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
+				//ConflictsWith: []string{"env"},
 			},
 			"api_key": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Sensitive:    true,
-				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"CORALOGIX_API_KEY"}, nil),
-				ValidateFunc: validation.IsUUID,
-				Description:  "A key for using coralogix APIs (Auto Generated), appropriate for the defined environment. environment variable 'CORALOGIX_API_KEY' can be defined instead.",
-				AtLeastOneOf: []string{"api_key", "teams_api_key"},
-			},
-			"teams_api_key": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				Sensitive:    true,
-				DefaultFunc:  schema.MultiEnvDefaultFunc([]string{"CORALOGIX_TEAMS_API_KEY"}, nil),
-				ValidateFunc: validation.IsUUID,
-				Description:  "A key for accessing teams API, appropriate for the defined environment.",
-				AtLeastOneOf: []string{"api_key", "teams_api_key"},
+				Type:      oldSchema.TypeString,
+				Optional:  true,
+				Sensitive: true,
+				//DefaultFunc:  oldSchema.MultiEnvDefaultFunc([]string{"CORALOGIX_API_KEY"}, nil),
+				//ValidateFunc: validation.IsUUID,
+				Description: "A key for using coralogix APIs (Auto Generated), appropriate for the defined environment. environment variable 'CORALOGIX_API_KEY' can be defined instead.",
 			},
 		},
 
-		DataSourcesMap: map[string]*schema.Resource{
+		DataSourcesMap: map[string]*oldSchema.Resource{
 			"coralogix_rules_group":                dataSourceCoralogixRulesGroup(),
 			"coralogix_alert":                      dataSourceCoralogixAlert(),
-			"coralogix_events2metric":              dataSourceCoralogixEvents2Metric(),
 			"coralogix_enrichment":                 dataSourceCoralogixEnrichment(),
 			"coralogix_data_set":                   dataSourceCoralogixDataSet(),
 			"coralogix_dashboard":                  dataSourceCoralogixDashboard(),
@@ -79,10 +73,9 @@ func Provider() *schema.Provider {
 			"coralogix_webhook":                    dataSourceCoralogixWebhook(),
 		},
 
-		ResourcesMap: map[string]*schema.Resource{
+		ResourcesMap: map[string]*oldSchema.Resource{
 			"coralogix_rules_group":                resourceCoralogixRulesGroup(),
 			"coralogix_alert":                      resourceCoralogixAlert(),
-			"coralogix_events2metric":              resourceCoralogixEvents2Metric(),
 			"coralogix_enrichment":                 resourceCoralogixEnrichment(),
 			"coralogix_data_set":                   resourceCoralogixDataSet(),
 			"coralogix_dashboard":                  resourceCoralogixDashboard(),
@@ -94,7 +87,7 @@ func Provider() *schema.Provider {
 			"coralogix_webhook":                    resourceCoralogixWebhook(),
 		},
 
-		ConfigureContextFunc: func(context context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+		ConfigureContextFunc: func(context context.Context, d *oldSchema.ResourceData) (interface{}, diag.Diagnostics) {
 			var targetUrl string
 			if env, ok := d.GetOk("env"); ok && env.(string) != "" {
 				targetUrl = envToGrpcUrl[env.(string)]
@@ -109,8 +102,182 @@ func Provider() *schema.Provider {
 			}
 
 			apikey := d.Get("api_key").(string)
-			teamsApiKey := d.Get("teams_api_key").(string)
-			return clientset.NewClientSet(targetUrl, apikey, teamsApiKey), nil
+			return clientset.NewClientSet(targetUrl, apikey, ""), nil
 		},
+	}
+}
+
+type coralogixProviderModel struct {
+	Env    types.String `tfsdk:"env"`
+	Domain types.String `tfsdk:"domain"`
+	ApiKey types.String `tfsdk:"api_key"`
+}
+
+var (
+	_ provider.Provider = &coralogixProvider{}
+)
+
+func NewCoralogixProvider() provider.Provider {
+	return &coralogixProvider{}
+}
+
+type coralogixProvider struct{}
+
+func (p *coralogixProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "coralogix"
+}
+
+func (p *coralogixProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"env": schema.StringAttribute{
+				Optional:    true,
+				Description: fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvs),
+			},
+			"domain": schema.StringAttribute{
+				Optional:    true,
+				Description: "The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
+			},
+			"api_key": schema.StringAttribute{
+				Optional:    true,
+				Sensitive:   true,
+				Description: "A key for using coralogix APIs (Auto Generated), appropriate for the defined environment. environment variable 'CORALOGIX_API_KEY' can be defined instead.",
+			},
+		},
+	}
+}
+
+func (p *coralogixProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) { // Retrieve provider data from configuration
+	var config coralogixProviderModel
+	diags := req.Config.Get(ctx, &config)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// If practitioner provided a configuration value for any of the
+	// attributes, it must be a known value.
+
+	if config.Domain.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("domain"),
+			"Unknown Coralogix Domain",
+			"The provider cannot create the Coralogix API client as there is an unknown configuration value for the Coralogix domain. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the CORALOGIX_DOMAIN environment variable.",
+		)
+	}
+
+	if config.Env.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("env"),
+			"Unknown Coralogix Env",
+			"The provider cannot create the Coralogix API client as there is an unknown configuration value for the Coralogix environment. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the CORALOGIX_ENV environment variable.",
+		)
+	}
+
+	if config.ApiKey.IsUnknown() {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("api_key"),
+			"Unknown Coralogix API API-Key",
+			"The provider cannot create the Coralogix API client as there is an unknown configuration value for the Coralogix API-Key. "+
+				"Either target apply the source of the value first, set the value statically in the configuration, or use the CORALOGIX_API_KEY environment variable.",
+		)
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Default values to environment variables, but override
+	// with Terraform configuration value if set.
+
+	domain := os.Getenv("CORALOGIX_DOMAIN")
+	env := os.Getenv("CORALOGIX_ENV")
+	apiKey := os.Getenv("CORALOGIX_API_KEY")
+
+	if !config.Domain.IsNull() {
+		domain = config.Domain.ValueString()
+	}
+
+	if !config.Env.IsNull() {
+		env = config.Env.ValueString()
+	}
+
+	if !config.ApiKey.IsNull() {
+		apiKey = config.ApiKey.ValueString()
+	}
+
+	// If any of the expected configurations are missing, return
+	// errors with provider-specific guidance.
+
+	if domain == "" && env == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("domain"),
+			"Missing Coralogix domain",
+			"The provider cannot create the Coralogix API client as there is a missing or empty value for the Coralogix domain. "+
+				"Set the domain value in the configuration or use the CORALOGIX_DOMAIN environment variable. "+
+				"If either is already set, ensure the value is not empty."+
+				"Coralogix env can be set instead",
+		)
+		resp.Diagnostics.AddAttributeError(
+			path.Root("env"),
+			"Missing Coralogix API Host",
+			"The provider cannot create the Coralogix API client as there is a missing or empty value for the Coralogix environment. "+
+				"Set the env value in the configuration or use the CORALOGIX_ENV environment variable. "+
+				"If either is already set, ensure the value is not empty."+
+				"Coralogix domain can be set instead",
+		)
+	}
+
+	if domain != "" && env != "" {
+		resp.Diagnostics.AddError("Conflicting attributes \"env\" and \"domain\"",
+			"Only one of \"env\" need to be set."+
+				"ensure CORALOGIX_ENV and CORALOGIX_DOMAIN are not set together as well.",
+		)
+	}
+
+	if apiKey == "" {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("api_key"),
+			"Missing Coralogix API API-Key",
+			"The provider cannot create the Coralogix API client as there is a missing or empty value for the Coralogix API-Key. "+
+				"Set the api_key value in the configuration or use the CORALOGIX_API_KEY environment variable. "+
+				"If either is already set, ensure the value is not empty.",
+		)
+	}
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var targetUrl string
+	if env != "" {
+		targetUrl = envToGrpcUrl[env]
+	} else {
+		targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
+	}
+
+	clientSet := clientset.NewClientSet(targetUrl, apiKey, "")
+	resp.DataSourceData = clientSet
+	resp.ResourceData = clientSet
+}
+
+//func (p coralogixProvider) ConfigValidators(ctx context.Context) []provider.ConfigValidator {
+//	return []provider.ConfigValidator{
+//		providervalidator.Conflicting(
+//			path.MatchRoot("env"),
+//			path.MatchRoot("domain"),
+//		),
+//	}
+//}
+
+func (p *coralogixProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{}
+}
+
+func (p *coralogixProvider) Resources(context.Context) []func() resource.Resource {
+	return []func() resource.Resource{
+		NewEvents2MetricResource,
 	}
 }
