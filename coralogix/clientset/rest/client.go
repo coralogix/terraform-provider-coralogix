@@ -7,6 +7,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httputil"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // Client for Coralogix API
@@ -42,11 +45,11 @@ func (c *Client) Request(ctx context.Context, method, path, contentType string, 
 
 	response, err := c.client.Do(request)
 	if err != nil {
-		return "", err
+		return "", status.Convert(err).Err()
 	}
+	defer response.Body.Close()
 
-	if response.StatusCode == 200 || response.StatusCode == 201 {
-		defer response.Body.Close()
+	if response.StatusCode >= http.StatusOK && response.StatusCode < http.StatusMultipleChoices {
 
 		bodyResp, err := io.ReadAll(response.Body)
 		if err != nil {
@@ -56,9 +59,13 @@ func (c *Client) Request(ctx context.Context, method, path, contentType string, 
 		return string(bodyResp), nil
 	}
 
+	if response.StatusCode == http.StatusNotFound {
+		return "", status.Error(codes.NotFound, "Not found")
+	}
+
 	responseBody, err := httputil.DumpResponse(response, true)
 	if err != nil {
-		return "", err
+		return "", status.Convert(err).Err()
 	}
 
 	return "", fmt.Errorf("API Error: %s. Status code: %s", string(responseBody), response.Status)
