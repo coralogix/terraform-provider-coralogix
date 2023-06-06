@@ -170,3 +170,9 @@ BREAKING CHANGES:
 
 #### resource/recording_rules_group
 * Deprecated, and replaced with [recording_rules_groups_set](./docs/resources/recording_rules_groups_set.md) .
+
+## Release 1.5.6
+
+BUG FIXING:
+#### resource/tco_policy
+* Fixing [TF doesn't detect manually deleted resources](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1683820712917899)
