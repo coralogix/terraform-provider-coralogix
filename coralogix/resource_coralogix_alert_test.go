@@ -274,6 +274,7 @@ func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
 		threshold:             acctest.RandIntRange(0, 1000),
 		nonNullPercentage:     10 * acctest.RandIntRange(0, 10),
 		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
+		condition:             "less_than",
 	}
 	checks := extractMetricPromqlAlertChecks(alert)
 
@@ -282,6 +283,7 @@ func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
 		threshold:             acctest.RandIntRange(0, 1000),
 		nonNullPercentage:     10 * acctest.RandIntRange(0, 10),
 		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
+		condition:             "more_than",
 	}
 	updatedAlertChecks := extractMetricPromqlAlertChecks(updatedAlert)
 
@@ -559,12 +561,20 @@ func extractMetricPromqlAlertChecks(alert metricPromqlAlertTestParams) []resourc
 			}),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.search_query", "http_requests_total{status!~\"4..\"}"),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.threshold", strconv.Itoa(alert.threshold)),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.less_than", "true"),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.sample_threshold_percentage", strconv.Itoa(alert.sampleThresholdPercentage)),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.min_non_null_values_percentage", strconv.Itoa(alert.nonNullPercentage)),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.time_window", alert.timeWindow),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.manage_undetected_values.0.auto_retire_ratio", "Never"),
+	}
+	if alert.condition == "less_than" {
+		checks = append(checks,
+			resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.less_than", "true"),
+			resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "true"),
+			resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.manage_undetected_values.0.auto_retire_ratio", "Never"),
+		)
+	} else {
+		checks = append(checks,
+			resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.more_than", "true"),
+		)
 	}
 	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
 	return checks
@@ -1022,7 +1032,7 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
     promql {
       search_query = "http_requests_total{status!~\"4..\"}"
       condition {
-        less_than                    = true
+        %s                    	     = true
         threshold                    = %d
         sample_threshold_percentage  = %d
         time_window                  = "%s"
@@ -1032,7 +1042,7 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
   }
 }`,
 		a.name, a.description, a.severity, a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
-		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds, a.threshold, a.sampleThresholdPercentage,
+		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds, a.condition, a.threshold, a.sampleThresholdPercentage,
 		a.timeWindow, a.nonNullPercentage)
 }
 
@@ -1215,6 +1225,7 @@ type metricPromqlAlertTestParams struct {
 	alertCommonTestParams
 	threshold, nonNullPercentage, sampleThresholdPercentage int
 	timeWindow                                              string
+	condition                                               string
 }
 
 type tracingAlertTestParams struct {
