@@ -1,8 +1,8 @@
 terraform {
   required_providers {
     coralogix = {
-#      version = "~> 1.5"
-       source = "coralogix.com/coralogix/coralogix"
+      #      version = "~> 1.5"
+      source = "coralogix.com/coralogix/coralogix"
     }
   }
 }
@@ -15,23 +15,21 @@ provider "coralogix" {
 resource "coralogix_events2metric" "logs2metric" {
   name        = "logs2metricExample"
   description = "logs2metric from coralogix terraform provider"
-  logs_query = {
+  logs_query  = {
     lucene       = "remote_addr_enriched:/.*/"
     applications = ["filter:startsWith:nginx"] //change here for existing applications from your account
     severities   = ["Debug"]
   }
 
-  metric_fields = [
-    {
-      target_base_metric_name = "method"
-      source_field            = "method" //change here for existing source field from your account
+  metric_fields = {
+    method = {
+      source_field = "method"
     },
-    {
-      target_base_metric_name = "geo_point"
-      source_field            = "remote_addr_geoip.location_geopoint"
+    geo_point = {
+      source_field = "remote_addr_geoip.location_geopoint"
       aggregations = {
         max = {
-          enable = false
+          enable = true
         }
         min = {
           enable = false
@@ -41,20 +39,14 @@ resource "coralogix_events2metric" "logs2metric" {
         }
       }
     }
-  ]
+  }
 
   //change here for existing source field from your account
 
-  metric_labels = [
-    {
-      target_label = "Status"
-      source_field = "status" //change here for existing source field from your account
-    },
-    {
-      target_label = "Path"
-      source_field = "http_referer" //change here for existing source field from your account
-    },
-  ]
+  metric_labels = {
+    Status = "status"
+    Path   = "http_referer"
+  }
 
   permutations = {
     limit = 20000
