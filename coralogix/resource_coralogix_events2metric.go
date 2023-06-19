@@ -8,7 +8,6 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -20,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -67,8 +67,8 @@ type Events2MetricResourceModel struct {
 	ID           types.String       `tfsdk:"id"`
 	Name         types.String       `tfsdk:"name"`
 	Description  types.String       `tfsdk:"description"`
-	MetricFields types.Map          `tfsdk:"metric_fields"`
-	MetricLabels types.Map          `tfsdk:"metric_labels"`
+	MetricFields types.Set          `tfsdk:"metric_fields"`
+	MetricLabels types.Set          `tfsdk:"metric_labels"`
 	Permutations *PermutationsModel `tfsdk:"permutations"`
 	SpansQuery   *SpansQueryModel   `tfsdk:"spans_query"`
 	LogsQuery    *LogsQueryModel    `tfsdk:"logs_query"`
@@ -76,6 +76,7 @@ type Events2MetricResourceModel struct {
 
 type MetricFieldModel struct {
 	TargetBaseMetricName types.String       `tfsdk:"target_base_metric_name"`
+	SourceField          types.String       `tfsdk:"source_field"`
 	Aggregations         *AggregationsModel `tfsdk:"aggregations"`
 }
 
@@ -229,11 +230,14 @@ func (e *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 				Optional:            true,
 				MarkdownDescription: "Events2Metric description.",
 			},
-			"metric_fields": schema.MapNestedAttribute{
+			"metric_fields": schema.SetNestedAttribute{
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"target_base_metric_name": schema.StringAttribute{
+							Required: true,
+						},
+						"source_field": schema.StringAttribute{
 							Required: true,
 						},
 						"aggregations": schema.SingleNestedAttribute{
@@ -394,14 +398,24 @@ func (e *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 						},
 					},
 				},
-				//Validators: []validator.Map{
-				//	mapvalidator.SizeAtLeast(1),
-				//},
+				Validators: []validator.Set{
+					setvalidator.SizeAtLeast(1),
+				},
 			},
-			"metric_labels": schema.MapAttribute{
+			"metric_labels": schema.SetNestedAttribute{
 				Optional: true,
-				Validators: []validator.Map{
-					mapvalidator.SizeAtLeast(1),
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"target_label": schema.StringAttribute{
+							Required: true,
+						},
+						"source_field": schema.StringAttribute{
+							Required: true,
+						},
+					},
+				},
+				Validators: []validator.Set{
+					setvalidator.SizeAtLeast(1),
 				},
 			},
 			"permutations": schema.SingleNestedAttribute{
@@ -752,45 +766,47 @@ func extractUpdateE2M(plan Events2MetricResourceModel) *e2m.ReplaceE2MRequest {
 	}
 }
 
-func expandE2MLabels(labels types.Map) []*e2m.MetricLabel {
-	labelsMap := labels.Elements()
-	result := make([]*e2m.MetricLabel, 0, len(labelsMap))
-	for sourceField, value := range labelsMap {
-		v, _ := value.ToTerraformValue(context.Background())
-		var targetField string
-		v.As(&targetField)
-		label := expandE2MLabel(sourceField, targetField)
+func expandE2MLabels(labels types.Set) []*e2m.MetricLabel {
+	var labelsObjects []types.Object
+	labels.ElementsAs(context.Background(), &labelsObjects, true)
+	result := make([]*e2m.MetricLabel, 0, len(labelsObjects))
+	for _, lo := range labelsObjects {
+		label := expandE2MLabel(lo)
 		result = append(result, label)
 	}
 
 	return result
 }
 
-func expandE2MLabel(key, value string) *e2m.MetricLabel {
+func expandE2MLabel(labelObject types.Object) *e2m.MetricLabel {
+	var metricLabel MetricLabelModel
+	labelObject.As(context.Background(), &metricLabel, basetypes.ObjectAsOptions{})
+	log.Printf("[DEBUG] metricLabel %s", metricLabel)
 	return &e2m.MetricLabel{
-		SourceField: wrapperspb.String(key),
-		TargetLabel: wrapperspb.String(value),
+		TargetLabel: wrapperspb.String(metricLabel.TargetLabel.ValueString()),
+		SourceField: wrapperspb.String(metricLabel.SourceField.ValueString()),
 	}
 }
 
-func expandE2MFields(fields types.Map) []*e2m.MetricField {
-	fieldsMap := fields.Elements()
-	result := make([]*e2m.MetricField, 0, len(fieldsMap))
-	for sourceFiled, value := range fieldsMap {
-		v, _ := value.ToTerraformValue(context.Background())
-		var metricFieldValue MetricFieldModel
-		v.As(&metricFieldValue)
-		field := expandE2MField(sourceFiled, metricFieldValue)
+func expandE2MFields(fields types.Set) []*e2m.MetricField {
+	var fieldsObjects []types.Object
+	fields.ElementsAs(context.Background(), &fieldsObjects, true)
+	result := make([]*e2m.MetricField, 0, len(fieldsObjects))
+	for _, f := range fieldsObjects {
+		field := expandE2MField(f)
 		result = append(result, field)
 	}
 
 	return result
 }
 
-func expandE2MField(sourceField string, metricField MetricFieldModel) *e2m.MetricField {
+func expandE2MField(fieldObject types.Object) *e2m.MetricField {
+	var metricField MetricFieldModel
+	fieldObject.As(context.Background(), &metricField, basetypes.ObjectAsOptions{UnhandledNullAsEmpty: true, UnhandledUnknownAsEmpty: true})
+	log.Printf("[DEBUG] metricField %s", metricField)
 	return &e2m.MetricField{
-		SourceField:          wrapperspb.String(sourceField),
 		TargetBaseMetricName: wrapperspb.String(metricField.TargetBaseMetricName.ValueString()),
+		SourceField:          wrapperspb.String(metricField.SourceField.ValueString()),
 		Aggregations:         expandE2MAggregations(metricField.Aggregations),
 	}
 }
@@ -940,24 +956,25 @@ func flattenE2MPermutations(permutations *e2m.E2MPermutations) *PermutationsMode
 	}
 }
 
-func flattenE2MMetricFields(fields []*e2m.MetricField) types.Map {
+func flattenE2MMetricFields(fields []*e2m.MetricField) types.Set {
 	if len(fields) == 0 {
-		return types.MapNull(types.ObjectType{AttrTypes: metricFieldModelAttr()})
+		return types.SetNull(types.ObjectType{AttrTypes: metricFieldModelAttr()})
 	}
 
-	elements := make(map[string]attr.Value)
+	elements := make([]attr.Value, 0, len(fields))
 	for _, f := range fields {
-		source, field := flattenE2MMetricField(f)
+		field := flattenE2MMetricField(f)
 		element, _ := types.ObjectValueFrom(context.Background(), metricFieldModelAttr(), field)
-		elements[source] = element
+		elements = append(elements, element)
 	}
-	return types.MapValueMust(types.ObjectType{AttrTypes: metricFieldModelAttr()}, elements)
+	return types.SetValueMust(types.ObjectType{AttrTypes: metricFieldModelAttr()}, elements)
 }
 
-func flattenE2MMetricField(field *e2m.MetricField) (string, MetricFieldModel) {
+func flattenE2MMetricField(field *e2m.MetricField) MetricFieldModel {
 	aggregations := flattenE2MAggregations(field.GetAggregations())
-	return field.GetSourceField().GetValue(), MetricFieldModel{
+	return MetricFieldModel{
 		TargetBaseMetricName: types.StringValue(field.GetTargetBaseMetricName().GetValue()),
+		SourceField:          types.StringValue(field.GetSourceField().GetValue()),
 		Aggregations:         aggregations,
 	}
 }
@@ -1030,18 +1047,19 @@ func flattenE2MHistogramAggregation(aggregation *e2m.Aggregation) *HistogramAggr
 	}
 }
 
-func flattenE2MMetricLabels(labels []*e2m.MetricLabel) types.Map {
+func flattenE2MMetricLabels(labels []*e2m.MetricLabel) types.Set {
 	if len(labels) == 0 {
-		return types.MapNull(types.StringType)
+		return types.SetNull(types.ObjectType{AttrTypes: metricLabelModelAttr()})
 	}
 
-	elements := make(map[string]attr.Value)
+	elements := make([]attr.Value, 0, len(labels))
 	for _, l := range labels {
-		key, value := l.GetSourceField().GetValue(), l.GetTargetLabel().GetValue()
-		elements[key] = types.StringValue(value)
+		label := flattenE2MMetricLabel(l)
+		element, _ := types.ObjectValueFrom(context.Background(), metricLabelModelAttr(), label)
+		elements = append(elements, element)
 	}
 
-	return types.MapValueMust(types.StringType, elements)
+	return types.SetValueMust(types.ObjectType{AttrTypes: metricLabelModelAttr()}, elements)
 }
 
 func flattenE2MMetricLabel(label *e2m.MetricLabel) MetricLabelModel {
