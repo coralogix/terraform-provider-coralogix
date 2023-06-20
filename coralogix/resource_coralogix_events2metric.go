@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -108,11 +109,6 @@ type HistogramAggregationModel struct {
 	Enable           types.Bool      `tfsdk:"enable"`
 	TargetMetricName types.String    `tfsdk:"target_metric_name"`
 	Buckets          []types.Float64 `tfsdk:"buckets"`
-}
-
-type MetricLabelModel struct {
-	TargetLabel types.String `tfsdk:"target_label"`
-	SourceField types.String `tfsdk:"source_field"`
 }
 
 type PermutationsModel struct {
@@ -542,8 +538,78 @@ func (e *Events2MetricResource) UpgradeState(context.Context) map[int64]resource
 	}
 }
 
-func upgradeE2MStateV0ToV1(_ context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+func upgradeE2MStateV0ToV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+	type Events2MetricResourceModelV0 struct {
+		ID           types.String       `tfsdk:"id"`
+		Name         types.String       `tfsdk:"name"`
+		Description  types.String       `tfsdk:"description"`
+		MetricFields types.Set          `tfsdk:"metric_fields"`
+		MetricLabels types.Set          `tfsdk:"metric_labels"`
+		Permutations *PermutationsModel `tfsdk:"permutations"`
+		SpansQuery   *SpansQueryModel   `tfsdk:"spans_query"`
+		LogsQuery    *LogsQueryModel    `tfsdk:"logs_query"`
+	}
 
+	var priorStateData Events2MetricResourceModelV0
+	resp.Diagnostics.Append(req.State.Get(ctx, &priorStateData)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	upgradedStateData := Events2MetricResourceModel{
+		ID:           priorStateData.ID,
+		Description:  priorStateData.Description,
+		MetricFields: upgradeE2MMetricFieldsV0ToV1(priorStateData.MetricFields),
+		MetricLabels: upgradeE2MMetricLabelsV0ToV1(priorStateData.MetricLabels),
+		Permutations: priorStateData.Permutations,
+		SpansQuery:   priorStateData.SpansQuery,
+		LogsQuery:    priorStateData.LogsQuery,
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, upgradedStateData)...)
+}
+
+func upgradeE2MMetricLabelsV0ToV1(labels types.Set) types.Map {
+	type MetricLabelV0Model struct {
+		TargetLabel types.String `tfsdk:"target_label"`
+		SourceField types.String `tfsdk:"source_field"`
+	}
+
+	var labelsObjects []types.Object
+	labels.ElementsAs(context.Background(), &labelsObjects, true)
+	elements := make(map[string]attr.Value)
+	for _, lo := range labelsObjects {
+		var metricLabel MetricLabelV0Model
+		lo.As(context.Background(), &metricLabel, basetypes.ObjectAsOptions{})
+		elements[metricLabel.TargetLabel.ValueString()] = metricLabel.SourceField
+	}
+
+	return types.MapValueMust(types.StringType, elements)
+}
+
+func upgradeE2MMetricFieldsV0ToV1(fields types.Set) types.Map {
+	type MetricFieldV0Model struct {
+		TargetBaseMetricName types.String       `tfsdk:"target_base_metric_name"`
+		SourceField          types.String       `tfsdk:"source_field"`
+		Aggregations         *AggregationsModel `tfsdk:"aggregations"`
+	}
+
+	var fieldObjects []types.Object
+	fields.ElementsAs(context.Background(), &fieldObjects, true)
+	elements := make(map[string]attr.Value)
+	for _, fo := range fieldObjects {
+		var metricFieldV0 MetricFieldV0Model
+		fo.As(context.Background(), &metricFieldV0, basetypes.ObjectAsOptions{})
+		field := MetricFieldModel{
+			SourceField:  metricFieldV0.SourceField,
+			Aggregations: metricFieldV0.Aggregations,
+		}
+		element, _ := types.ObjectValueFrom(context.Background(), metricFieldModelAttr(), field)
+		elements[metricFieldV0.TargetBaseMetricName.ValueString()] = element
+
+	}
+
+	return types.MapValueMust(types.StringType, elements)
 }
 
 func e2mSchemaV0() schema.Schema {
@@ -567,11 +633,17 @@ func e2mSchemaV0() schema.Schema {
 			"description": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "Events2Metric description.",
+				//Validators: []validator.String{
+				//	stringvalidator.LengthAtLeast(1),
+				//},
 			},
 			"metric_fields": schema.SetNestedAttribute{
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
+						"target_base_metric_name": schema.StringAttribute{
+							Required: true,
+						},
 						"source_field": schema.StringAttribute{
 							Required: true,
 						},
@@ -586,7 +658,7 @@ func e2mSchemaV0() schema.Schema {
 									Optional: true,
 									Computed: true,
 									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseStateForUnknown(),
+										objectplanmodifier.RequiresReplaceIfConfigured(),
 									},
 									Attributes: map[string]schema.Attribute{
 										"enable": schema.BoolAttribute{
@@ -607,9 +679,6 @@ func e2mSchemaV0() schema.Schema {
 								"max": schema.SingleNestedAttribute{
 									Optional: true,
 									Computed: true,
-									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseStateForUnknown(),
-									},
 									Attributes: map[string]schema.Attribute{
 										"enable": schema.BoolAttribute{
 											Optional: true,
@@ -629,9 +698,6 @@ func e2mSchemaV0() schema.Schema {
 								"count": schema.SingleNestedAttribute{
 									Optional: true,
 									Computed: true,
-									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseStateForUnknown(),
-									},
 									Attributes: map[string]schema.Attribute{
 										"enable": schema.BoolAttribute{
 											Optional: true,
@@ -651,9 +717,6 @@ func e2mSchemaV0() schema.Schema {
 								"avg": schema.SingleNestedAttribute{
 									Optional: true,
 									Computed: true,
-									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseStateForUnknown(),
-									},
 									Attributes: map[string]schema.Attribute{
 										"enable": schema.BoolAttribute{
 											Optional: true,
@@ -673,9 +736,6 @@ func e2mSchemaV0() schema.Schema {
 								"sum": schema.SingleNestedAttribute{
 									Optional: true,
 									Computed: true,
-									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseStateForUnknown(),
-									},
 									Attributes: map[string]schema.Attribute{
 										"enable": schema.BoolAttribute{
 											Optional: true,
@@ -695,9 +755,6 @@ func e2mSchemaV0() schema.Schema {
 								"samples": schema.SingleNestedAttribute{
 									Optional: true,
 									Computed: true,
-									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseStateForUnknown(),
-									},
 									Attributes: map[string]schema.Attribute{
 										"enable": schema.BoolAttribute{
 											Optional: true,
@@ -724,9 +781,6 @@ func e2mSchemaV0() schema.Schema {
 								"histogram": schema.SingleNestedAttribute{
 									Optional: true,
 									Computed: true,
-									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.UseStateForUnknown(),
-									},
 									Attributes: map[string]schema.Attribute{
 										"enable": schema.BoolAttribute{
 											Optional: true,
@@ -759,10 +813,12 @@ func e2mSchemaV0() schema.Schema {
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
+						"target_label": schema.StringAttribute{
+							Required: true,
+						},
 						"source_field": schema.StringAttribute{
 							Required: true,
 						},
-						"target_label": schema.StringAttribute{},
 					},
 				},
 				Validators: []validator.Set{
