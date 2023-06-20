@@ -532,7 +532,7 @@ func (e *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 	}
 }
 
-func (e *Events2MetricResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+func (e *Events2MetricResource) UpgradeState(context.Context) map[int64]resource.StateUpgrader {
 	schemaV0 := e2mSchemaV0()
 	return map[int64]resource.StateUpgrader{
 		1: {
