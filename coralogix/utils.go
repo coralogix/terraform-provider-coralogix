@@ -144,7 +144,7 @@ func wrappedStringSliceToTypeStringSlice(s []*wrapperspb.StringValue) types.Set 
 	return types.SetValueMust(types.StringType, elements)
 }
 
-func typeStringSliceWrappedStringSliceTo(s []attr.Value) []*wrapperspb.StringValue {
+func typeStringSliceToWrappedStringSlice(s []attr.Value) []*wrapperspb.StringValue {
 	result := make([]*wrapperspb.StringValue, 0, len(s))
 	for _, v := range s {
 		val, _ := v.ToTerraformValue(context.Background())
@@ -389,10 +389,18 @@ func randBool() bool {
 	return rand.Int()%2 == 0
 }
 
-func TypeStringToWrapperspbString(str types.String) *wrapperspb.StringValue {
+func typeStringToWrapperspbString(str types.String) *wrapperspb.StringValue {
 	var result *wrapperspb.StringValue
 	if !str.IsNull() {
 		result = wrapperspb.String(str.ValueString())
 	}
 	return result
+}
+
+func wrapperspbStringToTypeStringTo(str *wrapperspb.StringValue) types.String {
+	if str == nil {
+		return types.StringNull()
+	}
+
+	return types.StringValue(str.GetValue())
 }

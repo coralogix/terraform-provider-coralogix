@@ -9,9 +9,11 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
@@ -51,8 +53,10 @@ var (
 )
 
 var (
-	_ resource.Resource              = &Events2MetricResource{}
-	_ resource.ResourceWithConfigure = &Events2MetricResource{}
+	_ resource.ResourceWithConfigure        = &Events2MetricResource{}
+	_ resource.ResourceWithConfigValidators = &Events2MetricResource{}
+	_ resource.ResourceWithImportState      = &Events2MetricResource{}
+	_ resource.ResourceWithUpgradeState     = &Events2MetricResource{}
 )
 
 func NewEvents2MetricResource() resource.Resource {
@@ -179,13 +183,6 @@ func histogramAggregationModelAttr() attr.Type {
 	}
 }
 
-func metricLabelModelAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"target_label": types.StringType,
-		"source_field": types.StringType,
-	}
-}
-
 func (e *Events2MetricResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_events2metric"
 }
@@ -209,6 +206,7 @@ func (e *Events2MetricResource) Configure(_ context.Context, req resource.Config
 
 func (e *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Version: 1,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -411,9 +409,9 @@ func (e *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 						},
 					},
 				},
-				//Validators: []validator.Map{
-				//	mapvalidator.SizeAtLeast(1),
-				//},
+				Validators: []validator.Map{
+					mapvalidator.SizeAtLeast(1),
+				},
 			},
 			"metric_labels": schema.MapAttribute{
 				Optional:    true,
@@ -534,6 +532,363 @@ func (e *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 	}
 }
 
+func (e *Events2MetricResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	schemaV0 := e2mSchemaV0()
+	return map[int64]resource.StateUpgrader{
+		1: {
+			PriorSchema:   &schemaV0,
+			StateUpgrader: upgradeE2MStateV0ToV1,
+		},
+	}
+}
+
+func upgradeE2MStateV0ToV1(_ context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+
+}
+
+func e2mSchemaV0() schema.Schema {
+	return schema.Schema{
+		Version: 0,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"name": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.RegexMatches(regexp.MustCompile(`^[A-Za-z\d_:-]*$`), "Invalid metric name, name may only contain ASCII letters and digits, as well as underscores and colons."),
+					stringvalidator.LengthAtLeast(1),
+				},
+				MarkdownDescription: "Events2Metric name. Events2Metric names have to be unique per account.",
+			},
+			"description": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "Events2Metric description.",
+			},
+			"metric_fields": schema.SetNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"source_field": schema.StringAttribute{
+							Required: true,
+						},
+						"aggregations": schema.SingleNestedAttribute{
+							Optional: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.Object{
+								objectplanmodifier.UseStateForUnknown(),
+							},
+							Attributes: map[string]schema.Attribute{
+								"min": schema.SingleNestedAttribute{
+									Optional: true,
+									Computed: true,
+									PlanModifiers: []planmodifier.Object{
+										objectplanmodifier.UseStateForUnknown(),
+									},
+									Attributes: map[string]schema.Attribute{
+										"enable": schema.BoolAttribute{
+											Optional: true,
+											Computed: true,
+											PlanModifiers: []planmodifier.Bool{
+												boolplanmodifier.UseStateForUnknown(),
+											},
+										},
+										"target_metric_name": schema.StringAttribute{
+											Computed: true,
+											PlanModifiers: []planmodifier.String{
+												stringplanmodifier.UseStateForUnknown(),
+											},
+										},
+									},
+								},
+								"max": schema.SingleNestedAttribute{
+									Optional: true,
+									Computed: true,
+									PlanModifiers: []planmodifier.Object{
+										objectplanmodifier.UseStateForUnknown(),
+									},
+									Attributes: map[string]schema.Attribute{
+										"enable": schema.BoolAttribute{
+											Optional: true,
+											Computed: true,
+											PlanModifiers: []planmodifier.Bool{
+												boolplanmodifier.UseStateForUnknown(),
+											},
+										},
+										"target_metric_name": schema.StringAttribute{
+											Computed: true,
+											PlanModifiers: []planmodifier.String{
+												stringplanmodifier.UseStateForUnknown(),
+											},
+										},
+									},
+								},
+								"count": schema.SingleNestedAttribute{
+									Optional: true,
+									Computed: true,
+									PlanModifiers: []planmodifier.Object{
+										objectplanmodifier.UseStateForUnknown(),
+									},
+									Attributes: map[string]schema.Attribute{
+										"enable": schema.BoolAttribute{
+											Optional: true,
+											Computed: true,
+											PlanModifiers: []planmodifier.Bool{
+												boolplanmodifier.UseStateForUnknown(),
+											},
+										},
+										"target_metric_name": schema.StringAttribute{
+											Computed: true,
+											PlanModifiers: []planmodifier.String{
+												stringplanmodifier.UseStateForUnknown(),
+											},
+										},
+									},
+								},
+								"avg": schema.SingleNestedAttribute{
+									Optional: true,
+									Computed: true,
+									PlanModifiers: []planmodifier.Object{
+										objectplanmodifier.UseStateForUnknown(),
+									},
+									Attributes: map[string]schema.Attribute{
+										"enable": schema.BoolAttribute{
+											Optional: true,
+											Computed: true,
+											PlanModifiers: []planmodifier.Bool{
+												boolplanmodifier.UseStateForUnknown(),
+											},
+										},
+										"target_metric_name": schema.StringAttribute{
+											Computed: true,
+											PlanModifiers: []planmodifier.String{
+												stringplanmodifier.UseStateForUnknown(),
+											},
+										},
+									},
+								},
+								"sum": schema.SingleNestedAttribute{
+									Optional: true,
+									Computed: true,
+									PlanModifiers: []planmodifier.Object{
+										objectplanmodifier.UseStateForUnknown(),
+									},
+									Attributes: map[string]schema.Attribute{
+										"enable": schema.BoolAttribute{
+											Optional: true,
+											Computed: true,
+											PlanModifiers: []planmodifier.Bool{
+												boolplanmodifier.UseStateForUnknown(),
+											},
+										},
+										"target_metric_name": schema.StringAttribute{
+											Computed: true,
+											PlanModifiers: []planmodifier.String{
+												stringplanmodifier.UseStateForUnknown(),
+											},
+										},
+									},
+								},
+								"samples": schema.SingleNestedAttribute{
+									Optional: true,
+									Computed: true,
+									PlanModifiers: []planmodifier.Object{
+										objectplanmodifier.UseStateForUnknown(),
+									},
+									Attributes: map[string]schema.Attribute{
+										"enable": schema.BoolAttribute{
+											Optional: true,
+											Computed: true,
+											PlanModifiers: []planmodifier.Bool{
+												boolplanmodifier.UseStateForUnknown(),
+											},
+										},
+										"target_metric_name": schema.StringAttribute{
+											Computed: true,
+											PlanModifiers: []planmodifier.String{
+												stringplanmodifier.UseStateForUnknown(),
+											},
+										},
+										"type": schema.StringAttribute{
+											Required: true,
+											Validators: []validator.String{
+												stringvalidator.OneOf(validSampleTypes...),
+											},
+											MarkdownDescription: fmt.Sprintf("Can be one of %q.", validSampleTypes),
+										},
+									},
+								},
+								"histogram": schema.SingleNestedAttribute{
+									Optional: true,
+									Computed: true,
+									PlanModifiers: []planmodifier.Object{
+										objectplanmodifier.UseStateForUnknown(),
+									},
+									Attributes: map[string]schema.Attribute{
+										"enable": schema.BoolAttribute{
+											Optional: true,
+											Computed: true,
+											PlanModifiers: []planmodifier.Bool{
+												boolplanmodifier.UseStateForUnknown(),
+											},
+										},
+										"target_metric_name": schema.StringAttribute{
+											Computed: true,
+											PlanModifiers: []planmodifier.String{
+												stringplanmodifier.UseStateForUnknown(),
+											},
+										},
+										"buckets": schema.ListAttribute{
+											ElementType: types.Float64Type,
+											Required:    true,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				Validators: []validator.Set{
+					setvalidator.SizeAtLeast(1),
+				},
+			},
+			"metric_labels": schema.SetNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"source_field": schema.StringAttribute{
+							Required: true,
+						},
+						"target_label": schema.StringAttribute{},
+					},
+				},
+				Validators: []validator.Set{
+					setvalidator.SizeAtLeast(1),
+				},
+			},
+			"permutations": schema.SingleNestedAttribute{
+				Optional: true,
+				Computed: true,
+				Attributes: map[string]schema.Attribute{
+					"limit": schema.Int64Attribute{
+						Optional: true,
+						Computed: true,
+						Validators: []validator.Int64{
+							int64validator.AtLeast(0),
+						},
+						MarkdownDescription: "Defines the permutations' limit of the events2metric.",
+					},
+					"has_exceed_limit": schema.BoolAttribute{
+						Computed: true,
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
+						},
+						MarkdownDescription: "Notify if the limit permutations' limit of the events2metric has exceed (computed).",
+					},
+				},
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "Defines the permutations' info of the events2metric.",
+			},
+			"spans_query": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"lucene": schema.StringAttribute{
+						Optional:    true,
+						Description: "The search_query that we wanted to be notified on.",
+					},
+					"applications": schema.SetAttribute{
+						ElementType: types.StringType,
+						Optional:    true,
+						Validators: []validator.Set{
+							setvalidator.SizeAtLeast(1),
+						},
+						MarkdownDescription: "An array that contains log’s application names that we want to be alerted on." +
+							" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+					},
+					"subsystems": schema.SetAttribute{
+						ElementType: types.StringType,
+						Optional:    true,
+						Validators: []validator.Set{
+							setvalidator.SizeAtLeast(1),
+						},
+						MarkdownDescription: "An array that contains log’s subsystem names that we want to be notified on. " +
+							" Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+					},
+					"actions": schema.SetAttribute{
+						ElementType: types.StringType,
+						Optional:    true,
+						Validators: []validator.Set{
+							setvalidator.SizeAtLeast(1),
+						},
+						MarkdownDescription: "An array that contains log’s actions names that we want to be notified on. " +
+							" Actions can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+					},
+					"services": schema.SetAttribute{
+						ElementType: types.StringType,
+						Optional:    true,
+						Validators: []validator.Set{
+							setvalidator.SizeAtLeast(1),
+						},
+						MarkdownDescription: "An array that contains log’s services names that we want to be notified on. " +
+							" Services can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+					},
+				},
+				MarkdownDescription: "spans-events2metric type. Exactly one of \"spans_query\" or \"logs_query\" should be defined.",
+			},
+			"logs_query": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"lucene": schema.StringAttribute{
+						Optional:    true,
+						Description: "The search_query that we wanted to be notified on.",
+					},
+					"applications": schema.SetAttribute{
+						ElementType: types.StringType,
+						Optional:    true,
+						Validators: []validator.Set{
+							setvalidator.SizeAtLeast(1),
+						},
+						MarkdownDescription: "An array that contains log’s application names that we want to be alerted on." +
+							" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+					},
+					"subsystems": schema.SetAttribute{
+						ElementType: types.StringType,
+						Optional:    true,
+						Validators: []validator.Set{
+							setvalidator.SizeAtLeast(1),
+						},
+						MarkdownDescription: "An array that contains log’s subsystem names that we want to be notified on. " +
+							" Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+					},
+					"severities": schema.SetAttribute{
+						Optional:    true,
+						ElementType: types.StringType,
+						Validators: []validator.Set{
+							setvalidator.SizeAtLeast(1),
+							setvalidator.ValueStringsAre(stringvalidator.OneOf(validSeverities...)),
+						},
+						MarkdownDescription: fmt.Sprintf("An array of severities that we interested in. Can be one of %q", validSeverities),
+					},
+				},
+				MarkdownDescription: "logs-events2metric type. Exactly one of \"spans_query\" or \"logs_query\" must be defined.",
+			},
+		},
+	}
+}
+func (e *Events2MetricResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.ExactlyOneOf(
+			path.MatchRoot("spans_query"),
+			path.MatchRoot("logs_query"),
+		),
+	}
+}
+
 func (e *Events2MetricResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
 	jsm := &jsonpb.Marshaler{}
@@ -557,7 +912,7 @@ func (e *Events2MetricResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 	e2mStr, _ = jsm.MarshalToString(e2mCreateResp)
-	log.Printf("[INFO] Submitted new Events2metric: %#v", e2mCreateResp)
+	log.Printf("[INFO] Submitted new Events2metric: %#v", e2mStr)
 
 	plan = flattenE2M(e2mCreateResp.GetE2M())
 
@@ -606,26 +961,6 @@ func (e *Events2MetricResource) Read(ctx context.Context, req resource.ReadReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
-}
-
-func flattenE2M(e2m *e2m.E2M) Events2MetricResourceModel {
-	return Events2MetricResourceModel{
-		ID:           types.StringValue(e2m.GetId().GetValue()),
-		Name:         types.StringValue(e2m.GetName().GetValue()),
-		Description:  flattenDescription(e2m.GetDescription()),
-		MetricFields: flattenE2MMetricFields(e2m.GetMetricFields()),
-		MetricLabels: flattenE2MMetricLabels(e2m.GetMetricLabels()),
-		Permutations: flattenE2MPermutations(e2m.GetPermutations()),
-		SpansQuery:   flattenSpansQuery(e2m.GetSpansQuery()),
-		LogsQuery:    flattenLogsQuery(e2m.GetLogsQuery()),
-	}
-}
-
-func flattenDescription(e2mDescription *wrapperspb.StringValue) types.String {
-	if e2mDescription == nil {
-		return types.StringNull()
-	}
-	return types.StringValue(e2mDescription.GetValue())
 }
 
 func (e *Events2MetricResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -701,9 +1036,33 @@ func (e *Events2MetricResource) Delete(ctx context.Context, req resource.DeleteR
 	log.Printf("[INFO] Events2metric %s deleted\n", id)
 }
 
+func (e *Events2MetricResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func flattenE2M(e2m *e2m.E2M) Events2MetricResourceModel {
+	return Events2MetricResourceModel{
+		ID:           types.StringValue(e2m.GetId().GetValue()),
+		Name:         types.StringValue(e2m.GetName().GetValue()),
+		Description:  flattenDescription(e2m.GetDescription()),
+		MetricFields: flattenE2MMetricFields(e2m.GetMetricFields()),
+		MetricLabels: flattenE2MMetricLabels(e2m.GetMetricLabels()),
+		Permutations: flattenE2MPermutations(e2m.GetPermutations()),
+		SpansQuery:   flattenSpansQuery(e2m.GetSpansQuery()),
+		LogsQuery:    flattenLogsQuery(e2m.GetLogsQuery()),
+	}
+}
+
+func flattenDescription(e2mDescription *wrapperspb.StringValue) types.String {
+	if e2mDescription == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(e2mDescription.GetValue())
+}
+
 func extractCreateE2M(plan Events2MetricResourceModel) *e2m.CreateE2MRequest {
-	name := TypeStringToWrapperspbString(plan.Name)
-	description := TypeStringToWrapperspbString(plan.Description)
+	name := typeStringToWrapperspbString(plan.Name)
+	description := typeStringToWrapperspbString(plan.Description)
 	permutations := expandPermutations(plan.Permutations)
 	permutationsLimit := wrapperspb.Int32(permutations.GetLimit())
 	metricLabels := expandE2MLabels(plan.MetricLabels)
@@ -869,11 +1228,11 @@ func expandBuckets(buckets []types.Float64) []float32 {
 }
 
 func expandSpansQuery(spansQuery *SpansQueryModel) *e2m.E2MCreateParams_SpansQuery {
-	lucene := wrapperspb.String(spansQuery.Lucene.ValueString())
-	applications := typeStringSliceWrappedStringSliceTo(spansQuery.Applications.Elements())
-	subsystems := typeStringSliceWrappedStringSliceTo(spansQuery.Subsystems.Elements())
-	actions := typeStringSliceWrappedStringSliceTo(spansQuery.Actions.Elements())
-	services := typeStringSliceWrappedStringSliceTo(spansQuery.Services.Elements())
+	lucene := typeStringToWrapperspbString(spansQuery.Lucene)
+	applications := typeStringSliceToWrappedStringSlice(spansQuery.Applications.Elements())
+	subsystems := typeStringSliceToWrappedStringSlice(spansQuery.Subsystems.Elements())
+	actions := typeStringSliceToWrappedStringSlice(spansQuery.Actions.Elements())
+	services := typeStringSliceToWrappedStringSlice(spansQuery.Services.Elements())
 
 	return &e2m.E2MCreateParams_SpansQuery{
 		SpansQuery: &e2m.SpansQuery{
@@ -887,9 +1246,9 @@ func expandSpansQuery(spansQuery *SpansQueryModel) *e2m.E2MCreateParams_SpansQue
 }
 
 func expandLogsQuery(logsQuery *LogsQueryModel) *e2m.E2MCreateParams_LogsQuery {
-	searchQuery := wrapperspb.String(logsQuery.Lucene.ValueString())
-	applications := typeStringSliceWrappedStringSliceTo(logsQuery.Applications.Elements())
-	subsystems := typeStringSliceWrappedStringSliceTo(logsQuery.Subsystems.Elements())
+	searchQuery := typeStringToWrapperspbString(logsQuery.Lucene)
+	applications := typeStringSliceToWrappedStringSlice(logsQuery.Applications.Elements())
+	subsystems := typeStringSliceToWrappedStringSlice(logsQuery.Subsystems.Elements())
 	severities := expandLogsQuerySeverities(logsQuery.Severities.Elements())
 
 	return &e2m.E2MCreateParams_LogsQuery{
@@ -903,11 +1262,11 @@ func expandLogsQuery(logsQuery *LogsQueryModel) *e2m.E2MCreateParams_LogsQuery {
 }
 
 func expandUpdateSpansQuery(spansQuery *SpansQueryModel) *e2m.E2M_SpansQuery {
-	lucene := wrapperspb.String(spansQuery.Lucene.ValueString())
-	applications := typeStringSliceWrappedStringSliceTo(spansQuery.Applications.Elements())
-	subsystems := typeStringSliceWrappedStringSliceTo(spansQuery.Subsystems.Elements())
-	actions := typeStringSliceWrappedStringSliceTo(spansQuery.Actions.Elements())
-	services := typeStringSliceWrappedStringSliceTo(spansQuery.Services.Elements())
+	lucene := typeStringToWrapperspbString(spansQuery.Lucene)
+	applications := typeStringSliceToWrappedStringSlice(spansQuery.Applications.Elements())
+	subsystems := typeStringSliceToWrappedStringSlice(spansQuery.Subsystems.Elements())
+	actions := typeStringSliceToWrappedStringSlice(spansQuery.Actions.Elements())
+	services := typeStringSliceToWrappedStringSlice(spansQuery.Services.Elements())
 
 	return &e2m.E2M_SpansQuery{
 		SpansQuery: &e2m.SpansQuery{
@@ -922,8 +1281,8 @@ func expandUpdateSpansQuery(spansQuery *SpansQueryModel) *e2m.E2M_SpansQuery {
 
 func expandUpdateLogsQuery(logsQuery *LogsQueryModel) *e2m.E2M_LogsQuery {
 	searchQuery := wrapperspb.String(logsQuery.Lucene.ValueString())
-	applications := typeStringSliceWrappedStringSliceTo(logsQuery.Applications.Elements())
-	subsystems := typeStringSliceWrappedStringSliceTo(logsQuery.Subsystems.Elements())
+	applications := typeStringSliceToWrappedStringSlice(logsQuery.Applications.Elements())
+	subsystems := typeStringSliceToWrappedStringSlice(logsQuery.Subsystems.Elements())
 	severities := expandLogsQuerySeverities(logsQuery.Severities.Elements())
 
 	return &e2m.E2M_LogsQuery{
@@ -1063,19 +1422,12 @@ func flattenE2MMetricLabels(labels []*e2m.MetricLabel) types.Map {
 	return types.MapValueMust(types.StringType, elements)
 }
 
-func flattenE2MMetricLabel(label *e2m.MetricLabel) MetricLabelModel {
-	return MetricLabelModel{
-		TargetLabel: types.StringValue(label.GetTargetLabel().GetValue()),
-		SourceField: types.StringValue(label.GetSourceField().GetValue()),
-	}
-}
-
 func flattenSpansQuery(query *e2m.SpansQuery) *SpansQueryModel {
 	if query == nil {
 		return nil
 	}
 	return &SpansQueryModel{
-		Lucene:       types.StringValue(query.GetLucene().GetValue()),
+		Lucene:       wrapperspbStringToTypeStringTo(query.GetLucene()),
 		Applications: wrappedStringSliceToTypeStringSlice(query.GetApplicationnameFilters()),
 		Subsystems:   wrappedStringSliceToTypeStringSlice(query.GetSubsystemnameFilters()),
 		Actions:      wrappedStringSliceToTypeStringSlice(query.GetActionFilters()),
@@ -1088,7 +1440,7 @@ func flattenLogsQuery(query *l2m.LogsQuery) *LogsQueryModel {
 		return nil
 	}
 	return &LogsQueryModel{
-		Lucene:       types.StringValue(query.GetLucene().GetValue()),
+		Lucene:       wrapperspbStringToTypeStringTo(query.GetLucene()),
 		Applications: wrappedStringSliceToTypeStringSlice(query.GetApplicationnameFilters()),
 		Subsystems:   wrappedStringSliceToTypeStringSlice(query.GetSubsystemnameFilters()),
 		Severities:   flattenLogQuerySeverities(query.GetSeverityFilters()),
@@ -1096,6 +1448,9 @@ func flattenLogsQuery(query *l2m.LogsQuery) *LogsQueryModel {
 }
 
 func flattenLogQuerySeverities(severities []l2m.Severity) types.Set {
+	if len(severities) == 0 {
+		return types.SetNull(types.StringType)
+	}
 	elements := make([]attr.Value, 0, len(severities))
 	for _, v := range severities {
 		severity := types.StringValue(l2m.Severity_name[int32(v)])
