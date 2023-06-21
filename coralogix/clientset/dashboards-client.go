@@ -3,7 +3,7 @@ package clientset
 import (
 	"context"
 
-	dashboards "github.com/coralogix/cx-api-clientsets/golang"
+	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 )
 
 type DashboardsClient struct {

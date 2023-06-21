@@ -7,12 +7,13 @@ import (
 	"regexp"
 	"time"
 
-	dashboards "github.com/coralogix/cx-api-clientsets/golang"
+	"github.com/gogo/protobuf/jsonpb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"terraform-provider-coralogix/coralogix/clientset"
+	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -66,23 +67,7 @@ var (
 	}
 	dashboardProtoGaugeUnitToSchemaGaugeUnit = reverseMapStrings(dashboardSchemaGaugeUnitToProtoGaugeUnit)
 	dashboardValidGaugeUnit                  = getKeysStrings(dashboardSchemaGaugeUnitToProtoGaugeUnit)
-	dashboardSchemaUnitToProtoUnit           = map[string]dashboards.Unit{
-		"UNSPECIFIED":  dashboards.Unit_UNIT_UNSPECIFIED,
-		"MICROSECONDS": dashboards.Unit_UNIT_MICROSECONDS,
-		"MILLISECONDS": dashboards.Unit_UNIT_MILLISECONDS,
-		"SECONDS":      dashboards.Unit_UNIT_SECONDS,
-		"BYTES":        dashboards.Unit_UNIT_BYTES,
-		"KBYTES":       dashboards.Unit_UNIT_KBYTES,
-		"MBYTES":       dashboards.Unit_UNIT_MBYTES,
-		"GBYTES":       dashboards.Unit_UNIT_GBYTES,
-		"BYTES_IEC":    dashboards.Unit_UNIT_BYTES_IEC,
-		"KIBYTES":      dashboards.Unit_UNIT_KIBYTES,
-		"MIBYTES":      dashboards.Unit_UNIT_MIBYTES,
-		"GIBYTES":      dashboards.Unit_UNIT_GIBYTES,
-	}
-	dashboardProtoUnitToSchemaUnit    = ReverseMap(dashboardSchemaUnitToProtoUnit)
-	dashboardValidUnit                = GetKeys(dashboardSchemaUnitToProtoUnit)
-	dashboardSchemaToProtoTooltipType = map[string]dashboards.LineChart_TooltipType{
+	dashboardSchemaToProtoTooltipType        = map[string]dashboards.LineChart_TooltipType{
 		"UNSPECIFIED": dashboards.LineChart_TOOLTIP_TYPE_UNSPECIFIED,
 		"ALL":         dashboards.LineChart_TOOLTIP_TYPE_ALL,
 		"SINGLE":      dashboards.LineChart_TOOLTIP_TYPE_SINGLE,
@@ -94,8 +79,9 @@ var (
 		"LINEAR":      dashboards.ScaleType_SCALE_TYPE_LINEAR,
 		"LOGARITHMIC": dashboards.ScaleType_SCALE_TYPE_LOGARITHMIC,
 	}
-	dashboardValidScaleType    = GetKeys(dashboardSchemaToProtoScaleType)
-	dashboardSchemaToProtoUnit = map[string]dashboards.Unit{
+	dashboardProtoToSchemaScaleType = ReverseMap(dashboardSchemaToProtoScaleType)
+	dashboardValidScaleType         = GetKeys(dashboardSchemaToProtoScaleType)
+	dashboardSchemaToProtoUnit      = map[string]dashboards.Unit{
 		"UNSPECIFIED":  dashboards.Unit_UNIT_UNSPECIFIED,
 		"MICROSECONDS": dashboards.Unit_UNIT_MICROSECONDS,
 		"MILLISECONDS": dashboards.Unit_UNIT_MILLISECONDS,
@@ -109,6 +95,8 @@ var (
 		"MIBYTES":      dashboards.Unit_UNIT_MIBYTES,
 		"GIBYTES":      dashboards.Unit_UNIT_GIBYTES,
 	}
+	dashboardProtoToSchemaUnit = ReverseMap(dashboardSchemaToProtoUnit)
+	dashboardValidUnit         = GetKeys(dashboardSchemaToProtoUnit)
 )
 
 func resourceCoralogixDashboard() *schema.Resource {
@@ -144,15 +132,17 @@ func resourceCoralogixDashboardCreate(ctx context.Context, d *schema.ResourceDat
 		Dashboard: dashboard,
 	}
 
-	log.Printf("[INFO] Creating new dashboard: %#v", createDashboardRequest)
+	jsm := &jsonpb.Marshaler{}
+	createDashboardRequestStr, _ := jsm.MarshalToString(createDashboardRequest)
+	log.Printf("[INFO] Creating new dashboard: %#v", createDashboardRequestStr)
 	DashboardResp, err := meta.(*clientset.ClientSet).Dashboards().CreateDashboard(ctx, createDashboardRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcError(err, "dashboard")
 	}
 
-	Dashboard := DashboardResp.ProtoReflect()
-	log.Printf("[INFO] Submitted new dashboard: %#v", Dashboard)
+	DashboardStr, _ := jsm.MarshalToString(DashboardResp)
+	log.Printf("[INFO] Submitted new dashboard: %#v", DashboardStr)
 	d.SetId(createDashboardRequest.GetDashboard().GetId().GetValue())
 
 	return resourceCoralogixDashboardRead(ctx, d, meta)
@@ -191,15 +181,17 @@ func resourceCoralogixDashboardUpdate(ctx context.Context, d *schema.ResourceDat
 		Dashboard: dashboard,
 	}
 
-	log.Printf("[INFO] Updating dashboard: %#v", updateDashboardRequest)
+	jsm := &jsonpb.Marshaler{}
+	createDashboardRequestStr, _ := jsm.MarshalToString(updateDashboardRequest)
+	log.Printf("[INFO] Updating dashboard: %#v", createDashboardRequestStr)
 	DashboardResp, err := meta.(*clientset.ClientSet).Dashboards().UpdateDashboard(ctx, updateDashboardRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcError(err, "dashboard")
 	}
 
-	Dashboard := DashboardResp.ProtoReflect()
-	log.Printf("[INFO] Submitted updated dashboard: %#v", Dashboard)
+	DashboardStr, _ := jsm.MarshalToString(DashboardResp)
+	log.Printf("[INFO] Submitted updated dashboard: %#v", DashboardStr)
 	d.SetId(updateDashboardRequest.GetDashboard().GetId().GetValue())
 
 	return resourceCoralogixDashboardRead(ctx, d, meta)
@@ -237,10 +229,12 @@ func DashboardSchema() map[string]*schema.Schema {
 		"layout": {
 			Type:     schema.TypeList,
 			MaxItems: 1,
+			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"sections": {
-						Type: schema.TypeList,
+						Type:     schema.TypeList,
+						Optional: true,
 						Elem: &schema.Resource{
 							Schema: map[string]*schema.Schema{
 								"id": {
@@ -248,7 +242,8 @@ func DashboardSchema() map[string]*schema.Schema {
 									Computed: true,
 								},
 								"rows": {
-									Type: schema.TypeList,
+									Type:     schema.TypeList,
+									Optional: true,
 									Elem: &schema.Resource{
 										Schema: map[string]*schema.Schema{
 											"id": {
@@ -287,15 +282,19 @@ func DashboardSchema() map[string]*schema.Schema {
 														"definition": {
 															Type:     schema.TypeList,
 															MaxItems: 1,
+															Optional: true,
 															Elem: &schema.Resource{
 																Schema: map[string]*schema.Schema{
 																	"line_chart": {
 																		Type:     schema.TypeList,
 																		MaxItems: 1,
+																		Optional: true,
 																		Elem: &schema.Resource{
 																			Schema: map[string]*schema.Schema{
 																				"query_definitions": {
-																					Type: schema.TypeList,
+																					Type:     schema.TypeList,
+																					Required: true,
+																					MinItems: 1,
 																					Elem: &schema.Resource{
 																						Schema: map[string]*schema.Schema{
 																							"id": {
@@ -305,6 +304,7 @@ func DashboardSchema() map[string]*schema.Schema {
 																							"query": {
 																								Type:     schema.TypeList,
 																								MaxItems: 1,
+																								Optional: true,
 																								Elem: &schema.Resource{
 																									Schema: map[string]*schema.Schema{
 																										"logs": {
@@ -423,7 +423,6 @@ func DashboardSchema() map[string]*schema.Schema {
 																										},
 																									},
 																								},
-																								Optional: true,
 																							},
 																							"series_name_template": {
 																								Type:     schema.TypeString,
@@ -436,17 +435,38 @@ func DashboardSchema() map[string]*schema.Schema {
 																							"unit": {
 																								Type:         schema.TypeString,
 																								Optional:     true,
+																								Default:      "UNSPECIFIED",
 																								ValidateFunc: validation.StringInSlice(dashboardValidUnit, false),
 																							},
 																							"scale_type": {
 																								Type:         schema.TypeString,
 																								Optional:     true,
+																								Default:      "UNSPECIFIED",
 																								ValidateFunc: validation.StringInSlice(dashboardValidScaleType, false),
 																							},
 																						},
 																					},
 																				},
-																				"tooltip": {},
+																				"tooltip": {
+																					Type:     schema.TypeList,
+																					MaxItems: 1,
+																					Optional: true,
+																					Elem: &schema.Resource{
+																						Schema: map[string]*schema.Schema{
+																							"show_labels": {
+																								Type:     schema.TypeBool,
+																								Optional: true,
+																								Default:  false,
+																							},
+																							"type": {
+																								Type:         schema.TypeString,
+																								Optional:     true,
+																								ValidateFunc: validation.StringInSlice(dashboardValidTooltipType, false),
+																								Default:      "UNSPECIFIED",
+																							},
+																						},
+																					},
+																				},
 																				"legend": {
 																					Type:     schema.TypeList,
 																					MaxItems: 1,
@@ -478,7 +498,6 @@ func DashboardSchema() map[string]*schema.Schema {
 																				},
 																			},
 																		},
-																		Optional: true,
 																	},
 																	"data_table": {
 																		Type:     schema.TypeList,
@@ -680,7 +699,6 @@ func DashboardSchema() map[string]*schema.Schema {
 																	},
 																},
 															},
-															Optional: true,
 														},
 														"appearance": {
 															Type:     schema.TypeList,
@@ -701,18 +719,16 @@ func DashboardSchema() map[string]*schema.Schema {
 											},
 										},
 									},
-									Optional: true,
 								},
 							},
 						},
-						Optional: true,
 					},
 				},
 			},
-			Optional: true,
 		},
 		"variables": {
-			Type: schema.TypeList,
+			Type:     schema.TypeList,
+			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"name": {
@@ -809,7 +825,6 @@ func DashboardSchema() map[string]*schema.Schema {
 					},
 				},
 			},
-			Optional: true,
 		},
 		"filters": {
 			Type: schema.TypeList,
@@ -899,6 +914,7 @@ func DashboardSchema() map[string]*schema.Schema {
 		"absolute_time_frame": {
 			Type:     schema.TypeList,
 			MaxItems: 1,
+			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"start": {
@@ -912,7 +928,6 @@ func DashboardSchema() map[string]*schema.Schema {
 					},
 				},
 			},
-			Optional:      true,
 			ConflictsWith: []string{"relative_time_frame"},
 		},
 		"content_json": {
@@ -1428,7 +1443,16 @@ func expandQueryDefinition(v interface{}) *dashboards.LineChart_QueryDefinition 
 }
 
 func expandTooltip(v interface{}) *dashboards.LineChart_Tooltip {
-	m := v.(map[string]interface{})
+	var m map[string]interface{}
+	if v == nil {
+		return nil
+	}
+	if l := v.([]interface{}); len(l) == 0 || l[0] == nil {
+		return nil
+	} else {
+		m = l[0].(map[string]interface{})
+	}
+
 	show := wrapperspb.Bool(m["show_labels"].(bool))
 	tooltipType := dashboardSchemaToProtoTooltipType[m["type"].(string)]
 	return &dashboards.LineChart_Tooltip{
@@ -1992,10 +2016,6 @@ func setDashboard(d *schema.ResourceData, dashboard *dashboards.Dashboard) diag.
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("filters", flattenDashboardFilters(dashboard.GetFilters())); err != nil {
-		return diag.FromErr(err)
-	}
-
 	if err := setDashboardTimeFrame(d, dashboard); err != nil {
 		return diag.FromErr(err)
 	}
@@ -2221,14 +2241,48 @@ func flattenGaugeThreshold(threshold *dashboards.Gauge_Threshold) interface{} {
 }
 
 func flattenLineChart(lineChart *dashboards.LineChart) interface{} {
-	query := flattenLineChartQuery(lineChart.GetQuery())
 	legend := flattenLegend(lineChart.GetLegend())
-	seriesNameTemplate := lineChart.GetSeriesNameTemplate().GetValue()
+	tooltip := flattenLineChartTooltip(lineChart.GetTooltip())
+	queryDefinitions := flattenLineChartQueryDefinitions(lineChart.GetQueryDefinitions())
+
 	return []interface{}{
 		map[string]interface{}{
-			"query":                query,
-			"legend":               legend,
-			"series_name_template": seriesNameTemplate,
+			"tooltip":           tooltip,
+			"legend":            legend,
+			"query_definitions": queryDefinitions,
+		},
+	}
+}
+
+func flattenLineChartQueryDefinitions(definitions []*dashboards.LineChart_QueryDefinition) interface{} {
+	result := make([]interface{}, 0, len(definitions))
+	for _, d := range definitions {
+		definition := flattenLineChartQueryDefinition(d)
+		result = append(result, definition)
+	}
+	return result
+}
+
+func flattenLineChartQueryDefinition(definition *dashboards.LineChart_QueryDefinition) interface{} {
+	return map[string]interface{}{
+		"id":                   definition.GetId().GetValue(),
+		"query":                flattenLineChartQuery(definition.GetQuery()),
+		"unit":                 dashboardProtoToSchemaUnit[definition.GetUnit()],
+		"scale_type":           dashboardProtoToSchemaScaleType[definition.GetScaleType()],
+		"series_count_limit":   int(definition.GetSeriesCountLimit().GetValue()),
+		"series_name_template": definition.GetSeriesNameTemplate().GetValue(),
+	}
+}
+
+func flattenLineChartTooltip(tooltip *dashboards.LineChart_Tooltip) interface{} {
+	if tooltip == nil {
+		return nil
+	}
+
+	return []interface{}{
+		map[string]interface{}{
+			"type":        dashboardProtoToSchemaTooltipType[tooltip.GetType()],
+			"show_labels": tooltip.GetShowLabels().GetValue(),
 		},
 	}
 }

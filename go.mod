@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
-	github.com/coralogix/cx-api-clientsets v0.0.7
+	github.com/gogo/protobuf v1.3.2
 	github.com/grafana/grafana-api-golang-client v0.17.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/hashicorp/go-cty v1.4.1-0.20200414143053-d3edf31b6320

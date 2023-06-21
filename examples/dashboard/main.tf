@@ -25,9 +25,11 @@ resource "coralogix_dashboard" dashboard {
           title = "status 4XX"
           definition {
             line_chart {
-              query {
-                metrics {
-                  promql_query = "http_requests_total{status!~\"4..\"}"
+              query_definitions {
+                query {
+                  metrics {
+                    promql_query = "http_requests_total{status!~\"4..\"}"
+                  }
                 }
               }
               legend {
@@ -44,10 +46,12 @@ resource "coralogix_dashboard" dashboard {
           title = "count"
           definition {
             line_chart {
-              query {
-                logs {
-                  aggregations {
-                    count {
+              query_definitions {
+                query {
+                  logs {
+                    aggregations {
+                      count {
+                      }
                     }
                   }
                 }
@@ -66,12 +70,14 @@ resource "coralogix_dashboard" dashboard {
           title = "error throwing pods"
           definition {
             line_chart {
-              query {
-                logs {
-                  lucene_query = "coralogix.metadata.severity=5 OR coralogix.metadata.severity=\"6\" OR coralogix.metadata.severity=\"4\""
-                  group_by     = ["coralogix.metadata.subsystemName"]
-                  aggregations {
-                    count {
+              query_definitions {
+                query {
+                  logs {
+                    lucene_query = "coralogix.metadata.severity=5 OR coralogix.metadata.severity=\"6\" OR coralogix.metadata.severity=\"4\""
+                    group_by     = ["coralogix.metadata.subsystemName"]
+                    aggregations {
+                      count {
+                      }
                     }
                   }
                 }
@@ -171,6 +177,6 @@ resource "coralogix_dashboard" dashboard {
   }
 }
 
-resource "coralogix_dashboard" dashboard_from_json {
-  content_json = file("./dashboard.json")
-}
+#resource "coralogix_dashboard" dashboard_from_json {
+#  content_json = file("./dashboard.json")
+#}
