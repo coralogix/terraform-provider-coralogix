@@ -609,7 +609,7 @@ func upgradeE2MMetricFieldsV0ToV1(fields types.Set) types.Map {
 
 	}
 
-	return types.MapValueMust(types.StringType, elements)
+	return types.MapValueMust(types.ObjectType{AttrTypes: metricFieldModelAttr()}, elements)
 }
 
 func e2mSchemaV0() schema.Schema {

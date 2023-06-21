@@ -34,7 +34,7 @@ func main() {
 	var serveOpts []tf6server.ServeOpt
 
 	err = tf6server.Serve(
-		"coralogix.com/coralogix/coralogix",
+		"registry.terraform.io/coralogix/coralogix",
 		muxServer.ProviderServer,
 		serveOpts...,
 	)
