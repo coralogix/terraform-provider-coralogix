@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"time"
 
+	dashboards "github.com/coralogix/cx-api-clientsets/golang"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
@@ -63,6 +66,49 @@ var (
 	}
 	dashboardProtoGaugeUnitToSchemaGaugeUnit = reverseMapStrings(dashboardSchemaGaugeUnitToProtoGaugeUnit)
 	dashboardValidGaugeUnit                  = getKeysStrings(dashboardSchemaGaugeUnitToProtoGaugeUnit)
+	dashboardSchemaUnitToProtoUnit           = map[string]dashboards.Unit{
+		"UNSPECIFIED":  dashboards.Unit_UNIT_UNSPECIFIED,
+		"MICROSECONDS": dashboards.Unit_UNIT_MICROSECONDS,
+		"MILLISECONDS": dashboards.Unit_UNIT_MILLISECONDS,
+		"SECONDS":      dashboards.Unit_UNIT_SECONDS,
+		"BYTES":        dashboards.Unit_UNIT_BYTES,
+		"KBYTES":       dashboards.Unit_UNIT_KBYTES,
+		"MBYTES":       dashboards.Unit_UNIT_MBYTES,
+		"GBYTES":       dashboards.Unit_UNIT_GBYTES,
+		"BYTES_IEC":    dashboards.Unit_UNIT_BYTES_IEC,
+		"KIBYTES":      dashboards.Unit_UNIT_KIBYTES,
+		"MIBYTES":      dashboards.Unit_UNIT_MIBYTES,
+		"GIBYTES":      dashboards.Unit_UNIT_GIBYTES,
+	}
+	dashboardProtoUnitToSchemaUnit    = ReverseMap(dashboardSchemaUnitToProtoUnit)
+	dashboardValidUnit                = GetKeys(dashboardSchemaUnitToProtoUnit)
+	dashboardSchemaToProtoTooltipType = map[string]dashboards.LineChart_TooltipType{
+		"UNSPECIFIED": dashboards.LineChart_TOOLTIP_TYPE_UNSPECIFIED,
+		"ALL":         dashboards.LineChart_TOOLTIP_TYPE_ALL,
+		"SINGLE":      dashboards.LineChart_TOOLTIP_TYPE_SINGLE,
+	}
+	dashboardProtoToSchemaTooltipType = ReverseMap(dashboardSchemaToProtoTooltipType)
+	dashboardValidTooltipType         = GetKeys(dashboardSchemaToProtoTooltipType)
+	dashboardSchemaToProtoScaleType   = map[string]dashboards.ScaleType{
+		"UNSPECIFIED": dashboards.ScaleType_SCALE_TYPE_UNSPECIFIED,
+		"LINEAR":      dashboards.ScaleType_SCALE_TYPE_LINEAR,
+		"LOGARITHMIC": dashboards.ScaleType_SCALE_TYPE_LOGARITHMIC,
+	}
+	dashboardValidScaleType    = GetKeys(dashboardSchemaToProtoScaleType)
+	dashboardSchemaToProtoUnit = map[string]dashboards.Unit{
+		"UNSPECIFIED":  dashboards.Unit_UNIT_UNSPECIFIED,
+		"MICROSECONDS": dashboards.Unit_UNIT_MICROSECONDS,
+		"MILLISECONDS": dashboards.Unit_UNIT_MILLISECONDS,
+		"SECONDS":      dashboards.Unit_UNIT_SECONDS,
+		"BYTES":        dashboards.Unit_UNIT_BYTES,
+		"KBYTES":       dashboards.Unit_UNIT_KBYTES,
+		"MBYTES":       dashboards.Unit_UNIT_MBYTES,
+		"GBYTES":       dashboards.Unit_UNIT_GBYTES,
+		"BYTES_IEC":    dashboards.Unit_UNIT_BYTES_IEC,
+		"KIBYTES":      dashboards.Unit_UNIT_KIBYTES,
+		"MIBYTES":      dashboards.Unit_UNIT_MIBYTES,
+		"GIBYTES":      dashboards.Unit_UNIT_GIBYTES,
+	}
 )
 
 func resourceCoralogixDashboard() *schema.Resource {
@@ -248,99 +294,111 @@ func DashboardSchema() map[string]*schema.Schema {
 																		MaxItems: 1,
 																		Elem: &schema.Resource{
 																			Schema: map[string]*schema.Schema{
-																				"query": {
-																					Type:     schema.TypeList,
-																					MaxItems: 1,
+																				"query_definitions": {
+																					Type: schema.TypeList,
 																					Elem: &schema.Resource{
 																						Schema: map[string]*schema.Schema{
-																							"logs": {
+																							"id": {
+																								Type:     schema.TypeString,
+																								Computed: true,
+																							},
+																							"query": {
 																								Type:     schema.TypeList,
 																								MaxItems: 1,
 																								Elem: &schema.Resource{
 																									Schema: map[string]*schema.Schema{
-																										"lucene_query": {
-																											Type:     schema.TypeString,
-																											Optional: true,
-																										},
-																										"group_by": {
-																											Type: schema.TypeList,
-																											Elem: &schema.Schema{
-																												Type: schema.TypeString,
-																											},
-																											Optional: true,
-																										},
-																										"aggregations": {
-																											Type: schema.TypeList,
+																										"logs": {
+																											Type:     schema.TypeList,
+																											MaxItems: 1,
 																											Elem: &schema.Resource{
 																												Schema: map[string]*schema.Schema{
-																													"count": {
-																														Type:     schema.TypeList,
-																														MaxItems: 1,
-																														Elem: &schema.Resource{
-																															Schema: map[string]*schema.Schema{},
+																													"lucene_query": {
+																														Type:     schema.TypeString,
+																														Optional: true,
+																													},
+																													"group_by": {
+																														Type: schema.TypeList,
+																														Elem: &schema.Schema{
+																															Type: schema.TypeString,
 																														},
 																														Optional: true,
 																													},
-																													"count_distinct": {
-																														Type:     schema.TypeList,
-																														MaxItems: 1,
+																													"aggregations": {
+																														Type: schema.TypeList,
 																														Elem: &schema.Resource{
 																															Schema: map[string]*schema.Schema{
-																																"field": {
-																																	Type:     schema.TypeString,
-																																	Required: true,
+																																"count": {
+																																	Type:     schema.TypeList,
+																																	MaxItems: 1,
+																																	Elem: &schema.Resource{
+																																		Schema: map[string]*schema.Schema{},
+																																	},
+																																	Optional: true,
 																																},
-																															},
-																														},
-																														Optional: true,
-																													},
-																													"sum": {
-																														Type:     schema.TypeList,
-																														MaxItems: 1,
-																														Elem: &schema.Resource{
-																															Schema: map[string]*schema.Schema{
-																																"field": {
-																																	Type:     schema.TypeString,
-																																	Required: true,
+																																"count_distinct": {
+																																	Type:     schema.TypeList,
+																																	MaxItems: 1,
+																																	Elem: &schema.Resource{
+																																		Schema: map[string]*schema.Schema{
+																																			"field": {
+																																				Type:     schema.TypeString,
+																																				Required: true,
+																																			},
+																																		},
+																																	},
+																																	Optional: true,
 																																},
-																															},
-																														},
-																														Optional: true,
-																													},
-																													"average": {
-																														Type:     schema.TypeList,
-																														MaxItems: 1,
-																														Elem: &schema.Resource{
-																															Schema: map[string]*schema.Schema{
-																																"field": {
-																																	Type:     schema.TypeString,
-																																	Required: true,
+																																"sum": {
+																																	Type:     schema.TypeList,
+																																	MaxItems: 1,
+																																	Elem: &schema.Resource{
+																																		Schema: map[string]*schema.Schema{
+																																			"field": {
+																																				Type:     schema.TypeString,
+																																				Required: true,
+																																			},
+																																		},
+																																	},
+																																	Optional: true,
 																																},
-																															},
-																														},
-																														Optional: true,
-																													},
-																													"min": {
-																														Type:     schema.TypeList,
-																														MaxItems: 1,
-																														Elem: &schema.Resource{
-																															Schema: map[string]*schema.Schema{
-																																"field": {
-																																	Type:     schema.TypeString,
-																																	Required: true,
+																																"average": {
+																																	Type:     schema.TypeList,
+																																	MaxItems: 1,
+																																	Elem: &schema.Resource{
+																																		Schema: map[string]*schema.Schema{
+																																			"field": {
+																																				Type:     schema.TypeString,
+																																				Required: true,
+																																			},
+																																		},
+																																	},
+																																	Optional: true,
 																																},
-																															},
-																														},
-																														Optional: true,
-																													},
-																													"max": {
-																														Type:     schema.TypeList,
-																														MaxItems: 1,
-																														Elem: &schema.Resource{
-																															Schema: map[string]*schema.Schema{
-																																"field": {
-																																	Type:     schema.TypeString,
-																																	Required: true,
+																																"min": {
+																																	Type:     schema.TypeList,
+																																	MaxItems: 1,
+																																	Elem: &schema.Resource{
+																																		Schema: map[string]*schema.Schema{
+																																			"field": {
+																																				Type:     schema.TypeString,
+																																				Required: true,
+																																			},
+																																		},
+																																	},
+																																	Optional: true,
+																																},
+																																"max": {
+																																	Type:     schema.TypeList,
+																																	MaxItems: 1,
+																																	Elem: &schema.Resource{
+																																		Schema: map[string]*schema.Schema{
+																																			"field": {
+																																				Type:     schema.TypeString,
+																																				Required: true,
+																																			},
+																																		},
+																																	},
+																																	Optional: true,
 																																},
 																															},
 																														},
@@ -350,27 +408,45 @@ func DashboardSchema() map[string]*schema.Schema {
 																											},
 																											Optional: true,
 																										},
-																									},
-																								},
-																								Optional: true,
-																							},
-																							"metrics": {
-																								Type:     schema.TypeList,
-																								MaxItems: 1,
-																								Elem: &schema.Resource{
-																									Schema: map[string]*schema.Schema{
-																										"promql_query": {
-																											Type:     schema.TypeString,
-																											Required: true,
+																										"metrics": {
+																											Type:     schema.TypeList,
+																											MaxItems: 1,
+																											Elem: &schema.Resource{
+																												Schema: map[string]*schema.Schema{
+																													"promql_query": {
+																														Type:     schema.TypeString,
+																														Required: true,
+																													},
+																												},
+																											},
+																											Optional: true,
 																										},
 																									},
 																								},
 																								Optional: true,
 																							},
+																							"series_name_template": {
+																								Type:     schema.TypeString,
+																								Optional: true,
+																							},
+																							"series_count_limit": {
+																								Type:     schema.TypeInt,
+																								Optional: true,
+																							},
+																							"unit": {
+																								Type:         schema.TypeString,
+																								Optional:     true,
+																								ValidateFunc: validation.StringInSlice(dashboardValidUnit, false),
+																							},
+																							"scale_type": {
+																								Type:         schema.TypeString,
+																								Optional:     true,
+																								ValidateFunc: validation.StringInSlice(dashboardValidScaleType, false),
+																							},
 																						},
 																					},
-																					Optional: true,
 																				},
+																				"tooltip": {},
 																				"legend": {
 																					Type:     schema.TypeList,
 																					MaxItems: 1,
@@ -813,10 +889,36 @@ func DashboardSchema() map[string]*schema.Schema {
 			},
 			Optional: true,
 		},
+		"relative_time_frame": {
+			Type:          schema.TypeString,
+			Optional:      true,
+			Computed:      true,
+			ValidateFunc:  validation.StringMatch(regexp.MustCompile(`^(\d+)([smhdwMy])$`), "must be a valid relative time frame (e.g. 1h, 30m, 1d, 1w, 1M)"),
+			ConflictsWith: []string{"absolute_time_frame"},
+		},
+		"absolute_time_frame": {
+			Type:     schema.TypeList,
+			MaxItems: 1,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"start": {
+						Type:         schema.TypeString,
+						Required:     true,
+						ValidateFunc: validation.StringMatch(regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$`), "must be a valid date in the format YYYY-MM-DDTHH:MM:SSZ"),
+					},
+					"end": {
+						Type:     schema.TypeString,
+						Required: true,
+					},
+				},
+			},
+			Optional:      true,
+			ConflictsWith: []string{"relative_time_frame"},
+		},
 		"content_json": {
 			Type:             schema.TypeString,
 			Optional:         true,
-			ConflictsWith:    []string{"layout", "name", "layout", "variables", "filters"},
+			ConflictsWith:    []string{"layout", "name", "layout", "variables", "filters", "relative_time_frame", "absolute_time_frame"},
 			ValidateDiagFunc: dashboardContentJsonValidationFunc(),
 			Description:      "an option to set the dashboard content from a json file.",
 			DiffSuppressFunc: SuppressEquivalentJSONDiffs,
@@ -841,14 +943,37 @@ func extractDashboard(d *schema.ResourceData) (*dashboards.Dashboard, diag.Diagn
 	filters, dgs := expandDashboardFilters(d.Get("filters"))
 	diags = append(diags, dgs...)
 
-	return &dashboards.Dashboard{
+	dashboard := &dashboards.Dashboard{
 		Id:          id,
 		Name:        name,
 		Description: description,
 		Layout:      layout,
 		Variables:   variables,
 		Filters:     filters,
-	}, diags
+	}
+
+	expandDashboardTimeFrame(dashboard, d)
+
+	return dashboard, diags
+}
+
+func expandDashboardTimeFrame(dashboard *dashboards.Dashboard, d *schema.ResourceData) {
+	if val, ok := d.GetOk("absolute_time_frame"); ok && val != nil {
+		absoluteTimeFrame := val.([]interface{})[0].(map[string]interface{})
+		start, _ := time.Parse(time.RFC3339, absoluteTimeFrame["start"].(string))
+		end, _ := time.Parse(time.RFC3339, absoluteTimeFrame["end"].(string))
+		dashboard.TimeFrame = &dashboards.Dashboard_AbsoluteTimeFrame{
+			AbsoluteTimeFrame: &dashboards.TimeFrame{
+				From: timestamppb.New(start),
+				To:   timestamppb.New(end),
+			},
+		}
+	} else if val, ok := d.GetOk("relative_time_frame"); ok && val != nil {
+		relativeTimeFrame, _ := time.ParseDuration(val.(string))
+		dashboard.TimeFrame = &dashboards.Dashboard_RelativeTimeFrame{
+			RelativeTimeFrame: durationpb.New(relativeTimeFrame),
+		}
+	}
 }
 
 func expandUUID(v interface{}) string {
@@ -940,7 +1065,7 @@ func expandFilterSource(v interface{}) *dashboards.Filter_Source {
 	}
 }
 
-func expandFilterSourceLogs(v interface{}) *dashboards.Filter_LogFilter {
+func expandFilterSourceLogs(v interface{}) *dashboards.Filter_LogsFilter {
 	var m map[string]interface{}
 	if v == nil {
 		return nil
@@ -953,13 +1078,13 @@ func expandFilterSourceLogs(v interface{}) *dashboards.Filter_LogFilter {
 
 	field := wrapperspb.String(m["field"].(string))
 	operator := expandLogsOperator(m["operator"])
-	return &dashboards.Filter_LogFilter{
+	return &dashboards.Filter_LogsFilter{
 		Field:    field,
 		Operator: operator,
 	}
 }
 
-func expandLogsOperator(v interface{}) *dashboards.Filter_LogFilter_Operator {
+func expandLogsOperator(v interface{}) *dashboards.Filter_LogsFilter_Operator {
 	var m map[string]interface{}
 	if v == nil {
 		return nil
@@ -971,8 +1096,8 @@ func expandLogsOperator(v interface{}) *dashboards.Filter_LogFilter_Operator {
 	}
 
 	equals := expandOperatorEquals(m["equals"])
-	return &dashboards.Filter_LogFilter_Operator{
-		Value: &dashboards.Filter_LogFilter_Operator_Equals{
+	return &dashboards.Filter_LogsFilter_Operator{
+		Value: &dashboards.Filter_LogsFilter_Operator_Equals{
 			Equals: equals,
 		},
 	}
@@ -1259,19 +1384,57 @@ func expandGaugeAggregation(v interface{}) dashboards.Gauge_Aggregation {
 
 func expandLineChart(v interface{}) (*dashboards.Widget_Definition_LineChart, error) {
 	m := v.(map[string]interface{})
-	query, err := expandLineChartQuery(m["query"])
-	if err != nil {
-		return nil, err
-	}
 	legend := expandLegend(m["legend"])
-	seriesNameTemplate := wrapperspb.String(m["series_name_template"].(string))
+	tooltip := expandTooltip(m["tooltip"])
+	queryDefinitions := expandQueryDefinitions(m["query_definitions"])
+
 	return &dashboards.Widget_Definition_LineChart{
 		LineChart: &dashboards.LineChart{
-			Query:              query,
-			Legend:             legend,
-			SeriesNameTemplate: seriesNameTemplate,
+			Legend:           legend,
+			Tooltip:          tooltip,
+			QueryDefinitions: queryDefinitions,
 		},
 	}, nil
+}
+
+func expandQueryDefinitions(v interface{}) []*dashboards.LineChart_QueryDefinition {
+	l := v.([]interface{})
+	result := make([]*dashboards.LineChart_QueryDefinition, 0, len(l))
+	for _, qd := range l {
+		queryDefinition := expandQueryDefinition(qd)
+		result = append(result, queryDefinition)
+	}
+	return result
+}
+
+func expandQueryDefinition(v interface{}) *dashboards.LineChart_QueryDefinition {
+	m := v.(map[string]interface{})
+
+	id := wrapperspb.String(m["id"].(string))
+	query, _ := expandLineChartQuery(m["query"])
+	seriesNameTemplate := wrapperspb.String(m["series_name_template"].(string))
+	seriesCountLimit := wrapperspb.Int64(int64(m["series_count_limit"].(int)))
+	unit := dashboardSchemaToProtoUnit[m["unit"].(string)]
+	scaleType := dashboardSchemaToProtoScaleType[m["scale_type"].(string)]
+
+	return &dashboards.LineChart_QueryDefinition{
+		Id:                 id,
+		Query:              query,
+		SeriesNameTemplate: seriesNameTemplate,
+		SeriesCountLimit:   seriesCountLimit,
+		Unit:               unit,
+		ScaleType:          scaleType,
+	}
+}
+
+func expandTooltip(v interface{}) *dashboards.LineChart_Tooltip {
+	m := v.(map[string]interface{})
+	show := wrapperspb.Bool(m["show_labels"].(bool))
+	tooltipType := dashboardSchemaToProtoTooltipType[m["type"].(string)]
+	return &dashboards.LineChart_Tooltip{
+		ShowLabels: show,
+		Type:       tooltipType,
+	}
 }
 
 func expandLineChartQuery(v interface{}) (*dashboards.LineChart_Query, error) {
@@ -1560,12 +1723,12 @@ func expandLuceneQuery(v interface{}) *dashboards.LuceneQuery {
 	}
 }
 
-func expandSearchFilters(v interface{}) []*dashboards.Filter_LogFilter {
+func expandSearchFilters(v interface{}) []*dashboards.Filter_LogsFilter {
 	if v == nil {
 		return nil
 	}
 	filters := v.([]interface{})
-	result := make([]*dashboards.Filter_LogFilter, 0, len(filters))
+	result := make([]*dashboards.Filter_LogsFilter, 0, len(filters))
 	for _, f := range filters {
 		filter := expandSearchFilter(f)
 		result = append(result, filter)
@@ -1573,20 +1736,20 @@ func expandSearchFilters(v interface{}) []*dashboards.Filter_LogFilter {
 	return result
 }
 
-func expandSearchFilter(v interface{}) *dashboards.Filter_LogFilter {
+func expandSearchFilter(v interface{}) *dashboards.Filter_LogsFilter {
 	if v == nil {
 		return nil
 	}
 	m := v.(map[string]interface{})
 	field := wrapperspb.String(m["field"].(string))
 	operator := expandFilterOperator(m["operator"])
-	return &dashboards.Filter_LogFilter{
+	return &dashboards.Filter_LogsFilter{
 		Field:    field,
 		Operator: operator,
 	}
 }
 
-func expandFilterOperator(v interface{}) *dashboards.Filter_LogFilter_Operator {
+func expandFilterOperator(v interface{}) *dashboards.Filter_LogsFilter_Operator {
 	var m map[string]interface{}
 	if v == nil {
 		return nil
@@ -1600,8 +1763,8 @@ func expandFilterOperator(v interface{}) *dashboards.Filter_LogFilter_Operator {
 	if l, ok := m["equals"]; ok && len(l.([]interface{})) != 0 {
 		m = l.([]interface{})[0].(map[string]interface{})
 		selection := expandFilterSelection(m["selection"])
-		return &dashboards.Filter_LogFilter_Operator{
-			Value: &dashboards.Filter_LogFilter_Operator_Equals{
+		return &dashboards.Filter_LogsFilter_Operator{
+			Value: &dashboards.Filter_LogsFilter_Operator_Equals{
 				Equals: &dashboards.Filter_Equals{
 					Selection: selection,
 				},
@@ -1827,6 +1990,42 @@ func setDashboard(d *schema.ResourceData, dashboard *dashboards.Dashboard) diag.
 
 	if err := d.Set("filters", flattenDashboardFilters(dashboard.GetFilters())); err != nil {
 		return diag.FromErr(err)
+	}
+
+	if err := d.Set("filters", flattenDashboardFilters(dashboard.GetFilters())); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := setDashboardTimeFrame(d, dashboard); err != nil {
+		return diag.FromErr(err)
+	}
+
+	return nil
+}
+
+func setDashboardTimeFrame(d *schema.ResourceData, dashboard *dashboards.Dashboard) error {
+	switch timeFrame := dashboard.TimeFrame.(type) {
+	case *dashboards.Dashboard_AbsoluteTimeFrame:
+		absoluteTimeFrame := timeFrame.AbsoluteTimeFrame
+		absoluteTimeFrameMap := make(map[string]interface{})
+		absoluteTimeFrameMap["start"] = absoluteTimeFrame.GetFrom().String()
+		absoluteTimeFrameMap["end"] = absoluteTimeFrame.GetTo().String()
+		if err := d.Set("absolut_time_frame", []interface{}{absoluteTimeFrameMap}); err != nil {
+			return err
+		}
+	case *dashboards.Dashboard_RelativeTimeFrame:
+		relativeTimeFrame := timeFrame.RelativeTimeFrame.String()
+		if planedRelativeTimeFrame, ok := d.GetOk("relative_time_frame"); ok && planedRelativeTimeFrame.(string) != "" {
+			planedRelativeTimeFrameDuration, _ := time.ParseDuration(planedRelativeTimeFrame.(string))
+			actualRelativeTimeFrameDuration, _ := time.ParseDuration(relativeTimeFrame)
+			if planedRelativeTimeFrameDuration == actualRelativeTimeFrameDuration {
+				relativeTimeFrame = planedRelativeTimeFrame.(string)
+			}
+		}
+
+		if err := d.Set("relative_time_frame", relativeTimeFrame); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -2234,7 +2433,7 @@ func flattenDataTableLogsQuery(logs *dashboards.DataTable_LogsQuery) interface{}
 	}
 }
 
-func flattenDataTableFilters(filters []*dashboards.Filter_LogFilter) interface{} {
+func flattenDataTableFilters(filters []*dashboards.Filter_LogsFilter) interface{} {
 	result := make([]interface{}, 0, len(filters))
 	for _, f := range filters {
 		filter := flattenDataTableFilter(f)
@@ -2243,7 +2442,7 @@ func flattenDataTableFilters(filters []*dashboards.Filter_LogFilter) interface{}
 	return result
 }
 
-func flattenDataTableFilter(filter *dashboards.Filter_LogFilter) interface{} {
+func flattenDataTableFilter(filter *dashboards.Filter_LogsFilter) interface{} {
 	field := filter.GetField().GetValue()
 	operator := flattenDataTableFilterOperator(filter.GetOperator())
 	return map[string]interface{}{
@@ -2252,7 +2451,7 @@ func flattenDataTableFilter(filter *dashboards.Filter_LogFilter) interface{} {
 	}
 }
 
-func flattenDataTableFilterOperator(operator *dashboards.Filter_LogFilter_Operator) interface{} {
+func flattenDataTableFilterOperator(operator *dashboards.Filter_LogsFilter_Operator) interface{} {
 	equals := flattenEquals(operator.GetEquals())
 	return []interface{}{
 		map[string]interface{}{
@@ -2422,7 +2621,7 @@ func flattenDashboardFilter(filter *dashboards.Filter) interface{} {
 }
 
 func flattenFilterSource(source *dashboards.Filter_Source) interface{} {
-	logs := flattenLogFilter(source.GetLogs())
+	logs := flattenLogsFilter(source.GetLogs())
 	return []interface{}{
 		map[string]interface{}{
 			"logs": logs,
@@ -2430,9 +2629,9 @@ func flattenFilterSource(source *dashboards.Filter_Source) interface{} {
 	}
 }
 
-func flattenLogFilter(logs *dashboards.Filter_LogFilter) interface{} {
+func flattenLogsFilter(logs *dashboards.Filter_LogsFilter) interface{} {
 	field := logs.GetField().GetValue()
-	operator := flattenLogFilterOperator(logs.GetOperator())
+	operator := flattenLogsFilterOperator(logs.GetOperator())
 	return []interface{}{
 		map[string]interface{}{
 			"field":    field,
@@ -2441,7 +2640,7 @@ func flattenLogFilter(logs *dashboards.Filter_LogFilter) interface{} {
 	}
 }
 
-func flattenLogFilterOperator(operator *dashboards.Filter_LogFilter_Operator) interface{} {
+func flattenLogsFilterOperator(operator *dashboards.Filter_LogsFilter_Operator) interface{} {
 	equals := flattenEquals(operator.GetEquals())
 	return []interface{}{
 		map[string]interface{}{
