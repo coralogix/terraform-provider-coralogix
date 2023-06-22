@@ -350,3 +350,19 @@ func JSONBytesEqual(b1, b2 []byte) bool {
 func randBool() bool {
 	return rand.Int()%2 == 0
 }
+
+func ReverseMap[K, V comparable](m map[K]V) map[V]K {
+	n := make(map[V]K)
+	for k, v := range m {
+		n[v] = k
+	}
+	return n
+}
+
+func GetKeys[K, V comparable](m map[K]V) []K {
+	result := make([]K, 0)
+	for k := range m {
+		result = append(result, k)
+	}
+	return result
+}
