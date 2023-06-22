@@ -232,7 +232,7 @@ func DashboardSchema() map[string]*schema.Schema {
 			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"sections": {
+					"section": {
 						Type:     schema.TypeList,
 						Optional: true,
 						Elem: &schema.Resource{
@@ -241,7 +241,7 @@ func DashboardSchema() map[string]*schema.Schema {
 									Type:     schema.TypeString,
 									Computed: true,
 								},
-								"rows": {
+								"row": {
 									Type:     schema.TypeList,
 									Optional: true,
 									Elem: &schema.Resource{
@@ -263,7 +263,7 @@ func DashboardSchema() map[string]*schema.Schema {
 													},
 												},
 											},
-											"widgets": {
+											"widget": {
 												Type: schema.TypeList,
 												Elem: &schema.Resource{
 													Schema: map[string]*schema.Schema{
@@ -291,7 +291,7 @@ func DashboardSchema() map[string]*schema.Schema {
 																		Optional: true,
 																		Elem: &schema.Resource{
 																			Schema: map[string]*schema.Schema{
-																				"query_definitions": {
+																				"query_definition": {
 																					Type:     schema.TypeList,
 																					Required: true,
 																					MinItems: 1,
@@ -476,7 +476,7 @@ func DashboardSchema() map[string]*schema.Schema {
 																								Type:     schema.TypeBool,
 																								Required: true,
 																							},
-																							"columns": {
+																							"column": {
 																								Type: schema.TypeList,
 																								Elem: &schema.Schema{
 																									Type:         schema.TypeString,
@@ -518,7 +518,7 @@ func DashboardSchema() map[string]*schema.Schema {
 																											Type:     schema.TypeString,
 																											Optional: true,
 																										},
-																										"filters": {
+																										"filter": {
 																											Type: schema.TypeList,
 																											Elem: &schema.Resource{
 																												Schema: map[string]*schema.Schema{
@@ -585,7 +585,7 @@ func DashboardSchema() map[string]*schema.Schema {
 																					ValidateFunc: validation.StringInSlice(dashboardValidRowStyle, false),
 																					Required:     true,
 																				},
-																				"columns": {
+																				"column": {
 																					Type: schema.TypeList,
 																					Elem: &schema.Resource{
 																						Schema: map[string]*schema.Schema{
@@ -677,7 +677,7 @@ func DashboardSchema() map[string]*schema.Schema {
 																					ValidateFunc: validation.StringInSlice(dashboardValidGaugeUnit, false),
 																					Optional:     true,
 																				},
-																				"thresholds": {
+																				"threshold": {
 																					Type: schema.TypeList,
 																					Elem: &schema.Resource{
 																						Schema: map[string]*schema.Schema{
@@ -726,7 +726,7 @@ func DashboardSchema() map[string]*schema.Schema {
 				},
 			},
 		},
-		"variables": {
+		"variable": {
 			Type:     schema.TypeList,
 			Optional: true,
 			Elem: &schema.Resource{
@@ -826,7 +826,7 @@ func DashboardSchema() map[string]*schema.Schema {
 				},
 			},
 		},
-		"filters": {
+		"filter": {
 			Type: schema.TypeList,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
@@ -933,7 +933,7 @@ func DashboardSchema() map[string]*schema.Schema {
 		"content_json": {
 			Type:             schema.TypeString,
 			Optional:         true,
-			ConflictsWith:    []string{"layout", "name", "layout", "variables", "filters", "relative_time_frame", "absolute_time_frame"},
+			ConflictsWith:    []string{"layout", "name", "layout", "variable", "filter", "relative_time_frame", "absolute_time_frame"},
 			ValidateDiagFunc: dashboardContentJsonValidationFunc(),
 			Description:      "an option to set the dashboard content from a json file.",
 			DiffSuppressFunc: SuppressEquivalentJSONDiffs,
@@ -953,9 +953,9 @@ func extractDashboard(d *schema.ResourceData) (*dashboards.Dashboard, diag.Diagn
 	name := wrapperspb.String(d.Get("name").(string))
 	description := wrapperspb.String(d.Get("description").(string))
 	layout, diags := expandLayout(d.Get("layout"))
-	variables, dgs := expandVariables(d.Get("variables"))
+	variables, dgs := expandVariables(d.Get("variable"))
 	diags = append(diags, dgs...)
-	filters, dgs := expandDashboardFilters(d.Get("filters"))
+	filters, dgs := expandDashboardFilters(d.Get("filter"))
 	diags = append(diags, dgs...)
 
 	dashboard := &dashboards.Dashboard{
@@ -1012,7 +1012,7 @@ func expandLayout(v interface{}) (*dashboards.Layout, diag.Diagnostics) {
 		m = l[0].(map[string]interface{})
 	}
 
-	sections, diags := expandSections(m["sections"])
+	sections, diags := expandSections(m["section"])
 	return &dashboards.Layout{
 		Sections: sections,
 	}, diags
@@ -1173,7 +1173,7 @@ func expandSections(v interface{}) ([]*dashboards.Section, diag.Diagnostics) {
 func expandSection(v interface{}) (*dashboards.Section, diag.Diagnostics) {
 	m := v.(map[string]interface{})
 	uuid := &dashboards.UUID{Value: expandUUID(m["id"])}
-	rows, diags := expandRows(m["rows"])
+	rows, diags := expandRows(m["row"])
 	return &dashboards.Section{
 		Id:   uuid,
 		Rows: rows,
@@ -1201,7 +1201,7 @@ func expandRow(v interface{}) (*dashboards.Row, diag.Diagnostics) {
 	m := v.(map[string]interface{})
 	uuid := &dashboards.UUID{Value: expandUUID(m["id"])}
 	appearance := expandRowAppearance(m["appearance"])
-	widgets, diags := expandWidgets(m["widgets"])
+	widgets, diags := expandWidgets(m["widget"])
 	return &dashboards.Row{
 		Id:         uuid,
 		Appearance: appearance,
@@ -1304,7 +1304,7 @@ func expandGauge(v interface{}) *dashboards.Widget_Definition_Gauge {
 	showInnerArc := wrapperspb.Bool(m["show_inner_arc"].(bool))
 	showOuterArc := wrapperspb.Bool(m["show_outer_arc"].(bool))
 	unit := expandGaugeUnit(m["unit"])
-	thresholds := expandGaugeThresholds(m["thresholds"])
+	thresholds := expandGaugeThresholds(m["threshold"])
 
 	return &dashboards.Widget_Definition_Gauge{
 		Gauge: &dashboards.Gauge{
@@ -1401,7 +1401,7 @@ func expandLineChart(v interface{}) (*dashboards.Widget_Definition_LineChart, er
 	m := v.(map[string]interface{})
 	legend := expandLegend(m["legend"])
 	tooltip := expandTooltip(m["tooltip"])
-	queryDefinitions := expandQueryDefinitions(m["query_definitions"])
+	queryDefinitions := expandQueryDefinitions(m["query_definition"])
 
 	return &dashboards.Widget_Definition_LineChart{
 		LineChart: &dashboards.LineChart{
@@ -1611,7 +1611,7 @@ func expandLegend(v interface{}) *dashboards.Legend {
 	}
 
 	isVisible := wrapperspb.Bool(m["is_visible"].(bool))
-	columns := expandLegendColumns(m["columns"])
+	columns := expandLegendColumns(m["column"])
 
 	return &dashboards.Legend{
 		IsVisible: isVisible,
@@ -1643,7 +1643,7 @@ func expandDataTable(v interface{}) *dashboards.Widget_Definition_DataTable {
 	query := expandDataTableQuery(m["query"])
 	resultsPerPage := wrapperspb.Int32(int32(m["results_per_page"].(int)))
 	rowStyle := expandRowStyle(m["row_style"].(string))
-	columns := expandDataTableColumns(m["columns"])
+	columns := expandDataTableColumns(m["column"])
 	orderBy := expandOrderBy(m["order_by"])
 
 	return &dashboards.Widget_Definition_DataTable{
@@ -1729,7 +1729,7 @@ func expandDataTableQuery(v interface{}) *dashboards.DataTable_Query {
 	logsMap := m["logs"].([]interface{})[0].(map[string]interface{})
 
 	luceneQuery := expandLuceneQuery(logsMap["lucene_query"])
-	filters := expandSearchFilters(logsMap["filters"])
+	filters := expandSearchFilters(logsMap["filter"])
 	return &dashboards.DataTable_Query{
 		Value: &dashboards.DataTable_Query_Logs{
 			Logs: &dashboards.DataTable_LogsQuery{
@@ -2008,11 +2008,11 @@ func setDashboard(d *schema.ResourceData, dashboard *dashboards.Dashboard) diag.
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("variables", flattenVariables(dashboard.GetVariables())); err != nil {
+	if err := d.Set("variable", flattenVariables(dashboard.GetVariables())); err != nil {
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("filters", flattenDashboardFilters(dashboard.GetFilters())); err != nil {
+	if err := d.Set("filter", flattenDashboardFilters(dashboard.GetFilters())); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -2055,7 +2055,7 @@ func flattenLayout(layout *dashboards.Layout) interface{} {
 	sections := flattenSections(layout.GetSections())
 	return []interface{}{
 		map[string]interface{}{
-			"sections": sections,
+			"section": sections,
 		},
 	}
 }
@@ -2091,8 +2091,8 @@ func flattenSection(section *dashboards.Section) interface{} {
 	id := section.GetId().GetValue()
 	rows := flattenRows(section.GetRows())
 	return map[string]interface{}{
-		"id":   id,
-		"rows": rows,
+		"id":  id,
+		"row": rows,
 	}
 }
 
@@ -2112,7 +2112,7 @@ func flattenRow(row *dashboards.Row) interface{} {
 	return map[string]interface{}{
 		"id":         id,
 		"appearance": appearance,
-		"widgets":    widgets,
+		"widget":     widgets,
 	}
 }
 
@@ -2190,7 +2190,7 @@ func flattenGauge(gauge *dashboards.Gauge) interface{} {
 			"show_inner_arc": showInnerArc,
 			"show_outer_arc": showOuterArc,
 			"unit":           unit,
-			"thresholds":     thresholds,
+			"threshold":      thresholds,
 		},
 	}
 }
@@ -2247,9 +2247,9 @@ func flattenLineChart(lineChart *dashboards.LineChart) interface{} {
 
 	return []interface{}{
 		map[string]interface{}{
-			"tooltip":           tooltip,
-			"legend":            legend,
-			"query_definitions": queryDefinitions,
+			"tooltip":          tooltip,
+			"legend":           legend,
+			"query_definition": queryDefinitions,
 		},
 	}
 }
@@ -2395,7 +2395,7 @@ func flattenLegend(legend *dashboards.Legend) interface{} {
 	return []interface{}{
 		map[string]interface{}{
 			"is_visible": isVisible,
-			"columns":    columns,
+			"column":     columns,
 		},
 	}
 }
@@ -2427,7 +2427,7 @@ func flattenDataTable(dataTable *dashboards.DataTable) interface{} {
 			"query":            query,
 			"results_per_page": resultsPerPage,
 			"row_style":        rowStyle,
-			"columns":          columns,
+			"column":           columns,
 			"order_by":         orderBy,
 		},
 	}
@@ -2482,7 +2482,7 @@ func flattenDataTableLogsQuery(logs *dashboards.DataTable_LogsQuery) interface{}
 	return []interface{}{
 		map[string]interface{}{
 			"lucene_query": luceneQuery,
-			"filters":      filters,
+			"filter":       filters,
 		},
 	}
 }

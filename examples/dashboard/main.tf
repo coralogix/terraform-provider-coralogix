@@ -16,16 +16,16 @@ resource "coralogix_dashboard" dashboard {
   name        = "dont drop me!"
   description = "dashboards team is messing with this 🗿"
   layout {
-    sections {
-      rows {
+    section {
+      row {
         appearance {
           height = 19
         }
-        widgets {
+        widget {
           title = "status 4XX"
           definition {
             line_chart {
-              query_definitions {
+              query_definition {
                 query {
                   metrics {
                     promql_query = "http_requests_total{status!~\"4..\"}"
@@ -34,7 +34,7 @@ resource "coralogix_dashboard" dashboard {
               }
               legend {
                 is_visible = true
-                columns    = ["Max", "Last"]
+                column    = ["Max", "Last"]
               }
             }
           }
@@ -42,11 +42,11 @@ resource "coralogix_dashboard" dashboard {
             width = 0
           }
         }
-        widgets {
+        widget {
           title = "count"
           definition {
             line_chart {
-              query_definitions {
+              query_definition {
                 query {
                   logs {
                     aggregations {
@@ -58,7 +58,7 @@ resource "coralogix_dashboard" dashboard {
               }
               legend {
                 is_visible = true
-                columns    = ["Min", "Max", "Sum", "Avg", "Last"]
+                column    = ["Min", "Max", "Sum", "Avg", "Last"]
               }
             }
           }
@@ -66,11 +66,11 @@ resource "coralogix_dashboard" dashboard {
             width = 0
           }
         }
-        widgets {
+        widget {
           title = "error throwing pods"
           definition {
             line_chart {
-              query_definitions {
+              query_definition {
                 query {
                   logs {
                     lucene_query = "coralogix.metadata.severity=5 OR coralogix.metadata.severity=\"6\" OR coralogix.metadata.severity=\"4\""
@@ -84,7 +84,7 @@ resource "coralogix_dashboard" dashboard {
               }
               legend {
                 is_visible = true
-                columns    = ["Max", "Last"]
+                column    = ["Max", "Last"]
               }
             }
           }
@@ -93,18 +93,18 @@ resource "coralogix_dashboard" dashboard {
           }
         }
       }
-      rows {
+      row {
         appearance {
           height = 28
         }
-        widgets {
+        widget {
           title       = "dashboards-api logz"
           description = "warnings, errors, criticals"
           definition {
             data_table {
               query {
                 logs {
-                  filters {
+                  filter {
                     field = "coralogix.metadata.applicationName"
                     operator {
                       equals {
@@ -118,25 +118,25 @@ resource "coralogix_dashboard" dashboard {
               }
               results_per_page = 20
               row_style        = "One_Line"
-              columns {
+              column {
                 field = "coralogix.timestamp"
               }
-              columns {
+              column {
                 field = "textObject.textObject.textObject.kubernetes.pod_id"
               }
-              columns {
+              column {
                 field = "coralogix.text"
               }
-              columns {
+              column {
                 field = "coralogix.metadata.applicationName"
               }
-              columns {
+              column {
                 field = "coralogix.metadata.subsystemName"
               }
-              columns {
+              column {
                 field = "coralogix.metadata.sdkId"
               }
-              columns {
+              column {
                 field = "textObject.log_obj.e2e_test.config"
               }
             }
@@ -148,7 +148,7 @@ resource "coralogix_dashboard" dashboard {
       }
     }
   }
-  variables {
+  variable {
     name = "test_variable"
     definition {
       multi_select {
@@ -161,7 +161,7 @@ resource "coralogix_dashboard" dashboard {
       }
     }
   }
-  filters{
+  filter{
     source{
       logs{
         field = "coralogix.metadata.applicationName"
@@ -177,6 +177,157 @@ resource "coralogix_dashboard" dashboard {
   }
 }
 
-#resource "coralogix_dashboard" dashboard_from_json {
-#  content_json = file("./dashboard.json")
-#}
+resource "coralogix_dashboard" test {
+  name        = "dont drop me!"
+  description = "dashboards team is messing with this 🗿"
+  layout {
+    section {
+      row {
+        appearance {
+          height = 19
+        }
+        widget {
+          title = "status 4XX"
+          definition {
+            line_chart {
+              query_definition {
+                query {
+                  metrics {
+                    promql_query = "http_requests_total{status!~\"4..\"}"
+                  }
+                }
+              }
+              legend {
+                is_visible = true
+                column    = ["Max", "Last"]
+              }
+            }
+          }
+          appearance {
+            width = 0
+          }
+        }
+        widget {
+          title = "count"
+          definition {
+            line_chart {
+              query_definition {
+                query {
+                  logs {
+                    aggregations {
+                      count {
+                      }
+                    }
+                  }
+                }
+              }
+              legend {
+                is_visible = true
+                column    = ["Min", "Max", "Sum", "Avg", "Last"]
+              }
+            }
+          }
+          appearance {
+            width = 0
+          }
+        }
+        widget {
+          title = "error throwing pods"
+          definition {
+            line_chart {
+              query_definition {
+                query {
+                  logs {
+                    lucene_query = "coralogix.metadata.severity=5 OR coralogix.metadata.severity=\"6\" OR coralogix.metadata.severity=\"4\""
+                    group_by     = ["coralogix.metadata.subsystemName"]
+                    aggregations {
+                      count {
+                      }
+                    }
+                  }
+                }
+              }
+              legend {
+                is_visible = true
+                column    = ["Max", "Last"]
+              }
+            }
+          }
+          appearance {
+            width = 0
+          }
+        }
+      }
+      row {
+        appearance {
+          height = 28
+        }
+        widget {
+          title       = "dashboards-api logz"
+          description = "warnings, errors, criticals"
+          definition {
+            data_table {
+              query {
+                logs {
+                  filter {
+                    field = "coralogix.metadata.applicationName"
+                    operator {
+                      equals {
+                        selection {
+                          list = ["staging"]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              results_per_page = 20
+              row_style        = "One_Line"
+              column {
+                field = "coralogix.timestamp"
+              }
+              column {
+                field = "textObject.textObject.textObject.kubernetes.pod_id"
+              }
+              column {
+                field = "coralogix.text"
+              }
+              column {
+                field = "coralogix.metadata.applicationName"
+              }
+              column {
+                field = "coralogix.metadata.subsystemName"
+              }
+              column {
+                field = "coralogix.metadata.sdkId"
+              }
+              column {
+                field = "textObject.log_obj.e2e_test.config"
+              }
+            }
+          }
+          appearance {
+            width = 0
+          }
+        }
+      }
+    }
+  }
+  variable {
+    name = "test_variable"
+    definition {
+      multi_select {
+        selection {
+          list = ["1", "2", "3"]
+        }
+        source {
+          constant_list = ["1", "2", "3"]
+        }
+      }
+    }
+  }
+}
+
+resource "coralogix_dashboard" dashboard_from_json {
+  content_json = file("./dashboard.json")
+}
