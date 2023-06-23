@@ -540,14 +540,14 @@ func (e *Events2MetricResource) UpgradeState(context.Context) map[int64]resource
 
 func upgradeE2MStateV0ToV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
 	type Events2MetricResourceModelV0 struct {
-		ID           types.String       `tfsdk:"id"`
-		Name         types.String       `tfsdk:"name"`
-		Description  types.String       `tfsdk:"description"`
-		MetricFields types.Set          `tfsdk:"metric_fields"`
-		MetricLabels types.Set          `tfsdk:"metric_labels"`
-		Permutations *PermutationsModel `tfsdk:"permutations"`
-		SpansQuery   *SpansQueryModel   `tfsdk:"spans_query"`
-		LogsQuery    *LogsQueryModel    `tfsdk:"logs_query"`
+		ID           types.String `tfsdk:"id"`
+		Name         types.String `tfsdk:"name"`
+		Description  types.String `tfsdk:"description"`
+		MetricFields types.Set    `tfsdk:"metric_fields"`
+		MetricLabels types.Set    `tfsdk:"metric_labels"`
+		Permutations types.List   `tfsdk:"permutations"`
+		SpansQuery   types.List   `tfsdk:"spans_query"`
+		LogsQuery    types.List   `tfsdk:"logs_query"`
 	}
 
 	var priorStateData Events2MetricResourceModelV0
@@ -561,12 +561,48 @@ func upgradeE2MStateV0ToV1(ctx context.Context, req resource.UpgradeStateRequest
 		Description:  priorStateData.Description,
 		MetricFields: upgradeE2MMetricFieldsV0ToV1(priorStateData.MetricFields),
 		MetricLabels: upgradeE2MMetricLabelsV0ToV1(priorStateData.MetricLabels),
-		Permutations: priorStateData.Permutations,
-		SpansQuery:   priorStateData.SpansQuery,
-		LogsQuery:    priorStateData.LogsQuery,
+		Permutations: upgradeE2MPermutationsV0ToV1(priorStateData.Permutations),
+		SpansQuery:   upgradeE2MSpansQueryV0ToV1(priorStateData.SpansQuery),
+		LogsQuery:    upgradeE2MLogsQueryV0ToV1(priorStateData.LogsQuery),
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, upgradedStateData)...)
+}
+
+func upgradeE2MLogsQueryV0ToV1(logsQuery types.List) *LogsQueryModel {
+	var logsQueryObjects []types.Object
+	logsQuery.ElementsAs(context.Background(), &logsQueryObjects, true)
+	if len(logsQueryObjects) == 0 {
+		return nil
+	}
+
+	var logsQueryObject LogsQueryModel
+	logsQueryObjects[0].As(context.Background(), &logsQueryObject, basetypes.ObjectAsOptions{})
+	return &logsQueryObject
+}
+
+func upgradeE2MSpansQueryV0ToV1(spansQuery types.List) *SpansQueryModel {
+	var spansQueryObjects []types.Object
+	spansQuery.ElementsAs(context.Background(), &spansQueryObjects, true)
+	if len(spansQueryObjects) == 0 {
+		return nil
+	}
+
+	var spansQueryObject SpansQueryModel
+	spansQueryObjects[0].As(context.Background(), &spansQueryObject, basetypes.ObjectAsOptions{})
+	return &spansQueryObject
+}
+
+func upgradeE2MPermutationsV0ToV1(permutations types.List) *PermutationsModel {
+	var permutationsObjects []types.Object
+	permutations.ElementsAs(context.Background(), &permutationsObjects, true)
+	if len(permutationsObjects) == 0 {
+		return nil
+	}
+
+	var permutationsObject PermutationsModel
+	permutationsObjects[0].As(context.Background(), &permutationsObject, basetypes.ObjectAsOptions{})
+	return &permutationsObject
 }
 
 func upgradeE2MMetricLabelsV0ToV1(labels types.Set) types.Map {
@@ -618,200 +654,17 @@ func e2mSchemaV0() schema.Schema {
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"name": schema.StringAttribute{
 				Required: true,
-				Validators: []validator.String{
-					stringvalidator.RegexMatches(regexp.MustCompile(`^[A-Za-z\d_:-]*$`), "Invalid metric name, name may only contain ASCII letters and digits, as well as underscores and colons."),
-					stringvalidator.LengthAtLeast(1),
-				},
-				MarkdownDescription: "Events2Metric name. Events2Metric names have to be unique per account.",
 			},
 			"description": schema.StringAttribute{
-				Optional:            true,
-				MarkdownDescription: "Events2Metric description.",
-				//Validators: []validator.String{
-				//	stringvalidator.LengthAtLeast(1),
-				//},
-			},
-			"metric_fields": schema.SetNestedAttribute{
 				Optional: true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"target_base_metric_name": schema.StringAttribute{
-							Required: true,
-						},
-						"source_field": schema.StringAttribute{
-							Required: true,
-						},
-						"aggregations": schema.SingleNestedAttribute{
-							Optional: true,
-							Computed: true,
-							PlanModifiers: []planmodifier.Object{
-								objectplanmodifier.UseStateForUnknown(),
-							},
-							Attributes: map[string]schema.Attribute{
-								"min": schema.SingleNestedAttribute{
-									Optional: true,
-									Computed: true,
-									PlanModifiers: []planmodifier.Object{
-										objectplanmodifier.RequiresReplaceIfConfigured(),
-									},
-									Attributes: map[string]schema.Attribute{
-										"enable": schema.BoolAttribute{
-											Optional: true,
-											Computed: true,
-											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseStateForUnknown(),
-											},
-										},
-										"target_metric_name": schema.StringAttribute{
-											Computed: true,
-											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
-											},
-										},
-									},
-								},
-								"max": schema.SingleNestedAttribute{
-									Optional: true,
-									Computed: true,
-									Attributes: map[string]schema.Attribute{
-										"enable": schema.BoolAttribute{
-											Optional: true,
-											Computed: true,
-											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseStateForUnknown(),
-											},
-										},
-										"target_metric_name": schema.StringAttribute{
-											Computed: true,
-											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
-											},
-										},
-									},
-								},
-								"count": schema.SingleNestedAttribute{
-									Optional: true,
-									Computed: true,
-									Attributes: map[string]schema.Attribute{
-										"enable": schema.BoolAttribute{
-											Optional: true,
-											Computed: true,
-											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseStateForUnknown(),
-											},
-										},
-										"target_metric_name": schema.StringAttribute{
-											Computed: true,
-											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
-											},
-										},
-									},
-								},
-								"avg": schema.SingleNestedAttribute{
-									Optional: true,
-									Computed: true,
-									Attributes: map[string]schema.Attribute{
-										"enable": schema.BoolAttribute{
-											Optional: true,
-											Computed: true,
-											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseStateForUnknown(),
-											},
-										},
-										"target_metric_name": schema.StringAttribute{
-											Computed: true,
-											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
-											},
-										},
-									},
-								},
-								"sum": schema.SingleNestedAttribute{
-									Optional: true,
-									Computed: true,
-									Attributes: map[string]schema.Attribute{
-										"enable": schema.BoolAttribute{
-											Optional: true,
-											Computed: true,
-											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseStateForUnknown(),
-											},
-										},
-										"target_metric_name": schema.StringAttribute{
-											Computed: true,
-											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
-											},
-										},
-									},
-								},
-								"samples": schema.SingleNestedAttribute{
-									Optional: true,
-									Computed: true,
-									Attributes: map[string]schema.Attribute{
-										"enable": schema.BoolAttribute{
-											Optional: true,
-											Computed: true,
-											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseStateForUnknown(),
-											},
-										},
-										"target_metric_name": schema.StringAttribute{
-											Computed: true,
-											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
-											},
-										},
-										"type": schema.StringAttribute{
-											Required: true,
-											Validators: []validator.String{
-												stringvalidator.OneOf(validSampleTypes...),
-											},
-											MarkdownDescription: fmt.Sprintf("Can be one of %q.", validSampleTypes),
-										},
-									},
-								},
-								"histogram": schema.SingleNestedAttribute{
-									Optional: true,
-									Computed: true,
-									Attributes: map[string]schema.Attribute{
-										"enable": schema.BoolAttribute{
-											Optional: true,
-											Computed: true,
-											PlanModifiers: []planmodifier.Bool{
-												boolplanmodifier.UseStateForUnknown(),
-											},
-										},
-										"target_metric_name": schema.StringAttribute{
-											Computed: true,
-											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
-											},
-										},
-										"buckets": schema.ListAttribute{
-											ElementType: types.Float64Type,
-											Required:    true,
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-				Validators: []validator.Set{
-					setvalidator.SizeAtLeast(1),
-				},
 			},
-			"metric_labels": schema.SetNestedAttribute{
-				Optional: true,
-				NestedObject: schema.NestedAttributeObject{
+		},
+		Blocks: map[string]schema.Block{
+			"metric_labels": schema.SetNestedBlock{
+				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
 						"target_label": schema.StringAttribute{
 							Required: true,
@@ -821,121 +674,139 @@ func e2mSchemaV0() schema.Schema {
 						},
 					},
 				},
-				Validators: []validator.Set{
-					setvalidator.SizeAtLeast(1),
+			},
+			"metric_fields": schema.SetNestedBlock{
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"target_base_metric_name": schema.StringAttribute{
+							Required: true,
+						},
+						"source_field": schema.StringAttribute{
+							Required: true,
+						},
+					},
+					Blocks: map[string]schema.Block{
+						"aggregations": schema.SetNestedBlock{
+							NestedObject: schema.NestedBlockObject{
+								Blocks: map[string]schema.Block{
+									"min":   commonAggregationSchemaV0(),
+									"max":   commonAggregationSchemaV0(),
+									"count": commonAggregationSchemaV0(),
+									"avg":   commonAggregationSchemaV0(),
+									"sum":   commonAggregationSchemaV0(),
+									"samples": schema.ListNestedBlock{
+										NestedObject: schema.NestedBlockObject{
+											Attributes: map[string]schema.Attribute{
+												"enable": schema.BoolAttribute{
+													Optional: true,
+													Computed: true,
+												},
+												"target_metric_name": schema.StringAttribute{
+													Computed: true,
+												},
+												"type": schema.StringAttribute{
+													Required: true,
+												},
+											},
+										},
+									},
+									"histogram": schema.ListNestedBlock{
+										NestedObject: schema.NestedBlockObject{
+											Attributes: map[string]schema.Attribute{
+												"enable": schema.BoolAttribute{
+													Optional: true,
+													Computed: true,
+												},
+												"target_metric_name": schema.StringAttribute{
+													Computed: true,
+												},
+												"buckets": schema.ListAttribute{
+													ElementType: types.Float64Type,
+													Required:    true,
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
-			"permutations": schema.SingleNestedAttribute{
-				Optional: true,
-				Computed: true,
-				Attributes: map[string]schema.Attribute{
-					"limit": schema.Int64Attribute{
-						Optional: true,
-						Computed: true,
-						Validators: []validator.Int64{
-							int64validator.AtLeast(0),
+			"spans_query": schema.ListNestedBlock{
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"lucene": schema.StringAttribute{
+							Optional: true,
 						},
-						MarkdownDescription: "Defines the permutations' limit of the events2metric.",
-					},
-					"has_exceed_limit": schema.BoolAttribute{
-						Computed: true,
-						PlanModifiers: []planmodifier.Bool{
-							boolplanmodifier.UseStateForUnknown(),
+						"applications": schema.SetAttribute{
+							ElementType: types.StringType,
+							Optional:    true,
 						},
-						MarkdownDescription: "Notify if the limit permutations' limit of the events2metric has exceed (computed).",
+						"subsystems": schema.SetAttribute{
+							ElementType: types.StringType,
+							Optional:    true,
+						},
+						"actions": schema.SetAttribute{
+							ElementType: types.StringType,
+							Optional:    true,
+						},
+						"services": schema.SetAttribute{
+							ElementType: types.StringType,
+							Optional:    true,
+						},
 					},
 				},
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
-				},
-				MarkdownDescription: "Defines the permutations' info of the events2metric.",
 			},
-			"spans_query": schema.SingleNestedAttribute{
-				Optional: true,
-				Attributes: map[string]schema.Attribute{
-					"lucene": schema.StringAttribute{
-						Optional:    true,
-						Description: "The search_query that we wanted to be notified on.",
-					},
-					"applications": schema.SetAttribute{
-						ElementType: types.StringType,
-						Optional:    true,
-						Validators: []validator.Set{
-							setvalidator.SizeAtLeast(1),
+			"logs_query": schema.ListNestedBlock{
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"lucene": schema.StringAttribute{
+							Optional: true,
 						},
-						MarkdownDescription: "An array that contains log’s application names that we want to be alerted on." +
-							" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
-					},
-					"subsystems": schema.SetAttribute{
-						ElementType: types.StringType,
-						Optional:    true,
-						Validators: []validator.Set{
-							setvalidator.SizeAtLeast(1),
+						"applications": schema.SetAttribute{
+							ElementType: types.StringType,
+							Optional:    true,
 						},
-						MarkdownDescription: "An array that contains log’s subsystem names that we want to be notified on. " +
-							" Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
-					},
-					"actions": schema.SetAttribute{
-						ElementType: types.StringType,
-						Optional:    true,
-						Validators: []validator.Set{
-							setvalidator.SizeAtLeast(1),
+						"subsystems": schema.SetAttribute{
+							ElementType: types.StringType,
+							Optional:    true,
 						},
-						MarkdownDescription: "An array that contains log’s actions names that we want to be notified on. " +
-							" Actions can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
-					},
-					"services": schema.SetAttribute{
-						ElementType: types.StringType,
-						Optional:    true,
-						Validators: []validator.Set{
-							setvalidator.SizeAtLeast(1),
+						"severities": schema.SetAttribute{
+							Optional:    true,
+							ElementType: types.StringType,
 						},
-						MarkdownDescription: "An array that contains log’s services names that we want to be notified on. " +
-							" Services can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
 					},
 				},
-				MarkdownDescription: "spans-events2metric type. Exactly one of \"spans_query\" or \"logs_query\" should be defined.",
 			},
-			"logs_query": schema.SingleNestedAttribute{
-				Optional: true,
-				Attributes: map[string]schema.Attribute{
-					"lucene": schema.StringAttribute{
-						Optional:    true,
-						Description: "The search_query that we wanted to be notified on.",
-					},
-					"applications": schema.SetAttribute{
-						ElementType: types.StringType,
-						Optional:    true,
-						Validators: []validator.Set{
-							setvalidator.SizeAtLeast(1),
-						},
-						MarkdownDescription: "An array that contains log’s application names that we want to be alerted on." +
-							" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
-					},
-					"subsystems": schema.SetAttribute{
-						ElementType: types.StringType,
-						Optional:    true,
-						Validators: []validator.Set{
-							setvalidator.SizeAtLeast(1),
-						},
-						MarkdownDescription: "An array that contains log’s subsystem names that we want to be notified on. " +
-							" Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
-					},
-					"severities": schema.SetAttribute{
-						Optional:    true,
-						ElementType: types.StringType,
-						Validators: []validator.Set{
-							setvalidator.SizeAtLeast(1),
-							setvalidator.ValueStringsAre(stringvalidator.OneOf(validSeverities...)),
-						},
-						MarkdownDescription: fmt.Sprintf("An array of severities that we interested in. Can be one of %q", validSeverities),
+			"permutations": schema.ListNestedBlock{
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"limit":            schema.StringAttribute{},
+						"has_exceed_limit": schema.BoolAttribute{},
 					},
 				},
-				MarkdownDescription: "logs-events2metric type. Exactly one of \"spans_query\" or \"logs_query\" must be defined.",
 			},
 		},
 	}
 }
+
+func commonAggregationSchemaV0() schema.ListNestedBlock {
+	return schema.ListNestedBlock{
+		NestedObject: schema.NestedBlockObject{
+			Attributes: map[string]schema.Attribute{
+				"enable": schema.BoolAttribute{
+					Optional: true,
+					Computed: true,
+				},
+				"target_metric_name": schema.StringAttribute{
+					Computed: true,
+				},
+			},
+		},
+	}
+}
+
 func (e *Events2MetricResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
 	return []resource.ConfigValidator{
 		resourcevalidator.ExactlyOneOf(

@@ -1,8 +1,8 @@
 terraform {
   required_providers {
     coralogix = {
-      #      version = "~> 1.5"
-      source = "coralogix/coralogix"
+      #version = "~> 1.5"
+      source  = "coralogix/coralogix"
     }
   }
 }
@@ -16,7 +16,7 @@ resource "coralogix_events2metric" "logs2metric" {
   name        = "logs2metricExample"
   description = "logs2metric from coralogix terraform provider"
   logs_query  = {
-    lucene       = ""
+    lucene       = "remote_addr_enriched:/.*/"
     applications = ["filter:startsWith:nginx"] //change here for existing applications from your account
     severities   = ["Debug"]
   }
