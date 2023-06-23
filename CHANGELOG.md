@@ -173,6 +173,19 @@ BREAKING CHANGES:
 
 ## Release 1.5.6
 
-BUG FIXING:
 #### resource/tco_policy
 * Fixing [TF doesn't detect manually deleted resources](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1683820712917899)
+
+## Release 1.5.7
+
+BUG FIXING:
+
+#### resource/alert
+* Fixing - received an error when updating promql alert condition from less_than to more_than
+
+## Release 1.5.8
+
+BREAKING CHANGES:
+#### resource/coralogix_dashboard
+* for all the new line chart widgets - `query`, `series_name_template`, `series_count_limit`, `unit` and `scale_type` fields were deprecated. They will be part of `query_definition` now.
+* all lists of objects names' 's' suffix was removed (e.g. - `widgets` => `widget`).

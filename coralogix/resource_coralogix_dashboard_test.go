@@ -30,52 +30,52 @@ func TestAccCoralogixResourceDashboard(t *testing.T) {
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "name", "dont drop me!"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "description", "dashboards team is messing with this 🗿"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.appearance.0.height", "19"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.0.title", "status 4XX"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.0.definition.0.line_chart.0.query.0.metrics.0.promql_query", "http_requests_total{status!~\"4..\"}"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.0.definition.0.line_chart.0.legend.0.is_visible", "true"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.0.definition.0.line_chart.0.legend.0.columns.0", "Max"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.0.definition.0.line_chart.0.legend.0.columns.1", "Last"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.0.appearance.0.width", "0"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.1.title", "count"),
-					resource.TestCheckResourceAttrSet(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.1.definition.0.line_chart.0.query.0.logs.0.aggregations.0.count.0.%"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.1.definition.0.line_chart.0.legend.0.is_visible", "true"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.1.definition.0.line_chart.0.legend.0.columns.0", "Min"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.1.definition.0.line_chart.0.legend.0.columns.1", "Max"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.1.definition.0.line_chart.0.legend.0.columns.2", "Sum"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.1.definition.0.line_chart.0.legend.0.columns.3", "Avg"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.1.definition.0.line_chart.0.legend.0.columns.4", "Last"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.1.appearance.0.width", "0"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.2.title", "error throwing pods"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.2.definition.0.line_chart.0.query.0.logs.0.lucene_query", "coralogix.metadata.severity=5 OR coralogix.metadata.severity=\"6\" OR coralogix.metadata.severity=\"4\""),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.2.definition.0.line_chart.0.query.0.logs.0.group_by.0", "coralogix.metadata.subsystemName"),
-					resource.TestCheckResourceAttrSet(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.2.definition.0.line_chart.0.query.0.logs.0.aggregations.0.count.0.%"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.2.definition.0.line_chart.0.legend.0.is_visible", "true"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.2.definition.0.line_chart.0.legend.0.columns.0", "Max"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.2.definition.0.line_chart.0.legend.0.columns.1", "Last"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.0.widgets.2.appearance.0.width", "0"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.appearance.0.height", "28"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.title", "dashboards-api logz"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.description", "warnings, errors, criticals"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.query.0.logs.0.filters.0.field", "coralogix.metadata.applicationName"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.query.0.logs.0.filters.0.operator.0.equals.0.selection.0.list.0", "staging"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.results_per_page", "20"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.row_style", "One_Line"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.0.field", "coralogix.timestamp"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.1.field", "textObject.textObject.textObject.kubernetes.pod_id"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.2.field", "coralogix.text"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.3.field", "coralogix.metadata.applicationName"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.4.field", "coralogix.metadata.subsystemName"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.5.field", "coralogix.metadata.sdkId"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.definition.0.data_table.0.columns.6.field", "textObject.log_obj.e2e_test.config"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.sections.0.rows.1.widgets.0.appearance.0.width", "0"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.name", "test_variable"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.0.multi_select.0.selection.0.list.0", "1"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.0.multi_select.0.selection.0.list.1", "2"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.0.multi_select.0.selection.0.list.2", "3"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.0.multi_select.0.source.0.constant_list.0", "1"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.0.multi_select.0.source.0.constant_list.1", "2"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.0.multi_select.0.source.0.constant_list.2", "3"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.appearance.0.height", "19"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.0.title", "status 4XX"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.0.definition.0.line_chart.0.query_definition.0.query.0.metrics.0.promql_query", "http_requests_total{status!~\"4..\"}"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.0.definition.0.line_chart.0.legend.0.is_visible", "true"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.0.definition.0.line_chart.0.legend.0.column.0", "Max"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.0.definition.0.line_chart.0.legend.0.column.1", "Last"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.0.appearance.0.width", "0"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.1.title", "count"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "layout.0.section.0.row.0.widget.1.definition.0.line_chart.0.query_definition.0.query.0.logs.0.aggregations.0.count.0.%"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.1.definition.0.line_chart.0.legend.0.is_visible", "true"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.1.definition.0.line_chart.0.legend.0.column.0", "Min"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.1.definition.0.line_chart.0.legend.0.column.1", "Max"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.1.definition.0.line_chart.0.legend.0.column.2", "Sum"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.1.definition.0.line_chart.0.legend.0.column.3", "Avg"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.1.definition.0.line_chart.0.legend.0.column.4", "Last"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.1.appearance.0.width", "0"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.2.title", "error throwing pods"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.2.definition.0.line_chart.0.query_definition.0.query.0.logs.0.lucene_query", "coralogix.metadata.severity=5 OR coralogix.metadata.severity=\"6\" OR coralogix.metadata.severity=\"4\""),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.2.definition.0.line_chart.0.query_definition.0.query.0.logs.0.group_by.0", "coralogix.metadata.subsystemName"),
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "layout.0.section.0.row.0.widget.2.definition.0.line_chart.0.query_definition.0.query.0.logs.0.aggregations.0.count.0.%"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.2.definition.0.line_chart.0.legend.0.is_visible", "true"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.2.definition.0.line_chart.0.legend.0.column.0", "Max"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.2.definition.0.line_chart.0.legend.0.column.1", "Last"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.0.widget.2.appearance.0.width", "0"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.appearance.0.height", "28"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.widget.0.title", "dashboards-api logz"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.widget.0.description", "warnings, errors, criticals"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.widget.0.definition.0.data_table.0.query.0.logs.0.filter.0.field", "coralogix.metadata.applicationName"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.widget.0.definition.0.data_table.0.query.0.logs.0.filter.0.operator.0.equals.0.selection.0.list.0", "staging"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.widget.0.definition.0.data_table.0.results_per_page", "20"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.widget.0.definition.0.data_table.0.row_style", "One_Line"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.widget.0.definition.0.data_table.0.column.0.field", "coralogix.timestamp"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.widget.0.definition.0.data_table.0.column.1.field", "textObject.textObject.textObject.kubernetes.pod_id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.widget.0.definition.0.data_table.0.column.2.field", "coralogix.text"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.widget.0.definition.0.data_table.0.column.3.field", "coralogix.metadata.applicationName"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.widget.0.definition.0.data_table.0.column.4.field", "coralogix.metadata.subsystemName"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.widget.0.definition.0.data_table.0.column.5.field", "coralogix.metadata.sdkId"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.widget.0.definition.0.data_table.0.column.6.field", "textObject.log_obj.e2e_test.config"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.0.section.0.row.1.widget.0.appearance.0.width", "0"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variable.0.name", "test_variable"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variable.0.definition.0.multi_select.0.selection.0.list.0", "1"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variable.0.definition.0.multi_select.0.selection.0.list.1", "2"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variable.0.definition.0.multi_select.0.selection.0.list.2", "3"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variable.0.definition.0.multi_select.0.source.0.constant_list.0", "1"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variable.0.definition.0.multi_select.0.source.0.constant_list.1", "2"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variable.0.definition.0.multi_select.0.source.0.constant_list.2", "3"),
 				),
 			},
 			{
@@ -136,23 +136,25 @@ func testAccCoralogixResourceDashboard() string {
   	name        = "dont drop me!"
   	description = "dashboards team is messing with this 🗿"
     layout {
-    sections {
-      rows {
+    section {
+      row {
         appearance {
           height = 19
         }
-        widgets {
+        widget {
           title = "status 4XX"
           definition {
             line_chart {
-              query {
-                metrics {
-                  promql_query = "http_requests_total{status!~\"4..\"}"
+			  query_definition {
+                query {
+                  metrics {
+                    promql_query = "http_requests_total{status!~\"4..\"}"
+                  }
                 }
-              }
+			  }
               legend {
                 is_visible = true
-                columns    = ["Max", "Last"]
+                column    = ["Max", "Last"]
               }
             }
           }
@@ -160,21 +162,23 @@ func testAccCoralogixResourceDashboard() string {
             width = 0
           }
         }
-        widgets {
+        widget {
           title = "count"
           definition {
             line_chart {
-              query {
-                logs {
-                  aggregations {
-                    count {
-                    }
-                  }
-                }
+              query_definition {
+				query {
+                	logs {
+                  		aggregations {
+                    	count {
+                    		}
+                  		}
+                	}
+              	}
               }
               legend {
                 is_visible = true
-                columns    = ["Min", "Max", "Sum", "Avg", "Last"]
+                column    = ["Min", "Max", "Sum", "Avg", "Last"]
               }
             }
           }
@@ -182,23 +186,25 @@ func testAccCoralogixResourceDashboard() string {
             width = 0
           }
         }
-        widgets {
+        widget {
           title = "error throwing pods"
           definition {
             line_chart {
-              query {
-                logs {
-                  lucene_query = "coralogix.metadata.severity=5 OR coralogix.metadata.severity=\"6\" OR coralogix.metadata.severity=\"4\""
-                  group_by     = ["coralogix.metadata.subsystemName"]
-                  aggregations {
-                    count {
-                    }
-                  }
-                }
-              }
+              query_definition {
+				query {
+                	logs {
+                 	 	lucene_query = "coralogix.metadata.severity=5 OR coralogix.metadata.severity=\"6\" OR coralogix.metadata.severity=\"4\""
+                 	 	group_by     = ["coralogix.metadata.subsystemName"]
+                  	 	aggregations {
+                    		count {
+                   	 		}
+                  		}
+                	}
+              	}
+ 			  }
               legend {
                 is_visible = true
-                columns    = ["Max", "Last"]
+                column    = ["Max", "Last"]
               }
             }
           }
@@ -207,18 +213,18 @@ func testAccCoralogixResourceDashboard() string {
           }
         }
       }
-      rows {
+      row {
         appearance {
           height = 28
         }
-        widgets {
+        widget {
           title       = "dashboards-api logz"
           description = "warnings, errors, criticals"
           definition {
             data_table {
               query {
                 logs {
-                  filters {
+                  filter {
                     field = "coralogix.metadata.applicationName"
                     operator {
                       equals {
@@ -232,25 +238,25 @@ func testAccCoralogixResourceDashboard() string {
               }
               results_per_page = 20
               row_style        = "One_Line"
-              columns {
+              column {
                 field = "coralogix.timestamp"
               }
-              columns {
+              column {
                 field = "textObject.textObject.textObject.kubernetes.pod_id"
               }
-              columns {
+              column {
                 field = "coralogix.text"
               }
-              columns {
+              column {
                 field = "coralogix.metadata.applicationName"
               }
-              columns {
+              column {
                 field = "coralogix.metadata.subsystemName"
               }
-              columns {
+              column {
                 field = "coralogix.metadata.sdkId"
               }
-              columns {
+              column {
                 field = "textObject.log_obj.e2e_test.config"
               }
             }
@@ -262,7 +268,7 @@ func testAccCoralogixResourceDashboard() string {
       }
     }
   }
-  variables {
+  variable {
     name = "test_variable"
     definition {
       multi_select {

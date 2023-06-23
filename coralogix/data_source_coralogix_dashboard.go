@@ -4,12 +4,11 @@ import (
 	"context"
 	"log"
 
-	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	dashboardv1 "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
-
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+	"terraform-provider-coralogix/coralogix/clientset"
+	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 )
 
 func dataSourceCoralogixDashboard() *schema.Resource {
@@ -30,7 +29,7 @@ func dataSourceCoralogixDashboardRead(ctx context.Context, d *schema.ResourceDat
 	id := d.Get("id").(string)
 	log.Printf("[INFO] Reading dashboard %s", id)
 	dashboardId := wrapperspb.String(expandUUID(id))
-	resp, err := meta.(*clientset.ClientSet).Dashboards().GetDashboard(ctx, &dashboardv1.GetDashboardRequest{DashboardId: dashboardId})
+	resp, err := meta.(*clientset.ClientSet).Dashboards().GetDashboard(ctx, &dashboards.GetDashboardRequest{DashboardId: dashboardId})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcErrorWithID(err, "dashboard", id)

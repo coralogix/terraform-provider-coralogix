@@ -2626,6 +2626,10 @@ func expandEvaluationWindow(m map[string]interface{}) *alerts.EvaluationWindow {
 }
 
 func expandRelatedExtendedData(m map[string]interface{}) (*alerts.RelatedExtendedData, error) {
+	if v, ok := m["less_than"]; !(ok && v.(bool)) {
+		return nil, nil
+	}
+
 	if v, ok := m["manage_undetected_values"]; ok {
 		if manageUndetectedValues, ok := v.([]interface{}); ok && len(manageUndetectedValues) != 0 {
 			raw := manageUndetectedValues[0].(map[string]interface{})
