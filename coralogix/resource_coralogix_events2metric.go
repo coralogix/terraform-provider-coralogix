@@ -179,11 +179,11 @@ func histogramAggregationModelAttr() attr.Type {
 	}
 }
 
-func (e *Events2MetricResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *Events2MetricResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_events2metric"
 }
 
-func (e *Events2MetricResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *Events2MetricResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -197,10 +197,10 @@ func (e *Events2MetricResource) Configure(_ context.Context, req resource.Config
 		return
 	}
 
-	e.client = clientSet.Events2Metrics()
+	r.client = clientSet.Events2Metrics()
 }
 
-func (e *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 1,
 		Attributes: map[string]schema.Attribute{
@@ -528,7 +528,7 @@ func (e *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 	}
 }
 
-func (e *Events2MetricResource) UpgradeState(context.Context) map[int64]resource.StateUpgrader {
+func (r *Events2MetricResource) UpgradeState(context.Context) map[int64]resource.StateUpgrader {
 	schemaV0 := e2mSchemaV0()
 	return map[int64]resource.StateUpgrader{
 		0: {
@@ -807,7 +807,7 @@ func commonAggregationSchemaV0() schema.ListNestedBlock {
 	}
 }
 
-func (e *Events2MetricResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+func (r *Events2MetricResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
 	return []resource.ConfigValidator{
 		resourcevalidator.ExactlyOneOf(
 			path.MatchRoot("spans_query"),
@@ -816,7 +816,7 @@ func (e *Events2MetricResource) ConfigValidators(_ context.Context) []resource.C
 	}
 }
 
-func (e *Events2MetricResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
 	jsm := &jsonpb.Marshaler{}
 	var plan Events2MetricResourceModel
@@ -829,7 +829,7 @@ func (e *Events2MetricResource) Create(ctx context.Context, req resource.CreateR
 	e2mCreateReq := extractCreateE2M(plan)
 	e2mStr, _ := jsm.MarshalToString(e2mCreateReq)
 	log.Printf("[INFO] Creating new Events2metric: %#v", e2mStr)
-	e2mCreateResp, err := e.client.CreateEvents2Metric(ctx, e2mCreateReq)
+	e2mCreateResp, err := r.client.CreateEvents2Metric(ctx, e2mCreateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
@@ -851,7 +851,7 @@ func (e *Events2MetricResource) Create(ctx context.Context, req resource.CreateR
 	}
 }
 
-func (e *Events2MetricResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *Events2MetricResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state Events2MetricResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -862,7 +862,7 @@ func (e *Events2MetricResource) Read(ctx context.Context, req resource.ReadReque
 	//Get refreshed Events2Metric value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading Events2metric: %s", id)
-	getE2MResp, err := e.client.GetEvents2Metric(ctx, &e2m.GetE2MRequest{Id: wrapperspb.String(id)})
+	getE2MResp, err := r.client.GetEvents2Metric(ctx, &e2m.GetE2MRequest{Id: wrapperspb.String(id)})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -890,7 +890,7 @@ func (e *Events2MetricResource) Read(ctx context.Context, req resource.ReadReque
 	}
 }
 
-func (e *Events2MetricResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
 	var plan Events2MetricResourceModel
 	diags := req.Plan.Get(ctx, &plan)
@@ -901,7 +901,7 @@ func (e *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 
 	e2mUpdateReq := extractUpdateE2M(plan)
 	log.Printf("[INFO] Updating Events2metric: %#v", *e2mUpdateReq)
-	e2mUpdateResp, err := e.client.UpdateEvents2Metric(ctx, e2mUpdateReq)
+	e2mUpdateResp, err := r.client.UpdateEvents2Metric(ctx, e2mUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
@@ -914,7 +914,7 @@ func (e *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 
 	// Get refreshed Events2Metric value from Coralogix
 	id := plan.ID.ValueString()
-	getE2MResp, err := e.client.GetEvents2Metric(ctx, &e2m.GetE2MRequest{Id: wrapperspb.String(id)})
+	getE2MResp, err := r.client.GetEvents2Metric(ctx, &e2m.GetE2MRequest{Id: wrapperspb.String(id)})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -943,7 +943,7 @@ func (e *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 	}
 }
 
-func (e *Events2MetricResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *Events2MetricResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state Events2MetricResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -953,7 +953,7 @@ func (e *Events2MetricResource) Delete(ctx context.Context, req resource.DeleteR
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting Events2metric %s\n", id)
-	if _, err := e.client.DeleteEvents2Metric(ctx, &e2m.DeleteE2MRequest{Id: wrapperspb.String(id)}); err != nil {
+	if _, err := r.client.DeleteEvents2Metric(ctx, &e2m.DeleteE2MRequest{Id: wrapperspb.String(id)}); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Events2Metric %s", state.ID.ValueString()),
 			handleRpcErrorNewFramework(err, "Events2Metric"),
@@ -963,7 +963,7 @@ func (e *Events2MetricResource) Delete(ctx context.Context, req resource.DeleteR
 	log.Printf("[INFO] Events2metric %s deleted\n", id)
 }
 
-func (e *Events2MetricResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *Events2MetricResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 

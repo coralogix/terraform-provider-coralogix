@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"terraform-provider-coralogix/coralogix/clientset"
 	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
 
@@ -26,9 +28,13 @@ var events2metricResourceName = "coralogix_events2metric.test"
 func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 	events2Metric := getRandomEvents2Metric()
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckEvents2MetricDestroy,
+		PreCheck: func() { testAccPreCheck(t) },
+		//ProviderFactories: testAccProviderFactories,
+		ProtoV6ProviderFactories: map[string]func() (tfprotov6.ProviderServer, error){
+			// newProvider is an example function that returns a provider.Provider
+			"coralogix": providerserver.NewProtocol6WithError(NewCoralogixProvider()),
+		},
+		CheckDestroy: testAccCheckEvents2MetricDestroy,
 		Steps: []resource.TestStep{
 			{
 
@@ -81,9 +87,12 @@ func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 func TestAccCoralogixResourceSpans2Metric(t *testing.T) {
 	events2Metric := getRandomEvents2Metric()
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckEvents2MetricDestroy,
+		PreCheck: func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: map[string]func() (tfprotov6.ProviderServer, error){
+			// newProvider is an example function that returns a provider.Provider
+			"coralogix": providerserver.NewProtocol6WithError(NewCoralogixProvider()),
+		},
+		CheckDestroy: testAccCheckEvents2MetricDestroy,
 		Steps: []resource.TestStep{
 			{
 

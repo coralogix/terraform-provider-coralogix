@@ -272,8 +272,10 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 //	}
 //}
 
-func (p *coralogixProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{}
+func (p *coralogixProvider) DataSources(context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{
+		NewEvents2MetricDataSource,
+	}
 }
 
 func (p *coralogixProvider) Resources(context.Context) []func() resource.Resource {
