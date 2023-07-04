@@ -1087,13 +1087,12 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
       more_than             = true
       time_window           = "%s"
       threshold = %d
-      group_by = %s
     }
   }
 }`,
 		a.name, a.description, a.severity, sliceToString(a.groupBy), a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
-		a.conditionLatencyMs, a.timeWindow, a.occurrencesThreshold, sliceToString(a.groupBy))
+		a.conditionLatencyMs, a.timeWindow, a.occurrencesThreshold)
 }
 
 func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
