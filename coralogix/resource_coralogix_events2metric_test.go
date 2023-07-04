@@ -8,14 +8,12 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"terraform-provider-coralogix/coralogix/clientset"
 	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 )
 
 type events2MetricTestFields struct {
@@ -28,10 +26,9 @@ var events2metricResourceName = "coralogix_events2metric.test"
 func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 	events2Metric := getRandomEvents2Metric()
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() { testAccPreCheck(t) },
-		//ProviderFactories: testAccProviderFactories,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
 		ProtoV6ProviderFactories: map[string]func() (tfprotov6.ProviderServer, error){
-			// newProvider is an example function that returns a provider.Provider
 			"coralogix": providerserver.NewProtocol6WithError(NewCoralogixProvider()),
 		},
 		CheckDestroy: testAccCheckEvents2MetricDestroy,
@@ -43,36 +40,23 @@ func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 					resource.TestCheckResourceAttrSet(events2metricResourceName, "id"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "name", events2Metric.name),
 					resource.TestCheckResourceAttr(events2metricResourceName, "description", events2Metric.description),
-					resource.TestCheckResourceAttr(events2metricResourceName, "logs_query.0.lucene", "remote_addr_enriched:/.*/"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "logs_query.0.applications.0", "nginx"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "logs_query.0.severities.0", "Debug"),
-					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "metric_fields.*",
+					resource.TestCheckResourceAttr(events2metricResourceName, "logs_query.lucene", "remote_addr_enriched:/.*/"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "logs_query.applications.0", "nginx"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "logs_query.severities.0", "Debug"),
+					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "metric_fields",
 						map[string]string{
-							"source_field":            "remote_addr_geoip.location_geopoint",
-							"target_base_metric_name": "geo_point",
-						},
-					),
-					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "metric_fields.*",
-						map[string]string{
-							"source_field":            "method",
-							"target_base_metric_name": "method",
-						},
-					),
-
-					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "metric_labels.*",
-						map[string]string{
-							"source_field": "status",
-							"target_label": "Status",
+							"geo_point": "remote_addr_geoip.location_geopoint",
+							"method":    "method",
 						},
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "metric_labels.*",
 						map[string]string{
-							"source_field": "http_referer",
-							"target_label": "Path",
+							"Status": "status",
+							"Path":   "http_referer",
 						},
 					),
-					resource.TestCheckResourceAttr(events2metricResourceName, "permutations.0.limit", strconv.Itoa(events2Metric.limit)),
-					resource.TestCheckResourceAttr(events2metricResourceName, "permutations.0.has_exceed_limit", "false"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "permutations.limit", strconv.Itoa(events2Metric.limit)),
+					resource.TestCheckResourceAttr(events2metricResourceName, "permutations.has_exceed_limit", "false"),
 				),
 			},
 			{
@@ -87,9 +71,9 @@ func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 func TestAccCoralogixResourceSpans2Metric(t *testing.T) {
 	events2Metric := getRandomEvents2Metric()
 	resource.Test(t, resource.TestCase{
-		PreCheck: func() { testAccPreCheck(t) },
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
 		ProtoV6ProviderFactories: map[string]func() (tfprotov6.ProviderServer, error){
-			// newProvider is an example function that returns a provider.Provider
 			"coralogix": providerserver.NewProtocol6WithError(NewCoralogixProvider()),
 		},
 		CheckDestroy: testAccCheckEvents2MetricDestroy,
@@ -101,37 +85,24 @@ func TestAccCoralogixResourceSpans2Metric(t *testing.T) {
 					resource.TestCheckResourceAttrSet(events2metricResourceName, "id"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "name", events2Metric.name),
 					resource.TestCheckResourceAttr(events2metricResourceName, "description", events2Metric.description),
-					resource.TestCheckResourceAttr(events2metricResourceName, "spans_query.0.lucene", "remote_addr_enriched:/.*/"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "spans_query.0.applications.0", "nginx"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "spans_query.0.actions.0", "action-name"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "spans_query.0.services.0", "service-name"),
-					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "metric_fields.*",
+					resource.TestCheckResourceAttr(events2metricResourceName, "spans_query.lucene", "remote_addr_enriched:/.*/"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "spans_query.applications.0", "nginx"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "spans_query.actions.0", "action-name"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "spans_query.services.0", "service-name"),
+					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "metric_fields",
 						map[string]string{
-							"source_field":            "remote_addr_geoip.location_geopoint",
-							"target_base_metric_name": "geo_point",
+							"geo_point": "remote_addr_geoip.location_geopoint",
+							"method":    "method",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "metric_fields.*",
+					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "metric_labels",
 						map[string]string{
-							"source_field":            "method",
-							"target_base_metric_name": "method",
+							"Status": "status",
+							"Path":   "http_referer",
 						},
 					),
-
-					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "metric_labels.*",
-						map[string]string{
-							"source_field": "status",
-							"target_label": "Status",
-						},
-					),
-					resource.TestCheckTypeSetElemNestedAttrs(events2metricResourceName, "metric_labels.*",
-						map[string]string{
-							"source_field": "http_referer",
-							"target_label": "Path",
-						},
-					),
-					resource.TestCheckResourceAttr(events2metricResourceName, "permutations.0.limit", strconv.Itoa(events2Metric.limit)),
-					resource.TestCheckResourceAttr(events2metricResourceName, "permutations.0.has_exceed_limit", "false"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "permutations.limit", strconv.Itoa(events2Metric.limit)),
+					resource.TestCheckResourceAttr(events2metricResourceName, "permutations.has_exceed_limit", "false"),
 				),
 			},
 			{
@@ -180,31 +151,38 @@ func testAccCoralogixResourceLogs2Metric(l *events2MetricTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_events2metric" "test" {
   name        = "%s"
   description = "%s"
-  logs_query {
+  logs_query = {
     lucene       = "remote_addr_enriched:/.*/"
     applications = ["nginx"]
     severities   = ["Debug"]
   }
 
-  metric_fields {
-    target_base_metric_name = "method"
-    source_field            = "method"
-  }
-  metric_fields {
-    target_base_metric_name = "geo_point"
-    source_field            = "remote_addr_geoip.location_geopoint"
+  metric_fields = {
+    method = {
+      source_field = "method"
+    },
+    geo_point = {
+      source_field = "remote_addr_geoip.location_geopoint"
+      aggregations = {
+        max = {
+          enable = false
+        }
+        min = {
+          enable = false
+        }
+        avg = {
+          enable = true
+        }
+      }
+    }
   }
 
-  metric_labels {
-    target_label = "Status"
-    source_field = "status"
-  }
-  metric_labels {
-    target_label = "Path"
-    source_field = "http_referer"
+  metric_labels = {
+    Status = "status"
+    Path   = "http_referer"
   }
 
-  permutations {
+  permutations = {
     limit = %d
   }
 }
@@ -216,50 +194,39 @@ func testAccCoralogixResourceSpans2Metric(l *events2MetricTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_events2metric" "test" {
   name        = "%s"
   description = "%s"
-  spans_query {
+  spans_query = {
     lucene       = "remote_addr_enriched:/.*/"
     applications = ["nginx"]
     actions = ["action-name"]
 	services = ["service-name"]
   }
 
-  metric_fields {
-    target_base_metric_name = "method"
-    source_field            = "method"
-  }
-  metric_fields {
-    target_base_metric_name = "geo_point"
-    source_field            = "remote_addr_geoip.location_geopoint"
-	aggregations {
-     min{
-        enable = false
-      }      
-	 max{
-        enable = false
+  metric_fields = {
+    method = {
+      source_field = "method"
+    },
+    geo_point = {
+      source_field = "remote_addr_geoip.location_geopoint"
+      aggregations = {
+        max = {
+          enable = false
+        }
+        min = {
+          enable = false
+        }
+        avg = {
+          enable = true
+        }
       }
-      avg{
-        enable = false
-      }
-      histogram{
-		buckets = [1.3, 2, 2.7]
-      }
-  	}
-  }
-  metric_fields {
-    target_base_metric_name = "method"
-    source_field            = "method"
+    }
   }
 
-  metric_labels {
-    target_label = "Status"
-    source_field = "status"
-  }
-  metric_labels {
-    target_label = "Path"
-    source_field = "http_referer"
+  metric_labels = {
+    Status = "status"
+    Path   = "http_referer"
   }
 
-  permutations {
+  permutations = {
     limit = %d
   }
 }
