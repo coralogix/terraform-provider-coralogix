@@ -353,7 +353,7 @@ resource "coralogix_alert" "tracing_alert" {
       "filter:startsWith:application-name4"
     ]
     subsystems = [
-      "subsystemName", "filter:contains:subsystemName", "filter:endsWith:subsystemName",
+      "subsystemName", "filter:notEquals:subsystemName2", "filter:contains:subsystemName", "filter:endsWith:subsystemName",
       "filter:startsWith:subsystemName"
     ]
     services = [

@@ -938,10 +938,10 @@ Required:
 
 Optional:
 
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:notEquals:xxx, filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 - `latency_threshold_milliseconds` (Number)
-- `services` (Set of String) An array that contains log’s services names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-- `subsystems` (Set of String) An array that contains log’s subsystems names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `services` (Set of String) An array that contains log’s services names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:notEquals:xxx, filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `subsystems` (Set of String) An array that contains log’s subsystems names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:notEquals:xxx, filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 - `tag_filter` (Block Set) (see [below for nested schema](#nestedblock--tracing--tag_filter))
 
 <a id="nestedblock--tracing--condition"></a>
@@ -962,7 +962,7 @@ Optional:
 Required:
 
 - `field` (String)
-- `values` (Set of String)
+- `values` (Set of String) Tag filter values can be filtered by prefix, suffix, and contains using the next patterns - filter:notEquals:xxx, filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 
 

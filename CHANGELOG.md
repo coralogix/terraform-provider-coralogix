@@ -190,3 +190,13 @@ BREAKING CHANGES:
 #### resource/coralogix_dashboard
 * for all the new line chart widgets - `query`, `series_name_template`, `series_count_limit`, `unit` and `scale_type` fields were deprecated. They will be part of `query_definition` now.
 * all lists of objects names' 's' suffix was removed (e.g. - `widgets` => `widget`).
+
+## Release 1.5.9
+
+BUG FIXING:
+#### resource/coralogix_alert 
+* Fixing - tracing alert with `tracing.tag_filter` and `tracing.applications`/`tracing.services`/`tracing.services` filters doesn't work for 'equal' operator.
+
+FEATURES:
+#### resource/coralogix_alert
+* Adding support for 'notEquals' operator for `tracing.tag_filter` and `tracing.applications`/`tracing.services`/`tracing.services` filters.
