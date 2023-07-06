@@ -1244,7 +1244,7 @@ func tracingSchema() map[string]*schema.Schema {
 				Type: schema.TypeString,
 			},
 			Description: "An array that contains log’s application names that we want to be alerted on." +
-				" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+				" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:notEquals:xxx, filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
 			Set: schema.HashString,
 		},
 		"subsystems": {
@@ -1254,7 +1254,7 @@ func tracingSchema() map[string]*schema.Schema {
 				Type: schema.TypeString,
 			},
 			Description: "An array that contains log’s subsystems names that we want to be alerted on." +
-				" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+				" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:notEquals:xxx, filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
 			Set: schema.HashString,
 		},
 		"services": {
@@ -1264,7 +1264,7 @@ func tracingSchema() map[string]*schema.Schema {
 				Type: schema.TypeString,
 			},
 			Description: "An array that contains log’s services names that we want to be alerted on." +
-				" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
+				" Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:notEquals:xxx, filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
 			Set: schema.HashString,
 		},
 		"tag_filter": {
@@ -1343,7 +1343,8 @@ func tagFilterSchema() *schema.Resource {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-				Set: schema.HashString,
+				Set:         schema.HashString,
+				Description: "Tag filter values can be filtered by prefix, suffix, and contains using the next patterns - filter:notEquals:xxx, filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx",
 			},
 		},
 	}
@@ -2225,7 +2226,7 @@ func flattenFilters(filters []*alerts.Filters) []string {
 	for _, f := range filters {
 		values := f.GetValues()
 		switch operator := f.GetOperator(); operator {
-		case "contains", "startsWith", "endsWith":
+		case "notEquals", "contains", "startsWith", "endsWith":
 			for i, val := range values {
 				values[i] = fmt.Sprintf("filter:%s:%s", operator, val)
 			}
@@ -3202,10 +3203,17 @@ func expandTracingAlert(m map[string]interface{}) *alerts.TracingAlert {
 }
 
 func expandFiltersData(applications, subsystems, services []interface{}) []*alerts.FilterData {
-	result := make([]*alerts.FilterData, 0, len(applications)+len(subsystems)+len(services))
-	result = append(result, expandSpecificFilter("applicationName", applications))
-	result = append(result, expandSpecificFilter("subsystemName", subsystems))
-	result = append(result, expandSpecificFilter("serviceName", services))
+	result := make([]*alerts.FilterData, 0)
+	if len(applications) != 0 {
+		result = append(result, expandSpecificFilter("applicationName", applications))
+	}
+	if len(subsystems) != 0 {
+		result = append(result, expandSpecificFilter("subsystemName", subsystems))
+	}
+	if len(services) != 0 {
+		result = append(result, expandSpecificFilter("serviceName", services))
+	}
+
 	return result
 }
 
@@ -3249,7 +3257,7 @@ func expandSpecificFilter(filterName string, values []interface{}) *alerts.Filte
 }
 
 func expandFilter(filterString string) (operator, filterValue string) {
-	operator, filterValue = "Equals", filterString
+	operator, filterValue = "equals", filterString
 	if strings.HasPrefix(filterValue, "filter:") {
 		arr := strings.SplitN(filterValue, ":", 3)
 		operator, filterValue = arr[1], arr[2]
