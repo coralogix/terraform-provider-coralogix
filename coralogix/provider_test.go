@@ -16,23 +16,23 @@ var testAccProvider *schema.Provider
 var testAccProviderFactories map[string]func() (*schema.Provider, error)
 
 //func init() {
-//	testAccProvider = Provider()
-//	testAccProviderFactories = map[string]func() (*schema.Provider, error){
-//		"coralogix": func() (*schema.Provider, error) {
+//	testAccProvider = OldProvider()
+//	testAccProviderFactories = map[string]func() (*schema.OldProvider, error){
+//		"coralogix": func() (*schema.OldProvider, error) {
 //			return testAccProvider, nil
 //		},
 //	}
 //}
 //
 //func TestProvider(t *testing.T) {
-//	provider := Provider()
+//	provider := OldProvider()
 //	if err := provider.InternalValidate(); err != nil {
 //		t.Fatalf("err: %s", err)
 //	}
 //}
 //
 //func TestProvider_impl(t *testing.T) {
-//	var _ = Provider()
+//	var _ = OldProvider()
 //}
 
 func testAccPreCheck(t *testing.T) {
@@ -57,7 +57,7 @@ func testProvider() map[string]func() (tfprotov6.ProviderServer, error) {
 		"coralogix": func() (tfprotov6.ProviderServer, error) {
 			ctx := context.Background()
 
-			oldProvider, _ := tf5to6server.UpgradeServer(ctx, Provider().GRPCProvider)
+			oldProvider, _ := tf5to6server.UpgradeServer(ctx, OldProvider().GRPCProvider)
 
 			providers := []func() tfprotov6.ProviderServer{
 				providerserver.NewProtocol6(NewCoralogixProvider()),

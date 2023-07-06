@@ -18,11 +18,11 @@ import (
 func main() {
 	ctx := context.Background()
 
-	oldProvider, _ := tf5to6server.UpgradeServer(ctx, coralogix.Provider().GRPCProvider)
+	oldProvider, _ := tf5to6server.UpgradeServer(ctx, coralogix.OldProvider().GRPCProvider)
 
 	providers := []func() tfprotov6.ProviderServer{
-		providerserver.NewProtocol6(coralogix.NewCoralogixProvider()),
 		func() tfprotov6.ProviderServer { return oldProvider },
+		providerserver.NewProtocol6(coralogix.NewCoralogixProvider()),
 	}
 
 	muxServer, err := tf6muxserver.NewMuxServer(ctx, providers...)

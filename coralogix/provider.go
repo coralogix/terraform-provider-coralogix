@@ -28,8 +28,8 @@ var (
 	validEnvs = getKeysStrings(envToGrpcUrl)
 )
 
-// Provider returns a *schema.Provider.
-func Provider() *oldSchema.Provider {
+// OldProvider returns a *schema.Provider.
+func OldProvider() *oldSchema.Provider {
 	return &oldSchema.Provider{
 		Schema: map[string]*oldSchema.Schema{
 			"env": {
@@ -101,8 +101,15 @@ func Provider() *oldSchema.Provider {
 				return nil, diag.Errorf("At least one of the fields 'env' or 'domain', or one of the environment variables 'CORALOGIX_ENV' or 'CORALOGIX_DOMAIN' have to be define")
 			}
 
-			apikey := d.Get("api_key").(string)
-			return clientset.NewClientSet(targetUrl, apikey, ""), nil
+			apiKey := os.Getenv("CORALOGIX_API_KEY")
+			if apiKey == "" {
+				apiKey = d.Get("api_key").(string)
+			}
+			if apiKey == "" {
+				return nil, diag.Errorf("At least one of the fields 'api_key' or environment variables 'CORALOGIX_API_KEY' have to be define")
+			}
+
+			return clientset.NewClientSet(targetUrl, apiKey, ""), nil
 		},
 	}
 }
