@@ -9,7 +9,7 @@ terraform {
 
 provider "coralogix" {
   #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
-  #env = "aaa"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
 resource "coralogix_events2metric" "logs2metric" {
@@ -51,47 +51,46 @@ resource "coralogix_events2metric" "logs2metric" {
   }
 }
 
+resource "coralogix_events2metric" "spans2metric" {
+  name        = "spans2metricExample"
+  description = "spans2metric from coralogix terraform provider"
 
-#resource "coralogix_events2metric" "spans2metric" {
-#  name        = "spans2metricExample"
-#  description = "spans2metric from coralogix terraform provider"
-#
-#  spans_query = {
-#    lucene       = "remote_addr_enriched:/.*/"
-#    applications = ["filter:startsWith:nginx"] //change here for existing applications from your account
-#    actions      = ["action-name"]
-#    services     = ["service-name"]
-#  }
-#
-#  metric_fields = {
-#    method = {
-#      source_field = "method"
-#    },
-#    geo_point = {
-#      source_field = "remote_addr_geoip.location_geopoint"
-#      aggregations = {
-#        max = {
-#          enable = false
-#        }
-#        min = {
-#          enable = false
-#        }
-#        avg = {
-#          enable = true
-#        }
-#      }
-#    }
-#  }
-#
-#  metric_labels = {
-#    Status = "status"
-#    Path   = "http_referer"
-#  }
-#
-#  permutations = {
-#    limit = 20000
-#  }
-#}
+  spans_query = {
+    lucene       = "remote_addr_enriched:/.*/"
+    applications = ["filter:startsWith:nginx"] //change here for existing applications from your account
+    actions      = ["action-name"]
+    services     = ["service-name"]
+  }
+
+  metric_fields = {
+    method = {
+      source_field = "method"
+    },
+    geo_point = {
+      source_field = "remote_addr_geoip.location_geopoint"
+      aggregations = {
+        max = {
+          enable = false
+        }
+        min = {
+          enable = false
+        }
+        avg = {
+          enable = true
+        }
+      }
+    }
+  }
+
+  metric_labels = {
+    Status = "status"
+    Path   = "http_referer"
+  }
+
+  permutations = {
+    limit = 20000
+  }
+}
 
 data "coralogix_events2metric" "imported_logs2metric" {
   id = coralogix_events2metric.logs2metric.id
