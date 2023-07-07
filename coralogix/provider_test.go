@@ -1,39 +1,40 @@
 package coralogix
 
 import (
-	"context"
 	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
-	"github.com/hashicorp/terraform-plugin-mux/tf5to6server"
-	"github.com/hashicorp/terraform-plugin-mux/tf6muxserver"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
 
 var testAccProvider *schema.Provider
 var testAccProviderFactories map[string]func() (*schema.Provider, error)
+var testAccProtoV6ProviderFactories map[string]func() (tfprotov6.ProviderServer, error)
 
-//func init() {
-//	testAccProvider = OldProvider()
-//	testAccProviderFactories = map[string]func() (*schema.OldProvider, error){
-//		"coralogix": func() (*schema.OldProvider, error) {
-//			return testAccProvider, nil
-//		},
-//	}
-//}
-//
-//func TestProvider(t *testing.T) {
-//	provider := OldProvider()
-//	if err := provider.InternalValidate(); err != nil {
-//		t.Fatalf("err: %s", err)
-//	}
-//}
-//
-//func TestProvider_impl(t *testing.T) {
-//	var _ = OldProvider()
-//}
+func init() {
+	testAccProvider = OldProvider()
+	testAccProviderFactories = map[string]func() (*schema.Provider, error){
+		"coralogix": func() (*schema.Provider, error) {
+			return testAccProvider, nil
+		},
+	}
+	testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
+		"coralogix": providerserver.NewProtocol6WithError(NewCoralogixProvider()),
+	}
+}
+
+func TestProvider(t *testing.T) {
+	provider := OldProvider()
+	if err := provider.InternalValidate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestProvider_impl(t *testing.T) {
+	var _ = OldProvider()
+}
 
 func testAccPreCheck(t *testing.T) {
 	//ctx := context.TODO()
@@ -50,27 +51,4 @@ func testAccPreCheck(t *testing.T) {
 	//if diags.HasError() {
 	//	t.Fatal(diags[0].Summary)
 	//}
-}
-
-func testProvider() map[string]func() (tfprotov6.ProviderServer, error) {
-	return map[string]func() (tfprotov6.ProviderServer, error){
-		"coralogix": func() (tfprotov6.ProviderServer, error) {
-			ctx := context.Background()
-
-			oldProvider, _ := tf5to6server.UpgradeServer(ctx, OldProvider().GRPCProvider)
-
-			providers := []func() tfprotov6.ProviderServer{
-				providerserver.NewProtocol6(NewCoralogixProvider()),
-				func() tfprotov6.ProviderServer { return oldProvider },
-			}
-
-			muxServer, err := tf6muxserver.NewMuxServer(ctx, providers...)
-
-			if err != nil {
-				return nil, err
-			}
-
-			return muxServer.ProviderServer(), nil
-		},
-	}
 }

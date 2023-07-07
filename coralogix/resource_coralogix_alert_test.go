@@ -10,9 +10,9 @@ import (
 	"terraform-provider-coralogix/coralogix/clientset"
 	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v2"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -38,9 +38,9 @@ func TestAccCoralogixResourceAlert_standard(t *testing.T) {
 	updatedAlertChecks := extractStandardAlertChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testProvider(),
-		CheckDestroy:             testAccCheckAlertDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertStandard(&alert),
@@ -82,9 +82,9 @@ func TestAccCoralogixResourceAlert_ratio(t *testing.T) {
 	updatedAlertChecks := extractRatioAlertChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testProvider(),
-		CheckDestroy:             testAccCheckAlertDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertRatio(&alert),
@@ -118,9 +118,9 @@ func TestAccCoralogixResourceAlert_newValue(t *testing.T) {
 	updatedAlertChecks := extractNewValueChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testProvider(),
-		CheckDestroy:             testAccCheckAlertDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertNewValue(&alert),
@@ -160,9 +160,9 @@ func TestAccCoralogixResourceAlert_uniqueCount(t *testing.T) {
 	updatedAlertChecks := extractUniqueCountAlertChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testProvider(),
-		CheckDestroy:             testAccCheckAlertDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertUniqueCount(&alert),
@@ -200,9 +200,9 @@ func TestAccCoralogixResourceAlert_timeRelative(t *testing.T) {
 	updatedAlertChecks := extractTimeRelativeChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testProvider(),
-		CheckDestroy:             testAccCheckAlertDestroy,
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertTimeRelative(&alert),

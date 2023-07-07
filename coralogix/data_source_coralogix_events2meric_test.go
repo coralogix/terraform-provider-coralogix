@@ -3,7 +3,7 @@ package coralogix
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var events2metricDataSourceName = "data." + events2metricResourceName
@@ -12,7 +12,7 @@ func TestAccCoralogixDataSourceEvents2Metric_basic(t *testing.T) {
 	logsToMetric := getRandomEvents2Metric()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testProvider(),
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceLogs2Metric(logsToMetric) +
