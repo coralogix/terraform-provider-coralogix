@@ -10,8 +10,8 @@ import (
 	"terraform-provider-coralogix/coralogix/clientset"
 	recordingrules "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups-sets/v1"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 var recordingRulesGroupsSetResourceName = "coralogix_recording_rules_groups_set.test"

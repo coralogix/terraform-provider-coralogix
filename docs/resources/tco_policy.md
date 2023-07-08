@@ -11,7 +11,7 @@ description: "Coralogix TCO-Policy. For more information - https://coralogix.com
 
 Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api .
 
-**Please note** - [Policies order issue](../../known-issues.md#tco-policy---_order_-gets-an-incorrect-value-via-terraform)
+**Please note** - [Policies order issue](https://github.com/coralogix/terraform-provider-coralogix/issues/114)
 ## Example Usage
 
 ```hcl

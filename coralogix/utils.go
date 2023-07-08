@@ -2,6 +2,7 @@ package coralogix
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -12,10 +13,14 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-cty/cty"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -37,6 +42,19 @@ func handleRpcError(err error, resource string) diag.Diagnostics {
 		return diag.Errorf("invalid argument for %s - %s", resource, err)
 	default:
 		return diag.FromErr(err)
+	}
+}
+
+func handleRpcErrorNewFramework(err error, resource string) string {
+	switch status.Code(err) {
+	case codes.PermissionDenied, codes.Unauthenticated:
+		return fmt.Sprintf("permission denied for %s endpoint, check your api-key", resource)
+	case codes.Internal:
+		return fmt.Sprintf("internal error for %s in Coralogix backend - %s", resource, err)
+	case codes.InvalidArgument:
+		return fmt.Sprintf("invalid argument for %s - %s", resource, err)
+	default:
+		return err.Error()
 	}
 }
 
@@ -93,6 +111,162 @@ func datasourceSchemaFromResourceSchema(rs map[string]*schema.Schema) map[string
 	return ds
 }
 
+func frameworkDatasourceSchemaFromFrameworkResourceSchema(rs resourceschema.Schema) datasourceschema.Schema {
+	return datasourceschema.Schema{
+		Attributes: convertAttributes(rs.Attributes),
+		//Blocks: convertBlocks(rs.Blocks),
+		Description:         rs.Description,
+		MarkdownDescription: rs.MarkdownDescription,
+		DeprecationMessage:  rs.DeprecationMessage,
+	}
+}
+
+func convertAttributes(attributes map[string]resourceschema.Attribute) map[string]datasourceschema.Attribute {
+	result := make(map[string]datasourceschema.Attribute, len(attributes))
+	for k, v := range attributes {
+		if k == "id" {
+			result[k] = datasourceschema.StringAttribute{
+				Optional:            true,
+				Description:         v.GetDescription(),
+				MarkdownDescription: v.GetMarkdownDescription(),
+			}
+		} else {
+			result[k] = convertAttribute(v)
+		}
+	}
+	return result
+}
+
+func convertAttribute(resourceAttribute resourceschema.Attribute) datasourceschema.Attribute {
+	switch attr := resourceAttribute.(type) {
+	case resourceschema.BoolAttribute:
+		return datasourceschema.BoolAttribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+		}
+	case resourceschema.Float64Attribute:
+		return datasourceschema.Float64Attribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+		}
+	case resourceschema.Int64Attribute:
+		return datasourceschema.Int64Attribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+		}
+	case resourceschema.NumberAttribute:
+		return datasourceschema.NumberAttribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+		}
+	case resourceschema.StringAttribute:
+		return datasourceschema.StringAttribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+		}
+	case resourceschema.MapAttribute:
+		return datasourceschema.MapAttribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+			ElementType:         attr.ElementType,
+		}
+	case resourceschema.ObjectAttribute:
+		return datasourceschema.ObjectAttribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+			AttributeTypes:      attr.AttributeTypes,
+		}
+	case resourceschema.SetAttribute:
+		return datasourceschema.SetAttribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+			ElementType:         attr.ElementType,
+		}
+	case resourceschema.ListNestedAttribute:
+		return datasourceschema.ListNestedAttribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+			NestedObject: datasourceschema.NestedAttributeObject{
+				Attributes: convertAttributes(attr.NestedObject.Attributes),
+			},
+		}
+	case resourceschema.ListAttribute:
+		return datasourceschema.ListAttribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+			ElementType:         attr.ElementType,
+		}
+	case resourceschema.MapNestedAttribute:
+		return datasourceschema.MapNestedAttribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+			NestedObject: datasourceschema.NestedAttributeObject{
+				Attributes: convertAttributes(attr.NestedObject.Attributes),
+			},
+		}
+	case resourceschema.SetNestedAttribute:
+		return datasourceschema.SetNestedAttribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+			NestedObject: datasourceschema.NestedAttributeObject{
+				Attributes: convertAttributes(attr.NestedObject.Attributes),
+			},
+		}
+	case resourceschema.SingleNestedAttribute:
+		return datasourceschema.SingleNestedAttribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+			Attributes:          convertAttributes(attr.Attributes),
+		}
+	default:
+		panic(fmt.Sprintf("unknown resource attribute type: %T", resourceAttribute))
+	}
+}
+
+//func convertBlocks(blocks map[string]resourceschema.Block) map[string]datasourceschema.Block {
+//	result := make(map[string]datasourceschema.Block, len(blocks))
+//	for k, v := range blocks {
+//		result[k] = convertBlock(v)
+//	}
+//	return result
+//}
+
+//func convertBlock(resourceBlock resourceschema.Block) datasourceschema.Block {
+//	switch block := resourceBlock.(type) {
+//	case resourceschema.ListNestedBlock:
+//		return datasourceschema.ListNestedBlock{
+//			NestedObject:
+//			Description:         attr.Description,
+//			MarkdownDescription: attr.MarkdownDescription,
+//		}
+//	case resourceschema.SetNestedBlock:
+//		return datasourceschema.SetNestedBlock{
+//			Description:         attr.Description,
+//			MarkdownDescription: attr.MarkdownDescription,
+//		}
+//	case resourceschema.SingleNestedBlock:
+//		return datasourceschema.SingleNestedBlock{
+//			Description:         attr.Description,
+//			MarkdownDescription: attr.MarkdownDescription,
+//		}
+//	default:
+//		panic(fmt.Sprintf("unknown resource block type: %T", resourceAttribute))
+//	}
+//}
+
 func interfaceSliceToStringSlice(s []interface{}) []string {
 	result := make([]string, 0, len(s))
 	for _, v := range s {
@@ -113,6 +287,28 @@ func wrappedStringSliceToStringSlice(s []*wrapperspb.StringValue) []string {
 	result := make([]string, 0, len(s))
 	for _, v := range s {
 		result = append(result, v.GetValue())
+	}
+	return result
+}
+
+func wrappedStringSliceToTypeStringSlice(s []*wrapperspb.StringValue) types.Set {
+	if len(s) == 0 {
+		return types.SetNull(types.StringType)
+	}
+	elements := make([]attr.Value, 0, len(s))
+	for _, v := range s {
+		elements = append(elements, types.StringValue(v.GetValue()))
+	}
+	return types.SetValueMust(types.StringType, elements)
+}
+
+func typeStringSliceToWrappedStringSlice(s []attr.Value) []*wrapperspb.StringValue {
+	result := make([]*wrapperspb.StringValue, 0, len(s))
+	for _, v := range s {
+		val, _ := v.ToTerraformValue(context.Background())
+		var str string
+		val.As(&str)
+		result = append(result, wrapperspb.String(str))
 	}
 	return result
 }
@@ -349,6 +545,22 @@ func JSONBytesEqual(b1, b2 []byte) bool {
 
 func randBool() bool {
 	return rand.Int()%2 == 0
+}
+
+func typeStringToWrapperspbString(str types.String) *wrapperspb.StringValue {
+	var result *wrapperspb.StringValue
+	if !str.IsNull() {
+		result = wrapperspb.String(str.ValueString())
+	}
+	return result
+}
+
+func wrapperspbStringToTypeStringTo(str *wrapperspb.StringValue) types.String {
+	if str == nil {
+		return types.StringNull()
+	}
+
+	return types.StringValue(str.GetValue())
 }
 
 func ReverseMap[K, V comparable](m map[K]V) map[V]K {

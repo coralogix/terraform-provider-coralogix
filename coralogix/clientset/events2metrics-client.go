@@ -36,7 +36,7 @@ func (e Events2MetricsClient) GetEvents2Metric(ctx context.Context, req *e2m.Get
 	return client.GetE2M(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (e Events2MetricsClient) UpdateEventsMetric(ctx context.Context, req *e2m.ReplaceE2MRequest) (*e2m.ReplaceE2MResponse, error) {
+func (e Events2MetricsClient) UpdateEvents2Metric(ctx context.Context, req *e2m.ReplaceE2MRequest) (*e2m.ReplaceE2MResponse, error) {
 	callProperties, err := e.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err

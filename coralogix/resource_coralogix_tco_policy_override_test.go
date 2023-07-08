@@ -7,7 +7,7 @@ import (
 
 	"terraform-provider-coralogix/coralogix/clientset"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 var tcoPolicyOverrideResourceName = "coralogix_tco_policy_override.test"

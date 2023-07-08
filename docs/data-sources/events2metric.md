@@ -24,22 +24,22 @@ data "coralogix_events2metric" "imported_logs2metric" {
 
 - `description` (String) Events2Metric description.
 - `id` (String) The ID of this resource.
-- `logs_query` (List of Object) logs-events2metric type. Exactly one of "spans_query" or "logs_query" should be defined. (see [below for nested schema](#nestedatt--logs_query))
-- `metric_fields` (Set of Object) (see [below for nested schema](#nestedatt--metric_fields))
-- `metric_labels` (Set of Object) (see [below for nested schema](#nestedatt--metric_labels))
-- `name` (String) Events2Metric name. Log2Metric names have to be unique per account.
-- `permutations` (List of Object) defines the permutations' info of the events2metric. (see [below for nested schema](#nestedatt--permutations))
-- `spans_query` (List of Object) spans-events2metric type. Exactly one of "spans_query" or "logs_query" should be defined. (see [below for nested schema](#nestedatt--spans_query))
+- `logs_query` (Attributes) logs-events2metric type. Exactly one of "spans_query" or "logs_query" must be defined. (see [below for nested schema](#nestedatt--logs_query))
+- `metric_fields` (Attributes Map) (see [below for nested schema](#nestedatt--metric_fields))
+- `metric_labels` (Map of String)
+- `name` (String) Events2Metric name. Events2Metric names have to be unique per account.
+- `permutations` (Attributes) Defines the permutations' info of the events2metric. (see [below for nested schema](#nestedatt--permutations))
+- `spans_query` (Attributes) spans-events2metric type. Exactly one of "spans_query" or "logs_query" should be defined. (see [below for nested schema](#nestedatt--spans_query))
 
 <a id="nestedatt--logs_query"></a>
 ### Nested Schema for `logs_query`
 
 Read-Only:
 
-- `applications` (Set of String)
-- `lucene` (String)
-- `severities` (Set of String)
-- `subsystems` (Set of String)
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `lucene` (String) The search_query that we wanted to be notified on.
+- `severities` (Set of String) An array of severities that we interested in. Can be one of ["Info" "Warning" "Error" "Critical" "Unspecified" "Debug" "Verbose"]
+- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on.  Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 
 <a id="nestedatt--metric_fields"></a>
@@ -47,24 +47,23 @@ Read-Only:
 
 Read-Only:
 
-- `aggregations` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations))
+- `aggregations` (Attributes) (see [below for nested schema](#nestedatt--metric_fields--aggregations))
 - `source_field` (String)
-- `target_base_metric_name` (String)
 
-<a id="nestedobjatt--metric_fields--aggregations"></a>
+<a id="nestedatt--metric_fields--aggregations"></a>
 ### Nested Schema for `metric_fields.aggregations`
 
 Read-Only:
 
-- `avg` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations--avg))
-- `count` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations--count))
-- `histogram` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations--histogram))
-- `max` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations--max))
-- `min` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations--min))
-- `samples` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations--samples))
-- `sum` (List of Object) (see [below for nested schema](#nestedobjatt--metric_fields--aggregations--sum))
+- `avg` (Attributes) (see [below for nested schema](#nestedatt--metric_fields--aggregations--avg))
+- `count` (Attributes) (see [below for nested schema](#nestedatt--metric_fields--aggregations--count))
+- `histogram` (Attributes) (see [below for nested schema](#nestedatt--metric_fields--aggregations--histogram))
+- `max` (Attributes) (see [below for nested schema](#nestedatt--metric_fields--aggregations--max))
+- `min` (Attributes) (see [below for nested schema](#nestedatt--metric_fields--aggregations--min))
+- `samples` (Attributes) (see [below for nested schema](#nestedatt--metric_fields--aggregations--samples))
+- `sum` (Attributes) (see [below for nested schema](#nestedatt--metric_fields--aggregations--sum))
 
-<a id="nestedobjatt--metric_fields--aggregations--avg"></a>
+<a id="nestedatt--metric_fields--aggregations--avg"></a>
 ### Nested Schema for `metric_fields.aggregations.avg`
 
 Read-Only:
@@ -73,7 +72,7 @@ Read-Only:
 - `target_metric_name` (String)
 
 
-<a id="nestedobjatt--metric_fields--aggregations--count"></a>
+<a id="nestedatt--metric_fields--aggregations--count"></a>
 ### Nested Schema for `metric_fields.aggregations.count`
 
 Read-Only:
@@ -82,7 +81,7 @@ Read-Only:
 - `target_metric_name` (String)
 
 
-<a id="nestedobjatt--metric_fields--aggregations--histogram"></a>
+<a id="nestedatt--metric_fields--aggregations--histogram"></a>
 ### Nested Schema for `metric_fields.aggregations.histogram`
 
 Read-Only:
@@ -92,7 +91,7 @@ Read-Only:
 - `target_metric_name` (String)
 
 
-<a id="nestedobjatt--metric_fields--aggregations--max"></a>
+<a id="nestedatt--metric_fields--aggregations--max"></a>
 ### Nested Schema for `metric_fields.aggregations.max`
 
 Read-Only:
@@ -101,7 +100,7 @@ Read-Only:
 - `target_metric_name` (String)
 
 
-<a id="nestedobjatt--metric_fields--aggregations--min"></a>
+<a id="nestedatt--metric_fields--aggregations--min"></a>
 ### Nested Schema for `metric_fields.aggregations.min`
 
 Read-Only:
@@ -110,17 +109,17 @@ Read-Only:
 - `target_metric_name` (String)
 
 
-<a id="nestedobjatt--metric_fields--aggregations--samples"></a>
+<a id="nestedatt--metric_fields--aggregations--samples"></a>
 ### Nested Schema for `metric_fields.aggregations.samples`
 
 Read-Only:
 
 - `enable` (Boolean)
 - `target_metric_name` (String)
-- `type` (String)
+- `type` (String) Can be one of ["Min" "Max"].
 
 
-<a id="nestedobjatt--metric_fields--aggregations--sum"></a>
+<a id="nestedatt--metric_fields--aggregations--sum"></a>
 ### Nested Schema for `metric_fields.aggregations.sum`
 
 Read-Only:
@@ -131,22 +130,13 @@ Read-Only:
 
 
 
-<a id="nestedatt--metric_labels"></a>
-### Nested Schema for `metric_labels`
-
-Read-Only:
-
-- `source_field` (String)
-- `target_label` (String)
-
-
 <a id="nestedatt--permutations"></a>
 ### Nested Schema for `permutations`
 
 Read-Only:
 
-- `has_exceed_limit` (Boolean)
-- `limit` (Number)
+- `has_exceed_limit` (Boolean) Notify if the limit permutations' limit of the events2metric has exceed (computed).
+- `limit` (Number) Defines the permutations' limit of the events2metric.
 
 
 <a id="nestedatt--spans_query"></a>
@@ -154,10 +144,10 @@ Read-Only:
 
 Read-Only:
 
-- `actions` (Set of String)
-- `applications` (Set of String)
-- `lucene` (String)
-- `services` (Set of String)
-- `subsystems` (Set of String)
+- `actions` (Set of String) An array that contains log’s actions names that we want to be notified on.  Actions can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `lucene` (String) The search_query that we wanted to be notified on.
+- `services` (Set of String) An array that contains log’s services names that we want to be notified on.  Services can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
+- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on.  Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 

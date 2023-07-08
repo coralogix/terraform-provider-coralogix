@@ -173,7 +173,6 @@ BREAKING CHANGES:
 
 ## Release 1.5.6
 
-
 #### resource/tco_policy
 * Fixing [TF doesn't detect manually deleted resources](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1683820712917899)
 
@@ -200,3 +199,19 @@ BUG FIXING:
 FEATURES:
 #### resource/coralogix_alert
 * Adding support for 'notEquals' operator for `tracing.tag_filter` and `tracing.applications`/`tracing.services`/`tracing.services` filters.
+
+## Release 1.6.0
+
+BREAKING CHANGES:
+#### resource/coralogix_events2metric
+**Please note** - this version contains a [State Upgrader](https://developer.hashicorp.com/terraform/plugin/framework/migrating/resources/state-upgrade#framework). It will upgrade the state to the new schema. Please make sure to back up your state before upgrading.
+* `logs_query` type was changed from `Block List, Max: 1` to `Attributes`.
+* `spans_query` type was changed from `Block List, Max: 1` to `Attributes`.
+* `metric_fields` type was changed from `Block Set` to `Attributes Map`, and `metric_fields`'s `target_base_metric_name` was changed to the map's key. e.g. - `metric_fields {target_base_metric_name = "metric_name" ...}` => `metric_fields = {"metric_name" = {...}}`.
+* `metric_fields`'s `aggregations` type was changed from `Block List, Max: 1` to `Attributes`.
+* All `aggregations`'s fields (`avg`, `count`, `histogram`, `max`, `min`, `samples`, `sum`) types where changed from `Block List, Max: 1` `Attributes`.
+* `metric_labels` type was changed from `Block Set` to `Attributes Map`, and `metric_labels`'s `target_label_name` was changed to the map's key. e.g. - `metric_labels {target_label_name = "label_name" ...}` => `metric_labels = {"label_name" = {...}}`.
+
+BUG FIXING:
+#### resource/coralogix_events2metric
+* Fixing - [`aggregations` cannot be updated after creation](https://github.com/coralogix/terraform-provider-coralogix/issues/115).

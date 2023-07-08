@@ -1,16 +1,41 @@
 package main
 
 import (
-	"terraform-provider-coralogix/coralogix"
+	"context"
+	"log"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/plugin"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-go/tfprotov6/tf6server"
+	"github.com/hashicorp/terraform-plugin-mux/tf5to6server"
+	"github.com/hashicorp/terraform-plugin-mux/tf6muxserver"
+	"terraform-provider-coralogix/coralogix"
 )
 
 // Generate the Terraform provider documentation using `tfplugindocs`:
 //
 //go:generate go run github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
 func main() {
-	plugin.Serve(&plugin.ServeOpts{
-		ProviderFunc: coralogix.Provider,
-	})
+	ctx := context.Background()
+
+	oldProvider, _ := tf5to6server.UpgradeServer(ctx, coralogix.OldProvider().GRPCProvider)
+
+	providers := []func() tfprotov6.ProviderServer{
+		func() tfprotov6.ProviderServer { return oldProvider },
+		providerserver.NewProtocol6(coralogix.NewCoralogixProvider()),
+	}
+
+	muxServer, err := tf6muxserver.NewMuxServer(ctx, providers...)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var serveOpts []tf6server.ServeOpt
+
+	err = tf6server.Serve(
+		"registry.terraform.io/coralogix/coralogix",
+		muxServer.ProviderServer,
+		serveOpts...,
+	)
 }

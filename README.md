@@ -24,4 +24,3 @@ with [Coralogix](https://coralogix.com/) resources.
 - [Getting started](docs/index.md)
 - [Contributing](CONTRIBUTING.md)
 - [Building the provider](CONTRIBUTING.md#Building-the-provider)
-- [Known issues](known-issues.md)
