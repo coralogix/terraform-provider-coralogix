@@ -83,7 +83,7 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 	}
 	log.Printf("[INFO] Received Events2metric: %#v", getE2MResp)
 
-	data = flattenE2M(getE2MResp.GetE2M())
+	data = flattenE2M(ctx, getE2MResp.GetE2M())
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
