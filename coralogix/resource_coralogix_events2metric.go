@@ -559,71 +559,71 @@ func upgradeE2MStateV0ToV1(ctx context.Context, req resource.UpgradeStateRequest
 	upgradedStateData := Events2MetricResourceModel{
 		ID:           priorStateData.ID,
 		Description:  priorStateData.Description,
-		MetricFields: upgradeE2MMetricFieldsV0ToV1(priorStateData.MetricFields),
-		MetricLabels: upgradeE2MMetricLabelsV0ToV1(priorStateData.MetricLabels),
-		Permutations: upgradeE2MPermutationsV0ToV1(priorStateData.Permutations),
-		SpansQuery:   upgradeE2MSpansQueryV0ToV1(priorStateData.SpansQuery),
-		LogsQuery:    upgradeE2MLogsQueryV0ToV1(priorStateData.LogsQuery),
+		MetricFields: upgradeE2MMetricFieldsV0ToV1(ctx, priorStateData.MetricFields),
+		MetricLabels: upgradeE2MMetricLabelsV0ToV1(ctx, priorStateData.MetricLabels),
+		Permutations: upgradeE2MPermutationsV0ToV1(ctx, priorStateData.Permutations),
+		SpansQuery:   upgradeE2MSpansQueryV0ToV1(ctx, priorStateData.SpansQuery),
+		LogsQuery:    upgradeE2MLogsQueryV0ToV1(ctx, priorStateData.LogsQuery),
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, upgradedStateData)...)
 }
 
-func upgradeE2MLogsQueryV0ToV1(logsQuery types.List) *LogsQueryModel {
+func upgradeE2MLogsQueryV0ToV1(ctx context.Context, logsQuery types.List) *LogsQueryModel {
 	var logsQueryObjects []types.Object
-	logsQuery.ElementsAs(context.Background(), &logsQueryObjects, true)
+	logsQuery.ElementsAs(ctx, &logsQueryObjects, true)
 	if len(logsQueryObjects) == 0 {
 		return nil
 	}
 
 	var logsQueryObject LogsQueryModel
-	logsQueryObjects[0].As(context.Background(), &logsQueryObject, basetypes.ObjectAsOptions{})
+	logsQueryObjects[0].As(ctx, &logsQueryObject, basetypes.ObjectAsOptions{})
 	return &logsQueryObject
 }
 
-func upgradeE2MSpansQueryV0ToV1(spansQuery types.List) *SpansQueryModel {
+func upgradeE2MSpansQueryV0ToV1(ctx context.Context, spansQuery types.List) *SpansQueryModel {
 	var spansQueryObjects []types.Object
-	spansQuery.ElementsAs(context.Background(), &spansQueryObjects, true)
+	spansQuery.ElementsAs(ctx, &spansQueryObjects, true)
 	if len(spansQueryObjects) == 0 {
 		return nil
 	}
 
 	var spansQueryObject SpansQueryModel
-	spansQueryObjects[0].As(context.Background(), &spansQueryObject, basetypes.ObjectAsOptions{})
+	spansQueryObjects[0].As(ctx, &spansQueryObject, basetypes.ObjectAsOptions{})
 	return &spansQueryObject
 }
 
-func upgradeE2MPermutationsV0ToV1(permutations types.List) *PermutationsModel {
+func upgradeE2MPermutationsV0ToV1(ctx context.Context, permutations types.List) *PermutationsModel {
 	var permutationsObjects []types.Object
-	permutations.ElementsAs(context.Background(), &permutationsObjects, true)
+	permutations.ElementsAs(ctx, &permutationsObjects, true)
 	if len(permutationsObjects) == 0 {
 		return nil
 	}
 
 	var permutationsObject PermutationsModel
-	permutationsObjects[0].As(context.Background(), &permutationsObject, basetypes.ObjectAsOptions{})
+	permutationsObjects[0].As(ctx, &permutationsObject, basetypes.ObjectAsOptions{})
 	return &permutationsObject
 }
 
-func upgradeE2MMetricLabelsV0ToV1(labels types.Set) types.Map {
+func upgradeE2MMetricLabelsV0ToV1(ctx context.Context, labels types.Set) types.Map {
 	type MetricLabelV0Model struct {
 		TargetLabel types.String `tfsdk:"target_label"`
 		SourceField types.String `tfsdk:"source_field"`
 	}
 
 	var labelsObjects []types.Object
-	labels.ElementsAs(context.Background(), &labelsObjects, true)
+	labels.ElementsAs(ctx, &labelsObjects, true)
 	elements := make(map[string]attr.Value)
 	for _, lo := range labelsObjects {
 		var metricLabel MetricLabelV0Model
-		lo.As(context.Background(), &metricLabel, basetypes.ObjectAsOptions{})
+		lo.As(ctx, &metricLabel, basetypes.ObjectAsOptions{})
 		elements[metricLabel.TargetLabel.ValueString()] = metricLabel.SourceField
 	}
 
 	return types.MapValueMust(types.StringType, elements)
 }
 
-func upgradeE2MMetricFieldsV0ToV1(fields types.Set) types.Map {
+func upgradeE2MMetricFieldsV0ToV1(ctx context.Context, fields types.Set) types.Map {
 	type MetricFieldV0Model struct {
 		TargetBaseMetricName types.String       `tfsdk:"target_base_metric_name"`
 		SourceField          types.String       `tfsdk:"source_field"`
@@ -631,16 +631,16 @@ func upgradeE2MMetricFieldsV0ToV1(fields types.Set) types.Map {
 	}
 
 	var fieldObjects []types.Object
-	fields.ElementsAs(context.Background(), &fieldObjects, true)
+	fields.ElementsAs(ctx, &fieldObjects, true)
 	elements := make(map[string]attr.Value)
 	for _, fo := range fieldObjects {
 		var metricFieldV0 MetricFieldV0Model
-		fo.As(context.Background(), &metricFieldV0, basetypes.ObjectAsOptions{})
+		fo.As(ctx, &metricFieldV0, basetypes.ObjectAsOptions{})
 		field := MetricFieldModel{
 			SourceField:  metricFieldV0.SourceField,
 			Aggregations: metricFieldV0.Aggregations,
 		}
-		element, _ := types.ObjectValueFrom(context.Background(), metricFieldModelAttr(), field)
+		element, _ := types.ObjectValueFrom(ctx, metricFieldModelAttr(), field)
 		elements[metricFieldV0.TargetBaseMetricName.ValueString()] = element
 
 	}
@@ -826,7 +826,7 @@ func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
-	e2mCreateReq := extractCreateE2M(plan)
+	e2mCreateReq := extractCreateE2M(ctx, plan)
 	e2mStr, _ := jsm.MarshalToString(e2mCreateReq)
 	log.Printf("[INFO] Creating new Events2metric: %#v", e2mStr)
 	e2mCreateResp, err := r.client.CreateEvents2Metric(ctx, e2mCreateReq)
@@ -841,7 +841,7 @@ func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateR
 	e2mStr, _ = jsm.MarshalToString(e2mCreateResp)
 	log.Printf("[INFO] Submitted new Events2metric: %#v", e2mStr)
 
-	plan = flattenE2M(e2mCreateResp.GetE2M())
+	plan = flattenE2M(ctx, e2mCreateResp.GetE2M())
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
@@ -881,7 +881,7 @@ func (r *Events2MetricResource) Read(ctx context.Context, req resource.ReadReque
 	}
 	log.Printf("[INFO] Received Events2metric: %#v", getE2MResp)
 
-	state = flattenE2M(getE2MResp.GetE2M())
+	state = flattenE2M(ctx, getE2MResp.GetE2M())
 	//
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -899,7 +899,7 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 		return
 	}
 
-	e2mUpdateReq := extractUpdateE2M(plan)
+	e2mUpdateReq := extractUpdateE2M(ctx, plan)
 	log.Printf("[INFO] Updating Events2metric: %#v", *e2mUpdateReq)
 	e2mUpdateResp, err := r.client.UpdateEvents2Metric(ctx, e2mUpdateReq)
 	if err != nil {
@@ -933,7 +933,7 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 	}
 	log.Printf("[INFO] Received Events2metric: %#v", getE2MResp)
 
-	plan = flattenE2M(e2mUpdateResp.GetE2M())
+	plan = flattenE2M(ctx, e2mUpdateResp.GetE2M())
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
@@ -967,12 +967,12 @@ func (r *Events2MetricResource) ImportState(ctx context.Context, req resource.Im
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func flattenE2M(e2m *e2m.E2M) Events2MetricResourceModel {
+func flattenE2M(ctx context.Context, e2m *e2m.E2M) Events2MetricResourceModel {
 	return Events2MetricResourceModel{
 		ID:           types.StringValue(e2m.GetId().GetValue()),
 		Name:         types.StringValue(e2m.GetName().GetValue()),
 		Description:  flattenDescription(e2m.GetDescription()),
-		MetricFields: flattenE2MMetricFields(e2m.GetMetricFields()),
+		MetricFields: flattenE2MMetricFields(ctx, e2m.GetMetricFields()),
 		MetricLabels: flattenE2MMetricLabels(e2m.GetMetricLabels()),
 		Permutations: flattenE2MPermutations(e2m.GetPermutations()),
 		SpansQuery:   flattenSpansQuery(e2m.GetSpansQuery()),
@@ -987,13 +987,13 @@ func flattenDescription(e2mDescription *wrapperspb.StringValue) types.String {
 	return types.StringValue(e2mDescription.GetValue())
 }
 
-func extractCreateE2M(plan Events2MetricResourceModel) *e2m.CreateE2MRequest {
+func extractCreateE2M(ctx context.Context, plan Events2MetricResourceModel) *e2m.CreateE2MRequest {
 	name := typeStringToWrapperspbString(plan.Name)
 	description := typeStringToWrapperspbString(plan.Description)
 	permutations := expandPermutations(plan.Permutations)
 	permutationsLimit := wrapperspb.Int32(permutations.GetLimit())
-	metricLabels := expandE2MLabels(plan.MetricLabels)
-	metricFields := expandE2MFields(plan.MetricFields)
+	metricLabels := expandE2MLabels(ctx, plan.MetricLabels)
+	metricFields := expandE2MFields(ctx, plan.MetricFields)
 
 	e2mParams := &e2m.E2MCreateParams{
 		Name:              name,
@@ -1008,7 +1008,7 @@ func extractCreateE2M(plan Events2MetricResourceModel) *e2m.CreateE2MRequest {
 		e2mParams.Query = expandSpansQuery(spansQuery)
 	} else if logsQuery := plan.LogsQuery; logsQuery != nil {
 		e2mParams.Type = e2m.E2MType_E2M_TYPE_LOGS2METRICS
-		e2mParams.Query = expandLogsQuery(logsQuery)
+		e2mParams.Query = expandLogsQuery(ctx, logsQuery)
 	}
 
 	return &e2m.CreateE2MRequest{
@@ -1026,13 +1026,13 @@ func expandPermutations(permutations *PermutationsModel) *e2m.E2MPermutations {
 	}
 }
 
-func extractUpdateE2M(plan Events2MetricResourceModel) *e2m.ReplaceE2MRequest {
+func extractUpdateE2M(ctx context.Context, plan Events2MetricResourceModel) *e2m.ReplaceE2MRequest {
 	id := wrapperspb.String(plan.ID.ValueString())
 	name := wrapperspb.String(plan.Name.ValueString())
 	description := wrapperspb.String(plan.Description.ValueString())
 	permutations := expandPermutations(plan.Permutations)
-	metricLabels := expandE2MLabels(plan.MetricLabels)
-	metricFields := expandE2MFields(plan.MetricFields)
+	metricLabels := expandE2MLabels(ctx, plan.MetricLabels)
+	metricFields := expandE2MFields(ctx, plan.MetricFields)
 
 	e2mParams := &e2m.E2M{
 		Id:           id,
@@ -1048,7 +1048,7 @@ func extractUpdateE2M(plan Events2MetricResourceModel) *e2m.ReplaceE2MRequest {
 		e2mParams.Query = expandUpdateSpansQuery(spansQuery)
 	} else if logsQuery := plan.LogsQuery; logsQuery != nil {
 		e2mParams.Type = e2m.E2MType_E2M_TYPE_LOGS2METRICS
-		e2mParams.Query = expandUpdateLogsQuery(logsQuery)
+		e2mParams.Query = expandUpdateLogsQuery(ctx, logsQuery)
 	}
 
 	return &e2m.ReplaceE2MRequest{
@@ -1056,11 +1056,11 @@ func extractUpdateE2M(plan Events2MetricResourceModel) *e2m.ReplaceE2MRequest {
 	}
 }
 
-func expandE2MLabels(labels types.Map) []*e2m.MetricLabel {
+func expandE2MLabels(ctx context.Context, labels types.Map) []*e2m.MetricLabel {
 	labelsMap := labels.Elements()
 	result := make([]*e2m.MetricLabel, 0, len(labelsMap))
 	for targetField, value := range labelsMap {
-		v, _ := value.ToTerraformValue(context.Background())
+		v, _ := value.ToTerraformValue(ctx)
 		var sourceField string
 		v.As(&sourceField)
 		label := expandE2MLabel(targetField, sourceField)
@@ -1077,9 +1077,9 @@ func expandE2MLabel(targetLabel, sourceField string) *e2m.MetricLabel {
 	}
 }
 
-func expandE2MFields(fields types.Map) []*e2m.MetricField {
+func expandE2MFields(ctx context.Context, fields types.Map) []*e2m.MetricField {
 	var fieldsMap map[string]MetricFieldModel
-	d := fields.ElementsAs(context.Background(), &fieldsMap, true)
+	d := fields.ElementsAs(ctx, &fieldsMap, true)
 	if d != nil {
 		panic(d)
 	}
@@ -1172,11 +1172,11 @@ func expandSpansQuery(spansQuery *SpansQueryModel) *e2m.E2MCreateParams_SpansQue
 	}
 }
 
-func expandLogsQuery(logsQuery *LogsQueryModel) *e2m.E2MCreateParams_LogsQuery {
+func expandLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) *e2m.E2MCreateParams_LogsQuery {
 	searchQuery := typeStringToWrapperspbString(logsQuery.Lucene)
 	applications := typeStringSliceToWrappedStringSlice(logsQuery.Applications.Elements())
 	subsystems := typeStringSliceToWrappedStringSlice(logsQuery.Subsystems.Elements())
-	severities := expandLogsQuerySeverities(logsQuery.Severities.Elements())
+	severities := expandLogsQuerySeverities(ctx, logsQuery.Severities.Elements())
 
 	return &e2m.E2MCreateParams_LogsQuery{
 		LogsQuery: &l2m.LogsQuery{
@@ -1206,11 +1206,11 @@ func expandUpdateSpansQuery(spansQuery *SpansQueryModel) *e2m.E2M_SpansQuery {
 	}
 }
 
-func expandUpdateLogsQuery(logsQuery *LogsQueryModel) *e2m.E2M_LogsQuery {
+func expandUpdateLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) *e2m.E2M_LogsQuery {
 	searchQuery := wrapperspb.String(logsQuery.Lucene.ValueString())
 	applications := typeStringSliceToWrappedStringSlice(logsQuery.Applications.Elements())
 	subsystems := typeStringSliceToWrappedStringSlice(logsQuery.Subsystems.Elements())
-	severities := expandLogsQuerySeverities(logsQuery.Severities.Elements())
+	severities := expandLogsQuerySeverities(ctx, logsQuery.Severities.Elements())
 
 	return &e2m.E2M_LogsQuery{
 		LogsQuery: &l2m.LogsQuery{
@@ -1222,10 +1222,10 @@ func expandUpdateLogsQuery(logsQuery *LogsQueryModel) *e2m.E2M_LogsQuery {
 	}
 }
 
-func expandLogsQuerySeverities(severities []attr.Value) []l2m.Severity {
+func expandLogsQuerySeverities(ctx context.Context, severities []attr.Value) []l2m.Severity {
 	result := make([]l2m.Severity, 0, len(severities))
 	for _, s := range severities {
-		v, _ := s.ToTerraformValue(context.Background())
+		v, _ := s.ToTerraformValue(ctx)
 		var str string
 		v.As(&str)
 		severity := l2m.Severity(l2m.Severity_value[str])
@@ -1245,7 +1245,7 @@ func flattenE2MPermutations(permutations *e2m.E2MPermutations) *PermutationsMode
 	}
 }
 
-func flattenE2MMetricFields(fields []*e2m.MetricField) types.Map {
+func flattenE2MMetricFields(ctx context.Context, fields []*e2m.MetricField) types.Map {
 	if len(fields) == 0 {
 		return types.MapNull(types.ObjectType{AttrTypes: metricFieldModelAttr()})
 	}
@@ -1253,7 +1253,7 @@ func flattenE2MMetricFields(fields []*e2m.MetricField) types.Map {
 	elements := make(map[string]attr.Value)
 	for _, f := range fields {
 		target, field := flattenE2MMetricField(f)
-		element, _ := types.ObjectValueFrom(context.Background(), metricFieldModelAttr(), field)
+		element, _ := types.ObjectValueFrom(ctx, metricFieldModelAttr(), field)
 		elements[target] = element
 	}
 	return types.MapValueMust(types.ObjectType{AttrTypes: metricFieldModelAttr()}, elements)
