@@ -215,3 +215,9 @@ BREAKING CHANGES:
 BUG FIXING:
 #### resource/coralogix_events2metric
 * Fixing - [`aggregations` cannot be updated after creation](https://github.com/coralogix/terraform-provider-coralogix/issues/115).
+
+## Release 1.6.1
+
+FEATURES:
+#### resource/coralogix_alert
+* Adding support for `more_than_usual` condition for `metric.promql` alert.
