@@ -1161,7 +1161,8 @@ func metricSchema() map[string]*schema.Schema {
 									Type:     schema.TypeBool,
 									Optional: true,
 									ExactlyOneOf: []string{"metric.0.promql.0.condition.0.less_than",
-										"metric.0.promql.0.condition.0.more_than"},
+										"metric.0.promql.0.condition.0.more_than",
+										"metric.0.promql.0.condition.0.more_than_usual"},
 									Description: "Determines the condition operator." +
 										" Must be one of - less_than or more_than.",
 								},
@@ -1169,9 +1170,19 @@ func metricSchema() map[string]*schema.Schema {
 									Type:     schema.TypeBool,
 									Optional: true,
 									ExactlyOneOf: []string{"metric.0.promql.0.condition.0.less_than",
-										"metric.0.promql.0.condition.0.more_than"},
+										"metric.0.promql.0.condition.0.more_than",
+										"metric.0.promql.0.condition.0.more_than_usual"},
 									Description: "Determines the condition operator." +
 										" Must be one of - less_than or more_than.",
+								},
+								"more_than_usual": {
+									Type:     schema.TypeBool,
+									Optional: true,
+									ExactlyOneOf: []string{"metric.0.promql.0.condition.0.more_than",
+										"metric.0.promql.0.condition.0.less_than",
+										"metric.0.promql.0.condition.0.more_than_usual"},
+									Description: "Determines the condition operator." +
+										" Must be one of - immediately, less_than, more_than or more_than_usual.",
 								},
 								"threshold": {
 									Type:        schema.TypeFloat,
@@ -1192,7 +1203,7 @@ func metricSchema() map[string]*schema.Schema {
 								"replace_missing_value_with_zero": {
 									Type:          schema.TypeBool,
 									Optional:      true,
-									ConflictsWith: []string{"metric.0.promql.0.condition.0.min_non_null_values_percentage"},
+									ConflictsWith: []string{"metric.0.promql.0.condition.0.min_non_null_values_percentage", "metric.0.promql.0.condition.0.more_than_usual"},
 									Description:   "If set to true, missing data will be considered as 0, otherwise, it will not be considered at all.",
 								},
 								"min_non_null_values_percentage": {
@@ -2045,6 +2056,9 @@ func flattenMetricAlert(filters *alerts.AlertFilters, condition interface{}) int
 	case *alerts.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		conditionStr = "more_than"
+	case *alerts.AlertCondition_MoreThanUsual:
+		conditionParams = condition.MoreThanUsual.GetParameters()
+		conditionStr = "more_than_usual"
 	default:
 		return nil
 	}
@@ -2925,6 +2939,48 @@ func trueIfIsLessThanFalseIfMoreThanAndErrorOtherwise(m map[string]interface{}) 
 	return false, fmt.Errorf("less_than or more_than have to be true")
 }
 
+func expandLessThanMoreThanOrMoreThanUsualAlertCondition(
+	m map[string]interface{}, parameters *alerts.ConditionParameters) (*alerts.AlertCondition, error) {
+	conditionsStr, err := returnAlertConditionString(m)
+	if err != nil {
+		return nil, err
+	}
+
+	switch conditionsStr {
+	case "less_than":
+		return &alerts.AlertCondition{
+			Condition: &alerts.AlertCondition_LessThan{
+				LessThan: &alerts.LessThanCondition{Parameters: parameters},
+			},
+		}, nil
+	case "more_than":
+		return &alerts.AlertCondition{
+			Condition: &alerts.AlertCondition_MoreThan{
+				MoreThan: &alerts.MoreThanCondition{Parameters: parameters},
+			},
+		}, nil
+	case "more_than_usual":
+		return &alerts.AlertCondition{
+			Condition: &alerts.AlertCondition_MoreThanUsual{
+				MoreThanUsual: &alerts.MoreThanUsualCondition{Parameters: parameters},
+			},
+		}, nil
+	}
+
+	return nil, fmt.Errorf("less_than or more_than or more_than_usual must be true")
+}
+
+func returnAlertConditionString(m map[string]interface{}) (string, error) {
+	if lessThan := m["less_than"]; lessThan != nil && lessThan.(bool) {
+		return "less_than", nil
+	} else if moreThan := m["more_than"]; moreThan != nil && moreThan.(bool) {
+		return "more_than", nil
+	} else if moreThanUsual := m["more_than_usual"]; moreThanUsual != nil && moreThanUsual.(bool) {
+		return "more_than_usual", nil
+	}
+	return "", fmt.Errorf("less_than or more_than or more_than_usual must be true")
+}
+
 func expandTimeRelativeConditionParameters(m map[string]interface{}) (*alerts.ConditionParameters, error) {
 	timeFrame, relativeTimeframe := expandTimeFrameAndRelativeTimeframe(m["relative_time_window"].(string))
 	ignoreInfinity := wrapperspb.Bool(m["ignore_infinity"].(bool))
@@ -3021,7 +3077,7 @@ func expandMetricCondition(m map[string]interface{}) (*alerts.AlertCondition, er
 		}
 	}
 
-	return expandLessThanOrMoreThanAlertCondition(conditionMap, parameters)
+	return expandLessThanMoreThanOrMoreThanUsualAlertCondition(conditionMap, parameters)
 }
 
 func expandArithmeticOperator(s string) alerts.MetricAlertConditionParameters_ArithmeticOperator {

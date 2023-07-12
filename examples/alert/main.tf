@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.5"
+      version = "~> 1.6"
       source  = "coralogix/coralogix"
     }
   }
@@ -61,10 +61,10 @@ resource "coralogix_alert" "standard_alert" {
     severities   = ["Warning", "Info"]
     search_query = "remote_addr_enriched:/.*/"
     condition {
-      more_than   = true
-      threshold   = 5
-      time_window = "30Min"
-      group_by    = ["coralogix.metadata.sdkId", "EventType"]
+      more_than         = true
+      threshold         = 5
+      time_window       = "30Min"
+      group_by          = ["coralogix.metadata.sdkId", "EventType"]
       evaluation_window = "Dynamic"
     }
   }
@@ -270,10 +270,10 @@ resource "coralogix_alert" "metric_promql_alert" {
     promql {
       search_query = "http_requests_total{status!~\"4..\"}"
       condition {
-        more_than                      = true
-        threshold                      = 3
-        sample_threshold_percentage    = 50
-        time_window                    = "12H"
+        more_than                       = true
+        threshold                       = 3
+        sample_threshold_percentage     = 50
+        time_window                     = "12H"
         replace_missing_value_with_zero = true
       }
     }
@@ -348,12 +348,13 @@ resource "coralogix_alert" "tracing_alert" {
 
   tracing {
     latency_threshold_milliseconds = 20.5
-    applications         = [
+    applications                   = [
       "application_name", "filter:contains:application-name2", "filter:endsWith:application-name3",
       "filter:startsWith:application-name4"
     ]
     subsystems = [
-      "subsystemName", "filter:notEquals:subsystemName2", "filter:contains:subsystemName", "filter:endsWith:subsystemName",
+      "subsystemName", "filter:notEquals:subsystemName2", "filter:contains:subsystemName",
+      "filter:endsWith:subsystemName",
       "filter:startsWith:subsystemName"
     ]
     services = [
@@ -407,7 +408,7 @@ resource "coralogix_alert" "flow_alert" {
       group {
         sub_alerts {
           operator = "OR"
-          flow_alert{
+          flow_alert {
             user_alert_id = coralogix_alert.new_value_alert.id
           }
         }
@@ -416,8 +417,8 @@ resource "coralogix_alert" "flow_alert" {
       group {
         sub_alerts {
           operator = "AND"
-          flow_alert{
-            not = true
+          flow_alert {
+            not           = true
             user_alert_id = coralogix_alert.unique_count_alert.id
           }
         }
@@ -435,7 +436,7 @@ resource "coralogix_alert" "flow_alert" {
             user_alert_id = coralogix_alert.standard_alert.id
           }
           flow_alert {
-            not = true
+            not           = true
             user_alert_id = coralogix_alert.metric_promql_alert.id
           }
         }
