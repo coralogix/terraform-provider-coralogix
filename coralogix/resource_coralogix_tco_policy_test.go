@@ -38,7 +38,7 @@ func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "subsystem_name.0.rules.#", "2"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName1, "subsystem_name.0.rules.*", "mobile"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName1, "subsystem_name.0.rules.*", "web"),
-					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName1, "archive_retention_id", "e1c980d0-c910-4c54-8326-67f3cf95645a"),
+					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "archive_retention_id", "e1c980d0-c910-4c54-8326-67f3cf95645a"),
 
 					resource.TestCheckResourceAttr(tcoPolicyResourceName2, "name", "Example tco_policy from terraform 2"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName2, "priority", "medium"),
