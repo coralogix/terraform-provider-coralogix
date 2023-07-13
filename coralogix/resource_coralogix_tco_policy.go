@@ -36,18 +36,23 @@ var (
 )
 
 type tcoPolicyRequest struct {
-	Name            string           `json:"name"`
-	Priority        string           `json:"priority"`
-	Enabled         bool             `json:"enabled,omitempty"`
-	Order           *int             `json:"order,omitempty"`
-	ApplicationName *tcoPolicyFilter `json:"applicationName,omitempty"`
-	SubsystemName   *tcoPolicyFilter `json:"subsystemName,omitempty"`
-	Severities      *[]int           `json:"severities,omitempty"`
+	Name             string            `json:"name"`
+	Priority         string            `json:"priority"`
+	Enabled          bool              `json:"enabled,omitempty"`
+	Order            *int              `json:"order,omitempty"`
+	ApplicationName  *tcoPolicyFilter  `json:"applicationName,omitempty"`
+	SubsystemName    *tcoPolicyFilter  `json:"subsystemName,omitempty"`
+	Severities       *[]int            `json:"severities,omitempty"`
+	ArchiveRetention *archiveRetention `json:"archiveRetention,omitempty"`
 }
 
 type tcoPolicyFilter struct {
 	Type string      `json:"type"`
 	Rule interface{} `json:"rule"`
+}
+
+type archiveRetention struct {
+	Id string `json:"archiveRetentionId"`
 }
 
 func resourceCoralogixTCOPolicy() *schema.Resource {
@@ -84,6 +89,7 @@ func resourceCoralogixTCOPolicyCreate(ctx context.Context, d *schema.ResourceDat
 	tcoPolicyResp, err := meta.(*clientset.ClientSet).TCOPolicies().CreateTCOPolicy(ctx, tcoPolicyReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		panic(fmt.Sprintf("Error - %s\nRequest - %s", err.Error(), tcoPolicyReq))
 		return handleRpcError(err, "tco-policy")
 	}
 
@@ -209,14 +215,16 @@ func extractTCOPolicyRequest(d *schema.ResourceData) (string, error) {
 	severities := expandTCOPolicySeverities(d.Get("severities"))
 	applicationName := expandTCOPolicyFilter(d.Get("application_name"))
 	subsystemName := expandTCOPolicyFilter(d.Get("subsystem_name"))
+	archiveRetention := expandActiveRetention(d.Get("archive_retention_id"))
 
 	reqStruct := tcoPolicyRequest{
-		Name:            name,
-		Enabled:         enable,
-		Priority:        priority,
-		Severities:      severities,
-		ApplicationName: applicationName,
-		SubsystemName:   subsystemName,
+		Name:             name,
+		Enabled:          enable,
+		Priority:         priority,
+		Severities:       severities,
+		ApplicationName:  applicationName,
+		SubsystemName:    subsystemName,
+		ArchiveRetention: archiveRetention,
 	}
 
 	requestJson, err := json.Marshal(reqStruct)
@@ -225,6 +233,15 @@ func extractTCOPolicyRequest(d *schema.ResourceData) (string, error) {
 	}
 
 	return string(requestJson), nil
+}
+
+func expandActiveRetention(v interface{}) *archiveRetention {
+	if v == nil || v == "" {
+		return nil
+	}
+	return &archiveRetention{
+		Id: v.(string),
+	}
 }
 
 func expandTCOPolicyFilter(v interface{}) *tcoPolicyFilter {
@@ -310,8 +327,18 @@ func setTCOPolicy(d *schema.ResourceData, tcoPolicyResp string) diag.Diagnostics
 	if err := d.Set("subsystem_name", flattenTCOPolicyFilter(m["subsystemName"])); err != nil {
 		diags = append(diags, diag.FromErr(err)...)
 	}
+	if err := d.Set("archive_retention_id", flattenArchiveRetention(m["archiveRetention"])); err != nil {
 
+	}
 	return diags
+}
+
+func flattenArchiveRetention(v interface{}) interface{} {
+	if v == nil {
+		return nil
+	}
+	archiveRetention := v.(map[string]interface{})
+	return archiveRetention["archiveRetentionId"].(string)
 }
 
 func flattenTCOPolicySeverities(v interface{}) interface{} {
@@ -399,6 +426,12 @@ func TCOPolicySchema() map[string]*schema.Schema {
 			Optional:    true,
 			Elem:        tcoPolicyFiltersSchema("subsystem_name"),
 			Description: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
+		},
+		"archive_retention_id": {
+			Type:         schema.TypeString,
+			Optional:     true,
+			Description:  "Allowing logs with a specific retention to be tagged.",
+			ValidateFunc: validation.StringIsNotEmpty,
 		},
 	}
 }

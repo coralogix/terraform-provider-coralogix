@@ -28,6 +28,7 @@ resource "coralogix_tco_policy" "tco_policy" {
     is    = true
     rules = ["mobile", "web"]
   }
+  archive_retention_id = "e1c980d0-c910-4c54-8326-67f3cf95645a"
 }
 
 resource "coralogix_tco_policy" "tco_policy_2" {
@@ -61,6 +62,7 @@ resource "coralogix_tco_policy" "tco_policy_2" {
 ### Optional
 
 - `application_name` (Block List, Max: 1) The applications to apply the policy on. Applies the policy on all the applications by default. (see [below for nested schema](#nestedblock--application_name))
+- `archive_retention_id` (String) Allowing logs with a specific retention to be tagged.
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
 - `subsystem_name` (Block List, Max: 1) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedblock--subsystem_name))
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
