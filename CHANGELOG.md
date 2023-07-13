@@ -221,3 +221,9 @@ BUG FIXING:
 FEATURES:
 #### resource/coralogix_alert
 * Adding support for `more_than_usual` condition for `metric.promql` alert.
+
+## Release 1.6.2
+
+FEATURES:
+#### resource/coralogix_tco_policy
+* Adding support for `archive_retention_id`.

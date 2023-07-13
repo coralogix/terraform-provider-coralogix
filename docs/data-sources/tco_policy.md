@@ -26,6 +26,7 @@ data "coralogix_tco_policy" "imported_coralogix_tco_policy" {
 ### Read-Only
 
 - `application_name` (List of Object) The applications to apply the policy on. Applies the policy on all the applications by default. (see [below for nested schema](#nestedatt--application_name))
+- `archive_retention_id` (String) Allowing logs with a specific retention to be tagged
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
 - `id` (String) The ID of this resource.
 - `name` (String) The policy name. Have to be unique per policy.
