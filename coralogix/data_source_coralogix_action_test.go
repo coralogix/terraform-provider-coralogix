@@ -21,9 +21,9 @@ func TestAccCoralogixDataSourceAction(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckActionDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckActionDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAction(action) +

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"testing"
 
+	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"terraform-provider-coralogix/coralogix/clientset"
-	actionsv2 "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
+	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -44,9 +45,9 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckActionDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckActionDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAction(action),
@@ -83,6 +84,9 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 }
 
 func testAccCheckActionDestroy(s *terraform.State) error {
+	testAccProvider = OldProvider()
+	rc := terraform2.ResourceConfig{}
+	testAccProvider.Configure(context.Background(), &rc)
 	client := testAccProvider.Meta().(*clientset.ClientSet).Actions()
 	ctx := context.TODO()
 
@@ -91,7 +95,7 @@ func testAccCheckActionDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &actionsv2.GetActionRequest{
+		req := &actions.GetActionRequest{
 			Id: wrapperspb.String(rs.Primary.ID),
 		}
 

@@ -22,11 +22,14 @@ data "coralogix_action" imported_action {
 
 ## Schema
 
+### Optional
+
+- `id` (String) Action ID.
+
 ### Read-Only
 
 - `applications` (Set of String) Applies the action for specific applications.
-- `created_by` (String)
-- `id` (String) The ID of this resource.
+- `created_by` (String) The user who created the action.
 - `is_hidden` (Boolean) Determines weather the action will be shown at the action menu.
 - `is_private` (Boolean) Determines weather the action will be shared with the entire team. Can be set to false only by admin.
 - `name` (String) Action name.

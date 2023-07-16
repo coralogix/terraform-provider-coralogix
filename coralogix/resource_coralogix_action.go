@@ -4,197 +4,325 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
+	"github.com/golang/protobuf/jsonpb"
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"terraform-provider-coralogix/coralogix/clientset"
-	actionsv2 "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	"terraform-provider-coralogix/coralogix/clientset"
+	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
 )
 
 var (
-	actionSchemaSourceTypeToProtoSourceType = map[string]string{
-		"Log":     "SOURCE_TYPE_LOG",
-		"DataMap": "SOURCE_TYPE_DATA_MAP",
+	_                                       resource.ResourceWithConfigure   = &ActionResource{}
+	_                                       resource.ResourceWithImportState = &ActionResource{}
+	actionSchemaSourceTypeToProtoSourceType                                  = map[string]actions.SourceType{
+		"Log":     actions.SourceType_SOURCE_TYPE_LOG,
+		"DataMap": actions.SourceType_SOURCE_TYPE_DATA_MAP,
 	}
-	actionProtoSourceTypeToSchemaSourceType = reverseMapStrings(actionSchemaSourceTypeToProtoSourceType)
-	actionValidSourceTypes                  = getKeysStrings(actionSchemaSourceTypeToProtoSourceType)
+	actionProtoSourceTypeToSchemaSourceType = ReverseMap(actionSchemaSourceTypeToProtoSourceType)
+	actionValidSourceTypes                  = GetKeys(actionSchemaSourceTypeToProtoSourceType)
 )
 
-func resourceCoralogixAction() *schema.Resource {
-	return &schema.Resource{
-		CreateContext: resourceCoralogixActionCreate,
-		ReadContext:   resourceCoralogixActionRead,
-		UpdateContext: resourceCoralogixActionUpdate,
-		DeleteContext: resourceCoralogixActionDelete,
+func NewActionResource() resource.Resource {
+	return &ActionResource{}
+}
 
-		Importer: &schema.ResourceImporter{
-			StateContext: schema.ImportStatePassthroughContext,
+type ActionResource struct {
+	client *clientset.ActionsClient
+}
+
+func (r *ActionResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_action"
+}
+
+func (r *ActionResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+
+	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	r.client = clientSet.Actions()
+}
+
+func (r *ActionResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Version: 0,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "Action ID.",
+			},
+			"name": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
+				MarkdownDescription: "Action name.",
+			},
+			"url": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					urlValidationFuncFramework{},
+				},
+				MarkdownDescription: "URL for the external tool.",
+			},
+			"is_private": schema.BoolAttribute{
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(true),
+				MarkdownDescription: "Determines weather the action will be shared with the entire team. Can be set to false only by admin.",
+			},
+			"is_hidden": schema.BoolAttribute{
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
+				MarkdownDescription: "Determines weather the action will be shown at the action menu.",
+			},
+			"source_type": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(actionValidSourceTypes...),
+				},
+				MarkdownDescription: fmt.Sprintf("By selecting the data type, you can make sure that the action will be displayed only in the relevant context. Can be one of %q", actionValidSourceTypes),
+			},
+			"applications": schema.SetAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				Validators: []validator.Set{
+					setvalidator.SizeAtLeast(1),
+				},
+				MarkdownDescription: "Applies the action for specific applications.",
+			},
+			"subsystems": schema.SetAttribute{
+				ElementType: types.StringType,
+				Optional:    true,
+				Validators: []validator.Set{
+					setvalidator.SizeAtLeast(1),
+				},
+				MarkdownDescription: "Applies the action for specific subsystems.",
+			},
+			"created_by": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "The user who created the action.",
+			},
 		},
-
-		Timeouts: &schema.ResourceTimeout{
-			Create: schema.DefaultTimeout(60 * time.Second),
-			Read:   schema.DefaultTimeout(30 * time.Second),
-			Update: schema.DefaultTimeout(60 * time.Second),
-			Delete: schema.DefaultTimeout(30 * time.Second),
-		},
-
-		Schema: ActionSchema(),
-
-		Description: "Coralogix action. For more info please review - https://coralogix.com/docs/coralogix-action-extension/.",
+		MarkdownDescription: "Coralogix action. For more info please review - https://coralogix.com/docs/coralogix-action-extension/.",
 	}
 }
 
-func resourceCoralogixActionCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	createActionRequest := extractCreateAction(d)
+func (r *ActionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 
-	log.Printf("[INFO] Creating new action: %#v", createActionRequest)
-	resp, err := meta.(*clientset.ClientSet).Actions().CreateAction(ctx, createActionRequest)
+}
+
+func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	jsm := &jsonpb.Marshaler{}
+	var plan ActionResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	createActionRequest := extractCreateAction(plan)
+	actionStr, _ := jsm.MarshalToString(createActionRequest)
+	log.Printf("[INFO] Creating new action: %s", actionStr)
+	createResp, err := r.client.CreateAction(ctx, createActionRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError(
+			"Error creating Action",
+			"Could not create Action, unexpected error: "+err.Error(),
+		)
+		return
 	}
-
-	action := resp.GetAction()
+	action := createResp.GetAction()
+	actionStr, _ = jsm.MarshalToString(action)
 	log.Printf("[INFO] Submitted new action: %#v", action)
-	d.SetId(action.GetId().GetValue())
 
-	return resourceCoralogixActionRead(ctx, d, meta)
+	plan = flattenAction(action)
+
+	// Set state to fully populated data
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
-func resourceCoralogixActionRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	id := wrapperspb.String(d.Id())
-	getActionRequest := &actionsv2.GetActionRequest{
-		Id: wrapperspb.String(d.Id()),
+func flattenAction(action *actions.Action) ActionResourceModel {
+	return ActionResourceModel{
+		ID:           types.StringValue(action.GetId().GetValue()),
+		Name:         types.StringValue(action.GetName().GetValue()),
+		URL:          types.StringValue(action.GetUrl().GetValue()),
+		IsPrivate:    types.BoolValue(action.GetIsPrivate().GetValue()),
+		SourceType:   types.StringValue(actionProtoSourceTypeToSchemaSourceType[action.GetSourceType()]),
+		Applications: wrappedStringSliceToTypeStringSlice(action.GetApplicationNames()),
+		Subsystems:   wrappedStringSliceToTypeStringSlice(action.GetSubsystemNames()),
+		CreatedBy:    types.StringValue(action.GetCreatedBy().GetValue()),
+		IsHidden:     types.BoolValue(action.GetIsHidden().GetValue()),
+	}
+}
+
+func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state ActionResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	log.Printf("[INFO] Reading action %s", id)
-	resp, err := meta.(*clientset.ClientSet).Actions().GetAction(ctx, getActionRequest)
+	//Get refreshed Action value from Coralogix
+	id := state.ID.ValueString()
+	log.Printf("[INFO] Reading Action: %s", id)
+	getActionResp, err := r.client.GetAction(ctx, &actions.GetActionRequest{Id: wrapperspb.String(id)})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
-			d.SetId("")
-			return diag.Diagnostics{diag.Diagnostic{
-				Severity: diag.Warning,
-				Summary:  fmt.Sprintf("Action %q is in state, but no longer exists in Coralogix backend", id),
-				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
-			}}
+			state.ID = types.StringNull()
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("Action %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error reading Action",
+				handleRpcErrorNewFramework(err, "Action"),
+			)
 		}
-		return handleRpcErrorWithID(err, "action", id.GetValue())
+		return
 	}
+	action := getActionResp.GetAction()
+	log.Printf("[INFO] Received Action: %#v", action)
 
-	action := resp.GetAction()
-	log.Printf("[INFO] Received action: %#v", action)
-
-	return setAction(d, action)
+	state = flattenAction(action)
+	//
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 }
 
-func resourceCoralogixActionUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	updateActionRequest := extractUpdateAction(d)
+func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	// Retrieve values from plan
+	var plan ActionResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	log.Printf("[INFO] Updating action: %#v", updateActionRequest)
-	resp, err := meta.(*clientset.ClientSet).Actions().UpdateAction(ctx, updateActionRequest)
+	actionUpdateReq := extractUpdateAction(plan)
+	log.Printf("[INFO] Updating Action: %#v", actionUpdateReq)
+	actionUpdateResp, err := r.client.UpdateAction(ctx, actionUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return diag.FromErr(err)
+		resp.Diagnostics.AddError(
+			"Error updating Action",
+			"Could not update Action, unexpected error: "+err.Error(),
+		)
+		return
 	}
+	log.Printf("[INFO] Submitted updated Action: %#v", actionUpdateResp)
 
-	action := resp.GetAction()
-	log.Printf("[INFO] Submitted new action: %#v", action)
-	d.SetId(action.GetId().GetValue())
-
-	return resourceCoralogixActionRead(ctx, d, meta)
-}
-
-func resourceCoralogixActionDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	id := wrapperspb.String(d.Id())
-	deleteActionRequest := &actionsv2.DeleteActionRequest{
-		Id: id,
-	}
-
-	log.Printf("[INFO] Deleting action %s", id)
-	_, err := meta.(*clientset.ClientSet).Actions().DeleteAction(ctx, deleteActionRequest)
+	// Get refreshed Action value from Coralogix
+	id := plan.ID.ValueString()
+	getActionResp, err := r.client.GetAction(ctx, &actions.GetActionRequest{Id: wrapperspb.String(id)})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcErrorWithID(err, "action", id.GetValue())
+		if status.Code(err) == codes.NotFound {
+			plan.ID = types.StringNull()
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("Action %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error reading Action",
+				handleRpcErrorNewFramework(err, "Action"),
+			)
+		}
+		return
 	}
-	log.Printf("[INFO] action %s deleted", id)
+	log.Printf("[INFO] Received Action: %#v", getActionResp)
 
-	d.SetId("")
-	return nil
-}
+	plan = flattenAction(getActionResp.GetAction())
 
-func ActionSchema() map[string]*schema.Schema {
-	return map[string]*schema.Schema{
-		"name": {
-			Type:         schema.TypeString,
-			Required:     true,
-			ValidateFunc: validation.StringIsNotEmpty,
-			Description:  "Action name.",
-		},
-		"url": {
-			Type:             schema.TypeString,
-			Required:         true,
-			ValidateDiagFunc: urlValidationFunc(),
-			Description:      "URL for the external tool.",
-		},
-		"is_private": {
-			Type:        schema.TypeBool,
-			Optional:    true,
-			Default:     true,
-			Description: "Determines weather the action will be shared with the entire team. Can be set to false only by admin.",
-		},
-		"is_hidden": {
-			Type:        schema.TypeBool,
-			Optional:    true,
-			Default:     false,
-			Description: "Determines weather the action will be shown at the action menu.",
-		},
-		"source_type": {
-			Type:         schema.TypeString,
-			Required:     true,
-			ValidateFunc: validation.StringInSlice(actionValidSourceTypes, false),
-			Description:  fmt.Sprintf("By selecting the data type, you can make sure that the action will be displayed only in the relevant context. Can be one of %q", actionValidSourceTypes),
-		},
-		"applications": {
-			Type:     schema.TypeSet,
-			Optional: true,
-			Elem: &schema.Schema{
-				Type: schema.TypeString,
-			},
-			Set:         schema.HashString,
-			Description: "Applies the action for specific applications.",
-		},
-		"subsystems": {
-			Type:     schema.TypeSet,
-			Optional: true,
-			Elem: &schema.Schema{
-				Type: schema.TypeString,
-			},
-			Set:         schema.HashString,
-			Description: "Applies the action for specific subsystems.",
-		},
-		"created_by": {
-			Type:     schema.TypeString,
-			Computed: true,
-		},
+	// Set state to fully populated data
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 }
 
-func extractCreateAction(d *schema.ResourceData) *actionsv2.CreateActionRequest {
-	name := wrapperspb.String(d.Get("name").(string))
-	url := wrapperspb.String(d.Get("url").(string))
-	isPrivate := wrapperspb.Bool(d.Get("is_private").(bool))
-	sourceType := expandActionSourceType(d.Get("source_type").(string))
-	applicationNames := interfaceSliceToWrappedStringSlice(d.Get("applications").(*schema.Set).List())
-	subsystemNames := interfaceSliceToWrappedStringSlice(d.Get("subsystems").(*schema.Set).List())
+func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state ActionResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
-	return &actionsv2.CreateActionRequest{
+	id := state.ID.ValueString()
+	log.Printf("[INFO] Deleting Action %s\n", id)
+	if _, err := r.client.DeleteAction(ctx, &actions.DeleteActionRequest{Id: wrapperspb.String(id)}); err != nil {
+		resp.Diagnostics.AddError(
+			fmt.Sprintf("Error Deleting Action %s", state.ID.ValueString()),
+			handleRpcErrorNewFramework(err, "Action"),
+		)
+		return
+	}
+	log.Printf("[INFO] Action %s deleted\n", id)
+}
+
+type ActionResourceModel struct {
+	ID           types.String `tfsdk:"id"`
+	Name         types.String `tfsdk:"name"`
+	URL          types.String `tfsdk:"url"`
+	IsPrivate    types.Bool   `tfsdk:"is_private"`
+	SourceType   types.String `tfsdk:"source_type"`
+	Applications types.Set    `tfsdk:"applications"`
+	Subsystems   types.Set    `tfsdk:"subsystems"`
+	CreatedBy    types.String `tfsdk:"created_by"`
+	IsHidden     types.Bool   `tfsdk:"is_hidden"`
+}
+
+func extractCreateAction(plan ActionResourceModel) *actions.CreateActionRequest {
+	name := typeStringToWrapperspbString(plan.Name)
+	url := typeStringToWrapperspbString(plan.URL)
+	isPrivate := wrapperspb.Bool(plan.IsPrivate.ValueBool())
+	sourceType := actionSchemaSourceTypeToProtoSourceType[plan.SourceType.ValueString()]
+	applicationNames := typeStringSliceToWrappedStringSlice(plan.Applications.Elements())
+	subsystemNames := typeStringSliceToWrappedStringSlice(plan.Subsystems.Elements())
+
+	return &actions.CreateActionRequest{
 		Name:             name,
 		Url:              url,
 		IsPrivate:        isPrivate,
@@ -204,18 +332,18 @@ func extractCreateAction(d *schema.ResourceData) *actionsv2.CreateActionRequest 
 	}
 }
 
-func extractUpdateAction(d *schema.ResourceData) *actionsv2.ReplaceActionRequest {
-	id := wrapperspb.String(d.Id())
-	name := wrapperspb.String(d.Get("name").(string))
-	url := wrapperspb.String(d.Get("url").(string))
-	isPrivate := wrapperspb.Bool(d.Get("is_private").(bool))
-	isHidden := wrapperspb.Bool(d.Get("is_hidden").(bool))
-	sourceType := expandActionSourceType(d.Get("source_type").(string))
-	applicationNames := interfaceSliceToWrappedStringSlice(d.Get("applications").(*schema.Set).List())
-	subsystemNames := interfaceSliceToWrappedStringSlice(d.Get("subsystems").(*schema.Set).List())
+func extractUpdateAction(plan ActionResourceModel) *actions.ReplaceActionRequest {
+	id := wrapperspb.String(plan.ID.ValueString())
+	name := typeStringToWrapperspbString(plan.Name)
+	url := typeStringToWrapperspbString(plan.URL)
+	isPrivate := wrapperspb.Bool(plan.IsPrivate.ValueBool())
+	sourceType := actionSchemaSourceTypeToProtoSourceType[plan.SourceType.ValueString()]
+	applicationNames := typeStringSliceToWrappedStringSlice(plan.Applications.Elements())
+	subsystemNames := typeStringSliceToWrappedStringSlice(plan.Subsystems.Elements())
+	isHidden := wrapperspb.Bool(plan.IsHidden.ValueBool())
 
-	return &actionsv2.ReplaceActionRequest{
-		Action: &actionsv2.Action{
+	return &actions.ReplaceActionRequest{
+		Action: &actions.Action{
 			Id:               id,
 			Name:             name,
 			Url:              url,
@@ -226,50 +354,4 @@ func extractUpdateAction(d *schema.ResourceData) *actionsv2.ReplaceActionRequest
 			SubsystemNames:   subsystemNames,
 		},
 	}
-}
-
-func expandActionSourceType(s string) actionsv2.SourceType {
-	sourceTypeStr := actionSchemaSourceTypeToProtoSourceType[s]
-	sourceTypeValue := actionsv2.SourceType_value[sourceTypeStr]
-	return actionsv2.SourceType(sourceTypeValue)
-}
-
-func setAction(d *schema.ResourceData, action *actionsv2.Action) diag.Diagnostics {
-	if err := d.Set("name", action.GetName().GetValue()); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set("url", action.GetUrl().GetValue()); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set("is_private", action.GetIsPrivate().GetValue()); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set("source_type", flattenActionSourceType(action.GetSourceType().String())); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set("applications", wrappedStringSliceToStringSlice(action.GetApplicationNames())); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set("subsystems", wrappedStringSliceToStringSlice(action.GetSubsystemNames())); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set("is_hidden", action.GetIsHidden().GetValue()); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set("created_by", action.GetCreatedBy().GetValue()); err != nil {
-		return diag.FromErr(err)
-	}
-
-	return nil
-}
-
-func flattenActionSourceType(s string) string {
-	return actionProtoSourceTypeToSchemaSourceType[s]
 }

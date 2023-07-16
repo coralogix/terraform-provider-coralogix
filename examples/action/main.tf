@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.5"
+      version = "~> 1.6"
       source  = "coralogix/coralogix"
     }
   }
@@ -13,7 +13,7 @@ provider "coralogix" {
 }
 
 resource "coralogix_action" action {
-  is_private  = true
+  is_private  = false
   source_type = "Log"
   name        = "google search action"
   url         = "https://www.google.com/search?q={{$p.selected_value}}"

@@ -66,7 +66,6 @@ func OldProvider() *oldSchema.Provider {
 			"coralogix_data_set":                   dataSourceCoralogixDataSet(),
 			"coralogix_dashboard":                  dataSourceCoralogixDashboard(),
 			"coralogix_hosted_dashboard":           dataSourceCoralogixHostedDashboard(),
-			"coralogix_action":                     dataSourceCoralogixAction(),
 			"coralogix_recording_rules_groups_set": dataSourceCoralogixRecordingRulesGroupsSet(),
 			"coralogix_tco_policy":                 dataSourceCoralogixTCOPolicy(),
 			"coralogix_tco_policy_override":        dataSourceCoralogixTCOPolicyOverride(),
@@ -80,7 +79,6 @@ func OldProvider() *oldSchema.Provider {
 			"coralogix_data_set":                   resourceCoralogixDataSet(),
 			"coralogix_dashboard":                  resourceCoralogixDashboard(),
 			"coralogix_hosted_dashboard":           resourceCoralogixHostedDashboard(),
-			"coralogix_action":                     resourceCoralogixAction(),
 			"coralogix_recording_rules_groups_set": resourceCoralogixRecordingRulesGroupsSet(),
 			"coralogix_tco_policy":                 resourceCoralogixTCOPolicy(),
 			"coralogix_tco_policy_override":        resourceCoralogixTCOPolicyOverride(),
@@ -282,11 +280,13 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 func (p *coralogixProvider) DataSources(context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
 		NewEvents2MetricDataSource,
+		NewActionDataSource,
 	}
 }
 
 func (p *coralogixProvider) Resources(context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewEvents2MetricResource,
+		NewActionResource,
 	}
 }
