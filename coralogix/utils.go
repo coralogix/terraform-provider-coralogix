@@ -15,7 +15,9 @@ import (
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	diag2 "github.com/hashicorp/terraform-plugin-framework/diag"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -500,6 +502,44 @@ func urlValidationFunc() schema.SchemaValidateDiagFunc {
 		return nil
 	}
 }
+
+type urlValidationFuncFramework struct {
+}
+
+func (u urlValidationFuncFramework) Description(_ context.Context) string {
+	return "string must be a valid url format"
+}
+
+func (u urlValidationFuncFramework) MarkdownDescription(ctx context.Context) string {
+	return u.Description(ctx)
+}
+
+func (u urlValidationFuncFramework) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+
+	value := req.ConfigValue.ValueString()
+
+	if _, err := url.ParseRequestURI(value); err != nil {
+		resp.Diagnostics.Append(
+			diag2.NewAttributeErrorDiagnostic(
+				req.Path,
+				"Invalid Attribute Value Format",
+				fmt.Sprintf("Attribute %s in not a valid url - %s", req.Path, value),
+			),
+		)
+	}
+}
+
+//func urlValidationFuncFramework() schema.SchemaValidateDiagFunc {
+//	return func(v interface{}, _ cty.Path) diag.Diagnostics {
+//		if _, err := url.ParseRequestURI(v.(string)); err != nil {
+//			return diag.Errorf("%s in not valid url - %s", v.(string), err.Error())
+//		}
+//		return nil
+//	}
+//}
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 

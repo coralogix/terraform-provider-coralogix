@@ -36,21 +36,10 @@ resource "coralogix_action" action {
 - `is_hidden` (Boolean) Determines weather the action will be shown at the action menu.
 - `is_private` (Boolean) Determines weather the action will be shared with the entire team. Can be set to false only by admin.
 - `subsystems` (Set of String) Applies the action for specific subsystems.
-- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
 ### Read-Only
 
-- `created_by` (String)
-- `id` (String) The ID of this resource.
-
-<a id="nestedblock--timeouts"></a>
-### Nested Schema for `timeouts`
-
-Optional:
-
-- `create` (String)
-- `delete` (String)
-- `read` (String)
-- `update` (String)
+- `created_by` (String) The user who created the action.
+- `id` (String) Action ID.
 
 
