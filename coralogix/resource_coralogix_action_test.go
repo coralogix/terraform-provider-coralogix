@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"terraform-provider-coralogix/coralogix/clientset"
 	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
 
@@ -83,6 +84,9 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 }
 
 func testAccCheckActionDestroy(s *terraform.State) error {
+	testAccProvider = OldProvider()
+	rc := terraform2.ResourceConfig{}
+	testAccProvider.Configure(context.Background(), &rc)
 	client := testAccProvider.Meta().(*clientset.ClientSet).Actions()
 	ctx := context.TODO()
 
