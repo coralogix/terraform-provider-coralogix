@@ -806,9 +806,10 @@ func ratioSchema() map[string]*schema.Schema {
 						Description:  fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidTimeFrames),
 					},
 					"ignore_infinity": {
-						Type:        schema.TypeBool,
-						Optional:    true,
-						Description: "Not triggered when threshold is infinity (divided by zero).",
+						Type:          schema.TypeBool,
+						Optional:      true,
+						ConflictsWith: []string{"ratio.0.condition.0.less_than"},
+						Description:   "Not triggered when threshold is infinity (divided by zero).",
 					},
 					"group_by": {
 						Type:     schema.TypeList,
@@ -975,9 +976,10 @@ func timeRelativeSchema() map[string]*schema.Schema {
 					Description:  fmt.Sprintf("Time-window to compare with. Can be one of %q.", alertValidRelativeTimeFrames),
 				},
 				"ignore_infinity": {
-					Type:        schema.TypeBool,
-					Optional:    true,
-					Description: "Not triggered when threshold is infinity (divided by zero).",
+					Type:          schema.TypeBool,
+					Optional:      true,
+					ConflictsWith: []string{"time_relative.0.condition.0.less_than"},
+					Description:   "Not triggered when threshold is infinity (divided by zero).",
 				},
 				"group_by": {
 					Type:     schema.TypeList,
