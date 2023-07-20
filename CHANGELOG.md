@@ -227,3 +227,21 @@ FEATURES:
 FEATURES:
 #### resource/coralogix_tco_policy
 * Adding support for `archive_retention_id`.
+
+## Release 1.6.3
+DEVELOPERS:
+#### resource/coralogix_actions
+* Resource and Data Source were moved to plugin-framework.
+
+## Release 1.6.4
+Breaking Changes:
+#### resource/coralogix_alert
+* `ratio` and `time_relative`'s `condition`'s `ignore_infinity` conflicts with `condition`'s `less_than`.
+
+BUG FIXING:
+#### resource/coralogix_tco_policy
+* Fixing - getting panic on creation errors.
+
+## Release 1.6.5
+INTERNAL CHANGES:
+* `tco_policy` and `tco_policy_override` endpoints were changed.
