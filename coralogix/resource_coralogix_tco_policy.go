@@ -89,7 +89,7 @@ func resourceCoralogixTCOPolicyCreate(ctx context.Context, d *schema.ResourceDat
 	tcoPolicyResp, err := meta.(*clientset.ClientSet).TCOPolicies().CreateTCOPolicy(ctx, tcoPolicyReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		panic(fmt.Sprintf("Error - %s\nRequest - %s", err.Error(), tcoPolicyReq))
+		fmt.Sprintf("Error - %s\nRequest - %s", err.Error(), tcoPolicyReq)
 		return handleRpcError(err, "tco-policy")
 	}
 
