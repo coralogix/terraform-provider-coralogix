@@ -30,7 +30,7 @@ func (t TCOPoliciesOverrides) DeleteTCOPolicyOverride(ctx context.Context, id st
 }
 
 func NewTCOPoliciesOverridesClient(c *CallPropertiesCreator) *TCOPoliciesOverrides {
-	targetUrl := "https://" + strings.Replace(c.targetUrl, "ng-api-grpc", "api", 1) + "/api/v1/external/tco"
+	targetUrl := "https://" + strings.Replace(c.targetUrl, "ng-api-grpc", "webapi", 1) + "/api/v1/external/tco"
 	client := rest.NewRestClient(targetUrl, c.apiKey)
 	return &TCOPoliciesOverrides{client: client}
 }

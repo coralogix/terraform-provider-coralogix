@@ -38,7 +38,7 @@ func (t TCOPolicies) ReorderTCOPolicies(ctx context.Context, jsonContent string)
 }
 
 func NewTCOPoliciesClient(c *CallPropertiesCreator) *TCOPolicies {
-	targetUrl := "https://" + strings.Replace(c.targetUrl, "ng-api-grpc", "api", 1) + "/api/v1/external/tco"
+	targetUrl := "https://" + strings.Replace(c.targetUrl, "ng-api-grpc", "webapi", 1) + "/api/v1/external/tco"
 	client := rest.NewRestClient(targetUrl, c.apiKey)
 	return &TCOPolicies{client: client}
 }

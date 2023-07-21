@@ -241,3 +241,7 @@ Breaking Changes:
 BUG FIXING:
 #### resource/coralogix_tco_policy
 * Fixing - getting panic on creation errors.
+
+## Release 1.6.5
+INTERNAL CHANGES:
+* `tco_policy` and `tco_policy_override` endpoints were changed.
