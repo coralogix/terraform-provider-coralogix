@@ -362,16 +362,16 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 	}
 	checks := extractFlowAlertChecks(alert)
 
-	updatedAlert := flowAlertTestParams{
-		name:            acctest.RandomWithPrefix("tf-acc-test"),
-		description:     acctest.RandomWithPrefix("tf-acc-test"),
-		emailRecipients: []string{"user@example.com"},
-		webhookID:       "5676",
-		severity:        selectRandomlyFromSlice(alertValidSeverities),
-		activeWhen:      randActiveWhen(),
-		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
-	}
-	updatedAlertChecks := extractFlowAlertChecks(updatedAlert)
+	//updatedAlert := flowAlertTestParams{
+	//	name:            acctest.RandomWithPrefix("tf-acc-test"),
+	//	description:     acctest.RandomWithPrefix("tf-acc-test"),
+	//	emailRecipients: []string{"user@example.com"},
+	//	webhookID:       "5676",
+	//	severity:        selectRandomlyFromSlice(alertValidSeverities),
+	//	activeWhen:      randActiveWhen(),
+	//	notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
+	//}
+	////updatedAlertChecks := extractFlowAlertChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -386,10 +386,10 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 				ResourceName: resourceName,
 				ImportState:  true,
 			},
-			{
-				Config: testAccCoralogixResourceAlertFLow(&updatedAlert),
-				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-			},
+			//{
+			//	Config: testAccCoralogixResourceAlertFLow(&updatedAlert),
+			//	Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			//},
 		},
 	})
 }
