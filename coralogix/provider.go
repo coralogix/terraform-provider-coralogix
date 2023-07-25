@@ -67,9 +67,9 @@ func OldProvider() *oldSchema.Provider {
 			"coralogix_dashboard":                  dataSourceCoralogixDashboard(),
 			"coralogix_hosted_dashboard":           dataSourceCoralogixHostedDashboard(),
 			"coralogix_recording_rules_groups_set": dataSourceCoralogixRecordingRulesGroupsSet(),
-			"coralogix_tco_policy":                 dataSourceCoralogixTCOPolicy(),
-			"coralogix_tco_policy_override":        dataSourceCoralogixTCOPolicyOverride(),
-			"coralogix_webhook":                    dataSourceCoralogixWebhook(),
+			//"coralogix_tco_policy":                 dataSourceCoralogixTCOPolicy(),
+			"coralogix_tco_policy_override": dataSourceCoralogixTCOPolicyOverride(),
+			"coralogix_webhook":             dataSourceCoralogixWebhook(),
 		},
 
 		ResourcesMap: map[string]*oldSchema.Resource{
@@ -80,7 +80,6 @@ func OldProvider() *oldSchema.Provider {
 			"coralogix_dashboard":                  resourceCoralogixDashboard(),
 			"coralogix_hosted_dashboard":           resourceCoralogixHostedDashboard(),
 			"coralogix_recording_rules_groups_set": resourceCoralogixRecordingRulesGroupsSet(),
-			"coralogix_tco_policy":                 resourceCoralogixTCOPolicy(),
 			"coralogix_tco_policy_override":        resourceCoralogixTCOPolicyOverride(),
 			"coralogix_webhook":                    resourceCoralogixWebhook(),
 		},
@@ -288,5 +287,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 	return []func() resource.Resource{
 		NewEvents2MetricResource,
 		NewActionResource,
+		NewTCOPolicyResource,
 	}
 }

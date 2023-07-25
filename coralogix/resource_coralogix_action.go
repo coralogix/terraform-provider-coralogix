@@ -149,7 +149,7 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	createActionRequest := extractCreateAction(plan)
+	createActionRequest := extractCreateAction(plan, ctx)
 	actionStr, _ := jsm.MarshalToString(createActionRequest)
 	log.Printf("[INFO] Creating new action: %s", actionStr)
 	createResp, err := r.client.CreateAction(ctx, createActionRequest)
@@ -238,7 +238,7 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	actionUpdateReq := extractUpdateAction(plan)
+	actionUpdateReq := extractUpdateAction(ctx, plan)
 	log.Printf("[INFO] Updating Action: %#v", actionUpdateReq)
 	actionUpdateResp, err := r.client.UpdateAction(ctx, actionUpdateReq)
 	if err != nil {
@@ -314,13 +314,13 @@ type ActionResourceModel struct {
 	IsHidden     types.Bool   `tfsdk:"is_hidden"`
 }
 
-func extractCreateAction(plan ActionResourceModel) *actions.CreateActionRequest {
+func extractCreateAction(plan ActionResourceModel, ctx context.Context) *actions.CreateActionRequest {
 	name := typeStringToWrapperspbString(plan.Name)
 	url := typeStringToWrapperspbString(plan.URL)
 	isPrivate := wrapperspb.Bool(plan.IsPrivate.ValueBool())
 	sourceType := actionSchemaSourceTypeToProtoSourceType[plan.SourceType.ValueString()]
-	applicationNames := typeStringSliceToWrappedStringSlice(plan.Applications.Elements())
-	subsystemNames := typeStringSliceToWrappedStringSlice(plan.Subsystems.Elements())
+	applicationNames := typeStringSliceToWrappedStringSlice(ctx, plan.Applications.Elements())
+	subsystemNames := typeStringSliceToWrappedStringSlice(ctx, plan.Subsystems.Elements())
 
 	return &actions.CreateActionRequest{
 		Name:             name,
@@ -332,14 +332,14 @@ func extractCreateAction(plan ActionResourceModel) *actions.CreateActionRequest 
 	}
 }
 
-func extractUpdateAction(plan ActionResourceModel) *actions.ReplaceActionRequest {
+func extractUpdateAction(ctx context.Context, plan ActionResourceModel) *actions.ReplaceActionRequest {
 	id := wrapperspb.String(plan.ID.ValueString())
 	name := typeStringToWrapperspbString(plan.Name)
 	url := typeStringToWrapperspbString(plan.URL)
 	isPrivate := wrapperspb.Bool(plan.IsPrivate.ValueBool())
 	sourceType := actionSchemaSourceTypeToProtoSourceType[plan.SourceType.ValueString()]
-	applicationNames := typeStringSliceToWrappedStringSlice(plan.Applications.Elements())
-	subsystemNames := typeStringSliceToWrappedStringSlice(plan.Subsystems.Elements())
+	applicationNames := typeStringSliceToWrappedStringSlice(ctx, plan.Applications.Elements())
+	subsystemNames := typeStringSliceToWrappedStringSlice(ctx, plan.Subsystems.Elements())
 	isHidden := wrapperspb.Bool(plan.IsHidden.ValueBool())
 
 	return &actions.ReplaceActionRequest{
