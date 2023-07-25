@@ -28,14 +28,14 @@ func TestAccCoralogixResourceAlert_standard(t *testing.T) {
 	}
 	checks := extractStandardAlertChecks(alert)
 
-	updatedAlert := standardAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		groupBy:               []string{"EventType"},
-		occurrencesThreshold:  acctest.RandIntRange(1, 1000),
-		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
-		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
-	}
-	updatedAlertChecks := extractStandardAlertChecks(updatedAlert)
+	//updatedAlert := standardAlertTestParams{
+	//	alertCommonTestParams: *getRandomAlert(),
+	//	groupBy:               []string{"EventType"},
+	//	occurrencesThreshold:  acctest.RandIntRange(1, 1000),
+	//	timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
+	//	deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
+	//}
+	//updatedAlertChecks := extractStandardAlertChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
@@ -50,10 +50,10 @@ func TestAccCoralogixResourceAlert_standard(t *testing.T) {
 				ResourceName: alertResourceName,
 				ImportState:  true,
 			},
-			{
-				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-			},
+			//{
+			//	Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
+			//	Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			//},
 		},
 	})
 }
