@@ -244,4 +244,25 @@ BUG FIXING:
 
 ## Release 1.6.5
 INTERNAL CHANGES:
+#### resource/coralogix_tco_policy
 * `tco_policy` and `tco_policy_override` endpoints were changed.
+
+## Release 1.7.0
+Breaking Changes:
+#### resource/coralogix_tco_policy
+**Please note** - this version contains a [State Upgrader](https://developer.hashicorp.com/terraform/plugin/framework/migrating/resources/state-upgrade#framework). It will upgrade the state to the new schema. Please make sure to back up your state before upgrading.
+* `subsystem_name` was changed to `subsystems` and have different structure e.g. - 
+`subsystem_name {
+  is    = true
+  rules = ["mobile", "web"]
+  }` => `subsystems = {
+  rule_type = "is"
+  names = ["mobile", "web"]
+  }`
+* `application_name` was changed to `applications` and have different structure e.g. - `application_name {
+  starts_with = true
+  rule        = "prod"
+  }` => `applications = {
+  rule_type = "starts with"
+  names        = ["prod"]
+  }`

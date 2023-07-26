@@ -18,9 +18,9 @@ var tcoPolicyResourceName3 = "coralogix_tco_policy.test_3"
 
 func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccTCOPolicyCheckDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccTCOPolicyCheckDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config:  testAccCoralogixResourceTCOPolicy(),
