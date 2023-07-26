@@ -281,6 +281,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 	return []func() datasource.DataSource{
 		NewEvents2MetricDataSource,
 		NewActionDataSource,
+		NewTCOPolicyDataSource,
 	}
 }
 
