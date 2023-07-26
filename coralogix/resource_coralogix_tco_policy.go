@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -28,38 +29,36 @@ import (
 )
 
 var (
-	_                                resource.ResourceWithConfigure   = &ActionResource{}
-	_                                resource.ResourceWithImportState = &ActionResource{}
-	tcoPoliciesPrioritySchemaToProto                                  = map[string]tcopolicies.Priority{
-		"Block":  tcopolicies.Priority_PRIORITY_TYPE_BLOCK,
-		"High":   tcopolicies.Priority_PRIORITY_TYPE_HIGH,
-		"Low":    tcopolicies.Priority_PRIORITY_TYPE_LOW,
-		"Medium": tcopolicies.Priority_PRIORITY_TYPE_MEDIUM,
+	_                                resource.ResourceWithConfigure    = &TCOPolicyResource{}
+	_                                resource.ResourceWithImportState  = &TCOPolicyResource{}
+	_                                resource.ResourceWithUpgradeState = &TCOPolicyResource{}
+	tcoPoliciesPrioritySchemaToProto                                   = map[string]tcopolicies.Priority{
+		"block":  tcopolicies.Priority_PRIORITY_TYPE_BLOCK,
+		"high":   tcopolicies.Priority_PRIORITY_TYPE_HIGH,
+		"low":    tcopolicies.Priority_PRIORITY_TYPE_LOW,
+		"medium": tcopolicies.Priority_PRIORITY_TYPE_MEDIUM,
 	}
 	tcoPoliciesPriorityProtoToSchema = ReverseMap(tcoPoliciesPrioritySchemaToProto)
 	tcoPoliciesValidPriorities       = GetKeys(tcoPoliciesPrioritySchemaToProto)
 	tcoPoliciesRuleTypeSchemaToProto = map[string]tcopolicies.RuleTypeId{
-		"Is":          tcopolicies.RuleTypeId_RULE_TYPE_ID_IS,
-		"Is Not":      tcopolicies.RuleTypeId_RULE_TYPE_ID_IS_NOT,
-		"Starts With": tcopolicies.RuleTypeId_RULE_TYPE_ID_START_WITH,
-		"Includes":    tcopolicies.RuleTypeId_RULE_TYPE_ID_INCLUDES,
+		"is":          tcopolicies.RuleTypeId_RULE_TYPE_ID_IS,
+		"is not":      tcopolicies.RuleTypeId_RULE_TYPE_ID_IS_NOT,
+		"starts with": tcopolicies.RuleTypeId_RULE_TYPE_ID_START_WITH,
+		"includes":    tcopolicies.RuleTypeId_RULE_TYPE_ID_INCLUDES,
 	}
 	tcoPoliciesRuleTypeProtoToSchema = ReverseMap(tcoPoliciesRuleTypeSchemaToProto)
 	tcoPoliciesValidRuleTypes        = GetKeys(tcoPoliciesRuleTypeSchemaToProto)
 	tcoPolicySeveritySchemaToProto   = map[string]tcopolicies.Severity{
-		"Debug":    tcopolicies.Severity_SEVERITY_DEBUG,
-		"Verbose":  tcopolicies.Severity_SEVERITY_VERBOSE,
-		"Info":     tcopolicies.Severity_SEVERITY_INFO,
-		"Warning":  tcopolicies.Severity_SEVERITY_WARNING,
-		"Error":    tcopolicies.Severity_SEVERITY_ERROR,
-		"Critical": tcopolicies.Severity_SEVERITY_CRITICAL,
+		"debug":    tcopolicies.Severity_SEVERITY_DEBUG,
+		"verbose":  tcopolicies.Severity_SEVERITY_VERBOSE,
+		"info":     tcopolicies.Severity_SEVERITY_INFO,
+		"warning":  tcopolicies.Severity_SEVERITY_WARNING,
+		"error":    tcopolicies.Severity_SEVERITY_ERROR,
+		"critical": tcopolicies.Severity_SEVERITY_CRITICAL,
 	}
-	tcoPolicySeverityProtoToSchema   = ReverseMap(tcoPolicySeveritySchemaToProto)
-	validPolicySeverities            = GetKeys(tcoPolicySeveritySchemaToProto)
-	tcoPolicySourceTypeSchemaToProto = map[string]tcopolicies.SourceType{
-		"Logs":   tcopolicies.SourceType_SOURCE_TYPE_LOGS,
-		"Traces": tcopolicies.SourceType_SOURCE_TYPE_SPANS,
-	}
+	tcoPolicySeverityProtoToSchema = ReverseMap(tcoPolicySeveritySchemaToProto)
+	validPolicySeverities          = GetKeys(tcoPolicySeveritySchemaToProto)
+	jsm                            = &jsonpb.Marshaler{}
 )
 
 func NewTCOPolicyResource() resource.Resource {
@@ -68,6 +67,28 @@ func NewTCOPolicyResource() resource.Resource {
 
 type TCOPolicyResource struct {
 	client *clientset.TCOPoliciesClient
+}
+
+type TCOPolicyResourceModel struct {
+	ID                 types.String  `tfsdk:"id"`
+	Name               types.String  `tfsdk:"name"`
+	Description        types.String  `tfsdk:"description"`
+	Enabled            types.Bool    `tfsdk:"enabled"`
+	Order              types.Int64   `tfsdk:"order"`
+	Priority           types.String  `tfsdk:"priority"`
+	Applications       *TCORuleModel `tfsdk:"applications"`
+	Subsystems         *TCORuleModel `tfsdk:"subsystems"`
+	Severities         types.Set     `tfsdk:"severities"`
+	ArchiveRetentionID types.String  `tfsdk:"archive_retention_id"`
+	//SourceType         types.String  `tfsdk:"source_type"`
+	//Services           *TCORuleModel `tfsdk:"services"`
+	//Actions            *TCORuleModel `tfsdk:"actions"`
+	//Tags               types.Map     `tfsdk:"tags"`
+}
+
+type TCORuleModel struct {
+	RuleType types.String `tfsdk:"rule_type"`
+	Names    types.Set    `tfsdk:"names"`
 }
 
 func (t *TCOPolicyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -111,6 +132,8 @@ func (t *TCOPolicyResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			},
 			"description": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(""),
 			},
 			"enabled": schema.BoolAttribute{
 				Optional:            true,
@@ -139,17 +162,12 @@ func (t *TCOPolicyResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 					stringvalidator.LengthAtLeast(1),
 				},
 			},
-			"source_type": schema.StringAttribute{
-				Required: true,
-				Validators: []validator.String{
-					stringvalidator.OneOf("Logs", "Traces"),
-				},
-			},
 			"severities": schema.SetAttribute{
 				Optional:    true,
 				ElementType: types.StringType,
 				Validators: []validator.Set{
 					setvalidator.SizeAtLeast(1),
+					setvalidator.ValueStringsAre(stringvalidator.OneOf(validPolicySeverities...)),
 				},
 				MarkdownDescription: fmt.Sprintf("The severities to apply the policy on. Can be few of %q.", validPolicySeverities),
 			},
@@ -166,7 +184,7 @@ func (t *TCOPolicyResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 					"rule_type": schema.StringAttribute{
 						Optional: true,
 						Computed: true,
-						Default:  stringdefault.StaticString("Is"),
+						Default:  stringdefault.StaticString("is"),
 						Validators: []validator.String{
 							stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
 						},
@@ -187,7 +205,7 @@ func (t *TCOPolicyResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 					"rule_type": schema.StringAttribute{
 						Optional: true,
 						Computed: true,
-						Default:  stringdefault.StaticString("Is"),
+						Default:  stringdefault.StaticString("is"),
 						Validators: []validator.String{
 							stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
 						},
@@ -195,73 +213,73 @@ func (t *TCOPolicyResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				},
 				MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
 			},
-			"actions": schema.SingleNestedAttribute{
-				Optional: true,
-				Attributes: map[string]schema.Attribute{
-					"names": schema.SetAttribute{
-						Required:    true,
-						ElementType: types.StringType,
-						Validators: []validator.Set{
-							setvalidator.SizeAtLeast(1),
-						},
-					},
-					"rule_type": schema.StringAttribute{
-						Optional: true,
-						Computed: true,
-						Default:  stringdefault.StaticString("Is"),
-						Validators: []validator.String{
-							stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
-						},
-					},
-				},
-				MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
-			},
-			"services": schema.SingleNestedAttribute{
-				Optional: true,
-				Attributes: map[string]schema.Attribute{
-					"names": schema.SetAttribute{
-						Required:    true,
-						ElementType: types.StringType,
-						Validators: []validator.Set{
-							setvalidator.SizeAtLeast(1),
-						},
-					},
-					"rule_type": schema.StringAttribute{
-						Optional: true,
-						Computed: true,
-						Default:  stringdefault.StaticString("Is"),
-						Validators: []validator.String{
-							stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
-						},
-					},
-				},
-				MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
-			},
-			"tags": schema.MapNestedAttribute{
-				Optional: true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"names": schema.SetAttribute{
-							Required:    true,
-							ElementType: types.StringType,
-							Validators: []validator.Set{
-								setvalidator.SizeAtLeast(1),
-							},
-						},
-						"rule_type": schema.StringAttribute{
-							Optional: true,
-							Computed: true,
-							Default:  stringdefault.StaticString("Is"),
-							Validators: []validator.String{
-								stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
-							},
-						},
-					},
-				},
-				MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
-			},
+			//"actions": schema.SingleNestedAttribute{
+			//	Optional: true,
+			//	Attributes: map[string]schema.Attribute{
+			//		"names": schema.SetAttribute{
+			//			Required:    true,
+			//			ElementType: types.StringType,
+			//			Validators: []validator.Set{
+			//				setvalidator.SizeAtLeast(1),
+			//			},
+			//		},
+			//		"rule_type": schema.StringAttribute{
+			//			Optional: true,
+			//			Computed: true,
+			//			Default:  stringdefault.StaticString("Is"),
+			//			Validators: []validator.String{
+			//				stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
+			//			},
+			//		},
+			//	},
+			//	MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
+			//},
+			//"services": schema.SingleNestedAttribute{
+			//	Optional: true,
+			//	Attributes: map[string]schema.Attribute{
+			//		"names": schema.SetAttribute{
+			//			Required:    true,
+			//			ElementType: types.StringType,
+			//			Validators: []validator.Set{
+			//				setvalidator.SizeAtLeast(1),
+			//			},
+			//		},
+			//		"rule_type": schema.StringAttribute{
+			//			Optional: true,
+			//			Computed: true,
+			//			Default:  stringdefault.StaticString("Is"),
+			//			Validators: []validator.String{
+			//				stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
+			//			},
+			//		},
+			//	},
+			//	MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
+			//},
+			//"tags": schema.MapNestedAttribute{
+			//	Optional: true,
+			//	NestedObject: schema.NestedAttributeObject{
+			//		Attributes: map[string]schema.Attribute{
+			//			"names": schema.SetAttribute{
+			//				Required:    true,
+			//				ElementType: types.StringType,
+			//				Validators: []validator.Set{
+			//					setvalidator.SizeAtLeast(1),
+			//				},
+			//			},
+			//			"rule_type": schema.StringAttribute{
+			//				Optional: true,
+			//				Computed: true,
+			//				Default:  stringdefault.StaticString("Is"),
+			//				Validators: []validator.String{
+			//					stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
+			//				},
+			//			},
+			//		},
+			//	},
+			//	MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
+			//},
 		},
-		MarkdownDescription: "Coralogix action. For more info please review - https://coralogix.com/docs/coralogix-action-extension/.",
+		MarkdownDescription: "Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api .",
 	}
 }
 
@@ -270,8 +288,191 @@ func (t *TCOPolicyResource) ImportState(ctx context.Context, req resource.Import
 
 }
 
+func (t *TCOPolicyResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
+	schemaV0 := tcoPolicySchemaV0()
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema:   &schemaV0,
+			StateUpgrader: upgradeTcoPolicyStateV0ToV1,
+		},
+	}
+}
+
+func upgradeTcoPolicyStateV0ToV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+	type TCOPolicyResourceModelV0 struct {
+		ID                 types.String `tfsdk:"id"`
+		Name               types.String `tfsdk:"name"`
+		Description        types.String `tfsdk:"description"`
+		Enabled            types.Bool   `tfsdk:"enabled"`
+		Order              types.Int64  `tfsdk:"order"`
+		Priority           types.String `tfsdk:"priority"`
+		ApplicationName    types.List   `tfsdk:"application_name"`
+		SubsystemName      types.List   `tfsdk:"subsystem_name"`
+		Severities         types.Set    `tfsdk:"severities"`
+		ArchiveRetentionID types.String `tfsdk:"archive_retention_id"`
+	}
+
+	var priorStateData TCOPolicyResourceModelV0
+	resp.Diagnostics.Append(req.State.Get(ctx, &priorStateData)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	upgradedStateData := TCOPolicyResourceModel{
+		ID:                 priorStateData.ID,
+		Name:               priorStateData.Name,
+		Description:        priorStateData.Description,
+		Enabled:            priorStateData.Enabled,
+		Order:              priorStateData.Order,
+		Priority:           priorStateData.Priority,
+		Applications:       upgradeTCOPolicyRuleV0ToV1(ctx, priorStateData.ApplicationName),
+		Subsystems:         upgradeTCOPolicyRuleV0ToV1(ctx, priorStateData.SubsystemName),
+		Severities:         priorStateData.Severities,
+		ArchiveRetentionID: priorStateData.ArchiveRetentionID,
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, upgradedStateData)...)
+}
+
+func upgradeTCOPolicyRuleV0ToV1(ctx context.Context, tCOPolicyRule types.List) *TCORuleModel {
+	var tCOPolicyRuleObjects []types.Object
+	tCOPolicyRule.ElementsAs(ctx, &tCOPolicyRuleObjects, true)
+	if len(tCOPolicyRuleObjects) == 0 {
+		return nil
+	}
+
+	var tCORuleModelObjectV0 TCORuleModelV0
+	tCOPolicyRuleObjects[0].As(ctx, &tCORuleModelObjectV0, basetypes.ObjectAsOptions{})
+
+	tCORuleModelObjectV1 := &TCORuleModel{}
+	if tCORuleModelObjectV0.Is.ValueBool() {
+		tCORuleModelObjectV1.RuleType = types.StringValue("is")
+	} else if tCORuleModelObjectV0.IsNot.ValueBool() {
+		tCORuleModelObjectV1.RuleType = types.StringValue("is not")
+	} else if tCORuleModelObjectV0.Include.ValueBool() {
+		tCORuleModelObjectV1.RuleType = types.StringValue("includes")
+	} else if tCORuleModelObjectV0.StartsWith.ValueBool() {
+		tCORuleModelObjectV1.RuleType = types.StringValue("starts with")
+	}
+
+	if rule := tCORuleModelObjectV0.Rule.ValueString(); rule != "" {
+		elements := []attr.Value{types.StringValue(rule)}
+		tCORuleModelObjectV1.Names = types.SetValueMust(types.StringType, elements)
+	} else {
+		rules := tCORuleModelObjectV0.Rules.Elements()
+		elements := make([]attr.Value, 0, len(rules))
+		for _, rule := range rules {
+			elements = append(elements, rule)
+		}
+		tCORuleModelObjectV1.Names = types.SetValueMust(types.StringType, elements)
+	}
+
+	return tCORuleModelObjectV1
+}
+
+type TCORuleModelV0 struct {
+	Is         types.Bool   `tfsdk:"is"`
+	IsNot      types.Bool   `tfsdk:"is_not"`
+	Include    types.Bool   `tfsdk:"include"`
+	StartsWith types.Bool   `tfsdk:"starts_with"`
+	Rule       types.String `tfsdk:"rule"`
+	Rules      types.Set    `tfsdk:"rules"`
+}
+
+func tcoPolicySchemaV0() schema.Schema {
+	return schema.Schema{
+		Version: 0,
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "tco-policy ID.",
+			},
+			"name": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
+				MarkdownDescription: "tco-policy name.",
+			},
+			"description": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(""),
+			},
+			"enabled": schema.BoolAttribute{
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(true),
+				MarkdownDescription: "Determines weather the policy will be enabled. True by default.",
+			},
+			"priority": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(tcoPoliciesValidPriorities...),
+				},
+				MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q.", tcoPoliciesValidPriorities),
+			},
+			"order": schema.Int64Attribute{
+				Required: true,
+				Validators: []validator.Int64{
+					int64validator.AtLeast(1),
+				},
+				Description: "Determines the policy's order between the other policies. Currently, will be computed by creation order.",
+			},
+			"archive_retention_id": schema.StringAttribute{
+				Optional:    true,
+				Description: "Allowing logs with a specific retention to be tagged.",
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
+			},
+			"severities": schema.SetAttribute{
+				Optional:    true,
+				ElementType: types.StringType,
+				Validators: []validator.Set{
+					setvalidator.SizeAtLeast(1),
+					setvalidator.ValueStringsAre(stringvalidator.OneOf(validPolicySeverities...)),
+				},
+				MarkdownDescription: fmt.Sprintf("The severities to apply the policy on. Can be few of %q.", validPolicySeverities),
+			},
+		},
+		Blocks: map[string]schema.Block{
+			"application_name": schema.ListNestedBlock{
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"starts_with": schema.BoolAttribute{},
+						"is":          schema.BoolAttribute{},
+						"is_not":      schema.BoolAttribute{},
+						"includes":    schema.BoolAttribute{},
+						"rule":        schema.StringAttribute{},
+						"rules": schema.SetAttribute{
+							ElementType: types.StringType,
+						},
+					},
+				},
+			},
+			"subsystem_name": schema.ListNestedBlock{
+				NestedObject: schema.NestedBlockObject{
+					Attributes: map[string]schema.Attribute{
+						"starts_with": schema.BoolAttribute{},
+						"is":          schema.BoolAttribute{},
+						"is_not":      schema.BoolAttribute{},
+						"includes":    schema.BoolAttribute{},
+						"rule":        schema.StringAttribute{},
+						"rules": schema.SetAttribute{
+							ElementType: types.StringType,
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func (t *TCOPolicyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	jsm := &jsonpb.Marshaler{}
 	var plan TCOPolicyResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -294,99 +495,17 @@ func (t *TCOPolicyResource) Create(ctx context.Context, req resource.CreateReque
 	policy := createResp.GetPolicy()
 	policyStr, _ = jsm.MarshalToString(policy)
 	log.Printf("[INFO] Submitted new tco-policy: %#v", policy)
-
+	plan.ID = types.StringValue(createResp.GetPolicy().GetId().GetValue())
 	t.updatePoliciesOrder(ctx, plan)
 
-	plan = flattenTCOPolicy(ctx, policy)
+	policy.Order = wrapperspb.Int32(int32(plan.Order.ValueInt64()))
+	plan = flattenTCOPolicy(policy)
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
-	}
-}
-
-func flattenTCOPolicy(ctx context.Context, policy *tcopolicies.Policy) TCOPolicyResourceModel {
-	tcoPolicy := TCOPolicyResourceModel{
-		ID:                 types.StringValue(policy.GetId().GetValue()),
-		Name:               types.StringValue(policy.GetName().GetValue()),
-		Description:        types.StringValue(policy.GetDescription().GetValue()),
-		Enabled:            types.BoolValue(policy.GetEnabled().GetValue()),
-		Order:              types.Int64Value(int64(policy.GetOrder().GetValue())),
-		Priority:           types.StringValue(tcoPoliciesPriorityProtoToSchema[policy.GetPriority()]),
-		Applications:       flattenTCOPolicyRule(policy.GetApplicationRule()),
-		Subsystems:         flattenTCOPolicyRule(policy.GetSubsystemRule()),
-		ArchiveRetentionID: flattenArchiveRetention(policy.GetArchiveRetention()),
-	}
-
-	tcoPolicy = flattenTcoPolicySourceType(ctx, policy, &tcoPolicy)
-
-	return tcoPolicy
-}
-
-func flattenTcoPolicySourceType(ctx context.Context, policy *tcopolicies.Policy, policyModel *TCOPolicyResourceModel) TCOPolicyResourceModel {
-	switch sourceType := policy.GetSourceTypeRules().(type) {
-	case *tcopolicies.Policy_LogRules:
-		logRules := sourceType.LogRules
-		policyModel.Severities = flattenTCOPolicySeverities(logRules.GetSeverities())
-	case *tcopolicies.Policy_SpanRules:
-		spanRule := sourceType.SpanRules
-		policyModel.Actions = flattenTCOPolicyRule(spanRule.GetActionRule())
-		policyModel.Services = flattenTCOPolicyRule(spanRule.GetServiceRule())
-		policyModel.Tags = flattenTCOPolicyTags(ctx, spanRule.GetTagRules())
-	}
-
-	return *policyModel
-}
-
-func flattenTCOPolicyTags(ctx context.Context, tags []*tcopolicies.TagRule) types.Map {
-	if len(tags) == 0 {
-		return types.MapNull(types.StringType)
-	}
-
-	elements := make(map[string]attr.Value)
-	for _, tag := range tags {
-		name := tag.GetTagName().GetValue()
-
-		ruleType := types.StringValue(tcoPoliciesRuleTypeProtoToSchema[tag.GetRuleTypeId()])
-
-		values := strings.Split(tag.GetTagValue().GetValue(), ",")
-		valuesSet := stringSliceToTypeStringSet(values)
-
-		tagRule := TCORuleModel{RuleType: ruleType, Names: valuesSet}
-
-		element, _ := types.ObjectValueFrom(ctx, tcoRuleModelAttr(), tagRule)
-		elements[name] = element
-	}
-
-	types.MapValueMust(types.ObjectType{AttrTypes: tcoRuleModelAttr()}, elements)
-
-	return types.MapValueMust(types.StringType, elements)
-}
-
-func tcoRuleModelAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"rule_type": types.StringType,
-		"names": types.SetType{
-			ElemType: types.StringType,
-		},
-	}
-}
-
-func flattenTCOPolicyRule(rule *tcopolicies.Rule) *TCORuleModel {
-	if rule == nil {
-		return nil
-	}
-
-	ruleType := types.StringValue(tcoPoliciesRuleTypeProtoToSchema[rule.GetRuleTypeId()])
-
-	names := strings.Split(rule.GetName().GetValue(), ",")
-	namesSet := stringSliceToTypeStringSet(names)
-
-	return &TCORuleModel{
-		RuleType: ruleType,
-		Names:    namesSet,
 	}
 }
 
@@ -421,7 +540,7 @@ func (t *TCOPolicyResource) Read(ctx context.Context, req resource.ReadRequest, 
 	policy := getPolicyResp.GetPolicy()
 	log.Printf("[INFO] Received tco-policy: %#v", policy)
 
-	state = flattenTCOPolicy(ctx, policy)
+	state = flattenTCOPolicy(policy)
 	//
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -446,7 +565,7 @@ func (t TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReques
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error updating tco-policy",
-			"Could not update Action, unexpected error: "+err.Error(),
+			"Could not update tco-policy, unexpected error: "+err.Error(),
 		)
 		return
 	}
@@ -454,7 +573,7 @@ func (t TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReques
 
 	t.updatePoliciesOrder(ctx, plan)
 
-	// Get refreshed Action value from Coralogix
+	// Get refreshed tco-policy value from Coralogix
 	id := plan.ID.ValueString()
 	getPolicyResp, err := t.client.GetTCOPolicy(ctx, &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)})
 	if err != nil {
@@ -462,20 +581,20 @@ func (t TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReques
 		if status.Code(err) == codes.NotFound {
 			plan.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Action %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("tco-policy %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
 			resp.Diagnostics.AddError(
-				"Error reading Action",
-				handleRpcErrorNewFramework(err, "Action"),
+				"Error reading tco-policy",
+				handleRpcErrorNewFramework(err, "tco-policy"),
 			)
 		}
 		return
 	}
 	log.Printf("[INFO] Received tco-policy: %#v", getPolicyResp)
 
-	plan = flattenTCOPolicy(ctx, getPolicyResp.GetPolicy())
+	plan = flattenTCOPolicy(getPolicyResp.GetPolicy())
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
@@ -485,29 +604,8 @@ func (t TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 }
 
-func extractUpdateTCOPolicy(ctx context.Context, plan TCOPolicyResourceModel) *tcopolicies.UpdatePolicyRequest {
-	name := typeStringToWrapperspbString(plan.Name)
-	description := typeStringToWrapperspbString(plan.Description)
-	priority := tcoPoliciesPrioritySchemaToProto[plan.Priority.ValueString()]
-	applicationRule := expandTCOPolicyRule(ctx, plan.Applications)
-	subsystemRule := expandTCOPolicyRule(ctx, plan.Subsystems)
-	archiveRetention := expandActiveRetention(plan.ArchiveRetentionID)
-
-	updateRequest := &tcopolicies.UpdatePolicyRequest{
-		Name:             name,
-		Description:      description,
-		Priority:         priority,
-		ApplicationRule:  applicationRule,
-		SubsystemRule:    subsystemRule,
-		ArchiveRetention: archiveRetention,
-	}
-
-	updateRequest = expandSourceTypeRulesUpdate(ctx, plan, updateRequest)
-	return updateRequest
-}
-
 func (t TCOPolicyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state ActionResourceModel
+	var state TCOPolicyResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -526,26 +624,95 @@ func (t TCOPolicyResource) Delete(ctx context.Context, req resource.DeleteReques
 	log.Printf("[INFO] tco-policy %s deleted\n", id)
 }
 
-type TCOPolicyResourceModel struct {
-	ID                 types.String  `tfsdk:"id"`
-	Name               types.String  `tfsdk:"name"`
-	Description        types.String  `tfsdk:"description"`
-	Enabled            types.Bool    `tfsdk:"enabled"`
-	Order              types.Int64   `tfsdk:"order"`
-	Priority           types.String  `tfsdk:"priority"`
-	Applications       *TCORuleModel `tfsdk:"applications"`
-	Subsystems         *TCORuleModel `tfsdk:"subsystems"`
-	ArchiveRetentionID types.String  `tfsdk:"archive_retention_id"`
-	SourceType         types.String  `tfsdk:"source_type"`
-	Severities         types.Set     `tfsdk:"severities"`
-	Services           *TCORuleModel `tfsdk:"services"`
-	Actions            *TCORuleModel `tfsdk:"actions"`
-	Tags               types.Map     `tfsdk:"tags"`
+func flattenTCOPolicy(policy *tcopolicies.Policy) TCOPolicyResourceModel {
+	logRules := policy.GetSourceTypeRules().(*tcopolicies.Policy_LogRules).LogRules
+	tcoPolicy := TCOPolicyResourceModel{
+		ID:                 types.StringValue(policy.GetId().GetValue()),
+		Name:               types.StringValue(policy.GetName().GetValue()),
+		Description:        types.StringValue(policy.GetDescription().GetValue()),
+		Enabled:            types.BoolValue(policy.GetEnabled().GetValue()),
+		Order:              types.Int64Value(int64(policy.GetOrder().GetValue())),
+		Priority:           types.StringValue(tcoPoliciesPriorityProtoToSchema[policy.GetPriority()]),
+		Applications:       flattenTCOPolicyRule(policy.GetApplicationRule()),
+		Subsystems:         flattenTCOPolicyRule(policy.GetSubsystemRule()),
+		ArchiveRetentionID: flattenArchiveRetention(policy.GetArchiveRetention()),
+		Severities:         flattenTCOPolicySeverities(logRules.GetSeverities()),
+	}
+
+	return tcoPolicy
 }
 
-type TCORuleModel struct {
-	RuleType types.String `tfsdk:"rule_type"`
-	Names    types.Set    `tfsdk:"names"`
+//func flattenTCOPolicyTags(ctx context.Context, tags []*tcopolicies.TagRule) types.Map {
+//	if len(tags) == 0 {
+//		return types.MapNull(types.StringType)
+//	}
+//
+//	elements := make(map[string]attr.Value)
+//	for _, tag := range tags {
+//		name := tag.GetTagName().GetValue()
+//
+//		ruleType := types.StringValue(tcoPoliciesRuleTypeProtoToSchema[tag.GetRuleTypeId()])
+//
+//		values := strings.Split(tag.GetTagValue().GetValue(), ",")
+//		valuesSet := stringSliceToTypeStringSet(values)
+//
+//		tagRule := TCORuleModel{RuleType: ruleType, Names: valuesSet}
+//
+//		element, _ := types.ObjectValueFrom(ctx, tcoRuleModelAttr(), tagRule)
+//		elements[name] = element
+//	}
+//
+//	types.MapValueMust(types.ObjectType{AttrTypes: tcoRuleModelAttr()}, elements)
+//
+//	return types.MapValueMust(types.StringType, elements)
+//}
+
+//func tcoRuleModelAttr() map[string]attr.Type {
+//	return map[string]attr.Type{
+//		"rule_type": types.StringType,
+//		"names": types.SetType{
+//			ElemType: types.StringType,
+//		},
+//	}
+//}
+
+func flattenTCOPolicyRule(rule *tcopolicies.Rule) *TCORuleModel {
+	if rule == nil {
+		return nil
+	}
+
+	ruleType := types.StringValue(tcoPoliciesRuleTypeProtoToSchema[rule.GetRuleTypeId()])
+
+	names := strings.Split(rule.GetName().GetValue(), ",")
+	namesSet := stringSliceToTypeStringSet(names)
+
+	return &TCORuleModel{
+		RuleType: ruleType,
+		Names:    namesSet,
+	}
+}
+
+func extractUpdateTCOPolicy(ctx context.Context, plan TCOPolicyResourceModel) *tcopolicies.UpdatePolicyRequest {
+	id := typeStringToWrapperspbString(plan.ID)
+	name := typeStringToWrapperspbString(plan.Name)
+	description := typeStringToWrapperspbString(plan.Description)
+	priority := tcoPoliciesPrioritySchemaToProto[plan.Priority.ValueString()]
+	applicationRule := expandTCOPolicyRule(ctx, plan.Applications)
+	subsystemRule := expandTCOPolicyRule(ctx, plan.Subsystems)
+	archiveRetention := expandActiveRetention(plan.ArchiveRetentionID)
+
+	updateRequest := &tcopolicies.UpdatePolicyRequest{
+		Id:               id,
+		Name:             name,
+		Description:      description,
+		Priority:         priority,
+		ApplicationRule:  applicationRule,
+		SubsystemRule:    subsystemRule,
+		ArchiveRetention: archiveRetention,
+		SourceTypeRules:  expandLogsSourceTypeUpdate(plan),
+	}
+
+	return updateRequest
 }
 
 func extractCreateTcoPolicy(ctx context.Context, plan TCOPolicyResourceModel) *tcopolicies.CreatePolicyRequest {
@@ -563,21 +730,10 @@ func extractCreateTcoPolicy(ctx context.Context, plan TCOPolicyResourceModel) *t
 		ApplicationRule:  applicationRule,
 		SubsystemRule:    subsystemRule,
 		ArchiveRetention: archiveRetention,
+		SourceTypeRules:  expandLogsSourceType(plan),
 	}
 
-	createRequest = expandSourceTypeRules(ctx, plan, createRequest)
 	return createRequest
-}
-
-func expandSourceTypeRules(ctx context.Context, plan TCOPolicyResourceModel, req *tcopolicies.CreatePolicyRequest) *tcopolicies.CreatePolicyRequest {
-	switch plan.SourceType.ValueString() {
-	case "Logs":
-		req.SourceTypeRules = expandLogsSourceType(plan)
-	case "Spans":
-		req.SourceTypeRules = expandSpansSourceType(ctx, plan)
-	}
-
-	return req
 }
 
 func expandLogsSourceType(plan TCOPolicyResourceModel) *tcopolicies.CreatePolicyRequest_LogRules {
@@ -590,54 +746,34 @@ func expandLogsSourceType(plan TCOPolicyResourceModel) *tcopolicies.CreatePolicy
 	}
 }
 
-func expandSpansSourceType(ctx context.Context, plan TCOPolicyResourceModel) *tcopolicies.CreatePolicyRequest_SpanRules {
-	serviceRule := expandTCOPolicyRule(ctx, plan.Services)
-	actionRule := expandTCOPolicyRule(ctx, plan.Actions)
-	tagRules := expandTagsRules(ctx, plan.Tags)
+//func expandSpansSourceType(ctx context.Context, plan TCOPolicyResourceModel) *tcopolicies.CreatePolicyRequest_SpanRules {
+//	serviceRule := expandTCOPolicyRule(ctx, plan.Services)
+//	actionRule := expandTCOPolicyRule(ctx, plan.Actions)
+//	tagRules := expandTagsRules(ctx, plan.Tags)
+//
+//	return &tcopolicies.CreatePolicyRequest_SpanRules{
+//		SpanRules: &tcopolicies.SpanRules{
+//			ServiceRule: serviceRule,
+//			ActionRule:  actionRule,
+//			TagRules:    tagRules,
+//		},
+//	}
+//}
 
-	return &tcopolicies.CreatePolicyRequest_SpanRules{
-		SpanRules: &tcopolicies.SpanRules{
-			ServiceRule: serviceRule,
-			ActionRule:  actionRule,
-			TagRules:    tagRules,
-		},
-	}
-}
-
-func expandTagsRules(ctx context.Context, tags types.Map) []*tcopolicies.TagRule {
-	tagsMap := tags.Elements()
-	result := make([]*tcopolicies.TagRule, 0, len(tagsMap))
-
-	for tagName, tagElement := range tagsMap {
-		tagValue, _ := tagElement.ToTerraformValue(ctx)
-		var tag TCORuleModel
-		tagValue.As(&tag)
-		tagRule := expandTagRule(ctx, tagName, tag)
-		result = append(result, tagRule)
-	}
-
-	return result
-}
-
-func expandTagRule(ctx context.Context, name string, tagRule TCORuleModel) *tcopolicies.TagRule {
-	rule := expandTCOPolicyRule(ctx, &tagRule)
-	return &tcopolicies.TagRule{
-		TagName:    wrapperspb.String(name),
-		RuleTypeId: rule.GetRuleTypeId(),
-		TagValue:   rule.GetName(),
-	}
-}
-
-func expandSourceTypeRulesUpdate(ctx context.Context, plan TCOPolicyResourceModel, req *tcopolicies.UpdatePolicyRequest) *tcopolicies.UpdatePolicyRequest {
-	switch plan.SourceType.ValueString() {
-	case "Logs":
-		req.SourceTypeRules = expandLogsSourceTypeUpdate(plan)
-	case "Spans":
-		req.SourceTypeRules = expandSpansSourceTypeUpdate(ctx, plan)
-	}
-
-	return req
-}
+//func expandTagsRules(ctx context.Context, tags types.Map) []*tcopolicies.TagRule {
+//	tagsMap := tags.Elements()
+//	result := make([]*tcopolicies.TagRule, 0, len(tagsMap))
+//
+//	for tagName, tagElement := range tagsMap {
+//		tagValue, _ := tagElement.ToTerraformValue(ctx)
+//		var tag TCORuleModel
+//		tagValue.As(&tag)
+//		tagRule := expandTagRule(ctx, tagName, tag)
+//		result = append(result, tagRule)
+//	}
+//
+//	return result
+//}
 
 func expandLogsSourceTypeUpdate(plan TCOPolicyResourceModel) *tcopolicies.UpdatePolicyRequest_LogRules {
 	severities := expandTCOPolicySeverities(plan.Severities.Elements())
@@ -647,10 +783,6 @@ func expandLogsSourceTypeUpdate(plan TCOPolicyResourceModel) *tcopolicies.Update
 			Severities: severities,
 		},
 	}
-}
-
-func expandSpansSourceTypeUpdate(ctx context.Context, plan TCOPolicyResourceModel) *tcopolicies.UpdatePolicyRequest_SpanRules {
-	return &tcopolicies.UpdatePolicyRequest_SpanRules{}
 }
 
 func expandTCOPolicyRule(ctx context.Context, rule *TCORuleModel) *tcopolicies.Rule {
@@ -758,22 +890,24 @@ func expandTCOPolicyRule(ctx context.Context, rule *TCORuleModel) *tcopolicies.R
 //}
 
 func (t *TCOPolicyResource) updatePoliciesOrder(ctx context.Context, policy TCOPolicyResourceModel) error {
-	sourceType := tcoPolicySourceTypeSchemaToProto[policy.SourceType.ValueString()]
-	req := &tcopolicies.GetCompanyPoliciesRequest{
+	sourceType := tcopolicies.SourceType_SOURCE_TYPE_LOGS
+	getPoliciesReq := &tcopolicies.GetCompanyPoliciesRequest{
 		EnabledOnly: wrapperspb.Bool(false),
 		SourceType:  &sourceType,
 	}
-	log.Printf("[INFO] Get tco-policies request: %#v", req)
+	getPoliciesReqStr, _ := jsm.MarshalToString(getPoliciesReq)
+	log.Printf("[INFO] Get tco-policies request: %s", getPoliciesReqStr)
 
-	tcoPoliciesResp, err := t.client.GetTCOPolicies(ctx, req)
+	getPoliciesResp, err := t.client.GetTCOPolicies(ctx, getPoliciesReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return err
 	}
 
-	log.Printf("[INFO] Get tco-policies response: %#v", tcoPoliciesResp)
+	getPoliciesRespStr, _ := jsm.MarshalToString(getPoliciesResp)
+	log.Printf("[INFO] Get tco-policies response: %#v", getPoliciesRespStr)
 
-	policies := tcoPoliciesResp.GetPolicies()
+	policies := getPoliciesResp.GetPolicies()
 	policiesIDsByOrder, currentPolicyIndex := getPoliciesIDsByOrderAndCurrentPolicyIndex(policies, policy)
 
 	desiredPolicyIndex := getPolicyDesireIndex(policy, policies)
@@ -787,14 +921,16 @@ func (t *TCOPolicyResource) updatePoliciesOrder(ctx context.Context, policy TCOP
 		Orders:     policiesIDsByOrder,
 		SourceType: sourceType,
 	}
+	reorderReqStr, _ := jsm.MarshalToString(reorderReq)
+	log.Printf("[INFO] Reorder tco-policies request: %s", reorderReqStr)
 
-	log.Printf("[INFO] Reorder tco-policies request: %#v", reorderReq)
-	var resp *tcopolicies.ReorderPoliciesResponse
-	if resp, err = t.client.ReorderTCOPolicies(ctx, reorderReq); err != nil {
+	reorderResp, err := t.client.ReorderTCOPolicies(ctx, reorderReq)
+	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return err
 	}
-	log.Printf("[INFO] Reorder tco-policies response: %#v", resp)
+	reorderRespStr, _ := jsm.MarshalToString(reorderResp)
+	log.Printf("[INFO] Reorder tco-policies response: %s", reorderRespStr)
 
 	return nil
 }
@@ -954,6 +1090,7 @@ func expandTCOPolicySeverities(severities []attr.Value) []tcopolicies.Severity {
 		val, _ := severity.ToTerraformValue(context.Background())
 		var str string
 		val.As(&str)
+		log.Printf("[INFO] %s", str)
 		s := tcoPolicySeveritySchemaToProto[str]
 		result = append(result, s)
 	}

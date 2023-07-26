@@ -20,7 +20,7 @@ func (t TCOPoliciesClient) CreateTCOPolicy(ctx context.Context, req *tcopolicies
 	defer conn.Close()
 	client := tcopolicies.NewPoliciesServiceClient(conn)
 
-	return client.CreatePolicy(ctx, req, callProperties.CallOptions...)
+	return client.CreatePolicy(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 func (t TCOPoliciesClient) GetTCOPolicy(ctx context.Context, req *tcopolicies.GetPolicyRequest) (*tcopolicies.GetPolicyResponse, error) {
@@ -33,7 +33,7 @@ func (t TCOPoliciesClient) GetTCOPolicy(ctx context.Context, req *tcopolicies.Ge
 	defer conn.Close()
 	client := tcopolicies.NewPoliciesServiceClient(conn)
 
-	return client.GetPolicy(ctx, req, callProperties.CallOptions...)
+	return client.GetPolicy(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 func (t TCOPoliciesClient) UpdateTCOPolicy(ctx context.Context, req *tcopolicies.UpdatePolicyRequest) (*tcopolicies.UpdatePolicyResponse, error) {
@@ -46,7 +46,7 @@ func (t TCOPoliciesClient) UpdateTCOPolicy(ctx context.Context, req *tcopolicies
 	defer conn.Close()
 	client := tcopolicies.NewPoliciesServiceClient(conn)
 
-	return client.UpdatePolicy(ctx, req, callProperties.CallOptions...)
+	return client.UpdatePolicy(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 func (t TCOPoliciesClient) DeleteTCOPolicy(ctx context.Context, req *tcopolicies.DeletePolicyRequest) (*tcopolicies.DeletePolicyResponse, error) {
@@ -59,7 +59,7 @@ func (t TCOPoliciesClient) DeleteTCOPolicy(ctx context.Context, req *tcopolicies
 	defer conn.Close()
 	client := tcopolicies.NewPoliciesServiceClient(conn)
 
-	return client.DeletePolicy(ctx, req, callProperties.CallOptions...)
+	return client.DeletePolicy(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 func (t TCOPoliciesClient) GetTCOPolicies(ctx context.Context, req *tcopolicies.GetCompanyPoliciesRequest) (*tcopolicies.GetCompanyPoliciesResponse, error) {
@@ -72,7 +72,7 @@ func (t TCOPoliciesClient) GetTCOPolicies(ctx context.Context, req *tcopolicies.
 	defer conn.Close()
 	client := tcopolicies.NewPoliciesServiceClient(conn)
 
-	return client.GetCompanyPolicies(ctx, req, callProperties.CallOptions...)
+	return client.GetCompanyPolicies(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 func (t TCOPoliciesClient) ReorderTCOPolicies(ctx context.Context, req *tcopolicies.ReorderPoliciesRequest) (*tcopolicies.ReorderPoliciesResponse, error) {
@@ -85,7 +85,7 @@ func (t TCOPoliciesClient) ReorderTCOPolicies(ctx context.Context, req *tcopolic
 	defer conn.Close()
 	client := tcopolicies.NewPoliciesServiceClient(conn)
 
-	return client.ReorderPolicies(ctx, req, callProperties.CallOptions...)
+	return client.ReorderPolicies(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 func NewTCOPoliciesClient(c *CallPropertiesCreator) *TCOPoliciesClient {
