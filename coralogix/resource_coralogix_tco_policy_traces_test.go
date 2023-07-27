@@ -141,7 +141,7 @@ func testAccCoralogixResourceTCOPolicyTraces() string {
 				      names = ["service-name", "service-name2"]
 				  }
 				  tags = {
-					"method" = {
+					method = {
 				    	rule_type = "includes"
 				        names = ["GET", "POST"]
 				    }
@@ -168,7 +168,7 @@ func testAccCoralogixResourceTCOPolicyTraces() string {
 				      names = ["service-name", "service-name2"]
 				  }
 				  tags = {
-					"method" = {
+					method = {
 				    	rule_type = "includes"
 				        names = ["GET", "POST"]
 				    }
@@ -194,7 +194,7 @@ func testAccCoralogixResourceTCOPolicyTraces() string {
 				      names = ["service-name", "service-name2"]
 				  }
 				   tags = {
-					"method" = {
+					method = {
 				    	rule_type = "includes"
 				        names = ["GET", "POST"]
 				    }
