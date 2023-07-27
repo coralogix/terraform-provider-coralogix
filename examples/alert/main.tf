@@ -72,22 +72,6 @@ resource "coralogix_alert" "standard_alert" {
 
 data "coralogix_alert" "imported_standard_alert" {
   id = coralogix_alert.standard_alert.id
-  notifications_group =
-}
-
-resource "alert_notification" "name" {
-  alert_id = "alert-id"
-  notifications_group {
-    notification {
-      integration_id              = ""
-      retriggering_period_minutes = 1
-    }
-    notification {
-      notify_on                   = "Triggered_and_resolved"
-      email_recipients            = ["example@coralogix.com"]
-      retriggering_period_minutes = 1
-    }
-  }
 }
 
 resource "coralogix_alert" "ratio_alert" {
