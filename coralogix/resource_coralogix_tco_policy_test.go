@@ -27,7 +27,7 @@ func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
 				Destroy: false,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "name", "Example tco_policy from terraform 1"),
-					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "priority", "medium"),
+					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "priority", "low"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "order", "1"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "severities.#", "3"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName1, "severities.*", "debug"),
@@ -56,7 +56,7 @@ func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName2, "subsystems.names.#.*", "web"),
 
 					resource.TestCheckResourceAttr(tcoPolicyResourceName3, "name", "Example tco_policy from terraform 3"),
-					resource.TestCheckResourceAttr(tcoPolicyResourceName3, "priority", "medium"),
+					resource.TestCheckResourceAttr(tcoPolicyResourceName3, "priority", "high"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName3, "order", "3"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName3, "severities.#", "3"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName3, "severities.*", "debug"),
@@ -131,7 +131,7 @@ func testAccCoralogixResourceTCOPolicy() string {
 				resource "coralogix_tco_policy" test_3 {
  					name     = "Example tco_policy from terraform 3"
                     order    = coralogix_tco_policy.test_2.order + 1
-  					priority = "medium"
+  					priority = "high"
   					severities = ["debug", "verbose", "info"]
   					applications = {
    						 rule_type = "starts with"
