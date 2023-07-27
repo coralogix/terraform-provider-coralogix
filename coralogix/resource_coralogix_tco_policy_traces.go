@@ -376,7 +376,7 @@ func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.Update
 }
 
 func (r TCOPolicyTracesResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state TCOPolicyResourceModel
+	var state TCOPolicyTracesResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {

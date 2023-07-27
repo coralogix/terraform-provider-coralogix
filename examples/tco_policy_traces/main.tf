@@ -41,6 +41,11 @@ resource "coralogix_tco_policy_traces" "tco_policy_1" {
   archive_retention_id = "e1c980d0-c910-4c54-8326-67f3cf95645a"
 }
 
+data "coralogix_tco_policy_traces" "imported_co_policy_traces_example" {
+  id = coralogix_tco_policy_traces.tco_policy_1.id
+}
+
+
 resource "coralogix_tco_policy_traces" "tco_policy_2" {
   name       = "Example tco_policy from terraform 2"
   priority   = "medium"
