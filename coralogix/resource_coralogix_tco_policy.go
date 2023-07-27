@@ -879,7 +879,7 @@ func expandActiveRetention(archiveRetention types.String) *tcopolicies.ArchiveRe
 	}
 
 	return &tcopolicies.ArchiveRetention{
-		Id: wrapperspb.String(archiveRetention.String()),
+		Id: wrapperspb.String(archiveRetention.ValueString()),
 	}
 }
 
