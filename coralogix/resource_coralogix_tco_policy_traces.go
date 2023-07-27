@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -230,6 +232,9 @@ func (r *TCOPolicyTracesResource) Schema(_ context.Context, _ resource.SchemaReq
 							},
 						},
 					},
+				},
+				Validators: []validator.Map{
+					mapvalidator.KeysAre(stringvalidator.RegexMatches(regexp.MustCompile("tags.*"), "tag names must have 'tags.' prefix")),
 				},
 				MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
 			},
