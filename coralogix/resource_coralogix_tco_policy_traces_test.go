@@ -43,10 +43,10 @@ func TestAccCoralogixResourceTCOPolicyTracesCreate(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "services.names.#", "2"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "services.names.*", "service-name"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "services.names.*", "service-name2"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "services.tags.tags.http.method.rule_type", "includes"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "services.tags.tags.http.method.names.#", "2"),
-					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "services.tags.tags.http.method.names.*", "GET"),
-					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "services.tags.tags.http.method.names.*", "POST"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "services.tags.method.rule_type", "includes"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "services.tags.method.names.#", "2"),
+					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "services.tags.method.names.*", "GET"),
+					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "services.tags.method.names.*", "POST"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "archive_retention_id", "e1c980d0-c910-4c54-8326-67f3cf95645a"),
 
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "name", "Example tco_policy from terraform 2"),
@@ -66,10 +66,10 @@ func TestAccCoralogixResourceTCOPolicyTracesCreate(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "services.names.#", "2"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName2, "services.names.*", "service-name"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName2, "services.names.*", "service-name2"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "services.tags.tags.http.method.rule_type", "includes"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "services.tags.tags.http.method.names.#", "2"),
-					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName2, "services.tags.tags.http.method.names.*", "GET"),
-					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName2, "services.tags.tags.http.method.names.*", "POST"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "services.tags.method.rule_type", "includes"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "services.tags.method.names.#", "2"),
+					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName2, "services.tags.method.names.*", "GET"),
+					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName2, "services.tags.method.names.*", "POST"),
 
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "name", "Example tco_policy from terraform 3"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "priority", "high"),
@@ -88,10 +88,10 @@ func TestAccCoralogixResourceTCOPolicyTracesCreate(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "services.names.#", "2"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName3, "services.names.*", "service-name"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName3, "services.names.*", "service-name2"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "services.tags.tags.http.method.rule_type", "includes"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "services.tags.tags.http.method.names.#", "2"),
-					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName3, "services.tags.tags.http.method.names.*", "GET"),
-					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName3, "services.tags.tags.http.method.names.*", "POST"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "services.tags.method.rule_type", "includes"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "services.tags.method.names.#", "2"),
+					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName3, "services.tags.method.names.*", "GET"),
+					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName3, "services.tags.method.names.*", "POST"),
 				),
 			},
 		},
@@ -141,7 +141,7 @@ func testAccCoralogixResourceTCOPolicyTraces() string {
 				      names = ["service-name", "service-name2"]
 				  }
 				  tags = {
-					"tags.http.method" = {
+					"method" = {
 				    	rule_type = "includes"
 				        names = ["GET", "POST"]
 				    }
@@ -168,7 +168,7 @@ func testAccCoralogixResourceTCOPolicyTraces() string {
 				      names = ["service-name", "service-name2"]
 				  }
 				  tags = {
-					"tags.http.method" = {
+					"method" = {
 				    	rule_type = "includes"
 				        names = ["GET", "POST"]
 				    }
@@ -194,7 +194,7 @@ func testAccCoralogixResourceTCOPolicyTraces() string {
 				      names = ["service-name", "service-name2"]
 				  }
 				   tags = {
-					"tags.http.method" = {
+					"method" = {
 				    	rule_type = "includes"
 				        names = ["GET", "POST"]
 				    }
