@@ -17,7 +17,7 @@ func TestAccCoralogixDataSourceTCOPolicyTraces_basic(t *testing.T) {
 				Config: testAccCoralogixResourceTCOPolicyTraces() +
 					testAccCoralogixResourceTCOPolicyTraces_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(tcoPolicyDataSourceName, "id"),
+					resource.TestCheckResourceAttrSet(tcoPolicyTracesDataSourceName, "id"),
 				),
 			},
 		},
