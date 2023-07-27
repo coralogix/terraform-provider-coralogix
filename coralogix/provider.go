@@ -282,6 +282,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewEvents2MetricDataSource,
 		NewActionDataSource,
 		NewTCOPolicyDataSource,
+		NewTCOPolicyTracesDataSource,
 	}
 }
 
@@ -290,5 +291,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewEvents2MetricResource,
 		NewActionResource,
 		NewTCOPolicyResource,
+		NewTCOPolicyTracesResource,
 	}
 }
