@@ -177,7 +177,7 @@ func testAccCoralogixResourceTCOPolicyTraces() string {
 				
 				resource "coralogix_tco_policy_traces" "test_3" {
 				  name       = "Example tco_policy from terraform 3"
-				  priority   = "medium"
+				  priority   = "high"
 				  order      = coralogix_tco_policy_traces.test_2.order + 1
 				  applications = {
 				    rule_type = "starts with"
