@@ -266,3 +266,8 @@ Breaking Changes:
   rule_type = "starts with"
   names        = ["prod"]
   }`
+  
+DEVELOPERS:
+#### resource/coralogix_tco_policy
+* using grpc endpoint instead of the REST endpoint.
+* moved to `plugin-framework`.
