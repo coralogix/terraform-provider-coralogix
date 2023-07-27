@@ -75,7 +75,7 @@ func TestAccCoralogixResourceTCOPolicyTracesCreate(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "priority", "high"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "order", "3"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "applications.rule_type", "starts with"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "applications.names.0", "staging"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "applications.names.0", "prod"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "subsystems.rule_type", "is not"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "subsystems.names.#", "2"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName3, "subsystems.names.*", "mobile"),
@@ -181,7 +181,7 @@ func testAccCoralogixResourceTCOPolicyTraces() string {
 				  order      = coralogix_tco_policy_traces.test_2.order + 1
 				  applications = {
 				    rule_type = "starts with"
-				    names        = ["staging"]
+				    names        = ["prod"]
 				  }
 				  subsystems = {
 				    rule_type = "is not"
