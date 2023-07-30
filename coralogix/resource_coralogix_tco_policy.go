@@ -80,10 +80,6 @@ type TCOPolicyResourceModel struct {
 	Subsystems         *TCORuleModel `tfsdk:"subsystems"`
 	Severities         types.Set     `tfsdk:"severities"`
 	ArchiveRetentionID types.String  `tfsdk:"archive_retention_id"`
-	//SourceType         types.String  `tfsdk:"source_type"`
-	//Services           *TCORuleModel `tfsdk:"services"`
-	//Actions            *TCORuleModel `tfsdk:"actions"`
-	//Tags               types.Map     `tfsdk:"tags"`
 }
 
 type TCORuleModel struct {
@@ -91,11 +87,11 @@ type TCORuleModel struct {
 	Names    types.Set    `tfsdk:"names"`
 }
 
-func (t *TCOPolicyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *TCOPolicyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_tco_policy"
 }
 
-func (t *TCOPolicyResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *TCOPolicyResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -109,10 +105,10 @@ func (t *TCOPolicyResource) Configure(_ context.Context, req resource.ConfigureR
 		return
 	}
 
-	t.client = clientSet.TCOPolicies()
+	r.client = clientSet.TCOPolicies()
 }
 
-func (t *TCOPolicyResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *TCOPolicyResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 1,
 		Attributes: map[string]schema.Attribute{
@@ -214,82 +210,45 @@ func (t *TCOPolicyResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				},
 				MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
 			},
-			//"actions": schema.SingleNestedAttribute{
-			//	Optional: true,
-			//	Attributes: map[string]schema.Attribute{
-			//		"names": schema.SetAttribute{
-			//			Required:    true,
-			//			ElementType: types.StringType,
-			//			Validators: []validator.Set{
-			//				setvalidator.SizeAtLeast(1),
-			//			},
-			//		},
-			//		"rule_type": schema.StringAttribute{
-			//			Optional: true,
-			//			Computed: true,
-			//			Default:  stringdefault.StaticString("Is"),
-			//			Validators: []validator.String{
-			//				stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
-			//			},
-			//		},
-			//	},
-			//	MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
-			//},
-			//"services": schema.SingleNestedAttribute{
-			//	Optional: true,
-			//	Attributes: map[string]schema.Attribute{
-			//		"names": schema.SetAttribute{
-			//			Required:    true,
-			//			ElementType: types.StringType,
-			//			Validators: []validator.Set{
-			//				setvalidator.SizeAtLeast(1),
-			//			},
-			//		},
-			//		"rule_type": schema.StringAttribute{
-			//			Optional: true,
-			//			Computed: true,
-			//			Default:  stringdefault.StaticString("Is"),
-			//			Validators: []validator.String{
-			//				stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
-			//			},
-			//		},
-			//	},
-			//	MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
-			//},
-			//"tags": schema.MapNestedAttribute{
-			//	Optional: true,
-			//	NestedObject: schema.NestedAttributeObject{
-			//		Attributes: map[string]schema.Attribute{
-			//			"names": schema.SetAttribute{
-			//				Required:    true,
-			//				ElementType: types.StringType,
-			//				Validators: []validator.Set{
-			//					setvalidator.SizeAtLeast(1),
-			//				},
-			//			},
-			//			"rule_type": schema.StringAttribute{
-			//				Optional: true,
-			//				Computed: true,
-			//				Default:  stringdefault.StaticString("Is"),
-			//				Validators: []validator.String{
-			//					stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
-			//				},
-			//			},
-			//		},
-			//	},
-			//	MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
-			//},
 		},
 		MarkdownDescription: "Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api .",
 	}
 }
 
-func (t *TCOPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *TCOPolicyResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var data TCOPolicyResourceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	validateTCORuleModelModel(data.Subsystems, resp)
+
+	validateTCORuleModelModel(data.Applications, resp)
+}
+
+func validateTCORuleModelModel(rule *TCORuleModel, resp *resource.ValidateConfigResponse) {
+	if rule != nil {
+		ruleType := rule.RuleType.ValueString()
+		nameLength := len(rule.Names.Elements())
+		if (ruleType == "starts with" || ruleType == "includes") && nameLength > 1 {
+			resp.Diagnostics.AddAttributeWarning(
+				path.Root("actions"),
+				"Conflicting Attributes Values Configuration",
+				fmt.Sprintf("Currently, rule_type \"%s\" is supportred with only one value, but \"names\" includes %d elements.", ruleType, nameLength),
+			)
+		}
+	}
+}
+
+func (r *TCOPolicyResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 
 }
 
-func (t *TCOPolicyResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
+func (r *TCOPolicyResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
 	schemaV0 := tcoPolicySchemaV0()
 	return map[int64]resource.StateUpgrader{
 		0: {
@@ -473,7 +432,7 @@ func tcoPolicySchemaV0() schema.Schema {
 	}
 }
 
-func (t *TCOPolicyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *TCOPolicyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan TCOPolicyResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -484,7 +443,7 @@ func (t *TCOPolicyResource) Create(ctx context.Context, req resource.CreateReque
 	createPolicyRequest := extractCreateTcoPolicy(ctx, plan)
 	policyStr, _ := jsm.MarshalToString(createPolicyRequest)
 	log.Printf("[INFO] Creating new tco-policy: %s", policyStr)
-	createResp, err := t.client.CreateTCOPolicy(ctx, createPolicyRequest)
+	createResp, err := r.client.CreateTCOPolicy(ctx, createPolicyRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
@@ -497,7 +456,7 @@ func (t *TCOPolicyResource) Create(ctx context.Context, req resource.CreateReque
 	policyStr, _ = jsm.MarshalToString(policy)
 	log.Printf("[INFO] Submitted new tco-policy: %#v", policy)
 	plan.ID = types.StringValue(createResp.GetPolicy().GetId().GetValue())
-	t.updatePoliciesOrder(ctx, plan)
+	r.updatePoliciesOrder(ctx, plan)
 
 	policy.Order = wrapperspb.Int32(int32(plan.Order.ValueInt64()))
 	plan = flattenTCOPolicy(policy)
@@ -510,7 +469,7 @@ func (t *TCOPolicyResource) Create(ctx context.Context, req resource.CreateReque
 	}
 }
 
-func (t *TCOPolicyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *TCOPolicyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state TCOPolicyResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -521,7 +480,7 @@ func (t *TCOPolicyResource) Read(ctx context.Context, req resource.ReadRequest, 
 	//Get refreshed tco-policy value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading tco-policy: %s", id)
-	getPolicyResp, err := t.client.GetTCOPolicy(ctx, &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)})
+	getPolicyResp, err := r.client.GetTCOPolicy(ctx, &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -550,7 +509,7 @@ func (t *TCOPolicyResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 }
 
-func (t TCOPolicyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r TCOPolicyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
 	var plan TCOPolicyResourceModel
 	diags := req.Plan.Get(ctx, &plan)
@@ -561,7 +520,7 @@ func (t TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReques
 
 	policyUpdateReq := extractUpdateTCOPolicy(ctx, plan)
 	log.Printf("[INFO] Updating tco-policy: %#v", policyUpdateReq)
-	policyUpdateResp, err := t.client.UpdateTCOPolicy(ctx, policyUpdateReq)
+	policyUpdateResp, err := r.client.UpdateTCOPolicy(ctx, policyUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
@@ -572,11 +531,11 @@ func (t TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 	log.Printf("[INFO] Submitted updated tco-policy: %#v", policyUpdateResp)
 
-	t.updatePoliciesOrder(ctx, plan)
+	r.updatePoliciesOrder(ctx, plan)
 
 	// Get refreshed tco-policy value from Coralogix
 	id := plan.ID.ValueString()
-	getPolicyResp, err := t.client.GetTCOPolicy(ctx, &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)})
+	getPolicyResp, err := r.client.GetTCOPolicy(ctx, &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -605,7 +564,7 @@ func (t TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 }
 
-func (t TCOPolicyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r TCOPolicyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state TCOPolicyResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -615,7 +574,7 @@ func (t TCOPolicyResource) Delete(ctx context.Context, req resource.DeleteReques
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting tco-policy %s\n", id)
-	if _, err := t.client.DeleteTCOPolicy(ctx, &tcopolicies.DeletePolicyRequest{Id: wrapperspb.String(id)}); err != nil {
+	if _, err := r.client.DeleteTCOPolicy(ctx, &tcopolicies.DeletePolicyRequest{Id: wrapperspb.String(id)}); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting tco-policy %s", state.ID.ValueString()),
 			handleRpcErrorNewFramework(err, "tco-policy"),
@@ -642,40 +601,6 @@ func flattenTCOPolicy(policy *tcopolicies.Policy) TCOPolicyResourceModel {
 
 	return tcoPolicy
 }
-
-//func flattenTCOPolicyTags(ctx context.Context, tags []*tcopolicies.TagRule) types.Map {
-//	if len(tags) == 0 {
-//		return types.MapNull(types.StringType)
-//	}
-//
-//	elements := make(map[string]attr.Value)
-//	for _, tag := range tags {
-//		name := tag.GetTagName().GetValue()
-//
-//		ruleType := types.StringValue(tcoPoliciesRuleTypeProtoToSchema[tag.GetRuleTypeId()])
-//
-//		values := strings.Split(tag.GetTagValue().GetValue(), ",")
-//		valuesSet := stringSliceToTypeStringSet(values)
-//
-//		tagRule := TCORuleModel{RuleType: ruleType, Names: valuesSet}
-//
-//		element, _ := types.ObjectValueFrom(ctx, tcoRuleModelAttr(), tagRule)
-//		elements[name] = element
-//	}
-//
-//	types.MapValueMust(types.ObjectType{AttrTypes: tcoRuleModelAttr()}, elements)
-//
-//	return types.MapValueMust(types.StringType, elements)
-//}
-
-//func tcoRuleModelAttr() map[string]attr.Type {
-//	return map[string]attr.Type{
-//		"rule_type": types.StringType,
-//		"names": types.SetType{
-//			ElemType: types.StringType,
-//		},
-//	}
-//}
 
 func flattenTCOPolicyRule(rule *tcopolicies.Rule) *TCORuleModel {
 	if rule == nil {
@@ -747,35 +672,6 @@ func expandLogsSourceType(plan TCOPolicyResourceModel) *tcopolicies.CreatePolicy
 	}
 }
 
-//func expandSpansSourceType(ctx context.Context, plan TCOPolicyResourceModel) *tcopolicies.CreatePolicyRequest_SpanRules {
-//	serviceRule := expandTCOPolicyRule(ctx, plan.Services)
-//	actionRule := expandTCOPolicyRule(ctx, plan.Actions)
-//	tagRules := expandTagsRules(ctx, plan.Tags)
-//
-//	return &tcopolicies.CreatePolicyRequest_SpanRules{
-//		SpanRules: &tcopolicies.SpanRules{
-//			ServiceRule: serviceRule,
-//			ActionRule:  actionRule,
-//			TagRules:    tagRules,
-//		},
-//	}
-//}
-
-//func expandTagsRules(ctx context.Context, tags types.Map) []*tcopolicies.TagRule {
-//	tagsMap := tags.Elements()
-//	result := make([]*tcopolicies.TagRule, 0, len(tagsMap))
-//
-//	for tagName, tagElement := range tagsMap {
-//		tagValue, _ := tagElement.ToTerraformValue(ctx)
-//		var tag TCORuleModel
-//		tagValue.As(&tag)
-//		tagRule := expandTagRule(ctx, tagName, tag)
-//		result = append(result, tagRule)
-//	}
-//
-//	return result
-//}
-
 func expandLogsSourceTypeUpdate(plan TCOPolicyResourceModel) *tcopolicies.UpdatePolicyRequest_LogRules {
 	severities := expandTCOPolicySeverities(plan.Severities.Elements())
 
@@ -801,7 +697,7 @@ func expandTCOPolicyRule(ctx context.Context, rule *TCORuleModel) *tcopolicies.R
 	}
 }
 
-func (t *TCOPolicyResource) updatePoliciesOrder(ctx context.Context, policy TCOPolicyResourceModel) error {
+func (r *TCOPolicyResource) updatePoliciesOrder(ctx context.Context, policy TCOPolicyResourceModel) error {
 	sourceType := tcopolicies.SourceType_SOURCE_TYPE_LOGS
 	getPoliciesReq := &tcopolicies.GetCompanyPoliciesRequest{
 		EnabledOnly: wrapperspb.Bool(false),
@@ -810,7 +706,7 @@ func (t *TCOPolicyResource) updatePoliciesOrder(ctx context.Context, policy TCOP
 	getPoliciesReqStr, _ := jsm.MarshalToString(getPoliciesReq)
 	log.Printf("[INFO] Get tco-policies request: %s", getPoliciesReqStr)
 
-	getPoliciesResp, err := t.client.GetTCOPolicies(ctx, getPoliciesReq)
+	getPoliciesResp, err := r.client.GetTCOPolicies(ctx, getPoliciesReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return err
@@ -836,7 +732,7 @@ func (t *TCOPolicyResource) updatePoliciesOrder(ctx context.Context, policy TCOP
 	reorderReqStr, _ := jsm.MarshalToString(reorderReq)
 	log.Printf("[INFO] Reorder tco-policies request: %s", reorderReqStr)
 
-	reorderResp, err := t.client.ReorderTCOPolicies(ctx, reorderReq)
+	reorderResp, err := r.client.ReorderTCOPolicies(ctx, reorderReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return err
