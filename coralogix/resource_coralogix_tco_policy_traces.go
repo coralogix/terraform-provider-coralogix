@@ -29,8 +29,9 @@ import (
 )
 
 var (
-	_ resource.ResourceWithConfigure   = &TCOPolicyTracesResource{}
-	_ resource.ResourceWithImportState = &TCOPolicyTracesResource{}
+	_ resource.ResourceWithConfigure      = &TCOPolicyTracesResource{}
+	_ resource.ResourceWithImportState    = &TCOPolicyTracesResource{}
+	_ resource.ResourceWithValidateConfig = &TCOPolicyTracesResource{}
 )
 
 func NewTCOPolicyTracesResource() resource.Resource {
@@ -39,6 +40,40 @@ func NewTCOPolicyTracesResource() resource.Resource {
 
 type TCOPolicyTracesResource struct {
 	client *clientset.TCOPoliciesClient
+}
+
+func (r *TCOPolicyTracesResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var data TCOPolicyTracesResourceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if actions := data.Actions; actions != nil {
+		ruleType := actions.RuleType.ValueString()
+		nameLength := len(actions.Names.Elements())
+		if (ruleType == "starts with" || ruleType == "includes") && nameLength > 1 {
+			resp.Diagnostics.AddAttributeWarning(
+				path.Root("actions"),
+				"Conflicting Attributes values Configuration",
+				fmt.Sprintf("Currently, ruleType \"%s\" is support with only value, but \"names\" includes %d elements.", ruleType, nameLength),
+			)
+		}
+	}
+
+	if services := data.Services; services != nil {
+		ruleType := services.RuleType.ValueString()
+		nameLength := len(services.Names.Elements())
+		if (ruleType == "starts with" || ruleType == "includes") && nameLength > 1 {
+			resp.Diagnostics.AddAttributeWarning(
+				path.Root("actions"),
+				"Conflicting Attributes values Configuration",
+				fmt.Sprintf("Currently, ruleType \"%s\" is support with only value, but \"names\" includes %d elements.", ruleType, nameLength),
+			)
+		}
+	}
 }
 
 type TCOPolicyTracesResourceModel struct {
