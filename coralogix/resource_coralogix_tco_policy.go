@@ -210,73 +210,36 @@ func (r *TCOPolicyResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				},
 				MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
 			},
-			//"actions": schema.SingleNestedAttribute{
-			//	Optional: true,
-			//	Attributes: map[string]schema.Attribute{
-			//		"names": schema.SetAttribute{
-			//			Required:    true,
-			//			ElementType: types.StringType,
-			//			Validators: []validator.Set{
-			//				setvalidator.SizeAtLeast(1),
-			//			},
-			//		},
-			//		"rule_type": schema.StringAttribute{
-			//			Optional: true,
-			//			Computed: true,
-			//			Default:  stringdefault.StaticString("Is"),
-			//			Validators: []validator.String{
-			//				stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
-			//			},
-			//		},
-			//	},
-			//	MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
-			//},
-			//"services": schema.SingleNestedAttribute{
-			//	Optional: true,
-			//	Attributes: map[string]schema.Attribute{
-			//		"names": schema.SetAttribute{
-			//			Required:    true,
-			//			ElementType: types.StringType,
-			//			Validators: []validator.Set{
-			//				setvalidator.SizeAtLeast(1),
-			//			},
-			//		},
-			//		"rule_type": schema.StringAttribute{
-			//			Optional: true,
-			//			Computed: true,
-			//			Default:  stringdefault.StaticString("Is"),
-			//			Validators: []validator.String{
-			//				stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
-			//			},
-			//		},
-			//	},
-			//	MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
-			//},
-			//"tags": schema.MapNestedAttribute{
-			//	Optional: true,
-			//	NestedObject: schema.NestedAttributeObject{
-			//		Attributes: map[string]schema.Attribute{
-			//			"names": schema.SetAttribute{
-			//				Required:    true,
-			//				ElementType: types.StringType,
-			//				Validators: []validator.Set{
-			//					setvalidator.SizeAtLeast(1),
-			//				},
-			//			},
-			//			"rule_type": schema.StringAttribute{
-			//				Optional: true,
-			//				Computed: true,
-			//				Default:  stringdefault.StaticString("Is"),
-			//				Validators: []validator.String{
-			//					stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
-			//				},
-			//			},
-			//		},
-			//	},
-			//	MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
-			//},
 		},
 		MarkdownDescription: "Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api .",
+	}
+}
+
+func (r *TCOPolicyResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var data TCOPolicyResourceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	validateTCORuleModelModel(data.Subsystems, "subsystems", resp)
+
+	validateTCORuleModelModel(data.Applications, "applications", resp)
+}
+
+func validateTCORuleModelModel(rule *TCORuleModel, root string, resp *resource.ValidateConfigResponse) {
+	if rule != nil {
+		ruleType := rule.RuleType.ValueString()
+		nameLength := len(rule.Names.Elements())
+		if (ruleType == "starts with" || ruleType == "includes") && nameLength > 1 {
+			resp.Diagnostics.AddAttributeWarning(
+				path.Root(root),
+				"Conflicting Attributes Values Configuration",
+				fmt.Sprintf("Currently, rule_type \"%s\" is supportred with only one value, but \"names\" includes %d elements.", ruleType, nameLength),
+			)
+		}
 	}
 }
 
@@ -639,40 +602,6 @@ func flattenTCOPolicy(policy *tcopolicies.Policy) TCOPolicyResourceModel {
 	return tcoPolicy
 }
 
-//func flattenTCOPolicyTags(ctx context.Context, tags []*tcopolicies.TagRule) types.Map {
-//	if len(tags) == 0 {
-//		return types.MapNull(types.StringType)
-//	}
-//
-//	elements := make(map[string]attr.Value)
-//	for _, tag := range tags {
-//		name := tag.GetTagName().GetValue()
-//
-//		ruleType := types.StringValue(tcoPoliciesRuleTypeProtoToSchema[tag.GetRuleTypeId()])
-//
-//		values := strings.Split(tag.GetTagValue().GetValue(), ",")
-//		valuesSet := stringSliceToTypeStringSet(values)
-//
-//		tagRule := TCORuleModel{RuleType: ruleType, Names: valuesSet}
-//
-//		element, _ := types.ObjectValueFrom(ctx, tcoRuleModelAttr(), tagRule)
-//		elements[name] = element
-//	}
-//
-//	types.MapValueMust(types.ObjectType{AttrTypes: tcoRuleModelAttr()}, elements)
-//
-//	return types.MapValueMust(types.StringType, elements)
-//}
-
-//func tcoRuleModelAttr() map[string]attr.Type {
-//	return map[string]attr.Type{
-//		"rule_type": types.StringType,
-//		"names": types.SetType{
-//			ElemType: types.StringType,
-//		},
-//	}
-//}
-
 func flattenTCOPolicyRule(rule *tcopolicies.Rule) *TCORuleModel {
 	if rule == nil {
 		return nil
@@ -742,35 +671,6 @@ func expandLogsSourceType(plan TCOPolicyResourceModel) *tcopolicies.CreatePolicy
 		},
 	}
 }
-
-//func expandSpansSourceType(ctx context.Context, plan TCOPolicyResourceModel) *tcopolicies.CreatePolicyRequest_SpanRules {
-//	serviceRule := expandTCOPolicyRule(ctx, plan.Services)
-//	actionRule := expandTCOPolicyRule(ctx, plan.Actions)
-//	tagRules := expandTagsRules(ctx, plan.Tags)
-//
-//	return &tcopolicies.CreatePolicyRequest_SpanRules{
-//		SpanRules: &tcopolicies.SpanRules{
-//			ServiceRule: serviceRule,
-//			ActionRule:  actionRule,
-//			TagRules:    tagRules,
-//		},
-//	}
-//}
-
-//func expandTagsRules(ctx context.Context, tags types.Map) []*tcopolicies.TagRule {
-//	tagsMap := tags.Elements()
-//	result := make([]*tcopolicies.TagRule, 0, len(tagsMap))
-//
-//	for tagName, tagElement := range tagsMap {
-//		tagValue, _ := tagElement.ToTerraformValue(ctx)
-//		var tag TCORuleModel
-//		tagValue.As(&tag)
-//		tagRule := expandTagRule(ctx, tagName, tag)
-//		result = append(result, tagRule)
-//	}
-//
-//	return result
-//}
 
 func expandLogsSourceTypeUpdate(plan TCOPolicyResourceModel) *tcopolicies.UpdatePolicyRequest_LogRules {
 	severities := expandTCOPolicySeverities(plan.Severities.Elements())

@@ -42,40 +42,6 @@ type TCOPolicyTracesResource struct {
 	client *clientset.TCOPoliciesClient
 }
 
-func (r *TCOPolicyTracesResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
-	var data TCOPolicyTracesResourceModel
-
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	if actions := data.Actions; actions != nil {
-		ruleType := actions.RuleType.ValueString()
-		nameLength := len(actions.Names.Elements())
-		if (ruleType == "starts with" || ruleType == "includes") && nameLength > 1 {
-			resp.Diagnostics.AddAttributeWarning(
-				path.Root("actions"),
-				"Conflicting Attributes values Configuration",
-				fmt.Sprintf("Currently, ruleType \"%s\" is support with only value, but \"names\" includes %d elements.", ruleType, nameLength),
-			)
-		}
-	}
-
-	if services := data.Services; services != nil {
-		ruleType := services.RuleType.ValueString()
-		nameLength := len(services.Names.Elements())
-		if (ruleType == "starts with" || ruleType == "includes") && nameLength > 1 {
-			resp.Diagnostics.AddAttributeWarning(
-				path.Root("actions"),
-				"Conflicting Attributes values Configuration",
-				fmt.Sprintf("Currently, ruleType \"%s\" is support with only value, but \"names\" includes %d elements.", ruleType, nameLength),
-			)
-		}
-	}
-}
-
 type TCOPolicyTracesResourceModel struct {
 	ID                 types.String  `tfsdk:"id"`
 	Name               types.String  `tfsdk:"name"`
@@ -276,6 +242,36 @@ func (r *TCOPolicyTracesResource) Schema(_ context.Context, _ resource.SchemaReq
 		},
 		MarkdownDescription: "Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api .",
 	}
+}
+
+func (r *TCOPolicyTracesResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var data TCOPolicyTracesResourceModel
+
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	validateTCORuleModelModel(data.Subsystems, "subsystems", resp)
+
+	validateTCORuleModelModel(data.Applications, "applications", resp)
+
+	validateTCORuleModelModel(data.Services, "services", resp)
+
+	validateTCORuleModelModel(data.Actions, "actions", resp)
+
+	var tagsMap map[string]TCORuleModel
+	diags := data.Tags.ElementsAs(ctx, &tagsMap, true)
+	if diags != nil {
+		resp.Diagnostics.Append(diags...)
+	} else {
+		for tagName, tagRule := range tagsMap {
+			root := fmt.Sprintf("tags.%s", tagName)
+			validateTCORuleModelModel(&tagRule, root, resp)
+		}
+	}
+
 }
 
 func (r *TCOPolicyTracesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
