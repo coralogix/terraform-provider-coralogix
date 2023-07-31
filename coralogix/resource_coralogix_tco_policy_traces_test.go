@@ -43,7 +43,7 @@ func TestAccCoralogixResourceTCOPolicyTracesCreate(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "services.names.#", "2"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "services.names.*", "service-name"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "services.names.*", "service-name2"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "tags.tags.http.method", "includes"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "tags.tags.http.method.rule_type", "includes"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "tags.tags.http.method.names.#", "2"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "tags.tags.http.method.names.*", "GET"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "services.tags.tags.http.method.names.*", "POST"),
