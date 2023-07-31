@@ -224,18 +224,18 @@ func (r *TCOPolicyResource) ValidateConfig(ctx context.Context, req resource.Val
 		return
 	}
 
-	validateTCORuleModelModel(data.Subsystems, resp)
+	validateTCORuleModelModel(data.Subsystems, "subsystems", resp)
 
-	validateTCORuleModelModel(data.Applications, resp)
+	validateTCORuleModelModel(data.Applications, "applications", resp)
 }
 
-func validateTCORuleModelModel(rule *TCORuleModel, resp *resource.ValidateConfigResponse) {
+func validateTCORuleModelModel(rule *TCORuleModel, root string, resp *resource.ValidateConfigResponse) {
 	if rule != nil {
 		ruleType := rule.RuleType.ValueString()
 		nameLength := len(rule.Names.Elements())
 		if (ruleType == "starts with" || ruleType == "includes") && nameLength > 1 {
 			resp.Diagnostics.AddAttributeWarning(
-				path.Root("actions"),
+				path.Root(root),
 				"Conflicting Attributes Values Configuration",
 				fmt.Sprintf("Currently, rule_type \"%s\" is supportred with only one value, but \"names\" includes %d elements.", ruleType, nameLength),
 			)
