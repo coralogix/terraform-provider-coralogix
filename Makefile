@@ -8,7 +8,10 @@ OS_ARCH=darwin_arm64
 
 default: install
 
-build:
+deps:
+	go mod tidy
+
+build: deps
 	go build -o ${BINARY}
 
 release:
@@ -36,5 +39,13 @@ test:
 testacc:
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
 
+tools:
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.2
+	go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@v0.14.1
+
+lint: tools
+	golangci-lint run ./...
+
 generate:
+	terraform fmt -recursive ./examples/
 	go generate

@@ -12,7 +12,7 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_dashboard" dashboard {
+resource "coralogix_dashboard" "dashboard" {
   name        = "dont drop me!"
   description = "dashboards team is messing with this 🗿"
   layout {
@@ -34,7 +34,7 @@ resource "coralogix_dashboard" dashboard {
               }
               legend {
                 is_visible = true
-                column    = ["Max", "Last"]
+                column     = ["Max", "Last"]
               }
             }
           }
@@ -58,7 +58,7 @@ resource "coralogix_dashboard" dashboard {
               }
               legend {
                 is_visible = true
-                column    = ["Min", "Max", "Sum", "Avg", "Last"]
+                column     = ["Min", "Max", "Sum", "Avg", "Last"]
               }
             }
           }
@@ -84,7 +84,7 @@ resource "coralogix_dashboard" dashboard {
               }
               legend {
                 is_visible = true
-                column    = ["Max", "Last"]
+                column     = ["Max", "Last"]
               }
             }
           }
@@ -161,9 +161,9 @@ resource "coralogix_dashboard" dashboard {
       }
     }
   }
-  filter{
-    source{
-      logs{
+  filter {
+    source {
+      logs {
         field = "coralogix.metadata.applicationName"
         operator {
           equals {
@@ -177,7 +177,7 @@ resource "coralogix_dashboard" dashboard {
   }
 }
 
-resource "coralogix_dashboard" test {
+resource "coralogix_dashboard" "test" {
   name        = "dont drop me!"
   description = "dashboards team is messing with this 🗿"
   layout {
@@ -199,7 +199,7 @@ resource "coralogix_dashboard" test {
               }
               legend {
                 is_visible = true
-                column    = ["Max", "Last"]
+                column     = ["Max", "Last"]
               }
             }
           }
@@ -223,7 +223,7 @@ resource "coralogix_dashboard" test {
               }
               legend {
                 is_visible = true
-                column    = ["Min", "Max", "Sum", "Avg", "Last"]
+                column     = ["Min", "Max", "Sum", "Avg", "Last"]
               }
             }
           }
@@ -249,7 +249,7 @@ resource "coralogix_dashboard" test {
               }
               legend {
                 is_visible = true
-                column    = ["Max", "Last"]
+                column     = ["Max", "Last"]
               }
             }
           }
@@ -328,6 +328,6 @@ resource "coralogix_dashboard" test {
   }
 }
 
-resource "coralogix_dashboard" dashboard_from_json {
+resource "coralogix_dashboard" "dashboard_from_json" {
   content_json = file("./dashboard.json")
 }

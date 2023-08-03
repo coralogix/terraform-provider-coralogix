@@ -12,13 +12,13 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_action" action {
+resource "coralogix_action" "action" {
   is_private  = false
   source_type = "Log"
   name        = "google search action"
   url         = "https://www.google.com/search?q={{$p.selected_value}}"
 }
 
-data "coralogix_action" imported_action {
+data "coralogix_action" "imported_action" {
   id = coralogix_action.action.id
 }

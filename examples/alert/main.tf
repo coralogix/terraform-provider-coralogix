@@ -56,7 +56,7 @@ resource "coralogix_alert" "standard_alert" {
   }
 
   standard {
-    applications = ["filter:contains:nginx"] //change here for existing applications from your account
+    applications = ["filter:contains:nginx"]            //change here for existing applications from your account
     subsystems   = ["filter:startsWith:subsystem-name"] //change here for existing subsystems from your account
     severities   = ["Warning", "Info"]
     search_query = "remote_addr_enriched:/.*/"
@@ -105,7 +105,7 @@ resource "coralogix_alert" "ratio_alert" {
 
     }
     query_2 {
-      applications = ["nginx"] //change here for existing applications from your account
+      applications = ["nginx"]          //change here for existing applications from your account
       subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
       severities   = ["Warning"]
     }
@@ -253,7 +253,7 @@ resource "coralogix_alert" "metric_promql_alert" {
     notification {
       notify_on                   = "Triggered_and_resolved"
       email_recipients            = ["example@coralogix.com"]
-      retriggering_period_minutes = 24*60
+      retriggering_period_minutes = 24 * 60
     }
   }
 
@@ -348,7 +348,7 @@ resource "coralogix_alert" "tracing_alert" {
 
   tracing {
     latency_threshold_milliseconds = 20.5
-    applications                   = [
+    applications = [
       "application_name", "filter:contains:application-name2", "filter:endsWith:application-name3",
       "filter:startsWith:application-name4"
     ]

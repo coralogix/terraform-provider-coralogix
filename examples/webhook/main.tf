@@ -240,9 +240,9 @@ resource "coralogix_webhook" "sendlog_webhook" {
 
 //example of how to use webhooks that was created via terraform
 resource "coralogix_alert" "standard_alert" {
-  name           = "Standard alert example"
-  description    = "Example of standard alert from terraform"
-  severity = "Critical"
+  name        = "Standard alert example"
+  description = "Example of standard alert from terraform"
+  severity    = "Critical"
 
   notifications_group {
     notification {

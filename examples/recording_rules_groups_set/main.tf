@@ -12,11 +12,11 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_recording_rules_groups_set" recording_rules_group {
+resource "coralogix_recording_rules_groups_set" "recording_rules_group" {
   yaml_content = file("./rule-group-set.yaml")
 }
 
-resource "coralogix_recording_rules_groups_set" recording_rules_groups_set_explicit {
+resource "coralogix_recording_rules_groups_set" "recording_rules_groups_set_explicit" {
   name = "Name"
   group {
     name     = "Foo"

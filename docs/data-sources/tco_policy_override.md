@@ -20,7 +20,7 @@ description: |-
 - `application_name` (String) The application to apply the policy on. Applies the policy on all the applications by default.
 - `id` (String) The ID of this resource.
 - `priority` (String) The policy-override priority. Can be one of ["high" "medium" "low" "block"].
-- `severity` (String) The severity to apply the policy on. Can be one of ["debug" "verbose" "info" "warning" "error" "critical"].
+- `severity` (String) The severity to apply the policy on. Can be one of ["critical" "debug" "verbose" "info" "warning" "error"].
 - `subsystem_name` (String) The subsystem to apply the policy on. Applies the policy on all the subsystems by default.
 
 
