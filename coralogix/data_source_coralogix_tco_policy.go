@@ -27,7 +27,7 @@ type TCOPolicyDataSource struct {
 }
 
 func (d *TCOPolicyDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_tco_policy"
+	resp.TypeName = req.ProviderTypeName + "_tco_policy_logs"
 }
 
 func (d *TCOPolicyDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {

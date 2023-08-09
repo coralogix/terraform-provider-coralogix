@@ -249,8 +249,7 @@ INTERNAL CHANGES:
 
 ## Release 1.7.0
 Breaking Changes:
-#### resource/coralogix_tco_policy
-**Please note** - this version contains a [State Upgrader](https://developer.hashicorp.com/terraform/plugin/framework/migrating/resources/state-upgrade#framework). It will upgrade the state to the new schema. Please make sure to back up your state before upgrading.
+#### resource/coralogix_tco_policy was changed to coralogix_tco_policy_logs and contains the next changes:
 * `subsystem_name` was changed to `subsystems` and have different structure e.g. - 
 `subsystem_name {
   is    = true
@@ -263,10 +262,12 @@ Breaking Changes:
   starts_with = true
   rule        = "prod"
   }` => `applications = {
-  rule_type = "starts with"
+  rule_type = "starts_with"
   names        = ["prod"]
   }`
-  
+
+**Please note** - this version contains a [State Upgrader](https://developer.hashicorp.com/terraform/plugin/framework/migrating/resources/state-upgrade#framework). It will upgrade the state to the new schema. Please make sure to back up your state before upgrading.
+(for upgrading the schemas the resource names have to be change manually to coralogix_tco_policy_logs before upgrading)
 DEVELOPERS:
 #### resource/coralogix_tco_policy
 * using grpc endpoint instead of the REST endpoint.
