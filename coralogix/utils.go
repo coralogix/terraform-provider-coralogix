@@ -304,15 +304,45 @@ func wrappedStringSliceToTypeStringSlice(s []*wrapperspb.StringValue) types.Set 
 	return types.SetValueMust(types.StringType, elements)
 }
 
-func typeStringSliceToWrappedStringSlice(s []attr.Value) []*wrapperspb.StringValue {
+func typeStringSliceToWrappedStringSlice(ctx context.Context, s []attr.Value) ([]*wrapperspb.StringValue, diag2.Diagnostics) {
+	var diags diag2.Diagnostics
 	result := make([]*wrapperspb.StringValue, 0, len(s))
 	for _, v := range s {
-		val, _ := v.ToTerraformValue(context.Background())
+		val, err := v.ToTerraformValue(ctx)
+		if err != nil {
+			diags.AddError("Failed to convert value to Terraform", err.Error())
+			continue
+		}
 		var str string
-		val.As(&str)
+
+		if err = val.As(&str); err != nil {
+			diags.AddError("Failed to convert value to string", err.Error())
+			continue
+		}
 		result = append(result, wrapperspb.String(str))
 	}
-	return result
+	return result, diags
+}
+
+func typeInt64ToWrappedInt64(v types.Int64) *wrapperspb.Int64Value {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return wrapperspb.Int64(v.ValueInt64())
+}
+
+func typeInt64ToWrappedInt32(v types.Int64) *wrapperspb.Int32Value {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return wrapperspb.Int32(int32(v.ValueInt64()))
+}
+
+func typeBoolToWrapperspbBool(v types.Bool) *wrapperspb.BoolValue {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return wrapperspb.Bool(v.ValueBool())
 }
 
 func timeInDaySchema(description string) *schema.Schema {

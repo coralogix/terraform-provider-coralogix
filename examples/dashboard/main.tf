@@ -328,6 +328,44 @@ resource "coralogix_dashboard" test {
   }
 }
 
+resource "coralogix_dashboard" "example1" {
+  time_frame = {
+    type = "absolute"
+    from = "14:00" //(only if absolute)
+    to = "16:00" //(only if absolute)
+  }
+  //or
+  time_frame = {
+    type = "relative"
+    duration = "2H"//(only if relative)
+  }
+}
+
+resource "coralogix_dashboard" "example2" {
+  time_frame = {
+    //exactly one of one of relative or absolute are required
+    relative = {
+      duration = "2H"
+    }
+    absolute = {
+      from = "14:00"
+      to = "16:00"
+    }
+  }
+}
+
+resource "coralogix_dashboard" "example3" {
+  //exactly one of relative_time_frame and absolute_time_frame are required
+  relative_time_frame = {
+    duration = "2H"
+  }
+
+  absolute_time_frame = {
+    from = "14:00"
+    to = "16:00"
+  }
+}
+
 resource "coralogix_dashboard" dashboard_from_json {
   content_json = file("./dashboard.json")
 }
