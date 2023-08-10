@@ -823,10 +823,17 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 			},
 			"time_frame": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
-					"type":     schema.StringAttribute{},
-					"start":    schema.StringAttribute{},
-					"end":      schema.StringAttribute{},
-					"duration": schema.StringAttribute{},
+					"absolute": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"start": schema.StringAttribute{},
+							"end":   schema.StringAttribute{},
+						},
+					},
+					"relative": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"duration": schema.StringAttribute{},
+						},
+					},
 				},
 			},
 		},
@@ -879,7 +886,12 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	plan = flattenDashboard(ctx, getDashboardResp.GetDashboard())
+	flattenedDashboard, diags := flattenDashboard(ctx, getDashboardResp.GetDashboard())
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	plan = *flattenedDashboard
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
@@ -2855,41 +2867,278 @@ func expandDashboardUUID(id types.String) *dashboards.UUID {
 	return &dashboards.UUID{Value: id.ValueString()}
 }
 
-func flattenDashboard(ctx context.Context, dashboard *dashboards.Dashboard) DashboardResourceModel {
-	return DashboardResourceModel{
+func flattenDashboard(ctx context.Context, dashboard *dashboards.Dashboard) (*DashboardResourceModel, diag.Diagnostics) {
+	layout, diags := flattenDashboardLayout(ctx, dashboard.GetLayout())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &DashboardResourceModel{
 		ID:          types.StringValue(dashboard.GetId().GetValue()),
 		Name:        types.StringValue(dashboard.GetName().GetValue()),
 		Description: types.StringValue(dashboard.GetDescription().GetValue()),
-		Layout:      flattenDashboardLayout(ctx, dashboard.GetLayout()),
+		Layout:      layout,
 		Variables:   flattenDashboardVariables(ctx, dashboard.GetVariables()),
 		Filters:     flattenDashboardFilters(ctx, dashboard.GetFilters()),
-		TimeFrame:   flattenDashboardTimeFrame(ctx, dashboard),
-	}
+		TimeFrame:   flattenDashboardTimeFrame(dashboard),
+	}, nil
 }
 
-func flattenDashboardLayout(ctx context.Context, layout *dashboards.Layout) *DashboardLayoutModel {
-	return &DashboardLayoutModel{
-		Sections: flattenDashboardSections(ctx, layout.GetSections()),
+func flattenDashboardLayout(ctx context.Context, layout *dashboards.Layout) (*DashboardLayoutModel, diag.Diagnostics) {
+	sections, diags := flattenDashboardSections(ctx, layout.GetSections())
+	if diags.HasError() {
+		return nil, diags
 	}
+
+	return &DashboardLayoutModel{
+		Sections: sections,
+	}, nil
 }
 
 func flattenDashboardSections(ctx context.Context, sections []*dashboards.Section) (types.List, diag.Diagnostics) {
 	if len(sections) == 0 {
-		return types.ListNull(types.ObjectType{}), nil
+		return types.ListNull(sectionModelAttr()), nil
 	}
-	elements := make([]attr.Value, 0, len(sections))
-	for _, v := range sections {
-		elements = append(elements, types.ObjectValueMust())
-	}
-	return types.SetValueMust(types.StringType, elements)
-
 	sectionList := make([]SectionModel, 0, len(sections))
 	for _, section := range sections {
 		flattenedSection := flattenDashboardSection(ctx, section)
 		sectionList = append(sectionList, flattenedSection)
 	}
 
-	return types.ListValueFrom(ctx, types.ObjectType{}, sectionList)
+	return types.ListValueFrom(ctx, sectionModelAttr(), sectionList)
+}
+
+func sectionModelAttr() attr.Type {
+	return types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"id": types.StringType,
+			"rows": types.ListType{
+				ElemType: types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"id":     types.StringType,
+						"height": types.Int64Type,
+						"widgets": types.ListType{
+							ElemType: types.ObjectType{
+								AttrTypes: map[string]attr.Type{
+									"id":          types.StringType,
+									"title":       types.StringType,
+									"description": types.StringType,
+									"definition": types.ObjectType{
+										AttrTypes: map[string]attr.Type{
+											"line_chart": types.ObjectType{
+												AttrTypes: map[string]attr.Type{
+													"legend": types.ObjectType{
+														AttrTypes: map[string]attr.Type{
+															"is_visible": types.BoolType,
+															"columns": types.ListType{
+																ElemType: types.ObjectType{
+																	AttrTypes: map[string]attr.Type{
+																		"legend": types.ObjectType{
+																			AttrTypes: map[string]attr.Type{
+																				"is_visible": types.BoolType,
+																				"columns": types.ListType{
+																					ElemType: types.StringType,
+																				},
+																				"group_by_query": types.BoolType,
+																			},
+																		},
+																		"tooltip": types.ObjectType{
+																			AttrTypes: map[string]attr.Type{
+																				"show_label": types.BoolType,
+																				"type":       types.StringType,
+																			},
+																		},
+																		"query_definitions": types.ListType{
+																			ElemType: types.ObjectType{
+																				AttrTypes: map[string]attr.Type{
+																					"id":                   types.StringType,
+																					"query":                types.StringType,
+																					"series_name_template": types.StringType,
+																					"series_count_limit":   types.Int64Type,
+																					"unit":                 types.StringType,
+																					"scale_type":           types.StringType,
+																					"name":                 types.StringType,
+																					"is_visible":           types.BoolType,
+																				},
+																			},
+																		},
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+											"data_table": types.ObjectType{
+												AttrTypes: map[string]attr.Type{
+													"query": types.ObjectType{
+														AttrTypes: map[string]attr.Type{
+															"logs": types.ObjectType{
+																AttrTypes: map[string]attr.Type{
+																	"lucene_query": types.StringType,
+																	"filters": types.ListType{
+																		ElemType: types.ObjectType{
+																			AttrTypes: map[string]attr.Type{
+																				"field":    types.StringType,
+																				"operator": types.StringType,
+																			},
+																		},
+																	},
+																	"grouping": types.ObjectType{
+																		AttrTypes: map[string]attr.Type{
+																			"group_by": types.StringType,
+																			"aggregations": types.ListType{
+																				ElemType: types.ObjectType{
+																					AttrTypes: map[string]attr.Type{
+																						"id":         types.StringType,
+																						"name":       types.StringType,
+																						"is_visible": types.BoolType,
+																						"aggregation": types.ObjectType{
+																							AttrTypes: map[string]attr.Type{
+																								"type":  types.StringType,
+																								"field": types.StringType,
+																							},
+																						},
+																					},
+																				},
+																			},
+																		},
+																	},
+																},
+															},
+														},
+													},
+												},
+											},
+											"gauge": types.ObjectType{
+												AttrTypes: map[string]attr.Type{
+													"query": types.ObjectType{
+														AttrTypes: map[string]attr.Type{
+															"metrics": types.ListType{
+																ElemType: types.ObjectType{
+																	AttrTypes: map[string]attr.Type{
+																		"promql_query": types.StringType,
+																		"aggregation": types.StringType,
+																		"filters": types.ListType{
+																			ElemType: types.ObjectType{
+																				AttrTypes: map[string]attr.Type{
+																					"metric": types.StringType,
+
+																				}
+																			}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+											"gauge": schema.SingleNestedAttribute{
+												Attributes: map[string]schema.Attribute{
+													"query": schema.SingleNestedAttribute{
+														Attributes: map[string]schema.Attribute{
+															"metrics": schema.SingleNestedAttribute{
+																Attributes: map[string]schema.Attribute{
+																	"promql_query": schema.StringAttribute{},
+																	"aggregation": schema.StringAttribute{
+																		Validators: []validator.String{
+																			stringvalidator.OneOf("sum", "avg", "min", "max", "last"),
+																		},
+																	},
+																	"filters": schema.ListNestedAttribute{
+																		NestedObject: schema.NestedAttributeObject{
+																			Attributes: map[string]schema.Attribute{
+																				"metric": schema.StringAttribute{},
+																				"label":  schema.StringAttribute{},
+																				"operator": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{
+																						"type": schema.StringAttribute{
+																							Required: true,
+																							Validators: []validator.String{
+																								stringvalidator.OneOf("equals", "not_equals"),
+																							},
+																						},
+																						"values": schema.ListAttribute{
+																							ElementType: types.StringType,
+																						},
+																					},
+																				},
+																			},
+																		},
+																	},
+																	"logs": schema.SingleNestedAttribute{
+																		Attributes: map[string]schema.Attribute{
+																			"lucene_query": schema.StringAttribute{},
+																			"logs_aggregation": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"type": schema.StringAttribute{
+																						Required: true,
+																						Validators: []validator.String{
+																							stringvalidator.OneOf("count", "count_distinct", "sum", "average", "min", "max"),
+																						},
+																					},
+																					"field": schema.StringAttribute{
+																						Optional: true,
+																					},
+																				},
+																			},
+																			"aggregation": schema.StringAttribute{
+																				Validators: []validator.String{
+																					stringvalidator.OneOf("sum", "avg", "min", "max", "last"),
+																				},
+																			},
+																			"filters": schema.ListNestedAttribute{
+																				NestedObject: schema.NestedAttributeObject{
+																					Attributes: map[string]schema.Attribute{
+																						"field": schema.SingleNestedAttribute{
+																							Attributes: map[string]schema.Attribute{
+																								"type": schema.StringAttribute{
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("metadata", "tag", "process_tag"),
+																									},
+																								},
+																								"field": schema.StringAttribute{
+																									Required: true,
+																								},
+																							},
+																						},
+																						"operator": schema.SingleNestedAttribute{
+																							Attributes: map[string]schema.Attribute{
+																								"type": schema.StringAttribute{
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("equals", "not_equals"),
+																									},
+																								},
+																								"values": schema.ListAttribute{
+																									ElementType: types.StringType,
+																								},
+																							},
+																						},
+																					},
+																				},
+																			},
+																		},
+																	},
+																},
+															},
+															"spans": schema.SingleNestedAttribute{},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 func flattenDashboardSection(ctx context.Context, section *dashboards.Section) SectionModel {
@@ -2904,27 +3153,27 @@ func flattenDashboardFilters(ctx context.Context, filters []*dashboards.Filter) 
 
 }
 
-func flattenDashboardTimeFrame(ctx context.Context, d *dashboards.Dashboard) *DashboardTimeFrameModel {
+func flattenDashboardTimeFrame(d *dashboards.Dashboard) *DashboardTimeFrameModel {
 	switch d.GetTimeFrame().(type) {
-	case *dashboards.Dashboard_AbsoluteeTimeFrame:
-		return flattenAbsoluteDashboardTimeFrame(ctx, d.GetAbsoluteeTimeFrame())
+	case *dashboards.Dashboard_AbsoluteTimeFrame:
+		return flattenAbsoluteDashboardTimeFrame(d.GetAbsoluteTimeFrame())
 	case *dashboards.Dashboard_RelativeTimeFrame:
-		return flattenRelativeDashboardTimeFrame(ctx, d.GetRelativeTimeFrame())
+		return flattenRelativeDashboardTimeFrame(d.GetRelativeTimeFrame())
 	default:
 		return nil
 	}
 }
 
-func flattenAbsoluteDashboardTimeFrame(ctx context.Context, timeFrame *dashboards.TimeFrame) *DashboardTimeFrameModel {
+func flattenAbsoluteDashboardTimeFrame(timeFrame *dashboards.TimeFrame) *DashboardTimeFrameModel {
 	return &DashboardTimeFrameModel{
 		Absolute: &DashboardTimeFrameAbsoluteModel{
-			From: types.TimestampValue(timeFrame.GetFrom()),
-			To:   types.TimestampValue(timeFrame.GetTo()),
+			From: types.StringValue(timeFrame.GetFrom().String()),
+			To:   types.StringValue(timeFrame.GetTo().String()),
 		},
 	}
 }
 
-func flattenRelativeDashboardTimeFrame(ctx context.Context, timeFrame *durationpb.Duration) *DashboardTimeFrameModel {
+func flattenRelativeDashboardTimeFrame(timeFrame *durationpb.Duration) *DashboardTimeFrameModel {
 	return &DashboardTimeFrameModel{
 		Relative: &DashboardTimeFrameRelativeModel{
 			Duration: types.StringValue(timeFrame.String()),
@@ -2975,7 +3224,7 @@ type SectionModel struct {
 type RowModel struct {
 	ID      types.String `tfsdk:"id"`
 	Height  types.Int64  `tfsdk:"height"`
-	Widgets types.List   `tfsdk:"widget"`
+	Widgets types.List   `tfsdk:"widgets"`
 }
 
 type WidgetModel struct {
