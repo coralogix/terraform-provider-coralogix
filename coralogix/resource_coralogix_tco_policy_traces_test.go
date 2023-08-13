@@ -29,32 +29,31 @@ func TestAccCoralogixResourceTCOPolicyTracesCreate(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "name", "Example tco_policy from terraform 1"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "priority", "low"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "order", "1"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "applications.rule_type", "starts with"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "applications.rule_type", "starts_with"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "applications.names.0", "prod"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "subsystems.rule_type", "is"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "subsystems.names.#", "2"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "subsystems.names.*", "mobile"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "subsystems.names.*", "web"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "actions.rule_type", "is not"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "actions.rule_type", "is_not"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "actions.names.#", "2"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "actions.names.*", "action-name"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "actions.names.*", "action-name2"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "services.rule_type", "includes"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "services.rule_type", "is"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "services.names.#", "2"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "services.names.*", "service-name"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "services.names.*", "service-name2"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "tags.tags.http.method.rule_type", "includes"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "tags.tags.http.method.names.#", "2"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "tags.tags.http.method.names.#", "1"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "tags.tags.http.method.names.*", "GET"),
-					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName1, "tags.tags.http.method.names.*", "POST"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName1, "archive_retention_id", "e1c980d0-c910-4c54-8326-67f3cf95645a"),
 
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "name", "Example tco_policy from terraform 2"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "priority", "medium"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "order", "2"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "applications.rule_type", "starts with"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "applications.rule_type", "starts_with"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "applications.names.0", "staging"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "subsystems.rule_type", "is not"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "subsystems.rule_type", "is_not"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName2, "subsystems.names.#", "2"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName2, "subsystems.names.*", "mobile"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName2, "subsystems.names.*", "web"),
@@ -74,9 +73,9 @@ func TestAccCoralogixResourceTCOPolicyTracesCreate(t *testing.T) {
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "name", "Example tco_policy from terraform 3"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "priority", "high"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "order", "3"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "applications.rule_type", "starts with"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "applications.rule_type", "starts_with"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "applications.names.0", "prod"),
-					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "subsystems.rule_type", "is not"),
+					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "subsystems.rule_type", "is_not"),
 					resource.TestCheckResourceAttr(tcoPolicyTracesResourceName3, "subsystems.names.#", "2"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName3, "subsystems.names.*", "mobile"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyTracesResourceName3, "subsystems.names.*", "web"),
@@ -126,24 +125,24 @@ func testAccCoralogixResourceTCOPolicyTraces() string {
 				  priority   = "low"
 				  order      = 1
 				  applications = {
-				    rule_type = "starts with"
+				    rule_type = "starts_with"
 				    names        = ["prod"]
 				  }
 				  subsystems = {
 				    names = ["mobile", "web"]
 				  }
 				  actions = {
-				    rule_type = "is not"
+				    rule_type = "is_not"
 				    names = ["action-name", "action-name2"]
 				  }
 				  services = {
-				      rule_type = "includes"
+				      rule_type = "is"
 				      names = ["service-name", "service-name2"]
 				  }
 				  tags = {
 					"tags.http.method" = {
 				    	rule_type = "includes"
-				        names = ["GET", "POST"]
+				        names = ["GET"]
 				    }
 				  }
 				  archive_retention_id = "e1c980d0-c910-4c54-8326-67f3cf95645a"
@@ -154,11 +153,11 @@ func testAccCoralogixResourceTCOPolicyTraces() string {
 				  priority   = "medium"
 				  order      = coralogix_tco_policy_traces.test_1.order + 1
 				  applications = {
-				    rule_type = "starts with"
+				    rule_type = "starts_with"
 				    names        = ["staging"]
 				  }
 				  subsystems = {
-				    rule_type = "is not"
+				    rule_type = "is_not"
 				    names = ["mobile", "web"]
 				  }
 				  actions = {
@@ -180,11 +179,11 @@ func testAccCoralogixResourceTCOPolicyTraces() string {
 				  priority   = "high"
 				  order      = coralogix_tco_policy_traces.test_2.order + 1
 				  applications = {
-				    rule_type = "starts with"
+				    rule_type = "starts_with"
 				    names        = ["prod"]
 				  }
 				  subsystems = {
-				    rule_type = "is not"
+				    rule_type = "is_not"
 				    names = ["mobile", "web"]
 				  }
 				  actions = {

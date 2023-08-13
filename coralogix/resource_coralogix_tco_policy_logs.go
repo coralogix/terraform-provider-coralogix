@@ -42,8 +42,8 @@ var (
 	tcoPoliciesValidPriorities       = GetKeys(tcoPoliciesPrioritySchemaToProto)
 	tcoPoliciesRuleTypeSchemaToProto = map[string]tcopolicies.RuleTypeId{
 		"is":          tcopolicies.RuleTypeId_RULE_TYPE_ID_IS,
-		"is not":      tcopolicies.RuleTypeId_RULE_TYPE_ID_IS_NOT,
-		"starts with": tcopolicies.RuleTypeId_RULE_TYPE_ID_START_WITH,
+		"is_not":      tcopolicies.RuleTypeId_RULE_TYPE_ID_IS_NOT,
+		"starts_with": tcopolicies.RuleTypeId_RULE_TYPE_ID_START_WITH,
 		"includes":    tcopolicies.RuleTypeId_RULE_TYPE_ID_INCLUDES,
 	}
 	tcoPoliciesRuleTypeProtoToSchema = ReverseMap(tcoPoliciesRuleTypeSchemaToProto)
@@ -88,7 +88,7 @@ type TCORuleModel struct {
 }
 
 func (r *TCOPolicyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_tco_policy"
+	resp.TypeName = req.ProviderTypeName + "_tco_policy_logs"
 }
 
 func (r *TCOPolicyResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -185,6 +185,7 @@ func (r *TCOPolicyResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 						Validators: []validator.String{
 							stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
 						},
+						MarkdownDescription: fmt.Sprintf("The rule type. Can be one of %q.", tcoPoliciesValidRuleTypes),
 					},
 				},
 				MarkdownDescription: "The applications to apply the policy on. Applies the policy on all the applications by default.",
@@ -233,7 +234,7 @@ func validateTCORuleModelModel(rule *TCORuleModel, root string, resp *resource.V
 	if rule != nil {
 		ruleType := rule.RuleType.ValueString()
 		nameLength := len(rule.Names.Elements())
-		if (ruleType == "starts with" || ruleType == "includes") && nameLength > 1 {
+		if (ruleType == "starts_with" || ruleType == "includes") && nameLength > 1 {
 			resp.Diagnostics.AddAttributeWarning(
 				path.Root(root),
 				"Conflicting Attributes Values Configuration",
@@ -308,11 +309,11 @@ func upgradeTCOPolicyRuleV0ToV1(ctx context.Context, tCOPolicyRule types.List) *
 	if tCORuleModelObjectV0.Is.ValueBool() {
 		tCORuleModelObjectV1.RuleType = types.StringValue("is")
 	} else if tCORuleModelObjectV0.IsNot.ValueBool() {
-		tCORuleModelObjectV1.RuleType = types.StringValue("is not")
+		tCORuleModelObjectV1.RuleType = types.StringValue("is_not")
 	} else if tCORuleModelObjectV0.Include.ValueBool() {
 		tCORuleModelObjectV1.RuleType = types.StringValue("includes")
 	} else if tCORuleModelObjectV0.StartsWith.ValueBool() {
-		tCORuleModelObjectV1.RuleType = types.StringValue("starts with")
+		tCORuleModelObjectV1.RuleType = types.StringValue("starts_with")
 	}
 
 	if rule := tCORuleModelObjectV0.Rule.ValueString(); rule != "" {

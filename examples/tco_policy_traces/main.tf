@@ -17,7 +17,7 @@ resource "coralogix_tco_policy_traces" "tco_policy_1" {
   priority     = "low"
   order        = 1
   applications = {
-    rule_type = "starts with"
+    rule_type = "starts_with"
     names     = ["prod"]
   }
   subsystems = {
@@ -25,17 +25,17 @@ resource "coralogix_tco_policy_traces" "tco_policy_1" {
     names     = ["mobile", "web"]
   }
   actions = {
-    rule_type = "is not"
+    rule_type = "is_not"
     names     = ["action-name", "action-name2"]
   }
   services = {
-    rule_type = "includes"
+    rule_type = "is"
     names     = ["service-name", "service-name2"]
   }
   tags = {
     "tags.http.method" = {
       rule_type = "includes"
-      names     = ["GET", "POST"]
+      names     = ["GET"]
     }
   }
   archive_retention_id = "e1c980d0-c910-4c54-8326-67f3cf95645a"
@@ -51,11 +51,11 @@ resource "coralogix_tco_policy_traces" "tco_policy_2" {
   priority     = "medium"
   order        = 2
   applications = {
-    rule_type = "starts with"
+    rule_type = "starts_with"
     names     = ["staging"]
   }
   subsystems = {
-    rule_type = "is not"
+    rule_type = "is_not"
     names     = ["mobile", "web"]
   }
   actions = {
@@ -66,7 +66,7 @@ resource "coralogix_tco_policy_traces" "tco_policy_2" {
   }
   tags = {
     "tags.http.method" = {
-      rule_type = "is not"
+      rule_type = "is_not"
       names     = ["GET", "POST"]
     }
   }
@@ -77,11 +77,11 @@ resource "coralogix_tco_policy_traces" "tco_policy_3" {
   priority     = "medium"
   order        = 3
   applications = {
-    rule_type = "starts with"
+    rule_type = "starts_with"
     names     = ["staging"]
   }
   subsystems = {
-    rule_type = "is not"
+    rule_type = "is_not"
     names     = ["mobile", "web"]
   }
   actions = {
@@ -92,7 +92,7 @@ resource "coralogix_tco_policy_traces" "tco_policy_3" {
   }
   tags = {
     "tags.http.method" = {
-      rule_type = "is not"
+      rule_type = "is_not"
       names     = ["GET", "POST"]
     }
   }

@@ -12,9 +12,9 @@ import (
 	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 )
 
-var tcoPolicyResourceName1 = "coralogix_tco_policy.test_1"
-var tcoPolicyResourceName2 = "coralogix_tco_policy.test_2"
-var tcoPolicyResourceName3 = "coralogix_tco_policy.test_3"
+var tcoPolicyResourceName1 = "coralogix_tco_policy_logs.test_1"
+var tcoPolicyResourceName2 = "coralogix_tco_policy_logs.test_2"
+var tcoPolicyResourceName3 = "coralogix_tco_policy_logs.test_3"
 
 func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -33,7 +33,7 @@ func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName1, "severities.*", "debug"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName1, "severities.*", "verbose"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName1, "severities.*", "info"),
-					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "applications.rule_type", "starts with"),
+					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "applications.rule_type", "starts_with"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "applications.names.0", "prod"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "subsystems.rule_type", "is"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName1, "subsystems.names.#", "2"),
@@ -48,7 +48,7 @@ func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName2, "severities.*", "error"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName2, "severities.*", "warning"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName2, "severities.*", "critical"),
-					resource.TestCheckResourceAttr(tcoPolicyResourceName2, "applications.rule_type", "starts with"),
+					resource.TestCheckResourceAttr(tcoPolicyResourceName2, "applications.rule_type", "starts_with"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName2, "applications.names.0", "prod"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName2, "subsystems.rule_type", "is"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName2, "subsystems.names.#", "2"),
@@ -62,7 +62,7 @@ func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName3, "severities.*", "debug"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName3, "severities.*", "verbose"),
 					resource.TestCheckTypeSetElemAttr(tcoPolicyResourceName3, "severities.*", "info"),
-					resource.TestCheckResourceAttr(tcoPolicyResourceName3, "applications.rule_type", "starts with"),
+					resource.TestCheckResourceAttr(tcoPolicyResourceName3, "applications.rule_type", "starts_with"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName3, "applications.names.0", "prod"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName3, "subsystems.rule_type", "is"),
 					resource.TestCheckResourceAttr(tcoPolicyResourceName3, "subsystems.names.#", "2"),
@@ -78,7 +78,7 @@ func testAccTCOPolicyCheckDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*clientset.ClientSet).TCOPolicies()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "coralogix_tco_policy" {
+		if rs.Type != "coralogix_tco_policy_logs" {
 			continue
 		}
 
@@ -97,13 +97,13 @@ func testAccTCOPolicyCheckDestroy(s *terraform.State) error {
 
 func testAccCoralogixResourceTCOPolicy() string {
 	return fmt.Sprintf(
-		`resource "coralogix_tco_policy" test_1 {
+		`resource "coralogix_tco_policy_logs" test_1 {
  					name       = "Example tco_policy from terraform 1"
   					priority   = "low"
 					order      = 1
 					severities = ["debug", "verbose", "info"]
  					applications = {
- 					  rule_type = "starts with"
+ 					  rule_type = "starts_with"
  					  names        = ["prod"]
  					}
  					subsystems = {
@@ -113,13 +113,13 @@ func testAccCoralogixResourceTCOPolicy() string {
  					archive_retention_id = "e1c980d0-c910-4c54-8326-67f3cf95645a"
 				}
 
-				resource "coralogix_tco_policy" test_2 {
+				resource "coralogix_tco_policy_logs" test_2 {
  					  name     = "Example tco_policy from terraform 2"
                       priority = "medium"
-					  order = coralogix_tco_policy.test_1.order + 1
+					  order = coralogix_tco_policy_logs.test_1.order + 1
   					 severities = ["error", "warning", "critical"]
   					 applications = {
-   						 rule_type = "starts with"
+   						 rule_type = "starts_with"
     					 names        = ["prod"]
   					}
   					subsystems = {
@@ -128,13 +128,13 @@ func testAccCoralogixResourceTCOPolicy() string {
 					}
 				}
 
-				resource "coralogix_tco_policy" test_3 {
+				resource "coralogix_tco_policy_logs" test_3 {
  					name     = "Example tco_policy from terraform 3"
-                    order    = coralogix_tco_policy.test_2.order + 1
+                    order    = coralogix_tco_policy_logs.test_2.order + 1
   					priority = "high"
   					severities = ["debug", "verbose", "info"]
   					applications = {
-   						 rule_type = "starts with"
+   						 rule_type = "starts_with"
     					 names        = ["prod"]
   					}
   					subsystems = {

@@ -25,8 +25,8 @@ func TestAccCoralogixDataSourceTCOPolicy_basic(t *testing.T) {
 }
 
 func testAccCoralogixResourceTCOPolicy_read() string {
-	return `data "coralogix_tco_policy" "test_1" {
-		id = coralogix_tco_policy.test_1.id
+	return `data "coralogix_tco_policy_logs" "test_1" {
+		id = coralogix_tco_policy_logs.test_1.id
 }
 `
 }
