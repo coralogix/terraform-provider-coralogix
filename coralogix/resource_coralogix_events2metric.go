@@ -1405,11 +1405,11 @@ func flattenSpansQuery(query *e2m.SpansQuery) *SpansQueryModel {
 		return nil
 	}
 	return &SpansQueryModel{
-		Lucene:       wrapperspbStringToTypeStringTo(query.GetLucene()),
-		Applications: wrappedStringSliceToTypeStringSlice(query.GetApplicationnameFilters()),
-		Subsystems:   wrappedStringSliceToTypeStringSlice(query.GetSubsystemnameFilters()),
-		Actions:      wrappedStringSliceToTypeStringSlice(query.GetActionFilters()),
-		Services:     wrappedStringSliceToTypeStringSlice(query.GetServiceFilters()),
+		Lucene:       wrapperspbStringToTypeString(query.GetLucene()),
+		Applications: wrappedStringSliceToTypeStringSet(query.GetApplicationnameFilters()),
+		Subsystems:   wrappedStringSliceToTypeStringSet(query.GetSubsystemnameFilters()),
+		Actions:      wrappedStringSliceToTypeStringSet(query.GetActionFilters()),
+		Services:     wrappedStringSliceToTypeStringSet(query.GetServiceFilters()),
 	}
 }
 
@@ -1418,9 +1418,9 @@ func flattenLogsQuery(query *l2m.LogsQuery) *LogsQueryModel {
 		return nil
 	}
 	return &LogsQueryModel{
-		Lucene:       wrapperspbStringToTypeStringTo(query.GetLucene()),
-		Applications: wrappedStringSliceToTypeStringSlice(query.GetApplicationnameFilters()),
-		Subsystems:   wrappedStringSliceToTypeStringSlice(query.GetSubsystemnameFilters()),
+		Lucene:       wrapperspbStringToTypeString(query.GetLucene()),
+		Applications: wrappedStringSliceToTypeStringSet(query.GetApplicationnameFilters()),
+		Subsystems:   wrappedStringSliceToTypeStringSet(query.GetSubsystemnameFilters()),
 		Severities:   flattenLogQuerySeverities(query.GetSeverityFilters()),
 	}
 }

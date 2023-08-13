@@ -293,7 +293,7 @@ func wrappedStringSliceToStringSlice(s []*wrapperspb.StringValue) []string {
 	return result
 }
 
-func wrappedStringSliceToTypeStringSlice(s []*wrapperspb.StringValue) types.Set {
+func wrappedStringSliceToTypeStringSet(s []*wrapperspb.StringValue) types.Set {
 	if len(s) == 0 {
 		return types.SetNull(types.StringType)
 	}
@@ -302,6 +302,17 @@ func wrappedStringSliceToTypeStringSlice(s []*wrapperspb.StringValue) types.Set 
 		elements = append(elements, types.StringValue(v.GetValue()))
 	}
 	return types.SetValueMust(types.StringType, elements)
+}
+
+func wrappedStringSliceToTypeStringList(s []*wrapperspb.StringValue) types.List {
+	if len(s) == 0 {
+		return types.ListNull(types.StringType)
+	}
+	elements := make([]attr.Value, 0, len(s))
+	for _, v := range s {
+		elements = append(elements, types.StringValue(v.GetValue()))
+	}
+	return types.ListValueMust(types.StringType, elements)
 }
 
 func typeStringSliceToWrappedStringSlice(ctx context.Context, s []attr.Value) ([]*wrapperspb.StringValue, diag2.Diagnostics) {
@@ -625,12 +636,36 @@ func typeStringToWrapperspbString(str types.String) *wrapperspb.StringValue {
 	return result
 }
 
-func wrapperspbStringToTypeStringTo(str *wrapperspb.StringValue) types.String {
+func wrapperspbStringToTypeString(str *wrapperspb.StringValue) types.String {
 	if str == nil {
 		return types.StringNull()
 	}
 
 	return types.StringValue(str.GetValue())
+}
+
+func wrapperspbInt64ToTypeInt64(num *wrapperspb.Int64Value) types.Int64 {
+	if num == nil {
+		return types.Int64Null()
+	}
+
+	return types.Int64Value(num.GetValue())
+}
+
+func wrapperspbBoolToTypeBool(b *wrapperspb.BoolValue) types.Bool {
+	if b == nil {
+		return types.BoolNull()
+	}
+
+	return types.BoolValue(b.GetValue())
+}
+
+func wrapperspbInt32ToTypeInt64(num *wrapperspb.Int32Value) types.Int64 {
+	if num == nil {
+		return types.Int64Null()
+	}
+
+	return types.Int64Value(int64(num.GetValue()))
 }
 
 func ReverseMap[K, V comparable](m map[K]V) map[V]K {

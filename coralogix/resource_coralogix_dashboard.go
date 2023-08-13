@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/jsonpb"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -57,16 +58,9 @@ var (
 		"avg":         dashboards.Gauge_AGGREGATION_AVG,
 		"sum":         dashboards.Gauge_AGGREGATION_SUM,
 	}
-	dashboardAggregationProtoToSchema        = ReverseMap(dashboardAggregationSchemaToProto)
-	dashboardValidAggregation                = GetKeys(dashboardAggregationSchemaToProto)
-	dashboardSchemaGaugeUnitToProtoGaugeUnit = map[string]string{
-		"Unspecified": "Gauge_UNIT_UNSPECIFIED",
-		"Number":      "Gauge_UNIT_NUMBER",
-		"Percent":     "Gauge_UNIT_PERCENT",
-	}
-	dashboardProtoGaugeUnitToSchemaGaugeUnit = reverseMapStrings(dashboardSchemaGaugeUnitToProtoGaugeUnit)
-	dashboardValidGaugeUnit                  = getKeysStrings(dashboardSchemaGaugeUnitToProtoGaugeUnit)
-	dashboardSchemaToProtoTooltipType        = map[string]dashboards.LineChart_TooltipType{
+	dashboardAggregationProtoToSchema = ReverseMap(dashboardAggregationSchemaToProto)
+	dashboardValidAggregation         = GetKeys(dashboardAggregationSchemaToProto)
+	dashboardSchemaToProtoTooltipType = map[string]dashboards.LineChart_TooltipType{
 		"unspecified": dashboards.LineChart_TOOLTIP_TYPE_UNSPECIFIED,
 		"all":         dashboards.LineChart_TOOLTIP_TYPE_ALL,
 		"single":      dashboards.LineChart_TOOLTIP_TYPE_SINGLE,
@@ -81,18 +75,18 @@ var (
 	dashboardProtoToSchemaScaleType = ReverseMap(dashboardSchemaToProtoScaleType)
 	dashboardValidScaleType         = GetKeys(dashboardSchemaToProtoScaleType)
 	dashboardSchemaToProtoUnit      = map[string]dashboards.Unit{
-		"UNSPECIFIED":  dashboards.Unit_UNIT_UNSPECIFIED,
-		"MICROSECONDS": dashboards.Unit_UNIT_MICROSECONDS,
-		"MILLISECONDS": dashboards.Unit_UNIT_MILLISECONDS,
-		"SECONDS":      dashboards.Unit_UNIT_SECONDS,
-		"BYTES":        dashboards.Unit_UNIT_BYTES,
-		"KBYTES":       dashboards.Unit_UNIT_KBYTES,
-		"MBYTES":       dashboards.Unit_UNIT_MBYTES,
-		"GBYTES":       dashboards.Unit_UNIT_GBYTES,
-		"BYTES_IEC":    dashboards.Unit_UNIT_BYTES_IEC,
-		"KIBYTES":      dashboards.Unit_UNIT_KIBYTES,
-		"MIBYTES":      dashboards.Unit_UNIT_MIBYTES,
-		"GIBYTES":      dashboards.Unit_UNIT_GIBYTES,
+		"unspecified":  dashboards.Unit_UNIT_UNSPECIFIED,
+		"microseconds": dashboards.Unit_UNIT_MICROSECONDS,
+		"milliseconds": dashboards.Unit_UNIT_MILLISECONDS,
+		"seconds":      dashboards.Unit_UNIT_SECONDS,
+		"bytes":        dashboards.Unit_UNIT_BYTES,
+		"kbytes":       dashboards.Unit_UNIT_KBYTES,
+		"mbytes":       dashboards.Unit_UNIT_MBYTES,
+		"gbytes":       dashboards.Unit_UNIT_GBYTES,
+		"bytes_iec":    dashboards.Unit_UNIT_BYTES_IEC,
+		"kibytes":      dashboards.Unit_UNIT_KIBYTES,
+		"mibytes":      dashboards.Unit_UNIT_MIBYTES,
+		"gibytes":      dashboards.Unit_UNIT_GIBYTES,
 	}
 	dashboardProtoToSchemaUnit                = ReverseMap(dashboardSchemaToProtoUnit)
 	dashboardValidUnit                        = GetKeys(dashboardSchemaToProtoUnit)
@@ -149,7 +143,9 @@ var (
 		"service_name":     dashboards.SpanField_METADATA_FIELD_SERVICE_NAME,
 		"operation_name":   dashboards.SpanField_METADATA_FIELD_OPERATION_NAME,
 	}
-	dashboardProtoToSchemaLegendColumn = map[string]dashboards.Legend_LegendColumn{
+	dashboardProtoToSchemaSpanFieldMetadataField = ReverseMap(dashboardSchemaToProtoSpanFieldMetadataField)
+	dashboardValidSpanFieldMetadataFields        = GetKeys(dashboardSchemaToProtoSpanFieldMetadataField)
+	dashboardProtoToSchemaLegendColumn           = map[string]dashboards.Legend_LegendColumn{
 		"unspecified": dashboards.Legend_LEGEND_COLUMN_UNSPECIFIED,
 		"min":         dashboards.Legend_LEGEND_COLUMN_MIN,
 		"max":         dashboards.Legend_LEGEND_COLUMN_MAX,
@@ -167,6 +163,426 @@ var (
 	_ resource.ResourceWithConfigValidators = &DashboardResource{}
 	_ resource.ResourceWithImportState      = &DashboardResource{}
 )
+
+type DashboardResourceModel struct {
+	ID          types.String             `tfsdk:"id"`
+	Name        types.String             `tfsdk:"name"`
+	Description types.String             `tfsdk:"description"`
+	Layout      *DashboardLayoutModel    `tfsdk:"layout"`
+	Variables   types.List               `tfsdk:"variables"`
+	Filters     types.List               `tfsdk:"filters"`
+	TimeFrame   *DashboardTimeFrameModel `tfsdk:"time_frame"`
+	ContentJson types.String             `tfsdk:"content_json"`
+}
+
+type DashboardLayoutModel struct {
+	Sections types.List `tfsdk:"sections"`
+}
+
+type SectionModel struct {
+	ID   types.String `tfsdk:"id"`
+	Rows types.List   `tfsdk:"rows"`
+}
+
+type RowModel struct {
+	ID      types.String `tfsdk:"id"`
+	Height  types.Int64  `tfsdk:"height"`
+	Widgets types.List   `tfsdk:"widgets"`
+}
+
+type WidgetModel struct {
+	ID          types.String           `tfsdk:"id"`
+	Title       types.String           `tfsdk:"title"`
+	Description types.String           `tfsdk:"description"`
+	Definition  *WidgetDefinitionModel `tfsdk:"definition"`
+	Width       types.Int64            `tfsdk:"width"`
+}
+
+type WidgetDefinitionModel struct {
+	LineChart *LineChartModel `tfsdk:"line_chart"`
+	DataTable *DataTableModel `tfsdk:"data_table"`
+	Gauge     *GaugeModel     `tfsdk:"gauge"`
+	PieChart  *PieChartModel  `tfsdk:"pie_chart"`
+	BarChart  *BarChartModel  `tfsdk:"bar_chart"`
+}
+
+type LineChartModel struct {
+	Legend           *LegendModel  `tfsdk:"legend"`
+	Tooltip          *TooltipModel `tfsdk:"tooltip"`
+	QueryDefinitions types.List    `tfsdk:"query_definitions"`
+}
+
+type LegendModel struct {
+	IsVisible    types.Bool `tfsdk:"is_visible"`
+	Columns      types.List `tfsdk:"columns"`
+	GroupByQuery types.Bool `tfsdk:"group_by_query"`
+}
+
+type TooltipModel struct {
+	ShowLabels types.Bool   `tfsdk:"show_labels"`
+	Type       types.String `tfsdk:"type"`
+}
+
+type LineChartQueryDefinitionModel struct {
+	ID                 types.String         `tfsdk:"id"`
+	Query              *LineChartQueryModel `tfsdk:"query"`
+	SeriesNameTemplate types.String         `tfsdk:"series_name_template"`
+	SeriesCountLimit   types.Int64          `tfsdk:"series_count_limit"`
+	Unit               types.String         `tfsdk:"unit"`
+	ScaleType          types.String         `tfsdk:"scale_type"`
+	Name               types.String         `tfsdk:"name"`
+	IsVisible          types.Bool           `tfsdk:"is_visible"`
+}
+
+type LineChartQueryModel struct {
+	Logs    *LineChartQueryLogsModel    `tfsdk:"logs"`
+	Metrics *LineChartQueryMetricsModel `tfsdk:"metrics"`
+	Spans   *LineChartQuerySpansModel   `tfsdk:"spans"`
+}
+
+type LineChartQueryLogsModel struct {
+	LuceneQuery  types.String `tfsdk:"lucene_query"`
+	GroupBy      types.List   `tfsdk:"group_by"`
+	Aggregations types.List   `tfsdk:"aggregations"`
+	Filters      types.List   `tfsdk:"filters"`
+}
+
+type FilterModel struct {
+	Field    types.String         `tfsdk:"field"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
+type FilterOperatorModel struct {
+	Type           types.String `tfsdk:"type"`
+	SelectedValues types.List   `tfsdk:"selected_values"`
+}
+
+type LineChartQueryMetricsModel struct {
+	PromqlQuery types.String `tfsdk:"promql_query"`
+	Filters     types.List   `tfsdk:"filters"`
+}
+
+type QueryMetricFilterModel struct {
+	Metric   types.String         `tfsdk:"metric"`
+	Label    types.String         `tfsdk:"label"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
+type LineChartQuerySpansModel struct {
+	LuceneQuery  types.String `tfsdk:"lucene_query"`
+	GroupBy      types.List   `tfsdk:"group_by"`
+	Aggregations types.List   `tfsdk:"aggregations"`
+	Filters      types.List   `tfsdk:"filters"`
+}
+
+type SpansAggregationModel struct {
+	Type            types.String `tfsdk:"type"`
+	AggregationType types.String `tfsdk:"aggregation_type"`
+	Field           types.String `tfsdk:"field"`
+}
+
+type DataTableModel struct {
+	Query          *DataTableQueryModel `tfsdk:"query"`
+	ResultsPerPage types.Int64          `tfsdk:"results_per_page"`
+	RowStyle       types.String         `tfsdk:"row_style"`
+	Columns        types.List           `tfsdk:"columns"`
+	OrderBy        *OrderByModel        `tfsdk:"order_by"`
+}
+
+type DataTableQueryLogsModel struct {
+	LuceneQuery types.String                     `tfsdk:"lucene_query"`
+	Filters     types.List                       `tfsdk:"filters"`
+	Grouping    *DataTableLogsQueryGroupingModel `tfsdk:"grouping"`
+}
+
+type LogsFilterModel struct {
+	Field    types.String         `tfsdk:"field"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
+type DataTableLogsQueryGroupingModel struct {
+	GroupBy      types.List `tfsdk:"group_by"`
+	Aggregations types.List `tfsdk:"aggregations"`
+}
+
+type DataTableAggregationModel struct {
+	ID          types.String      `tfsdk:"id"`
+	Name        types.String      `tfsdk:"name"`
+	IsVisible   types.Bool        `tfsdk:"is_visible"`
+	Aggregation *AggregationModel `tfsdk:"aggregation"`
+}
+
+type AggregationModel struct {
+	Type  types.String `tfsdk:"type"`
+	Field types.String `tfsdk:"field"`
+}
+
+type DataTableQueryModel struct {
+	Logs    *DataTableQueryLogsModel    `tfsdk:"logs"`
+	Metrics *DataTableQueryMetricsModel `tfsdk:"metrics"`
+	Spans   *DataTableQuerySpansModel   `tfsdk:"spans"`
+}
+
+type DataTableQueryMetricsModel struct {
+	PromqlQuery types.String `tfsdk:"promql_query"`
+	Filters     types.List   `tfsdk:"filters"`
+}
+
+type MetricsFilterModel struct {
+	Metric   types.String         `tfsdk:"metric"`
+	Label    types.String         `tfsdk:"label"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
+type DataTableColumnModel struct {
+	Field types.String `tfsdk:"field"`
+	Width types.Int64  `tfsdk:"width"`
+}
+
+type OrderByModel struct {
+	Field          types.String `tfsdk:"field"`
+	OrderDirection types.String `tfsdk:"order_direction"`
+}
+
+type DataTableQuerySpansModel struct {
+	LuceneQuery types.String                      `tfsdk:"lucene_query"`
+	Filters     types.List                        `tfsdk:"filters"`
+	Grouping    *DataTableSpansQueryGroupingModel `tfsdk:"grouping"`
+}
+
+type SpansFilterModel struct {
+	Field    *SpansFieldModel     `tfsdk:"field"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
+type SpansFieldModel struct {
+	Type  types.String `tfsdk:"type"`
+	Value types.String `tfsdk:"value"`
+}
+
+type DataTableSpansQueryGroupingModel struct {
+	GroupBy      types.List `tfsdk:"group_by"`
+	Aggregations types.List `tfsdk:"aggregations"`
+}
+
+type GaugeModel struct {
+	Query        *GaugeQueryModel `tfsdk:"query"`
+	Min          types.Float64    `tfsdk:"min"`
+	Max          types.Float64    `tfsdk:"max"`
+	ShowInnerArc types.Bool       `tfsdk:"show_inner_arc"`
+	ShowOuterArc types.Bool       `tfsdk:"show_outer_arc"`
+	Unit         types.String     `tfsdk:"unit"`
+	Thresholds   types.List       `tfsdk:"thresholds"`
+}
+
+type GaugeQueryModel struct {
+	Logs    *GaugeQueryLogsModel    `tfsdk:"logs"`
+	Metrics *GaugeQueryMetricsModel `tfsdk:"metrics"`
+	Spans   *GaugeQuerySpansModel   `tfsdk:"spans"`
+}
+
+type GaugeQueryLogsModel struct {
+	LuceneQuery     types.String      `tfsdk:"lucene_query"`
+	LogsAggregation *AggregationModel `tfsdk:"logs_aggregation"`
+	Aggregation     types.String      `tfsdk:"aggregation"`
+	Filters         types.List        `tfsdk:"filters"`
+}
+
+type GaugeQueryMetricsModel struct {
+	PromqlQuery types.String `tfsdk:"promql_query"`
+	Aggregation types.String `tfsdk:"aggregation"`
+	Filters     types.List   `tfsdk:"filters"`
+}
+
+type GaugeQuerySpansModel struct {
+	LuceneQuery      types.String           `tfsdk:"lucene_query"`
+	SpansAggregation *SpansAggregationModel `tfsdk:"spans_aggregation"`
+	Aggregation      types.String           `tfsdk:"aggregation"`
+	Filters          types.List             `tfsdk:"filters"`
+}
+
+type GaugeThreshold struct {
+	From  types.Float64 `tfsdk:"from"`
+	Color types.String  `tfsdk:"color"`
+}
+
+type PieChartModel struct {
+	Query              *PieChartQueryModel           `tfsdk:"query"`
+	MaxSlicesPerChart  types.Int64                   `tfsdk:"max_slices_per_chart"`
+	MinSlicePercentage types.Int64                   `tfsdk:"min_slice_percentage"`
+	StackDefinition    *PieChartStackDefinitionModel `tfsdk:"stack_definition"`
+	LabelDefinition    *LabelDefinitionModel         `tfsdk:"label_definition"`
+	ShowLegend         types.Bool                    `tfsdk:"show_legend"`
+	GroupNameTemplate  types.String                  `tfsdk:"group_name_template"`
+	Unit               types.String                  `tfsdk:"unit"`
+}
+
+type PieChartStackDefinitionModel struct {
+	MaxSlicesPerStack types.Int64  `tfsdk:"max_slices_per_stack"`
+	StackNameTemplate types.String `tfsdk:"stack_name_template"`
+}
+
+type PieChartQueryModel struct {
+	Logs    *PieChartQueryLogsModel    `tfsdk:"logs"`
+	Metrics *PieChartQueryMetricsModel `tfsdk:"metrics"`
+	Spans   *PieChartQuerySpansModel   `tfsdk:"spans"`
+}
+
+type PieChartQueryLogsModel struct {
+	LuceneQuery      types.String      `tfsdk:"lucene_query"`
+	Aggregation      *AggregationModel `tfsdk:"aggregation"`
+	Filters          types.List        `tfsdk:"filters"`
+	GroupNames       types.List        `tfsdk:"group_names"`
+	StackedGroupName types.String      `tfsdk:"stacked_group_name"`
+}
+
+type PieChartQueryMetricsModel struct {
+	PromqlQuery      types.String `tfsdk:"promql_query"`
+	Filters          types.List   `tfsdk:"filters"`
+	GroupNames       types.List   `tfsdk:"group_names"`
+	StackedGroupName types.String `tfsdk:"stacked_group_name"`
+}
+
+type PieChartQuerySpansModel struct {
+	LuceneQuery      types.String           `tfsdk:"lucene_query"`
+	Aggregation      *SpansAggregationModel `tfsdk:"aggregation"`
+	Filters          types.List             `tfsdk:"filters"`
+	GroupNames       types.List             `tfsdk:"group_names"`
+	StackedGroupName *SpansFieldModel       `tfsdk:"stacked_group_name"`
+}
+
+type LabelDefinitionModel struct {
+	LabelSource    types.String `tfsdk:"label_source"`
+	IsVisible      types.Bool   `tfsdk:"is_visible"`
+	ShowName       types.Bool   `tfsdk:"show_name"`
+	ShowValue      types.Bool   `tfsdk:"show_value"`
+	ShowPercentage types.Bool   `tfsdk:"show_percentage"`
+}
+
+type BarChartModel struct {
+	Query             *BarChartQueryModel           `tfsdk:"query"`
+	MaxBarsPerChart   types.Int64                   `tfsdk:"max_bars_per_chart"`
+	GroupNameTemplate types.String                  `tfsdk:"group_name_template"`
+	StackDefinition   *BarChartStackDefinitionModel `tfsdk:"stack_definition"`
+	ScaleType         types.String                  `tfsdk:"scale_type"`
+	ColorsBy          types.String                  `tfsdk:"colors_by"`
+	XAxis             *BarChartXAxisModel           `tfsdk:"xaxis"`
+	Unit              types.String                  `tfsdk:"unit"`
+}
+
+type BarChartQueryModel struct {
+	Logs    *BarChartQueryLogsModel    `tfsdk:"logs"`
+	Metrics *BarChartQueryMetricsModel `tfsdk:"metrics"`
+	Spans   *BarChartQuerySpansModel   `tfsdk:"spans"`
+}
+
+type BarChartQueryLogsModel struct {
+	LuceneQuery      types.String      `tfsdk:"lucene_query"`
+	Aggregation      *AggregationModel `tfsdk:"logs_aggregation"`
+	Filters          types.List        `tfsdk:"filters"`
+	GroupNames       types.List        `tfsdk:"group_names"`
+	StackedGroupName types.String      `tfsdk:"stacked_group_name"`
+}
+
+type BarChartQueryMetricsModel struct {
+	PromqlQuery      types.String `tfsdk:"promql_query"`
+	Filters          types.List   `tfsdk:"filters"`
+	GroupNames       types.List   `tfsdk:"group_names"`
+	StackedGroupName types.String `tfsdk:"stacked_group_name"`
+}
+
+type BarChartQuerySpansModel struct {
+	LuceneQuery      types.String           `tfsdk:"lucene_query"`
+	Aggregation      *SpansAggregationModel `tfsdk:"aggregation"`
+	Filters          types.List             `tfsdk:"filters"`
+	GroupNames       types.List             `tfsdk:"group_names"`
+	StackedGroupName *SpansFieldModel       `tfsdk:"stacked_group_name"`
+}
+
+type DataTableSpansAggregationModel struct {
+	ID          types.String           `json:"id"`
+	Name        types.String           `json:"name"`
+	IsVisible   types.Bool             `json:"is_visible"`
+	Aggregation *SpansAggregationModel `json:"aggregation"`
+}
+
+type BarChartStackDefinitionModel struct {
+	MaxSlicesPerBar   types.Int64  `tfsdk:"max_slices_per_bar"`
+	StackNameTemplate types.String `tfsdk:"stack_name_template"`
+}
+
+type BarChartXAxisModel struct {
+	Type             types.String `tfsdk:"type"`
+	Interval         types.String `tfsdk:"interval"`
+	BucketsPresented types.Int64  `tfsdk:"buckets_presented"`
+}
+
+type DashboardVariableModel struct {
+	Name        types.String                      `tfsdk:"name"`
+	Definition  *DashboardVariableDefinitionModel `tfsdk:"definition"`
+	DisplayName types.String                      `tfsdk:"display_name"`
+}
+
+type MetricMultiSelectSourceModel struct {
+	Name  types.String `tfsdk:"name"`
+	Label types.String `tfsdk:"label"`
+}
+
+type DashboardVariableDefinitionModel struct {
+	ConstantValue types.String              `tfsdk:"constant_value"`
+	MultiSelect   *VariableMultiSelectModel `tfsdk:"multi_select"`
+}
+
+type VariableMultiSelectModel struct {
+	SelectedValues       types.List                      `tfsdk:"selected_values"`
+	ValuesOrderDirection types.String                    `tfsdk:"values_order_direction"`
+	Source               *VariableMultiSelectSourceModel `tfsdk:"source"`
+}
+
+type VariableMultiSelectSourceModel struct {
+	LogPath      types.String                  `tfsdk:"log_path"`
+	Metric       *MetricMultiSelectSourceModel `tfsdk:"metric"`
+	ConstantList types.List                    `tfsdk:"constant_list"`
+	SpanField    *SpansFieldModel              `tfsdk:"span_field"`
+}
+
+type DashboardFilterModel struct {
+	Logs      *FilterSourceLogsModel    `tfsdk:"logs"`
+	Metrics   *FilterSourceMetricsModel `tfsdk:"metrics"`
+	Spans     *FilterSourceSpansModel   `tfsdk:"spans"`
+	Enabled   types.Bool                `tfsdk:"enabled"`
+	Collapsed types.Bool                `tfsdk:"collapsed"`
+}
+
+type FilterSourceLogsModel struct {
+	Field    types.String         `tfsdk:"field"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
+type FilterSourceMetricsModel struct {
+	MetricName  types.String         `tfsdk:"name"`
+	MetricLabel types.String         `tfsdk:"label"`
+	Operator    *FilterOperatorModel `tfsdk:"operator"`
+}
+
+type FilterSourceSpansModel struct {
+	Field    *SpansFieldModel     `tfsdk:"field"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
+type DashboardTimeFrameModel struct {
+	Absolute *DashboardTimeFrameAbsoluteModel `tfsdk:"absolute"`
+	Relative *DashboardTimeFrameRelativeModel `tfsdk:"relative"`
+}
+
+type DashboardTimeFrameAbsoluteModel struct {
+	From types.String `tfsdk:"from"`
+	To   types.String `tfsdk:"to"`
+}
+
+type DashboardTimeFrameRelativeModel struct {
+	Duration types.String `tfsdk:"duration"`
+}
 
 func NewDashboardResource() resource.Resource {
 	return &DashboardResource{}
@@ -219,21 +635,27 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 											"id": schema.StringAttribute{
 												Computed: true,
 											},
-											"height": schema.Int64Attribute{},
+											"height": schema.Int64Attribute{
+												Optional:            true,
+												MarkdownDescription: "The height of the row.",
+											},
 											"widgets": schema.ListNestedAttribute{
+												Optional: true,
 												NestedObject: schema.NestedAttributeObject{
 													Attributes: map[string]schema.Attribute{
 														"id": schema.StringAttribute{
 															Computed: true,
 														},
 														"title": schema.StringAttribute{
-															Optional: true,
+															Optional:            true,
+															MarkdownDescription: "Widget title.",
 														},
 														"description": schema.StringAttribute{
-															Optional: true,
+															Optional:            true,
+															MarkdownDescription: "Widget description.",
 														},
 														"definition": schema.SingleNestedAttribute{
-															Optional: true,
+															Required: true,
 															Attributes: map[string]schema.Attribute{
 																"line_chart": schema.SingleNestedAttribute{
 																	Attributes: map[string]schema.Attribute{
@@ -244,14 +666,21 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																				},
 																				"columns": schema.ListAttribute{
 																					ElementType: types.StringType,
+																					Optional:    true,
 																				},
-																				"group_by_query": schema.BoolAttribute{},
+																				"group_by_query": schema.BoolAttribute{
+																					Optional: true,
+																				},
 																			},
 																		},
 																		"tooltip": schema.SingleNestedAttribute{
 																			Attributes: map[string]schema.Attribute{
-																				"show_labels": schema.BoolAttribute{},
-																				"type":        schema.StringAttribute{},
+																				"show_labels": schema.BoolAttribute{
+																					Optional: true,
+																				},
+																				"type": schema.StringAttribute{
+																					Optional: true,
+																				},
 																			},
 																		},
 																		"query_definitions": schema.ListNestedAttribute{
@@ -260,17 +689,52 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																					"id": schema.StringAttribute{
 																						Computed: true,
 																					},
-																					"query":                schema.StringAttribute{},
-																					"series_name_template": schema.StringAttribute{},
-																					"series_count_limit":   schema.Int64Attribute{},
-																					"unit":                 schema.StringAttribute{},
-																					"scale_type":           schema.StringAttribute{},
-																					"name":                 schema.StringAttribute{},
-																					"is_visible":           schema.BoolAttribute{},
+																					"query": schema.SingleNestedAttribute{
+																						Attributes: map[string]schema.Attribute{
+																							"logs": schema.SingleNestedAttribute{
+																								Attributes: map[string]schema.Attribute{},
+																							},
+																							"metrics": schema.SingleNestedAttribute{
+																								Attributes: map[string]schema.Attribute{},
+																							},
+																							"spans": schema.SingleNestedAttribute{
+																								Attributes: map[string]schema.Attribute{},
+																							},
+																						},
+																						Optional: true,
+																					},
+																					"series_name_template": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"series_count_limit": schema.Int64Attribute{
+																						Optional: true,
+																					},
+																					"unit": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"scale_type": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"name": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"is_visible": schema.BoolAttribute{
+																						Optional: true,
+																					},
 																				},
 																			},
 																		},
 																	},
+																	Validators: []validator.Object{
+																		objectvalidator.ExactlyOneOf(
+																			path.Expressions{
+																				path.MatchRoot("data_table"),
+																				path.MatchRoot("gauge"),
+																				path.MatchRoot("pie_chart"),
+																				path.MatchRoot("bar_chart"),
+																			}...),
+																	},
+																	Optional: true,
 																},
 																"data_table": schema.SingleNestedAttribute{
 																	Attributes: map[string]schema.Attribute{
@@ -278,12 +742,25 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																			Attributes: map[string]schema.Attribute{
 																				"logs": schema.SingleNestedAttribute{
 																					Attributes: map[string]schema.Attribute{
-																						"lucene_query": schema.StringAttribute{},
+																						"lucene_query": schema.StringAttribute{
+																							Optional: true,
+																						},
 																						"filters": schema.ListNestedAttribute{
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
-																									"field":    schema.StringAttribute{},
-																									"operator": schema.SingleNestedAttribute{},
+																									"field": schema.StringAttribute{
+																										Required: true,
+																									},
+																									"operator": schema.SingleNestedAttribute{
+																										Attributes: map[string]schema.Attribute{
+																											"type": schema.StringAttribute{
+																												Required: true,
+																											},
+																											"selected_values": schema.ListAttribute{
+																												ElementType: types.StringType,
+																											},
+																										},
+																									},
 																								},
 																							},
 																						},
@@ -316,12 +793,159 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						},
 																					},
 																				},
-																				"spans":   schema.SingleNestedAttribute{},
-																				"metrics": schema.SingleNestedAttribute{},
+																				"spans": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{
+																						"lucene_query": schema.StringAttribute{
+																							Optional: true,
+																						},
+																						"filters": schema.ListNestedAttribute{
+																							NestedObject: schema.NestedAttributeObject{
+																								Attributes: map[string]schema.Attribute{
+																									"field": schema.SingleNestedAttribute{
+																										Attributes: map[string]schema.Attribute{
+																											"type": schema.StringAttribute{
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("metadata", "tag", "process_tag"),
+																												},
+																												MarkdownDescription: "The type of the field. Can be one of `metadata`, `tag`, or `process_tag`.",
+																											},
+																											"value": schema.StringAttribute{
+																												Required:            true,
+																												MarkdownDescription: fmt.Sprintf("The value of the field. When the field type is `metadata`, can be one of %q", dashboardValidSpanFieldMetadataFields),
+																											},
+																										},
+																									},
+																									"operator": schema.SingleNestedAttribute{
+																										Attributes: map[string]schema.Attribute{
+																											"type": schema.StringAttribute{
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("equals", "not_equals"),
+																												},
+																												MarkdownDescription: "The type of the operator. Can be one of `equals` or `not_equals`.",
+																											},
+																											"selected_values": schema.ListAttribute{
+																												ElementType:         types.StringType,
+																												Optional:            true,
+																												MarkdownDescription: "the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.",
+																											},
+																										},
+																									},
+																								},
+																							},
+																						},
+																						"grouping": schema.SingleNestedAttribute{
+																							Attributes: map[string]schema.Attribute{
+																								"group_by": schema.ListNestedAttribute{
+																									NestedObject: schema.NestedAttributeObject{
+																										Attributes: map[string]schema.Attribute{
+																											"field": schema.SingleNestedAttribute{
+																												Attributes: map[string]schema.Attribute{
+																													"type": schema.StringAttribute{
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("metadata", "tag", "process_tag"),
+																														},
+																														MarkdownDescription: "The type of the field. Can be one of `metadata`, `tag`, or `process_tag`.",
+																													},
+																													"value": schema.StringAttribute{
+																														Required:            true,
+																														MarkdownDescription: fmt.Sprintf("The value of the field. When the field type is `metadata`, can be one of %q", dashboardValidSpanFieldMetadataFields),
+																													},
+																												},
+																											},
+																											"operator": schema.SingleNestedAttribute{
+																												Attributes: map[string]schema.Attribute{
+																													"type": schema.StringAttribute{
+																														Required: true,
+																														Validators: []validator.String{
+																															stringvalidator.OneOf("equals", "not_equals"),
+																														},
+																														MarkdownDescription: "The type of the operator. Can be one of `equals` or `not_equals`.",
+																													},
+																													"selected_values": schema.ListAttribute{
+																														ElementType:         types.StringType,
+																														Optional:            true,
+																														MarkdownDescription: "the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.",
+																													},
+																												},
+																											},
+																										},
+																									},
+																								},
+																								"aggregations": schema.ListNestedAttribute{
+																									NestedObject: schema.NestedAttributeObject{
+																										Attributes: map[string]schema.Attribute{
+																											"id": schema.StringAttribute{
+																												Computed: true,
+																											},
+																											"name": schema.StringAttribute{
+																												Optional: true,
+																											},
+																											"is_visible": schema.BoolAttribute{
+																												Optional: true,
+																											},
+																											"aggregation": schema.SingleNestedAttribute{
+																												Attributes: map[string]schema.Attribute{},
+																												//Aggregation *SpansAggregationModel `json:"aggregation"`
+																											},
+																										},
+																									},
+																								},
+																							},
+																						},
+																						"metrics": schema.SingleNestedAttribute{},
+																					},
+																				},
+																				"metrics": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{
+																						"promql_query": schema.StringAttribute{
+																							Optional: true,
+																						},
+																						"filters": schema.ListNestedAttribute{
+																							NestedObject: schema.NestedAttributeObject{
+																								Attributes: map[string]schema.Attribute{
+																									"metric": schema.StringAttribute{
+																										Required: true,
+																									},
+																									"label": schema.StringAttribute{
+																										Required: true,
+																									},
+																									"operator": schema.SingleNestedAttribute{
+																										Attributes: map[string]schema.Attribute{
+																											"type": schema.StringAttribute{
+																												Required: true,
+																												Validators: []validator.String{
+																													stringvalidator.OneOf("equals", "not_equals"),
+																												},
+																												MarkdownDescription: "The type of the operator. Can be one of `equals` or `not_equals`.",
+																											},
+																											"selected_values": schema.ListAttribute{
+																												ElementType:         types.StringType,
+																												Optional:            true,
+																												MarkdownDescription: "the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.",
+																											},
+																										},
+																									},
+																								},
+																							},
+																						},
+																					},
+																				},
 																			},
 																		},
-																		"results_per_page": schema.Int64Attribute{},
-																		"row_style":        schema.StringAttribute{},
+																		"results_per_page": schema.Int64Attribute{
+																			Optional:            true,
+																			MarkdownDescription: "The number of results to display per page.",
+																		},
+																		"row_style": schema.StringAttribute{
+																			Optional: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf(dashboardValidRowStyles...),
+																			},
+																			MarkdownDescription: fmt.Sprintf("The style of the rows. Can be one of %q.", dashboardValidRowStyles),
+																		},
 																		"columns": schema.ListNestedAttribute{
 																			NestedObject: schema.NestedAttributeObject{
 																				Attributes: map[string]schema.Attribute{
@@ -335,17 +959,69 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																				"field": schema.StringAttribute{},
 																				"order_direction": schema.StringAttribute{
 																					Validators: []validator.String{
-																						stringvalidator.OneOf("asc", "desc"),
+																						stringvalidator.OneOf(dashboardValidOrderDirection...),
 																					},
+																					MarkdownDescription: fmt.Sprintf("The order direction. Can be one of %q.", dashboardValidOrderDirection),
 																				},
 																			},
 																		},
 																	},
+																	Validators: []validator.Object{
+																		objectvalidator.ExactlyOneOf(
+																			path.Expressions{
+																				path.MatchRoot("line_chart"),
+																				path.MatchRoot("gauge"),
+																				path.MatchRoot("pie_chart"),
+																				path.MatchRoot("bar_chart"),
+																			}...),
+																	},
+																	Optional: true,
 																},
 																"gauge": schema.SingleNestedAttribute{
 																	Attributes: map[string]schema.Attribute{
 																		"query": schema.SingleNestedAttribute{
 																			Attributes: map[string]schema.Attribute{
+																				"logs": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{
+																						"query": schema.StringAttribute{
+																							Optional: true,
+																						},
+																						"aggregation": schema.StringAttribute{
+																							Optional: true,
+																						},
+																						"filters": schema.ListNestedAttribute{
+																							NestedObject: schema.NestedAttributeObject{
+																								Attributes: map[string]schema.Attribute{
+																									"field": schema.StringAttribute{
+																										Required: true,
+																									},
+																									"operator": schema.SingleNestedAttribute{
+																										Attributes: map[string]schema.Attribute{
+																											"type": schema.StringAttribute{
+																												Required: true,
+																											},
+																											"selected_values": schema.ListAttribute{
+																												ElementType: types.StringType,
+																												Optional:    true,
+																											},
+																										},
+																									},
+																								},
+																							},
+																						},
+																						"logs_aggregation": schema.SingleNestedAttribute{
+																							Attributes: map[string]schema.Attribute{
+																								"aggregation": schema.StringAttribute{
+																									Required: true,
+																								},
+																								"field": schema.StringAttribute{
+																									Required: true,
+																								},
+																							},
+																						},
+																					},
+																					Optional: true,
+																				},
 																				"metrics": schema.SingleNestedAttribute{
 																					Attributes: map[string]schema.Attribute{
 																						"promql_query": schema.StringAttribute{},
@@ -432,10 +1108,54 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						},
 																					},
 																				},
-																				"spans": schema.SingleNestedAttribute{},
+																				"spans": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{
+																						"trace_id": schema.StringAttribute{},
+																						"spans_aggregation": schema.SingleNestedAttribute{
+																							Attributes: map[string]schema.Attribute{},
+																						},
+																						"aggregation": schema.StringAttribute{
+																							Optional: true,
+																						},
+																						"filters": schema.ListNestedAttribute{
+																							NestedObject: schema.NestedAttributeObject{
+																								Attributes: map[string]schema.Attribute{},
+																							},
+																						},
+																					},
+																				},
 																			},
 																		},
+																		"min": schema.Float64Attribute{
+																			Optional: true,
+																		},
+																		"max": schema.Float64Attribute{
+																			Optional: true,
+																		},
+																		"show_inner_arc": schema.BoolAttribute{
+																			Optional: true,
+																		},
+																		"show_outer_arc": schema.BoolAttribute{
+																			Optional: true,
+																		},
+																		"unit": schema.StringAttribute{
+																			Optional: true,
+																		},
+																		"thresholds": schema.ListAttribute{
+																			ElementType: types.StringType,
+																			Optional:    true,
+																		},
 																	},
+																	Validators: []validator.Object{
+																		objectvalidator.ExactlyOneOf(
+																			path.Expressions{
+																				path.MatchRoot("line_chart"),
+																				path.MatchRoot("data_table"),
+																				path.MatchRoot("pie_chart"),
+																				path.MatchRoot("bar_chart"),
+																			}...),
+																	},
+																	Optional: true,
 																},
 																"pie_chart": schema.SingleNestedAttribute{
 																	Attributes: map[string]schema.Attribute{
@@ -625,6 +1345,16 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																		"group_name_template": schema.StringAttribute{},
 																		"unit":                schema.StringAttribute{},
 																	},
+																	Validators: []validator.Object{
+																		objectvalidator.ExactlyOneOf(
+																			path.Expressions{
+																				path.MatchRoot("line_chart"),
+																				path.MatchRoot("gauge"),
+																				path.MatchRoot("data_table"),
+																				path.MatchRoot("bar_chart"),
+																			}...),
+																	},
+																	Optional: true,
 																},
 																"bar_chart": schema.SingleNestedAttribute{
 																	Attributes: map[string]schema.Attribute{
@@ -647,6 +1377,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																							},
 																						},
 																						"filters": schema.ListNestedAttribute{
+																							Optional: true,
 																							NestedObject: schema.NestedAttributeObject{
 																								Attributes: map[string]schema.Attribute{
 																									"field": schema.StringAttribute{
@@ -664,17 +1395,27 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																				},
 																			},
 																		},
-																		"max_slices_per_chart": schema.Int64Attribute{},
-																		"group_name_template":  schema.StringAttribute{},
+																		"max_slices_per_chart": schema.Int64Attribute{
+																			Optional: true,
+																		},
+																		"group_name_template": schema.StringAttribute{
+																			Optional: true,
+																		},
 																		"stack_definition": schema.SingleNestedAttribute{
+																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
 																				"max_slices_per_stack": schema.Int64Attribute{},
 																				"stack_name_template":  schema.StringAttribute{},
 																			},
 																		},
-																		"scale_type": schema.StringAttribute{},
-																		"colors_by":  schema.StringAttribute{},
+																		"scale_type": schema.StringAttribute{
+																			Optional: true,
+																		},
+																		"colors_by": schema.StringAttribute{
+																			Optional: true,
+																		},
 																		"x_axis": schema.SingleNestedAttribute{
+																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
 																				"type": schema.StringAttribute{
 																					Required: true,
@@ -686,14 +1427,31 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																				"buckets_presented": schema.Int64Attribute{},
 																			},
 																		},
-																		"unit": schema.StringAttribute{},
+																		"unit": schema.StringAttribute{
+																			Optional: true,
+																		},
 																	},
+																	Validators: []validator.Object{
+																		objectvalidator.ExactlyOneOf(
+																			path.Expressions{
+																				path.MatchRoot("data_table"),
+																				path.MatchRoot("gauge"),
+																				path.MatchRoot("pie_chart"),
+																				path.MatchRoot("line_chart"),
+																			}...),
+																	},
+																	Optional: true,
 																},
 															},
+															MarkdownDescription: "The widget definition. Can contain one of `line_chart`, `bar_chart`, `pie_chart` `data_table` or `gauge`.",
 														},
-														"width": schema.Int64Attribute{},
+														"width": schema.Int64Attribute{
+															Optional:            true,
+															MarkdownDescription: "The width of the chart.",
+														},
 													},
 												},
+												MarkdownDescription: "The list of widgets to display in the dashboard.",
 											},
 										},
 									},
@@ -704,10 +1462,14 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 				},
 			},
 			"variables": schema.ListNestedAttribute{
+				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"name": schema.StringAttribute{},
+						"name": schema.StringAttribute{
+							Optional: true,
+						},
 						"definition": schema.SingleNestedAttribute{
+							Required: true,
 							Attributes: map[string]schema.Attribute{
 								"constant": schema.SingleNestedAttribute{
 									Attributes: map[string]schema.Attribute{
@@ -743,11 +1505,14 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 								},
 							},
 						},
-						"display_name": schema.StringAttribute{},
+						"display_name": schema.StringAttribute{
+							Optional: true,
+						},
 					},
 				},
 			},
 			"filters": schema.ListNestedAttribute{
+				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"source": schema.SingleNestedAttribute{
@@ -822,6 +1587,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 				},
 			},
 			"time_frame": schema.SingleNestedAttribute{
+				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"absolute": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
@@ -2246,7 +3012,7 @@ func expandLineChartLegendColumns(ctx context.Context, columns []attr.Value) ([]
 	return expandedColumns, diags
 }
 
-func expandLineChartTooltip(tooltip *LineChartTooltipModel) *dashboards.LineChart_Tooltip {
+func expandLineChartTooltip(tooltip *TooltipModel) *dashboards.LineChart_Tooltip {
 	if tooltip == nil {
 		return nil
 	}
@@ -2897,235 +3663,162 @@ func flattenDashboardLayout(ctx context.Context, layout *dashboards.Layout) (*Da
 
 func flattenDashboardSections(ctx context.Context, sections []*dashboards.Section) (types.List, diag.Diagnostics) {
 	if len(sections) == 0 {
-		return types.ListNull(sectionModelAttr()), nil
-	}
-	sectionList := make([]SectionModel, 0, len(sections))
-	for _, section := range sections {
-		flattenedSection := flattenDashboardSection(ctx, section)
-		sectionList = append(sectionList, flattenedSection)
+		return types.ListNull(types.ObjectType{AttrTypes: sectionModelAttr()}), nil
 	}
 
-	return types.ListValueFrom(ctx, sectionModelAttr(), sectionList)
+	var diagnostics diag.Diagnostics
+	sectionsElements := make([]attr.Value, 0, len(sections))
+	for _, section := range sections {
+		flattenedSection, diags := flattenDashboardSection(ctx, section)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		sectionsElement, diags := types.ObjectValueFrom(ctx, sectionModelAttr(), flattenedSection)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		sectionsElements = append(sectionsElements, sectionsElement)
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: sectionModelAttr()}, sectionsElements), diagnostics
 }
 
-func sectionModelAttr() attr.Type {
-	return types.ObjectType{
-		AttrTypes: map[string]attr.Type{
-			"id": types.StringType,
-			"rows": types.ListType{
-				ElemType: types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"id":     types.StringType,
-						"height": types.Int64Type,
-						"widgets": types.ListType{
-							ElemType: types.ObjectType{
-								AttrTypes: map[string]attr.Type{
-									"id":          types.StringType,
-									"title":       types.StringType,
-									"description": types.StringType,
-									"definition": types.ObjectType{
-										AttrTypes: map[string]attr.Type{
-											"line_chart": types.ObjectType{
-												AttrTypes: map[string]attr.Type{
-													"legend": types.ObjectType{
-														AttrTypes: map[string]attr.Type{
-															"is_visible": types.BoolType,
-															"columns": types.ListType{
-																ElemType: types.ObjectType{
-																	AttrTypes: map[string]attr.Type{
-																		"legend": types.ObjectType{
-																			AttrTypes: map[string]attr.Type{
-																				"is_visible": types.BoolType,
-																				"columns": types.ListType{
-																					ElemType: types.StringType,
-																				},
-																				"group_by_query": types.BoolType,
-																			},
-																		},
-																		"tooltip": types.ObjectType{
-																			AttrTypes: map[string]attr.Type{
-																				"show_label": types.BoolType,
-																				"type":       types.StringType,
-																			},
-																		},
-																		"query_definitions": types.ListType{
-																			ElemType: types.ObjectType{
-																				AttrTypes: map[string]attr.Type{
-																					"id":                   types.StringType,
-																					"query":                types.StringType,
-																					"series_name_template": types.StringType,
-																					"series_count_limit":   types.Int64Type,
-																					"unit":                 types.StringType,
-																					"scale_type":           types.StringType,
-																					"name":                 types.StringType,
-																					"is_visible":           types.BoolType,
-																				},
-																			},
-																		},
-																	},
-																},
-															},
-														},
-													},
-												},
-											},
-											"data_table": types.ObjectType{
-												AttrTypes: map[string]attr.Type{
-													"query": types.ObjectType{
-														AttrTypes: map[string]attr.Type{
-															"logs": types.ObjectType{
-																AttrTypes: map[string]attr.Type{
-																	"lucene_query": types.StringType,
-																	"filters": types.ListType{
-																		ElemType: types.ObjectType{
-																			AttrTypes: map[string]attr.Type{
-																				"field":    types.StringType,
-																				"operator": types.StringType,
-																			},
-																		},
-																	},
-																	"grouping": types.ObjectType{
-																		AttrTypes: map[string]attr.Type{
-																			"group_by": types.StringType,
-																			"aggregations": types.ListType{
-																				ElemType: types.ObjectType{
-																					AttrTypes: map[string]attr.Type{
-																						"id":         types.StringType,
-																						"name":       types.StringType,
-																						"is_visible": types.BoolType,
-																						"aggregation": types.ObjectType{
-																							AttrTypes: map[string]attr.Type{
-																								"type":  types.StringType,
-																								"field": types.StringType,
-																							},
-																						},
-																					},
-																				},
-																			},
-																		},
-																	},
-																},
-															},
-														},
-													},
-												},
-											},
-											"gauge": types.ObjectType{
-												AttrTypes: map[string]attr.Type{
-													"query": types.ObjectType{
-														AttrTypes: map[string]attr.Type{
-															"metrics": types.ListType{
-																ElemType: types.ObjectType{
-																	AttrTypes: map[string]attr.Type{
-																		"promql_query": types.StringType,
-																		"aggregation": types.StringType,
-																		"filters": types.ListType{
-																			ElemType: types.ObjectType{
-																				AttrTypes: map[string]attr.Type{
-																					"metric": types.StringType,
+func sectionModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id": types.StringType,
+		"rows": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: rowModelAttr(),
+			},
+		},
+	}
+}
 
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
-											}
-											"gauge": schema.SingleNestedAttribute{
-												Attributes: map[string]schema.Attribute{
-													"query": schema.SingleNestedAttribute{
-														Attributes: map[string]schema.Attribute{
-															"metrics": schema.SingleNestedAttribute{
-																Attributes: map[string]schema.Attribute{
-																	"promql_query": schema.StringAttribute{},
-																	"aggregation": schema.StringAttribute{
-																		Validators: []validator.String{
-																			stringvalidator.OneOf("sum", "avg", "min", "max", "last"),
-																		},
-																	},
-																	"filters": schema.ListNestedAttribute{
-																		NestedObject: schema.NestedAttributeObject{
-																			Attributes: map[string]schema.Attribute{
-																				"metric": schema.StringAttribute{},
-																				"label":  schema.StringAttribute{},
-																				"operator": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"type": schema.StringAttribute{
-																							Required: true,
-																							Validators: []validator.String{
-																								stringvalidator.OneOf("equals", "not_equals"),
-																							},
-																						},
-																						"values": schema.ListAttribute{
-																							ElementType: types.StringType,
-																						},
-																					},
-																				},
-																			},
-																		},
-																	},
-																	"logs": schema.SingleNestedAttribute{
-																		Attributes: map[string]schema.Attribute{
-																			"lucene_query": schema.StringAttribute{},
-																			"logs_aggregation": schema.SingleNestedAttribute{
-																				Attributes: map[string]schema.Attribute{
-																					"type": schema.StringAttribute{
-																						Required: true,
-																						Validators: []validator.String{
-																							stringvalidator.OneOf("count", "count_distinct", "sum", "average", "min", "max"),
-																						},
-																					},
-																					"field": schema.StringAttribute{
-																						Optional: true,
-																					},
-																				},
-																			},
-																			"aggregation": schema.StringAttribute{
-																				Validators: []validator.String{
-																					stringvalidator.OneOf("sum", "avg", "min", "max", "last"),
-																				},
-																			},
-																			"filters": schema.ListNestedAttribute{
-																				NestedObject: schema.NestedAttributeObject{
-																					Attributes: map[string]schema.Attribute{
-																						"field": schema.SingleNestedAttribute{
-																							Attributes: map[string]schema.Attribute{
-																								"type": schema.StringAttribute{
-																									Required: true,
-																									Validators: []validator.String{
-																										stringvalidator.OneOf("metadata", "tag", "process_tag"),
-																									},
-																								},
-																								"field": schema.StringAttribute{
-																									Required: true,
-																								},
-																							},
-																						},
-																						"operator": schema.SingleNestedAttribute{
-																							Attributes: map[string]schema.Attribute{
-																								"type": schema.StringAttribute{
-																									Required: true,
-																									Validators: []validator.String{
-																										stringvalidator.OneOf("equals", "not_equals"),
-																									},
-																								},
-																								"values": schema.ListAttribute{
-																									ElementType: types.StringType,
-																								},
-																							},
-																						},
-																					},
-																				},
-																			},
-																		},
-																	},
+func rowModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id":     types.StringType,
+		"height": types.Int64Type,
+		"widgets": types.ListType{
+			ElemType: types.ObjectType{AttrTypes: widgetModelAttr()},
+		},
+	}
+}
+
+func widgetModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id":          types.StringType,
+		"title":       types.StringType,
+		"description": types.StringType,
+		"definition": types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"line_chart": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"legend": types.ObjectType{
+							AttrTypes: map[string]attr.Type{
+								"is_visible": types.BoolType,
+								"columns": types.ListType{
+									ElemType: types.ObjectType{
+										AttrTypes: map[string]attr.Type{
+											"legend": types.ObjectType{
+												AttrTypes: map[string]attr.Type{
+													"is_visible": types.BoolType,
+													"columns": types.ListType{
+														ElemType: types.StringType,
+													},
+													"group_by_query": types.BoolType,
+												},
+											},
+											"tooltip": types.ObjectType{
+												AttrTypes: map[string]attr.Type{
+													"show_label": types.BoolType,
+													"type":       types.StringType,
+												},
+											},
+											"query_definitions": types.ListType{
+												ElemType: types.ObjectType{
+													AttrTypes: map[string]attr.Type{
+														"id":                   types.StringType,
+														"query":                types.ObjectType{},
+														"series_name_template": types.StringType,
+														"series_count_limit":   types.Int64Type,
+														"unit":                 types.StringType,
+														"scale_type":           types.StringType,
+														"name":                 types.StringType,
+														"is_visible":           types.BoolType,
+													},
+												},
+											},
+										},
+									},
+								},
+								"query_definitions": types.ListType{
+									ElemType: types.ObjectType{
+										AttrTypes: lineChartQueryDefinitionModelAttr(),
+									},
+								},
+							},
+						},
+					},
+				},
+				"data_table": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"query": types.ObjectType{
+							AttrTypes: map[string]attr.Type{
+								"logs": types.ObjectType{
+									AttrTypes: map[string]attr.Type{
+										"lucene_query": types.StringType,
+										"filters": types.ListType{
+											ElemType: types.ObjectType{
+												AttrTypes: map[string]attr.Type{
+													"field":    types.StringType,
+													"operator": types.StringType,
+												},
+											},
+										},
+										"grouping": types.ObjectType{
+											AttrTypes: map[string]attr.Type{
+												"group_by": types.StringType,
+												"aggregations": types.ListType{
+													ElemType: types.ObjectType{
+														AttrTypes: map[string]attr.Type{
+															"id":         types.StringType,
+															"name":       types.StringType,
+															"is_visible": types.BoolType,
+															"aggregation": types.ObjectType{
+																AttrTypes: map[string]attr.Type{
+																	"type":  types.StringType,
+																	"field": types.StringType,
 																},
 															},
-															"spans": schema.SingleNestedAttribute{},
 														},
+													},
+												},
+											},
+										},
+									},
+								},
+								"spans": types.ObjectType{
+									AttrTypes: map[string]attr.Type{},
+								},
+							},
+						},
+					},
+				},
+				"gauge": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"query": types.ObjectType{
+							AttrTypes: map[string]attr.Type{
+								"metrics": types.ListType{
+									ElemType: types.ObjectType{
+										AttrTypes: map[string]attr.Type{
+											"promql_query": types.StringType,
+											"aggregation":  types.StringType,
+											"filters": types.ListType{
+												ElemType: types.ObjectType{
+													AttrTypes: map[string]attr.Type{
+														"metric": types.StringType,
 													},
 												},
 											},
@@ -3141,7 +3834,509 @@ func sectionModelAttr() attr.Type {
 	}
 }
 
-func flattenDashboardSection(ctx context.Context, section *dashboards.Section) SectionModel {
+func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id": types.StringType,
+		"query": types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"logs": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"lucene_query": types.StringType,
+						"group_by": types.ListType{
+							ElemType: types.StringType,
+						},
+						"aggregations": types.ListType{
+							ElemType: types.ObjectType{
+								AttrTypes: aggregationModelAttr(),
+							},
+						},
+						"filters": types.ListType{
+							ElemType: types.ObjectType{
+								AttrTypes: logsFilterModelAttr(),
+							},
+						},
+					},
+				},
+				"metrics": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"promql_query": types.StringType,
+						"filters": types.ListType{
+							ElemType: types.ObjectType{
+								AttrTypes: map[string]attr.Type{
+									"metric": types.StringType,
+									"label":  types.StringType,
+									"operator": types.ObjectType{
+										AttrTypes: filterOperatorModelAttr(),
+									},
+								},
+							},
+						},
+					},
+				},
+				"spans": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"lucene_query": types.StringType,
+						"group_by": types.ListType{
+							ElemType: types.StringType,
+						},
+						"aggregations": types.ListType{
+							ElemType: types.ObjectType{
+								AttrTypes: map[string]attr.Type{
+									"type":             types.StringType,
+									"aggregation_type": types.StringType,
+									"field":            types.StringType,
+								},
+							},
+						},
+						"filters": types.ListType{
+							ElemType: types.ObjectType{
+								AttrTypes: map[string]attr.Type{
+									"field": types.StringType,
+									"operator": types.ObjectType{
+										AttrTypes:filterOperatorModelAttr(),
+								},
+							},
+						},
+					},
+				},
+			},
+			},
+		},
+		"series_name_template": types.StringType,
+		"series_count_limit":   types.Int64Type,
+		"unit":                 types.StringType,
+		"scale_type":           types.StringType,
+		"name":                 types.StringType,
+		"is_visible":           types.BoolType,
+	}
+}
+
+func aggregationModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"type":  types.StringType,
+		"field": types.StringType,
+	}
+}
+
+func logsFilterModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"field": types.StringType,
+		"operator": types.ObjectType{
+			AttrTypes: filterOperatorModelAttr(),
+		},
+	}
+}
+
+func filterOperatorModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"type": types.StringType,
+		"selected_values": types.ListType{
+			ElemType: types.StringType,
+		},
+	}
+}
+
+func flattenDashboardSection(ctx context.Context, section *dashboards.Section) (*SectionModel, diag.Diagnostics) {
+	if section == nil {
+		return nil, nil
+	}
+
+	rows, diags := flattenDashboardRows(ctx, section.GetRows())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &SectionModel{
+		ID:   types.StringValue(section.GetId().GetValue()),
+		Rows: rows,
+	}, nil
+}
+
+func flattenDashboardRows(ctx context.Context, rows []*dashboards.Row) (types.List, diag.Diagnostics) {
+	if len(rows) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: rowModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	rowsElements := make([]attr.Value, 0, len(rows))
+	for _, row := range rows {
+		flattenedRow, diags := flattenDashboardRow(ctx, row)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		rowElement, diags := types.ObjectValueFrom(ctx, rowModelAttr(), flattenedRow)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		rowsElements = append(rowsElements, rowElement)
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: rowModelAttr()}, rowsElements), diagnostics
+}
+
+func flattenDashboardRow(ctx context.Context, row *dashboards.Row) (*RowModel, diag.Diagnostics) {
+	if row == nil {
+		return nil, nil
+	}
+
+	widgets, diags := flattenDashboardWidgets(ctx, row.GetWidgets())
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &RowModel{
+		ID:      types.StringValue(row.GetId().GetValue()),
+		Height:  wrapperspbInt32ToTypeInt64(row.GetAppearance().GetHeight()),
+		Widgets: widgets,
+	}, nil
+}
+
+func flattenDashboardWidgets(ctx context.Context, widgets []*dashboards.Widget) (types.List, diag.Diagnostics) {
+	if len(widgets) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: widgetModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	widgetsElements := make([]attr.Value, 0, len(widgets))
+	for _, widget := range widgets {
+		flattenedRow, diags := flattenDashboardWidget(ctx, widget)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		rowElement, diags := types.ObjectValueFrom(ctx, rowModelAttr(), flattenedRow)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		widgetsElements = append(widgetsElements, rowElement)
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: widgetModelAttr()}, widgetsElements), diagnostics
+}
+
+func flattenDashboardWidget(ctx context.Context, widget *dashboards.Widget) (*WidgetModel, diag.Diagnostics) {
+	if widget == nil {
+		return nil, nil
+	}
+
+	definition, diags := flattenDashboardWidgetDefinition(ctx, widget.GetDefinition())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &WidgetModel{
+		ID:          types.StringValue(widget.GetId().GetValue()),
+		Title:       wrapperspbStringToTypeString(widget.GetTitle()),
+		Description: wrapperspbStringToTypeString(widget.GetDescription()),
+		Width:       wrapperspbInt32ToTypeInt64(widget.GetAppearance().GetWidth()),
+		Definition:  definition,
+	}, nil
+}
+
+func flattenDashboardWidgetDefinition(ctx context.Context, definition *dashboards.Widget_Definition) (*WidgetDefinitionModel, diag.Diagnostics) {
+	if definition == nil {
+		return nil, nil
+	}
+
+	switch definition.GetValue().(type) {
+	case *dashboards.Widget_Definition_LineChart:
+		return flattenLineChart(ctx, definition.GetLineChart())
+	case *dashboards.Widget_Definition_DataTable:
+		return flattenDataTable(ctx, definition.GetDataTable())
+	case *dashboards.Widget_Definition_Gauge:
+		return flattenGauge(ctx, definition.GetGauge())
+	case *dashboards.Widget_Definition_PieChart:
+		return flattenPieChart(ctx, definition.GetPieChart())
+	case *dashboards.Widget_Definition_BarChart:
+		return flattenBarChart(ctx, definition.GetBarChart())
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Widget Definition", "unknown widget definition type")}
+	}
+}
+
+func flattenLineChart(ctx context.Context, lineChart *dashboards.LineChart) (*WidgetDefinitionModel, diag.Diagnostics) {
+	if lineChart == nil {
+		return nil, nil
+	}
+
+	queryDefinitions, diags := flattenLineChartQueryDefinitions(ctx, lineChart.GetQueryDefinitions())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &WidgetDefinitionModel{
+		LineChart: &LineChartModel{
+			Legend:           flattenLegend(lineChart.GetLegend()),
+			Tooltip:          flattenTooltip(lineChart.GetTooltip()),
+			QueryDefinitions: queryDefinitions,
+		},
+	}, nil
+}
+
+func flattenLegend(legend *dashboards.Legend) *LegendModel {
+	if legend == nil {
+		return nil
+	}
+
+	return &LegendModel{
+		IsVisible:    wrapperspbBoolToTypeBool(legend.GetIsVisible()),
+		GroupByQuery: wrapperspbBoolToTypeBool(legend.GetGroupByQuery()),
+		Columns:      flattenLegendColumns(legend.GetColumns()),
+	}
+}
+
+func flattenLegendColumns(columns []dashboards.Legend_LegendColumn) types.List {
+	if len(columns) == 0 {
+		return types.ListNull(types.StringType)
+	}
+
+	columnsElements := make([]attr.Value, 0, len(columns))
+	for _, column := range columns {
+		flattenedColumn := dashboardLegendColumnProtoToSchema[column]
+		columnElement := types.StringValue(flattenedColumn)
+		columnsElements = append(columnsElements, columnElement)
+	}
+
+	return types.ListValueMust(types.StringType, columnsElements)
+}
+
+func flattenTooltip(tooltip *dashboards.LineChart_Tooltip) *TooltipModel {
+	if tooltip == nil {
+		return nil
+	}
+	return &TooltipModel{
+		ShowLabels: wrapperspbBoolToTypeBool(tooltip.GetShowLabels()),
+		Type:       types.StringValue(dashboardProtoToSchemaTooltipType[tooltip.GetType()]),
+	}
+}
+
+func flattenLineChartQueryDefinitions(ctx context.Context, definitions []*dashboards.LineChart_QueryDefinition) (types.List, diag.Diagnostics) {
+	if len(definitions) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: lineChartQueryDefinitionModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	definitionsElements := make([]attr.Value, 0, len(definitions))
+	for _, definition := range definitions {
+		flattenedDefinition, diags := flattenLineChartQueryDefinition(ctx, definition)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		definitionElement, diags := types.ObjectValueFrom(ctx, lineChartQueryDefinitionModelAttr(), flattenedDefinition)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		definitionsElements = append(definitionsElements, definitionElement)
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: lineChartQueryDefinitionModelAttr()}, definitionsElements), diagnostics
+}
+
+func flattenLineChartQueryDefinition(ctx context.Context, definition *dashboards.LineChart_QueryDefinition) (*LineChartQueryDefinitionModel, diag.Diagnostics) {
+	if definition == nil {
+		return nil, nil
+	}
+
+	query, diags := flattenLineChartQuery(ctx, definition.GetQuery())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &LineChartQueryDefinitionModel{
+		ID:                 wrapperspbStringToTypeString(definition.GetId()),
+		Query:              query,
+		SeriesNameTemplate: wrapperspbStringToTypeString(definition.GetSeriesNameTemplate()),
+		SeriesCountLimit:   wrapperspbInt64ToTypeInt64(definition.GetSeriesCountLimit()),
+		Unit:               types.StringValue(dashboardProtoToSchemaUnit[definition.GetUnit()]),
+		ScaleType:          types.StringValue(dashboardProtoToSchemaScaleType[definition.GetScaleType()]),
+		Name:               wrapperspbStringToTypeString(definition.GetName()),
+		IsVisible:          wrapperspbBoolToTypeBool(definition.GetIsVisible()),
+	}, nil
+}
+
+func flattenLineChartQuery(ctx context.Context, query *dashboards.LineChart_Query) (*LineChartQueryModel, diag.Diagnostics) {
+	if query == nil {
+		return nil, nil
+	}
+
+	switch query.GetValue().(type) {
+	case *dashboards.LineChart_Query_Logs:
+		return flattenLineChartQueryLogs(ctx, query.GetLogs())
+	case *dashboards.LineChart_Query_Metrics:
+		return flattenLineChartQueryMetrics(ctx, query.GetMetrics())
+	case *dashboards.LineChart_Query_Spans:
+		return flattenLineChartQuerySpans(ctx, query.GetSpans())
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Line Chart Query", "unknown line chart query type")}
+	}
+}
+
+func flattenLineChartQueryLogs(ctx context.Context, logs *dashboards.LineChart_LogsQuery) (*LineChartQueryModel, diag.Diagnostics) {
+	if logs == nil {
+		return nil, nil
+	}
+
+	aggregations, diags := flattenAggregations(ctx, logs.GetAggregations())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	filters, diags := flattenLogsFilters(ctx, logs.GetFilters())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &LineChartQueryModel{
+		Logs: &LineChartQueryLogsModel{
+			LuceneQuery:  wrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
+			GroupBy:      wrappedStringSliceToTypeStringList(logs.GetGroupBy()),
+			Aggregations: aggregations,
+			Filters:      filters,
+		},
+	}, nil
+}
+
+func flattenAggregations(ctx context.Context, aggregations []*dashboards.LogsAggregation) (types.List, diag.Diagnostics) {
+	if len(aggregations) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: aggregationModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	aggregationsElements := make([]attr.Value, 0, len(aggregations))
+	for _, aggregation := range aggregations {
+		flattenedAggregation, dg := flattenLogsAggregation(aggregation)
+		if dg != nil {
+			diagnostics.Append(dg)
+			continue
+		}
+		aggregationElement, diags := types.ObjectValueFrom(ctx, aggregationModelAttr(), flattenedAggregation)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		aggregationsElements = append(aggregationsElements, aggregationElement)
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: aggregationModelAttr()}, aggregationsElements), diagnostics
+}
+
+func flattenLogsAggregation(aggregation *dashboards.LogsAggregation) (*AggregationModel, diag.Diagnostic) {
+	if aggregation == nil {
+		return nil, nil
+	}
+
+	switch aggregationValue := aggregation.GetValue().(type) {
+	case *dashboards.LogsAggregation_Count_:
+		return &AggregationModel{
+			Type: types.StringValue("count"),
+		}, nil
+	case *dashboards.LogsAggregation_CountDistinct_:
+		return &AggregationModel{
+			Type:  types.StringValue("count_distinct"),
+			Field: wrapperspbStringToTypeString(aggregationValue.CountDistinct.GetField()),
+		}, nil
+	case *dashboards.LogsAggregation_Sum_:
+		return &AggregationModel{
+			Type:  types.StringValue("sum"),
+			Field: wrapperspbStringToTypeString(aggregationValue.Sum.GetField()),
+		}, nil
+	case *dashboards.LogsAggregation_Average_:
+		return &AggregationModel{
+			Type:  types.StringValue("average"),
+			Field: wrapperspbStringToTypeString(aggregationValue.Average.GetField()),
+		}, nil
+	case *dashboards.LogsAggregation_Min_:
+		return &AggregationModel{
+			Type:  types.StringValue("min"),
+			Field: wrapperspbStringToTypeString(aggregationValue.Min.GetField()),
+		}, nil
+	case *dashboards.LogsAggregation_Max_:
+		return &AggregationModel{
+			Type:  types.StringValue("max"),
+			Field: wrapperspbStringToTypeString(aggregationValue.Max.GetField()),
+		}, nil
+	default:
+		return nil, diag.NewErrorDiagnostic("Error Flatten Logs Aggregation", "unknown logs aggregation type")
+	}
+}
+
+func flattenLogsFilters(ctx context.Context, filters []*dashboards.Filter_LogsFilter) (types.List, diag.Diagnostics) {
+	if len(filters) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: logsFilterModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	filtersElements := make([]attr.Value, 0, len(filters))
+	for _, filter := range filters {
+		flattenedFilter, dg := flattenLogsFilter(filter)
+		if dg != nil {
+			diagnostics.Append(dg)
+			continue
+		}
+		filterElement, diags := types.ObjectValueFrom(ctx, logsFilterModelAttr(), flattenedFilter)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		filtersElements = append(filtersElements, filterElement)
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: logsFilterModelAttr()}, filtersElements), diagnostics
+}
+
+func flattenLogsFilter(filter *dashboards.Filter_LogsFilter) (*FilterModel, diag.Diagnostics) {
+	if filter == nil {
+		return nil, nil
+	}
+
+	operator, diags := flattenLogsFilterOperator(filter.GetOperator())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &FilterModel{
+		Field: wrapperspbStringToTypeString(filter.GetField()),
+		Operator: operator,
+	}, nil
+}
+
+func flattenLogsFilterOperator(operator *dashboards.Filter_Operator) (*FilterOperatorModel, diag.Diagnostics) {
+	switch operator.GetValue().(type) {
+	case *dashboards.Filter_Operator_Equals:
+		return &FilterOperatorModel{
+			Type: types.StringValue("equals"),
+			SelectedValues: wrappedStringSliceToTypeStringList(operator.GetEquals().GetSelection().GetValue(),
+		}
+	case *dashboards.Filter_Operator_NotEquals:
+	}
+
+}
+
+func flattenLineChartQueryMetrics(ctx context.Context, metrics *dashboards.LineChart_MetricsQuery) (*LineChartQueryModel, diag.Diagnostics) {
+
+}
+
+func flattenLineChartQuerySpans(ctx context.Context, spans *dashboards.LineChart_SpansQuery) (*LineChartQueryModel, diag.Diagnostics) {
+
+}
+
+func flattenDataTable(ctx context.Context, table *dashboards.DataTable) (*WidgetDefinitionModel, diag.Diagnostics) {
+
+}
+
+func flattenGauge(ctx context.Context, gauge *dashboards.Gauge) (*WidgetDefinitionModel, diag.Diagnostics) {
+
+}
+
+func flattenPieChart(ctx context.Context, chart *dashboards.PieChart) (*WidgetDefinitionModel, diag.Diagnostics) {
+
+}
+
+func flattenBarChart(ctx context.Context, chart *dashboards.BarChart) (*WidgetDefinitionModel, diag.Diagnostics) {
 
 }
 
@@ -3199,429 +4394,4 @@ func (r DashboardResource) Delete(ctx context.Context, request resource.DeleteRe
 func (r DashboardResource) Configure(ctx context.Context, request resource.ConfigureRequest, response *resource.ConfigureResponse) {
 	//TODO implement me
 	panic("implement me")
-}
-
-type DashboardResourceModel struct {
-	ID          types.String             `tfsdk:"id"`
-	Name        types.String             `tfsdk:"name"`
-	Description types.String             `tfsdk:"description"`
-	Layout      *DashboardLayoutModel    `tfsdk:"layout"`
-	Variables   types.List               `tfsdk:"variables"`
-	Filters     types.List               `tfsdk:"filters"`
-	TimeFrame   *DashboardTimeFrameModel `tfsdk:"time_frame"`
-	ContentJson types.String             `tfsdk:"content_json"`
-}
-
-type DashboardLayoutModel struct {
-	Sections types.List `tfsdk:"sections"`
-}
-
-type SectionModel struct {
-	ID   types.String `tfsdk:"id"`
-	Rows types.List   `tfsdk:"rows"`
-}
-
-type RowModel struct {
-	ID      types.String `tfsdk:"id"`
-	Height  types.Int64  `tfsdk:"height"`
-	Widgets types.List   `tfsdk:"widgets"`
-}
-
-type WidgetModel struct {
-	ID          types.String           `tfsdk:"id"`
-	Title       types.String           `tfsdk:"title"`
-	Description types.String           `tfsdk:"description"`
-	Definition  *WidgetDefinitionModel `tfsdk:"definition"`
-	Width       types.Int64            `tfsdk:"width"`
-}
-
-type WidgetDefinitionModel struct {
-	LineChart *LineChartModel `tfsdk:"line_chart"`
-	DataTable *DataTableModel `tfsdk:"data_table"`
-	Gauge     *GaugeModel     `tfsdk:"gauge"`
-	PieChart  *PieChartModel  `tfsdk:"pie_chart"`
-	BarChart  *BarChartModel  `tfsdk:"bar_chart"`
-}
-
-type LineChartModel struct {
-	Legend           *LegendModel           `tfsdk:"legend"`
-	Tooltip          *LineChartTooltipModel `tfsdk:"tooltip"`
-	QueryDefinitions types.List             `tfsdk:"query_definitions"`
-}
-
-type LegendModel struct {
-	IsVisible    types.Bool `tfsdk:"is_visible"`
-	Columns      types.List `tfsdk:"columns"`
-	GroupByQuery types.Bool `tfsdk:"group_by_query"`
-}
-
-type LineChartTooltipModel struct {
-	ShowLabels types.Bool   `tfsdk:"show_labels"`
-	Type       types.String `tfsdk:"type"`
-}
-
-type LineChartQueryDefinitionModel struct {
-	ID                 types.String         `tfsdk:"id"`
-	Query              *LineChartQueryModel `tfsdk:"query"`
-	SeriesNameTemplate types.String         `tfsdk:"series_name_template"`
-	SeriesCountLimit   types.Int64          `tfsdk:"series_count_limit"`
-	Unit               types.String         `tfsdk:"unit"`
-	ScaleType          types.String         `tfsdk:"scale_type"`
-	Name               types.String         `tfsdk:"name"`
-	IsVisible          types.Bool           `tfsdk:"is_visible"`
-}
-
-type LineChartQueryModel struct {
-	Logs    *LineChartQueryLogsModel    `tfsdk:"logs"`
-	Metrics *LineChartQueryMetricsModel `tfsdk:"metrics"`
-	Spans   *LineChartQuerySpansModel   `tfsdk:"spans"`
-}
-
-type LineChartQueryLogsModel struct {
-	LuceneQuery  types.String `tfsdk:"lucene_query"`
-	GroupBy      types.List   `tfsdk:"group_by"`
-	Aggregations types.List   `tfsdk:"aggregations"`
-	Filters      types.List   `tfsdk:"filters"`
-}
-
-type QueryLogsAggregationModel struct {
-	Type  types.String `tfsdk:"type"`
-	Field types.String `tfsdk:"field"`
-}
-
-type FilterModel struct {
-	Field    types.String         `tfsdk:"field"`
-	Operator *FilterOperatorModel `tfsdk:"operator"`
-}
-
-type FilterOperatorModel struct {
-	Type           types.String `tfsdk:"type"`
-	SelectedValues types.List   `tfsdk:"selected_values"`
-}
-
-type LineChartQueryMetricsModel struct {
-	PromqlQuery types.String `tfsdk:"promql_query"`
-	Filters     types.List   `tfsdk:"filters"`
-}
-
-type QueryMetricFilterModel struct {
-	Metric   types.String         `tfsdk:"metric"`
-	Label    types.String         `tfsdk:"label"`
-	Operator *FilterOperatorModel `tfsdk:"operator"`
-}
-
-type LineChartQuerySpansModel struct {
-	LuceneQuery  types.String `tfsdk:"lucene_query"`
-	GroupBy      types.List   `tfsdk:"group_by"`
-	Aggregations types.List   `tfsdk:"aggregations"`
-	Filters      types.List   `tfsdk:"filters"`
-}
-
-type SpansAggregationModel struct {
-	Type            types.String `tfsdk:"type"`
-	AggregationType types.String `tfsdk:"aggregation_type"`
-	Field           types.String `tfsdk:"field"`
-}
-
-type DataTableModel struct {
-	Query          *DataTableQueryModel `tfsdk:"query"`
-	ResultsPerPage types.Int64          `tfsdk:"results_per_page"`
-	RowStyle       types.String         `tfsdk:"row_style"`
-	Columns        types.List           `tfsdk:"columns"`
-	OrderBy        *OrderByModel        `tfsdk:"order_by"`
-}
-
-type DataTableQueryLogsModel struct {
-	LuceneQuery types.String                     `tfsdk:"lucene_query"`
-	Filters     types.List                       `tfsdk:"filters"`
-	Grouping    *DataTableLogsQueryGroupingModel `tfsdk:"grouping"`
-}
-
-type LogsFilterModel struct {
-	Field    types.String         `tfsdk:"field"`
-	Operator *FilterOperatorModel `tfsdk:"operator"`
-}
-
-type DataTableLogsQueryGroupingModel struct {
-	GroupBy      types.List `tfsdk:"group_by"`
-	Aggregations types.List `tfsdk:"aggregations"`
-}
-
-type DataTableAggregationModel struct {
-	ID          types.String      `tfsdk:"id"`
-	Name        types.String      `tfsdk:"name"`
-	IsVisible   types.Bool        `tfsdk:"is_visible"`
-	Aggregation *AggregationModel `tfsdk:"aggregation"`
-}
-
-type AggregationModel struct {
-	Type  types.String `tfsdk:"type"`
-	Field types.String `tfsdk:"field"`
-}
-
-type DataTableQueryModel struct {
-	Logs    *DataTableQueryLogsModel    `tfsdk:"logs"`
-	Metrics *DataTableQueryMetricsModel `tfsdk:"metrics"`
-	Spans   *DataTableQuerySpansModel   `tfsdk:"spans"`
-}
-
-type DataTableQueryMetricsModel struct {
-	PromqlQuery types.String `tfsdk:"promql_query"`
-	Filters     types.List   `tfsdk:"filters"`
-}
-
-type MetricsFilterModel struct {
-	Metric   types.String         `tfsdk:"metric"`
-	Label    types.String         `tfsdk:"label"`
-	Operator *FilterOperatorModel `tfsdk:"operator"`
-}
-
-type DataTableColumnModel struct {
-	Field types.String `tfsdk:"field"`
-	Width types.Int64  `tfsdk:"width"`
-}
-
-type OrderByModel struct {
-	Field          types.String `tfsdk:"field"`
-	OrderDirection types.String `tfsdk:"order_direction"`
-}
-
-type DataTableQuerySpansModel struct {
-	LuceneQuery types.String                      `tfsdk:"lucene_query"`
-	Filters     types.List                        `tfsdk:"filters"`
-	Grouping    *DataTableSpansQueryGroupingModel `tfsdk:"grouping"`
-}
-
-type SpansFilterModel struct {
-	Field    *SpansFieldModel     `tfsdk:"field"`
-	Operator *FilterOperatorModel `tfsdk:"operator"`
-}
-
-type SpansFieldModel struct {
-	Type  types.String `tfsdk:"type"`
-	Value types.String `tfsdk:"value"`
-}
-
-type DataTableSpansQueryGroupingModel struct {
-	GroupBy      types.List `tfsdk:"group_by"`
-	Aggregations types.List `tfsdk:"aggregations"`
-}
-
-type GaugeModel struct {
-	Query        *GaugeQueryModel `tfsdk:"query"`
-	Min          types.Float64    `tfsdk:"min"`
-	Max          types.Float64    `tfsdk:"max"`
-	ShowInnerArc types.Bool       `tfsdk:"show_inner_arc"`
-	ShowOuterArc types.Bool       `tfsdk:"show_outer_arc"`
-	Unit         types.String     `tfsdk:"unit"`
-	Thresholds   types.List       `tfsdk:"thresholds"`
-}
-
-type GaugeQueryModel struct {
-	Logs    *GaugeQueryLogsModel    `tfsdk:"logs"`
-	Metrics *GaugeQueryMetricsModel `tfsdk:"metrics"`
-	Spans   *GaugeQuerySpansModel   `tfsdk:"spans"`
-}
-
-type GaugeQueryLogsModel struct {
-	LuceneQuery     types.String      `tfsdk:"lucene_query"`
-	LogsAggregation *AggregationModel `tfsdk:"logs_aggregation"`
-	Aggregation     types.String      `tfsdk:"aggregation"`
-	Filters         types.List        `tfsdk:"filters"`
-}
-
-type GaugeQueryMetricsModel struct {
-	PromqlQuery types.String `tfsdk:"promql_query"`
-	Aggregation types.String `tfsdk:"aggregation"`
-	Filters     types.List   `tfsdk:"filters"`
-}
-
-type GaugeQuerySpansModel struct {
-	LuceneQuery      types.String           `tfsdk:"lucene_query"`
-	SpansAggregation *SpansAggregationModel `tfsdk:"spans_aggregation"`
-	Aggregation      types.String           `tfsdk:"aggregation"`
-	Filters          types.List             `tfsdk:"filters"`
-}
-
-type GaugeThreshold struct {
-	From  types.Float64 `tfsdk:"from"`
-	Color types.String  `tfsdk:"color"`
-}
-
-type PieChartModel struct {
-	Query              *PieChartQueryModel           `tfsdk:"query"`
-	MaxSlicesPerChart  types.Int64                   `tfsdk:"max_slices_per_chart"`
-	MinSlicePercentage types.Int64                   `tfsdk:"min_slice_percentage"`
-	StackDefinition    *PieChartStackDefinitionModel `tfsdk:"stack_definition"`
-	LabelDefinition    *LabelDefinitionModel         `tfsdk:"label_definition"`
-	ShowLegend         types.Bool                    `tfsdk:"show_legend"`
-	GroupNameTemplate  types.String                  `tfsdk:"group_name_template"`
-	Unit               types.String                  `tfsdk:"unit"`
-}
-
-type PieChartStackDefinitionModel struct {
-	MaxSlicesPerStack types.Int64  `tfsdk:"max_slices_per_stack"`
-	StackNameTemplate types.String `tfsdk:"stack_name_template"`
-}
-
-type PieChartQueryModel struct {
-	Logs    *PieChartQueryLogsModel    `tfsdk:"logs"`
-	Metrics *PieChartQueryMetricsModel `tfsdk:"metrics"`
-	Spans   *PieChartQuerySpansModel   `tfsdk:"spans"`
-}
-
-type PieChartQueryLogsModel struct {
-	LuceneQuery      types.String      `tfsdk:"lucene_query"`
-	Aggregation      *AggregationModel `tfsdk:"aggregation"`
-	Filters          types.List        `tfsdk:"filters"`
-	GroupNames       types.List        `tfsdk:"group_names"`
-	StackedGroupName types.String      `tfsdk:"stacked_group_name"`
-}
-
-type PieChartQueryMetricsModel struct {
-	PromqlQuery      types.String `tfsdk:"promql_query"`
-	Filters          types.List   `tfsdk:"filters"`
-	GroupNames       types.List   `tfsdk:"group_names"`
-	StackedGroupName types.String `tfsdk:"stacked_group_name"`
-}
-
-type PieChartQuerySpansModel struct {
-	LuceneQuery      types.String           `tfsdk:"lucene_query"`
-	Aggregation      *SpansAggregationModel `tfsdk:"aggregation"`
-	Filters          types.List             `tfsdk:"filters"`
-	GroupNames       types.List             `tfsdk:"group_names"`
-	StackedGroupName *SpansFieldModel       `tfsdk:"stacked_group_name"`
-}
-
-type LabelDefinitionModel struct {
-	LabelSource    types.String `tfsdk:"label_source"`
-	IsVisible      types.Bool   `tfsdk:"is_visible"`
-	ShowName       types.Bool   `tfsdk:"show_name"`
-	ShowValue      types.Bool   `tfsdk:"show_value"`
-	ShowPercentage types.Bool   `tfsdk:"show_percentage"`
-}
-
-type BarChartModel struct {
-	Query             *BarChartQueryModel           `tfsdk:"query"`
-	MaxBarsPerChart   types.Int64                   `tfsdk:"max_bars_per_chart"`
-	GroupNameTemplate types.String                  `tfsdk:"group_name_template"`
-	StackDefinition   *BarChartStackDefinitionModel `tfsdk:"stack_definition"`
-	ScaleType         types.String                  `tfsdk:"scale_type"`
-	ColorsBy          types.String                  `tfsdk:"colors_by"`
-	XAxis             *BarChartXAxisModel           `tfsdk:"xaxis"`
-	Unit              types.String                  `tfsdk:"unit"`
-}
-
-type BarChartQueryModel struct {
-	Logs    *BarChartQueryLogsModel    `tfsdk:"logs"`
-	Metrics *BarChartQueryMetricsModel `tfsdk:"metrics"`
-	Spans   *BarChartQuerySpansModel   `tfsdk:"spans"`
-}
-
-type BarChartQueryLogsModel struct {
-	LuceneQuery      types.String      `tfsdk:"lucene_query"`
-	Aggregation      *AggregationModel `tfsdk:"logs_aggregation"`
-	Filters          types.List        `tfsdk:"filters"`
-	GroupNames       types.List        `tfsdk:"group_names"`
-	StackedGroupName types.String      `tfsdk:"stacked_group_name"`
-}
-
-type BarChartQueryMetricsModel struct {
-	PromqlQuery      types.String `tfsdk:"promql_query"`
-	Filters          types.List   `tfsdk:"filters"`
-	GroupNames       types.List   `tfsdk:"group_names"`
-	StackedGroupName types.String `tfsdk:"stacked_group_name"`
-}
-
-type BarChartQuerySpansModel struct {
-	LuceneQuery      types.String           `tfsdk:"lucene_query"`
-	Aggregation      *SpansAggregationModel `tfsdk:"aggregation"`
-	Filters          types.List             `tfsdk:"filters"`
-	GroupNames       types.List             `tfsdk:"group_names"`
-	StackedGroupName *SpansFieldModel       `tfsdk:"stacked_group_name"`
-}
-
-type DataTableSpansAggregationModel struct {
-	ID          types.String           `json:"id"`
-	Name        types.String           `json:"name"`
-	IsVisible   types.Bool             `json:"is_visible"`
-	Aggregation *SpansAggregationModel `json:"aggregation"`
-}
-
-type BarChartStackDefinitionModel struct {
-	MaxSlicesPerBar   types.Int64  `tfsdk:"max_slices_per_bar"`
-	StackNameTemplate types.String `tfsdk:"stack_name_template"`
-}
-
-type BarChartXAxisModel struct {
-	Type             types.String `tfsdk:"type"`
-	Interval         types.String `tfsdk:"interval"`
-	BucketsPresented types.Int64  `tfsdk:"buckets_presented"`
-}
-
-type DashboardVariableModel struct {
-	Name        types.String                      `tfsdk:"name"`
-	Definition  *DashboardVariableDefinitionModel `tfsdk:"definition"`
-	DisplayName types.String                      `tfsdk:"display_name"`
-}
-
-type MetricMultiSelectSourceModel struct {
-	Name  types.String `tfsdk:"name"`
-	Label types.String `tfsdk:"label"`
-}
-
-type DashboardVariableDefinitionModel struct {
-	ConstantValue types.String              `tfsdk:"constant_value"`
-	MultiSelect   *VariableMultiSelectModel `tfsdk:"multi_select"`
-}
-
-type VariableMultiSelectModel struct {
-	SelectedValues       types.List                      `tfsdk:"selected_values"`
-	ValuesOrderDirection types.String                    `tfsdk:"values_order_direction"`
-	Source               *VariableMultiSelectSourceModel `tfsdk:"source"`
-}
-
-type VariableMultiSelectSourceModel struct {
-	LogPath      types.String                  `tfsdk:"log_path"`
-	Metric       *MetricMultiSelectSourceModel `tfsdk:"metric"`
-	ConstantList types.List                    `tfsdk:"constant_list"`
-	SpanField    *SpansFieldModel              `tfsdk:"span_field"`
-}
-
-type DashboardFilterModel struct {
-	Logs      *FilterSourceLogsModel    `tfsdk:"logs"`
-	Metrics   *FilterSourceMetricsModel `tfsdk:"metrics"`
-	Spans     *FilterSourceSpansModel   `tfsdk:"spans"`
-	Enabled   types.Bool                `tfsdk:"enabled"`
-	Collapsed types.Bool                `tfsdk:"collapsed"`
-}
-
-type FilterSourceLogsModel struct {
-	Field    types.String         `tfsdk:"field"`
-	Operator *FilterOperatorModel `tfsdk:"operator"`
-}
-
-type FilterSourceMetricsModel struct {
-	MetricName  types.String         `tfsdk:"name"`
-	MetricLabel types.String         `tfsdk:"label"`
-	Operator    *FilterOperatorModel `tfsdk:"operator"`
-}
-
-type FilterSourceSpansModel struct {
-	Field    *SpansFieldModel     `tfsdk:"field"`
-	Operator *FilterOperatorModel `tfsdk:"operator"`
-}
-
-type DashboardTimeFrameModel struct {
-	Absolute *DashboardTimeFrameAbsoluteModel `tfsdk:"absolute"`
-	Relative *DashboardTimeFrameRelativeModel `tfsdk:"relative"`
-}
-
-type DashboardTimeFrameAbsoluteModel struct {
-	From types.String `tfsdk:"from"`
-	To   types.String `tfsdk:"to"`
-}
-
-type DashboardTimeFrameRelativeModel struct {
-	Duration types.String `tfsdk:"duration"`
 }

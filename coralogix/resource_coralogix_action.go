@@ -187,8 +187,8 @@ func flattenAction(action *actions.Action) ActionResourceModel {
 		URL:          types.StringValue(action.GetUrl().GetValue()),
 		IsPrivate:    types.BoolValue(action.GetIsPrivate().GetValue()),
 		SourceType:   types.StringValue(actionProtoSourceTypeToSchemaSourceType[action.GetSourceType()]),
-		Applications: wrappedStringSliceToTypeStringSlice(action.GetApplicationNames()),
-		Subsystems:   wrappedStringSliceToTypeStringSlice(action.GetSubsystemNames()),
+		Applications: wrappedStringSliceToTypeStringSet(action.GetApplicationNames()),
+		Subsystems:   wrappedStringSliceToTypeStringSet(action.GetSubsystemNames()),
 		CreatedBy:    types.StringValue(action.GetCreatedBy().GetValue()),
 		IsHidden:     types.BoolValue(action.GetIsHidden().GetValue()),
 	}
