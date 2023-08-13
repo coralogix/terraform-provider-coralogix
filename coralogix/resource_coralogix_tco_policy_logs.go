@@ -457,7 +457,7 @@ func (r *TCOPolicyResource) Create(ctx context.Context, req resource.CreateReque
 	policyStr, _ = jsm.MarshalToString(policy)
 	log.Printf("[INFO] Submitted new tco-policy: %#v", policy)
 	plan.ID = types.StringValue(createResp.GetPolicy().GetId().GetValue())
-	r.updatePoliciesOrder(ctx, plan)
+	updatePoliciesOrder(ctx, r.client, plan.ID.ValueString(), int(plan.Order.ValueInt64()), tcopolicies.SourceType_SOURCE_TYPE_LOGS)
 
 	policy.Order = wrapperspb.Int32(int32(plan.Order.ValueInt64()))
 	plan = flattenTCOPolicy(policy)
@@ -510,7 +510,7 @@ func (r *TCOPolicyResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 }
 
-func (r TCOPolicyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *TCOPolicyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
 	var plan TCOPolicyResourceModel
 	diags := req.Plan.Get(ctx, &plan)
@@ -532,7 +532,7 @@ func (r TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 	log.Printf("[INFO] Submitted updated tco-policy: %#v", policyUpdateResp)
 
-	r.updatePoliciesOrder(ctx, plan)
+	updatePoliciesOrder(ctx, r.client, plan.ID.ValueString(), int(plan.Order.ValueInt64()), tcopolicies.SourceType_SOURCE_TYPE_LOGS)
 
 	// Get refreshed tco-policy value from Coralogix
 	id := plan.ID.ValueString()
@@ -698,8 +698,7 @@ func expandTCOPolicyRule(ctx context.Context, rule *TCORuleModel) *tcopolicies.R
 	}
 }
 
-func (r *TCOPolicyResource) updatePoliciesOrder(ctx context.Context, policy TCOPolicyResourceModel) error {
-	sourceType := tcopolicies.SourceType_SOURCE_TYPE_LOGS
+func updatePoliciesOrder(ctx context.Context, client *clientset.TCOPoliciesClient, policyID string, policyOrder int, sourceType tcopolicies.SourceType) error {
 	getPoliciesReq := &tcopolicies.GetCompanyPoliciesRequest{
 		EnabledOnly: wrapperspb.Bool(false),
 		SourceType:  &sourceType,
@@ -707,7 +706,7 @@ func (r *TCOPolicyResource) updatePoliciesOrder(ctx context.Context, policy TCOP
 	getPoliciesReqStr, _ := jsm.MarshalToString(getPoliciesReq)
 	log.Printf("[INFO] Get tco-policies request: %s", getPoliciesReqStr)
 
-	getPoliciesResp, err := r.client.GetTCOPolicies(ctx, getPoliciesReq)
+	getPoliciesResp, err := client.GetTCOPolicies(ctx, getPoliciesReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return err
@@ -717,9 +716,9 @@ func (r *TCOPolicyResource) updatePoliciesOrder(ctx context.Context, policy TCOP
 	log.Printf("[INFO] Get tco-policies response: %#v", getPoliciesRespStr)
 
 	policies := getPoliciesResp.GetPolicies()
-	policiesIDsByOrder, currentPolicyIndex := getPoliciesIDsByOrderAndCurrentPolicyIndex(policies, policy)
+	policiesIDsByOrder, currentPolicyIndex := getPoliciesIDsByOrderAndCurrentPolicyIndex(policies, policyID)
 
-	desiredPolicyIndex := getPolicyDesireIndex(policy, policies)
+	desiredPolicyIndex := getPolicyDesireIndex(policyOrder, policies)
 
 	if currentPolicyIndex == desiredPolicyIndex {
 		return nil
@@ -733,7 +732,7 @@ func (r *TCOPolicyResource) updatePoliciesOrder(ctx context.Context, policy TCOP
 	reorderReqStr, _ := jsm.MarshalToString(reorderReq)
 	log.Printf("[INFO] Reorder tco-policies request: %s", reorderReqStr)
 
-	reorderResp, err := r.client.ReorderTCOPolicies(ctx, reorderReq)
+	reorderResp, err := client.ReorderTCOPolicies(ctx, reorderReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return err
@@ -744,9 +743,8 @@ func (r *TCOPolicyResource) updatePoliciesOrder(ctx context.Context, policy TCOP
 	return nil
 }
 
-func getPoliciesIDsByOrderAndCurrentPolicyIndex(policies []*tcopolicies.Policy, policy TCOPolicyResourceModel) ([]*tcopolicies.PolicyOrder, int) {
+func getPoliciesIDsByOrderAndCurrentPolicyIndex(policies []*tcopolicies.Policy, policyID string) ([]*tcopolicies.PolicyOrder, int) {
 	policiesIDsByOrder := make([]*tcopolicies.PolicyOrder, len(policies))
-	policyID := policy.ID.ValueString()
 	currentPolicyIndex := -1
 	for i, p := range policies {
 		id := p.GetId().GetValue()
@@ -762,8 +760,8 @@ func getPoliciesIDsByOrderAndCurrentPolicyIndex(policies []*tcopolicies.Policy, 
 	return policiesIDsByOrder, currentPolicyIndex
 }
 
-func getPolicyDesireIndex(policy TCOPolicyResourceModel, policies []*tcopolicies.Policy) int {
-	desiredPolicyIndex := int(policy.Order.ValueInt64() - 1)
+func getPolicyDesireIndex(order int, policies []*tcopolicies.Policy) int {
+	desiredPolicyIndex := order - 1
 	if desiredPolicyIndex >= len(policies) {
 		desiredPolicyIndex = len(policies) - 1
 	}

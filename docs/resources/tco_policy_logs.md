@@ -19,7 +19,7 @@ resource "coralogix_tco_policy_logs" "tco_policy_1" {
   order      = 1
   severities = ["debug", "verbose", "info"]
   applications = {
-    rule_type = "starts with"
+    rule_type = "starts_with"
     names        = ["prod"]
   }
   subsystems = {
@@ -36,7 +36,7 @@ resource "coralogix_tco_policy_logs" "tco_policy_2" {
 
   severities = ["error", "warning", "critical"]
   applications = {
-    rule_type = "starts with"
+    rule_type = "starts_with"
     names        = ["prod"]
   }
   subsystems = {

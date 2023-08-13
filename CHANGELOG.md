@@ -86,9 +86,10 @@ BREAKING CHANGES:
 #### resource/alert
 
 * `categories` ,`classes`, `computers`, `ip_addresses`, `methods` and `search_query` are not supported
-filters for tracing alert, Therefore they were deleted from the tracing-alert scheme.
-* `applications`,`severities` and `subsystems` filters have currently different format in tracing-alert (`field_filters`),
-Therefore they were deleted from the tracing-alert scheme.
+  filters for tracing alert, Therefore they were deleted from the tracing-alert scheme.
+* `applications`,`severities` and `subsystems` filters have currently different format in
+  tracing-alert (`field_filters`),
+  Therefore they were deleted from the tracing-alert scheme.
 
 ## Release 1.4.0
 
@@ -96,20 +97,28 @@ BREAKING CHANGES:
 
 #### resource/alert
 
-* `meta_labels` was changed to key-value map. (e.g. - `meta_labels {key = "alert_type" value = "security"} meta_labels {key = "security_severity" value = "high"}` => `meta_labels = {alert_type = "security" security_severity = "high" }`).
-([example-usage](docs/resources/alert.md#standard-alert)).
+* `meta_labels` was changed to key-value map. (e.g.
+  - `meta_labels {key = "alert_type" value = "security"} meta_labels {key = "security_severity" value = "high"}`
+  => `meta_labels = {alert_type = "security" security_severity = "high" }`).
+  ([example-usage](docs/resources/alert.md#standard-alert)).
 * `scheduling.time_frames` was changed to `time_frame`.
 * `standard.occurrences_threshold` and `tracing.occurrences_threshold` were changed to `threshold`.
 * `ratio.queries_ratio` was changed to `ratio_threshold`.
-* `notification` was changed to list of `notifications_group` and have entire different schema ([nested-schema-for-notifications](docs/resources/alert.md#nested-schema-for-notifications_group)).
-* `notification.ignore_infinity` was moved to `ratio.condition.ignore_infinity` and `time_relative.condition.ignore_infinity`.
+* `notification` was changed to list of `notifications_group` and have entire different
+  schema ([nested-schema-for-notifications](docs/resources/alert.md#nested-schema-for-notifications_group)).
+* `notification.ignore_infinity` was moved to `ratio.condition.ignore_infinity`
+  and `time_relative.condition.ignore_infinity`.
 * `notification.notify_every_min` was changed to `notifications_group.notification.retriggering_period_minutes`.
 * `notification.on_trigger_and_resolved` (boolean) was changed to `notifications_group.notification.notify_on` (string).
-* `notification.recipients.webhook_id` replaced with `notifications_group.notification.integration_id` and should contain the integration's (webhook's) id instead of the integration's name.
-* flow-alert's (`flow`) schema was fixed. Any earlier version contained wrong schema of flow-alert. ([nested-schema-for-flow](docs/resources/alert.md#nested-schema-for-flow)).
-* `tracing.field_filters` was removed, and `tracing.applications`, `tracing.applications` and `tracing.services` were added instead.
+* `notification.recipients.webhook_id` replaced with `notifications_group.notification.integration_id` and should
+  contain the integration's (webhook's) id instead of the integration's name.
+* flow-alert's (`flow`) schema was fixed. Any earlier version contained wrong schema of
+  flow-alert. ([nested-schema-for-flow](docs/resources/alert.md#nested-schema-for-flow)).
+* `tracing.field_filters` was removed, and `tracing.applications`, `tracing.applications` and `tracing.services` were
+  added instead.
 * `tracing.tag_filters` was changed to `tracing.tag_filter` and contains only `field` and `values`.
-* `tracing.tag_filter.values`, `tracing.applications`, `tracing.applications` and `tracing.services` have the same format as the other alerts' filters. ([example-usage](docs/resources/alert.md#tracing-alert)).
+* `tracing.tag_filter.values`, `tracing.applications`, `tracing.applications` and `tracing.services` have the same
+  format as the other alerts' filters. ([example-usage](docs/resources/alert.md#tracing-alert)).
 * `tracing.latency_threshold_ms` was changed to `latency_threshold_milliseconds`.
 
 ## Release 1.4.4
@@ -118,7 +127,8 @@ BREAKING CHANGES:
 
 #### resource/alert
 
-* `notifications_group.group_by_fields` was changed from _TypeSet_ (doesn't keep order of declaration) to _TypeList_ (keeps order of declaration). This change can cause to diffs in state.
+* `notifications_group.group_by_fields` was changed from _TypeSet_ (doesn't keep order of declaration) to _TypeList_ (
+  keeps order of declaration). This change can cause to diffs in state.
 
 ## Release 1.5.0
 
@@ -126,14 +136,17 @@ BREAKING CHANGES:
 
 #### resource/events2metric (~~logs2metric~~)
 
-* resource and data-source name _logs2metric_ was changed to _events2metric_ and contains `logs_query` and `span_query` option.
+* resource and data-source name _logs2metric_ was changed to _events2metric_ and contains `logs_query` and `span_query`
+  option.
 
 ## Release 1.5.2
 
 FEATURES:
 
 #### resource/events2metric
-* Adding [aggregations](docs/resources/events2metric.md#nested-schema-for-metric_fieldsaggregations) option to `metric_fields`.
+
+* Adding [aggregations](docs/resources/events2metric.md#nested-schema-for-metric_fieldsaggregations) option
+  to `metric_fields`.
 
 ## Release 1.5.3
 
@@ -147,8 +160,11 @@ BREAKING CHANGES:
 BUG FIXING:
 
 #### resource/tco_policy
-* Fixing [TF doesn't detect manually deleted resources](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1683820712917899)
-* Fixing [Order of policies can't be manged by TF](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1681995853325159)
+
+*
+Fixing [TF doesn't detect manually deleted resources](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1683820712917899)
+*
+Fixing [Order of policies can't be manged by TF](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1681995853325159)
 
 FEATURES:
 
@@ -169,80 +185,120 @@ FEATURES:
 BREAKING CHANGES:
 
 #### resource/recording_rules_group
+
 * Deprecated, and replaced with [recording_rules_groups_set](./docs/resources/recording_rules_groups_set.md) .
 
 ## Release 1.5.6
 
 #### resource/tco_policy
-* Fixing [TF doesn't detect manually deleted resources](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1683820712917899)
+
+*
+Fixing [TF doesn't detect manually deleted resources](https://coralogix-dev.slack.com/archives/C04CV0JG36H/p1683820712917899)
 
 ## Release 1.5.7
 
 BUG FIXING:
 
 #### resource/alert
+
 * Fixing - received an error when updating promql alert condition from less_than to more_than
 
 ## Release 1.5.8
 
 BREAKING CHANGES:
+
 #### resource/coralogix_dashboard
-* for all the new line chart widgets - `query`, `series_name_template`, `series_count_limit`, `unit` and `scale_type` fields were deprecated. They will be part of `query_definition` now.
+
+* for all the new line chart widgets - `query`, `series_name_template`, `series_count_limit`, `unit` and `scale_type`
+  fields were deprecated. They will be part of `query_definition` now.
 * all lists of objects names' 's' suffix was removed (e.g. - `widgets` => `widget`).
 
 ## Release 1.5.9
 
 BUG FIXING:
-#### resource/coralogix_alert 
-* Fixing - tracing alert with `tracing.tag_filter` and `tracing.applications`/`tracing.services`/`tracing.services` filters doesn't work for 'equal' operator.
+
+#### resource/coralogix_alert
+
+* Fixing - tracing alert with `tracing.tag_filter` and `tracing.applications`/`tracing.services`/`tracing.services`
+  filters doesn't work for 'equal' operator.
 
 FEATURES:
+
 #### resource/coralogix_alert
-* Adding support for 'notEquals' operator for `tracing.tag_filter` and `tracing.applications`/`tracing.services`/`tracing.services` filters.
+
+* Adding support for 'notEquals' operator for `tracing.tag_filter` and `tracing.applications`/`tracing.services`
+  /`tracing.services` filters.
 
 ## Release 1.6.0
 
 BREAKING CHANGES:
+
 #### resource/coralogix_events2metric
-**Please note** - this version contains a [State Upgrader](https://developer.hashicorp.com/terraform/plugin/framework/migrating/resources/state-upgrade#framework). It will upgrade the state to the new schema. Please make sure to back up your state before upgrading.
+
+**Please note** - this version contains
+a [State Upgrader](https://developer.hashicorp.com/terraform/plugin/framework/migrating/resources/state-upgrade#framework)
+. It will upgrade the state to the new schema. Please make sure to back up your state before upgrading.
+
 * `logs_query` type was changed from `Block List, Max: 1` to `Attributes`.
 * `spans_query` type was changed from `Block List, Max: 1` to `Attributes`.
-* `metric_fields` type was changed from `Block Set` to `Attributes Map`, and `metric_fields`'s `target_base_metric_name` was changed to the map's key. e.g. - `metric_fields {target_base_metric_name = "metric_name" ...}` => `metric_fields = {"metric_name" = {...}}`.
+* `metric_fields` type was changed from `Block Set` to `Attributes Map`, and `metric_fields`'s `target_base_metric_name`
+  was changed to the map's key. e.g. - `metric_fields {target_base_metric_name = "metric_name" ...}`
+  => `metric_fields = {"metric_name" = {...}}`.
 * `metric_fields`'s `aggregations` type was changed from `Block List, Max: 1` to `Attributes`.
-* All `aggregations`'s fields (`avg`, `count`, `histogram`, `max`, `min`, `samples`, `sum`) types where changed from `Block List, Max: 1` `Attributes`.
-* `metric_labels` type was changed from `Block Set` to `Attributes Map`, and `metric_labels`'s `target_label_name` was changed to the map's key. e.g. - `metric_labels {target_label_name = "label_name" ...}` => `metric_labels = {"label_name" = {...}}`.
+* All `aggregations`'s fields (`avg`, `count`, `histogram`, `max`, `min`, `samples`, `sum`) types where changed
+  from `Block List, Max: 1` `Attributes`.
+* `metric_labels` type was changed from `Block Set` to `Attributes Map`, and `metric_labels`'s `target_label_name` was
+  changed to the map's key. e.g. - `metric_labels {target_label_name = "label_name" ...}`
+  => `metric_labels = {"label_name" = {...}}`.
 
 BUG FIXING:
+
 #### resource/coralogix_events2metric
-* Fixing - [`aggregations` cannot be updated after creation](https://github.com/coralogix/terraform-provider-coralogix/issues/115).
+
+* Fixing
+  - [`aggregations` cannot be updated after creation](https://github.com/coralogix/terraform-provider-coralogix/issues/115)
+  .
 
 ## Release 1.6.1
 
 FEATURES:
+
 #### resource/coralogix_alert
+
 * Adding support for `more_than_usual` condition for `metric.promql` alert.
 
 ## Release 1.6.2
 
 FEATURES:
+
 #### resource/coralogix_tco_policy
+
 * Adding support for `archive_retention_id`.
 
 ## Release 1.6.3
+
 DEVELOPERS:
+
 #### resource/coralogix_actions
+
 * Resource and Data Source were moved to plugin-framework.
 
 ## Release 1.6.4
+
 Breaking Changes:
+
 #### resource/coralogix_alert
+
 * `ratio` and `time_relative`'s `condition`'s `ignore_infinity` conflicts with `condition`'s `less_than`.
 
 BUG FIXING:
+
 #### resource/coralogix_tco_policy
+
 * Fixing - getting panic on creation errors.
 
 ## Release 1.6.5
+
 INTERNAL CHANGES:
 #### resource/coralogix_tco_policy
 * `tco_policy` and `tco_policy_override` endpoints were changed.
@@ -268,7 +324,15 @@ Breaking Changes:
 
 **Please note** - this version contains a [State Upgrader](https://developer.hashicorp.com/terraform/plugin/framework/migrating/resources/state-upgrade#framework). It will upgrade the state to the new schema. Please make sure to back up your state before upgrading.
 (for upgrading the schemas the resource names have to be change manually to coralogix_tco_policy_logs before upgrading)
+
+
+FEATURES:
+
+#### resource/coralogix_tco_policy_traces
+* new resource - _coralogix_tco_policy_traces_
+
 DEVELOPERS:
 #### resource/coralogix_tco_policy
 * using grpc endpoint instead of the REST endpoint.
 * moved to `plugin-framework`.
+

@@ -80,7 +80,6 @@ func OldProvider() *oldSchema.Provider {
 			"coralogix_dashboard":                  resourceCoralogixDashboard(),
 			"coralogix_hosted_dashboard":           resourceCoralogixHostedDashboard(),
 			"coralogix_recording_rules_groups_set": resourceCoralogixRecordingRulesGroupsSet(),
-			"coralogix_tco_policy_override":        resourceCoralogixTCOPolicyOverride(),
 			"coralogix_webhook":                    resourceCoralogixWebhook(),
 		},
 
@@ -281,6 +280,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewEvents2MetricDataSource,
 		NewActionDataSource,
 		NewTCOPolicyDataSource,
+		NewTCOPolicyTracesDataSource,
 	}
 }
 
@@ -289,5 +289,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewEvents2MetricResource,
 		NewActionResource,
 		NewTCOPolicyResource,
+		NewTCOPolicyTracesResource,
 	}
 }
