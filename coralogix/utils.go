@@ -304,13 +304,35 @@ func wrappedStringSliceToTypeStringSlice(s []*wrapperspb.StringValue) types.Set 
 	return types.SetValueMust(types.StringType, elements)
 }
 
-func typeStringSliceToWrappedStringSlice(s []attr.Value) []*wrapperspb.StringValue {
+func stringSliceToTypeStringSet(s []string) types.Set {
+	if len(s) == 0 {
+		return types.SetNull(types.StringType)
+	}
+	elements := make([]attr.Value, 0, len(s))
+	for _, v := range s {
+		elements = append(elements, types.StringValue(v))
+	}
+	return types.SetValueMust(types.StringType, elements)
+}
+
+func typeStringSliceToWrappedStringSlice(ctx context.Context, s []attr.Value) []*wrapperspb.StringValue {
 	result := make([]*wrapperspb.StringValue, 0, len(s))
 	for _, v := range s {
-		val, _ := v.ToTerraformValue(context.Background())
+		val, _ := v.ToTerraformValue(ctx)
 		var str string
 		val.As(&str)
 		result = append(result, wrapperspb.String(str))
+	}
+	return result
+}
+
+func typeStringSliceToStringSlice(ctx context.Context, s []attr.Value) []string {
+	result := make([]string, 0, len(s))
+	for _, v := range s {
+		val, _ := v.ToTerraformValue(ctx)
+		var str string
+		val.As(&str)
+		result = append(result, str)
 	}
 	return result
 }

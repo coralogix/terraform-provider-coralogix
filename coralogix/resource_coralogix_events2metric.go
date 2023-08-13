@@ -1005,7 +1005,7 @@ func extractCreateE2M(ctx context.Context, plan Events2MetricResourceModel) *e2m
 
 	if spansQuery := plan.SpansQuery; spansQuery != nil {
 		e2mParams.Type = e2m.E2MType_E2M_TYPE_SPANS2METRICS
-		e2mParams.Query = expandSpansQuery(spansQuery)
+		e2mParams.Query = expandSpansQuery(ctx, spansQuery)
 	} else if logsQuery := plan.LogsQuery; logsQuery != nil {
 		e2mParams.Type = e2m.E2MType_E2M_TYPE_LOGS2METRICS
 		e2mParams.Query = expandLogsQuery(ctx, logsQuery)
@@ -1045,7 +1045,7 @@ func extractUpdateE2M(ctx context.Context, plan Events2MetricResourceModel) *e2m
 
 	if spansQuery := plan.SpansQuery; spansQuery != nil {
 		e2mParams.Type = e2m.E2MType_E2M_TYPE_SPANS2METRICS
-		e2mParams.Query = expandUpdateSpansQuery(spansQuery)
+		e2mParams.Query = expandUpdateSpansQuery(ctx, spansQuery)
 	} else if logsQuery := plan.LogsQuery; logsQuery != nil {
 		e2mParams.Type = e2m.E2MType_E2M_TYPE_LOGS2METRICS
 		e2mParams.Query = expandUpdateLogsQuery(ctx, logsQuery)
@@ -1154,12 +1154,12 @@ func expandBuckets(buckets []types.Float64) []float32 {
 	return result
 }
 
-func expandSpansQuery(spansQuery *SpansQueryModel) *e2m.E2MCreateParams_SpansQuery {
+func expandSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) *e2m.E2MCreateParams_SpansQuery {
 	lucene := typeStringToWrapperspbString(spansQuery.Lucene)
-	applications := typeStringSliceToWrappedStringSlice(spansQuery.Applications.Elements())
-	subsystems := typeStringSliceToWrappedStringSlice(spansQuery.Subsystems.Elements())
-	actions := typeStringSliceToWrappedStringSlice(spansQuery.Actions.Elements())
-	services := typeStringSliceToWrappedStringSlice(spansQuery.Services.Elements())
+	applications := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Applications.Elements())
+	subsystems := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Subsystems.Elements())
+	actions := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Actions.Elements())
+	services := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Services.Elements())
 
 	return &e2m.E2MCreateParams_SpansQuery{
 		SpansQuery: &e2m.SpansQuery{
@@ -1174,8 +1174,8 @@ func expandSpansQuery(spansQuery *SpansQueryModel) *e2m.E2MCreateParams_SpansQue
 
 func expandLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) *e2m.E2MCreateParams_LogsQuery {
 	searchQuery := typeStringToWrapperspbString(logsQuery.Lucene)
-	applications := typeStringSliceToWrappedStringSlice(logsQuery.Applications.Elements())
-	subsystems := typeStringSliceToWrappedStringSlice(logsQuery.Subsystems.Elements())
+	applications := typeStringSliceToWrappedStringSlice(ctx, logsQuery.Applications.Elements())
+	subsystems := typeStringSliceToWrappedStringSlice(ctx, logsQuery.Subsystems.Elements())
 	severities := expandLogsQuerySeverities(ctx, logsQuery.Severities.Elements())
 
 	return &e2m.E2MCreateParams_LogsQuery{
@@ -1188,12 +1188,12 @@ func expandLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) *e2m.E2MCre
 	}
 }
 
-func expandUpdateSpansQuery(spansQuery *SpansQueryModel) *e2m.E2M_SpansQuery {
+func expandUpdateSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) *e2m.E2M_SpansQuery {
 	lucene := typeStringToWrapperspbString(spansQuery.Lucene)
-	applications := typeStringSliceToWrappedStringSlice(spansQuery.Applications.Elements())
-	subsystems := typeStringSliceToWrappedStringSlice(spansQuery.Subsystems.Elements())
-	actions := typeStringSliceToWrappedStringSlice(spansQuery.Actions.Elements())
-	services := typeStringSliceToWrappedStringSlice(spansQuery.Services.Elements())
+	applications := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Applications.Elements())
+	subsystems := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Subsystems.Elements())
+	actions := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Actions.Elements())
+	services := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Services.Elements())
 
 	return &e2m.E2M_SpansQuery{
 		SpansQuery: &e2m.SpansQuery{
@@ -1208,8 +1208,8 @@ func expandUpdateSpansQuery(spansQuery *SpansQueryModel) *e2m.E2M_SpansQuery {
 
 func expandUpdateLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) *e2m.E2M_LogsQuery {
 	searchQuery := wrapperspb.String(logsQuery.Lucene.ValueString())
-	applications := typeStringSliceToWrappedStringSlice(logsQuery.Applications.Elements())
-	subsystems := typeStringSliceToWrappedStringSlice(logsQuery.Subsystems.Elements())
+	applications := typeStringSliceToWrappedStringSlice(ctx, logsQuery.Applications.Elements())
+	subsystems := typeStringSliceToWrappedStringSlice(ctx, logsQuery.Subsystems.Elements())
 	severities := expandLogsQuerySeverities(ctx, logsQuery.Severities.Elements())
 
 	return &e2m.E2M_LogsQuery{

@@ -10,8 +10,8 @@ var tcoPolicyDataSourceName = "data." + tcoPolicyResourceName1
 
 func TestAccCoralogixDataSourceTCOPolicy_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceTCOPolicy() +
@@ -25,8 +25,8 @@ func TestAccCoralogixDataSourceTCOPolicy_basic(t *testing.T) {
 }
 
 func testAccCoralogixResourceTCOPolicy_read() string {
-	return `data "coralogix_tco_policy" "test_1" {
-		id = coralogix_tco_policy.test_1.id
+	return `data "coralogix_tco_policy_logs" "test_1" {
+		id = coralogix_tco_policy_logs.test_1.id
 }
 `
 }

@@ -9,7 +9,7 @@ type ClientSet struct {
 	grafanaDashboards    *GrafanaDashboardClient
 	actions              *ActionsClient
 	recordingRuleGroups  *RecordingRulesGroupsSetsClient
-	tcoPolicies          *TCOPolicies
+	tcoPolicies          *TCOPoliciesClient
 	tcoPoliciesOverrides *TCOPoliciesOverrides
 	webhooks             *WebhooksClient
 	events2Metrics       *Events2MetricsClient
@@ -47,7 +47,7 @@ func (c *ClientSet) RecordingRuleGroupsSets() *RecordingRulesGroupsSetsClient {
 	return c.recordingRuleGroups
 }
 
-func (c *ClientSet) TCOPolicies() *TCOPolicies {
+func (c *ClientSet) TCOPolicies() *TCOPoliciesClient {
 	return c.tcoPolicies
 }
 

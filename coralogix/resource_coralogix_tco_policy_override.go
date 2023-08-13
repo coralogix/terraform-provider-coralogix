@@ -16,6 +16,19 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 )
 
+var (
+	tcoPolicySchemaSeverityToTcoPolicyRequestSeverity = map[string]int{
+		"debug":    1,
+		"verbose":  2,
+		"info":     3,
+		"warning":  4,
+		"error":    5,
+		"critical": 6,
+	}
+	tcoPolicyResponseSeverityToTcoPolicySchemaSeverity = reverseMapIntToString(tcoPolicySchemaSeverityToTcoPolicyRequestSeverity)
+	validPolicyPriorities                              = []string{"high", "medium", "low", "block"}
+)
+
 type tcoPolicyOverrideRequest struct {
 	Priority        string  `json:"priority"`
 	ApplicationName *string `json:"applicationName,omitempty"`
