@@ -65,10 +65,8 @@ func OldProvider() *oldSchema.Provider {
 			"coralogix_alert":                      dataSourceCoralogixAlert(),
 			"coralogix_enrichment":                 dataSourceCoralogixEnrichment(),
 			"coralogix_data_set":                   dataSourceCoralogixDataSet(),
-			"coralogix_dashboard":                  dataSourceCoralogixDashboard(),
 			"coralogix_hosted_dashboard":           dataSourceCoralogixHostedDashboard(),
 			"coralogix_recording_rules_groups_set": dataSourceCoralogixRecordingRulesGroupsSet(),
-			"coralogix_tco_policy":                 dataSourceCoralogixTCOPolicy(),
 			"coralogix_tco_policy_override":        dataSourceCoralogixTCOPolicyOverride(),
 			"coralogix_webhook":                    dataSourceCoralogixWebhook(),
 		},
@@ -78,11 +76,8 @@ func OldProvider() *oldSchema.Provider {
 			"coralogix_alert":                      resourceCoralogixAlert(),
 			"coralogix_enrichment":                 resourceCoralogixEnrichment(),
 			"coralogix_data_set":                   resourceCoralogixDataSet(),
-			"coralogix_dashboard":                  resourceCoralogixDashboard(),
 			"coralogix_hosted_dashboard":           resourceCoralogixHostedDashboard(),
 			"coralogix_recording_rules_groups_set": resourceCoralogixRecordingRulesGroupsSet(),
-			"coralogix_tco_policy":                 resourceCoralogixTCOPolicy(),
-			"coralogix_tco_policy_override":        resourceCoralogixTCOPolicyOverride(),
 			"coralogix_webhook":                    resourceCoralogixWebhook(),
 		},
 
@@ -282,6 +277,8 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 	return []func() datasource.DataSource{
 		NewEvents2MetricDataSource,
 		NewActionDataSource,
+		NewTCOPolicyDataSource,
+		NewTCOPolicyTracesDataSource,
 	}
 }
 
@@ -289,5 +286,8 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 	return []func() resource.Resource{
 		NewEvents2MetricResource,
 		NewActionResource,
+		NewTCOPolicyResource,
+		NewTCOPolicyTracesResource,
+		NewDashboardResource,
 	}
 }

@@ -16,21 +16,21 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-var _ datasource.DataSourceWithConfigure = &TCOPolicyDataSource{}
+var _ datasource.DataSourceWithConfigure = &TCOPolicyTracesDataSource{}
 
-func NewTCOPolicyDataSource() datasource.DataSource {
-	return &TCOPolicyDataSource{}
+func NewTCOPolicyTracesDataSource() datasource.DataSource {
+	return &TCOPolicyTracesDataSource{}
 }
 
-type TCOPolicyDataSource struct {
+type TCOPolicyTracesDataSource struct {
 	client *clientset.TCOPoliciesClient
 }
 
-func (d *TCOPolicyDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_tco_policy_logs"
+func (d *TCOPolicyTracesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_tco_policy_traces"
 }
 
-func (d *TCOPolicyDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *TCOPolicyTracesDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -47,16 +47,16 @@ func (d *TCOPolicyDataSource) Configure(_ context.Context, req datasource.Config
 	d.client = clientSet.TCOPolicies()
 }
 
-func (d *TCOPolicyDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r TCOPolicyResource
+func (d *TCOPolicyTracesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	var r TCOPolicyTracesResource
 	var resourceResp resource.SchemaResponse
 	r.Schema(nil, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
-func (d *TCOPolicyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data TCOPolicyResourceModel
+func (d *TCOPolicyTracesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data TCOPolicyTracesResourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -84,7 +84,7 @@ func (d *TCOPolicyDataSource) Read(ctx context.Context, req datasource.ReadReque
 	}
 	log.Printf("[INFO] Received tco-policy: %#v", getPolicyResp)
 
-	data = flattenTCOPolicy(getPolicyResp.GetPolicy())
+	data = flattenTCOPolicyTraces(ctx, getPolicyResp.GetPolicy())
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	if resp.Diagnostics.HasError() {

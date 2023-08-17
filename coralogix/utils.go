@@ -304,6 +304,17 @@ func wrappedStringSliceToTypeStringSet(s []*wrapperspb.StringValue) types.Set {
 	return types.SetValueMust(types.StringType, elements)
 }
 
+func stringSliceToTypeStringSet(s []string) types.Set {
+	if len(s) == 0 {
+		return types.SetNull(types.StringType)
+	}
+	elements := make([]attr.Value, 0, len(s))
+	for _, v := range s {
+		elements = append(elements, types.StringValue(v))
+	}
+	return types.SetValueMust(types.StringType, elements)
+}
+
 func wrappedStringSliceToTypeStringList(s []*wrapperspb.StringValue) types.List {
 	if len(s) == 0 {
 		return types.ListNull(types.StringType)
@@ -354,6 +365,17 @@ func typeBoolToWrapperspbBool(v types.Bool) *wrapperspb.BoolValue {
 		return nil
 	}
 	return wrapperspb.Bool(v.ValueBool())
+}
+
+func typeStringSliceToStringSlice(ctx context.Context, s []attr.Value) []string {
+	result := make([]string, 0, len(s))
+	for _, v := range s {
+		val, _ := v.ToTerraformValue(ctx)
+		var str string
+		val.As(&str)
+		result = append(result, str)
+	}
+	return result
 }
 
 func timeInDaySchema(description string) *schema.Schema {
@@ -636,6 +658,14 @@ func typeStringToWrapperspbString(str types.String) *wrapperspb.StringValue {
 	return result
 }
 
+func typeFloat64ToWrapperspbDouble(num types.Float64) *wrapperspb.DoubleValue {
+	if num.IsNull() {
+		return nil
+	}
+
+	return wrapperspb.Double(num.ValueFloat64())
+}
+
 func wrapperspbStringToTypeString(str *wrapperspb.StringValue) types.String {
 	if str == nil {
 		return types.StringNull()
@@ -650,6 +680,14 @@ func wrapperspbInt64ToTypeInt64(num *wrapperspb.Int64Value) types.Int64 {
 	}
 
 	return types.Int64Value(num.GetValue())
+}
+
+func wrapperspbDoubleToTypeFloat64(num *wrapperspb.DoubleValue) types.Float64 {
+	if num == nil {
+		return types.Float64Null()
+	}
+
+	return types.Float64Value(num.GetValue())
 }
 
 func wrapperspbBoolToTypeBool(b *wrapperspb.BoolValue) types.Bool {
