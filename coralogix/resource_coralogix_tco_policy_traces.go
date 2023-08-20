@@ -311,9 +311,6 @@ func (r *TCOPolicyTracesResource) Create(ctx context.Context, req resource.Creat
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r *TCOPolicyTracesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -351,9 +348,6 @@ func (r *TCOPolicyTracesResource) Read(ctx context.Context, req resource.ReadReq
 	//
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -406,9 +400,6 @@ func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.Update
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r TCOPolicyTracesResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

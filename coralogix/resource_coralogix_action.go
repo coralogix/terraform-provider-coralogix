@@ -175,9 +175,6 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func flattenAction(action *actions.Action) ActionResourceModel {
@@ -229,9 +226,6 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 	//
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -286,9 +280,6 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
