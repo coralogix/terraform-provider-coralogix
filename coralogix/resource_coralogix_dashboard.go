@@ -754,13 +754,8 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																										ElementType: types.StringType,
 																										Optional:    true,
 																									},
-																									"filters": logsFiltersSchema(),
-																									"aggregations": schema.ListNestedAttribute{
-																										Optional: true,
-																										NestedObject: schema.NestedAttributeObject{
-																											Attributes: logsAggregationAttributes(),
-																										},
-																									},
+																									"filters":      logsFiltersSchema(),
+																									"aggregations": logsAggregationsSchema(),
 																								},
 																								Optional: true,
 																								Validators: []validator.Object{
@@ -885,10 +880,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																											"is_visible": schema.BoolAttribute{
 																												Optional: true,
 																											},
-																											"aggregation": schema.SingleNestedAttribute{
-																												Attributes: logsAggregationAttributes(),
-																												Optional:   true,
-																											},
+																											"aggregation": logsAggregationSchema(),
 																										},
 																									},
 																									Optional: true,
@@ -1019,11 +1011,8 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																							MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardValidAggregationTypes),
 																							Optional:            true,
 																						},
-																						"filters": logsFiltersSchema(),
-																						"logs_aggregation": schema.SingleNestedAttribute{
-																							Attributes: logsAggregationAttributes(),
-																							Optional:   true,
-																						},
+																						"filters":          logsFiltersSchema(),
+																						"logs_aggregation": logsAggregationSchema(),
 																					},
 																					Validators: []validator.Object{
 																						objectvalidator.ExactlyOneOf(
@@ -1139,11 +1128,8 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						"lucene_query": schema.StringAttribute{
 																							Optional: true,
 																						},
-																						"aggregation": schema.SingleNestedAttribute{
-																							Attributes: logsAggregationAttributes(),
-																							Optional:   true,
-																						},
-																						"filters": logsFiltersSchema(),
+																						"aggregation": logsAggregationSchema(),
+																						"filters":     logsFiltersSchema(),
 																						"group_names": schema.ListAttribute{
 																							ElementType: types.StringType,
 																							Optional:    true,
@@ -1275,11 +1261,8 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						"lucene_query": schema.StringAttribute{
 																							Optional: true,
 																						},
-																						"aggregation": schema.SingleNestedAttribute{
-																							Attributes: logsAggregationAttributes(),
-																							Optional:   true,
-																						},
-																						"filters": logsFiltersSchema(),
+																						"aggregation": logsAggregationSchema(),
+																						"filters":     logsFiltersSchema(),
 																						"group_names": schema.ListAttribute{
 																							ElementType: types.StringType,
 																							Optional:    true,
@@ -1741,6 +1724,55 @@ func logsFiltersSchema() schema.ListNestedAttribute {
 					Required: true,
 				},
 				"operator": filterOperatorSchema(),
+			},
+		},
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
+	}
+}
+
+type logsAggregationValidator struct{}
+
+func (l logsAggregationValidator) Description(ctx context.Context) string {
+	return ""
+}
+
+func (l logsAggregationValidator) MarkdownDescription(ctx context.Context) string {
+	return ""
+}
+
+func (l logsAggregationValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() {
+		return
+	}
+
+	var aggregation LogsAggregationModel
+	req.ConfigValue.As(ctx, &aggregation, basetypes.ObjectAsOptions{})
+	if aggregation.Type.ValueString() == "count" && !aggregation.Field.IsNull() {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", "when type is `count`, `field` cannot be set"))
+	} else if aggregation.Type.ValueString() != "count" && aggregation.Field.IsNull() {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, `field` must be set", aggregation.Type.ValueString())))
+	}
+}
+
+func logsAggregationSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional:   true,
+		Attributes: logsAggregationAttributes(),
+		Validators: []validator.Object{
+			logsAggregationValidator{},
+		},
+	}
+}
+
+func logsAggregationsSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		Optional: true,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: logsAggregationAttributes(),
+			Validators: []validator.Object{
+				logsAggregationValidator{},
 			},
 		},
 		Validators: []validator.List{
