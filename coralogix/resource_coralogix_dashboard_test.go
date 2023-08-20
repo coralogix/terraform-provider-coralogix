@@ -45,7 +45,7 @@ func TestAccCoralogixResourceDashboard(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.line_chart.legend.columns.2", "sum"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.line_chart.legend.columns.3", "avg"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.line_chart.legend.columns.4", "last"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.width", "0"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.width", "10"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.2.title", "error throwing pods"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.2.definition.line_chart.query_definitions.0.query.logs.lucene_query", "coralogix.metadata.severity=5 OR coralogix.metadata.severity=\"6\" OR coralogix.metadata.severity=\"4\""),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.2.definition.line_chart.query_definitions.0.query.logs.group_by.0", "coralogix.metadata.subsystemName"),
@@ -61,7 +61,7 @@ func TestAccCoralogixResourceDashboard(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.query.logs.filters.0.operator.type", "equals"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.query.logs.filters.0.operator.selected_values.0", "staging"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.results_per_page", "20"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.row_style", "One_Line"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.row_style", "one_Line"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.columns.0.field", "coralogix.timestamp"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.columns.1.field", "textObject.textObject.textObject.kubernetes.pod_id"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.columns.2.field", "coralogix.text"),
@@ -71,12 +71,12 @@ func TestAccCoralogixResourceDashboard(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.columns.6.field", "textObject.log_obj.e2e_test.config"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.width", "0"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.name", "test_variable"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.0.selection.0.list.0", "1"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.0.selection.0.list.1", "2"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.0.selection.0.list.2", "3"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.0.source.0.constant_list.0", "1"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.0.source.0.constant_list.1", "2"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.0.source.0.constant_list.2", "3"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.selected_values.0", "1"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.selected_values.1", "2"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.selected_values..2", "3"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.constant_list.0", "1"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.constant_list.1", "2"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.constant_list.2", "3"),
 				),
 			},
 			{
@@ -158,7 +158,7 @@ func testAccCoralogixResourceDashboard() string {
                     ]
                     legend = {
                       is_visible = true
-                      column     = ["Max", "Last"]
+                      columns     = ["max", "last"]
                     }
                   }
                 }
@@ -184,7 +184,7 @@ func testAccCoralogixResourceDashboard() string {
                   }
                   legend = {
                     is_visible = true
-                    column     = ["Min", "Max", "Sum", "Avg", "Last"]
+                    columns     = ["min", "max", "sum", "avg", "last"]
                   }
                 }
                 width = 10
@@ -210,7 +210,7 @@ func testAccCoralogixResourceDashboard() string {
                     ]
                     legend = {
                       is_visible = true
-                      column     = ["Max", "Last"]
+                      columns     = ["max", "last"]
                     }
                   }
                 }

@@ -37,7 +37,7 @@ resource "coralogix_dashboard" dashboard {
                     ]
                     legend = {
                       is_visible = true
-                      column     = ["max", "last"]
+                      columns    = ["max", "last"]
                     }
                   }
                 }
@@ -63,7 +63,7 @@ resource "coralogix_dashboard" dashboard {
                   }
                   legend = {
                     is_visible = true
-                    column     = ["Min", "Max", "Sum", "Avg", "Last"]
+                    columns    = ["Min", "Max", "Sum", "Avg", "Last"]
                   }
                 }
                 width = 0
@@ -89,7 +89,7 @@ resource "coralogix_dashboard" dashboard {
                     ]
                     legend = {
                       is_visible = true
-                      column     = ["max", "last"]
+                      columns    = ["max", "last"]
                     }
                   }
                 }
@@ -208,7 +208,7 @@ resource "coralogix_dashboard" test {
                     ]
                     legend = {
                       is_visible = true
-                      column     = ["Max", "Last"]
+                      columns    = ["Max", "Last"]
                     }
                   }
                 }
@@ -234,7 +234,7 @@ resource "coralogix_dashboard" test {
                   }
                   legend = {
                     is_visible = true
-                    column     = ["Min", "Max", "Sum", "Avg", "Last"]
+                    columns    = ["Min", "Max", "Sum", "Avg", "Last"]
                   }
                 }
                 width = 10
@@ -260,7 +260,7 @@ resource "coralogix_dashboard" test {
                     ]
                     legend = {
                       is_visible = true
-                      column     = ["Max", "Last"]
+                      columns    = ["Max", "Last"]
                     }
                   }
                 }
@@ -385,7 +385,7 @@ resource "coralogix_dashboard" dashboard_2 {
                     ]
                     legend = {
                       is_visible = true
-                      column     = ["Avg", "Max"]
+                      columns    = ["Avg", "Max"]
                     }
                     tooltip = {
                       show_labels = false
@@ -422,7 +422,7 @@ resource "coralogix_dashboard" dashboard_2 {
                     ]
                     legend = {
                       is_visible = true
-                      column     = ["Avg"]
+                      columns    = ["Avg"]
                     }
                     tooltip = {
                       show_labels = false
@@ -459,7 +459,7 @@ resource "coralogix_dashboard" dashboard_2 {
                     ]
                     legend = {
                       is_visible = true
-                      column     = ["Avg"]
+                      columns    = ["Avg"]
                     }
                     tooltip = {
                       show_labels = false
@@ -501,7 +501,7 @@ resource "coralogix_dashboard" dashboard_2 {
                     ]
                     legend = {
                       is_visible = true
-                      column     = ["Avg", "Max"]
+                      columns    = ["Avg", "Max"]
                     }
                     tooltip = {
                       show_labels = false
@@ -541,7 +541,7 @@ resource "coralogix_dashboard" dashboard_2 {
                     ]
                     legend = {
                       is_visible = true
-                      column     = []
+                      columns    = []
                     }
                     tooltip = {
                       show_labels = false
@@ -576,7 +576,7 @@ resource "coralogix_dashboard" dashboard_2 {
                     ]
                     legend = {
                       is_visible = true
-                      column     = []
+                      columns    = []
                     }
                     tooltip = {
                       show_labels = false
@@ -609,7 +609,6 @@ resource "coralogix_dashboard" dashboard_2 {
                     ]
                     legend = {
                       is_visible = false
-                      column     = []
                     }
                     tooltip = {
                       show_labels = false
@@ -701,7 +700,7 @@ resource "coralogix_dashboard" dashboard_2 {
                     ]
                     legend = {
                       is_visible = true
-                      column     = ["Max"]
+                      columns    = ["Max"]
                     }
                     tooltip = {
                       show_labels = false
@@ -738,7 +737,6 @@ resource "coralogix_dashboard" dashboard_2 {
                     ]
                     legend = {
                       is_visible = true
-                      column     = []
                     }
                     tooltip = {
                       show_labels = false
@@ -770,7 +768,6 @@ resource "coralogix_dashboard" dashboard_2 {
                     ]
                     legend = {
                       is_visible = true
-                      column     = []
                     }
                     tooltip = {
                       show_labels = false
@@ -803,7 +800,6 @@ resource "coralogix_dashboard" dashboard_2 {
                   }
                   legend = {
                     is_visible = true
-                    column     = []
                   }
                   tooltip = {
                     show_labels = false
