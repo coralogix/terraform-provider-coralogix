@@ -10,8 +10,8 @@ var dashboardDataSourceName = "data." + dashboardResourceName
 
 func TestAccCoralogixDataSourceDashboard_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceDashboard() +

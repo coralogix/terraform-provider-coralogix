@@ -279,6 +279,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewActionDataSource,
 		NewTCOPolicyDataSource,
 		NewTCOPolicyTracesDataSource,
+		NewDashboardDataSource,
 	}
 }
 

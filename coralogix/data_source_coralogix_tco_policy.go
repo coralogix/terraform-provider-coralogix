@@ -86,11 +86,6 @@ func (d *TCOPolicyDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	data = flattenTCOPolicy(getPolicyResp.GetPolicy())
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

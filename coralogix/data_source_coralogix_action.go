@@ -86,11 +86,6 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 
 	data = flattenAction(getActionResp.GetAction())
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
