@@ -938,7 +938,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																					Optional: true,
 																				},
 																			},
-																			Optional: true,
+																			Required: true,
 																		},
 																		"results_per_page": schema.Int64Attribute{
 																			Required:            true,
@@ -1068,7 +1068,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																					},
 																				},
 																			},
-																			Optional: true,
+																			Required: true,
 																		},
 																		"min": schema.Float64Attribute{
 																			Optional: true,
@@ -1132,7 +1132,10 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						"filters":     logsFiltersSchema(),
 																						"group_names": schema.ListAttribute{
 																							ElementType: types.StringType,
-																							Optional:    true,
+																							Required:    true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																						},
 																						"stacked_group_name": schema.StringAttribute{
 																							Optional: true,
@@ -1187,7 +1190,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																					},
 																				},
 																			},
-																			Optional: true,
+																			Required: true,
 																		},
 																		"max_slices_per_chart": schema.Int64Attribute{
 																			Optional: true,
@@ -1219,27 +1222,39 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																				},
 																				"is_visible": schema.BoolAttribute{
 																					Optional: true,
+																					Computed: true,
+																					Default:  booldefault.StaticBool(true),
 																				},
 																				"show_name": schema.BoolAttribute{
 																					Optional: true,
+																					Computed: true,
+																					Default:  booldefault.StaticBool(true),
 																				},
 																				"show_value": schema.BoolAttribute{
 																					Optional: true,
+																					Computed: true,
+																					Default:  booldefault.StaticBool(true),
 																				},
 																				"show_percentage": schema.BoolAttribute{
 																					Optional: true,
+																					Computed: true,
+																					Default:  booldefault.StaticBool(true),
 																				},
 																			},
-																			Optional: true,
+																			Required: true,
 																		},
 																		"show_legend": schema.BoolAttribute{
 																			Optional: true,
+																			Computed: true,
+																			Default:  booldefault.StaticBool(true),
 																		},
 																		"group_name_template": schema.StringAttribute{
 																			Optional: true,
 																		},
 																		"unit": schema.StringAttribute{
 																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
 																		},
 																	},
 																	Validators: []validator.Object{
@@ -1323,6 +1338,8 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																		},
 																		"scale_type": schema.StringAttribute{
 																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
 																		},
 																		"colors_by": schema.StringAttribute{
 																			Optional: true,
@@ -1758,7 +1775,7 @@ func (l logsAggregationValidator) ValidateObject(ctx context.Context, req valida
 
 func logsAggregationSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
-		Optional:   true,
+		Required:   true,
 		Attributes: logsAggregationAttributes(),
 		Validators: []validator.Object{
 			logsAggregationValidator{},
