@@ -63,7 +63,7 @@ resource "coralogix_dashboard" dashboard {
                   }
                   legend = {
                     is_visible = true
-                    columns    = ["Min", "Max", "Sum", "Avg", "Last"]
+                    columns    = ["Min", "max", "Sum", "avg", "Last"]
                   }
                 }
                 width = 0
@@ -184,161 +184,428 @@ resource "coralogix_dashboard" dashboard {
 }
 
 resource "coralogix_dashboard" dashboard_2 {
-  name        = "dashboard_2"
-  description = "dashboards team is messing with this 🗿"
+  name        = "portal monitoring"
+  description = "<insert description>"
   layout      = {
     sections = [
       {
         rows = [
           {
-            height  = 19
+            height  = 15
             widgets = [
               {
-                title      = "status 4XX"
-                definition = {
-                  line_chart = {
-                    query_definitions = [
-                      {
-                        query = {
-                          metrics = {
-                            promql_query = "http_requests_total{status!~\"4..\"}"
-                          }
-                        }
-                      },
-                    ]
-                    legend = {
-                      is_visible = true
-                      columns    = ["Max", "Last"]
-                    }
-                  }
-                }
-                width = 0
-              },
-              {
-                title      = "count"
+                title      = "Avg api response times"
                 definition = {
                   line_chart = {
                     query_definitions = [
                       {
                         query = {
                           logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND message:\"HTTP\" AND NOT \"OPTIONS\" AND NOT \"metrics\" AND NOT \"firebase\""
                             aggregations = [
                               {
-                                type = "count"
+                                type  = "avg"
+                                field = "meta.responseTime.numeric"
                               },
+                              {
+                                type  = "max"
+                                field = "meta.responseTime.numeric"
+                              },
+                            ]
+
+                            group_by = [
+                              "meta.organization.keyword"
                             ]
                           }
                         }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                        unit               = "milliseconds"
                       },
                     ]
-                  }
-                  legend = {
-                    is_visible = true
-                    columns    = ["Min", "Max", "Sum", "Avg", "Last"]
+                    legend = {
+                      is_visible = true
+                      columns    = ["avg", "max"]
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
                   }
                 }
-                width = 10
+                width = 0
               },
               {
-                title      = "error throwing pods"
+                title      = "Avg Snowflake query times"
                 definition = {
                   line_chart = {
                     query_definitions = [
                       {
                         query = {
                           logs = {
-                            lucene_query = "coralogix.metadata.severity=5 OR coralogix.metadata.severity=\"6\" OR coralogix.metadata.severity=\"4\""
-                            group_by     = ["coralogix.metadata.subsystemName"]
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND \"Successfully executed\""
                             aggregations = [
                               {
-                                type = "count"
+                                type  = "avg"
+                                field = "sfResponseTime.numeric"
                               },
+                            ]
+                            group_by = [
+                              "sfDatabase.keyword"
                             ]
                           }
                         }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                        unit               = "milliseconds"
                       },
                     ]
                     legend = {
                       is_visible = true
-                      columns    = ["Max", "Last"]
+                      columns    = ["avg"]
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
                     }
                   }
                 }
                 width = 0
-              }
+              },
+              {
+                title      = "Avg RDS query times"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND \"Postgres successfully\""
+                            aggregations = [
+                              {
+                                type  = "avg"
+                                field = "RDSResponseTime.numeric"
+                              },
+                            ]
+                            group_by = [
+                              "RDSDatabase.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                        unit               = "milliseconds"
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                      columns    = ["avg"]
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 0
+              },
             ]
           },
           {
-            height  = 28
+            height  = 15
             widgets = [
               {
-                title       = "dashboards-api logz"
-                description = "warnings, errors, criticals"
-                definition  = {
-                  data_table = {
-                    query = {
-                      logs = {
-                        filters = [
-                          {
-                            field    = "coralogix.metadata.applicationName"
-                            operator = {
-                              type            = "equals"
-                              selected_values = ["staging"]
-                            }
+                title      = "OpenAPI - Avg response times"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/openapi-deployment.*/ AND message:\"HTTP\" AND NOT \"OPTIONS\" AND NOT \"metrics\" AND NOT \"firebase\""
+                            aggregations = [
+                              {
+                                type  = "avg"
+                                field = "meta.responseTime.numeric"
+                              },
+                            ]
+                            group_by = [
+                              "meta.organization.keyword"
+                            ]
                           }
-                        ]
-                      }
-                    }
-                    results_per_page = 20
-                    row_style        = "one_line"
-                    columns          = [
-                      {
-                        field = "coralogix.timestamp"
-                      },
-                      {
-                        field = "textObject.textObject.textObject.kubernetes.pod_id"
-                      },
-                      {
-                        field = "coralogix.text"
-                      },
-                      {
-                        field = "coralogix.metadata.applicationName"
-                      },
-                      {
-                        field = "coralogix.metadata.subsystemName"
-                      },
-                      {
-                        field = "coralogix.metadata.sdkId"
-                      },
-                      {
-                        field = "textObject.log_obj.e2e_test.config"
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                        unit               = "milliseconds"
                       },
                     ]
+                    legend = {
+                      is_visible = true
+                      columns    = ["avg", "max"]
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
                   }
                 }
                 width = 0
-              }
-            ],
+              },
+            ]
+          },
+          {
+            height  = 15
+            widgets = [
+              {
+                title      = "Open API Requests per organization"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND (service:\"api.eu.name.ai-production\" OR service:\"api.us.name.ai-production\")"
+                            aggregations = [
+                              {
+                                type = "count"
+                              },
+                            ]
+                            group_by = [
+                              "meta.organization.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 0
+              },
+              {
+                title      = "Last failed SF queries DBs"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND \"Failed to execute statement\""
+                            aggregations = [
+                              {
+                                type = "count"
+                              }
+                            ]
+                            group_by = [
+                              "sfDatabase.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 0
+              },
+              {
+                title      = "Avg configuration service query times"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND \"Configuration Service request\""
+                            aggregations = [
+                              {
+                                type  = "avg"
+                                field = "configResponseTime.numeric"
+                              },
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                      },
+                    ]
+                    legend = {
+                      is_visible = false
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 0
+              },
+            ]
+            height = 15
+          },
+          {
+            height  = 19
+            widgets = [
+              {
+                title      = "Slowest API requests"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = " kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND message:\"http\""
+                            aggregations = [
+                              {
+                                type  = "max"
+                                field = "meta.responseTime.numeric"
+                              },
+                            ]
+                            group_by = [
+                              "meta.req.url.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 10
+                        unit               = "milliseconds"
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                      columns    = ["max"]
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 0
+              },
+            ]
+          },
+          {
+            height  = 19
+            widgets = [
+              {
+                title      = "Cache warmer runs"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.container_name:\"portal-cache-warmer\" AND message:\"Finish cache warmer run successfully\""
+                            aggregations = [
+                              {
+                                type = "count"
+                              },
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 20
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 0
+              },
+              {
+                title      = "Alerts notification eu runs"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "service:\"portal-eu-notify-alerts-production\" AND \"Finished notify new alerts\""
+                            aggregations = [
+                              {
+                                type = "count"
+                              },
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 20
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 0
+              },
+              {
+                title      = "Alerts notification runs"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "service:\"portal-notify-alerts-production\" AND \"Finished notify new alerts\""
+                            aggregations = [
+                              {
+                                type = "count"
+                              },
+                            ]
+                          }
+                        }
+                      },
+                    ]
+                    scale_type         = "linear"
+                    series_count_limit = 20
+                  }
+                  legend = {
+                    is_visible = true
+                  }
+                  tooltip = {
+                    show_labels = false
+                    type        = "all"
+                  }
+                }
+                width = 0
+              },
+            ]
           },
         ]
       },
     ]
   }
-  variables = [
-    {
-      name       = "test_variable"
-      definition = {
-        multi_select = {
-          selected_values = ["1", "2", "3"]
-          source          = {
-            constant_list = ["1", "2", "3"]
-          }
-        }
-      }
-    },
-  ]
 }
 
 resource "coralogix_dashboard" dashboard_from_json {
   content_json = file("./dashboard.json")
 }
+

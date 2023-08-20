@@ -3280,7 +3280,7 @@ func expandLineChartLegend(ctx context.Context, legend *LegendModel) (*dashboard
 
 func expandLineChartLegendColumns(ctx context.Context, columns []attr.Value) ([]dashboards.Legend_LegendColumn, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	expandedColumns := make([]dashboards.Legend_LegendColumn, len(columns))
+	expandedColumns := make([]dashboards.Legend_LegendColumn, 0, len(columns))
 	for _, s := range columns {
 		v, err := s.ToTerraformValue(ctx)
 		if err != nil {
