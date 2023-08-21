@@ -465,9 +465,6 @@ func (r *TCOPolicyResource) Create(ctx context.Context, req resource.CreateReque
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r *TCOPolicyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -505,9 +502,6 @@ func (r *TCOPolicyResource) Read(ctx context.Context, req resource.ReadRequest, 
 	//
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r *TCOPolicyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -560,9 +554,6 @@ func (r *TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReque
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r TCOPolicyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -784,7 +775,6 @@ func expandTCOPolicySeverities(severities []attr.Value) []tcopolicies.Severity {
 		val, _ := severity.ToTerraformValue(context.Background())
 		var str string
 		val.As(&str)
-		log.Printf("[INFO] %s", str)
 		s := tcoPolicySeveritySchemaToProto[str]
 		result = append(result, s)
 	}

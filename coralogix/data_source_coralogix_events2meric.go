@@ -85,11 +85,6 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 
 	data = flattenE2M(ctx, getE2MResp.GetE2M())
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

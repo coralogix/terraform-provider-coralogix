@@ -65,7 +65,6 @@ func OldProvider() *oldSchema.Provider {
 			"coralogix_alert":                      dataSourceCoralogixAlert(),
 			"coralogix_enrichment":                 dataSourceCoralogixEnrichment(),
 			"coralogix_data_set":                   dataSourceCoralogixDataSet(),
-			"coralogix_dashboard":                  dataSourceCoralogixDashboard(),
 			"coralogix_hosted_dashboard":           dataSourceCoralogixHostedDashboard(),
 			"coralogix_recording_rules_groups_set": dataSourceCoralogixRecordingRulesGroupsSet(),
 			"coralogix_tco_policy_override":        dataSourceCoralogixTCOPolicyOverride(),
@@ -77,7 +76,6 @@ func OldProvider() *oldSchema.Provider {
 			"coralogix_alert":                      resourceCoralogixAlert(),
 			"coralogix_enrichment":                 resourceCoralogixEnrichment(),
 			"coralogix_data_set":                   resourceCoralogixDataSet(),
-			"coralogix_dashboard":                  resourceCoralogixDashboard(),
 			"coralogix_hosted_dashboard":           resourceCoralogixHostedDashboard(),
 			"coralogix_recording_rules_groups_set": resourceCoralogixRecordingRulesGroupsSet(),
 			"coralogix_webhook":                    resourceCoralogixWebhook(),
@@ -281,6 +279,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewActionDataSource,
 		NewTCOPolicyDataSource,
 		NewTCOPolicyTracesDataSource,
+		NewDashboardDataSource,
 	}
 }
 
@@ -290,5 +289,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewActionResource,
 		NewTCOPolicyResource,
 		NewTCOPolicyTracesResource,
+		NewDashboardResource,
 	}
 }

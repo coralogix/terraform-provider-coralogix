@@ -30,7 +30,6 @@ func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 		CheckDestroy:             testAccCheckEvents2MetricDestroy,
 		Steps: []resource.TestStep{
 			{
-
 				Config: testAccCoralogixResourceLogs2Metric(events2Metric),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(events2metricResourceName, "id"),
@@ -88,7 +87,6 @@ func TestAccCoralogixResourceSpans2Metric(t *testing.T) {
 		CheckDestroy:             testAccCheckEvents2MetricDestroy,
 		Steps: []resource.TestStep{
 			{
-
 				Config: testAccCoralogixResourceSpans2Metric(events2Metric),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(events2metricResourceName, "id"),

@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -149,7 +150,11 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	createActionRequest := extractCreateAction(plan, ctx)
+	createActionRequest, diags := extractCreateAction(ctx, plan)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 	actionStr, _ := jsm.MarshalToString(createActionRequest)
 	log.Printf("[INFO] Creating new action: %s", actionStr)
 	createResp, err := r.client.CreateAction(ctx, createActionRequest)
@@ -170,9 +175,6 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func flattenAction(action *actions.Action) ActionResourceModel {
@@ -182,8 +184,8 @@ func flattenAction(action *actions.Action) ActionResourceModel {
 		URL:          types.StringValue(action.GetUrl().GetValue()),
 		IsPrivate:    types.BoolValue(action.GetIsPrivate().GetValue()),
 		SourceType:   types.StringValue(actionProtoSourceTypeToSchemaSourceType[action.GetSourceType()]),
-		Applications: wrappedStringSliceToTypeStringSlice(action.GetApplicationNames()),
-		Subsystems:   wrappedStringSliceToTypeStringSlice(action.GetSubsystemNames()),
+		Applications: wrappedStringSliceToTypeStringSet(action.GetApplicationNames()),
+		Subsystems:   wrappedStringSliceToTypeStringSet(action.GetSubsystemNames()),
 		CreatedBy:    types.StringValue(action.GetCreatedBy().GetValue()),
 		IsHidden:     types.BoolValue(action.GetIsHidden().GetValue()),
 	}
@@ -224,9 +226,6 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 	//
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -238,7 +237,11 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	actionUpdateReq := extractUpdateAction(ctx, plan)
+	actionUpdateReq, diags := extractUpdateAction(ctx, plan)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 	log.Printf("[INFO] Updating Action: %#v", actionUpdateReq)
 	actionUpdateResp, err := r.client.UpdateAction(ctx, actionUpdateReq)
 	if err != nil {
@@ -277,9 +280,6 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -314,13 +314,16 @@ type ActionResourceModel struct {
 	IsHidden     types.Bool   `tfsdk:"is_hidden"`
 }
 
-func extractCreateAction(plan ActionResourceModel, ctx context.Context) *actions.CreateActionRequest {
+func extractCreateAction(ctx context.Context, plan ActionResourceModel) (*actions.CreateActionRequest, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	name := typeStringToWrapperspbString(plan.Name)
 	url := typeStringToWrapperspbString(plan.URL)
 	isPrivate := wrapperspb.Bool(plan.IsPrivate.ValueBool())
 	sourceType := actionSchemaSourceTypeToProtoSourceType[plan.SourceType.ValueString()]
-	applicationNames := typeStringSliceToWrappedStringSlice(ctx, plan.Applications.Elements())
-	subsystemNames := typeStringSliceToWrappedStringSlice(ctx, plan.Subsystems.Elements())
+	applicationNames, dgs := typeStringSliceToWrappedStringSlice(ctx, plan.Applications.Elements())
+	diags = append(diags, dgs...)
+	subsystemNames, dgs := typeStringSliceToWrappedStringSlice(ctx, plan.Subsystems.Elements())
+	diags = append(diags, dgs...)
 
 	return &actions.CreateActionRequest{
 		Name:             name,
@@ -329,17 +332,24 @@ func extractCreateAction(plan ActionResourceModel, ctx context.Context) *actions
 		SourceType:       sourceType,
 		ApplicationNames: applicationNames,
 		SubsystemNames:   subsystemNames,
-	}
+	}, diags
 }
 
-func extractUpdateAction(ctx context.Context, plan ActionResourceModel) *actions.ReplaceActionRequest {
+func extractUpdateAction(ctx context.Context, plan ActionResourceModel) (*actions.ReplaceActionRequest, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	id := wrapperspb.String(plan.ID.ValueString())
 	name := typeStringToWrapperspbString(plan.Name)
 	url := typeStringToWrapperspbString(plan.URL)
 	isPrivate := wrapperspb.Bool(plan.IsPrivate.ValueBool())
 	sourceType := actionSchemaSourceTypeToProtoSourceType[plan.SourceType.ValueString()]
-	applicationNames := typeStringSliceToWrappedStringSlice(ctx, plan.Applications.Elements())
-	subsystemNames := typeStringSliceToWrappedStringSlice(ctx, plan.Subsystems.Elements())
+	applicationNames, dgs := typeStringSliceToWrappedStringSlice(ctx, plan.Applications.Elements())
+	if dgs.HasError() {
+		diags = append(diags, dgs...)
+	}
+	subsystemNames, dgs := typeStringSliceToWrappedStringSlice(ctx, plan.Subsystems.Elements())
+	if dgs.HasError() {
+		diags = append(diags, dgs...)
+	}
 	isHidden := wrapperspb.Bool(plan.IsHidden.ValueBool())
 
 	return &actions.ReplaceActionRequest{
@@ -353,5 +363,5 @@ func extractUpdateAction(ctx context.Context, plan ActionResourceModel) *actions
 			ApplicationNames: applicationNames,
 			SubsystemNames:   subsystemNames,
 		},
-	}
+	}, diags
 }

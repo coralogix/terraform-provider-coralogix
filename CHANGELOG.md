@@ -336,3 +336,7 @@ DEVELOPERS:
 * using grpc endpoint instead of the REST endpoint.
 * moved to `plugin-framework`.
 
+Release 1.8.0
+Breaking Changes:
+#### resource/coralogix_dashboard
+* schemas where changed to support the new dashboard widgets and more convenient schema.

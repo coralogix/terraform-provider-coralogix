@@ -293,7 +293,7 @@ func wrappedStringSliceToStringSlice(s []*wrapperspb.StringValue) []string {
 	return result
 }
 
-func wrappedStringSliceToTypeStringSlice(s []*wrapperspb.StringValue) types.Set {
+func wrappedStringSliceToTypeStringSet(s []*wrapperspb.StringValue) types.Set {
 	if len(s) == 0 {
 		return types.SetNull(types.StringType)
 	}
@@ -315,15 +315,56 @@ func stringSliceToTypeStringSet(s []string) types.Set {
 	return types.SetValueMust(types.StringType, elements)
 }
 
-func typeStringSliceToWrappedStringSlice(ctx context.Context, s []attr.Value) []*wrapperspb.StringValue {
+func wrappedStringSliceToTypeStringList(s []*wrapperspb.StringValue) types.List {
+	if len(s) == 0 {
+		return types.ListNull(types.StringType)
+	}
+	elements := make([]attr.Value, 0, len(s))
+	for _, v := range s {
+		elements = append(elements, types.StringValue(v.GetValue()))
+	}
+	return types.ListValueMust(types.StringType, elements)
+}
+
+func typeStringSliceToWrappedStringSlice(ctx context.Context, s []attr.Value) ([]*wrapperspb.StringValue, diag2.Diagnostics) {
+	var diags diag2.Diagnostics
 	result := make([]*wrapperspb.StringValue, 0, len(s))
 	for _, v := range s {
-		val, _ := v.ToTerraformValue(ctx)
+		val, err := v.ToTerraformValue(ctx)
+		if err != nil {
+			diags.AddError("Failed to convert value to Terraform", err.Error())
+			continue
+		}
 		var str string
-		val.As(&str)
+
+		if err = val.As(&str); err != nil {
+			diags.AddError("Failed to convert value to string", err.Error())
+			continue
+		}
 		result = append(result, wrapperspb.String(str))
 	}
-	return result
+	return result, diags
+}
+
+func typeInt64ToWrappedInt64(v types.Int64) *wrapperspb.Int64Value {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return wrapperspb.Int64(v.ValueInt64())
+}
+
+func typeInt64ToWrappedInt32(v types.Int64) *wrapperspb.Int32Value {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return wrapperspb.Int32(int32(v.ValueInt64()))
+}
+
+func typeBoolToWrapperspbBool(v types.Bool) *wrapperspb.BoolValue {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return wrapperspb.Bool(v.ValueBool())
 }
 
 func typeStringSliceToStringSlice(ctx context.Context, s []attr.Value) []string {
@@ -617,12 +658,52 @@ func typeStringToWrapperspbString(str types.String) *wrapperspb.StringValue {
 	return result
 }
 
-func wrapperspbStringToTypeStringTo(str *wrapperspb.StringValue) types.String {
+func typeFloat64ToWrapperspbDouble(num types.Float64) *wrapperspb.DoubleValue {
+	if num.IsNull() {
+		return nil
+	}
+
+	return wrapperspb.Double(num.ValueFloat64())
+}
+
+func wrapperspbStringToTypeString(str *wrapperspb.StringValue) types.String {
 	if str == nil {
 		return types.StringNull()
 	}
 
 	return types.StringValue(str.GetValue())
+}
+
+func wrapperspbInt64ToTypeInt64(num *wrapperspb.Int64Value) types.Int64 {
+	if num == nil {
+		return types.Int64Null()
+	}
+
+	return types.Int64Value(num.GetValue())
+}
+
+func wrapperspbDoubleToTypeFloat64(num *wrapperspb.DoubleValue) types.Float64 {
+	if num == nil {
+		return types.Float64Null()
+	}
+
+	return types.Float64Value(num.GetValue())
+}
+
+func wrapperspbBoolToTypeBool(b *wrapperspb.BoolValue) types.Bool {
+	if b == nil {
+		return types.BoolNull()
+	}
+
+	return types.BoolValue(b.GetValue())
+}
+
+func wrapperspbInt32ToTypeInt64(num *wrapperspb.Int32Value) types.Int64 {
+	if num == nil {
+		return types.Int64Null()
+	}
+
+	return types.Int64Value(int64(num.GetValue()))
 }
 
 func ReverseMap[K, V comparable](m map[K]V) map[V]K {
