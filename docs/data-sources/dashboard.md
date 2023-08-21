@@ -95,7 +95,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
 
 
 <a id="nestedatt--filters--source--spans--operator"></a>
@@ -176,7 +176,7 @@ Read-Only:
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
 - `scale_type` (String)
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
-- `unit` (String)
+- `unit` (String) The unit of the chart. Can be one of microseconds, seconds, bytes, kbytes, mbytes, gbytes, mibytes, unspecified, milliseconds, bytes_iec, kibytes, gibytes.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
@@ -273,8 +273,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -292,7 +292,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis--spans--filters--operator"></a>
@@ -311,7 +311,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis--spans--stacked_group_name"></a>
@@ -320,7 +320,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
 
 
 
@@ -339,9 +339,21 @@ Read-Only:
 
 Read-Only:
 
+- `time` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis--time))
+- `value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis--value))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis--time"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.xaxis.value`
+
+Read-Only:
+
 - `buckets_presented` (Number)
-- `interval` (String)
-- `type` (String)
+- `interval` (String) The time interval to use for the x-axis. Valid values are in duration format, for example `1m0s` or `1h0m0s` (currently leading zeros should be added).
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis--value"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.xaxis.value`
+
 
 
 
@@ -354,7 +366,7 @@ Read-Only:
 - `order_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--order_by))
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
 - `results_per_page` (Number) The number of results to display per page.
-- `row_style` (String) The style of the rows. Can be one of ["one_line" "two_line" "condensed" "json"].
+- `row_style` (String) The style of the rows. Can be one of ["two_line" "condensed" "json" "one_line"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--columns"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.row_style`
@@ -371,7 +383,7 @@ Read-Only:
 Read-Only:
 
 - `field` (String)
-- `order_direction` (String) The order direction. Can be one of ["asc" "desc" "unspecified"].
+- `order_direction` (String) The order direction. Can be one of ["unspecified" "asc" "desc"].
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
@@ -494,7 +506,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--row_style--spans--filters--operator"></a>
@@ -533,8 +545,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -545,7 +557,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
 
 
 
@@ -563,7 +575,7 @@ Read-Only:
 - `show_inner_arc` (Boolean)
 - `show_outer_arc` (Boolean)
 - `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--thresholds))
-- `unit` (String) The unit of the gauge. Can be one of ["microseconds" "milliseconds" "seconds" "kbytes" "mbytes" "bytes_iec" "gibytes" "unspecified" "gbytes" "kibytes" "mibytes" "bytes"].
+- `unit` (String) The unit of the gauge. Can be one of ["bytes_iec" "mibytes" "unspecified" "microseconds" "seconds" "mbytes" "gbytes" "kibytes" "gibytes" "milliseconds" "bytes" "kbytes"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.unit`
@@ -665,7 +677,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--filters--operator"></a>
@@ -683,8 +695,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -714,7 +726,7 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, unspecified, min, max, sum.
+- `columns` (List of String) The columns to display in the legend. Valid values are: unspecified, min, max, sum, avg, last.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. False by default.
 
@@ -731,10 +743,10 @@ Read-Only:
 - `is_visible` (Boolean)
 - `name` (String)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--tooltip--query))
-- `scale_type` (String) The scale type. Valid values are: logarithmic, unspecified, linear.
+- `scale_type` (String) The scale type. Valid values are: unspecified, linear, logarithmic.
 - `series_count_limit` (Number)
 - `series_name_template` (String)
-- `unit` (String) The unit. Valid values are: mibytes, microseconds, milliseconds, bytes, kbytes, gbytes, gibytes, unspecified, seconds, mbytes, bytes_iec, kibytes.
+- `unit` (String) The unit. Valid values are: microseconds, seconds, bytes, kbytes, mbytes, gbytes, mibytes, unspecified, milliseconds, bytes_iec, kibytes, gibytes.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--tooltip--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.tooltip.unit`
@@ -826,8 +838,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -845,7 +857,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--tooltip--unit--spans--lucene_query--operator"></a>
@@ -864,7 +876,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
 
 
 
@@ -876,7 +888,7 @@ Read-Only:
 Read-Only:
 
 - `show_labels` (Boolean)
-- `type` (String) The tooltip type. Valid values are: unspecified, all, single.
+- `type` (String) The tooltip type. Valid values are: single, unspecified, all.
 
 
 
@@ -1000,8 +1012,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1019,7 +1031,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--filters--operator"></a>
@@ -1038,7 +1050,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--stacked_group_name"></a>
@@ -1047,7 +1059,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
 
 
 
@@ -1117,7 +1129,7 @@ Read-Only:
 
 - `selected_values` (List of String)
 - `source` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source))
-- `values_order_direction` (String) The order direction of the values. Can be one of `asc`, `desc`, `unspecified`.
+- `values_order_direction` (String) The order direction of the values. Can be one of `unspecified`, `asc`, `desc`.
 
 <a id="nestedatt--variables--definition--multi_select--source"></a>
 ### Nested Schema for `variables.definition.multi_select.values_order_direction`
@@ -1144,6 +1156,6 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
 
 

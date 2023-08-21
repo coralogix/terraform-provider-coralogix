@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.5"
+      version = "~> 1.8"
       source  = "coralogix/coralogix"
     }
   }
@@ -458,6 +458,12 @@ resource "coralogix_dashboard" dashboard {
                           type = "count"
                         }
                       }
+                    }
+                      xaxis = {
+                        time = {
+                          interval = "1h0m5s"
+                          buckets_presented = 10
+                        }
                     }
                   }
                 }

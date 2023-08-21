@@ -525,9 +525,16 @@ type BarChartStackDefinitionModel struct {
 }
 
 type BarChartXAxisModel struct {
-	Type             types.String `tfsdk:"type"`
+	Time  *BarChartXAxisTimeModel  `tfsdk:"time"`
+	Value *BarChartXAxisValueModel `tfsdk:"value"`
+}
+
+type BarChartXAxisTimeModel struct {
 	Interval         types.String `tfsdk:"interval"`
 	BucketsPresented types.Int64  `tfsdk:"buckets_presented"`
+}
+
+type BarChartXAxisValueModel struct {
 }
 
 type DashboardVariableModel struct {
@@ -625,6 +632,26 @@ func (r DashboardResource) ImportState(ctx context.Context, req resource.ImportS
 
 func (r DashboardResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_dashboard"
+}
+
+type intervalValidator struct{}
+
+func (i intervalValidator) Description(ctx context.Context) string {
+	return ""
+}
+
+func (i intervalValidator) MarkdownDescription(ctx context.Context) string {
+	return ""
+}
+
+func (i intervalValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() {
+		return
+	}
+	_, err := time.ParseDuration(req.ConfigValue.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("invalid duration", err.Error())
+	}
 }
 
 func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -1347,22 +1374,45 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																		"xaxis": schema.SingleNestedAttribute{
 																			Optional: true,
 																			Attributes: map[string]schema.Attribute{
-																				"type": schema.StringAttribute{
-																					Required: true,
-																					Validators: []validator.String{
-																						stringvalidator.OneOf("value", "time"),
+																				"time": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{
+																						"interval": schema.StringAttribute{
+																							Required: true,
+																							Validators: []validator.String{
+																								intervalValidator{},
+																							},
+																							MarkdownDescription: "The time interval to use for the x-axis. Valid values are in duration format, for example `1m0s` or `1h0m0s` (currently leading zeros should be added).",
+																						},
+																						"buckets_presented": schema.Int64Attribute{
+																							Optional: true,
+																						},
+																					},
+																					Optional: true,
+																					Validators: []validator.Object{
+																						objectvalidator.ExactlyOneOf(
+																							path.MatchRelative().AtParent().AtName("value"),
+																						),
 																					},
 																				},
-																				"interval": schema.StringAttribute{
-																					Optional: true,
-																				},
-																				"buckets_presented": schema.Int64Attribute{
-																					Optional: true,
+																				"value": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{},
+																					Optional:   true,
+																					Validators: []validator.Object{
+																						objectvalidator.ExactlyOneOf(
+																							path.MatchRelative().AtParent().AtName("time"),
+																						),
+																					},
 																				},
 																			},
 																		},
 																		"unit": schema.StringAttribute{
 																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf(dashboardValidUnits...),
+																			},
+																			MarkdownDescription: fmt.Sprintf("The unit of the chart. Can be one of %s.", strings.Join(dashboardValidUnits, ", ")),
 																		},
 																	},
 																	Validators: []validator.Object{
@@ -2827,9 +2877,9 @@ func expandXAis(xaxis *BarChartXAxisModel) (*dashboards.BarChart_XAxis, diag.Dia
 		return nil, nil
 	}
 
-	switch xaxis.Type.ValueString() {
-	case "time":
-		duration, err := time.ParseDuration(xaxis.Interval.ValueString())
+	switch {
+	case xaxis.Time != nil:
+		duration, err := time.ParseDuration(xaxis.Time.Interval.ValueString())
 		if err != nil {
 			return nil, diag.NewErrorDiagnostic("Error expand bar chart x axis", err.Error())
 		}
@@ -2837,18 +2887,18 @@ func expandXAis(xaxis *BarChartXAxisModel) (*dashboards.BarChart_XAxis, diag.Dia
 			Type: &dashboards.BarChart_XAxis_Time{
 				Time: &dashboards.BarChart_XAxis_XAxisByTime{
 					Interval:         durationpb.New(duration),
-					BucketsPresented: typeInt64ToWrappedInt32(xaxis.BucketsPresented),
+					BucketsPresented: typeInt64ToWrappedInt32(xaxis.Time.BucketsPresented),
 				},
 			},
 		}, nil
-	case "value":
+	case xaxis.Value != nil:
 		return &dashboards.BarChart_XAxis{
 			Type: &dashboards.BarChart_XAxis_Value{
 				Value: &dashboards.BarChart_XAxis_XAxisByValue{},
 			},
 		}, nil
 	default:
-		return nil, diag.NewErrorDiagnostic("Error expand bar chart x axis", fmt.Sprintf("unknown bar chart x axis type %s", xaxis.Type.ValueString()))
+		return nil, diag.NewErrorDiagnostic("Error expand bar chart x axis", "unknown x axis type")
 	}
 }
 func expandBarChartQuery(ctx context.Context, query *BarChartQueryModel) (*dashboards.BarChart_Query, diag.Diagnostics) {
@@ -4460,9 +4510,15 @@ func widgetModelAttr() map[string]attr.Type {
 						"colors_by":  types.StringType,
 						"xaxis": types.ObjectType{
 							AttrTypes: map[string]attr.Type{
-								"type":              types.StringType,
-								"interval":          types.StringType,
-								"buckets_presented": types.Int64Type,
+								"time": types.ObjectType{
+									AttrTypes: map[string]attr.Type{
+										"interval":          types.StringType,
+										"buckets_presented": types.Int64Type,
+									},
+								},
+								"value": types.ObjectType{
+									AttrTypes: map[string]attr.Type{},
+								},
 							},
 						},
 						"unit": types.StringType,
@@ -5814,6 +5870,11 @@ func flattenBarChart(ctx context.Context, barChart *dashboards.BarChart) (*Widge
 		return nil, diag.Diagnostics{dg}
 	}
 
+	xAxis, dg := flattenBarChartXAxis(barChart.GetXAxis())
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
 	return &WidgetDefinitionModel{
 		BarChart: &BarChartModel{
 			Query:             query,
@@ -5822,8 +5883,33 @@ func flattenBarChart(ctx context.Context, barChart *dashboards.BarChart) (*Widge
 			StackDefinition:   flattenBarChartStackDefinition(barChart.GetStackDefinition()),
 			ScaleType:         types.StringValue(dashboardProtoToSchemaScaleType[barChart.GetScaleType()]),
 			ColorsBy:          colorsBy,
+			XAxis:             xAxis,
+			Unit:              types.StringValue(dashboardProtoToSchemaUnit[barChart.GetUnit()]),
 		},
 	}, nil
+}
+
+func flattenBarChartXAxis(axis *dashboards.BarChart_XAxis) (*BarChartXAxisModel, diag.Diagnostic) {
+	if axis == nil {
+		return nil, nil
+	}
+
+	switch axis.GetType().(type) {
+	case *dashboards.BarChart_XAxis_Time:
+		return &BarChartXAxisModel{
+			Time: &BarChartXAxisTimeModel{
+				Interval:         types.StringValue(axis.GetTime().GetInterval().AsDuration().String()),
+				BucketsPresented: wrapperspbInt32ToTypeInt64(axis.GetTime().GetBucketsPresented()),
+			},
+		}, nil
+	case *dashboards.BarChart_XAxis_Value:
+		return &BarChartXAxisModel{
+			Value: &BarChartXAxisValueModel{},
+		}, nil
+	default:
+		return nil, diag.NewErrorDiagnostic("Error Flatten BarChart XAxis", fmt.Sprintf("unknown bar chart x axis type: %T", axis.GetType()))
+	}
+
 }
 
 func flattenBarChartQuery(ctx context.Context, query *dashboards.BarChart_Query) (*BarChartQueryModel, diag.Diagnostics) {
