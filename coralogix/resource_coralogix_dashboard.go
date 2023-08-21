@@ -1750,7 +1750,7 @@ func filterOperatorSchema() schema.SingleNestedAttribute {
 			"selected_values": schema.ListAttribute{
 				ElementType:         types.StringType,
 				Optional:            true,
-				MarkdownDescription: "the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.",
+				MarkdownDescription: "the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.",
 			},
 		},
 		Validators: []validator.Object{

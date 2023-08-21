@@ -57,7 +57,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -76,7 +76,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -95,7 +95,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["subsystem_name" "service_name" "operation_name" "unspecified" "application_name"]
 
 
 <a id="nestedatt--filters--source--spans--operator"></a>
@@ -103,7 +103,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -176,7 +176,7 @@ Read-Only:
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
 - `scale_type` (String)
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of microseconds, seconds, bytes, kbytes, mbytes, gbytes, mibytes, unspecified, milliseconds, bytes_iec, kibytes, gibytes.
+- `unit` (String) The unit of the chart. Can be one of unspecified, microseconds, milliseconds, seconds, kibytes, gibytes, bytes, kbytes, mbytes, gbytes, bytes_iec, mibytes.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
@@ -221,7 +221,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -251,7 +251,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -273,8 +273,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -292,7 +292,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["subsystem_name" "service_name" "operation_name" "unspecified" "application_name"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis--spans--filters--operator"></a>
@@ -300,7 +300,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -311,7 +311,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["subsystem_name" "service_name" "operation_name" "unspecified" "application_name"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis--spans--stacked_group_name"></a>
@@ -320,7 +320,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["subsystem_name" "service_name" "operation_name" "unspecified" "application_name"]
 
 
 
@@ -366,7 +366,7 @@ Read-Only:
 - `order_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--order_by))
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
 - `results_per_page` (Number) The number of results to display per page.
-- `row_style` (String) The style of the rows. Can be one of ["two_line" "condensed" "json" "one_line"].
+- `row_style` (String) The style of the rows. Can be one of ["condensed" "json" "one_line" "two_line"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--columns"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.row_style`
@@ -417,7 +417,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -477,7 +477,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -506,7 +506,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["subsystem_name" "service_name" "operation_name" "unspecified" "application_name"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--row_style--spans--filters--operator"></a>
@@ -514,7 +514,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -545,8 +545,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -557,7 +557,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["subsystem_name" "service_name" "operation_name" "unspecified" "application_name"]
 
 
 
@@ -575,7 +575,7 @@ Read-Only:
 - `show_inner_arc` (Boolean)
 - `show_outer_arc` (Boolean)
 - `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--thresholds))
-- `unit` (String) The unit of the gauge. Can be one of ["bytes_iec" "mibytes" "unspecified" "microseconds" "seconds" "mbytes" "gbytes" "kibytes" "gibytes" "milliseconds" "bytes" "kbytes"].
+- `unit` (String) The unit of the gauge. Can be one of ["unspecified" "milliseconds" "seconds" "kbytes" "mbytes" "microseconds" "bytes" "gbytes" "bytes_iec" "kibytes" "mibytes" "gibytes"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.unit`
@@ -609,7 +609,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -647,7 +647,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -658,7 +658,7 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["unspecified" "last" "min" "max" "avg" "sum"].
+- `aggregation` (String) The type of aggregation. Can be one of ["avg" "sum" "unspecified" "last" "min" "max"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--filters))
 - `lucene_query` (String)
 - `spans_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--spans_aggregation))
@@ -677,7 +677,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["subsystem_name" "service_name" "operation_name" "unspecified" "application_name"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--filters--operator"></a>
@@ -685,7 +685,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -695,8 +695,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -726,7 +726,7 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: unspecified, min, max, sum, avg, last.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, unspecified, min, max, sum.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. False by default.
 
@@ -743,10 +743,10 @@ Read-Only:
 - `is_visible` (Boolean)
 - `name` (String)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--tooltip--query))
-- `scale_type` (String) The scale type. Valid values are: unspecified, linear, logarithmic.
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
 - `series_count_limit` (Number)
 - `series_name_template` (String)
-- `unit` (String) The unit. Valid values are: microseconds, seconds, bytes, kbytes, mbytes, gbytes, mibytes, unspecified, milliseconds, bytes_iec, kibytes, gibytes.
+- `unit` (String) The unit. Valid values are: unspecified, microseconds, milliseconds, seconds, kibytes, gibytes, bytes, kbytes, mbytes, gbytes, bytes_iec, mibytes.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--tooltip--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.tooltip.unit`
@@ -789,7 +789,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -817,7 +817,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -838,8 +838,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -857,7 +857,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["subsystem_name" "service_name" "operation_name" "unspecified" "application_name"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--tooltip--unit--spans--lucene_query--operator"></a>
@@ -865,7 +865,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -876,7 +876,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["subsystem_name" "service_name" "operation_name" "unspecified" "application_name"]
 
 
 
@@ -888,7 +888,7 @@ Read-Only:
 Read-Only:
 
 - `show_labels` (Boolean)
-- `type` (String) The tooltip type. Valid values are: single, unspecified, all.
+- `type` (String) The tooltip type. Valid values are: unspecified, all, single.
 
 
 
@@ -912,7 +912,7 @@ Read-Only:
 Read-Only:
 
 - `is_visible` (Boolean)
-- `label_source` (String) The source of the label. Valid values are: unspecified, inner, stack
+- `label_source` (String) The source of the label. Valid values are: stack, unspecified, inner
 - `show_name` (Boolean)
 - `show_percentage` (Boolean)
 - `show_value` (Boolean)
@@ -960,7 +960,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -990,7 +990,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -1012,8 +1012,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max"]. When When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1031,7 +1031,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["subsystem_name" "service_name" "operation_name" "unspecified" "application_name"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--filters--operator"></a>
@@ -1039,7 +1039,7 @@ Read-Only:
 
 Read-Only:
 
-- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match spans with the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
 
@@ -1050,7 +1050,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["subsystem_name" "service_name" "operation_name" "unspecified" "application_name"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--stacked_group_name"></a>
@@ -1059,7 +1059,7 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["subsystem_name" "service_name" "operation_name" "unspecified" "application_name"]
 
 
 
@@ -1156,6 +1156,6 @@ Read-Only:
 Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["subsystem_name" "service_name" "operation_name" "unspecified" "application_name"]
 
 
