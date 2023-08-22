@@ -566,6 +566,16 @@ func urlValidationFunc() schema.SchemaValidateDiagFunc {
 	}
 }
 
+func jsonValidationFuncWithDiagnostics() schema.SchemaValidateDiagFunc {
+	return func(v interface{}, _ cty.Path) diag.Diagnostics {
+		var m map[string]interface{}
+		if err := json.Unmarshal([]byte(v.(string)), &m); err != nil {
+			return diag.Errorf("%s in not valid json - %s", v.(string), err.Error())
+		}
+		return nil
+	}
+}
+
 type urlValidationFuncFramework struct {
 }
 
