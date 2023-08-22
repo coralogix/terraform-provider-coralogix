@@ -350,6 +350,7 @@ func defaultPayloads() (customDefaultPayload, sendLockDefaultPayload, demistoDef
 	customDefaultPayload, _ = json.Marshal(m["custom"])
 	sendLockDefaultPayload, _ = json.Marshal(m["sendLog"])
 	demistoDefaultPayload, _ = json.Marshal(m["demisto"])
+	return
 }
 
 func extractCreateWebhookRequest(d *schema.ResourceData) (string, error) {
