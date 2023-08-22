@@ -129,31 +129,7 @@ func resourceCoralogixWebhookDelete(ctx context.Context, d *schema.ResourceData,
 }
 
 func WebhookSchema() map[string]*schema.Schema {
-	ex, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	exPath := filepath.Dir(ex)
-	if err != nil {
-		panic(err)
-	}
-	file, err := os.Open(filepath.Dir(exPath) + "/coralogix/webhook_default_payloads.json")
-	if err != nil {
-		panic(err)
-	}
-	bytes, err := io.ReadAll(file)
-	if err != nil {
-		panic(err)
-	}
-	log.Printf("[INFO] webhook_default_payloads.json: %s", string(bytes))
-	var m map[string]interface{}
-	err = json.Unmarshal(bytes, &m)
-	if err != nil {
-		panic(err)
-	}
-	customDefaultPayload, _ := json.Marshal(m["custom"])
-	sendLockDefaultPayload, _ := json.Marshal(m["sendLog"])
-	demistoDefaultPayload, _ := json.Marshal(m["demisto"])
+	customDefaultPayload, sendLockDefaultPayload, demistoDefaultPayload := defaultPayloads()
 	return map[string]*schema.Schema{
 		"name": {
 			Type:     schema.TypeString,
@@ -347,6 +323,33 @@ func WebhookSchema() map[string]*schema.Schema {
 			ExactlyOneOf: validWebhookTypes,
 		},
 	}
+}
+
+func defaultPayloads() (customDefaultPayload, sendLockDefaultPayload, demistoDefaultPayload []byte) {
+	ex, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	exPath := filepath.Dir(ex)
+	if err != nil {
+		panic(err)
+	}
+	file, err := os.Open(filepath.Dir(exPath) + "/coralogix/webhook_default_payloads.json")
+	if err != nil {
+		panic(err)
+	}
+	bytes, err := io.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+	var m map[string]interface{}
+	err = json.Unmarshal(bytes, &m)
+	if err != nil {
+		panic(err)
+	}
+	customDefaultPayload, _ = json.Marshal(m["custom"])
+	sendLockDefaultPayload, _ = json.Marshal(m["sendLog"])
+	demistoDefaultPayload, _ = json.Marshal(m["demisto"])
 }
 
 func extractCreateWebhookRequest(d *schema.ResourceData) (string, error) {
