@@ -4054,8 +4054,8 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 
 	return &DashboardResourceModel{
 		ID:          types.StringValue(dashboard.GetId().GetValue()),
-		Name:        types.StringValue(dashboard.GetName().GetValue()),
-		Description: types.StringValue(dashboard.GetDescription().GetValue()),
+		Name:        wrapperspbStringToTypeString(dashboard.GetName()),
+		Description: wrapperspbStringToTypeString(dashboard.GetDescription()),
 		Layout:      layout,
 		Variables:   variables,
 		Filters:     filters,
