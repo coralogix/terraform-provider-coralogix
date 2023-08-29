@@ -4352,10 +4352,7 @@ func widgetModelAttr() map[string]attr.Type {
 						"unit":           types.StringType,
 						"thresholds": types.ListType{
 							ElemType: types.ObjectType{
-								AttrTypes: map[string]attr.Type{
-									"from":  types.Float64Type,
-									"color": types.StringType,
-								},
+								AttrTypes: gaugeThresholdModelAttr(),
 							},
 						},
 					},
@@ -4527,6 +4524,13 @@ func widgetModelAttr() map[string]attr.Type {
 			},
 		},
 		"width": types.Int64Type,
+	}
+}
+
+func gaugeThresholdModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"from":  types.Float64Type,
+		"color": types.StringType,
 	}
 }
 
@@ -5532,6 +5536,10 @@ func flattenDataTableSpansQueryAggregations(ctx context.Context, aggregations []
 }
 
 func flattenDataTableSpansQueryAggregation(spanAggregation *dashboards.DataTable_SpansQuery_Aggregation) (*DataTableSpansAggregationModel, diag.Diagnostic) {
+	if spanAggregation == nil {
+		return nil, nil
+	}
+
 	aggregation, dg := flattenSpansAggregation(spanAggregation.GetAggregation())
 	if dg != nil {
 		return nil, dg
@@ -5546,6 +5554,9 @@ func flattenDataTableSpansQueryAggregation(spanAggregation *dashboards.DataTable
 }
 
 func flattenSpansAggregation(aggregation *dashboards.SpansAggregation) (*SpansAggregationModel, diag.Diagnostic) {
+	if aggregation == nil || aggregation.GetAggregation() == nil {
+		return nil, nil
+	}
 	switch aggregation := aggregation.GetAggregation().(type) {
 	case *dashboards.SpansAggregation_MetricAggregation_:
 		return &SpansAggregationModel{
@@ -5614,6 +5625,11 @@ func flattenGauge(ctx context.Context, gauge *dashboards.Gauge) (*WidgetDefiniti
 		return nil, diags
 	}
 
+	thresholds, diags := flattenGaugeThresholds(ctx, gauge.GetThresholds())
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &WidgetDefinitionModel{
 		Gauge: &GaugeModel{
 			Query:        query,
@@ -5622,8 +5638,39 @@ func flattenGauge(ctx context.Context, gauge *dashboards.Gauge) (*WidgetDefiniti
 			ShowInnerArc: wrapperspbBoolToTypeBool(gauge.GetShowInnerArc()),
 			ShowOuterArc: wrapperspbBoolToTypeBool(gauge.GetShowOuterArc()),
 			Unit:         types.StringValue(dashboardProtoToSchemaGaugeUnit[gauge.GetUnit()]),
+			Thresholds:   thresholds,
 		},
 	}, nil
+}
+
+func flattenGaugeThresholds(ctx context.Context, thresholds []*dashboards.Gauge_Threshold) (types.List, diag.Diagnostics) {
+	if len(thresholds) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: gaugeThresholdModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	thresholdElements := make([]attr.Value, 0, len(thresholds))
+	for _, threshold := range thresholds {
+		flattenedThreshold := flattenGaugeThreshold(threshold)
+		thresholdElement, diags := types.ObjectValueFrom(ctx, gaugeThresholdModelAttr(), flattenedThreshold)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		thresholdElements = append(thresholdElements, thresholdElement)
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: gaugeThresholdModelAttr()}, thresholdElements), diagnostics
+}
+
+func flattenGaugeThreshold(threshold *dashboards.Gauge_Threshold) *GaugeThresholdModel {
+	if threshold == nil {
+		return nil
+	}
+	return &GaugeThresholdModel{
+		From:  wrapperspbDoubleToTypeFloat64(threshold.GetFrom()),
+		Color: wrapperspbStringToTypeString(threshold.GetColor()),
+	}
 }
 
 func flattenGaugeQueries(ctx context.Context, query *dashboards.Gauge_Query) (*GaugeQueryModel, diag.Diagnostics) {
