@@ -183,9 +183,12 @@ Read-Only:
 <a id="nestedatt--layout--sections--rows"></a>
 ### Nested Schema for `layout.sections.rows`
 
-Optional:
+Required:
 
 - `height` (Number) The height of the row.
+
+Optional:
+
 - `widgets` (Attributes List) The list of widgets to display in the dashboard. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets))
 
 Read-Only:

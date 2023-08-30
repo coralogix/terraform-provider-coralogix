@@ -62,7 +62,6 @@ resource "coralogix_dashboard" dashboard {
                     }
                   }
                 }
-                width = 0
               },
               {
                 title      = "Avg Snowflake query times"
@@ -99,7 +98,6 @@ resource "coralogix_dashboard" dashboard {
                     }
                   }
                 }
-                width = 0
               },
               {
                 title      = "Avg RDS query times"
@@ -136,7 +134,7 @@ resource "coralogix_dashboard" dashboard {
                     }
                   }
                 }
-                width = 0
+                width = 10
               },
             ]
           },
@@ -178,7 +176,7 @@ resource "coralogix_dashboard" dashboard {
                     }
                   }
                 }
-                width = 0
+                width = 10
               },
             ]
           },
@@ -283,7 +281,6 @@ resource "coralogix_dashboard" dashboard {
                     }
                   }
                 }
-                width = 0
               },
             ]
             height = 15
@@ -326,7 +323,6 @@ resource "coralogix_dashboard" dashboard {
                     }
                   }
                 }
-                width = 0
               },
             ]
           },
@@ -362,7 +358,6 @@ resource "coralogix_dashboard" dashboard {
                     }
                   }
                 }
-                width = 0
               },
               {
                 title      = "Alerts notification eu runs"
@@ -393,7 +388,6 @@ resource "coralogix_dashboard" dashboard {
                     }
                   }
                 }
-                width = 0
               },
               {
                 title      = "Alerts notification runs"
@@ -424,7 +418,6 @@ resource "coralogix_dashboard" dashboard {
                     type        = "all"
                   }
                 }
-                width = 0
               },
               {
                 title      = "Alerts notification us runs"
@@ -445,7 +438,6 @@ resource "coralogix_dashboard" dashboard {
                     }
                   }
                 }
-                width = 0
               },
               {
                 title      = "Alerts notification us runs"
@@ -467,7 +459,6 @@ resource "coralogix_dashboard" dashboard {
                     }
                   }
                 }
-                width = 0
               },
             ]
           },
