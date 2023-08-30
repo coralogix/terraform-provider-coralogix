@@ -900,6 +900,8 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																											},
 																											"is_visible": schema.BoolAttribute{
 																												Optional: true,
+																												Computed: true,
+																												Default:  booldefault.StaticBool(false),
 																											},
 																											"aggregation": logsAggregationSchema(),
 																										},
@@ -6161,6 +6163,7 @@ func flattenDashboardVariableDefinitionMultiSelect(multiSelect *dashboards.Multi
 	}
 
 	return &DashboardVariableDefinitionModel{
+		ConstantValue: types.StringNull(),
 		MultiSelect: &VariableMultiSelectModel{
 			SelectedValues:       selectedValues,
 			ValuesOrderDirection: types.StringValue(dashboardOrderDirectionProtoToSchema[multiSelect.GetValuesOrderDirection()]),
@@ -6174,33 +6177,32 @@ func flattenDashboardVariableSource(source *dashboards.MultiSelect_Source) (*Var
 		return nil, nil
 	}
 
+	result := &VariableMultiSelectSourceModel{
+		LogsPath:     types.StringNull(),
+		ConstantList: types.ListNull(types.StringType),
+	}
+
 	switch source.GetValue().(type) {
 	case *dashboards.MultiSelect_Source_LogsPath:
-		return &VariableMultiSelectSourceModel{
-			LogsPath: wrapperspbStringToTypeString(source.GetLogsPath().GetValue()),
-		}, nil
+		result.LogsPath = wrapperspbStringToTypeString(source.GetLogsPath().GetValue())
 	case *dashboards.MultiSelect_Source_MetricLabel:
-		return &VariableMultiSelectSourceModel{
-			MetricLabel: &MetricMultiSelectSourceModel{
-				MetricName: wrapperspbStringToTypeString(source.GetMetricLabel().GetMetricName()),
-				Label:      wrapperspbStringToTypeString(source.GetMetricLabel().GetLabel()),
-			},
-		}, nil
+		result.MetricLabel = &MetricMultiSelectSourceModel{
+			MetricName: wrapperspbStringToTypeString(source.GetMetricLabel().GetMetricName()),
+			Label:      wrapperspbStringToTypeString(source.GetMetricLabel().GetLabel()),
+		}
 	case *dashboards.MultiSelect_Source_ConstantList:
-		return &VariableMultiSelectSourceModel{
-			ConstantList: wrappedStringSliceToTypeStringList(source.GetConstantList().GetValues()),
-		}, nil
+		result.ConstantList = wrappedStringSliceToTypeStringList(source.GetConstantList().GetValues())
 	case *dashboards.MultiSelect_Source_SpanField:
 		spansField, dg := flattenSpansField(source.GetSpanField().GetValue())
 		if dg != nil {
 			return nil, diag.Diagnostics{dg}
 		}
-		return &VariableMultiSelectSourceModel{
-			SpanField: spansField,
-		}, nil
+		result.SpanField = spansField
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Variable Definition Multi Select Source", fmt.Sprintf("unknown variable definition multi select source type %T", source))}
 	}
+
+	return result, nil
 }
 
 func flattenDashboardVariableSelectedValues(selection *dashboards.MultiSelect_Selection) (types.List, diag.Diagnostics) {
