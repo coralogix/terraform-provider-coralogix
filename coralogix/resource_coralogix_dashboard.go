@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"golang.org/x/exp/slices"
 
 	"github.com/golang/protobuf/jsonpb"
@@ -619,16 +621,6 @@ func (r DashboardResource) ImportState(ctx context.Context, req resource.ImportS
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-//func (r DashboardResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
-//	return []resource.ConfigValidator{
-//		&resource.StructFieldValidator{
-//			FieldName: "name",
-//			Struct:    &DashboardModel{},
-//			Err:       resource.NewValidationError("name is required"),
-//		},
-//	}
-//}
-
 func (r DashboardResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_dashboard"
 }
@@ -693,7 +685,10 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 												},
 											},
 											"height": schema.Int64Attribute{
-												Optional:            true,
+												Required: true,
+												Validators: []validator.Int64{
+													int64validator.AtLeast(1),
+												},
 												MarkdownDescription: "The height of the row.",
 											},
 											"widgets": schema.ListNestedAttribute{
@@ -985,6 +980,8 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																					},
 																					"width": schema.Int64Attribute{
 																						Optional: true,
+																						Computed: true,
+																						Default:  int64default.StaticInt64(0),
 																					},
 																				},
 																			},
@@ -1434,6 +1431,8 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 														},
 														"width": schema.Int64Attribute{
 															Optional:            true,
+															Computed:            true,
+															Default:             int64default.StaticInt64(0),
 															MarkdownDescription: "The width of the chart.",
 														},
 													},
