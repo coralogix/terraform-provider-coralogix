@@ -694,11 +694,11 @@ Optional:
 
 Required:
 
+- `aggregation` (String) The type of aggregation. Can be one of ["sum" "avg" "min" "max" "last"].
 - `logs_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--logs_aggregation))
 
 Optional:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["sum" "avg" "min" "max" "last"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters))
 - `lucene_query` (String)
 
@@ -739,11 +739,14 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--metrics"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans`
 
+Required:
+
+- `promql_query` (String)
+
 Optional:
 
 - `aggregation` (String) The type of aggregation. Can be one of ["sum" "avg" "min" "max" "last"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters))
-- `promql_query` (String)
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters`
@@ -774,9 +777,12 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans`
 
+Required:
+
+- `aggregation` (String) The type of aggregation. Can be one of ["last" "min" "max" "avg" "sum"].
+
 Optional:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["unspecified" "last" "min" "max" "avg" "sum"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters))
 - `lucene_query` (String)
 - `spans_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--spans_aggregation))

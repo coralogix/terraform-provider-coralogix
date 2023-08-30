@@ -116,12 +116,11 @@ var (
 	dashboardProtoToSchemaPieChartLabelSource = ReverseMap(dashboardSchemaToProtoPieChartLabelSource)
 	dashboardValidPieChartLabelSources        = GetKeys(dashboardSchemaToProtoPieChartLabelSource)
 	dashboardSchemaToProtoGaugeAggregation    = map[string]dashboards.Gauge_Aggregation{
-		"unspecified": dashboards.Gauge_AGGREGATION_UNSPECIFIED,
-		"last":        dashboards.Gauge_AGGREGATION_LAST,
-		"min":         dashboards.Gauge_AGGREGATION_MIN,
-		"max":         dashboards.Gauge_AGGREGATION_MAX,
-		"avg":         dashboards.Gauge_AGGREGATION_AVG,
-		"sum":         dashboards.Gauge_AGGREGATION_SUM,
+		"last": dashboards.Gauge_AGGREGATION_LAST,
+		"min":  dashboards.Gauge_AGGREGATION_MIN,
+		"max":  dashboards.Gauge_AGGREGATION_MAX,
+		"avg":  dashboards.Gauge_AGGREGATION_AVG,
+		"sum":  dashboards.Gauge_AGGREGATION_SUM,
 	}
 	dashboardProtoToSchemaGaugeAggregation            = ReverseMap(dashboardSchemaToProtoGaugeAggregation)
 	dashboardValidGaugeAggregations                   = GetKeys(dashboardSchemaToProtoGaugeAggregation)
@@ -1036,7 +1035,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																								stringvalidator.OneOf(dashboardValidAggregationTypes...),
 																							},
 																							MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardValidAggregationTypes),
-																							Optional:            true,
+																							Required:            true,
 																						},
 																						"filters":          logsFiltersSchema(),
 																						"logs_aggregation": logsAggregationSchema(),
@@ -1052,7 +1051,10 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																				"metrics": schema.SingleNestedAttribute{
 																					Attributes: map[string]schema.Attribute{
 																						"promql_query": schema.StringAttribute{
-																							Optional: true,
+																							Required: true,
+																							Validators: []validator.String{
+																								stringvalidator.LengthAtLeast(1),
+																							},
 																						},
 																						"aggregation": schema.StringAttribute{
 																							Validators: []validator.String{
@@ -1060,6 +1062,8 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																							},
 																							MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardValidAggregationTypes),
 																							Optional:            true,
+																							Computed:            true,
+																							Default:             stringdefault.StaticString("unspecified"),
 																						},
 																						"filters": metricFiltersSchema(),
 																					},
@@ -1082,7 +1086,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																								stringvalidator.OneOf(dashboardValidGaugeAggregations...),
 																							},
 																							MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardValidGaugeAggregations),
-																							Optional:            true,
+																							Required:            true,
 																						},
 																						"filters": spansFilterSchema(),
 																					},
