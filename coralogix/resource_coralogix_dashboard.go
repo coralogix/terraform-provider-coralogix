@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"golang.org/x/exp/slices"
 
@@ -174,7 +175,6 @@ var (
 	dashboardProtoToSchemaSpanFieldMetadataField = ReverseMap(dashboardSchemaToProtoSpanFieldMetadataField)
 	dashboardValidSpanFieldMetadataFields        = GetKeys(dashboardSchemaToProtoSpanFieldMetadataField)
 	dashboardValidLogsAggregationTypes           = []string{"count", "count_distinct", "sum", "avg", "min", "max"}
-	dashboardValidAggregationTypes               = []string{"sum", "avg", "min", "max", "last"}
 	dashboardValidSpanFieldTypes                 = []string{"metadata", "tag", "process_tag"}
 	dashboardValidSpanAggregationTypes           = []string{"metric", "dimension"}
 )
@@ -709,7 +709,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 															},
 														},
 														"title": schema.StringAttribute{
-															Optional:            true,
+															Required:            true,
 															MarkdownDescription: "Widget title.",
 														},
 														"description": schema.StringAttribute{
@@ -1038,9 +1038,9 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						},
 																						"aggregation": schema.StringAttribute{
 																							Validators: []validator.String{
-																								stringvalidator.OneOf(dashboardValidAggregationTypes...),
+																								stringvalidator.OneOf(dashboardValidLogsAggregationTypes...),
 																							},
-																							MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardValidAggregationTypes),
+																							MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardValidLogsAggregationTypes),
 																							Required:            true,
 																						},
 																						"filters":          logsFiltersSchema(),
@@ -1064,9 +1064,9 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						},
 																						"aggregation": schema.StringAttribute{
 																							Validators: []validator.String{
-																								stringvalidator.OneOf(dashboardValidAggregationTypes...),
+																								stringvalidator.OneOf(dashboardValidGaugeAggregations...),
 																							},
-																							MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardValidAggregationTypes),
+																							MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardValidGaugeAggregations),
 																							Optional:            true,
 																							Computed:            true,
 																							Default:             stringdefault.StaticString("unspecified"),
@@ -1109,9 +1109,13 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																		},
 																		"min": schema.Float64Attribute{
 																			Optional: true,
+																			Computed: true,
+																			Default:  float64default.StaticFloat64(0),
 																		},
 																		"max": schema.Float64Attribute{
 																			Optional: true,
+																			Computed: true,
+																			Default:  float64default.StaticFloat64(100),
 																		},
 																		"show_inner_arc": schema.BoolAttribute{
 																			Optional: true,

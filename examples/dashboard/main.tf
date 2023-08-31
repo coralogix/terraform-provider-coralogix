@@ -178,6 +178,20 @@ resource "coralogix_dashboard" dashboard {
                 }
                 width = 10
               },
+              {
+                title = "gauge"
+                definition = {
+                  gauge = {
+                    unit = "milliseconds"
+                    query = {
+                      metrics = {
+                        promql_query = "vector(1)"
+                        aggregation = "unspecified"
+                      }
+                    }
+                  }
+                }
+              }
             ]
           },
           {
@@ -451,11 +465,11 @@ resource "coralogix_dashboard" dashboard {
                         }
                       }
                     }
-                      xaxis = {
-                        time = {
-                          interval = "1h0m5s"
-                          buckets_presented = 10
-                        }
+                    xaxis = {
+                      time = {
+                        interval          = "1h0m5s"
+                        buckets_presented = 10
+                      }
                     }
                   }
                 }
