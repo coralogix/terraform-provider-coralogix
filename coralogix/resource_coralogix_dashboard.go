@@ -95,7 +95,9 @@ var (
 	dashboardProtoToSchemaUnit      = ReverseMap(dashboardSchemaToProtoUnit)
 	dashboardValidUnits             = GetKeys(dashboardSchemaToProtoUnit)
 	dashboardSchemaToProtoGaugeUnit = map[string]dashboards.Gauge_Unit{
-		"unspecified":  dashboards.Gauge_UNIT_UNSPECIFIED,
+		//"unspecified":  dashboards.Gauge_UNIT_UNSPECIFIED,
+		"none":         dashboards.Gauge_UNIT_NUMBER,
+		"percent":      dashboards.Gauge_UNIT_PERCENT,
 		"microseconds": dashboards.Gauge_UNIT_MICROSECONDS,
 		"milliseconds": dashboards.Gauge_UNIT_MILLISECONDS,
 		"seconds":      dashboards.Gauge_UNIT_SECONDS,
@@ -107,6 +109,10 @@ var (
 		"kibytes":      dashboards.Gauge_UNIT_KIBYTES,
 		"mibytes":      dashboards.Gauge_UNIT_MIBYTES,
 		"gibytes":      dashboards.Gauge_UNIT_GIBYTES,
+		"euro_cents":   dashboards.Gauge_UNIT_EUR_CENTS,
+		"euro":         dashboards.Gauge_UNIT_EUR,
+		"usd_cents":    dashboards.Gauge_UNIT_USD_CENTS,
+		"usd":          dashboards.Gauge_UNIT_USD,
 	}
 	dashboardProtoToSchemaGaugeUnit           = ReverseMap(dashboardSchemaToProtoGaugeUnit)
 	dashboardValidGaugeUnits                  = GetKeys(dashboardSchemaToProtoGaugeUnit)
@@ -118,11 +124,12 @@ var (
 	dashboardProtoToSchemaPieChartLabelSource = ReverseMap(dashboardSchemaToProtoPieChartLabelSource)
 	dashboardValidPieChartLabelSources        = GetKeys(dashboardSchemaToProtoPieChartLabelSource)
 	dashboardSchemaToProtoGaugeAggregation    = map[string]dashboards.Gauge_Aggregation{
-		"last": dashboards.Gauge_AGGREGATION_LAST,
-		"min":  dashboards.Gauge_AGGREGATION_MIN,
-		"max":  dashboards.Gauge_AGGREGATION_MAX,
-		"avg":  dashboards.Gauge_AGGREGATION_AVG,
-		"sum":  dashboards.Gauge_AGGREGATION_SUM,
+		"unspecified": dashboards.Gauge_AGGREGATION_UNSPECIFIED,
+		"last":        dashboards.Gauge_AGGREGATION_LAST,
+		"min":         dashboards.Gauge_AGGREGATION_MIN,
+		"max":         dashboards.Gauge_AGGREGATION_MAX,
+		"avg":         dashboards.Gauge_AGGREGATION_AVG,
+		"sum":         dashboards.Gauge_AGGREGATION_SUM,
 	}
 	dashboardProtoToSchemaGaugeAggregation            = ReverseMap(dashboardSchemaToProtoGaugeAggregation)
 	dashboardValidGaugeAggregations                   = GetKeys(dashboardSchemaToProtoGaugeAggregation)
@@ -1117,9 +1124,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																			Default:  booldefault.StaticBool(true),
 																		},
 																		"unit": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  stringdefault.StaticString("unspecified"),
+																			Required: true,
 																			Validators: []validator.String{
 																				stringvalidator.OneOf(dashboardValidGaugeUnits...),
 																			},
