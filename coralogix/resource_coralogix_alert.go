@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/golang/protobuf/jsonpb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -1418,6 +1419,13 @@ func flowSchema() map[string]*schema.Schema {
 				},
 			},
 		},
+		"group_by": {
+			Type:     schema.TypeList,
+			Optional: true,
+			Elem: &schema.Schema{
+				Type: schema.TypeString,
+			},
+		},
 	}
 }
 
@@ -1427,16 +1435,19 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 		return diags
 	}
 
-	log.Printf("[INFO] Creating new alert: %#v", createAlertRequest)
+	createAlertStr, _ := jsm.MarshalToString(createAlertRequest)
+	log.Printf("[INFO] Creating new alert: %s", createAlertStr)
 	AlertResp, err := meta.(*clientset.ClientSet).Alerts().CreateAlert(ctx, createAlertRequest)
 
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcError(err, "alert")
 	}
-	Alert := AlertResp.GetAlert()
-	log.Printf("[INFO] Submitted new alert: %#v", Alert)
-	d.SetId(Alert.GetUniqueIdentifier().GetValue())
+
+	alert := AlertResp.GetAlert()
+	alertStr, _ := jsm.MarshalToString(alert)
+	log.Printf("[INFO] Submitted new alert: %s", alertStr)
+	d.SetId(alert.GetUniqueIdentifier().GetValue())
 
 	return resourceCoralogixAlertRead(ctx, d, meta)
 }
@@ -1462,7 +1473,9 @@ func resourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, met
 		return handleRpcErrorWithID(err, "alert", id.GetValue())
 	}
 	alert := alertResp.GetAlert()
-	log.Printf("[INFO] Received alert: %#v", alert)
+	jsm := jsonpb.Marshaler{}
+	alertStr, _ := jsm.MarshalToString(alert)
+	log.Printf("[INFO] Received alert: %s", alertStr)
 
 	return setAlert(d, alert)
 }
@@ -2155,9 +2168,19 @@ func flattenFlowAlert(condition interface{}) interface{} {
 
 func flattenFlowAlertsCondition(condition *alerts.AlertCondition_Flow) interface{} {
 	stages := flattenStages(condition.Flow.GetStages())
-	return map[string]interface{}{
+
+	m := map[string]interface{}{
 		"stage": stages,
 	}
+
+	if flowParams := condition.Flow.GetParameters(); flowParams != nil {
+		groupBy := wrappedStringSliceToStringSlice(flowParams.GetGroupBy())
+		if len(groupBy) != 0 {
+			m["group_by"] = groupBy
+		}
+	}
+
+	return m
 }
 
 func flattenStages(stages []*alerts.FlowStage) []interface{} {
@@ -3104,17 +3127,33 @@ func expandMetricFilters(m map[string]interface{}) *alerts.AlertFilters {
 
 func expandFlow(m map[string]interface{}) *alertParams {
 	stages := expandFlowStages(m["stage"])
+	parameters := expandFlowParameters(m["group_by"])
 	return &alertParams{
 		Condition: &alerts.AlertCondition{
 			Condition: &alerts.AlertCondition_Flow{
 				Flow: &alerts.FlowCondition{
-					Stages: stages,
+					Stages:     stages,
+					Parameters: parameters,
 				},
 			},
 		},
 		Filters: &alerts.AlertFilters{
 			FilterType: alerts.AlertFilters_FILTER_TYPE_FLOW,
 		},
+	}
+}
+
+func expandFlowParameters(i interface{}) *alerts.ConditionParameters {
+	if i == nil {
+		return nil
+	}
+	groupBy := interfaceSliceToWrappedStringSlice(i.([]interface{}))
+	if len(groupBy) == 0 {
+		return nil
+	}
+
+	return &alerts.ConditionParameters{
+		GroupBy: groupBy,
 	}
 }
 

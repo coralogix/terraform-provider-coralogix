@@ -636,6 +636,7 @@ func extractFlowAlertChecks(alert flowAlertTestParams) []resource.TestCheckFunc 
 		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.group.1.sub_alerts.0.flow_alert.0.not", "true"),
 		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.group.1.next_operator", "AND"),
 		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.time_window.0.minutes", "20"),
+		resource.TestCheckResourceAttr(alertResourceName, "flow.0.group_by.0", "coralogix.metadata.sdkId"),
 	}
 	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
 	return checks
@@ -1100,8 +1101,11 @@ func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
 	severity           = "Info"
 	standard {
 		condition {
-			immediately = true
-		}
+      		more_than         = true
+      		threshold         = 5
+      		time_window       = "30Min"
+      		group_by          = ["coralogix.metadata.sdkId"]
+    	}
 	}
 }
 
@@ -1171,6 +1175,7 @@ func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
         next_operator = "OR"
       }
     }
+    group_by          = ["coralogix.metadata.sdkId"]
   }
 }`,
 		a.name, a.description, a.severity, a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,

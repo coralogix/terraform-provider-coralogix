@@ -57,6 +57,7 @@ Read-Only:
 
 Read-Only:
 
+- `group_by` (List of String)
 - `stage` (List of Object) (see [below for nested schema](#nestedobjatt--flow--stage))
 
 <a id="nestedobjatt--flow--stage"></a>
