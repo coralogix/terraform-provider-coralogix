@@ -340,3 +340,8 @@ Release 1.8.0
 Breaking Changes:
 #### resource/coralogix_dashboard
 * schemas where changed to support the new dashboard widgets and more convenient schema.
+
+Release 1.8.6
+New Features:
+#### resource/coralogix_alert
+* Adding support for `flow.group_by`.

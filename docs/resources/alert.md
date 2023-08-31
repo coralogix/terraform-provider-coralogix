@@ -524,6 +524,10 @@ Required:
 
 - `stage` (Block List, Min: 1) (see [below for nested schema](#nestedblock--flow--stage))
 
+Optional:
+
+- `group_by` (List of String)
+
 <a id="nestedblock--flow--stage"></a>
 ### Nested Schema for `flow.stage`
 

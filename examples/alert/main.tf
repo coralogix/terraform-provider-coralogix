@@ -286,7 +286,7 @@ resource "coralogix_alert" "unique_count_alert" {
   severity    = "Info"
 
   notifications_group {
-    group_by_fields = ["EventType"]
+    group_by_fields = ["coralogix.metadata.sdkId"]
     notification {
       integration_id              = coralogix_webhook.slack_webhook.id
       retriggering_period_minutes = 1
@@ -313,7 +313,7 @@ resource "coralogix_alert" "unique_count_alert" {
       unique_count_key               = "remote_addr_geoip.country_name"
       max_unique_values              = 2
       time_window                    = "10Min"
-      group_by_key                   = "EventType"
+      group_by_key                   = "coralogix.metadata.sdkId"
       max_unique_values_for_group_by = 500
     }
   }
@@ -409,7 +409,7 @@ resource "coralogix_alert" "flow_alert" {
         sub_alerts {
           operator = "OR"
           flow_alert {
-            user_alert_id = coralogix_alert.new_value_alert.id
+            user_alert_id = coralogix_alert.standard_alert.id
           }
         }
         next_operator = "OR"
@@ -437,12 +437,13 @@ resource "coralogix_alert" "flow_alert" {
           }
           flow_alert {
             not           = true
-            user_alert_id = coralogix_alert.metric_promql_alert.id
+            user_alert_id = coralogix_alert.unique_count_alert.id
           }
         }
         next_operator = "OR"
       }
     }
+    group_by = ["coralogix.metadata.sdkId"]
   }
 }
 
