@@ -201,11 +201,11 @@ Read-Only:
 Required:
 
 - `definition` (Attributes) The widget definition. Can contain one of `line_chart`, `bar_chart`, `pie_chart` `data_table` or `gauge`. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition))
+- `title` (String) Widget title.
 
 Optional:
 
 - `description` (String) Widget description.
-- `title` (String) Widget title.
 - `width` (Number) The width of the chart.
 
 Read-Only:
@@ -697,7 +697,7 @@ Optional:
 
 Required:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["sum" "avg" "min" "max" "last"].
+- `aggregation` (String) The type of aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max"].
 - `logs_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--logs_aggregation))
 
 Optional:
@@ -748,7 +748,7 @@ Required:
 
 Optional:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["sum" "avg" "min" "max" "last"].
+- `aggregation` (String) The type of aggregation. Can be one of ["sum" "unspecified" "last" "min" "max" "avg"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters"></a>

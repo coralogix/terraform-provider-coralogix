@@ -591,7 +591,7 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["sum" "avg" "min" "max" "last"].
+- `aggregation` (String) The type of aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--filters))
 - `logs_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--logs_aggregation))
 - `lucene_query` (String)
@@ -629,7 +629,7 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["sum" "avg" "min" "max" "last"].
+- `aggregation` (String) The type of aggregation. Can be one of ["sum" "unspecified" "last" "min" "max" "avg"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--filters))
 - `promql_query` (String)
 
