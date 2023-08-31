@@ -668,11 +668,12 @@ Optional:
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--gauge"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart`
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge`
 
 Required:
 
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--query))
+- `unit` (String) The unit of the gauge. Can be one of ["seconds" "kbytes" "gbytes" "milliseconds" "bytes" "bytes_iec" "kibytes" "mibytes" "euro_cents" "euro" "usd" "microseconds" "mbytes" "percent" "gibytes" "usd_cents" "none"].
 
 Optional:
 
@@ -681,32 +682,31 @@ Optional:
 - `show_inner_arc` (Boolean)
 - `show_outer_arc` (Boolean)
 - `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds))
-- `unit` (String) The unit of the gauge. Can be one of ["bytes_iec" "mibytes" "unspecified" "microseconds" "seconds" "mbytes" "gbytes" "kibytes" "gibytes" "milliseconds" "bytes" "kbytes"].
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit`
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query`
 
 Optional:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--logs"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans`
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--logs"></a>
+### Nested Schema for `layout.sections.rows.id.definition.gauge.query.spans`
 
 Required:
 
 - `aggregation` (String) The type of aggregation. Can be one of ["sum" "avg" "min" "max" "last"].
-- `logs_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--logs_aggregation))
+- `logs_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--logs_aggregation))
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters))
 - `lucene_query` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--logs_aggregation"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.logs_aggregation`
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--logs_aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.logs_aggregation`
 
 Required:
 
@@ -717,16 +717,16 @@ Optional:
 - `field` (String)
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters`
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.filters`
 
 Required:
 
 - `field` (String)
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator))
+- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.operator`
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.filters.operator`
 
 Required:
 
@@ -739,8 +739,8 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--metrics"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans`
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.metric`
 
 Required:
 
@@ -749,22 +749,22 @@ Required:
 Optional:
 
 - `aggregation` (String) The type of aggregation. Can be one of ["sum" "avg" "min" "max" "last"].
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters`
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters`
 
 Required:
 
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator))
+- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator))
 
 Optional:
 
 - `label` (String)
 - `metric` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.metric`
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.metric.filters.operator`
 
 Required:
 
@@ -777,29 +777,29 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans`
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans`
 
 Required:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["last" "min" "max" "avg" "sum"].
+- `aggregation` (String) The type of aggregation. Can be one of ["unspecified" "last" "min" "max" "avg" "sum"].
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters))
 - `lucene_query` (String)
-- `spans_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--spans_aggregation))
+- `spans_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--spans_aggregation))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters`
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters`
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--field))
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator))
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--field))
+- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.operator`
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters.operator`
 
 Required:
 
@@ -807,8 +807,8 @@ Required:
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["service_name" "operation_name" "unspecified" "application_name" "subsystem_name"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.operator`
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters.operator`
 
 Required:
 
@@ -820,8 +820,8 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--spans_aggregation"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.spans_aggregation`
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--spans_aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans_aggregation`
 
 Required:
 
@@ -833,7 +833,7 @@ Required:
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit`
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds`
 
 Optional:
 

@@ -575,7 +575,7 @@ Read-Only:
 - `show_inner_arc` (Boolean)
 - `show_outer_arc` (Boolean)
 - `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--thresholds))
-- `unit` (String) The unit of the gauge. Can be one of ["unspecified" "milliseconds" "seconds" "kbytes" "mbytes" "microseconds" "bytes" "gbytes" "bytes_iec" "kibytes" "mibytes" "gibytes"].
+- `unit` (String) The unit of the gauge. Can be one of ["seconds" "kbytes" "gbytes" "milliseconds" "bytes" "bytes_iec" "kibytes" "mibytes" "euro_cents" "euro" "usd" "microseconds" "mbytes" "percent" "gibytes" "usd_cents" "none"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.unit`
