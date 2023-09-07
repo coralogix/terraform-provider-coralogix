@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -11,6 +12,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"golang.org/x/exp/slices"
+
+	"terraform-provider-coralogix/coralogix/clientset"
+	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -34,8 +38,6 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 )
 
 var (
@@ -2112,7 +2114,7 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashbo
 	}
 
 	dashboard, dg := expandDashboardTimeFrame(dashboard, plan.TimeFrame)
-	if diags.HasError() {
+	if dg != nil {
 		return nil, diag.Diagnostics{dg}
 	}
 
@@ -4010,16 +4012,39 @@ func expandAbsoluteeDashboardTimeFrame(timeFrame *DashboardTimeFrameAbsoluteMode
 	}, nil
 }
 
+func parseRelativeTimeDuration(ti string) (*time.Duration, diag.Diagnostic) {
+	// This for some reason has format seconds:900
+	durStr := strings.Split(ti, ":")
+	var duration time.Duration
+	if len(durStr) != 2 {
+		return nil, diag.NewErrorDiagnostic("Error Expand Relative Dashboard Time Frame", fmt.Sprintf("error parsing duration: %s", durStr))
+	}
+	unit := durStr[0]
+	no, err := strconv.Atoi(durStr[1])
+	if err != nil {
+		return nil, diag.NewErrorDiagnostic("Error Expand Relative Dashboard Time Frame", fmt.Sprintf("error parsing duration numbers: %s", durStr))
+	}
+	switch unit {
+	case "seconds":
+		duration = time.Second * time.Duration(no)
+	case "minutes":
+		duration = time.Minute * time.Duration(no)
+	default:
+		return nil, diag.NewErrorDiagnostic("Error Expand Relative Dashboard Time Frame", fmt.Sprintf("error parsing duration unit: %s", unit))
+	}
+	return &duration, nil
+}
+
 func expandRelativeDashboardTimeFrame(timeFrame *DashboardTimeFrameRelativeModel) (*dashboards.Dashboard_RelativeTimeFrame, diag.Diagnostic) {
 	if timeFrame == nil {
 		return nil, nil
 	}
-	duration, err := time.ParseDuration(timeFrame.Duration.ValueString())
+	duration, err := parseRelativeTimeDuration(timeFrame.Duration.ValueString())
 	if err != nil {
-		return nil, diag.NewErrorDiagnostic("Error Expand Relative Dashboard Time Frame", fmt.Sprintf("Error parsing duration: %s", err.Error()))
+		return nil, err
 	}
 	return &dashboards.Dashboard_RelativeTimeFrame{
-		RelativeTimeFrame: durationpb.New(duration),
+		RelativeTimeFrame: durationpb.New(*duration),
 	}, nil
 }
 
