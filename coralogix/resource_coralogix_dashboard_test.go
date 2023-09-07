@@ -7,9 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
 	dashboard "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
+
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -136,6 +137,11 @@ func testAccCoralogixResourceDashboard() string {
 	return `resource "coralogix_dashboard" test {
   name        = "test"
   description = "dashboards team is messing with this 🗿"
+  time_frame = {
+      relative = {
+        duration = "seconds:900" # 15 minutes
+      }
+  }
   layout      = {
     sections = [
       {
@@ -296,4 +302,15 @@ func testAccCoralogixResourceDashboardFromJson(jsonFilePath string) string {
    		content_json = file("%s")
 	}
 `, jsonFilePath)
+}
+
+func TestParseRelativeTimeDuration(t *testing.T) {
+	res, err := parseRelativeTimeDuration("seconds:900")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.Seconds() != 900 {
+		t.Fatalf("expected 900 seconds, got %f", res.Seconds())
+	}
 }
