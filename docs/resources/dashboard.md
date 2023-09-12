@@ -507,7 +507,7 @@ Optional:
 Optional:
 
 - `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--aggregations))
-- `group_by` (String)
+- `group_by` (List of String)
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--aggregations"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping.group_by`

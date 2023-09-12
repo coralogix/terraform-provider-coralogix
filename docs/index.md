@@ -81,5 +81,5 @@ $ export CORALOGIX_DOMAIN="<add the environment you want to work at>"
   environment. environment variable 'CORALOGIX_API_KEY' can be defined instead.
 - `domain` (String) The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined
   instead.
-- `env` (String) The Coralogix API environment. can be one of ["USA1" "APAC1" "APAC2" "EUROPE1" "EUROPE2"]. environment
+- `env` (String) The Coralogix API environment. can be one of ["USA1" "USA2" "APAC1" "APAC2" "EUROPE1" "EUROPE2"]. environment
   variable 'CORALOGIX_ENV' can be defined instead.

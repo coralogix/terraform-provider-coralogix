@@ -428,7 +428,7 @@ Read-Only:
 Read-Only:
 
 - `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--row_style--spans--grouping--aggregations))
-- `group_by` (String)
+- `group_by` (List of String)
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--row_style--spans--grouping--aggregations"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.row_style.spans.grouping.group_by`
