@@ -892,8 +892,9 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						"filters": logsFiltersSchema(),
 																						"grouping": schema.SingleNestedAttribute{
 																							Attributes: map[string]schema.Attribute{
-																								"group_by": schema.StringAttribute{
-																									Optional: true,
+																								"group_by": schema.ListAttribute{
+																									ElementType: types.StringType,
+																									Optional:    true,
 																								},
 																								"aggregations": schema.ListNestedAttribute{
 																									NestedObject: schema.NestedAttributeObject{
@@ -4264,7 +4265,9 @@ func widgetModelAttr() map[string]attr.Type {
 										},
 										"grouping": types.ObjectType{
 											AttrTypes: map[string]attr.Type{
-												"group_by": types.StringType,
+												"group_by": types.ListType{
+													ElemType: types.StringType,
+												},
 												"aggregations": types.ListType{
 													ElemType: types.ObjectType{
 														AttrTypes: map[string]attr.Type{
