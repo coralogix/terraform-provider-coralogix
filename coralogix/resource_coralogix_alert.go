@@ -1490,14 +1490,15 @@ func resourceCoralogixAlertUpdate(ctx context.Context, d *schema.ResourceData, m
 	updateAlertRequest := &alerts.UpdateAlertByUniqueIdRequest{
 		Alert: req,
 	}
-
-	log.Printf("[INFO] Updating alert %s", updateAlertRequest)
+	updateAlertStr, _ := jsm.MarshalToString(updateAlertRequest)
+	log.Printf("[INFO] Updating alert %s", updateAlertStr)
 	alertResp, err := meta.(*clientset.ClientSet).Alerts().UpdateAlert(ctx, updateAlertRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcErrorWithID(err, "alert", id)
 	}
-	log.Printf("[INFO] Submitted updated alert: %#v", alertResp)
+	updateAlertStr, _ = jsm.MarshalToString(alertResp)
+	log.Printf("[INFO] Submitted updated alert: %s", updateAlertStr)
 	d.SetId(alertResp.GetAlert().GetUniqueIdentifier().GetValue())
 
 	return resourceCoralogixAlertRead(ctx, d, meta)
@@ -2881,7 +2882,10 @@ func expandUniqueCountConditionParameters(m map[string]interface{}) *alerts.Cond
 	threshold := wrapperspb.Double(float64(m["max_unique_values"].(int)))
 	timeFrame := expandUniqueValueTimeFrame(m["time_window"].(string))
 	groupBy := []*wrapperspb.StringValue{wrapperspb.String(m["group_by_key"].(string))}
-	groupByThreshold := wrapperspb.UInt32(uint32(m["max_unique_values_for_group_by"].(int)))
+	var groupByThreshold *wrapperspb.UInt32Value
+	if len(groupBy) > 0 {
+		groupByThreshold = wrapperspb.UInt32(uint32(m["max_unique_values_for_group_by"].(int)))
+	}
 
 	return &alerts.ConditionParameters{
 		CardinalityFields:                 uniqueCountKey,

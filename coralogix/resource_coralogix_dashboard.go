@@ -728,7 +728,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																				"is_visible": schema.BoolAttribute{
 																					Optional:            true,
 																					Computed:            true,
-																					Default:             booldefault.StaticBool(false),
+																					Default:             booldefault.StaticBool(true),
 																					MarkdownDescription: "Whether to display the legend. False by default.",
 																				},
 																				"columns": schema.ListAttribute{
@@ -860,7 +860,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																					"is_visible": schema.BoolAttribute{
 																						Optional: true,
 																						Computed: true,
-																						Default:  booldefault.StaticBool(false),
+																						Default:  booldefault.StaticBool(true),
 																					},
 																				},
 																			},
@@ -911,7 +911,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																											"is_visible": schema.BoolAttribute{
 																												Optional: true,
 																												Computed: true,
-																												Default:  booldefault.StaticBool(false),
+																												Default:  booldefault.StaticBool(true),
 																											},
 																											"aggregation": logsAggregationSchema(),
 																										},
@@ -948,7 +948,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																											"is_visible": schema.BoolAttribute{
 																												Optional: true,
 																												Computed: true,
-																												Default:  booldefault.StaticBool(false),
+																												Default:  booldefault.StaticBool(true),
 																											},
 																											"aggregation": spansAggregationSchema(),
 																										},
@@ -3460,7 +3460,7 @@ func expandLineChartQueryDefinition(ctx context.Context, queryDefinition *LineCh
 	}
 
 	return &dashboards.LineChart_QueryDefinition{
-		Id:                 typeStringToWrapperspbString(queryDefinition.ID),
+		Id:                 expandDashboardIDs(queryDefinition.ID),
 		Query:              query,
 		SeriesNameTemplate: typeStringToWrapperspbString(queryDefinition.SeriesNameTemplate),
 		SeriesCountLimit:   typeInt64ToWrappedInt64(queryDefinition.SeriesCountLimit),
@@ -4054,6 +4054,13 @@ func expandDashboardUUID(id types.String) *dashboards.UUID {
 		return &dashboards.UUID{Value: RandStringBytes(21)}
 	}
 	return &dashboards.UUID{Value: id.ValueString()}
+}
+
+func expandDashboardIDs(id types.String) *wrapperspb.StringValue {
+	if id.IsNull() || id.IsUnknown() {
+		return &wrapperspb.StringValue{Value: RandStringBytes(21)}
+	}
+	return &wrapperspb.StringValue{Value: id.ValueString()}
 }
 
 func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboard *dashboards.Dashboard) (*DashboardResourceModel, diag.Diagnostics) {
