@@ -115,7 +115,7 @@ Read-Only:
 
 Read-Only:
 
-- `sections` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections))
+- `sections` (Attributes List) Currently only one section is supported. (see [below for nested schema](#nestedatt--layout--sections))
 
 <a id="nestedatt--layout--sections"></a>
 ### Nested Schema for `layout.sections`
@@ -591,7 +591,6 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--filters))
 - `logs_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--logs_aggregation))
 - `lucene_query` (String)
@@ -658,7 +657,6 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["avg" "sum" "unspecified" "last" "min" "max"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--filters))
 - `lucene_query` (String)
 - `spans_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--spans_aggregation))

@@ -407,7 +407,6 @@ type GaugeQueryModel struct {
 type GaugeQueryLogsModel struct {
 	LuceneQuery     types.String          `tfsdk:"lucene_query"`
 	LogsAggregation *LogsAggregationModel `tfsdk:"logs_aggregation"`
-	Aggregation     types.String          `tfsdk:"aggregation"`
 	Filters         types.List            `tfsdk:"filters"` //LogsFilterModel
 }
 
@@ -420,7 +419,6 @@ type GaugeQueryMetricsModel struct {
 type GaugeQuerySpansModel struct {
 	LuceneQuery      types.String           `tfsdk:"lucene_query"`
 	SpansAggregation *SpansAggregationModel `tfsdk:"spans_aggregation"`
-	Aggregation      types.String           `tfsdk:"aggregation"`
 	Filters          types.List             `tfsdk:"filters"` //SpansFilterModel
 }
 
@@ -728,7 +726,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																				"is_visible": schema.BoolAttribute{
 																					Optional:            true,
 																					Computed:            true,
-																					Default:             booldefault.StaticBool(false),
+																					Default:             booldefault.StaticBool(true),
 																					MarkdownDescription: "Whether to display the legend. False by default.",
 																				},
 																				"columns": schema.ListAttribute{
@@ -860,7 +858,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																					"is_visible": schema.BoolAttribute{
 																						Optional: true,
 																						Computed: true,
-																						Default:  booldefault.StaticBool(false),
+																						Default:  booldefault.StaticBool(true),
 																					},
 																				},
 																			},
@@ -911,7 +909,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																											"is_visible": schema.BoolAttribute{
 																												Optional: true,
 																												Computed: true,
-																												Default:  booldefault.StaticBool(false),
+																												Default:  booldefault.StaticBool(true),
 																											},
 																											"aggregation": logsAggregationSchema(),
 																										},
@@ -948,7 +946,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																											"is_visible": schema.BoolAttribute{
 																												Optional: true,
 																												Computed: true,
-																												Default:  booldefault.StaticBool(false),
+																												Default:  booldefault.StaticBool(true),
 																											},
 																											"aggregation": spansAggregationSchema(),
 																										},
@@ -1039,13 +1037,6 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						"lucene_query": schema.StringAttribute{
 																							Optional: true,
 																						},
-																						"aggregation": schema.StringAttribute{
-																							Validators: []validator.String{
-																								stringvalidator.OneOf(dashboardValidLogsAggregationTypes...),
-																							},
-																							MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardValidLogsAggregationTypes),
-																							Required:            true,
-																						},
 																						"filters":          logsFiltersSchema(),
 																						"logs_aggregation": logsAggregationSchema(),
 																					},
@@ -1090,14 +1081,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																							Optional: true,
 																						},
 																						"spans_aggregation": spansAggregationSchema(),
-																						"aggregation": schema.StringAttribute{
-																							Validators: []validator.String{
-																								stringvalidator.OneOf(dashboardValidGaugeAggregations...),
-																							},
-																							MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardValidGaugeAggregations),
-																							Required:            true,
-																						},
-																						"filters": spansFilterSchema(),
+																						"filters":           spansFilterSchema(),
 																					},
 																					Optional: true,
 																					Validators: []validator.Object{
@@ -1467,8 +1451,9 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 						},
 						Optional: true,
 						Validators: []validator.List{
-							listvalidator.SizeAtLeast(1),
+							listvalidator.SizeBetween(1, 1),
 						},
+						MarkdownDescription: "Currently only one section is supported.",
 					},
 				},
 			},
@@ -2462,7 +2447,6 @@ func expandGaugeQuerySpans(ctx context.Context, gaugeQuerySpans *GaugeQuerySpans
 		LuceneQuery:      expandLuceneQuery(gaugeQuerySpans.LuceneQuery),
 		SpansAggregation: spansAggregation,
 		Filters:          filters,
-		Aggregation:      dashboardSchemaToProtoGaugeAggregation[gaugeQuerySpans.Aggregation.ValueString()],
 	}, nil
 }
 
@@ -2714,7 +2698,6 @@ func expandGaugeQueryLogs(ctx context.Context, gaugeQueryLogs *GaugeQueryLogsMod
 		LuceneQuery:     expandLuceneQuery(gaugeQueryLogs.LuceneQuery),
 		LogsAggregation: logsAggregation,
 		Filters:         filters,
-		Aggregation:     dashboardSchemaToProtoGaugeAggregation[gaugeQueryLogs.Aggregation.ValueString()],
 	}, nil
 }
 
@@ -3460,7 +3443,7 @@ func expandLineChartQueryDefinition(ctx context.Context, queryDefinition *LineCh
 	}
 
 	return &dashboards.LineChart_QueryDefinition{
-		Id:                 typeStringToWrapperspbString(queryDefinition.ID),
+		Id:                 expandDashboardIDs(queryDefinition.ID),
 		Query:              query,
 		SeriesNameTemplate: typeStringToWrapperspbString(queryDefinition.SeriesNameTemplate),
 		SeriesCountLimit:   typeInt64ToWrappedInt64(queryDefinition.SeriesCountLimit),
@@ -4056,6 +4039,13 @@ func expandDashboardUUID(id types.String) *dashboards.UUID {
 	return &dashboards.UUID{Value: id.ValueString()}
 }
 
+func expandDashboardIDs(id types.String) *wrapperspb.StringValue {
+	if id.IsNull() || id.IsUnknown() {
+		return &wrapperspb.StringValue{Value: RandStringBytes(21)}
+	}
+	return &wrapperspb.StringValue{Value: id.ValueString()}
+}
+
 func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboard *dashboards.Dashboard) (*DashboardResourceModel, diag.Diagnostics) {
 	if !plan.ContentJson.IsNull() {
 		contentJson, err := protojson.Marshal(dashboard)
@@ -4352,7 +4342,6 @@ func widgetModelAttr() map[string]attr.Type {
 										"logs_aggregation": types.ObjectType{
 											AttrTypes: aggregationModelAttr(),
 										},
-										"aggregation": types.StringType,
 										"filters": types.ListType{
 											ElemType: types.ObjectType{
 												AttrTypes: filterModelAttr(),
@@ -4377,7 +4366,6 @@ func widgetModelAttr() map[string]attr.Type {
 										"spans_aggregation": types.ObjectType{
 											AttrTypes: spansAggregationModelAttr(),
 										},
-										"aggregation": types.StringType,
 										"filters": types.ListType{
 											ElemType: types.ObjectType{
 												AttrTypes: spansFilterModelAttr(),
@@ -5766,7 +5754,6 @@ func flattenGaugeQueryLogs(ctx context.Context, logs *dashboards.Gauge_LogsQuery
 		Logs: &GaugeQueryLogsModel{
 			LuceneQuery:     wrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
 			LogsAggregation: logsAggregation,
-			Aggregation:     types.StringValue(dashboardProtoToSchemaGaugeAggregation[logs.GetAggregation()]),
 			Filters:         filters,
 		},
 	}, nil
@@ -5791,7 +5778,6 @@ func flattenGaugeQuerySpans(ctx context.Context, spans *dashboards.Gauge_SpansQu
 		Spans: &GaugeQuerySpansModel{
 			LuceneQuery:      wrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
 			Filters:          filters,
-			Aggregation:      types.StringValue(dashboardProtoToSchemaGaugeAggregation[spans.GetAggregation()]),
 			SpansAggregation: spansAggregation,
 		},
 	}, nil
