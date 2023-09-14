@@ -167,7 +167,7 @@ Optional:
 
 Optional:
 
-- `sections` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections))
+- `sections` (Attributes List) Currently only one section is supported. (see [below for nested schema](#nestedatt--layout--sections))
 
 <a id="nestedatt--layout--sections"></a>
 ### Nested Schema for `layout.sections`
@@ -697,7 +697,6 @@ Optional:
 
 Required:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max"].
 - `logs_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--logs_aggregation))
 
 Optional:
@@ -779,10 +778,6 @@ Optional:
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans`
-
-Required:
-
-- `aggregation` (String) The type of aggregation. Can be one of ["unspecified" "last" "min" "max" "avg" "sum"].
 
 Optional:
 

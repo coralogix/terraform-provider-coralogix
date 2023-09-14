@@ -345,3 +345,10 @@ Release 1.8.6
 New Features:
 #### resource/coralogix_alert
 * Adding support for `flow.group_by`.
+
+Release 1.8.10
+New Features:
+#### resource/coralogix_dashboard
+* Adding limitation for `layout.sections` length (will support few sections in the future).
+* is_visible is true by default (for all is_visible fields).
+* Removing `gauge.query.logs/spans.aggregation` from schema.
