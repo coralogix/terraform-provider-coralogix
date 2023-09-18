@@ -352,3 +352,9 @@ New Features:
 * Adding limitation for `layout.sections` length (will support few sections in the future).
 * is_visible is true by default (for all is_visible fields).
 * Removing `gauge.query.logs/spans.aggregation` from schema.
+
+Release 1.8.11
+New Features:
+#### resource/coralogix_dashboard
+* Adding support for `markdown` and `horizonal_bar_chart` widgets.
+* Adding support for `color_scheme` and `sort_by` for `bar_chart`.

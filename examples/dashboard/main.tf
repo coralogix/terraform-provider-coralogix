@@ -474,6 +474,36 @@ resource "coralogix_dashboard" dashboard {
                   }
                 }
               },
+              {
+                title      = "Horizontal Bar-Chart"
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme        = "cold"
+                    colors_by           = "aggregation"
+                    display_on_bar      = true
+                    query = {
+                      logs = {
+                        lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
+                        aggregation  = {
+                          type = "count"
+                        }
+                        group_names        = ["coralogix.logId.keyword"]
+                        stacked_group_name = "coralogix.metadata.severity"
+                      }
+                    }
+                    y_axis_view_by = "value"
+                  }
+                }
+              },
+              {
+                title      = "Markdown"
+                definition = {
+                  markdown = {
+                    markdown_text = "## Markdown\n\nThis is a markdown widget"
+                    tooltip_text  = "This is a tooltip"
+                  }
+                }
+              },
             ]
           },
         ]

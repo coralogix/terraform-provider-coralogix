@@ -544,7 +544,7 @@ Optional:
 
 Required:
 
-- `next_operator` (String)
+- `next_operator` (String) The operator to use on the alert. can be one of ["AND" "OR"]
 - `sub_alerts` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--flow--stage--group--sub_alerts))
 
 <a id="nestedblock--flow--stage--group--sub_alerts"></a>
@@ -553,7 +553,7 @@ Required:
 Required:
 
 - `flow_alert` (Block List, Min: 1) (see [below for nested schema](#nestedblock--flow--stage--group--sub_alerts--flow_alert))
-- `operator` (String)
+- `operator` (String) The operator to use on the alert. can be one of ["AND" "OR"]
 
 <a id="nestedblock--flow--stage--group--sub_alerts--flow_alert"></a>
 ### Nested Schema for `flow.stage.group.sub_alerts.flow_alert`

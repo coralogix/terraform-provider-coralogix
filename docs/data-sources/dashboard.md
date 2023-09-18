@@ -162,7 +162,9 @@ Read-Only:
 - `bar_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart))
 - `data_table` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table))
 - `gauge` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge))
+- `horizontal_bar_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart))
 - `line_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart))
+- `markdown` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--markdown))
 - `pie_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart"></a>
@@ -170,11 +172,13 @@ Read-Only:
 
 Read-Only:
 
+- `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
 - `colors_by` (String)
 - `group_name_template` (String)
 - `max_bars_per_chart` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
 - `scale_type` (String)
+- `sort_by` (String) The field to sort by. Can be one of unspecified, value, name.
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
 - `unit` (String) The unit of the chart. Can be one of unspecified, microseconds, milliseconds, seconds, kibytes, gibytes, bytes, kbytes, mbytes, gbytes, bytes_iec, mibytes.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis))
@@ -710,6 +714,179 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart`
+
+Read-Only:
+
+- `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
+- `colors_by` (String)
+- `display_on_bar` (Boolean)
+- `group_name_template` (String)
+- `max_bars_per_chart` (Number)
+- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
+- `scale_type` (String)
+- `sort_by` (String)
+- `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
+- `unit` (String) The unit of the chart. Can be one of seconds, kbytes, gbytes, bytes_iec, unspecified, microseconds, milliseconds, mibytes, gibytes, bytes, mbytes, kibytes.
+- `y_axis_view_by` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by`
+
+Read-Only:
+
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by.spans`
+
+Read-Only:
+
+- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--aggregation))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--filters))
+- `group_names` (List of String)
+- `lucene_query` (String)
+- `stacked_group_name` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by.spans.aggregation`
+
+Read-Only:
+
+- `field` (String)
+- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by.spans.filters`
+
+Read-Only:
+
+- `field` (String)
+- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--filters--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by.spans.filters.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by.spans`
+
+Read-Only:
+
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--filters))
+- `group_names` (List of String)
+- `promql_query` (String)
+- `stacked_group_name` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by.spans.filters`
+
+Read-Only:
+
+- `label` (String)
+- `metric` (String)
+- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--filters--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by.spans.filters.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by.spans`
+
+Read-Only:
+
+- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--aggregation))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--filters))
+- `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--group_names))
+- `lucene_query` (String)
+- `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--stacked_group_name))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by.spans.aggregation`
+
+Read-Only:
+
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `type` (String) Can be one of ["metric" "dimension"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by.spans.filters`
+
+Read-Only:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--filters--field))
+- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--filters--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by.spans.filters.operator`
+
+Read-Only:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by.spans.filters.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--group_names"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by.spans.group_names`
+
+Read-Only:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--y_axis_view_by--spans--stacked_group_name"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by.spans.stacked_group_name`
+
+Read-Only:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.y_axis_view_by`
+
+Read-Only:
+
+- `max_slices_per_bar` (Number)
+- `stack_name_template` (String)
+
+
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart`
 
@@ -888,6 +1065,15 @@ Read-Only:
 - `show_labels` (Boolean)
 - `type` (String) The tooltip type. Valid values are: unspecified, all, single.
 
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--markdown"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart`
+
+Read-Only:
+
+- `markdown_text` (String)
+- `tooltip_text` (String)
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart"></a>
