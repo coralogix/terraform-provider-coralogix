@@ -474,6 +474,31 @@ resource "coralogix_dashboard" dashboard {
                   }
                 }
               },
+              {
+                title      = "aaa"
+                definition = {
+                  horizontal_bar_chart = {
+                    query = {
+                      logs = {
+                        lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
+                        aggregation  = {
+                          type = "count"
+                        }
+                      }
+                    }
+                    y_axis_view_by = "value"
+                  }
+                }
+              },
+              {
+                title      = "Markdown"
+                definition = {
+                  markdown = {
+                    markdown_text = "## Markdown\n\nThis is a markdown widget"
+                    tooltip_text  = "This is a tooltip"
+                  }
+                }
+              },
             ]
           },
         ]
@@ -510,7 +535,7 @@ resource "coralogix_dashboard" dashboard {
   ]
 }
 
-resource "coralogix_dashboard" dashboard_from_json {
-  content_json = file("./dashboard.json")
-}
+#resource "coralogix_dashboard" dashboard_from_json {
+#  content_json = file("./dashboard.json")
+#}
 

@@ -176,9 +176,16 @@ var (
 	}
 	dashboardProtoToSchemaSpanFieldMetadataField = ReverseMap(dashboardSchemaToProtoSpanFieldMetadataField)
 	dashboardValidSpanFieldMetadataFields        = GetKeys(dashboardSchemaToProtoSpanFieldMetadataField)
-	dashboardValidLogsAggregationTypes           = []string{"count", "count_distinct", "sum", "avg", "min", "max"}
-	dashboardValidSpanFieldTypes                 = []string{"metadata", "tag", "process_tag"}
-	dashboardValidSpanAggregationTypes           = []string{"metric", "dimension"}
+	dashboardSchemaToProtoSortBy                 = map[string]dashboards.SortByType{
+		"unspecified": dashboards.SortByType_SORT_BY_TYPE_UNSPECIFIED,
+		"value":       dashboards.SortByType_SORT_BY_TYPE_VALUE,
+		"name":        dashboards.SortByType_SORT_BY_TYPE_NAME,
+	}
+	dashboardProtoToSchemaSortBy       = ReverseMap(dashboardSchemaToProtoSortBy)
+	dashboardValidSortBy               = GetKeys(dashboardSchemaToProtoSortBy)
+	dashboardValidLogsAggregationTypes = []string{"count", "count_distinct", "sum", "avg", "min", "max"}
+	dashboardValidSpanFieldTypes       = []string{"metadata", "tag", "process_tag"}
+	dashboardValidSpanAggregationTypes = []string{"metric", "dimension"}
 )
 
 var (
@@ -222,11 +229,13 @@ type WidgetModel struct {
 }
 
 type WidgetDefinitionModel struct {
-	LineChart *LineChartModel `tfsdk:"line_chart"`
-	DataTable *DataTableModel `tfsdk:"data_table"`
-	Gauge     *GaugeModel     `tfsdk:"gauge"`
-	PieChart  *PieChartModel  `tfsdk:"pie_chart"`
-	BarChart  *BarChartModel  `tfsdk:"bar_chart"`
+	LineChart          *LineChartModel          `tfsdk:"line_chart"`
+	DataTable          *DataTableModel          `tfsdk:"data_table"`
+	Gauge              *GaugeModel              `tfsdk:"gauge"`
+	PieChart           *PieChartModel           `tfsdk:"pie_chart"`
+	BarChart           *BarChartModel           `tfsdk:"bar_chart"`
+	HorizontalBarChart *HorizontalBarChartModel `tfsdk:"horizontal_bar_chart"`
+	Markdown           *MarkdownModel           `tfsdk:"markdown"`
 }
 
 type LineChartModel struct {
@@ -489,6 +498,8 @@ type BarChartModel struct {
 	ColorsBy          types.String                  `tfsdk:"colors_by"`
 	XAxis             *BarChartXAxisModel           `tfsdk:"xaxis"`
 	Unit              types.String                  `tfsdk:"unit"`
+	SortBy            types.String                  `tfsdk:"sort_by"`
+	ColorScheme       types.String                  `tfsdk:"color_scheme"`
 }
 
 type BarChartQueryModel struct {
@@ -554,6 +565,25 @@ type DashboardVariableModel struct {
 type MetricMultiSelectSourceModel struct {
 	MetricName types.String `tfsdk:"metric_name"`
 	Label      types.String `tfsdk:"label"`
+}
+
+type HorizontalBarChartModel struct {
+	Query             *BarChartQueryModel           `tfsdk:"query"`
+	MaxBarsPerChart   types.Int64                   `tfsdk:"max_bars_per_chart"`
+	GroupNameTemplate types.String                  `tfsdk:"group_name_template"`
+	StackDefinition   *BarChartStackDefinitionModel `tfsdk:"stack_definition"`
+	ScaleType         types.String                  `tfsdk:"scale_type"`
+	ColorsBy          types.String                  `tfsdk:"colors_by"`
+	Unit              types.String                  `tfsdk:"unit"`
+	DisplayOnBar      types.Bool                    `tfsdk:"display_on_bar"`
+	YAxisViewBy       types.String                  `tfsdk:"y_axis_view_by"`
+	SortBy            types.String                  `tfsdk:"sort_by"`
+	ColorScheme       types.String                  `tfsdk:"color_scheme"`
+}
+
+type MarkdownModel struct {
+	MarkdownText types.String `tfsdk:"markdown_text"`
+	TooltipText  types.String `tfsdk:"tooltip_text"`
 }
 
 type DashboardVariableDefinitionModel struct {
@@ -874,6 +904,8 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																			path.MatchRelative().AtParent().AtName("gauge"),
 																			path.MatchRelative().AtParent().AtName("pie_chart"),
 																			path.MatchRelative().AtParent().AtName("bar_chart"),
+																			path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
+																			path.MatchRelative().AtParent().AtName("markdown"),
 																		),
 																	},
 																	Optional: true,
@@ -1024,6 +1056,8 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																			path.MatchRelative().AtParent().AtName("gauge"),
 																			path.MatchRelative().AtParent().AtName("pie_chart"),
 																			path.MatchRelative().AtParent().AtName("bar_chart"),
+																			path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
+																			path.MatchRelative().AtParent().AtName("markdown"),
 																		),
 																	},
 																	Optional: true,
@@ -1141,6 +1175,8 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																			path.MatchRelative().AtParent().AtName("data_table"),
 																			path.MatchRelative().AtParent().AtName("pie_chart"),
 																			path.MatchRelative().AtParent().AtName("bar_chart"),
+																			path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
+																			path.MatchRelative().AtParent().AtName("markdown"),
 																		),
 																	},
 																	Optional: true,
@@ -1289,6 +1325,8 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																			path.MatchRelative().AtParent().AtName("gauge"),
 																			path.MatchRelative().AtParent().AtName("data_table"),
 																			path.MatchRelative().AtParent().AtName("bar_chart"),
+																			path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
+																			path.MatchRelative().AtParent().AtName("markdown"),
 																		),
 																	},
 																	Optional: true,
@@ -1413,6 +1451,17 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																			},
 																			MarkdownDescription: fmt.Sprintf("The unit of the chart. Can be one of %s.", strings.Join(dashboardValidUnits, ", ")),
 																		},
+																		"sort_by": schema.StringAttribute{
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf(dashboardValidSortBy...),
+																			},
+																		},
+																		"color_scheme": schema.StringAttribute{
+																			Optional: true,
+																		},
 																	},
 																	Validators: []validator.Object{
 																		objectvalidator.ExactlyOneOf(
@@ -1420,6 +1469,150 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																			path.MatchRelative().AtParent().AtName("gauge"),
 																			path.MatchRelative().AtParent().AtName("pie_chart"),
 																			path.MatchRelative().AtParent().AtName("line_chart"),
+																			path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
+																			path.MatchRelative().AtParent().AtName("markdown"),
+																		),
+																	},
+																	Optional: true,
+																},
+																"horizontal_bar_chart": schema.SingleNestedAttribute{
+																	Attributes: map[string]schema.Attribute{
+																		"query": schema.SingleNestedAttribute{
+																			Attributes: map[string]schema.Attribute{
+																				"logs": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{
+																						"lucene_query": schema.StringAttribute{
+																							Optional: true,
+																						},
+																						"aggregation": logsAggregationSchema(),
+																						"filters":     logsFiltersSchema(),
+																						"group_names": schema.ListAttribute{
+																							ElementType: types.StringType,
+																							Optional:    true,
+																						},
+																						"stacked_group_name": schema.StringAttribute{
+																							Optional: true,
+																						},
+																					},
+																					Optional: true,
+																				},
+																				"metrics": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{
+																						"promql_query": schema.StringAttribute{
+																							Optional: true,
+																						},
+																						"filters": metricFiltersSchema(),
+																						"group_names": schema.ListAttribute{
+																							ElementType: types.StringType,
+																							Optional:    true,
+																						},
+																						"stacked_group_name": schema.StringAttribute{
+																							Optional: true,
+																						},
+																					},
+																					Optional: true,
+																				},
+																				"spans": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{
+																						"lucene_query": schema.StringAttribute{
+																							Optional: true,
+																						},
+																						"aggregation":        spansAggregationSchema(),
+																						"filters":            spansFilterSchema(),
+																						"group_names":        spansFieldsSchema(),
+																						"stacked_group_name": spansFieldSchema(),
+																					},
+																					Optional: true,
+																				},
+																			},
+																			Optional: true,
+																		},
+																		"max_bars_per_chart": schema.Int64Attribute{
+																			Optional: true,
+																		},
+																		"group_name_template": schema.StringAttribute{
+																			Optional: true,
+																		},
+																		"stack_definition": schema.SingleNestedAttribute{
+																			Optional: true,
+																			Attributes: map[string]schema.Attribute{
+																				"max_slices_per_bar": schema.Int64Attribute{
+																					Optional: true,
+																				},
+																				"stack_name_template": schema.StringAttribute{
+																					Optional: true,
+																				},
+																			},
+																		},
+																		"scale_type": schema.StringAttribute{
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																		},
+																		"colors_by": schema.StringAttribute{
+																			Optional: true,
+																		},
+																		"unit": schema.StringAttribute{
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf(dashboardValidUnits...),
+																			},
+																			MarkdownDescription: fmt.Sprintf("The unit of the chart. Can be one of %s.", strings.Join(dashboardValidUnits, ", ")),
+																		},
+																		"sort_by": schema.StringAttribute{
+																			Optional: true,
+																			Computed: true,
+																			Default:  stringdefault.StaticString("unspecified"),
+																			Validators: []validator.String{
+																				stringvalidator.OneOf(dashboardValidSortBy...),
+																			},
+																		},
+																		"color_scheme": schema.StringAttribute{
+																			Optional: true,
+																		},
+																		"display_on_bar": schema.BoolAttribute{
+																			Optional: true,
+																			Computed: true,
+																			Default:  booldefault.StaticBool(false),
+																		},
+																		"y_axis_view_by": schema.StringAttribute{
+																			Optional: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf("category", "value"),
+																			},
+																		},
+																	},
+																	Validators: []validator.Object{
+																		objectvalidator.ExactlyOneOf(
+																			path.MatchRelative().AtParent().AtName("data_table"),
+																			path.MatchRelative().AtParent().AtName("gauge"),
+																			path.MatchRelative().AtParent().AtName("pie_chart"),
+																			path.MatchRelative().AtParent().AtName("line_chart"),
+																			path.MatchRelative().AtParent().AtName("bar_chart"),
+																			path.MatchRelative().AtParent().AtName("markdown"),
+																		),
+																	},
+																	Optional: true,
+																},
+																"markdown": schema.SingleNestedAttribute{
+																	Attributes: map[string]schema.Attribute{
+																		"markdown_text": schema.StringAttribute{
+																			Optional: true,
+																		},
+																		"tooltip_text": schema.StringAttribute{
+																			Optional: true,
+																		},
+																	},
+																	Validators: []validator.Object{
+																		objectvalidator.ExactlyOneOf(
+																			path.MatchRelative().AtParent().AtName("data_table"),
+																			path.MatchRelative().AtParent().AtName("gauge"),
+																			path.MatchRelative().AtParent().AtName("pie_chart"),
+																			path.MatchRelative().AtParent().AtName("line_chart"),
+																			path.MatchRelative().AtParent().AtName("bar_chart"),
+																			path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
 																		),
 																	},
 																	Optional: true,
@@ -2265,6 +2458,10 @@ func expandWidgetDefinition(ctx context.Context, definition *WidgetDefinitionMod
 		return expandDataTable(ctx, definition.DataTable)
 	case definition.BarChart != nil:
 		return expandBarChart(ctx, definition.BarChart)
+	case definition.HorizontalBarChart != nil:
+		return expandHorizontalBarChart(ctx, definition.HorizontalBarChart)
+	case definition.Markdown != nil:
+		return expandMarkdown(definition.Markdown)
 	default:
 		return nil, diag.Diagnostics{
 			diag.NewErrorDiagnostic(
@@ -2272,6 +2469,59 @@ func expandWidgetDefinition(ctx context.Context, definition *WidgetDefinitionMod
 				fmt.Sprintf("Unknown widget definition type: %#v", definition),
 			),
 		}
+	}
+}
+
+func expandMarkdown(markdown *MarkdownModel) (*dashboards.Widget_Definition, diag.Diagnostics) {
+	return &dashboards.Widget_Definition{
+		Value: &dashboards.Widget_Definition_Markdown{
+			Markdown: &dashboards.Markdown{
+				MarkdownText: typeStringToWrapperspbString(markdown.MarkdownText),
+				TooltipText:  typeStringToWrapperspbString(markdown.TooltipText),
+			},
+		},
+	}, nil
+}
+
+func expandHorizontalBarChart(ctx context.Context, chart *HorizontalBarChartModel) (*dashboards.Widget_Definition, diag.Diagnostics) {
+	var diags diag.Diagnostics
+
+	query, diags := expandHorizontalBarChartQuery(ctx, chart.Query)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.Widget_Definition{
+		Value: &dashboards.Widget_Definition_HorizontalBarChart{
+			HorizontalBarChart: &dashboards.HorizontalBarChart{
+				Query:             query,
+				StackDefinition:   expandHorizontalBarChartStackDefinition(chart.StackDefinition),
+				MaxBarsPerChart:   typeInt64ToWrappedInt32(chart.MaxBarsPerChart),
+				ScaleType:         dashboardSchemaToProtoScaleType[chart.ScaleType.ValueString()],
+				GroupNameTemplate: typeStringToWrapperspbString(chart.GroupNameTemplate),
+				Unit:              dashboardSchemaToProtoUnit[chart.Unit.ValueString()],
+				ColorsBy:          expandColorsBy(chart.ColorsBy),
+				DisplayOnBar:      typeBoolToWrapperspbBool(chart.DisplayOnBar),
+				YAxisViewBy:       expandYAxisViewBy(chart.YAxisViewBy),
+				SortBy:            dashboardSchemaToProtoSortBy[chart.SortBy.ValueString()],
+				ColorScheme:       typeStringToWrapperspbString(chart.ColorScheme),
+			},
+		},
+	}, nil
+}
+
+func expandYAxisViewBy(yAxisViewBy types.String) *dashboards.HorizontalBarChart_YAxisViewBy {
+	switch yAxisViewBy.ValueString() {
+	case "category":
+		return &dashboards.HorizontalBarChart_YAxisViewBy{
+			YAxisView: &dashboards.HorizontalBarChart_YAxisViewBy_Category{},
+		}
+	case "value":
+		return &dashboards.HorizontalBarChart_YAxisViewBy{
+			YAxisView: &dashboards.HorizontalBarChart_YAxisViewBy_Value{},
+		}
+	default:
+		return nil
 	}
 }
 
@@ -2316,6 +2566,17 @@ func expandBarChartStackDefinition(stackDefinition *BarChartStackDefinitionModel
 	}
 
 	return &dashboards.BarChart_StackDefinition{
+		MaxSlicesPerBar:   typeInt64ToWrappedInt32(stackDefinition.MaxSlicesPerBar),
+		StackNameTemplate: typeStringToWrapperspbString(stackDefinition.StackNameTemplate),
+	}
+}
+
+func expandHorizontalBarChartStackDefinition(stackDefinition *BarChartStackDefinitionModel) *dashboards.HorizontalBarChart_StackDefinition {
+	if stackDefinition == nil {
+		return nil
+	}
+
+	return &dashboards.HorizontalBarChart_StackDefinition{
 		MaxSlicesPerBar:   typeInt64ToWrappedInt32(stackDefinition.MaxSlicesPerBar),
 		StackNameTemplate: typeStringToWrapperspbString(stackDefinition.StackNameTemplate),
 	}
@@ -2848,23 +3109,31 @@ func expandBarChart(ctx context.Context, chart *BarChartModel) (*dashboards.Widg
 				ColorsBy:          expandColorsBy(chart.ColorsBy),
 				XAxis:             xaxis,
 				Unit:              dashboardSchemaToProtoUnit[chart.Unit.ValueString()],
+				SortBy:            dashboardSchemaToProtoSortBy[chart.SortBy.ValueString()],
+				ColorScheme:       typeStringToWrapperspbString(chart.ColorScheme),
 			},
 		},
 	}, nil
 }
 
-func expandColorsBy(colorsBy types.String) *dashboards.BarChart_ColorsBy {
+func expandColorsBy(colorsBy types.String) *dashboards.ColorsBy {
 	switch colorsBy.ValueString() {
 	case "stack":
-		return &dashboards.BarChart_ColorsBy{
-			Value: &dashboards.BarChart_ColorsBy_Stack{
-				Stack: &dashboards.BarChart_ColorsBy_ColorsByStack{},
+		return &dashboards.ColorsBy{
+			Value: &dashboards.ColorsBy_Stack{
+				Stack: &dashboards.ColorsBy_ColorsByStack{},
 			},
 		}
 	case "group_by":
-		return &dashboards.BarChart_ColorsBy{
-			Value: &dashboards.BarChart_ColorsBy_GroupBy{
-				GroupBy: &dashboards.BarChart_ColorsBy_ColorsByGroupBy{},
+		return &dashboards.ColorsBy{
+			Value: &dashboards.ColorsBy_GroupBy{
+				GroupBy: &dashboards.ColorsBy_ColorsByGroupBy{},
+			},
+		}
+	case "aggregation":
+		return &dashboards.ColorsBy{
+			Value: &dashboards.ColorsBy_Aggregation{
+				Aggregation: &dashboards.ColorsBy_ColorsByAggregation{},
 			},
 		}
 	default:
@@ -2939,6 +3208,132 @@ func expandBarChartQuery(ctx context.Context, query *BarChartQueryModel) (*dashb
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error expand bar chart query", "unknown bar chart query type")}
 	}
+}
+
+func expandHorizontalBarChartQuery(ctx context.Context, query *BarChartQueryModel) (*dashboards.HorizontalBarChart_Query, diag.Diagnostics) {
+	if query == nil {
+		return nil, nil
+	}
+	switch {
+	case query.Logs != nil:
+		logsQuery, diags := expandHorizontalBarChartLogsQuery(ctx, query.Logs)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboards.HorizontalBarChart_Query{
+			Value: &dashboards.HorizontalBarChart_Query_Logs{
+				Logs: logsQuery,
+			},
+		}, nil
+	case query.Metrics != nil:
+		metricsQuery, diags := expandHorizontalBarChartMetricsQuery(ctx, query.Metrics)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboards.HorizontalBarChart_Query{
+			Value: &dashboards.HorizontalBarChart_Query_Metrics{
+				Metrics: metricsQuery,
+			},
+		}, nil
+	case query.Spans != nil:
+		spansQuery, diags := expandHorizontalBarChartSpansQuery(ctx, query.Spans)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboards.HorizontalBarChart_Query{
+			Value: &dashboards.HorizontalBarChart_Query_Spans{
+				Spans: spansQuery,
+			},
+		}, nil
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error expand bar chart query", "unknown bar chart query type")}
+	}
+}
+
+func expandHorizontalBarChartLogsQuery(ctx context.Context, logs *BarChartQueryLogsModel) (*dashboards.HorizontalBarChart_LogsQuery, diag.Diagnostics) {
+	if logs == nil {
+		return nil, nil
+	}
+
+	aggregation, dg := expandLogsAggregation(logs.Aggregation)
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
+	filters, diags := expandLogsFilters(ctx, logs.Filters)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	groupNames, diags := typeStringSliceToWrappedStringSlice(ctx, logs.GroupNames.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.HorizontalBarChart_LogsQuery{
+		LuceneQuery:      expandLuceneQuery(logs.LuceneQuery),
+		Aggregation:      aggregation,
+		Filters:          filters,
+		GroupNames:       groupNames,
+		StackedGroupName: typeStringToWrapperspbString(logs.StackedGroupName),
+	}, nil
+}
+
+func expandHorizontalBarChartMetricsQuery(ctx context.Context, metrics *BarChartQueryMetricsModel) (*dashboards.HorizontalBarChart_MetricsQuery, diag.Diagnostics) {
+	if metrics == nil {
+		return nil, nil
+	}
+
+	filters, diags := expandMetricsFilters(ctx, metrics.Filters)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	groupNames, diags := typeStringSliceToWrappedStringSlice(ctx, metrics.GroupNames.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.HorizontalBarChart_MetricsQuery{
+		PromqlQuery:      expandPromqlQuery(metrics.PromqlQuery),
+		Filters:          filters,
+		GroupNames:       groupNames,
+		StackedGroupName: typeStringToWrapperspbString(metrics.StackedGroupName),
+	}, nil
+}
+
+func expandHorizontalBarChartSpansQuery(ctx context.Context, spans *BarChartQuerySpansModel) (*dashboards.HorizontalBarChart_SpansQuery, diag.Diagnostics) {
+	if spans == nil {
+		return nil, nil
+	}
+
+	aggregation, dg := expandSpansAggregation(spans.Aggregation)
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
+	filters, diags := expandSpansFilters(ctx, spans.Filters)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	groupNames, diags := expandSpansFields(ctx, spans.GroupNames)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	expandedFilter, dg := expandSpansField(spans.StackedGroupName)
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
+	return &dashboards.HorizontalBarChart_SpansQuery{
+		LuceneQuery:      expandLuceneQuery(spans.LuceneQuery),
+		Aggregation:      aggregation,
+		Filters:          filters,
+		GroupNames:       groupNames,
+		StackedGroupName: expandedFilter,
+	}, nil
 }
 
 func expandBarChartLogsQuery(ctx context.Context, barChartQueryLogs *BarChartQueryLogsModel) (*dashboards.BarChart_LogsQuery, diag.Diagnostics) {
@@ -4548,7 +4943,90 @@ func widgetModelAttr() map[string]attr.Type {
 								},
 							},
 						},
-						"unit": types.StringType,
+						"unit":         types.StringType,
+						"sort_by":      types.StringType,
+						"color_scheme": types.StringType,
+					},
+				},
+				"horizontal_bar_chart": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"query": types.ObjectType{
+							AttrTypes: map[string]attr.Type{
+								"logs": types.ObjectType{
+									AttrTypes: map[string]attr.Type{
+										"lucene_query": types.StringType,
+										"aggregation": types.ObjectType{
+											AttrTypes: aggregationModelAttr(),
+										},
+										"filters": types.ListType{
+											ElemType: types.ObjectType{
+												AttrTypes: filterModelAttr(),
+											},
+										},
+										"group_names": types.ListType{
+											ElemType: types.StringType,
+										},
+										"stacked_group_name": types.StringType,
+									},
+								},
+								"metrics": types.ObjectType{
+									AttrTypes: map[string]attr.Type{
+										"promql_query": types.StringType,
+										"filters": types.ListType{
+											ElemType: types.ObjectType{
+												AttrTypes: metricsFilterModelAttr(),
+											},
+										},
+										"group_names": types.ListType{
+											ElemType: types.StringType,
+										},
+										"stacked_group_name": types.StringType,
+									},
+								},
+								"spans": types.ObjectType{
+									AttrTypes: map[string]attr.Type{
+										"lucene_query": types.StringType,
+										"aggregation": types.ObjectType{
+											AttrTypes: spansAggregationModelAttr(),
+										},
+										"filters": types.ListType{
+											ElemType: types.ObjectType{
+												AttrTypes: spansFilterModelAttr(),
+											},
+										},
+										"group_names": types.ListType{
+											ElemType: types.ObjectType{
+												AttrTypes: spansFieldModelAttr(),
+											},
+										},
+										"stacked_group_name": types.ObjectType{
+											AttrTypes: spansFieldModelAttr(),
+										},
+									},
+								},
+							},
+						},
+						"max_bars_per_chart":  types.Int64Type,
+						"group_name_template": types.StringType,
+						"stack_definition": types.ObjectType{
+							AttrTypes: map[string]attr.Type{
+								"stack_name_template": types.StringType,
+								"max_slices_per_bar":  types.Int64Type,
+							},
+						},
+						"scale_type":     types.StringType,
+						"colors_by":      types.StringType,
+						"unit":           types.StringType,
+						"sort_by":        types.StringType,
+						"color_scheme":   types.StringType,
+						"display_on_bar": types.BoolType,
+						"y_axis_view_by": types.StringType,
+					},
+				},
+				"markdown": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"markdown_text": types.StringType,
+						"tooltip_text":  types.StringType,
 					},
 				},
 			},
@@ -4887,9 +5365,164 @@ func flattenDashboardWidgetDefinition(ctx context.Context, definition *dashboard
 		return flattenPieChart(ctx, definition.GetPieChart())
 	case *dashboards.Widget_Definition_BarChart:
 		return flattenBarChart(ctx, definition.GetBarChart())
+	case *dashboards.Widget_Definition_HorizontalBarChart:
+		return flattenHorizontalBarChart(ctx, definition.GetHorizontalBarChart())
+	case *dashboards.Widget_Definition_Markdown:
+		return flattenMarkdown(definition.GetMarkdown()), nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Widget Definition", "unknown widget definition type")}
 	}
+}
+
+func flattenMarkdown(markdown *dashboards.Markdown) *WidgetDefinitionModel {
+	return &WidgetDefinitionModel{
+		Markdown: &MarkdownModel{
+			MarkdownText: wrapperspbStringToTypeString(markdown.GetMarkdownText()),
+			TooltipText:  wrapperspbStringToTypeString(markdown.GetTooltipText()),
+		},
+	}
+}
+
+func flattenHorizontalBarChart(ctx context.Context, chart *dashboards.HorizontalBarChart) (*WidgetDefinitionModel, diag.Diagnostics) {
+	if chart == nil {
+		return nil, nil
+	}
+
+	query, diags := flattenHorizontalBarChartQueryDefinitions(ctx, chart.GetQuery())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	colorsBy, dg := flattenBarChartColorsBy(chart.GetColorsBy())
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
+	return &WidgetDefinitionModel{
+		HorizontalBarChart: &HorizontalBarChartModel{
+			Query:             query,
+			MaxBarsPerChart:   wrapperspbInt32ToTypeInt64(chart.GetMaxBarsPerChart()),
+			GroupNameTemplate: wrapperspbStringToTypeString(chart.GetGroupNameTemplate()),
+			StackDefinition:   flattenHorizontalBarChartStackDefinition(chart.GetStackDefinition()),
+			ScaleType:         types.StringValue(dashboardProtoToSchemaScaleType[chart.GetScaleType()]),
+			ColorsBy:          colorsBy,
+			Unit:              types.StringValue(dashboardProtoToSchemaUnit[chart.GetUnit()]),
+			DisplayOnBar:      wrapperspbBoolToTypeBool(chart.GetDisplayOnBar()),
+			YAxisViewBy:       flattenYAxisViewBy(chart.GetYAxisViewBy()),
+			SortBy:            types.StringValue(dashboardProtoToSchemaSortBy[chart.GetSortBy()]),
+			ColorScheme:       wrapperspbStringToTypeString(chart.GetColorScheme()),
+		},
+	}, nil
+}
+
+func flattenYAxisViewBy(yAxisViewBy *dashboards.HorizontalBarChart_YAxisViewBy) types.String {
+	switch yAxisViewBy.GetYAxisView().(type) {
+	case *dashboards.HorizontalBarChart_YAxisViewBy_Category:
+		return types.StringValue("category")
+	case *dashboards.HorizontalBarChart_YAxisViewBy_Value:
+		return types.StringValue("value")
+	default:
+		return types.StringNull()
+	}
+}
+
+func flattenHorizontalBarChartQueryDefinitions(ctx context.Context, query *dashboards.HorizontalBarChart_Query) (*BarChartQueryModel, diag.Diagnostics) {
+	if query == nil {
+		return nil, nil
+	}
+
+	switch query.GetValue().(type) {
+	case *dashboards.HorizontalBarChart_Query_Logs:
+		return flattenHorizontalBarChartQueryLogs(ctx, query.GetLogs())
+	case *dashboards.HorizontalBarChart_Query_Metrics:
+		return flattenHorizontalBarChartQueryMetrics(ctx, query.GetMetrics())
+	case *dashboards.HorizontalBarChart_Query_Spans:
+		return flattenHorizontalBarChartQuerySpans(ctx, query.GetSpans())
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Horizontal Bar Chart Query", "unknown horizontal bar chart query type")}
+	}
+}
+
+func flattenHorizontalBarChartQueryLogs(ctx context.Context, logs *dashboards.HorizontalBarChart_LogsQuery) (*BarChartQueryModel, diag.Diagnostics) {
+	if logs == nil {
+		return nil, nil
+	}
+
+	aggregation, dg := flattenLogsAggregation(logs.GetAggregation())
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
+	filters, diags := flattenLogsFilters(ctx, logs.GetFilters())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &BarChartQueryModel{
+		Logs: &BarChartQueryLogsModel{
+			LuceneQuery:      wrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
+			Aggregation:      aggregation,
+			Filters:          filters,
+			GroupNames:       wrappedStringSliceToTypeStringList(logs.GetGroupNames()),
+			StackedGroupName: wrapperspbStringToTypeString(logs.GetStackedGroupName()),
+		},
+	}, nil
+}
+
+func flattenHorizontalBarChartQueryMetrics(ctx context.Context, metrics *dashboards.HorizontalBarChart_MetricsQuery) (*BarChartQueryModel, diag.Diagnostics) {
+	if metrics == nil {
+		return nil, nil
+	}
+
+	filters, diags := flattenMetricsFilters(ctx, metrics.GetFilters())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &BarChartQueryModel{
+		Metrics: &BarChartQueryMetricsModel{
+			PromqlQuery:      wrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
+			Filters:          filters,
+			GroupNames:       wrappedStringSliceToTypeStringList(metrics.GetGroupNames()),
+			StackedGroupName: wrapperspbStringToTypeString(metrics.GetStackedGroupName()),
+		},
+	}, nil
+}
+
+func flattenHorizontalBarChartQuerySpans(ctx context.Context, spans *dashboards.HorizontalBarChart_SpansQuery) (*BarChartQueryModel, diag.Diagnostics) {
+	if spans == nil {
+		return nil, nil
+	}
+
+	aggregation, dg := flattenSpansAggregation(spans.GetAggregation())
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
+	filters, diags := flattenSpansFilters(ctx, spans.GetFilters())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	groupNames, diags := flattenSpansFields(ctx, spans.GetGroupNames())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	stackedGroupName, dg := flattenSpansField(spans.GetStackedGroupName())
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
+	return &BarChartQueryModel{
+		Spans: &BarChartQuerySpansModel{
+			LuceneQuery:      wrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
+			Aggregation:      aggregation,
+			Filters:          filters,
+			GroupNames:       groupNames,
+			StackedGroupName: stackedGroupName,
+		},
+	}, nil
 }
 
 func flattenLineChart(ctx context.Context, lineChart *dashboards.LineChart) (*WidgetDefinitionModel, diag.Diagnostics) {
@@ -5960,6 +6593,8 @@ func flattenBarChart(ctx context.Context, barChart *dashboards.BarChart) (*Widge
 			ColorsBy:          colorsBy,
 			XAxis:             xAxis,
 			Unit:              types.StringValue(dashboardProtoToSchemaUnit[barChart.GetUnit()]),
+			SortBy:            types.StringValue(dashboardProtoToSchemaSortBy[barChart.GetSortBy()]),
+			ColorScheme:       wrapperspbStringToTypeString(barChart.GetColorScheme()),
 		},
 	}, nil
 }
@@ -6045,7 +6680,7 @@ func flattenBarChartQuerySpans(ctx context.Context, spans *dashboards.BarChart_S
 		return nil, diag.Diagnostics{dg}
 	}
 
-	groupNapes, diags := flattenSpansFields(ctx, spans.GetGroupNames())
+	groupNames, diags := flattenSpansFields(ctx, spans.GetGroupNames())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -6060,7 +6695,7 @@ func flattenBarChartQuerySpans(ctx context.Context, spans *dashboards.BarChart_S
 			LuceneQuery:      wrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
 			Aggregation:      aggregation,
 			Filters:          filters,
-			GroupNames:       groupNapes,
+			GroupNames:       groupNames,
 			StackedGroupName: stackedGroupName,
 		},
 	}, nil
@@ -6097,15 +6732,28 @@ func flattenBarChartStackDefinition(stackDefinition *dashboards.BarChart_StackDe
 	}
 }
 
-func flattenBarChartColorsBy(colorsBy *dashboards.BarChart_ColorsBy) (types.String, diag.Diagnostic) {
+func flattenHorizontalBarChartStackDefinition(stackDefinition *dashboards.HorizontalBarChart_StackDefinition) *BarChartStackDefinitionModel {
+	if stackDefinition == nil {
+		return nil
+	}
+
+	return &BarChartStackDefinitionModel{
+		MaxSlicesPerBar:   wrapperspbInt32ToTypeInt64(stackDefinition.GetMaxSlicesPerBar()),
+		StackNameTemplate: wrapperspbStringToTypeString(stackDefinition.GetStackNameTemplate()),
+	}
+}
+
+func flattenBarChartColorsBy(colorsBy *dashboards.ColorsBy) (types.String, diag.Diagnostic) {
 	if colorsBy == nil {
 		return types.StringNull(), nil
 	}
 	switch colorsBy.GetValue().(type) {
-	case *dashboards.BarChart_ColorsBy_GroupBy:
+	case *dashboards.ColorsBy_GroupBy:
 		return types.StringValue("group_by"), nil
-	case *dashboards.BarChart_ColorsBy_Stack:
+	case *dashboards.ColorsBy_Stack:
 		return types.StringValue("stack"), nil
+	case *dashboards.ColorsBy_Aggregation:
+		return types.StringValue("aggregation"), nil
 	default:
 		return types.StringNull(), diag.NewErrorDiagnostic("", fmt.Sprintf("unknown colors by type %T", colorsBy))
 	}
