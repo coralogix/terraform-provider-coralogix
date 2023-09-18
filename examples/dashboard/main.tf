@@ -475,15 +475,20 @@ resource "coralogix_dashboard" dashboard {
                 }
               },
               {
-                title      = "aaa"
+                title      = "Horizontal Bar-Chart"
                 definition = {
                   horizontal_bar_chart = {
+                    color_scheme        = "cold"
+                    colors_by           = "aggregation"
+                    display_on_bar      = true
                     query = {
                       logs = {
                         lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
                         aggregation  = {
                           type = "count"
                         }
+                        group_names        = ["coralogix.logId.keyword"]
+                        stacked_group_name = "coralogix.metadata.severity"
                       }
                     }
                     y_axis_view_by = "value"
@@ -535,7 +540,7 @@ resource "coralogix_dashboard" dashboard {
   ]
 }
 
-#resource "coralogix_dashboard" dashboard_from_json {
-#  content_json = file("./dashboard.json")
-#}
+resource "coralogix_dashboard" dashboard_from_json {
+  content_json = file("./dashboard.json")
+}
 

@@ -186,6 +186,7 @@ var (
 	dashboardValidLogsAggregationTypes = []string{"count", "count_distinct", "sum", "avg", "min", "max"}
 	dashboardValidSpanFieldTypes       = []string{"metadata", "tag", "process_tag"}
 	dashboardValidSpanAggregationTypes = []string{"metric", "dimension"}
+	dashboardValidColorSchemes         = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
 )
 
 var (
@@ -1458,9 +1459,14 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																			Validators: []validator.String{
 																				stringvalidator.OneOf(dashboardValidSortBy...),
 																			},
+																			Description: fmt.Sprintf("The field to sort by. Can be one of %s.", strings.Join(dashboardValidSortBy, ", ")),
 																		},
 																		"color_scheme": schema.StringAttribute{
 																			Optional: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf(dashboardValidColorSchemes...),
+																			},
+																			Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardValidColorSchemes, ", ")),
 																		},
 																	},
 																	Validators: []validator.Object{
@@ -1488,7 +1494,10 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						"filters":     logsFiltersSchema(),
 																						"group_names": schema.ListAttribute{
 																							ElementType: types.StringType,
-																							Optional:    true,
+																							Required:    true,
+																							Validators: []validator.List{
+																								listvalidator.SizeAtLeast(1),
+																							},
 																						},
 																						"stacked_group_name": schema.StringAttribute{
 																							Optional: true,
@@ -1571,6 +1580,10 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																		},
 																		"color_scheme": schema.StringAttribute{
 																			Optional: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf(dashboardValidColorSchemes...),
+																			},
+																			Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardValidColorSchemes, ", ")),
 																		},
 																		"display_on_bar": schema.BoolAttribute{
 																			Optional: true,

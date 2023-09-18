@@ -1386,6 +1386,7 @@ func flowSchema() map[string]*schema.Schema {
 												Type:         schema.TypeString,
 												Required:     true,
 												ValidateFunc: validation.StringInSlice(alertValidFlowOperator, false),
+												Description:  fmt.Sprintf("The operator to use on the alert. can be one of %q", alertValidFlowOperator),
 											},
 											"flow_alert": {
 												Type:     schema.TypeList,
@@ -1411,6 +1412,7 @@ func flowSchema() map[string]*schema.Schema {
 									Type:         schema.TypeString,
 									Required:     true,
 									ValidateFunc: validation.StringInSlice(alertValidFlowOperator, false),
+									Description:  fmt.Sprintf("The operator to use on the alert. can be one of %q", alertValidFlowOperator),
 								},
 							},
 						},

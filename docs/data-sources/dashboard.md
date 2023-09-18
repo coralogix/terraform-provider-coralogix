@@ -172,15 +172,15 @@ Read-Only:
 
 Read-Only:
 
-- `color_scheme` (String)
+- `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
 - `colors_by` (String)
 - `group_name_template` (String)
 - `max_bars_per_chart` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
 - `scale_type` (String)
-- `sort_by` (String)
+- `sort_by` (String) The field to sort by. Can be one of unspecified, value, name.
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of seconds, kbytes, gbytes, bytes_iec, unspecified, microseconds, milliseconds, mibytes, gibytes, bytes, mbytes, kibytes.
+- `unit` (String) The unit of the chart. Can be one of unspecified, microseconds, milliseconds, seconds, kibytes, gibytes, bytes, kbytes, mbytes, gbytes, bytes_iec, mibytes.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
@@ -719,7 +719,7 @@ Read-Only:
 
 Read-Only:
 
-- `color_scheme` (String)
+- `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
 - `colors_by` (String)
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)

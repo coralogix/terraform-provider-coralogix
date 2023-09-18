@@ -193,7 +193,7 @@ Optional:
 
 Optional:
 
-- `color_scheme` (String)
+- `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
 - `colors_by` (String)
 - `group_name_template` (String)
 - `max_bars_per_chart` (Number)
@@ -809,7 +809,7 @@ Optional:
 
 Optional:
 
-- `color_scheme` (String)
+- `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
 - `colors_by` (String)
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)
@@ -836,11 +836,11 @@ Optional:
 Required:
 
 - `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--aggregation))
+- `group_names` (List of String)
 
 Optional:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters))
-- `group_names` (List of String)
 - `lucene_query` (String)
 - `stacked_group_name` (String)
 
