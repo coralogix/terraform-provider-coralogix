@@ -1039,9 +1039,12 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.logs`
 
-Optional:
+Required:
 
 - `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--aggregations))
+
+Optional:
+
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--filters))
 - `group_by` (List of String)
 - `lucene_query` (String)
