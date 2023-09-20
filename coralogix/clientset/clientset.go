@@ -13,6 +13,7 @@ type ClientSet struct {
 	tcoPoliciesOverrides *TCOPoliciesOverrides
 	webhooks             *WebhooksClient
 	events2Metrics       *Events2MetricsClient
+	slis                 *SLIClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -63,6 +64,10 @@ func (c *ClientSet) Events2Metrics() *Events2MetricsClient {
 	return c.events2Metrics
 }
 
+func (c *ClientSet) SLIs() *SLIClient {
+	return c.slis
+}
+
 func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 	_ = NewCallPropertiesCreator(targetUrl, teamsApiKey)
@@ -80,5 +85,6 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 		tcoPolicies:          NewTCOPoliciesClient(apikeyCPC),
 		tcoPoliciesOverrides: NewTCOPoliciesOverridesClient(apikeyCPC),
 		webhooks:             NewWebhooksClient(apikeyCPC),
+		slis:                 NewSLIsClient(apikeyCPC),
 	}
 }

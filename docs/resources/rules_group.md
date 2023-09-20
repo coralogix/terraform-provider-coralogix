@@ -176,7 +176,7 @@ extract_timestamp {
   description           = "rule created by coralogix terraform provider"
   source_field          = "text"
   field_format_standard = "Strftime"
-  time_format           = "%Y-%m-%dT%H:%M:%S.%f%z"
+  time_format           = "%Y-%m-%dT%H:%M:%r.%f%z"
 }
 ```
 
