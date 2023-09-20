@@ -2043,7 +2043,7 @@ func logsAggregationSchema() schema.SingleNestedAttribute {
 
 func logsAggregationsSchema() schema.ListNestedAttribute {
 	return schema.ListNestedAttribute{
-		Optional: true,
+		Required: true,
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: logsAggregationAttributes(),
 			Validators: []validator.Object{
