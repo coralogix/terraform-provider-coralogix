@@ -2883,9 +2883,11 @@ func expandUniqueCountConditionParameters(m map[string]interface{}) *alerts.Cond
 	uniqueCountKey := []*wrapperspb.StringValue{wrapperspb.String(m["unique_count_key"].(string))}
 	threshold := wrapperspb.Double(float64(m["max_unique_values"].(int)))
 	timeFrame := expandUniqueValueTimeFrame(m["time_window"].(string))
-	groupBy := []*wrapperspb.StringValue{wrapperspb.String(m["group_by_key"].(string))}
+
 	var groupByThreshold *wrapperspb.UInt32Value
-	if len(groupBy) > 0 {
+	var groupBy []*wrapperspb.StringValue
+	if groupByKey := m["group_by_key"]; groupByKey != nil && groupByKey.(string) != "" {
+		groupBy = []*wrapperspb.StringValue{wrapperspb.String(groupByKey.(string))}
 		groupByThreshold = wrapperspb.UInt32(uint32(m["max_unique_values_for_group_by"].(int)))
 	}
 
