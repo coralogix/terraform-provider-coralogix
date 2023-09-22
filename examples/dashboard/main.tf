@@ -36,10 +36,6 @@ resource "coralogix_dashboard" dashboard {
                                 type  = "avg"
                                 field = "meta.responseTime.numeric"
                               },
-                              {
-                                type  = "max"
-                                field = "meta.responseTime.numeric"
-                              },
                             ]
 
                             group_by = [

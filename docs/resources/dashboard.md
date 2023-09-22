@@ -164,11 +164,11 @@ Read-Only:
 Required:
 
 - `definition` (Attributes) The widget definition. Can contain one of `line_chart`, `bar_chart`, `pie_chart` `data_table` or `gauge`. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition))
-- `title` (String) Widget title.
 
 Optional:
 
 - `description` (String) Widget description.
+- `title` (String) Widget title. Required for all widgets except markdown.
 - `width` (Number) The width of the chart.
 
 Read-Only:
