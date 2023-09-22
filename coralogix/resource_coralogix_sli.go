@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"terraform-provider-coralogix/coralogix/clientset"
 )
 
@@ -89,7 +90,7 @@ func (r SLIResource) Schema(ctx context.Context, req resource.SchemaRequest, res
 			"threshold_symbol_type": schema.StringAttribute{},
 			"threshold_value":       schema.Int64Attribute{},
 			"filters": schema.ListAttribute{
-				Elem: schema.StringAttribute{},
+				ElementType: types.StringType,
 			},
 			"slo_status_type":     schema.StringAttribute{},
 			"error_budget":        schema.Int64Attribute{},
