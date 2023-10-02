@@ -22,7 +22,7 @@ data "coralogix_action" imported_action {
 
 ## Schema
 
-### Optional
+### Required
 
 - `id` (String) Action ID.
 
