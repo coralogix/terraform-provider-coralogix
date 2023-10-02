@@ -587,10 +587,10 @@ func commonAlertSchema() map[string]*schema.Schema {
 
 func searchQuerySchema() *schema.Schema {
 	return &schema.Schema{
-		Type:         schema.TypeString,
-		Optional:     true,
-		ValidateFunc: validation.StringIsValidRegExp,
-		Description:  "The search_query that we wanted to be notified on.",
+		Type:     schema.TypeString,
+		Optional: true,
+		//ValidateFunc: validation.StringIsValidRegExp,
+		Description: "The search_query that we wanted to be notified on.",
 	}
 }
 
