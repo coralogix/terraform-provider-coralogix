@@ -24,7 +24,7 @@ data "coralogix_tco_policy_traces" "policy_traces_data" {
 
 ## Schema
 
-### Optional
+### Required
 
 - `id` (String) tco-policy ID.
 

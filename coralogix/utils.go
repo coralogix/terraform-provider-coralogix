@@ -114,8 +114,15 @@ func datasourceSchemaFromResourceSchema(rs map[string]*schema.Schema) map[string
 }
 
 func frameworkDatasourceSchemaFromFrameworkResourceSchema(rs resourceschema.Schema) datasourceschema.Schema {
+	attributes := convertAttributes(rs.Attributes)
+	attributes["id"] = datasourceschema.StringAttribute{
+		Required:            true,
+		Description:         rs.Attributes["id"].GetDescription(),
+		MarkdownDescription: rs.Attributes["id"].GetMarkdownDescription(),
+	}
+
 	return datasourceschema.Schema{
-		Attributes: convertAttributes(rs.Attributes),
+		Attributes: attributes,
 		//Blocks: convertBlocks(rs.Blocks),
 		Description:         rs.Description,
 		MarkdownDescription: rs.MarkdownDescription,
@@ -126,15 +133,7 @@ func frameworkDatasourceSchemaFromFrameworkResourceSchema(rs resourceschema.Sche
 func convertAttributes(attributes map[string]resourceschema.Attribute) map[string]datasourceschema.Attribute {
 	result := make(map[string]datasourceschema.Attribute, len(attributes))
 	for k, v := range attributes {
-		if k == "id" {
-			result[k] = datasourceschema.StringAttribute{
-				Optional:            true,
-				Description:         v.GetDescription(),
-				MarkdownDescription: v.GetMarkdownDescription(),
-			}
-		} else {
-			result[k] = convertAttribute(v)
-		}
+		result[k] = convertAttribute(v)
 	}
 	return result
 }
