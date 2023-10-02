@@ -57,6 +57,7 @@ func (d *SLIDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 		MarkdownDescription: "The service name",
 		Required:            true,
 	}
+	resp.Schema = schema
 }
 
 func (d *SLIDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
