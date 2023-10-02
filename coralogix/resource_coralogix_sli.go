@@ -138,10 +138,14 @@ func (r *SLIResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString(""),
 				MarkdownDescription: "Optional SLI description.",
 			},
 			"metric_name": schema.StringAttribute{
 				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString(""),
 				MarkdownDescription: "Metric name. This is the name of the metric that the SLI is associated with.",
 			},
 			"metric_type": schema.StringAttribute{
@@ -211,13 +215,13 @@ func (r *SLIResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 			"label_e2m_id": schema.StringAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplaceIfConfigured(),
 				},
 			},
 			"total_e2m_id": schema.StringAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplaceIfConfigured(),
 				},
 			},
 			"time_unit_type": schema.StringAttribute{
