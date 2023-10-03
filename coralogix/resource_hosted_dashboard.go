@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"terraform-provider-coralogix/coralogix/clientset"
 
 	. "github.com/ahmetalpbalkan/go-linq"
@@ -17,7 +19,7 @@ import (
 )
 
 var (
-	//idRegexp                  = regexp.MustCompile(`^\d+$`)
+	idRegexp                  = regexp.MustCompile(`^\d+$`)
 	validHostedDashboardTypes = []string{"grafana"}
 )
 
@@ -135,11 +137,11 @@ func HostedDashboardSchema() map[string]*schema.Schema {
 							"so that previous versions of your dashboard are not lost.",
 					},
 					"folder": {
-						Type:        schema.TypeString,
-						Optional:    true,
-						ForceNew:    true,
-						Description: "The id of the folder to save the dashboard in. This attribute is a string to reflect the type of the folder's id.",
-						//ValidateFunc: validation.StringMatch(idRegexp, "must be a valid folder id"),
+						Type:         schema.TypeString,
+						Optional:     true,
+						ForceNew:     true,
+						Description:  "The id of the folder to save the dashboard in. This attribute is a string to reflect the type of the folder's id.",
+						ValidateFunc: validation.StringMatch(idRegexp, "must be a valid folder id"),
 						DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 							return old == "0" && new == "" || old == "" && new == "0"
 						},
