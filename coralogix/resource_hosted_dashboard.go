@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -17,7 +18,7 @@ import (
 )
 
 var (
-	//idRegexp                  = regexp.MustCompile(`^\d+$`)
+	idRegexp                  = regexp.MustCompile(`^\d+$`)
 	validHostedDashboardTypes = []string{"grafana"}
 )
 
@@ -138,10 +139,11 @@ func HostedDashboardSchema() map[string]*schema.Schema {
 						Type:        schema.TypeString,
 						Optional:    true,
 						ForceNew:    true,
-						Description: "The id of the folder to save the dashboard in. This attribute is a string to reflect the type of the folder's id.",
-						//ValidateFunc: validation.StringMatch(idRegexp, "must be a valid folder id"),
+						Description: "The id or UID of the folder to save the dashboard in.",
 						DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-							return old == "0" && new == "" || old == "" && new == "0"
+							_, old = SplitOrgResourceID(old)
+							_, new = SplitOrgResourceID(new)
+							return old == "0" && new == "" || old == "" && new == "0" || old == new
 						},
 					},
 					"config_json": {
@@ -177,7 +179,7 @@ func resourceGrafanaDashboardCreate(ctx context.Context, d *schema.ResourceData,
 		return diag.FromErr(err)
 	}
 
-	resp, err := meta.(*clientset.ClientSet).GrafanaDashboards().CreateGrafanaDashboard(ctx, dashboard)
+	resp, err := meta.(*clientset.ClientSet).Grafana().CreateGrafanaDashboard(ctx, dashboard)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -188,7 +190,7 @@ func resourceGrafanaDashboardCreate(ctx context.Context, d *schema.ResourceData,
 
 func resourceGrafanaDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}, hostedGrafanaSchema map[string]interface{}) diag.Diagnostics {
 	uid := extractOriginalUID(d, "grafana")
-	dashboard, err := meta.(*clientset.ClientSet).GrafanaDashboards().GetGrafanaDashboard(ctx, uid)
+	dashboard, err := meta.(*clientset.ClientSet).Grafana().GetGrafanaDashboard(ctx, uid)
 
 	var diags diag.Diagnostics
 	if err != nil {
@@ -210,11 +212,19 @@ func resourceGrafanaDashboardRead(ctx context.Context, d *schema.ResourceData, m
 	hostedGrafanaNewSchema["uid"] = dashboard.Model["uid"].(string)
 	hostedGrafanaNewSchema["dashboard_id"] = int64(dashboard.Model["id"].(float64))
 	hostedGrafanaNewSchema["version"] = int64(dashboard.Model["version"].(float64))
-	hostedGrafanaNewSchema["url"] = strings.TrimRight(meta.(*clientset.ClientSet).GrafanaDashboards().GetTargetURL(), "/") + dashboard.Meta.URL
-	if dashboard.FolderID > 0 {
-		hostedGrafanaNewSchema["folder"] = strconv.FormatInt(dashboard.FolderID, 10)
+	hostedGrafanaNewSchema["url"] = strings.TrimRight(meta.(*clientset.ClientSet).Grafana().GetTargetURL(), "/") + dashboard.Meta.URL
+
+	// If the folder was originally set to a numeric ID, we read the folder ID
+	// Othwerwise, we read the folder UID
+	var folderID string
+	m := d.Get("grafana").([]interface{})[0].(map[string]interface{})
+	if folder, ok := m["folder"]; ok && folder != nil {
+		_, folderID = SplitOrgResourceID(folder.(string))
+	}
+	if idRegexp.MatchString(folderID) && dashboard.Meta.Folder > 0 {
+		hostedGrafanaNewSchema["folder"] = strconv.FormatInt(dashboard.Meta.Folder, 10)
 	} else {
-		hostedGrafanaNewSchema["folder"] = ""
+		hostedGrafanaNewSchema["folder"] = dashboard.Meta.FolderUID
 	}
 
 	configJSONBytes, err := json.Marshal(dashboard.Model)
@@ -253,20 +263,18 @@ func resourceGrafanaDashboardRead(ctx context.Context, d *schema.ResourceData, m
 }
 
 func makeGrafanaDashboard(hostedGrafanaSchema map[string]interface{}) (gapi.Dashboard, error) {
-	var parsedFolder int64 = 0
-	var err error
-	if folderStr := hostedGrafanaSchema["folder"].(string); folderStr != "" {
-		parsedFolder, err = strconv.ParseInt(hostedGrafanaSchema["folder"].(string), 10, 64)
-		if err != nil {
-			return gapi.Dashboard{}, fmt.Errorf("error parsing folder: %s", err)
-		}
-	}
-
 	dashboard := gapi.Dashboard{
-		FolderID:  parsedFolder,
 		Overwrite: hostedGrafanaSchema["overwrite"].(bool),
 		Message:   hostedGrafanaSchema["message"].(string),
 	}
+
+	_, folderID := SplitOrgResourceID(hostedGrafanaSchema["folder"].(string))
+	if folderInt, err := strconv.ParseInt(folderID, 10, 64); err == nil {
+		dashboard.FolderID = folderInt
+	} else {
+		dashboard.FolderUID = folderID
+	}
+
 	configJSON := hostedGrafanaSchema["config_json"].(string)
 	dashboardJSON, err := unmarshalDashboardConfigJSON(configJSON)
 	if err != nil {
@@ -285,7 +293,7 @@ func resourceGrafanaDashboardUpdate(ctx context.Context, d *schema.ResourceData,
 	}
 	dashboard.Model["id"] = hostedGrafanaSchema["dashboard_id"].(int)
 	dashboard.Overwrite = true
-	resp, err := meta.(*clientset.ClientSet).GrafanaDashboards().UpdateGrafanaDashboard(ctx, dashboard)
+	resp, err := meta.(*clientset.ClientSet).Grafana().UpdateGrafanaDashboard(ctx, dashboard)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -295,7 +303,7 @@ func resourceGrafanaDashboardUpdate(ctx context.Context, d *schema.ResourceData,
 
 func resourceGrafanaDashboardDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	uid := extractOriginalUID(d, "grafana")
-	err := meta.(*clientset.ClientSet).GrafanaDashboards().DeleteGrafanaDashboard(ctx, uid)
+	err := meta.(*clientset.ClientSet).Grafana().DeleteGrafanaDashboard(ctx, uid)
 	if err != nil {
 		return diag.FromErr(err)
 	}

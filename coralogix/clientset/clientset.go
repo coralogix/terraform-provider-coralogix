@@ -6,7 +6,7 @@ type ClientSet struct {
 	enrichments          *EnrichmentsClient
 	dataSet              *DataSetClient
 	dashboards           *DashboardsClient
-	grafanaDashboards    *GrafanaDashboardClient
+	grafana              *GrafanaClient
 	actions              *ActionsClient
 	recordingRuleGroups  *RecordingRulesGroupsSetsClient
 	tcoPolicies          *TCOPoliciesClient
@@ -36,8 +36,8 @@ func (c *ClientSet) Dashboards() *DashboardsClient {
 	return c.dashboards
 }
 
-func (c *ClientSet) GrafanaDashboards() *GrafanaDashboardClient {
-	return c.grafanaDashboards
+func (c *ClientSet) Grafana() *GrafanaClient {
+	return c.grafana
 }
 
 func (c *ClientSet) Actions() *ActionsClient {
@@ -79,7 +79,7 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 		enrichments:          NewEnrichmentClient(apikeyCPC),
 		dataSet:              NewDataSetClient(apikeyCPC),
 		dashboards:           NewDashboardsClient(apikeyCPC),
-		grafanaDashboards:    NewGrafanaClient(apikeyCPC),
+		grafana:              NewGrafanaClient(apikeyCPC),
 		actions:              NewActionsClient(apikeyCPC),
 		recordingRuleGroups:  NewRecordingRuleGroupsClient(apikeyCPC),
 		tcoPolicies:          NewTCOPoliciesClient(apikeyCPC),

@@ -93,7 +93,7 @@ func extractDashboardTypeAndUIDFromID(uid string) (string, string) {
 }
 
 func dataSourceHostedGrafanaDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}, uid string) diag.Diagnostics {
-	dashboard, err := meta.(*clientset.ClientSet).GrafanaDashboards().GetGrafanaDashboard(ctx, uid)
+	dashboard, err := meta.(*clientset.ClientSet).Grafana().GetGrafanaDashboard(ctx, uid)
 	if err != nil {
 		return diag.FromErr(err)
 	}
@@ -111,7 +111,7 @@ func dataSourceHostedGrafanaDashboardRead(ctx context.Context, d *schema.Resourc
 	hostedGrafanaNewSchema["title"] = dashboard.Model["title"].(string)
 	hostedGrafanaNewSchema["folder"] = dashboard.FolderID
 	hostedGrafanaNewSchema["is_starred"] = dashboard.Meta.IsStarred
-	hostedGrafanaNewSchema["url"] = strings.TrimRight(meta.(*clientset.ClientSet).GrafanaDashboards().GetTargetURL(), "/") + dashboard.Meta.URL
+	hostedGrafanaNewSchema["url"] = strings.TrimRight(meta.(*clientset.ClientSet).Grafana().GetTargetURL(), "/") + dashboard.Meta.URL
 
 	if err = d.Set("grafana", []interface{}{hostedGrafanaNewSchema}); err != nil {
 		return diag.FromErr(err)

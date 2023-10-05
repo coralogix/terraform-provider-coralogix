@@ -79,6 +79,7 @@ func OldProvider() *oldSchema.Provider {
 			"coralogix_hosted_dashboard":           resourceCoralogixHostedDashboard(),
 			"coralogix_recording_rules_groups_set": resourceCoralogixRecordingRulesGroupsSet(),
 			"coralogix_webhook":                    resourceCoralogixWebhook(),
+			"coralogix_grafana_folder":             resourceGrafanaFolder(),
 		},
 
 		ConfigureContextFunc: func(context context.Context, d *oldSchema.ResourceData) (interface{}, diag.Diagnostics) {

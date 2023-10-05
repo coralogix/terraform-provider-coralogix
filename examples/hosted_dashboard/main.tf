@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.5"
+      version = "~> 1.8"
       source  = "coralogix/coralogix"
     }
   }
@@ -15,7 +15,12 @@ provider "coralogix" {
 resource "coralogix_hosted_dashboard" dashboard {
   grafana {
     config_json = file("./grafana_dashboard.json")
+    folder = coralogix_grafana_folder.test_folder.id
   }
+}
+
+resource "coralogix_grafana_folder" "test_folder" {
+  title = "Terraform Test Folder"
 }
 
 data "coralogix_hosted_dashboard" imported_dashboard {
