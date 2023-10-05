@@ -67,7 +67,7 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("resource id not set")
 		}
-		client := testAccProvider.Meta().(*clientset.ClientSet).GrafanaDashboards()
+		client := testAccProvider.Meta().(*clientset.ClientSet).Grafana()
 		_, uid := extractDashboardTypeAndUIDFromID(rs.Primary.ID)
 		gotDashboard, err := client.GetGrafanaDashboard(context.TODO(), uid)
 		if err != nil {
@@ -79,7 +79,7 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 }
 
 func testAccDashboardCheckDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).GrafanaDashboards()
+	client := testAccProvider.Meta().(*clientset.ClientSet).Grafana()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "coralogix_hosted_dashboard" {
