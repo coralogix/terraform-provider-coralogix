@@ -25,7 +25,7 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 	filePath := parent + "/examples/hosted_dashboard/grafana_acc_dashboard.json"
 	updatedFilePath := parent + "/examples/hosted_dashboard/grafana_acc_updated_dashboard.json"
 
-	expectedInitialConfig := `{"title":"Title","uid":"UID"}`
+	expectedInitialConfig := `{"title":"Title test","uid":"UID"}`
 	expectedUpdatedTitleConfig := `{"title":"Updated Title","uid":"UpdatedUID"}`
 
 	var dashboard gapi.Dashboard
