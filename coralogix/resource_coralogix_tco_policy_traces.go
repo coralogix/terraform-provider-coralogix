@@ -444,7 +444,7 @@ func flattenTCOPolicyTraces(ctx context.Context, policy *tcopolicies.Policy) TCO
 
 func flattenTCOPolicyTags(ctx context.Context, tags []*tcopolicies.TagRule) types.Map {
 	if len(tags) == 0 {
-		return types.MapNull(types.StringType)
+		return types.MapNull(types.ObjectType{AttrTypes: tcoRuleModelAttr()})
 	}
 
 	elements := make(map[string]attr.Value)
