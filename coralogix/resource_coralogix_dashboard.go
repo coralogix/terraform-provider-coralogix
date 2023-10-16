@@ -2003,8 +2003,8 @@ func (f filterOperatorValidator) ValidateObject(ctx context.Context, req validat
 
 	var filter FilterOperatorModel
 	req.ConfigValue.As(ctx, &filter, basetypes.ObjectAsOptions{})
-	if filter.Type.ValueString() == "equals" && filter.SelectedValues.IsNull() {
-		resp.Diagnostics.Append(diag.NewErrorDiagnostic("filter operator validation failed", "when type is `equals`, `selected_values` must be set"))
+	if filter.Type.ValueString() == "not_equals" && filter.SelectedValues.IsNull() {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("filter operator validation failed", "when type is `not_equals`, `selected_values` must be set"))
 	}
 }
 
