@@ -447,15 +447,15 @@ func flattenTCOPolicyTraces(ctx context.Context, policy *tcopolicies.Policy) (*T
 	if diags.HasError() {
 		return nil, diags
 	}
-	subsystems, diags := flattenTCOPolicyRule(ctx, policy.GetApplicationRule())
+	subsystems, diags := flattenTCOPolicyRule(ctx, policy.GetSubsystemRule())
 	if diags.HasError() {
 		return nil, diags
 	}
-	services, diags := flattenTCOPolicyRule(ctx, policy.GetApplicationRule())
+	services, diags := flattenTCOPolicyRule(ctx, traceRules.GetServiceRule())
 	if diags.HasError() {
 		return nil, diags
 	}
-	actions, diags := flattenTCOPolicyRule(ctx, policy.GetApplicationRule())
+	actions, diags := flattenTCOPolicyRule(ctx, traceRules.GetActionRule())
 	if diags.HasError() {
 		return nil, diags
 	}

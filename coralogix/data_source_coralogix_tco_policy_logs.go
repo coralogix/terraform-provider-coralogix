@@ -57,7 +57,7 @@ func (d *TCOPolicyDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 
 func (d *TCOPolicyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data *TCOPolicyResourceModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, data)...)
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
