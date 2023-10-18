@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -43,18 +44,18 @@ type TCOPolicyTracesResource struct {
 }
 
 type TCOPolicyTracesResourceModel struct {
-	ID                 types.String  `tfsdk:"id"`
-	Name               types.String  `tfsdk:"name"`
-	Description        types.String  `tfsdk:"description"`
-	Enabled            types.Bool    `tfsdk:"enabled"`
-	Order              types.Int64   `tfsdk:"order"`
-	Priority           types.String  `tfsdk:"priority"`
-	Applications       *TCORuleModel `tfsdk:"applications"`
-	Subsystems         *TCORuleModel `tfsdk:"subsystems"`
-	ArchiveRetentionID types.String  `tfsdk:"archive_retention_id"`
-	Services           *TCORuleModel `tfsdk:"services"`
-	Actions            *TCORuleModel `tfsdk:"actions"`
-	Tags               types.Map     `tfsdk:"tags"`
+	ID                 types.String `tfsdk:"id"`
+	Name               types.String `tfsdk:"name"`
+	Description        types.String `tfsdk:"description"`
+	Enabled            types.Bool   `tfsdk:"enabled"`
+	Order              types.Int64  `tfsdk:"order"`
+	Priority           types.String `tfsdk:"priority"`
+	Applications       types.Object `tfsdk:"applications"`
+	Subsystems         types.Object `tfsdk:"subsystems"`
+	ArchiveRetentionID types.String `tfsdk:"archive_retention_id"`
+	Services           types.Object `tfsdk:"services"`
+	Actions            types.Object `tfsdk:"actions"`
+	Tags               types.Map    `tfsdk:"tags"`
 }
 
 func (r *TCOPolicyTracesResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -261,14 +262,14 @@ func (r *TCOPolicyTracesResource) ValidateConfig(ctx context.Context, req resour
 
 	validateTCORuleModelModel(data.Actions, "actions", resp)
 
-	var tagsMap map[string]TCORuleModel
+	var tagsMap map[string]types.Object
 	diags := data.Tags.ElementsAs(ctx, &tagsMap, true)
 	if diags != nil {
 		resp.Diagnostics.Append(diags...)
 	} else {
 		for tagName, tagRule := range tagsMap {
 			root := fmt.Sprintf("tags.%s", tagName)
-			validateTCORuleModelModel(&tagRule, root, resp)
+			validateTCORuleModelModel(tagRule, root, resp)
 		}
 	}
 
@@ -280,14 +281,18 @@ func (r *TCOPolicyTracesResource) ImportState(ctx context.Context, req resource.
 }
 
 func (r *TCOPolicyTracesResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var plan TCOPolicyTracesResourceModel
+	var plan *TCOPolicyTracesResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	createPolicyRequest := extractCreateTcoPolicyTraces(ctx, plan)
+	createPolicyRequest, diags := extractCreateTcoPolicyTraces(ctx, *plan)
+	if diags.HasError() {
+		resp.Diagnostics = diags
+		return
+	}
 	policyStr, _ := jsm.MarshalToString(createPolicyRequest)
 	log.Printf("[INFO] Creating new tco-policy: %s", policyStr)
 	createResp, err := r.client.CreateTCOPolicy(ctx, createPolicyRequest)
@@ -306,15 +311,18 @@ func (r *TCOPolicyTracesResource) Create(ctx context.Context, req resource.Creat
 	updatePoliciesOrder(ctx, r.client, plan.ID.ValueString(), int(plan.Order.ValueInt64()), tcopolicies.SourceType_SOURCE_TYPE_SPANS)
 
 	policy.Order = wrapperspb.Int32(int32(plan.Order.ValueInt64()))
-	plan = flattenTCOPolicyTraces(ctx, policy)
-
+	plan, diags = flattenTCOPolicyTraces(ctx, policy)
+	if diags.HasError() {
+		resp.Diagnostics = diags
+		return
+	}
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r *TCOPolicyTracesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state TCOPolicyTracesResourceModel
+	var state *TCOPolicyTracesResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -344,7 +352,11 @@ func (r *TCOPolicyTracesResource) Read(ctx context.Context, req resource.ReadReq
 	policy := getPolicyResp.GetPolicy()
 	log.Printf("[INFO] Received tco-policy: %#v", policy)
 
-	state = flattenTCOPolicyTraces(ctx, policy)
+	state, diags = flattenTCOPolicyTraces(ctx, policy)
+	if diags.HasError() {
+		resp.Diagnostics = diags
+		return
+	}
 	//
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -352,14 +364,18 @@ func (r *TCOPolicyTracesResource) Read(ctx context.Context, req resource.ReadReq
 
 func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
-	var plan TCOPolicyTracesResourceModel
+	var plan *TCOPolicyTracesResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	policyUpdateReq := extractUpdateTCOPolicyTraces(ctx, plan)
+	policyUpdateReq, diags := extractUpdateTCOPolicyTraces(ctx, *plan)
+	if diags.HasError() {
+		resp.Diagnostics = diags
+		return
+	}
 	log.Printf("[INFO] Updating tco-policy: %#v", policyUpdateReq)
 	policyUpdateResp, err := r.client.UpdateTCOPolicy(ctx, policyUpdateReq)
 	if err != nil {
@@ -395,8 +411,11 @@ func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.Update
 	}
 	log.Printf("[INFO] Received tco-policy: %#v", getPolicyResp)
 
-	plan = flattenTCOPolicyTraces(ctx, getPolicyResp.GetPolicy())
-
+	plan, diags = flattenTCOPolicyTraces(ctx, getPolicyResp.GetPolicy())
+	if diags.HasError() {
+		resp.Diagnostics = diags
+		return
+	}
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -422,24 +441,39 @@ func (r TCOPolicyTracesResource) Delete(ctx context.Context, req resource.Delete
 	log.Printf("[INFO] tco-policy %s deleted\n", id)
 }
 
-func flattenTCOPolicyTraces(ctx context.Context, policy *tcopolicies.Policy) TCOPolicyTracesResourceModel {
+func flattenTCOPolicyTraces(ctx context.Context, policy *tcopolicies.Policy) (*TCOPolicyTracesResourceModel, diag.Diagnostics) {
 	traceRules := policy.GetSourceTypeRules().(*tcopolicies.Policy_SpanRules).SpanRules
-	tcoPolicy := TCOPolicyTracesResourceModel{
+	applications, diags := flattenTCOPolicyRule(ctx, policy.GetApplicationRule())
+	if diags.HasError() {
+		return nil, diags
+	}
+	subsystems, diags := flattenTCOPolicyRule(ctx, policy.GetSubsystemRule())
+	if diags.HasError() {
+		return nil, diags
+	}
+	services, diags := flattenTCOPolicyRule(ctx, traceRules.GetServiceRule())
+	if diags.HasError() {
+		return nil, diags
+	}
+	actions, diags := flattenTCOPolicyRule(ctx, traceRules.GetActionRule())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &TCOPolicyTracesResourceModel{
 		ID:                 types.StringValue(policy.GetId().GetValue()),
 		Name:               types.StringValue(policy.GetName().GetValue()),
 		Description:        types.StringValue(policy.GetDescription().GetValue()),
 		Enabled:            types.BoolValue(policy.GetEnabled().GetValue()),
 		Order:              types.Int64Value(int64(policy.GetOrder().GetValue())),
 		Priority:           types.StringValue(tcoPoliciesPriorityProtoToSchema[policy.GetPriority()]),
-		Applications:       flattenTCOPolicyRule(policy.GetApplicationRule()),
-		Subsystems:         flattenTCOPolicyRule(policy.GetSubsystemRule()),
+		Applications:       applications,
+		Subsystems:         subsystems,
 		ArchiveRetentionID: flattenArchiveRetention(policy.GetArchiveRetention()),
-		Services:           flattenTCOPolicyRule(traceRules.GetServiceRule()),
-		Actions:            flattenTCOPolicyRule(traceRules.GetActionRule()),
+		Services:           services,
+		Actions:            actions,
 		Tags:               flattenTCOPolicyTags(ctx, traceRules.GetTagRules()),
-	}
-
-	return tcoPolicy
+	}, nil
 }
 
 func flattenTCOPolicyTags(ctx context.Context, tags []*tcopolicies.TagRule) types.Map {
@@ -474,16 +508,25 @@ func tcoRuleModelAttr() map[string]attr.Type {
 	}
 }
 
-func extractUpdateTCOPolicyTraces(ctx context.Context, plan TCOPolicyTracesResourceModel) *tcopolicies.UpdatePolicyRequest {
+func extractUpdateTCOPolicyTraces(ctx context.Context, plan TCOPolicyTracesResourceModel) (*tcopolicies.UpdatePolicyRequest, diag.Diagnostics) {
 	id := typeStringToWrapperspbString(plan.ID)
 	name := typeStringToWrapperspbString(plan.Name)
 	description := typeStringToWrapperspbString(plan.Description)
 	priority := tcoPoliciesPrioritySchemaToProto[plan.Priority.ValueString()]
-	applicationRule := expandTCOPolicyRule(ctx, plan.Applications)
-	subsystemRule := expandTCOPolicyRule(ctx, plan.Subsystems)
+	applicationRule, diags := expandTCOPolicyRule(ctx, plan.Applications)
+	if diags.HasError() {
+		return nil, diags
+	}
+	subsystemRule, diags := expandTCOPolicyRule(ctx, plan.Subsystems)
+	if diags.HasError() {
+		return nil, diags
+	}
 	archiveRetention := expandActiveRetention(plan.ArchiveRetentionID)
-
-	updateRequest := &tcopolicies.UpdatePolicyRequest{
+	sourceTypeRules, diags := expandTracesSourceTypeUpdate(ctx, plan)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &tcopolicies.UpdatePolicyRequest{
 		Id:               id,
 		Name:             name,
 		Description:      description,
@@ -491,37 +534,51 @@ func extractUpdateTCOPolicyTraces(ctx context.Context, plan TCOPolicyTracesResou
 		ApplicationRule:  applicationRule,
 		SubsystemRule:    subsystemRule,
 		ArchiveRetention: archiveRetention,
-		SourceTypeRules:  expandTracesSourceTypeUpdate(ctx, plan),
-	}
-
-	return updateRequest
+		SourceTypeRules:  sourceTypeRules,
+	}, nil
 }
 
-func extractCreateTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesResourceModel) *tcopolicies.CreatePolicyRequest {
+func extractCreateTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesResourceModel) (*tcopolicies.CreatePolicyRequest, diag.Diagnostics) {
 	name := typeStringToWrapperspbString(plan.Name)
 	description := typeStringToWrapperspbString(plan.Description)
 	priority := tcoPoliciesPrioritySchemaToProto[plan.Priority.ValueString()]
-	applicationRule := expandTCOPolicyRule(ctx, plan.Applications)
-	subsystemRule := expandTCOPolicyRule(ctx, plan.Subsystems)
+	applicationRule, diags := expandTCOPolicyRule(ctx, plan.Applications)
+	if diags.HasError() {
+		return nil, diags
+	}
+	subsystemRule, diags := expandTCOPolicyRule(ctx, plan.Subsystems)
+	if diags.HasError() {
+		return nil, diags
+	}
 	archiveRetention := expandActiveRetention(plan.ArchiveRetentionID)
-
-	createRequest := &tcopolicies.CreatePolicyRequest{
+	sourceTypeRules, diags := expandTracesSourceType(ctx, plan)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &tcopolicies.CreatePolicyRequest{
 		Name:             name,
 		Description:      description,
 		Priority:         priority,
 		ApplicationRule:  applicationRule,
 		SubsystemRule:    subsystemRule,
 		ArchiveRetention: archiveRetention,
-		SourceTypeRules:  expandTracesSourceType(ctx, plan),
-	}
-
-	return createRequest
+		SourceTypeRules:  sourceTypeRules,
+	}, nil
 }
 
-func expandTracesSourceType(ctx context.Context, plan TCOPolicyTracesResourceModel) *tcopolicies.CreatePolicyRequest_SpanRules {
-	serviceRule := expandTCOPolicyRule(ctx, plan.Services)
-	actionRule := expandTCOPolicyRule(ctx, plan.Actions)
-	tagRules := expandTagsRules(ctx, plan.Tags)
+func expandTracesSourceType(ctx context.Context, plan TCOPolicyTracesResourceModel) (*tcopolicies.CreatePolicyRequest_SpanRules, diag.Diagnostics) {
+	serviceRule, diags := expandTCOPolicyRule(ctx, plan.Services)
+	if diags.HasError() {
+		return nil, diags
+	}
+	actionRule, diags := expandTCOPolicyRule(ctx, plan.Actions)
+	if diags.HasError() {
+		return nil, diags
+	}
+	tagRules, diags := expandTagsRules(ctx, plan.Tags)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	return &tcopolicies.CreatePolicyRequest_SpanRules{
 		SpanRules: &tcopolicies.SpanRules{
@@ -529,44 +586,63 @@ func expandTracesSourceType(ctx context.Context, plan TCOPolicyTracesResourceMod
 			ActionRule:  actionRule,
 			TagRules:    tagRules,
 		},
-	}
+	}, nil
 }
 
-func expandTracesSourceTypeUpdate(ctx context.Context, plan TCOPolicyTracesResourceModel) *tcopolicies.UpdatePolicyRequest_SpanRules {
-	serviceRule := expandTCOPolicyRule(ctx, plan.Services)
-	actionRule := expandTCOPolicyRule(ctx, plan.Actions)
-	tagRules := expandTagsRules(ctx, plan.Tags)
-
+func expandTracesSourceTypeUpdate(ctx context.Context, plan TCOPolicyTracesResourceModel) (*tcopolicies.UpdatePolicyRequest_SpanRules, diag.Diagnostics) {
+	serviceRule, diags := expandTCOPolicyRule(ctx, plan.Services)
+	if diags.HasError() {
+		return nil, diags
+	}
+	actionRule, diags := expandTCOPolicyRule(ctx, plan.Actions)
+	if diags.HasError() {
+		return nil, diags
+	}
+	tagRules, diags := expandTagsRules(ctx, plan.Tags)
+	if diags.HasError() {
+		return nil, diags
+	}
 	return &tcopolicies.UpdatePolicyRequest_SpanRules{
 		SpanRules: &tcopolicies.SpanRules{
 			ServiceRule: serviceRule,
 			ActionRule:  actionRule,
 			TagRules:    tagRules,
 		},
-	}
+	}, nil
 }
 
-func expandTagsRules(ctx context.Context, tags types.Map) []*tcopolicies.TagRule {
-	var tagsMap map[string]TCORuleModel
+func expandTagsRules(ctx context.Context, tags types.Map) ([]*tcopolicies.TagRule, diag.Diagnostics) {
+	var tagsMap map[string]types.Object
 	d := tags.ElementsAs(ctx, &tagsMap, true)
 	if d != nil {
 		panic(d)
 	}
 
+	var diags diag.Diagnostics
 	result := make([]*tcopolicies.TagRule, 0, len(tagsMap))
 	for tagName, tagElement := range tagsMap {
-		tagRule := expandTagRule(ctx, tagName, &tagElement)
+		tagRule, digs := expandTagRule(ctx, tagName, tagElement)
+		if digs.HasError() {
+			diags.Append(digs...)
+			continue
+		}
 		result = append(result, tagRule)
 	}
 
-	return result
+	if diags.HasError() {
+		return nil, diags
+	}
+	return result, nil
 }
 
-func expandTagRule(ctx context.Context, name string, tag *TCORuleModel) *tcopolicies.TagRule {
-	rule := expandTCOPolicyRule(ctx, tag)
+func expandTagRule(ctx context.Context, name string, tag types.Object) (*tcopolicies.TagRule, diag.Diagnostics) {
+	rule, diags := expandTCOPolicyRule(ctx, tag)
+	if diags.HasError() {
+		return nil, diags
+	}
 	return &tcopolicies.TagRule{
 		TagName:    wrapperspb.String(name),
 		RuleTypeId: rule.GetRuleTypeId(),
 		TagValue:   rule.GetName(),
-	}
+	}, nil
 }

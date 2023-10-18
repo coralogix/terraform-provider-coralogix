@@ -56,7 +56,7 @@ func (d *TCOPolicyDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 }
 
 func (d *TCOPolicyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data TCOPolicyResourceModel
+	var data *TCOPolicyResourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -84,8 +84,11 @@ func (d *TCOPolicyDataSource) Read(ctx context.Context, req datasource.ReadReque
 	}
 	log.Printf("[INFO] Received tco-policy: %#v", getPolicyResp)
 
-	data = flattenTCOPolicy(getPolicyResp.GetPolicy())
-
+	data, diags := flattenTCOPolicy(ctx, getPolicyResp.GetPolicy())
+	if diags.HasError() {
+		resp.Diagnostics = diags
+		return
+	}
 	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
