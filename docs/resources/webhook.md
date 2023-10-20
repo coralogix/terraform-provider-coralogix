@@ -425,3 +425,17 @@ Optional:
 - `update` (String)
 
 
+## Import
+
+```sh
+terraform import coralogix_webhook.example <coralogix_webhook-id>
+```
+
+to get the coralogix_webhook id run the following command and look for the id of the coralogix_webhook you want to import:
+```sh
+curl --location --request GET 'https://ng-api-http.<region-domain>/api/v1/external/integrations/' \
+--header 'Authorization: Bearer <api-key>' \
+--data-raw ''
+```
+
+[region-domain table](../index.md#region-domain-table)

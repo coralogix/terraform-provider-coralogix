@@ -92,3 +92,18 @@ Optional:
 - `rule_type` (String)
 
 
+## Import
+
+```sh
+terraform import coralogix_tco_policy_logs.example <coralogix_tco_policy_logs-id>
+```
+
+to get the coralogix_tco_policy_logs id run the following command and look for the id of the coralogix_tco_policy_logs you want to import:
+```sh
+grpcurl -H "Authorization: Bearer <api-key>" -d @ ng-api-grpc.<region-domain>:443 com.coralogix.quota.v1.PoliciesService/GetCompanyPolicies <<EOF
+{
+}
+EOF
+```
+
+[region-domain table](../index.md#region-domain-table)

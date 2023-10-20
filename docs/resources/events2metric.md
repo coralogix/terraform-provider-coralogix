@@ -51,6 +51,7 @@ resource "coralogix_events2metric" "logs2metric" {
 }
 ```
 
+
 ## Example Usage of events2metric with spans_query option
 
 ```hcl
@@ -268,3 +269,18 @@ Optional:
 - `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on.  Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 
+## Import
+
+```sh
+terraform import coralogix_events2metric.example <events2metric-id>
+```
+
+to get the events2metric id run the following command and look for the id of the events2metric you want to import:
+```sh
+grpcurl -H "Authorization: Bearer <api-key>" -d @ ng-api-grpc.<region-domain>:443 com.coralogix.enrichment.v1.CustomEnrichmentService/GetCustomEnrichments <<EOF
+{
+}
+EOF
+```
+
+[region-domain table](../index.md#region-domain-table)

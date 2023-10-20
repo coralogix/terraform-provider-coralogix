@@ -75,6 +75,18 @@ OR
 $ export CORALOGIX_DOMAIN="<add the environment you want to work at>" 
 ```
 
+## region-domain table:
+
+| Region  | Domain              |
+|---------|---------------------|
+| APAC1   | app.coralogix.in    |
+| APAC2   | coralogixsg.com     |
+| EUROPE1 | coralogix.com       |
+| EUROPE2 | eu2.coralogix.com   |
+| USA1    | coralogix.us        |
+| USA2    | cx498.coralogix.com |
+
+
 ## Argument Reference
 
 - `api_key` (String, Sensitive) A key for using coralogix APIs (Auto Generated), appropriate for the defined
