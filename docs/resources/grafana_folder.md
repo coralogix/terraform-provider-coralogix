@@ -41,3 +41,19 @@ resource "coralogix_grafana_folder" "test_folder" {
 
 - `id` (String) The ID of this resource.
 - `url` (String) The full URL of the folder.
+
+
+## Import
+
+```sh
+terraform import coralogix_grafana_folder.example <folder-id/folder-uid>
+```
+
+to get the grafana_folder id/uid run the following command and look for the id/uid of the grafana_folder you want to import:
+```sh
+curl --location --request GET 'https://ng-api-http.<region-domain>:443/grafana/api/folders' \
+--header 'Authorization: Bearer <api-key>' \
+--data-raw ''
+```
+
+[region-domain table](../index.md#region-domain-table)

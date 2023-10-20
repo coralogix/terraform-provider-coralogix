@@ -43,3 +43,16 @@ resource "coralogix_action" action {
 - `id` (String) Action ID.
 
 
+### Import
+```sh
+terraform import coralogix_action.example <action-id>
+```
+
+to get the action id run the following command and look for the id field of the action you want to import:
+```sh
+grpcurl -H "Authorization: Bearer <api-key>" -d @ ng-api-grpc.<region-domain>:443 com.coralogixapis.actions.v2.ActionsService/ListActions <<EOF
+{
+}
+EOF
+```
+[region-domain table](../index.md#region-domain-table)

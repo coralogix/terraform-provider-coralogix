@@ -473,3 +473,17 @@ Optional:
 - `update` (String)
 
 
+## Import
+
+```sh
+terraform import coralogix_rules_group.example <coralogix_rules_group-id>
+```
+
+to get the coralogix_rules_group id run the following command and look for the id of the coralogix_rules_group you want to import:
+```sh
+curl --location --request GET 'https://api.<region-domain>/api/v1/external/rules' \
+--header 'Authorization: Bearer <api-key>' \
+--data-raw ''
+```
+
+[region-domain table](../index.md#region-domain-table)

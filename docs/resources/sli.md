@@ -51,3 +51,18 @@ Required:
 - `field_values` (List of String)
 
 
+## Import
+
+```sh
+terraform import coralogix_sli.example <coralogix_sli-id>
+```
+
+to get the coralogix_sli id run the following command and look for the id of the coralogix_sli you want to import:
+```sh
+grpcurl -H "Authorization: Bearer <api-key>" -d @ ng-api-grpc.<region-domain>:443 com.coralogix.catalog.v1.SliService/GetSlis <<EOF
+{
+}
+EOF
+```
+
+[region-domain table](../index.md#region-domain-table)

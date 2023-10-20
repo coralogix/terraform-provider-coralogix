@@ -1005,3 +1005,17 @@ Optional:
 - `max_unique_values_for_group_by` (Number)
 
 
+### Import
+```sh
+terraform import coralogix_alert.example <alert-id>
+```
+
+to get the alert id run the following command and look for the **uniqueIdentifier (and not id)** field of the alert you want to import:
+```sh
+grpcurl -H "Authorization: Bearer <api-key>" -d @ ng-api-grpc.<region-domain>:443 com.coralogix.alerts.v2.AlertService/GetAlerts <<EOF
+{
+}
+EOF
+```
+
+[region-domain table](../index.md#region-domain-table)
