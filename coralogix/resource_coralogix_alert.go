@@ -9,11 +9,12 @@ import (
 	"strings"
 	"time"
 
+	alerts "github.com/coralogix/coralogix-sdk-demo/alerts/v1"
+	alertsv2 "github.com/coralogix/coralogix-sdk-demo/alerts/v2"
 	"github.com/golang/protobuf/jsonpb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
-	alerts "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v2"
 
 	. "github.com/ahmetalpbalkan/go-linq"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -148,13 +149,13 @@ var (
 	alertValidDeadmanRatioValues                 = getKeysStrings(alertSchemaDeadmanRatiosToProtoDeadmanRatios)
 	alertValidTimeZones                          = []string{"UTC-11", "UTC-10", "UTC-9", "UTC-8", "UTC-7", "UTC-6", "UTC-5", "UTC-4", "UTC-3", "UTC-2", "UTC-1",
 		"UTC+0", "UTC+1", "UTC+2", "UTC+3", "UTC+4", "UTC+5", "UTC+6", "UTC+7", "UTC+8", "UTC+9", "UTC+10", "UTC+11", "UTC+12", "UTC+13", "UTC+14"}
-	alertSchemaNotifyOnToProtoNotifyOn = map[string]alerts.NotifyOn{
-		"Triggered_only":         alerts.NotifyOn_TRIGGERED_ONLY,
-		"Triggered_and_resolved": alerts.NotifyOn_TRIGGERED_AND_RESOLVED,
+	alertSchemaNotifyOnToProtoNotifyOn = map[string]alertsv2.NotifyOn{
+		"Triggered_only":         alertsv2.NotifyOn_TRIGGERED_ONLY,
+		"Triggered_and_resolved": alertsv2.NotifyOn_TRIGGERED_AND_RESOLVED,
 	}
-	alertProtoNotifyOnToSchemaNotifyOn = map[alerts.NotifyOn]string{
-		alerts.NotifyOn_TRIGGERED_ONLY:         "Triggered_only",
-		alerts.NotifyOn_TRIGGERED_AND_RESOLVED: "Triggered_and_resolved",
+	alertProtoNotifyOnToSchemaNotifyOn = map[alertsv2.NotifyOn]string{
+		alertsv2.NotifyOn_TRIGGERED_ONLY:         "Triggered_only",
+		alertsv2.NotifyOn_TRIGGERED_AND_RESOLVED: "Triggered_and_resolved",
 	}
 	validNotifyOn                      = []string{"Triggered_only", "Triggered_and_resolved"}
 	alertSchemaToProtoEvaluationWindow = map[string]alerts.EvaluationWindow{
@@ -169,7 +170,7 @@ var (
 )
 
 type alertParams struct {
-	Condition *alerts.AlertCondition
+	Condition *alertsv2.AlertCondition
 	Filters   *alerts.AlertFilters
 }
 
@@ -1456,7 +1457,7 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 
 func resourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := wrapperspb.String(d.Id())
-	getAlertRequest := &alerts.GetAlertByUniqueIdRequest{
+	getAlertRequest := &alertsv2.GetAlertByUniqueIdRequest{
 		Id: id,
 	}
 
@@ -1489,7 +1490,7 @@ func resourceCoralogixAlertUpdate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	id := d.Id()
-	updateAlertRequest := &alerts.UpdateAlertByUniqueIdRequest{
+	updateAlertRequest := &alertsv2.UpdateAlertByUniqueIdRequest{
 		Alert: req,
 	}
 	updateAlertStr, _ := jsm.MarshalToString(updateAlertRequest)
@@ -1508,7 +1509,7 @@ func resourceCoralogixAlertUpdate(ctx context.Context, d *schema.ResourceData, m
 
 func resourceCoralogixAlertDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := wrapperspb.String(d.Id())
-	deleteAlertRequest := &alerts.DeleteAlertByUniqueIdRequest{
+	deleteAlertRequest := &alertsv2.DeleteAlertByUniqueIdRequest{
 		Id: id,
 	}
 
@@ -1524,7 +1525,7 @@ func resourceCoralogixAlertDelete(ctx context.Context, d *schema.ResourceData, m
 	return nil
 }
 
-func extractCreateAlertRequest(d *schema.ResourceData) (*alerts.CreateAlertRequest, diag.Diagnostics) {
+func extractCreateAlertRequest(d *schema.ResourceData) (*alertsv2.CreateAlertRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	enabled := wrapperspb.Bool(d.Get("enabled").(bool))
 	name := wrapperspb.String(d.Get("name").(string))
@@ -1540,7 +1541,7 @@ func extractCreateAlertRequest(d *schema.ResourceData) (*alerts.CreateAlertReque
 	alertTypeParams, tracingAlert, dgs := expandAlertType(d)
 	diags = append(diags, dgs...)
 
-	return &alerts.CreateAlertRequest{
+	return &alertsv2.CreateAlertRequest{
 		Name:                       name,
 		Description:                description,
 		IsActive:                   enabled,
@@ -1557,7 +1558,7 @@ func extractCreateAlertRequest(d *schema.ResourceData) (*alerts.CreateAlertReque
 	}, diags
 }
 
-func extractAlert(d *schema.ResourceData) (*alerts.Alert, diag.Diagnostics) {
+func extractAlert(d *schema.ResourceData) (*alertsv2.Alert, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	id := wrapperspb.String(d.Id())
 	enabled := wrapperspb.Bool(d.Get("enabled").(bool))
@@ -1574,7 +1575,7 @@ func extractAlert(d *schema.ResourceData) (*alerts.Alert, diag.Diagnostics) {
 	alertTypeParams, tracingAlert, dgs := expandAlertType(d)
 	diags = append(diags, dgs...)
 
-	return &alerts.Alert{
+	return &alertsv2.Alert{
 		UniqueIdentifier:           id,
 		Name:                       name,
 		Description:                description,
@@ -1596,7 +1597,7 @@ func expandPayloadFilters(v interface{}) []*wrapperspb.StringValue {
 	return interfaceSliceToWrappedStringSlice(v.(*schema.Set).List())
 }
 
-func setAlert(d *schema.ResourceData, alert *alerts.Alert) diag.Diagnostics {
+func setAlert(d *schema.ResourceData, alert *alertsv2.Alert) diag.Diagnostics {
 	if err := d.Set("name", alert.GetName().GetValue()); err != nil {
 		return diag.FromErr(err)
 	}
@@ -1659,7 +1660,7 @@ func flattenMetaLabels(labels []*alerts.MetaLabel) interface{} {
 	return result
 }
 
-func flattenShowInInsight(showInInsight *alerts.ShowInInsight) interface{} {
+func flattenShowInInsight(showInInsight *alertsv2.ShowInInsight) interface{} {
 	notifyEveryMin := int(showInInsight.GetRetriggeringPeriodSeconds().GetValue() / 60)
 	notifyOn := alertProtoNotifyOnToSchemaNotifyOn[showInInsight.GetNotifyOn()]
 	showInInsightSchema := map[string]interface{}{
@@ -1671,7 +1672,7 @@ func flattenShowInInsight(showInInsight *alerts.ShowInInsight) interface{} {
 	}
 }
 
-func flattenNotificationGroups(notificationGroups []*alerts.AlertNotificationGroups) interface{} {
+func flattenNotificationGroups(notificationGroups []*alertsv2.AlertNotificationGroups) interface{} {
 	result := make([]interface{}, 0, len(notificationGroups))
 	for _, group := range notificationGroups {
 		notificationGroup := flattenNotificationGroup(group)
@@ -1680,7 +1681,7 @@ func flattenNotificationGroups(notificationGroups []*alerts.AlertNotificationGro
 	return result
 }
 
-func flattenNotificationGroup(notificationGroup *alerts.AlertNotificationGroups) interface{} {
+func flattenNotificationGroup(notificationGroup *alertsv2.AlertNotificationGroups) interface{} {
 	groupByFields := wrappedStringSliceToStringSlice(notificationGroup.GetGroupByFields())
 	notifications := flattenNotifications(notificationGroup.GetNotifications())
 	return map[string]interface{}{
@@ -1689,7 +1690,7 @@ func flattenNotificationGroup(notificationGroup *alerts.AlertNotificationGroups)
 	}
 }
 
-func flattenNotifications(notifications []*alerts.AlertNotification) interface{} {
+func flattenNotifications(notifications []*alertsv2.AlertNotification) interface{} {
 	result := make([]interface{}, 0, len(notifications))
 	for _, n := range notifications {
 		notificationSubgroup := flattenNotificationSubgroup(n)
@@ -1698,7 +1699,7 @@ func flattenNotifications(notifications []*alerts.AlertNotification) interface{}
 	return result
 }
 
-func flattenNotificationSubgroup(notification *alerts.AlertNotification) interface{} {
+func flattenNotificationSubgroup(notification *alertsv2.AlertNotification) interface{} {
 	notifyEveryMin := int(notification.GetRetriggeringPeriodSeconds().GetValue() / 60)
 	notifyOn := alertProtoNotifyOnToSchemaNotifyOn[notification.GetNotifyOn()]
 	notificationSchema := map[string]interface{}{
@@ -1707,9 +1708,9 @@ func flattenNotificationSubgroup(notification *alerts.AlertNotification) interfa
 	}
 
 	switch integration := notification.GetIntegrationType().(type) {
-	case *alerts.AlertNotification_IntegrationId:
+	case *alertsv2.AlertNotification_IntegrationId:
 		notificationSchema["integration_id"] = strconv.Itoa(int(integration.IntegrationId.GetValue()))
-	case *alerts.AlertNotification_Recipients:
+	case *alertsv2.AlertNotification_Recipients:
 		notificationSchema["email_recipients"] = wrappedStringSliceToStringSlice(integration.Recipients.Emails)
 	}
 
@@ -1792,13 +1793,13 @@ func flattenDaysOfWeek(daysOfWeek []alerts.DayOfWeek, daysOffset int32) interfac
 	return result
 }
 
-func flattenAlertType(a *alerts.Alert) (alertType string, alertSchema interface{}) {
+func flattenAlertType(a *alertsv2.Alert) (alertType string, alertSchema interface{}) {
 	filters := a.GetFilters()
 	condition := a.GetCondition().GetCondition()
 
 	switch filters.GetFilterType() {
 	case alerts.AlertFilters_FILTER_TYPE_TEXT_OR_UNSPECIFIED:
-		if _, ok := condition.(*alerts.AlertCondition_NewValue); ok {
+		if _, ok := condition.(*alertsv2.AlertCondition_NewValue); ok {
 			alertType = "new_value"
 			alertSchema = flattenNewValueAlert(filters, condition)
 		} else {
@@ -2357,7 +2358,7 @@ func expandExpirationDate(v interface{}) *alerts.Date {
 	}
 }
 
-func expandShowInInsight(v interface{}) *alerts.ShowInInsight {
+func expandShowInInsight(v interface{}) *alertsv2.ShowInInsight {
 	l := v.([]interface{})
 	if len(l) == 0 || l[0] == nil {
 		return nil
@@ -2367,16 +2368,16 @@ func expandShowInInsight(v interface{}) *alerts.ShowInInsight {
 
 	retriggeringPeriodSeconds := wrapperspb.UInt32(uint32(m["retriggering_period_minutes"].(int)) * 60)
 	notifyOn := alertSchemaNotifyOnToProtoNotifyOn[m["notify_on"].(string)]
-	return &alerts.ShowInInsight{
+	return &alertsv2.ShowInInsight{
 		RetriggeringPeriodSeconds: retriggeringPeriodSeconds,
 		NotifyOn:                  &notifyOn,
 	}
 }
 
-func expandNotificationGroups(v interface{}) ([]*alerts.AlertNotificationGroups, diag.Diagnostics) {
+func expandNotificationGroups(v interface{}) ([]*alertsv2.AlertNotificationGroups, diag.Diagnostics) {
 	v = v.(*schema.Set).List()
 	l := v.([]interface{})
-	result := make([]*alerts.AlertNotificationGroups, 0, len(l))
+	result := make([]*alertsv2.AlertNotificationGroups, 0, len(l))
 	var diags diag.Diagnostics
 	for _, s := range l {
 		ml, dgs := expandNotificationGroup(s)
@@ -2386,7 +2387,7 @@ func expandNotificationGroups(v interface{}) ([]*alerts.AlertNotificationGroups,
 	return result, diags
 }
 
-func expandNotificationGroup(v interface{}) (*alerts.AlertNotificationGroups, diag.Diagnostics) {
+func expandNotificationGroup(v interface{}) (*alertsv2.AlertNotificationGroups, diag.Diagnostics) {
 	if v == nil {
 		return nil, nil
 	}
@@ -2398,16 +2399,16 @@ func expandNotificationGroup(v interface{}) (*alerts.AlertNotificationGroups, di
 		return nil, diags
 	}
 
-	return &alerts.AlertNotificationGroups{
+	return &alertsv2.AlertNotificationGroups{
 		GroupByFields: groupByFields,
 		Notifications: notifications,
 	}, nil
 }
 
-func expandNotificationSubgroups(v interface{}) ([]*alerts.AlertNotification, diag.Diagnostics) {
+func expandNotificationSubgroups(v interface{}) ([]*alertsv2.AlertNotification, diag.Diagnostics) {
 	v = v.(*schema.Set).List()
 	notifications := v.([]interface{})
-	result := make([]*alerts.AlertNotification, 0, len(notifications))
+	result := make([]*alertsv2.AlertNotification, 0, len(notifications))
 	var diags diag.Diagnostics
 	for _, n := range notifications {
 		notification, err := expandNotificationSubgroup(n)
@@ -2419,7 +2420,7 @@ func expandNotificationSubgroups(v interface{}) ([]*alerts.AlertNotification, di
 	return result, diags
 }
 
-func expandNotificationSubgroup(v interface{}) (*alerts.AlertNotification, error) {
+func expandNotificationSubgroup(v interface{}) (*alertsv2.AlertNotification, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -2428,7 +2429,7 @@ func expandNotificationSubgroup(v interface{}) (*alerts.AlertNotification, error
 	notifyEverySec := wrapperspb.UInt32(uint32(m["retriggering_period_minutes"].(int)) * 60)
 	notifyOn := alertSchemaNotifyOnToProtoNotifyOn[m["notify_on"].(string)]
 
-	notification := &alerts.AlertNotification{
+	notification := &alertsv2.AlertNotification{
 		RetriggeringPeriodSeconds: notifyEverySec,
 		NotifyOn:                  &notifyOn,
 	}
@@ -2437,7 +2438,7 @@ func expandNotificationSubgroup(v interface{}) (*alerts.AlertNotification, error
 	if webhookID, ok := m["integration_id"].(string); ok && webhookID != "" {
 		isWebhookIdDefined = true
 		id, _ := strconv.Atoi(webhookID)
-		notification.IntegrationType = &alerts.AlertNotification_IntegrationId{
+		notification.IntegrationType = &alertsv2.AlertNotification_IntegrationId{
 			IntegrationId: wrapperspb.UInt32(uint32(id)),
 		}
 	}
@@ -2447,8 +2448,8 @@ func expandNotificationSubgroup(v interface{}) (*alerts.AlertNotification, error
 			return nil, fmt.Errorf("required exactly on of 'integration_id' or 'email_recipients'")
 		}
 
-		notification.IntegrationType = &alerts.AlertNotification_Recipients{
-			Recipients: &alerts.Recipients{
+		notification.IntegrationType = &alertsv2.AlertNotification_Recipients{
+			Recipients: &alertsv2.Recipients{
 				Emails: interfaceSliceToWrappedStringSlice(emails),
 			},
 		}
@@ -2615,21 +2616,21 @@ func expandStandard(m map[string]interface{}) (*alertParams, diag.Diagnostics) {
 	}, nil
 }
 
-func expandStandardCondition(m map[string]interface{}) (*alerts.AlertCondition, error) {
+func expandStandardCondition(m map[string]interface{}) (*alertsv2.AlertCondition, error) {
 	if immediately := m["immediately"]; immediately != nil && immediately.(bool) {
-		return &alerts.AlertCondition{
-			Condition: &alerts.AlertCondition_Immediate{},
+		return &alertsv2.AlertCondition{
+			Condition: &alertsv2.AlertCondition_Immediate{},
 		}, nil
 	} else if moreThenUsual := m["more_than_usual"]; moreThenUsual != nil && moreThenUsual.(bool) {
 		threshold := wrapperspb.Double(float64(m["threshold"].(int)))
 		groupBy := []*wrapperspb.StringValue{wrapperspb.String(m["group_by_key"].(string))}
-		parameters := &alerts.ConditionParameters{
+		parameters := &alertsv2.ConditionParameters{
 			Threshold: threshold,
 			GroupBy:   groupBy,
 		}
-		return &alerts.AlertCondition{
-			Condition: &alerts.AlertCondition_MoreThanUsual{
-				MoreThanUsual: &alerts.MoreThanUsualCondition{Parameters: parameters},
+		return &alertsv2.AlertCondition{
+			Condition: &alertsv2.AlertCondition_MoreThanUsual{
+				MoreThanUsual: &alertsv2.MoreThanUsualCondition{Parameters: parameters},
 			},
 		}, nil
 	} else {
@@ -2638,16 +2639,16 @@ func expandStandardCondition(m map[string]interface{}) (*alerts.AlertCondition, 
 			return nil, err
 		}
 		if lessThan := m["less_than"]; lessThan != nil && lessThan.(bool) {
-			return &alerts.AlertCondition{
-				Condition: &alerts.AlertCondition_LessThan{
-					LessThan: &alerts.LessThanCondition{Parameters: parameters},
+			return &alertsv2.AlertCondition{
+				Condition: &alertsv2.AlertCondition_LessThan{
+					LessThan: &alertsv2.LessThanCondition{Parameters: parameters},
 				},
 			}, nil
 		} else if moreThan := m["more_than"]; moreThan != nil && moreThan.(bool) {
 			evaluationWindow := expandEvaluationWindow(m)
-			return &alerts.AlertCondition{
-				Condition: &alerts.AlertCondition_MoreThan{
-					MoreThan: &alerts.MoreThanCondition{
+			return &alertsv2.AlertCondition{
+				Condition: &alertsv2.AlertCondition_MoreThan{
+					MoreThan: &alertsv2.MoreThanCondition{
 						Parameters:       parameters,
 						EvaluationWindow: evaluationWindow,
 					},
@@ -2700,7 +2701,7 @@ func expandRelatedExtendedData(m map[string]interface{}) (*alerts.RelatedExtende
 	return nil, nil
 }
 
-func expandStandardConditionParameters(m map[string]interface{}) (*alerts.ConditionParameters, error) {
+func expandStandardConditionParameters(m map[string]interface{}) (*alertsv2.ConditionParameters, error) {
 	timeFrame := expandTimeFrame(m["time_window"].(string))
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
 	threshold := wrapperspb.Double(float64(m["threshold"].(int)))
@@ -2709,7 +2710,7 @@ func expandStandardConditionParameters(m map[string]interface{}) (*alerts.Condit
 		return nil, err
 	}
 
-	return &alerts.ConditionParameters{
+	return &alertsv2.ConditionParameters{
 		Threshold:           threshold,
 		Timeframe:           timeFrame,
 		GroupBy:             groupBy,
@@ -2717,12 +2718,12 @@ func expandStandardConditionParameters(m map[string]interface{}) (*alerts.Condit
 	}, nil
 }
 
-func expandTracingConditionParameters(m map[string]interface{}) *alerts.ConditionParameters {
+func expandTracingConditionParameters(m map[string]interface{}) *alertsv2.ConditionParameters {
 	timeFrame := expandTimeFrame(m["time_window"].(string))
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
 	threshold := wrapperspb.Double(float64(m["threshold"].(int)))
 
-	return &alerts.ConditionParameters{
+	return &alertsv2.ConditionParameters{
 		Threshold: threshold,
 		Timeframe: timeFrame,
 		GroupBy:   groupBy,
@@ -2774,7 +2775,7 @@ func expandRatioFilters(m map[string]interface{}, groupBy []*wrapperspb.StringVa
 	return filters
 }
 
-func expandRatioCondition(m map[string]interface{}, groupBy []*wrapperspb.StringValue) (*alerts.AlertCondition, error) {
+func expandRatioCondition(m map[string]interface{}, groupBy []*wrapperspb.StringValue) (*alertsv2.AlertCondition, error) {
 	parameters, err := expandRatioParams(m, groupBy)
 	if err != nil {
 		return nil, err
@@ -2783,7 +2784,7 @@ func expandRatioCondition(m map[string]interface{}, groupBy []*wrapperspb.String
 	return expandLessThanOrMoreThanAlertCondition(m, parameters)
 }
 
-func expandRatioParams(m map[string]interface{}, groupBy []*wrapperspb.StringValue) (*alerts.ConditionParameters, error) {
+func expandRatioParams(m map[string]interface{}, groupBy []*wrapperspb.StringValue) (*alertsv2.ConditionParameters, error) {
 	threshold := wrapperspb.Double(m["ratio_threshold"].(float64))
 	timeFrame := expandTimeFrame(m["time_window"].(string))
 	ignoreInfinity := wrapperspb.Bool(m["ignore_infinity"].(bool))
@@ -2792,7 +2793,7 @@ func expandRatioParams(m map[string]interface{}, groupBy []*wrapperspb.StringVal
 		return nil, err
 	}
 
-	return &alerts.ConditionParameters{
+	return &alertsv2.ConditionParameters{
 		Threshold:           threshold,
 		Timeframe:           timeFrame,
 		GroupBy:             groupBy,
@@ -2829,11 +2830,11 @@ func expandNewValue(m map[string]interface{}) *alertParams {
 	}
 }
 
-func expandNewValueCondition(m map[string]interface{}) *alerts.AlertCondition {
+func expandNewValueCondition(m map[string]interface{}) *alertsv2.AlertCondition {
 	parameters := expandNewValueConditionParameters(m)
-	condition := &alerts.AlertCondition{
-		Condition: &alerts.AlertCondition_NewValue{
-			NewValue: &alerts.NewValueCondition{
+	condition := &alertsv2.AlertCondition{
+		Condition: &alertsv2.AlertCondition_NewValue{
+			NewValue: &alertsv2.NewValueCondition{
 				Parameters: parameters,
 			},
 		},
@@ -2841,10 +2842,10 @@ func expandNewValueCondition(m map[string]interface{}) *alerts.AlertCondition {
 	return condition
 }
 
-func expandNewValueConditionParameters(m map[string]interface{}) *alerts.ConditionParameters {
+func expandNewValueConditionParameters(m map[string]interface{}) *alertsv2.ConditionParameters {
 	timeFrame := expandNewValueTimeFrame(m["time_window"].(string))
 	groupBy := []*wrapperspb.StringValue{wrapperspb.String(m["key_to_track"].(string))}
-	parameters := &alerts.ConditionParameters{
+	parameters := &alertsv2.ConditionParameters{
 		Timeframe: timeFrame,
 		GroupBy:   groupBy,
 	}
@@ -2868,18 +2869,18 @@ func expandUniqueCount(m map[string]interface{}) *alertParams {
 	}
 }
 
-func expandUniqueCountCondition(m map[string]interface{}) *alerts.AlertCondition {
+func expandUniqueCountCondition(m map[string]interface{}) *alertsv2.AlertCondition {
 	parameters := expandUniqueCountConditionParameters(m)
-	return &alerts.AlertCondition{
-		Condition: &alerts.AlertCondition_UniqueCount{
-			UniqueCount: &alerts.UniqueCountCondition{
+	return &alertsv2.AlertCondition{
+		Condition: &alertsv2.AlertCondition_UniqueCount{
+			UniqueCount: &alertsv2.UniqueCountCondition{
 				Parameters: parameters,
 			},
 		},
 	}
 }
 
-func expandUniqueCountConditionParameters(m map[string]interface{}) *alerts.ConditionParameters {
+func expandUniqueCountConditionParameters(m map[string]interface{}) *alertsv2.ConditionParameters {
 	uniqueCountKey := []*wrapperspb.StringValue{wrapperspb.String(m["unique_count_key"].(string))}
 	threshold := wrapperspb.Double(float64(m["max_unique_values"].(int)))
 	timeFrame := expandUniqueValueTimeFrame(m["time_window"].(string))
@@ -2891,7 +2892,7 @@ func expandUniqueCountConditionParameters(m map[string]interface{}) *alerts.Cond
 		groupByThreshold = wrapperspb.UInt32(uint32(m["max_unique_values_for_group_by"].(int)))
 	}
 
-	return &alerts.ConditionParameters{
+	return &alertsv2.ConditionParameters{
 		CardinalityFields:                 uniqueCountKey,
 		Threshold:                         threshold,
 		Timeframe:                         timeFrame,
@@ -2932,7 +2933,7 @@ func expandTimeRelative(m map[string]interface{}) (*alertParams, diag.Diagnostic
 	}, nil
 }
 
-func expandTimeRelativeCondition(m map[string]interface{}) (*alerts.AlertCondition, error) {
+func expandTimeRelativeCondition(m map[string]interface{}) (*alertsv2.AlertCondition, error) {
 	parameters, err := expandTimeRelativeConditionParameters(m)
 	if err != nil {
 		return nil, err
@@ -2942,23 +2943,23 @@ func expandTimeRelativeCondition(m map[string]interface{}) (*alerts.AlertConditi
 }
 
 func expandLessThanOrMoreThanAlertCondition(
-	m map[string]interface{}, parameters *alerts.ConditionParameters) (*alerts.AlertCondition, error) {
+	m map[string]interface{}, parameters *alertsv2.ConditionParameters) (*alertsv2.AlertCondition, error) {
 	lessThan, err := trueIfIsLessThanFalseIfMoreThanAndErrorOtherwise(m)
 	if err != nil {
 		return nil, err
 	}
 
 	if lessThan {
-		return &alerts.AlertCondition{
-			Condition: &alerts.AlertCondition_LessThan{
-				LessThan: &alerts.LessThanCondition{Parameters: parameters},
+		return &alertsv2.AlertCondition{
+			Condition: &alertsv2.AlertCondition_LessThan{
+				LessThan: &alertsv2.LessThanCondition{Parameters: parameters},
 			},
 		}, nil
 	}
 
-	return &alerts.AlertCondition{
-		Condition: &alerts.AlertCondition_MoreThan{
-			MoreThan: &alerts.MoreThanCondition{Parameters: parameters},
+	return &alertsv2.AlertCondition{
+		Condition: &alertsv2.AlertCondition_MoreThan{
+			MoreThan: &alertsv2.MoreThanCondition{Parameters: parameters},
 		},
 	}, nil
 }
@@ -2973,7 +2974,7 @@ func trueIfIsLessThanFalseIfMoreThanAndErrorOtherwise(m map[string]interface{}) 
 }
 
 func expandLessThanMoreThanOrMoreThanUsualAlertCondition(
-	m map[string]interface{}, parameters *alerts.ConditionParameters) (*alerts.AlertCondition, error) {
+	m map[string]interface{}, parameters *alertsv2.ConditionParameters) (*alertsv2.AlertCondition, error) {
 	conditionsStr, err := returnAlertConditionString(m)
 	if err != nil {
 		return nil, err
@@ -2981,21 +2982,21 @@ func expandLessThanMoreThanOrMoreThanUsualAlertCondition(
 
 	switch conditionsStr {
 	case "less_than":
-		return &alerts.AlertCondition{
-			Condition: &alerts.AlertCondition_LessThan{
-				LessThan: &alerts.LessThanCondition{Parameters: parameters},
+		return &alertsv2.AlertCondition{
+			Condition: &alertsv2.AlertCondition_LessThan{
+				LessThan: &alertsv2.LessThanCondition{Parameters: parameters},
 			},
 		}, nil
 	case "more_than":
-		return &alerts.AlertCondition{
-			Condition: &alerts.AlertCondition_MoreThan{
-				MoreThan: &alerts.MoreThanCondition{Parameters: parameters},
+		return &alertsv2.AlertCondition{
+			Condition: &alertsv2.AlertCondition_MoreThan{
+				MoreThan: &alertsv2.MoreThanCondition{Parameters: parameters},
 			},
 		}, nil
 	case "more_than_usual":
-		return &alerts.AlertCondition{
-			Condition: &alerts.AlertCondition_MoreThanUsual{
-				MoreThanUsual: &alerts.MoreThanUsualCondition{Parameters: parameters},
+		return &alertsv2.AlertCondition{
+			Condition: &alertsv2.AlertCondition_MoreThanUsual{
+				MoreThanUsual: &alertsv2.MoreThanUsualCondition{Parameters: parameters},
 			},
 		}, nil
 	}
@@ -3014,7 +3015,7 @@ func returnAlertConditionString(m map[string]interface{}) (string, error) {
 	return "", fmt.Errorf("less_than or more_than or more_than_usual must be true")
 }
 
-func expandTimeRelativeConditionParameters(m map[string]interface{}) (*alerts.ConditionParameters, error) {
+func expandTimeRelativeConditionParameters(m map[string]interface{}) (*alertsv2.ConditionParameters, error) {
 	timeFrame, relativeTimeframe := expandTimeFrameAndRelativeTimeframe(m["relative_time_window"].(string))
 	ignoreInfinity := wrapperspb.Bool(m["ignore_infinity"].(bool))
 	groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
@@ -3024,7 +3025,7 @@ func expandTimeRelativeConditionParameters(m map[string]interface{}) (*alerts.Co
 		return nil, err
 	}
 
-	return &alerts.ConditionParameters{
+	return &alertsv2.ConditionParameters{
 		Timeframe:           timeFrame,
 		RelativeTimeframe:   relativeTimeframe,
 		GroupBy:             groupBy,
@@ -3058,7 +3059,7 @@ func expandMetric(m map[string]interface{}) (*alertParams, diag.Diagnostics) {
 	}, nil
 }
 
-func expandMetricCondition(m map[string]interface{}) (*alerts.AlertCondition, error) {
+func expandMetricCondition(m map[string]interface{}) (*alertsv2.AlertCondition, error) {
 	isPromQL := len(m["promql"].([]interface{})) > 0
 	var metricType string
 	if isPromQL {
@@ -3080,7 +3081,7 @@ func expandMetricCondition(m map[string]interface{}) (*alerts.AlertCondition, er
 		return nil, err
 	}
 
-	parameters := &alerts.ConditionParameters{
+	parameters := &alertsv2.ConditionParameters{
 		Threshold:           threshold,
 		Timeframe:           timeFrame,
 		RelatedExtendedData: relatedExtendedData,
@@ -3137,9 +3138,9 @@ func expandFlow(m map[string]interface{}) *alertParams {
 	stages := expandFlowStages(m["stage"])
 	parameters := expandFlowParameters(m["group_by"])
 	return &alertParams{
-		Condition: &alerts.AlertCondition{
-			Condition: &alerts.AlertCondition_Flow{
-				Flow: &alerts.FlowCondition{
+		Condition: &alertsv2.AlertCondition{
+			Condition: &alertsv2.AlertCondition_Flow{
+				Flow: &alertsv2.FlowCondition{
 					Stages:     stages,
 					Parameters: parameters,
 				},
@@ -3151,7 +3152,7 @@ func expandFlow(m map[string]interface{}) *alertParams {
 	}
 }
 
-func expandFlowParameters(i interface{}) *alerts.ConditionParameters {
+func expandFlowParameters(i interface{}) *alertsv2.ConditionParameters {
 	if i == nil {
 		return nil
 	}
@@ -3160,7 +3161,7 @@ func expandFlowParameters(i interface{}) *alerts.ConditionParameters {
 		return nil
 	}
 
-	return &alerts.ConditionParameters{
+	return &alertsv2.ConditionParameters{
 		GroupBy: groupBy,
 	}
 }
@@ -3270,16 +3271,16 @@ func expandTracingParams(m map[string]interface{}) (*alertParams, error) {
 	}, nil
 }
 
-func expandTracingCondition(m map[string]interface{}) (*alerts.AlertCondition, error) {
+func expandTracingCondition(m map[string]interface{}) (*alertsv2.AlertCondition, error) {
 	if immediately := m["immediately"]; immediately != nil && immediately.(bool) {
-		return &alerts.AlertCondition{
-			Condition: &alerts.AlertCondition_Immediate{},
+		return &alertsv2.AlertCondition{
+			Condition: &alertsv2.AlertCondition_Immediate{},
 		}, nil
 	} else if moreThan := m["more_than"]; moreThan != nil && moreThan.(bool) {
 		parameters := expandTracingConditionParameters(m)
-		return &alerts.AlertCondition{
-			Condition: &alerts.AlertCondition_MoreThan{
-				MoreThan: &alerts.MoreThanCondition{Parameters: parameters},
+		return &alertsv2.AlertCondition{
+			Condition: &alertsv2.AlertCondition_MoreThan{
+				MoreThan: &alertsv2.MoreThanCondition{Parameters: parameters},
 			},
 		}, nil
 	}

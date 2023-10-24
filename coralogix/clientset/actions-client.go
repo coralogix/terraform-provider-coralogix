@@ -3,7 +3,7 @@ package clientset
 import (
 	"context"
 
-	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
+	actions "github.com/coralogix/coralogix-sdk-demo/actions/v2"
 )
 
 type ActionsClient struct {

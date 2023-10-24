@@ -8,13 +8,18 @@ import (
 	"strings"
 	"time"
 
+	dashboardast "github.com/coralogix/coralogix-sdk-demo/dashboards/v1/ast"
+	dashboardwidgets "github.com/coralogix/coralogix-sdk-demo/dashboards/v1/ast/widgets"
+	dashboardwidgetscommon "github.com/coralogix/coralogix-sdk-demo/dashboards/v1/ast/widgets/common"
+	dashboardcommon "github.com/coralogix/coralogix-sdk-demo/dashboards/v1/common"
+
+	dashboards "github.com/coralogix/coralogix-sdk-demo/dashboards/v1/services"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"golang.org/x/exp/slices"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -41,145 +46,145 @@ import (
 )
 
 var (
-	dashboardRowStyleSchemaToProto = map[string]dashboards.RowStyle{
+	dashboardRowStyleSchemaToProto = map[string]dashboardwidgets.RowStyle{
 		//"unspecified": dashboards.RowStyle_ROW_STYLE_UNSPECIFIED,
-		"one_line":  dashboards.RowStyle_ROW_STYLE_ONE_LINE,
-		"two_line":  dashboards.RowStyle_ROW_STYLE_TWO_LINE,
-		"condensed": dashboards.RowStyle_ROW_STYLE_CONDENSED,
-		"json":      dashboards.RowStyle_ROW_STYLE_JSON,
+		"one_line":  dashboardwidgets.RowStyle_ROW_STYLE_ONE_LINE,
+		"two_line":  dashboardwidgets.RowStyle_ROW_STYLE_TWO_LINE,
+		"condensed": dashboardwidgets.RowStyle_ROW_STYLE_CONDENSED,
+		"json":      dashboardwidgets.RowStyle_ROW_STYLE_JSON,
 	}
 	dashboardRowStyleProtoToSchema     = ReverseMap(dashboardRowStyleSchemaToProto)
 	dashboardValidRowStyles            = GetKeys(dashboardRowStyleSchemaToProto)
-	dashboardLegendColumnSchemaToProto = map[string]dashboards.Legend_LegendColumn{
-		"unspecified": dashboards.Legend_LEGEND_COLUMN_UNSPECIFIED,
-		"min":         dashboards.Legend_LEGEND_COLUMN_MIN,
-		"max":         dashboards.Legend_LEGEND_COLUMN_MAX,
-		"sum":         dashboards.Legend_LEGEND_COLUMN_SUM,
-		"avg":         dashboards.Legend_LEGEND_COLUMN_AVG,
-		"last":        dashboards.Legend_LEGEND_COLUMN_LAST,
+	dashboardLegendColumnSchemaToProto = map[string]dashboardwidgetscommon.Legend_LegendColumn{
+		"unspecified": dashboardwidgetscommon.Legend_LEGEND_COLUMN_UNSPECIFIED,
+		"min":         dashboardwidgetscommon.Legend_LEGEND_COLUMN_MIN,
+		"max":         dashboardwidgetscommon.Legend_LEGEND_COLUMN_MAX,
+		"sum":         dashboardwidgetscommon.Legend_LEGEND_COLUMN_SUM,
+		"avg":         dashboardwidgetscommon.Legend_LEGEND_COLUMN_AVG,
+		"last":        dashboardwidgetscommon.Legend_LEGEND_COLUMN_LAST,
 	}
 	dashboardLegendColumnProtoToSchema   = ReverseMap(dashboardLegendColumnSchemaToProto)
 	dashboardValidLegendColumns          = GetKeys(dashboardLegendColumnSchemaToProto)
-	dashboardOrderDirectionSchemaToProto = map[string]dashboards.OrderDirection{
-		"unspecified": dashboards.OrderDirection_ORDER_DIRECTION_UNSPECIFIED,
-		"asc":         dashboards.OrderDirection_ORDER_DIRECTION_ASC,
-		"desc":        dashboards.OrderDirection_ORDER_DIRECTION_DESC,
+	dashboardOrderDirectionSchemaToProto = map[string]dashboardcommon.OrderDirection{
+		"unspecified": dashboardcommon.OrderDirection_ORDER_DIRECTION_UNSPECIFIED,
+		"asc":         dashboardcommon.OrderDirection_ORDER_DIRECTION_ASC,
+		"desc":        dashboardcommon.OrderDirection_ORDER_DIRECTION_DESC,
 	}
 	dashboardOrderDirectionProtoToSchema = ReverseMap(dashboardOrderDirectionSchemaToProto)
 	dashboardValidOrderDirections        = GetKeys(dashboardOrderDirectionSchemaToProto)
-	dashboardSchemaToProtoTooltipType    = map[string]dashboards.LineChart_TooltipType{
-		"unspecified": dashboards.LineChart_TOOLTIP_TYPE_UNSPECIFIED,
-		"all":         dashboards.LineChart_TOOLTIP_TYPE_ALL,
-		"single":      dashboards.LineChart_TOOLTIP_TYPE_SINGLE,
+	dashboardSchemaToProtoTooltipType    = map[string]dashboardwidgets.LineChart_TooltipType{
+		"unspecified": dashboardwidgets.LineChart_TOOLTIP_TYPE_UNSPECIFIED,
+		"all":         dashboardwidgets.LineChart_TOOLTIP_TYPE_ALL,
+		"single":      dashboardwidgets.LineChart_TOOLTIP_TYPE_SINGLE,
 	}
 	dashboardProtoToSchemaTooltipType = ReverseMap(dashboardSchemaToProtoTooltipType)
 	dashboardValidTooltipTypes        = GetKeys(dashboardSchemaToProtoTooltipType)
-	dashboardSchemaToProtoScaleType   = map[string]dashboards.ScaleType{
-		"unspecified": dashboards.ScaleType_SCALE_TYPE_UNSPECIFIED,
-		"linear":      dashboards.ScaleType_SCALE_TYPE_LINEAR,
-		"logarithmic": dashboards.ScaleType_SCALE_TYPE_LOGARITHMIC,
+	dashboardSchemaToProtoScaleType   = map[string]dashboardwidgetscommon.ScaleType{
+		"unspecified": dashboardwidgetscommon.ScaleType_SCALE_TYPE_UNSPECIFIED,
+		"linear":      dashboardwidgetscommon.ScaleType_SCALE_TYPE_LINEAR,
+		"logarithmic": dashboardwidgetscommon.ScaleType_SCALE_TYPE_LOGARITHMIC,
 	}
 	dashboardProtoToSchemaScaleType = ReverseMap(dashboardSchemaToProtoScaleType)
 	dashboardValidScaleTypes        = GetKeys(dashboardSchemaToProtoScaleType)
-	dashboardSchemaToProtoUnit      = map[string]dashboards.Unit{
-		"unspecified":  dashboards.Unit_UNIT_UNSPECIFIED,
-		"microseconds": dashboards.Unit_UNIT_MICROSECONDS,
-		"milliseconds": dashboards.Unit_UNIT_MILLISECONDS,
-		"seconds":      dashboards.Unit_UNIT_SECONDS,
-		"bytes":        dashboards.Unit_UNIT_BYTES,
-		"kbytes":       dashboards.Unit_UNIT_KBYTES,
-		"mbytes":       dashboards.Unit_UNIT_MBYTES,
-		"gbytes":       dashboards.Unit_UNIT_GBYTES,
-		"bytes_iec":    dashboards.Unit_UNIT_BYTES_IEC,
-		"kibytes":      dashboards.Unit_UNIT_KIBYTES,
-		"mibytes":      dashboards.Unit_UNIT_MIBYTES,
-		"gibytes":      dashboards.Unit_UNIT_GIBYTES,
+	dashboardSchemaToProtoUnit      = map[string]dashboardwidgetscommon.Unit{
+		"unspecified":  dashboardwidgetscommon.Unit_UNIT_UNSPECIFIED,
+		"microseconds": dashboardwidgetscommon.Unit_UNIT_MICROSECONDS,
+		"milliseconds": dashboardwidgetscommon.Unit_UNIT_MILLISECONDS,
+		"seconds":      dashboardwidgetscommon.Unit_UNIT_SECONDS,
+		"bytes":        dashboardwidgetscommon.Unit_UNIT_BYTES,
+		"kbytes":       dashboardwidgetscommon.Unit_UNIT_KBYTES,
+		"mbytes":       dashboardwidgetscommon.Unit_UNIT_MBYTES,
+		"gbytes":       dashboardwidgetscommon.Unit_UNIT_GBYTES,
+		"bytes_iec":    dashboardwidgetscommon.Unit_UNIT_BYTES_IEC,
+		"kibytes":      dashboardwidgetscommon.Unit_UNIT_KIBYTES,
+		"mibytes":      dashboardwidgetscommon.Unit_UNIT_MIBYTES,
+		"gibytes":      dashboardwidgetscommon.Unit_UNIT_GIBYTES,
 	}
 	dashboardProtoToSchemaUnit      = ReverseMap(dashboardSchemaToProtoUnit)
 	dashboardValidUnits             = GetKeys(dashboardSchemaToProtoUnit)
-	dashboardSchemaToProtoGaugeUnit = map[string]dashboards.Gauge_Unit{
+	dashboardSchemaToProtoGaugeUnit = map[string]dashboardwidgets.Gauge_Unit{
 		//"unspecified":  dashboards.Gauge_UNIT_UNSPECIFIED,
-		"none":         dashboards.Gauge_UNIT_NUMBER,
-		"percent":      dashboards.Gauge_UNIT_PERCENT,
-		"microseconds": dashboards.Gauge_UNIT_MICROSECONDS,
-		"milliseconds": dashboards.Gauge_UNIT_MILLISECONDS,
-		"seconds":      dashboards.Gauge_UNIT_SECONDS,
-		"bytes":        dashboards.Gauge_UNIT_BYTES,
-		"kbytes":       dashboards.Gauge_UNIT_KBYTES,
-		"mbytes":       dashboards.Gauge_UNIT_MBYTES,
-		"gbytes":       dashboards.Gauge_UNIT_GBYTES,
-		"bytes_iec":    dashboards.Gauge_UNIT_BYTES_IEC,
-		"kibytes":      dashboards.Gauge_UNIT_KIBYTES,
-		"mibytes":      dashboards.Gauge_UNIT_MIBYTES,
-		"gibytes":      dashboards.Gauge_UNIT_GIBYTES,
-		"euro_cents":   dashboards.Gauge_UNIT_EUR_CENTS,
-		"euro":         dashboards.Gauge_UNIT_EUR,
-		"usd_cents":    dashboards.Gauge_UNIT_USD_CENTS,
-		"usd":          dashboards.Gauge_UNIT_USD,
+		"none":         dashboardwidgets.Gauge_UNIT_NUMBER,
+		"percent":      dashboardwidgets.Gauge_UNIT_PERCENT,
+		"microseconds": dashboardwidgets.Gauge_UNIT_MICROSECONDS,
+		"milliseconds": dashboardwidgets.Gauge_UNIT_MILLISECONDS,
+		"seconds":      dashboardwidgets.Gauge_UNIT_SECONDS,
+		"bytes":        dashboardwidgets.Gauge_UNIT_BYTES,
+		"kbytes":       dashboardwidgets.Gauge_UNIT_KBYTES,
+		"mbytes":       dashboardwidgets.Gauge_UNIT_MBYTES,
+		"gbytes":       dashboardwidgets.Gauge_UNIT_GBYTES,
+		"bytes_iec":    dashboardwidgets.Gauge_UNIT_BYTES_IEC,
+		"kibytes":      dashboardwidgets.Gauge_UNIT_KIBYTES,
+		"mibytes":      dashboardwidgets.Gauge_UNIT_MIBYTES,
+		"gibytes":      dashboardwidgets.Gauge_UNIT_GIBYTES,
+		"euro_cents":   dashboardwidgets.Gauge_UNIT_EUR_CENTS,
+		"euro":         dashboardwidgets.Gauge_UNIT_EUR,
+		"usd_cents":    dashboardwidgets.Gauge_UNIT_USD_CENTS,
+		"usd":          dashboardwidgets.Gauge_UNIT_USD,
 	}
 	dashboardProtoToSchemaGaugeUnit           = ReverseMap(dashboardSchemaToProtoGaugeUnit)
 	dashboardValidGaugeUnits                  = GetKeys(dashboardSchemaToProtoGaugeUnit)
-	dashboardSchemaToProtoPieChartLabelSource = map[string]dashboards.PieChart_LabelSource{
-		"unspecified": dashboards.PieChart_LABEL_SOURCE_UNSPECIFIED,
-		"inner":       dashboards.PieChart_LABEL_SOURCE_INNER,
-		"stack":       dashboards.PieChart_LABEL_SOURCE_STACK,
+	dashboardSchemaToProtoPieChartLabelSource = map[string]dashboardwidgets.PieChart_LabelSource{
+		"unspecified": dashboardwidgets.PieChart_LABEL_SOURCE_UNSPECIFIED,
+		"inner":       dashboardwidgets.PieChart_LABEL_SOURCE_INNER,
+		"stack":       dashboardwidgets.PieChart_LABEL_SOURCE_STACK,
 	}
 	dashboardProtoToSchemaPieChartLabelSource = ReverseMap(dashboardSchemaToProtoPieChartLabelSource)
 	dashboardValidPieChartLabelSources        = GetKeys(dashboardSchemaToProtoPieChartLabelSource)
-	dashboardSchemaToProtoGaugeAggregation    = map[string]dashboards.Gauge_Aggregation{
-		"unspecified": dashboards.Gauge_AGGREGATION_UNSPECIFIED,
-		"last":        dashboards.Gauge_AGGREGATION_LAST,
-		"min":         dashboards.Gauge_AGGREGATION_MIN,
-		"max":         dashboards.Gauge_AGGREGATION_MAX,
-		"avg":         dashboards.Gauge_AGGREGATION_AVG,
-		"sum":         dashboards.Gauge_AGGREGATION_SUM,
+	dashboardSchemaToProtoGaugeAggregation    = map[string]dashboardwidgets.Gauge_Aggregation{
+		"unspecified": dashboardwidgets.Gauge_AGGREGATION_UNSPECIFIED,
+		"last":        dashboardwidgets.Gauge_AGGREGATION_LAST,
+		"min":         dashboardwidgets.Gauge_AGGREGATION_MIN,
+		"max":         dashboardwidgets.Gauge_AGGREGATION_MAX,
+		"avg":         dashboardwidgets.Gauge_AGGREGATION_AVG,
+		"sum":         dashboardwidgets.Gauge_AGGREGATION_SUM,
 	}
 	dashboardProtoToSchemaGaugeAggregation            = ReverseMap(dashboardSchemaToProtoGaugeAggregation)
 	dashboardValidGaugeAggregations                   = GetKeys(dashboardSchemaToProtoGaugeAggregation)
-	dashboardSchemaToProtoSpansAggregationMetricField = map[string]dashboards.SpansAggregation_MetricAggregation_MetricField{
-		"unspecified": dashboards.SpansAggregation_MetricAggregation_METRIC_FIELD_UNSPECIFIED,
-		"duration":    dashboards.SpansAggregation_MetricAggregation_METRIC_FIELD_DURATION,
+	dashboardSchemaToProtoSpansAggregationMetricField = map[string]dashboardcommon.SpansAggregation_MetricAggregation_MetricField{
+		"unspecified": dashboardcommon.SpansAggregation_MetricAggregation_METRIC_FIELD_UNSPECIFIED,
+		"duration":    dashboardcommon.SpansAggregation_MetricAggregation_METRIC_FIELD_DURATION,
 	}
 	dashboardProtoToSchemaSpansAggregationMetricField           = ReverseMap(dashboardSchemaToProtoSpansAggregationMetricField)
 	dashboardValidSpansAggregationMetricFields                  = GetKeys(dashboardSchemaToProtoSpansAggregationMetricField)
-	dashboardSchemaToProtoSpansAggregationMetricAggregationType = map[string]dashboards.SpansAggregation_MetricAggregation_MetricAggregationType{
-		"unspecified":   dashboards.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_UNSPECIFIED,
-		"min":           dashboards.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_MIN,
-		"max":           dashboards.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_MAX,
-		"avg":           dashboards.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_AVERAGE,
-		"sum":           dashboards.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_SUM,
-		"percentile_99": dashboards.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_PERCENTILE_99,
-		"percentile_95": dashboards.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_PERCENTILE_95,
-		"percentile_50": dashboards.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_PERCENTILE_50,
+	dashboardSchemaToProtoSpansAggregationMetricAggregationType = map[string]dashboardcommon.SpansAggregation_MetricAggregation_MetricAggregationType{
+		"unspecified":   dashboardcommon.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_UNSPECIFIED,
+		"min":           dashboardcommon.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_MIN,
+		"max":           dashboardcommon.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_MAX,
+		"avg":           dashboardcommon.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_AVERAGE,
+		"sum":           dashboardcommon.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_SUM,
+		"percentile_99": dashboardcommon.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_PERCENTILE_99,
+		"percentile_95": dashboardcommon.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_PERCENTILE_95,
+		"percentile_50": dashboardcommon.SpansAggregation_MetricAggregation_METRIC_AGGREGATION_TYPE_PERCENTILE_50,
 	}
 	dashboardProtoToSchemaSpansAggregationMetricAggregationType = ReverseMap(dashboardSchemaToProtoSpansAggregationMetricAggregationType)
 	dashboardValidSpansAggregationMetricAggregationTypes        = GetKeys(dashboardSchemaToProtoSpansAggregationMetricAggregationType)
-	dashboardProtoToSchemaSpansAggregationDimensionField        = map[string]dashboards.SpansAggregation_DimensionAggregation_DimensionField{
-		"unspecified": dashboards.SpansAggregation_DimensionAggregation_DIMENSION_FIELD_UNSPECIFIED,
-		"trace_id":    dashboards.SpansAggregation_DimensionAggregation_DIMENSION_FIELD_TRACE_ID,
+	dashboardProtoToSchemaSpansAggregationDimensionField        = map[string]dashboardcommon.SpansAggregation_DimensionAggregation_DimensionField{
+		"unspecified": dashboardcommon.SpansAggregation_DimensionAggregation_DIMENSION_FIELD_UNSPECIFIED,
+		"trace_id":    dashboardcommon.SpansAggregation_DimensionAggregation_DIMENSION_FIELD_TRACE_ID,
 	}
 	dashboardSchemaToProtoSpansAggregationDimensionField           = ReverseMap(dashboardProtoToSchemaSpansAggregationDimensionField)
 	dashboardValidSpansAggregationDimensionFields                  = GetKeys(dashboardProtoToSchemaSpansAggregationDimensionField)
-	dashboardSchemaToProtoSpansAggregationDimensionAggregationType = map[string]dashboards.SpansAggregation_DimensionAggregation_DimensionAggregationType{
-		"unspecified":  dashboards.SpansAggregation_DimensionAggregation_DIMENSION_AGGREGATION_TYPE_UNSPECIFIED,
-		"unique_count": dashboards.SpansAggregation_DimensionAggregation_DIMENSION_AGGREGATION_TYPE_UNIQUE_COUNT,
-		"error_count":  dashboards.SpansAggregation_DimensionAggregation_DIMENSION_AGGREGATION_TYPE_ERROR_COUNT,
+	dashboardSchemaToProtoSpansAggregationDimensionAggregationType = map[string]dashboardcommon.SpansAggregation_DimensionAggregation_DimensionAggregationType{
+		"unspecified":  dashboardcommon.SpansAggregation_DimensionAggregation_DIMENSION_AGGREGATION_TYPE_UNSPECIFIED,
+		"unique_count": dashboardcommon.SpansAggregation_DimensionAggregation_DIMENSION_AGGREGATION_TYPE_UNIQUE_COUNT,
+		"error_count":  dashboardcommon.SpansAggregation_DimensionAggregation_DIMENSION_AGGREGATION_TYPE_ERROR_COUNT,
 	}
 	dashboardProtoToSchemaSpansAggregationDimensionAggregationType = ReverseMap(dashboardSchemaToProtoSpansAggregationDimensionAggregationType)
 	dashboardValidSpansAggregationDimensionAggregationTypes        = GetKeys(dashboardSchemaToProtoSpansAggregationDimensionAggregationType)
-	dashboardSchemaToProtoSpanFieldMetadataField                   = map[string]dashboards.SpanField_MetadataField{
-		"unspecified":      dashboards.SpanField_METADATA_FIELD_UNSPECIFIED,
-		"application_name": dashboards.SpanField_METADATA_FIELD_APPLICATION_NAME,
-		"subsystem_name":   dashboards.SpanField_METADATA_FIELD_SUBSYSTEM_NAME,
-		"service_name":     dashboards.SpanField_METADATA_FIELD_SERVICE_NAME,
-		"operation_name":   dashboards.SpanField_METADATA_FIELD_OPERATION_NAME,
+	dashboardSchemaToProtoSpanFieldMetadataField                   = map[string]dashboardcommon.SpanField_MetadataField{
+		"unspecified":      dashboardcommon.SpanField_METADATA_FIELD_UNSPECIFIED,
+		"application_name": dashboardcommon.SpanField_METADATA_FIELD_APPLICATION_NAME,
+		"subsystem_name":   dashboardcommon.SpanField_METADATA_FIELD_SUBSYSTEM_NAME,
+		"service_name":     dashboardcommon.SpanField_METADATA_FIELD_SERVICE_NAME,
+		"operation_name":   dashboardcommon.SpanField_METADATA_FIELD_OPERATION_NAME,
 	}
 	dashboardProtoToSchemaSpanFieldMetadataField = ReverseMap(dashboardSchemaToProtoSpanFieldMetadataField)
 	dashboardValidSpanFieldMetadataFields        = GetKeys(dashboardSchemaToProtoSpanFieldMetadataField)
-	dashboardSchemaToProtoSortBy                 = map[string]dashboards.SortByType{
-		"unspecified": dashboards.SortByType_SORT_BY_TYPE_UNSPECIFIED,
-		"value":       dashboards.SortByType_SORT_BY_TYPE_VALUE,
-		"name":        dashboards.SortByType_SORT_BY_TYPE_NAME,
+	dashboardSchemaToProtoSortBy                 = map[string]dashboardwidgetscommon.SortByType{
+		"unspecified": dashboardwidgetscommon.SortByType_SORT_BY_TYPE_UNSPECIFIED,
+		"value":       dashboardwidgetscommon.SortByType_SORT_BY_TYPE_VALUE,
+		"name":        dashboardwidgetscommon.SortByType_SORT_BY_TYPE_NAME,
 	}
 	dashboardProtoToSchemaSortBy       = ReverseMap(dashboardSchemaToProtoSortBy)
 	dashboardValidSortBy               = GetKeys(dashboardSchemaToProtoSortBy)
@@ -1930,7 +1935,7 @@ func (c ContentJsonValidator) ValidateString(_ context.Context, request validato
 		return
 	}
 
-	err := protojson.Unmarshal([]byte(request.ConfigValue.ValueString()), &dashboards.Dashboard{})
+	err := protojson.Unmarshal([]byte(request.ConfigValue.ValueString()), &dashboardast.Dashboard{})
 	if err != nil {
 		response.Diagnostics.Append(diag.NewErrorDiagnostic("content_json validation failed", fmt.Sprintf("json content is not matching layout schema. got an err while unmarshalling - %s", err)))
 	}
@@ -2288,9 +2293,9 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	resp.Diagnostics.Append(diags...)
 }
 
-func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashboards.Dashboard, diag.Diagnostics) {
+func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashboardast.Dashboard, diag.Diagnostics) {
 	if !plan.ContentJson.IsNull() {
-		dashboard := new(dashboards.Dashboard)
+		dashboard := new(dashboardast.Dashboard)
 		if err := protojson.Unmarshal([]byte(plan.ContentJson.ValueString()), dashboard); err != nil {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error unmarshalling dashboard content json", err.Error())}
 		}
@@ -2314,7 +2319,7 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashbo
 
 	id := wrapperspb.String(expandDashboardUUID(plan.ID).GetValue())
 
-	dashboard := &dashboards.Dashboard{
+	dashboard := &dashboardast.Dashboard{
 		Id:          id,
 		Name:        typeStringToWrapperspbString(plan.Name),
 		Description: typeStringToWrapperspbString(plan.Description),
@@ -2331,7 +2336,7 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashbo
 	return dashboard, nil
 }
 
-func expandDashboardTimeFrame(dashboard *dashboards.Dashboard, timeFrame *DashboardTimeFrameModel) (*dashboards.Dashboard, diag.Diagnostic) {
+func expandDashboardTimeFrame(dashboard *dashboardast.Dashboard, timeFrame *DashboardTimeFrameModel) (*dashboardast.Dashboard, diag.Diagnostic) {
 	if timeFrame == nil {
 		return dashboard, nil
 	}
@@ -2340,7 +2345,7 @@ func expandDashboardTimeFrame(dashboard *dashboards.Dashboard, timeFrame *Dashbo
 	case timeFrame.Relative != nil:
 		dashboard.TimeFrame, dg = expandRelativeDashboardTimeFrame(timeFrame.Relative)
 	case timeFrame.Absolute != nil:
-		dashboard.TimeFrame, dg = expandAbsoluteeDashboardTimeFrame(timeFrame.Absolute)
+		dashboard.TimeFrame, dg = expandAbsoluteDashboardTimeFrame(timeFrame.Absolute)
 	default:
 		dg = diag.NewErrorDiagnostic("Error Expand Time Frame", "Dashboard TimeFrame must be either Relative or Absolutee")
 	}
@@ -2357,10 +2362,10 @@ func expandDashboardLayout(ctx context.Context, layout *DashboardLayoutModel) (*
 	}, nil
 }
 
-func expandDashboardSections(ctx context.Context, sections types.List) ([]*dashboards.Section, diag.Diagnostics) {
+func expandDashboardSections(ctx context.Context, sections types.List) ([]*dashboardast.Section, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var sectionsObjects []types.Object
-	var expandedSections []*dashboards.Section
+	var expandedSections []*dashboardast.Section
 	sections.ElementsAs(ctx, &sectionsObjects, true)
 
 	for _, so := range sectionsObjects {
@@ -2380,23 +2385,23 @@ func expandDashboardSections(ctx context.Context, sections types.List) ([]*dashb
 	return expandedSections, diags
 }
 
-func expandSection(ctx context.Context, section SectionModel) (*dashboards.Section, diag.Diagnostics) {
+func expandSection(ctx context.Context, section SectionModel) (*dashboardast.Section, diag.Diagnostics) {
 	id := expandDashboardUUID(section.ID)
 	rows, diags := expandDashboardRows(ctx, section.Rows)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &dashboards.Section{
+	return &dashboardast.Section{
 		Id:   id,
 		Rows: rows,
 	}, nil
 }
 
-func expandDashboardRows(ctx context.Context, rows types.List) ([]*dashboards.Row, diag.Diagnostics) {
+func expandDashboardRows(ctx context.Context, rows types.List) ([]*dashboardast.Row, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var rowsObjects []types.Object
-	var expandedRows []*dashboards.Row
+	var expandedRows []*dashboardast.Row
 	rows.ElementsAs(ctx, &rowsObjects, true)
 
 	for _, ro := range rowsObjects {
@@ -2416,9 +2421,9 @@ func expandDashboardRows(ctx context.Context, rows types.List) ([]*dashboards.Ro
 	return expandedRows, diags
 }
 
-func expandRow(ctx context.Context, row RowModel) (*dashboards.Row, diag.Diagnostics) {
+func expandRow(ctx context.Context, row RowModel) (*dashboardast.Row, diag.Diagnostics) {
 	id := expandDashboardUUID(row.ID)
-	appearance := &dashboards.Row_Appearance{
+	appearance := &dashboardast.Row_Appearance{
 		Height: wrapperspb.Int32(int32(row.Height.ValueInt64())),
 	}
 	widgets, diags := expandDashboardWidgets(ctx, row.Widgets)
@@ -2426,7 +2431,7 @@ func expandRow(ctx context.Context, row RowModel) (*dashboards.Row, diag.Diagnos
 		return nil, diags
 	}
 
-	return &dashboards.Row{
+	return &dashboardast.Row{
 		Id:         id,
 		Appearance: appearance,
 		Widgets:    widgets,
@@ -2503,10 +2508,10 @@ func expandWidgetDefinition(ctx context.Context, definition *WidgetDefinitionMod
 	}
 }
 
-func expandMarkdown(markdown *MarkdownModel) (*dashboards.Widget_Definition, diag.Diagnostics) {
-	return &dashboards.Widget_Definition{
-		Value: &dashboards.Widget_Definition_Markdown{
-			Markdown: &dashboards.Markdown{
+func expandMarkdown(markdown *MarkdownModel) (*dashboardast.Widget_Definition, diag.Diagnostics) {
+	return &dashboardast.Widget_Definition{
+		Value: &dashboardast.Widget_Definition_Markdown{
+			Markdown: &dashboardwidgets.Markdown{
 				MarkdownText: typeStringToWrapperspbString(markdown.MarkdownText),
 				TooltipText:  typeStringToWrapperspbString(markdown.TooltipText),
 			},
@@ -2514,7 +2519,7 @@ func expandMarkdown(markdown *MarkdownModel) (*dashboards.Widget_Definition, dia
 	}, nil
 }
 
-func expandHorizontalBarChart(ctx context.Context, chart *HorizontalBarChartModel) (*dashboards.Widget_Definition, diag.Diagnostics) {
+func expandHorizontalBarChart(ctx context.Context, chart *HorizontalBarChartModel) (*dashboardast.Widget_Definition, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	query, diags := expandHorizontalBarChartQuery(ctx, chart.Query)
@@ -2522,9 +2527,9 @@ func expandHorizontalBarChart(ctx context.Context, chart *HorizontalBarChartMode
 		return nil, diags
 	}
 
-	return &dashboards.Widget_Definition{
-		Value: &dashboards.Widget_Definition_HorizontalBarChart{
-			HorizontalBarChart: &dashboards.HorizontalBarChart{
+	return &dashboardast.Widget_Definition{
+		Value: &dashboardast.Widget_Definition_HorizontalBarChart{
+			HorizontalBarChart: &dashboardwidgets.HorizontalBarChart{
 				Query:             query,
 				StackDefinition:   expandHorizontalBarChartStackDefinition(chart.StackDefinition),
 				MaxBarsPerChart:   typeInt64ToWrappedInt32(chart.MaxBarsPerChart),
@@ -2541,22 +2546,22 @@ func expandHorizontalBarChart(ctx context.Context, chart *HorizontalBarChartMode
 	}, nil
 }
 
-func expandYAxisViewBy(yAxisViewBy types.String) *dashboards.HorizontalBarChart_YAxisViewBy {
+func expandYAxisViewBy(yAxisViewBy types.String) *dashboardwidgets.HorizontalBarChart_YAxisViewBy {
 	switch yAxisViewBy.ValueString() {
 	case "category":
-		return &dashboards.HorizontalBarChart_YAxisViewBy{
-			YAxisView: &dashboards.HorizontalBarChart_YAxisViewBy_Category{},
+		return &dashboardwidgets.HorizontalBarChart_YAxisViewBy{
+			YAxisView: &dashboardwidgets.HorizontalBarChart_YAxisViewBy_Category{},
 		}
 	case "value":
-		return &dashboards.HorizontalBarChart_YAxisViewBy{
-			YAxisView: &dashboards.HorizontalBarChart_YAxisViewBy_Value{},
+		return &dashboardwidgets.HorizontalBarChart_YAxisViewBy{
+			YAxisView: &dashboardwidgets.HorizontalBarChart_YAxisViewBy_Value{},
 		}
 	default:
 		return nil
 	}
 }
 
-func expandPieChart(ctx context.Context, pieChart *PieChartModel) (*dashboards.Widget_Definition, diag.Diagnostics) {
+func expandPieChart(ctx context.Context, pieChart *PieChartModel) (*dashboardast.Widget_Definition, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	query, diags := expandDashboardQuery(ctx, pieChart.Query)
@@ -2564,9 +2569,9 @@ func expandPieChart(ctx context.Context, pieChart *PieChartModel) (*dashboards.W
 		return nil, diags
 	}
 
-	return &dashboards.Widget_Definition{
-		Value: &dashboards.Widget_Definition_PieChart{
-			PieChart: &dashboards.PieChart{
+	return &dashboardast.Widget_Definition{
+		Value: &dashboardast.Widget_Definition_PieChart{
+			PieChart: &dashboardwidgets.PieChart{
 				Query:              query,
 				MaxSlicesPerChart:  typeInt64ToWrappedInt32(pieChart.MaxSlicesPerChart),
 				MinSlicePercentage: typeInt64ToWrappedInt32(pieChart.MinSlicePercentage),
@@ -2876,10 +2881,10 @@ func expandGaugeQueryMetrics(ctx context.Context, gaugeQueryMetrics *GaugeQueryM
 	}, nil
 }
 
-func expandMetricsFilters(ctx context.Context, metricFilters types.List) ([]*dashboards.Filter_MetricsFilter, diag.Diagnostics) {
+func expandMetricsFilters(ctx context.Context, metricFilters types.List) ([]*dashboardast.Filter_MetricsFilter, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var metricFiltersObjects []types.Object
-	var expandedMetricFilters []*dashboards.Filter_MetricsFilter
+	var expandedMetricFilters []*dashboardast.Filter_MetricsFilter
 	metricFilters.ElementsAs(ctx, &metricFiltersObjects, true)
 
 	for _, mfo := range metricFiltersObjects {
@@ -2899,20 +2904,20 @@ func expandMetricsFilters(ctx context.Context, metricFilters types.List) ([]*das
 	return expandedMetricFilters, diags
 }
 
-func expandMetricFilter(ctx context.Context, metricFilter MetricsFilterModel) (*dashboards.Filter_MetricsFilter, diag.Diagnostics) {
+func expandMetricFilter(ctx context.Context, metricFilter MetricsFilterModel) (*dashboardast.Filter_MetricsFilter, diag.Diagnostics) {
 	operator, diags := expandFilterOperator(ctx, metricFilter.Operator)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &dashboards.Filter_MetricsFilter{
+	return &dashboardast.Filter_MetricsFilter{
 		Metric:   typeStringToWrapperspbString(metricFilter.Metric),
 		Label:    typeStringToWrapperspbString(metricFilter.Label),
 		Operator: operator,
 	}, nil
 }
 
-func expandFilterOperator(ctx context.Context, operator *FilterOperatorModel) (*dashboards.Filter_Operator, diag.Diagnostics) {
+func expandFilterOperator(ctx context.Context, operator *FilterOperatorModel) (*dashboardast.Filter_Operator, diag.Diagnostics) {
 	if operator == nil {
 		return nil, nil
 	}
@@ -4397,7 +4402,7 @@ func expandFilterSourceSpans(ctx context.Context, spans *FilterSourceSpansModel)
 	}, nil
 }
 
-func expandAbsoluteeDashboardTimeFrame(timeFrame *DashboardTimeFrameAbsoluteModel) (*dashboards.Dashboard_AbsoluteTimeFrame, diag.Diagnostic) {
+func expandAbsoluteDashboardTimeFrame(timeFrame *DashboardTimeFrameAbsoluteModel) (*dashboardast.Dashboard_AbsoluteTimeFrame, diag.Diagnostic) {
 	if timeFrame == nil {
 		return nil, nil
 	}
@@ -4414,8 +4419,8 @@ func expandAbsoluteeDashboardTimeFrame(timeFrame *DashboardTimeFrameAbsoluteMode
 	from := timestamppb.New(fromTime)
 	to := timestamppb.New(toTime)
 
-	return &dashboards.Dashboard_AbsoluteTimeFrame{
-		AbsoluteTimeFrame: &dashboards.TimeFrame{
+	return &dashboardast.Dashboard_AbsoluteTimeFrame{
+		AbsoluteTimeFrame: &dashboardcommon.TimeFrame{
 			From: from,
 			To:   to,
 		},
@@ -4445,7 +4450,7 @@ func parseRelativeTimeDuration(ti string) (*time.Duration, diag.Diagnostic) {
 	return &duration, nil
 }
 
-func expandRelativeDashboardTimeFrame(timeFrame *DashboardTimeFrameRelativeModel) (*dashboards.Dashboard_RelativeTimeFrame, diag.Diagnostic) {
+func expandRelativeDashboardTimeFrame(timeFrame *DashboardTimeFrameRelativeModel) (*dashboardast.Dashboard_RelativeTimeFrame, diag.Diagnostic) {
 	if timeFrame == nil {
 		return nil, nil
 	}
@@ -4453,12 +4458,12 @@ func expandRelativeDashboardTimeFrame(timeFrame *DashboardTimeFrameRelativeModel
 	if err != nil {
 		return nil, err
 	}
-	return &dashboards.Dashboard_RelativeTimeFrame{
+	return &dashboardast.Dashboard_RelativeTimeFrame{
 		RelativeTimeFrame: durationpb.New(*duration),
 	}, nil
 }
 
-func expandDashboardUUID(id types.String) *dashboards.UUID {
+func expandDashboardUUID(id types.String) *dashboars.UUID {
 	if id.IsNull() || id.IsUnknown() {
 		return &dashboards.UUID{Value: RandStringBytes(21)}
 	}
@@ -5658,24 +5663,24 @@ func flattenLineChartQueryDefinition(ctx context.Context, definition *dashboards
 	}, nil
 }
 
-func flattenLineChartQuery(ctx context.Context, query *dashboards.LineChart_Query) (*LineChartQueryModel, diag.Diagnostics) {
+func flattenLineChartQuery(ctx context.Context, query *dashboardwidgets.LineChart_Query) (*LineChartQueryModel, diag.Diagnostics) {
 	if query == nil {
 		return nil, nil
 	}
 
 	switch query.GetValue().(type) {
-	case *dashboards.LineChart_Query_Logs:
+	case *dashboardwidgets.LineChart_Query_Logs:
 		return flattenLineChartQueryLogs(ctx, query.GetLogs())
-	case *dashboards.LineChart_Query_Metrics:
+	case *dashboardwidgets.LineChart_Query_Metrics:
 		return flattenLineChartQueryMetrics(ctx, query.GetMetrics())
-	case *dashboards.LineChart_Query_Spans:
+	case *dashboardwidgets.LineChart_Query_Spans:
 		return flattenLineChartQuerySpans(ctx, query.GetSpans())
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Line Chart Query", "unknown line chart query type")}
 	}
 }
 
-func flattenLineChartQueryLogs(ctx context.Context, logs *dashboards.LineChart_LogsQuery) (*LineChartQueryModel, diag.Diagnostics) {
+func flattenLineChartQueryLogs(ctx context.Context, logs *dashboardwidgets.LineChart_LogsQuery) (*LineChartQueryModel, diag.Diagnostics) {
 	if logs == nil {
 		return nil, nil
 	}

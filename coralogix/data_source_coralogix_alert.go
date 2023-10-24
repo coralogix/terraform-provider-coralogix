@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
+	alerts "github.com/coralogix/coralogix-sdk-demo/alerts/v2"
 	"terraform-provider-coralogix/coralogix/clientset"
-	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v2"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -28,7 +28,7 @@ func dataSourceCoralogixAlert() *schema.Resource {
 
 func dataSourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := wrapperspb.String(d.Get("id").(string))
-	getAlertRequest := &alertsv1.GetAlertByUniqueIdRequest{
+	getAlertRequest := &alerts.GetAlertByUniqueIdRequest{
 		Id: id,
 	}
 
