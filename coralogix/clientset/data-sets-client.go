@@ -3,7 +3,7 @@ package clientset
 import (
 	"context"
 
-	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
+	enrichment "github.com/coralogix/coralogix-sdk-demo/enrichment/v1"
 )
 
 type DataSetClient struct {

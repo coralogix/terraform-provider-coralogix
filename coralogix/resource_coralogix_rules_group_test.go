@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"testing"
 
+	rulesgroups "github.com/coralogix/coralogix-sdk-demo/parsingrules"
 	"terraform-provider-coralogix/coralogix/clientset"
-	rulesgroups "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"

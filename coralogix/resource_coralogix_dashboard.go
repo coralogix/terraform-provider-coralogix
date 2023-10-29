@@ -8,13 +8,14 @@ import (
 	"strings"
 	"time"
 
+	dashboards "github.com/coralogix/coralogix-sdk-demo/dashboards/v1"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"golang.org/x/exp/slices"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -2340,7 +2341,7 @@ func expandDashboardTimeFrame(dashboard *dashboards.Dashboard, timeFrame *Dashbo
 	case timeFrame.Relative != nil:
 		dashboard.TimeFrame, dg = expandRelativeDashboardTimeFrame(timeFrame.Relative)
 	case timeFrame.Absolute != nil:
-		dashboard.TimeFrame, dg = expandAbsoluteeDashboardTimeFrame(timeFrame.Absolute)
+		dashboard.TimeFrame, dg = expandAbsoluteDashboardTimeFrame(timeFrame.Absolute)
 	default:
 		dg = diag.NewErrorDiagnostic("Error Expand Time Frame", "Dashboard TimeFrame must be either Relative or Absolutee")
 	}
@@ -2421,7 +2422,7 @@ func expandRow(ctx context.Context, row RowModel) (*dashboards.Row, diag.Diagnos
 	appearance := &dashboards.Row_Appearance{
 		Height: wrapperspb.Int32(int32(row.Height.ValueInt64())),
 	}
-	widgets, diags := expandDashboardWidgets(ctx, row.Widgets)
+	widgets, diags := expandDashboards(ctx, row.Widgets)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2433,7 +2434,7 @@ func expandRow(ctx context.Context, row RowModel) (*dashboards.Row, diag.Diagnos
 	}, nil
 }
 
-func expandDashboardWidgets(ctx context.Context, widgets types.List) ([]*dashboards.Widget, diag.Diagnostics) {
+func expandDashboards(ctx context.Context, widgets types.List) ([]*dashboards.Widget, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var widgetsObjects []types.Object
 	var expandedWidgets []*dashboards.Widget
@@ -4397,7 +4398,7 @@ func expandFilterSourceSpans(ctx context.Context, spans *FilterSourceSpansModel)
 	}, nil
 }
 
-func expandAbsoluteeDashboardTimeFrame(timeFrame *DashboardTimeFrameAbsoluteModel) (*dashboards.Dashboard_AbsoluteTimeFrame, diag.Diagnostic) {
+func expandAbsoluteDashboardTimeFrame(timeFrame *DashboardTimeFrameAbsoluteModel) (*dashboards.Dashboard_AbsoluteTimeFrame, diag.Diagnostic) {
 	if timeFrame == nil {
 		return nil, nil
 	}
@@ -5326,7 +5327,7 @@ func flattenDashboardRow(ctx context.Context, row *dashboards.Row) (*RowModel, d
 		return nil, nil
 	}
 
-	widgets, diags := flattenDashboardWidgets(ctx, row.GetWidgets())
+	widgets, diags := flattenDashboards(ctx, row.GetWidgets())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5337,7 +5338,7 @@ func flattenDashboardRow(ctx context.Context, row *dashboards.Row) (*RowModel, d
 	}, nil
 }
 
-func flattenDashboardWidgets(ctx context.Context, widgets []*dashboards.Widget) (types.List, diag.Diagnostics) {
+func flattenDashboards(ctx context.Context, widgets []*dashboards.Widget) (types.List, diag.Diagnostics) {
 	if len(widgets) == 0 {
 		return types.ListNull(types.ObjectType{AttrTypes: widgetModelAttr()}), nil
 	}

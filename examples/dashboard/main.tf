@@ -492,7 +492,6 @@ resource "coralogix_dashboard" dashboard {
                 }
               },
               {
-                title      = "Markdown"
                 definition = {
                   markdown = {
                     markdown_text = "## Markdown\n\nThis is a markdown widget"

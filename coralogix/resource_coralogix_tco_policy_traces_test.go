@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"testing"
 
+	tcopolicies "github.com/coralogix/coralogix-sdk-demo/tcopolicies"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 )
 
 var tcoPolicyTracesResourceName1 = "coralogix_tco_policy_traces.test_1"

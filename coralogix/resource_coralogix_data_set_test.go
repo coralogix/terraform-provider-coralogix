@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	enrichmentv1 "github.com/coralogix/coralogix-sdk-demo/enrichment/v1"
 	"terraform-provider-coralogix/coralogix/clientset"
-	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"

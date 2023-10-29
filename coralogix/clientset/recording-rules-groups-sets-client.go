@@ -3,8 +3,8 @@ package clientset
 import (
 	"context"
 
+	rrg "github.com/coralogix/coralogix-sdk-demo/recordingrules"
 	"google.golang.org/protobuf/types/known/emptypb"
-	rrg "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups-sets/v1"
 )
 
 type RecordingRulesGroupsSetsClient struct {

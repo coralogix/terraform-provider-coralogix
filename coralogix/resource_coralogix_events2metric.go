@@ -6,6 +6,9 @@ import (
 	"log"
 	"regexp"
 
+	e2m "github.com/coralogix/coralogix-sdk-demo/events2metrics/v2"
+	l2m "github.com/coralogix/coralogix-sdk-demo/logs2metrics/v2"
+	s2m "github.com/coralogix/coralogix-sdk-demo/spans2metrics/v2"
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
@@ -28,8 +31,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
-	l2m "terraform-provider-coralogix/coralogix/clientset/grpc/logs2metrics/v2"
 )
 
 var (
@@ -1180,7 +1181,7 @@ func expandSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) (*e2m.E2
 	}
 
 	return &e2m.E2MCreateParams_SpansQuery{
-		SpansQuery: &e2m.SpansQuery{
+		SpansQuery: &s2m.SpansQuery{
 			Lucene:                 lucene,
 			ApplicationnameFilters: applications,
 			SubsystemnameFilters:   subsystems,
@@ -1232,7 +1233,7 @@ func expandUpdateSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) (*
 	}
 
 	return &e2m.E2M_SpansQuery{
-		SpansQuery: &e2m.SpansQuery{
+		SpansQuery: &s2m.SpansQuery{
 			Lucene:                 lucene,
 			ApplicationnameFilters: applications,
 			SubsystemnameFilters:   subsystems,
@@ -1391,7 +1392,7 @@ func flattenE2MMetricLabels(labels []*e2m.MetricLabel) types.Map {
 	return types.MapValueMust(types.StringType, elements)
 }
 
-func flattenSpansQuery(query *e2m.SpansQuery) *SpansQueryModel {
+func flattenSpansQuery(query *s2m.SpansQuery) *SpansQueryModel {
 	if query == nil {
 		return nil
 	}

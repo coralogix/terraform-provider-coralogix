@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
+	actions "github.com/coralogix/coralogix-sdk-demo/actions/v2"
 	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"terraform-provider-coralogix/coralogix/clientset"
-	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"

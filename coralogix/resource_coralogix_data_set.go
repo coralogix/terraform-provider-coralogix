@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
+	enrichment "github.com/coralogix/coralogix-sdk-demo/enrichment/v1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
-	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"

@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	dashboard "github.com/coralogix/coralogix-sdk-demo/dashboards/v1"
 	"terraform-provider-coralogix/coralogix/clientset"
-	dashboard "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 

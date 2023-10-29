@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"testing"
 
+	sli "github.com/coralogix/coralogix-sdk-demo/sli"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	sli "terraform-provider-coralogix/coralogix/clientset/grpc/sli"
 )
 
 var sliResourceName = "coralogix_sli.test"
