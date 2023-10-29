@@ -3,7 +3,7 @@ package clientset
 import (
 	"context"
 
-	slis "terraform-provider-coralogix/coralogix/clientset/grpc/sli"
+	slis "github.com/coralogix/coralogix-sdk-demo/sli"
 )
 
 type SLIClient struct {

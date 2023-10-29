@@ -3,7 +3,7 @@ package clientset
 import (
 	"context"
 
-	dashboards "github.com/coralogix/coralogix-sdk-demo/dashboards/v1/services"
+	dashboards "github.com/coralogix/coralogix-sdk-demo/dashboards/v1"
 )
 
 type DashboardsClient struct {

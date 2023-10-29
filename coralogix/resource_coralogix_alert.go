@@ -1837,7 +1837,7 @@ func flattenNewValueAlert(filters *alerts.AlertFilters, condition interface{}) i
 }
 
 func flattenNewValueCondition(condition interface{}) interface{} {
-	conditionParams := condition.(*alerts.AlertCondition_NewValue).NewValue.GetParameters()
+	conditionParams := condition.(*alertsv2.AlertCondition_NewValue).NewValue.GetParameters()
 	return map[string]interface{}{
 		"time_window":  alertProtoNewValueTimeFrameToSchemaTimeFrame[conditionParams.GetTimeframe().String()],
 		"key_to_track": conditionParams.GetGroupBy()[0].GetValue(),
@@ -1852,15 +1852,15 @@ func flattenStandardAlert(filters *alerts.AlertFilters, condition interface{}) i
 }
 
 func flattenStandardCondition(condition interface{}) (conditionSchema interface{}) {
-	var conditionParams *alerts.ConditionParameters
+	var conditionParams *alertsv2.ConditionParameters
 	switch condition := condition.(type) {
-	case *alerts.AlertCondition_Immediate:
+	case *alertsv2.AlertCondition_Immediate:
 		conditionSchema = []interface{}{
 			map[string]interface{}{
 				"immediately": true,
 			},
 		}
-	case *alerts.AlertCondition_LessThan:
+	case *alertsv2.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
 		groupBy := wrappedStringSliceToStringSlice(conditionParams.GroupBy)
 		m := map[string]interface{}{
@@ -1875,7 +1875,7 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 		}
 
 		conditionSchema = []interface{}{m}
-	case *alerts.AlertCondition_MoreThan:
+	case *alertsv2.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		conditionSchema = []interface{}{
 			map[string]interface{}{
@@ -1886,7 +1886,7 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 				"evaluation_window": alertProtoToSchemaEvaluationWindow[condition.MoreThan.GetEvaluationWindow()],
 			},
 		}
-	case *alerts.AlertCondition_MoreThanUsual:
+	case *alertsv2.AlertCondition_MoreThanUsual:
 		conditionParams = condition.MoreThanUsual.GetParameters()
 		conditionMap := map[string]interface{}{
 			"more_than_usual": true,
@@ -1950,16 +1950,16 @@ func flattenRatioAlert(filters *alerts.AlertFilters, condition interface{}) inte
 }
 
 func flattenRatioCondition(condition interface{}, query2 *alerts.AlertFilters_RatioAlert) interface{} {
-	var conditionParams *alerts.ConditionParameters
+	var conditionParams *alertsv2.ConditionParameters
 	ratioParamsMap := make(map[string]interface{})
 
 	lessThan := false
 	switch condition := condition.(type) {
-	case *alerts.AlertCondition_LessThan:
+	case *alertsv2.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
 		ratioParamsMap["less_than"] = true
 		lessThan = true
-	case *alerts.AlertCondition_MoreThan:
+	case *alertsv2.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		ratioParamsMap["more_than"] = true
 	default:
@@ -2011,7 +2011,7 @@ func flattenUniqueCountAlert(filters *alerts.AlertFilters, condition interface{}
 }
 
 func flattenUniqueCountCondition(condition interface{}) interface{} {
-	conditionParams := condition.(*alerts.AlertCondition_UniqueCount).UniqueCount.GetParameters()
+	conditionParams := condition.(*alertsv2.AlertCondition_UniqueCount).UniqueCount.GetParameters()
 	conditionMap := map[string]interface{}{
 		"unique_count_key":  conditionParams.GetCardinalityFields()[0].GetValue(),
 		"max_unique_values": conditionParams.GetThreshold().GetValue(),
@@ -2034,16 +2034,16 @@ func flattenTimeRelativeAlert(filters *alerts.AlertFilters, condition interface{
 }
 
 func flattenTimeRelativeCondition(condition interface{}) interface{} {
-	var conditionParams *alerts.ConditionParameters
+	var conditionParams *alertsv2.ConditionParameters
 	timeRelativeCondition := make(map[string]interface{})
 	switch condition := condition.(type) {
-	case *alerts.AlertCondition_LessThan:
+	case *alertsv2.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
 		timeRelativeCondition["less_than"] = true
 		if len(conditionParams.GroupBy) > 0 {
 			timeRelativeCondition["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
 		}
-	case *alerts.AlertCondition_MoreThan:
+	case *alertsv2.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		timeRelativeCondition["more_than"] = true
 	default:
@@ -2066,16 +2066,16 @@ func flattenRelativeTimeWindow(timeFrame alerts.Timeframe, relativeTimeFrame ale
 }
 
 func flattenMetricAlert(filters *alerts.AlertFilters, condition interface{}) interface{} {
-	var conditionParams *alerts.ConditionParameters
+	var conditionParams *alertsv2.ConditionParameters
 	var conditionStr string
 	switch condition := condition.(type) {
-	case *alerts.AlertCondition_LessThan:
+	case *alertsv2.AlertCondition_LessThan:
 		conditionParams = condition.LessThan.GetParameters()
 		conditionStr = "less_than"
-	case *alerts.AlertCondition_MoreThan:
+	case *alertsv2.AlertCondition_MoreThan:
 		conditionParams = condition.MoreThan.GetParameters()
 		conditionStr = "more_than"
-	case *alerts.AlertCondition_MoreThanUsual:
+	case *alertsv2.AlertCondition_MoreThanUsual:
 		conditionParams = condition.MoreThanUsual.GetParameters()
 		conditionStr = "more_than_usual"
 	default:
@@ -2112,7 +2112,7 @@ func flattenMetricAlert(filters *alerts.AlertFilters, condition interface{}) int
 	}
 }
 
-func flattenPromQLCondition(params *alerts.ConditionParameters) (promQLConditionMap map[string]interface{}) {
+func flattenPromQLCondition(params *alertsv2.ConditionParameters) (promQLConditionMap map[string]interface{}) {
 	promqlParams := params.GetMetricAlertPromqlParameters()
 	promQLConditionMap =
 		map[string]interface{}{
@@ -2125,7 +2125,7 @@ func flattenPromQLCondition(params *alerts.ConditionParameters) (promQLCondition
 	return
 }
 
-func flattenLuceneCondition(params *alerts.ConditionParameters) map[string]interface{} {
+func flattenLuceneCondition(params *alertsv2.ConditionParameters) map[string]interface{} {
 	metricParams := params.GetMetricAlertParameters()
 	return map[string]interface{}{
 		"metric_field":                    metricParams.GetMetricField().GetValue(),
@@ -2167,10 +2167,10 @@ func flattenTracingFilters(tracingFilters []*alerts.FilterData) (applications, s
 }
 
 func flattenFlowAlert(condition interface{}) interface{} {
-	return []interface{}{flattenFlowAlertsCondition(condition.(*alerts.AlertCondition_Flow))}
+	return []interface{}{flattenFlowAlertsCondition(condition.(*alertsv2.AlertCondition_Flow))}
 }
 
-func flattenFlowAlertsCondition(condition *alerts.AlertCondition_Flow) interface{} {
+func flattenFlowAlertsCondition(condition *alertsv2.AlertCondition_Flow) interface{} {
 	stages := flattenStages(condition.Flow.GetStages())
 
 	m := map[string]interface{}{
@@ -2281,13 +2281,13 @@ func flattenFilters(filters []*alerts.Filters) []string {
 
 func flattenTracingCondition(condition interface{}) interface{} {
 	switch condition := condition.(type) {
-	case *alerts.AlertCondition_Immediate:
+	case *alertsv2.AlertCondition_Immediate:
 		return []interface{}{
 			map[string]interface{}{
 				"immediately": true,
 			},
 		}
-	case *alerts.AlertCondition_MoreThan:
+	case *alertsv2.AlertCondition_MoreThan:
 		conditionParams := condition.MoreThan.GetParameters()
 		return []interface{}{
 			map[string]interface{}{

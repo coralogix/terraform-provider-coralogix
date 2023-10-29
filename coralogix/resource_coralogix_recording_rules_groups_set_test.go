@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/coralogix/coralogix-sdk-demo/recordingrules"
 	"terraform-provider-coralogix/coralogix/clientset"
-	recordingrules "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups-sets/v1"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"

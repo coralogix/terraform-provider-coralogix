@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
+	"github.com/coralogix/coralogix-sdk-demo/recordingrules"
 	"terraform-provider-coralogix/coralogix/clientset"
-	recordingrules "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups-sets/v1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"

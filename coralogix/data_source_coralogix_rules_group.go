@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
+	"github.com/coralogix/coralogix-sdk-demo/parsingrules"
 	"terraform-provider-coralogix/coralogix/clientset"
-	v1 "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -27,7 +27,7 @@ func dataSourceCoralogixRulesGroup() *schema.Resource {
 
 func dataSourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Get("id").(string)
-	getRuleGroupRequest := &v1.GetRuleGroupRequest{
+	getRuleGroupRequest := &parsingrules.GetRuleGroupRequest{
 		GroupId: id,
 	}
 

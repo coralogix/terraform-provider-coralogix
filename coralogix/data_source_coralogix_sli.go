@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/coralogix/coralogix-sdk-demo/sli"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -13,7 +14,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	sli "terraform-provider-coralogix/coralogix/clientset/grpc/sli"
 )
 
 var _ datasource.DataSourceWithConfigure = &SLIDataSource{}
@@ -71,7 +71,7 @@ func (d *SLIDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 	id := data.ID.ValueString()
 	serviceName := data.ServiceName.ValueString()
 	log.Printf("[INFO] Reading sli: %s", id)
-	getSLIsresp, err := d.client.GetSLIs(ctx, &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)})
+	getSLIsresp, err := d.client.GetSLIs(ctx, &slis.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -89,7 +89,7 @@ func (d *SLIDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 		return
 	}
 
-	var SLI *sli.Sli
+	var SLI *slis.Sli
 	for _, sli := range getSLIsresp.GetSlis() {
 		if sli.SliId.GetValue() == id {
 			SLI = sli

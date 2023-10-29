@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	dashboards "github.com/coralogix/coralogix-sdk-demo/dashboards/v1"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -12,7 +13,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 )
 
 var _ datasource.DataSourceWithConfigure = &DashboardDataSource{}

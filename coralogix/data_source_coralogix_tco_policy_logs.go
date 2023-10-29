@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"log"
 
+	tcopolicies "github.com/coralogix/coralogix-sdk-demo/tcopolicies"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
-	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )

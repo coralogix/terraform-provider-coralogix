@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	e2m "github.com/coralogix/coralogix-sdk-demo/events2metrics/v2"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -12,7 +13,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
 )
 
 var _ datasource.DataSourceWithConfigure = &Events2MetricDataSource{}

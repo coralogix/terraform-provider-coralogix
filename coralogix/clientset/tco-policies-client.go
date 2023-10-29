@@ -3,7 +3,7 @@ package clientset
 import (
 	"context"
 
-	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
+	tcopolicies "github.com/coralogix/coralogix-sdk-demo/tcopolicies"
 )
 
 type TCOPoliciesClient struct {

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"testing"
 
+	alertsv2 "github.com/coralogix/coralogix-sdk-demo/alerts/v2"
 	"terraform-provider-coralogix/coralogix/clientset"
-	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v2"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -697,7 +697,7 @@ func testAccCheckAlertDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &alertsv1.GetAlertByUniqueIdRequest{
+		req := &alertsv2.GetAlertByUniqueIdRequest{
 			Id: wrapperspb.String(rs.Primary.ID),
 		}
 

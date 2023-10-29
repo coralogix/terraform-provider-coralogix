@@ -6,10 +6,10 @@ import (
 	"log"
 	"time"
 
+	"github.com/coralogix/coralogix-sdk-demo/recordingrules"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
-	rrgs "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups-sets/v1"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -59,7 +59,7 @@ func resourceCoralogixRecordingRulesGroupsSetCreate(ctx context.Context, d *sche
 	return resourceCoralogixRecordingRulesGroupsSetRead(ctx, d, meta)
 }
 
-func expandRecordingRulesGroupsSet(d *schema.ResourceData) (*rrgs.CreateRuleGroupSet, error) {
+func expandRecordingRulesGroupsSet(d *schema.ResourceData) (*recordingrules.CreateRuleGroupSet, error) {
 	if yamlContent, ok := d.GetOk("yaml_content"); ok {
 		return expandRecordingRulesGroupsSetFromYaml(yamlContent.(string))
 	}
@@ -67,15 +67,15 @@ func expandRecordingRulesGroupsSet(d *schema.ResourceData) (*rrgs.CreateRuleGrou
 	return expandRecordingRulesGroupSetExplicitly(d), nil
 }
 
-func expandRecordingRulesGroupsSetFromYaml(yamlContent string) (*rrgs.CreateRuleGroupSet, error) {
-	var result rrgs.CreateRuleGroupSet
+func expandRecordingRulesGroupsSetFromYaml(yamlContent string) (*recordingrules.CreateRuleGroupSet, error) {
+	var result recordingrules.CreateRuleGroupSet
 	if err := yaml.Unmarshal([]byte(yamlContent), &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
 }
 
-func expandRecordingRulesGroupSetExplicitly(d *schema.ResourceData) *rrgs.CreateRuleGroupSet {
+func expandRecordingRulesGroupSetExplicitly(d *schema.ResourceData) *recordingrules.CreateRuleGroupSet {
 	var name *string
 	if str, ok := d.GetOk("name"); ok && str.(string) != "" {
 		name = new(string)
@@ -83,15 +83,15 @@ func expandRecordingRulesGroupSetExplicitly(d *schema.ResourceData) *rrgs.Create
 	}
 	groups := expandRecordingRulesGroups(d.Get("group"))
 
-	return &rrgs.CreateRuleGroupSet{
+	return &recordingrules.CreateRuleGroupSet{
 		Name:   name,
 		Groups: groups,
 	}
 }
 
-func expandRecordingRulesGroups(v interface{}) []*rrgs.InRuleGroup {
+func expandRecordingRulesGroups(v interface{}) []*recordingrules.InRuleGroup {
 	groups := v.(*schema.Set).List()
-	results := make([]*rrgs.InRuleGroup, 0, len(groups))
+	results := make([]*recordingrules.InRuleGroup, 0, len(groups))
 
 	for _, g := range groups {
 		group := expandRecordingRuleGroup(g)
@@ -101,7 +101,7 @@ func expandRecordingRulesGroups(v interface{}) []*rrgs.InRuleGroup {
 	return results
 }
 
-func expandRecordingRuleGroup(v interface{}) *rrgs.InRuleGroup {
+func expandRecordingRuleGroup(v interface{}) *recordingrules.InRuleGroup {
 	m := v.(map[string]interface{})
 
 	name := m["name"].(string)
@@ -109,7 +109,7 @@ func expandRecordingRuleGroup(v interface{}) *rrgs.InRuleGroup {
 	limit := uint64(m["limit"].(int))
 	rules := expandRecordingRules(m["rule"])
 
-	return &rrgs.InRuleGroup{
+	return &recordingrules.InRuleGroup{
 		Name:     name,
 		Interval: &interval,
 		Limit:    &limit,
@@ -117,9 +117,9 @@ func expandRecordingRuleGroup(v interface{}) *rrgs.InRuleGroup {
 	}
 }
 
-func expandRecordingRules(v interface{}) []*rrgs.InRule {
+func expandRecordingRules(v interface{}) []*recordingrules.InRule {
 	l := v.([]interface{})
-	result := make([]*rrgs.InRule, 0, len(l))
+	result := make([]*recordingrules.InRule, 0, len(l))
 	for _, recordingRule := range l {
 		r := expandRecordingRule(recordingRule)
 		result = append(result, r)
@@ -127,14 +127,14 @@ func expandRecordingRules(v interface{}) []*rrgs.InRule {
 	return result
 }
 
-func expandRecordingRule(v interface{}) *rrgs.InRule {
+func expandRecordingRule(v interface{}) *recordingrules.InRule {
 	m := v.(map[string]interface{})
 
 	record := m["record"].(string)
 	expr := m["expr"].(string)
 	labels := expandRecordingRuleLabels(m["labels"].(map[string]interface{}))
 
-	return &rrgs.InRule{
+	return &recordingrules.InRule{
 		Record: record,
 		Expr:   expr,
 		Labels: labels,
@@ -152,7 +152,7 @@ func expandRecordingRuleLabels(m map[string]interface{}) map[string]string {
 func resourceCoralogixRecordingRulesGroupsSetRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
 	log.Printf("[INFO] Reading recording-rule-group-set %s", id)
-	req := &rrgs.FetchRuleGroupSet{
+	req := &recordingrules.FetchRuleGroupSet{
 		Id: id,
 	}
 	resp, err := meta.(*clientset.ClientSet).RecordingRuleGroupsSets().GetRecordingRuleGroupsSet(ctx, req)
@@ -179,7 +179,7 @@ func resourceCoralogixRecordingRulesGroupsSetUpdate(ctx context.Context, d *sche
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	updateReq := &rrgs.UpdateRuleGroupSet{
+	updateReq := &recordingrules.UpdateRuleGroupSet{
 		Id:     d.Id(),
 		Groups: createReq.Groups,
 	}
@@ -197,7 +197,7 @@ func resourceCoralogixRecordingRulesGroupsSetUpdate(ctx context.Context, d *sche
 
 func resourceCoralogixRecordingRulesGroupsSetDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
-	req := &rrgs.DeleteRuleGroupSet{Id: id}
+	req := &recordingrules.DeleteRuleGroupSet{Id: id}
 	log.Printf("[INFO] Deleting recording-rule-group-set %s", id)
 	_, err := meta.(*clientset.ClientSet).RecordingRuleGroupsSets().DeleteRecordingRuleGroupsSet(ctx, req)
 	if err != nil {
@@ -210,21 +210,19 @@ func resourceCoralogixRecordingRulesGroupsSetDelete(ctx context.Context, d *sche
 	return nil
 }
 
-func setRecordingRulesGroupsSet(d *schema.ResourceData, set *rrgs.OutRuleGroupSet) diag.Diagnostics {
+func setRecordingRulesGroupsSet(d *schema.ResourceData, set *recordingrules.OutRuleGroupSet) diag.Diagnostics {
 	if err := d.Set("group", flattenRecordingRulesGroups(set.Groups)); err != nil {
 		return diag.FromErr(err)
 	}
 
-	if name := set.Name; name != nil {
-		if err := d.Set("name", *name); err != nil {
-			return diag.FromErr(err)
-		}
+	if err := d.Set("name", set.Name); err != nil {
+		return diag.FromErr(err)
 	}
 
 	return nil
 }
 
-func flattenRecordingRulesGroups(groups []*rrgs.OutRuleGroup) interface{} {
+func flattenRecordingRulesGroups(groups []*recordingrules.OutRuleGroup) interface{} {
 	result := make([]interface{}, 0, len(groups))
 	for _, g := range groups {
 		group := flattenRecordingRulesGroup(g)
@@ -233,7 +231,7 @@ func flattenRecordingRulesGroups(groups []*rrgs.OutRuleGroup) interface{} {
 	return result
 }
 
-func flattenRecordingRulesGroup(group *rrgs.OutRuleGroup) interface{} {
+func flattenRecordingRulesGroup(group *recordingrules.OutRuleGroup) interface{} {
 	rules := flattenRecordingRules(group.Rules)
 	return map[string]interface{}{
 		"name":     group.Name,
@@ -243,7 +241,7 @@ func flattenRecordingRulesGroup(group *rrgs.OutRuleGroup) interface{} {
 	}
 }
 
-func flattenRecordingRules(rules []*rrgs.OutRule) interface{} {
+func flattenRecordingRules(rules []*recordingrules.OutRule) interface{} {
 	result := make([]interface{}, 0, len(rules))
 	for _, rule := range rules {
 		flattenedRecordingRule := flattenRecordingRule(rule)
@@ -252,7 +250,7 @@ func flattenRecordingRules(rules []*rrgs.OutRule) interface{} {
 	return result
 }
 
-func flattenRecordingRule(rule *rrgs.OutRule) interface{} {
+func flattenRecordingRule(rule *recordingrules.OutRule) interface{} {
 	labels := flattenRecordingRuleLabels(rule.Labels)
 	return map[string]interface{}{
 		"record": rule.Record,
@@ -327,7 +325,7 @@ func recordingRuleGroupSchema() *schema.Resource {
 }
 
 func validateRecordingRulesGroupYamlContent(config interface{}, _ string) ([]string, []error) {
-	var set rrgs.CreateRuleGroupSet
+	var set recordingrules.CreateRuleGroupSet
 	if err := yaml.Unmarshal([]byte(config.(string)), &set); err != nil {
 		return nil, []error{err}
 	}

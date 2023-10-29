@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	sli "github.com/coralogix/coralogix-sdk-demo/sli"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -23,7 +24,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
-	sli "terraform-provider-coralogix/coralogix/clientset/grpc/sli"
 )
 
 var (

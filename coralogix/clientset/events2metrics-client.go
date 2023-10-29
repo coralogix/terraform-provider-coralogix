@@ -3,7 +3,7 @@ package clientset
 import (
 	"context"
 
-	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
+	e2m "github.com/coralogix/coralogix-sdk-demo/events2metrics/v2"
 )
 
 type Events2MetricsClient struct {

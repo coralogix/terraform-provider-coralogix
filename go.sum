@@ -35,6 +35,8 @@ github.com/coralogix/coralogix-sdk-demo v0.0.0-20231024085840-6eb58723547d h1:GS
 github.com/coralogix/coralogix-sdk-demo v0.0.0-20231024085840-6eb58723547d/go.mod h1:fJhnT7W6WuIFAklyH6oYaWyxHeJveLeZenj5QsOulms=
 github.com/coralogix/coralogix-sdk-demo v0.0.0-20231024101627-1df1ca3ec8f8 h1:6APdjuNgV/I+6d/XhfjfWZIjJR+t9KwOnYbiuLk+YnI=
 github.com/coralogix/coralogix-sdk-demo v0.0.0-20231024101627-1df1ca3ec8f8/go.mod h1:Y32Rtwddyd9XEX+Rbz/iyGEQA5q6nGBuJljyiaBsXN0=
+github.com/coralogix/coralogix-sdk-demo v0.0.0-20231025075129-59ea50bf9974 h1:umZe4huBGO22mTZoKC+ximljFUougY6FoF1UuRw4u7s=
+github.com/coralogix/coralogix-sdk-demo v0.0.0-20231025075129-59ea50bf9974/go.mod h1:Y32Rtwddyd9XEX+Rbz/iyGEQA5q6nGBuJljyiaBsXN0=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
