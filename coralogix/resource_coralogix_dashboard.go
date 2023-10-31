@@ -3650,7 +3650,7 @@ func expandDataTableQuery(ctx context.Context, dataTableQuery *DataTableQueryMod
 			Value: dataPrime,
 		}, nil
 	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand DataTable Query", fmt.Sprintf("unknown data table query type %s", dataTableQuery))}
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand DataTable Query", fmt.Sprintf("unknown data table query type %#v", dataTableQuery))}
 	}
 }
 
