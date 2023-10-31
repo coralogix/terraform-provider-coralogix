@@ -2436,9 +2436,9 @@ func expandNotificationSubgroup(v interface{}) (*alerts.AlertNotification, error
 	var isWebhookIdDefined bool
 	if webhookID, ok := m["integration_id"].(string); ok && webhookID != "" {
 		isWebhookIdDefined = true
-		id, _ := strconv.Atoi(webhookID)
+		id := parseNumUint32(webhookID)
 		notification.IntegrationType = &alerts.AlertNotification_IntegrationId{
-			IntegrationId: wrapperspb.UInt32(uint32(id)),
+			IntegrationId: wrapperspb.UInt32(id),
 		}
 	}
 
@@ -3429,10 +3429,10 @@ func expandUniqueValueTimeFrame(s string) alerts.Timeframe {
 
 func expandTimeInDay(v interface{}) *alerts.Time {
 	timeArr := strings.Split(v.(string), ":")
-	hours, _ := strconv.Atoi(timeArr[0])
-	minutes, _ := strconv.Atoi(timeArr[1])
+	hours := parseNumInt32(timeArr[0])
+	minutes := parseNumInt32(timeArr[1])
 	return &alerts.Time{
-		Hours:   int32(hours),
-		Minutes: int32(minutes),
+		Hours:   hours,
+		Minutes: minutes,
 	}
 }
