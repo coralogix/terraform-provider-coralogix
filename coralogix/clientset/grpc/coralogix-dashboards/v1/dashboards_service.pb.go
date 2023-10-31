@@ -7,12 +7,13 @@
 package __
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	_ "google.golang.org/protobuf/types/descriptorpb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -28,7 +29,7 @@ type CreateDashboardRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	RequestId *wrapperspb.StringValue `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	Dashboard *Dashboard              `protobuf:"bytes,2,opt,name=dashboard,proto3" json:"dashboard,omitempty"`
+	Dashboard *Dashboard          `protobuf:"bytes,2,opt,name=dashboard,proto3" json:"dashboard,omitempty"`
 }
 
 func (x *CreateDashboardRequest) Reset() {
@@ -121,7 +122,7 @@ type ReplaceDashboardRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	RequestId *wrapperspb.StringValue `protobuf:"bytes,1,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
-	Dashboard *Dashboard              `protobuf:"bytes,2,opt,name=dashboard,proto3" json:"dashboard,omitempty"`
+	Dashboard *Dashboard          `protobuf:"bytes,2,opt,name=dashboard,proto3" json:"dashboard,omitempty"`
 }
 
 func (x *ReplaceDashboardRequest) Reset() {
@@ -855,8 +856,10 @@ var file_com_coralogixapis_dashboards_v1_services_dashboards_service_proto_rawDe
 	0x75, 0x6c, 0x74, 0x44, 0x61, 0x73, 0x68, 0x62, 0x6f, 0x61, 0x72, 0x64, 0x52, 0x65, 0x73, 0x70,
 	0x6f, 0x6e, 0x73, 0x65, 0x22, 0x1f, 0xba, 0xb8, 0x02, 0x1b, 0x0a, 0x19, 0x72, 0x65, 0x70, 0x6c,
 	0x61, 0x63, 0x65, 0x20, 0x64, 0x65, 0x66, 0x61, 0x75, 0x6c, 0x74, 0x20, 0x64, 0x61, 0x73, 0x68,
-	0x62, 0x6f, 0x61, 0x72, 0x64, 0x42, 0x04, 0x5a, 0x02, 0x2e, 0x2f, 0x62, 0x06, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x33,
+	0x62, 0x6f, 0x61, 0x72, 0x64, 0x42, 0x2a, 0x5a, 0x28, 0x63, 0x6f, 0x6d, 0x2f, 0x63, 0x6f, 0x72,
+	0x61, 0x6c, 0x6f, 0x67, 0x69, 0x78, 0x61, 0x70, 0x69, 0x73, 0x2f, 0x64, 0x61, 0x73, 0x68, 0x62,
+	0x6f, 0x61, 0x72, 0x64, 0x73, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65,
+	0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -888,17 +891,17 @@ var file_com_coralogixapis_dashboards_v1_services_dashboards_service_proto_goTyp
 	(*ReplaceDefaultDashboardRequest)(nil),  // 12: com.coralogixapis.dashboards.v1.services.ReplaceDefaultDashboardRequest
 	(*ReplaceDefaultDashboardResponse)(nil), // 13: com.coralogixapis.dashboards.v1.services.ReplaceDefaultDashboardResponse
 	(*wrapperspb.StringValue)(nil),          // 14: google.protobuf.StringValue
-	(*Dashboard)(nil),                       // 15: com.coralogixapis.dashboards.v1.ast.Dashboard
+	(*Dashboard)(nil),                   // 15: com.coralogixapis.dashboards.v1.Dashboard
 }
 var file_com_coralogixapis_dashboards_v1_services_dashboards_service_proto_depIdxs = []int32{
 	14, // 0: com.coralogixapis.dashboards.v1.services.CreateDashboardRequest.request_id:type_name -> google.protobuf.StringValue
-	15, // 1: com.coralogixapis.dashboards.v1.services.CreateDashboardRequest.dashboard:type_name -> com.coralogixapis.dashboards.v1.ast.Dashboard
+	15, // 1: com.coralogixapis.dashboards.v1.services.CreateDashboardRequest.dashboard:type_name -> com.coralogixapis.dashboards.v1.Dashboard
 	14, // 2: com.coralogixapis.dashboards.v1.services.ReplaceDashboardRequest.request_id:type_name -> google.protobuf.StringValue
-	15, // 3: com.coralogixapis.dashboards.v1.services.ReplaceDashboardRequest.dashboard:type_name -> com.coralogixapis.dashboards.v1.ast.Dashboard
+	15, // 3: com.coralogixapis.dashboards.v1.services.ReplaceDashboardRequest.dashboard:type_name -> com.coralogixapis.dashboards.v1.Dashboard
 	14, // 4: com.coralogixapis.dashboards.v1.services.DeleteDashboardRequest.request_id:type_name -> google.protobuf.StringValue
 	14, // 5: com.coralogixapis.dashboards.v1.services.DeleteDashboardRequest.dashboard_id:type_name -> google.protobuf.StringValue
 	14, // 6: com.coralogixapis.dashboards.v1.services.GetDashboardRequest.dashboard_id:type_name -> google.protobuf.StringValue
-	15, // 7: com.coralogixapis.dashboards.v1.services.GetDashboardResponse.dashboard:type_name -> com.coralogixapis.dashboards.v1.ast.Dashboard
+	15, // 7: com.coralogixapis.dashboards.v1.services.GetDashboardResponse.dashboard:type_name -> com.coralogixapis.dashboards.v1.Dashboard
 	14, // 8: com.coralogixapis.dashboards.v1.services.PinDashboardRequest.request_id:type_name -> google.protobuf.StringValue
 	14, // 9: com.coralogixapis.dashboards.v1.services.PinDashboardRequest.dashboard_id:type_name -> google.protobuf.StringValue
 	14, // 10: com.coralogixapis.dashboards.v1.services.UnpinDashboardRequest.request_id:type_name -> google.protobuf.StringValue
@@ -931,8 +934,6 @@ func file_com_coralogixapis_dashboards_v1_services_dashboards_service_proto_init
 	if File_com_coralogixapis_dashboards_v1_services_dashboards_service_proto != nil {
 		return
 	}
-	file_com_coralogixapis_dashboards_v1_ast_dashboard_proto_init()
-	file_com_coralogixapis_dashboards_v1_audit_log_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_com_coralogixapis_dashboards_v1_services_dashboards_service_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*CreateDashboardRequest); i {

@@ -7,12 +7,13 @@
 package __
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -103,7 +104,7 @@ func (x *BarChart) GetScaleType() ScaleType {
 	if x != nil {
 		return x.ScaleType
 	}
-	return ScaleType_SCALE_TYPE_UNSPECIFIED
+	return ScaleType(0)
 }
 
 func (x *BarChart) GetColorsBy() *ColorsBy {
@@ -124,14 +125,14 @@ func (x *BarChart) GetUnit() Unit {
 	if x != nil {
 		return x.Unit
 	}
-	return Unit_UNIT_UNSPECIFIED
+	return Unit(0)
 }
 
 func (x *BarChart) GetSortBy() SortByType {
 	if x != nil {
 		return x.SortBy
 	}
-	return SortByType_SORT_BY_TYPE_UNSPECIFIED
+	return SortByType(0)
 }
 
 func (x *BarChart) GetColorScheme() *wrapperspb.StringValue {
@@ -375,9 +376,9 @@ type BarChart_LogsQuery struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	LuceneQuery      *LuceneQuery              `protobuf:"bytes,1,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
-	Aggregation      *LogsAggregation          `protobuf:"bytes,2,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
-	Filters          []*Filter_LogsFilter      `protobuf:"bytes,3,rep,name=filters,proto3" json:"filters,omitempty"`
+	LuceneQuery      *LuceneQuery         `protobuf:"bytes,1,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
+	Aggregation      *LogsAggregation     `protobuf:"bytes,2,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
+	Filters          []*Filter_LogsFilter `protobuf:"bytes,3,rep,name=filters,proto3" json:"filters,omitempty"`
 	GroupNames       []*wrapperspb.StringValue `protobuf:"bytes,4,rep,name=group_names,json=groupNames,proto3" json:"group_names,omitempty"`
 	StackedGroupName *wrapperspb.StringValue   `protobuf:"bytes,5,opt,name=stacked_group_name,json=stackedGroupName,proto3" json:"stacked_group_name,omitempty"`
 }
@@ -536,7 +537,7 @@ type BarChart_MetricsQuery struct {
 	PromqlQuery      *PromQlQuery              `protobuf:"bytes,1,opt,name=promql_query,json=promqlQuery,proto3" json:"promql_query,omitempty"`
 	Filters          []*Filter_MetricsFilter   `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
 	GroupNames       []*wrapperspb.StringValue `protobuf:"bytes,3,rep,name=group_names,json=groupNames,proto3" json:"group_names,omitempty"`
-	StackedGroupName *wrapperspb.StringValue   `protobuf:"bytes,4,opt,name=stacked_group_name,json=stackedGroupName,proto3" json:"stacked_group_name,omitempty"`
+	StackedGroupName *wrapperspb.StringValue     `protobuf:"bytes,4,opt,name=stacked_group_name,json=stackedGroupName,proto3" json:"stacked_group_name,omitempty"`
 }
 
 func (x *BarChart_MetricsQuery) Reset() {
@@ -924,8 +925,10 @@ var file_com_coralogixapis_dashboards_v1_ast_widgets_bar_chart_proto_rawDesc = [
 	0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70,
 	0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61,
 	0x6c, 0x75, 0x65, 0x52, 0x10, 0x73, 0x74, 0x61, 0x63, 0x6b, 0x65, 0x64, 0x47, 0x72, 0x6f, 0x75,
-	0x70, 0x4e, 0x61, 0x6d, 0x65, 0x42, 0x04, 0x5a, 0x02, 0x2e, 0x2f, 0x62, 0x06, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x33,
+	0x70, 0x4e, 0x61, 0x6d, 0x65, 0x42, 0x2d, 0x5a, 0x2b, 0x63, 0x6f, 0x6d, 0x2f, 0x63, 0x6f, 0x72,
+	0x61, 0x6c, 0x6f, 0x67, 0x69, 0x78, 0x61, 0x70, 0x69, 0x73, 0x2f, 0x64, 0x61, 0x73, 0x68, 0x62,
+	0x6f, 0x61, 0x72, 0x64, 0x73, 0x2f, 0x76, 0x31, 0x2f, 0x61, 0x73, 0x74, 0x2f, 0x77, 0x69, 0x64,
+	0x67, 0x65, 0x74, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1013,15 +1016,6 @@ func file_com_coralogixapis_dashboards_v1_ast_widgets_bar_chart_proto_init() {
 	if File_com_coralogixapis_dashboards_v1_ast_widgets_bar_chart_proto != nil {
 		return
 	}
-	file_com_coralogixapis_dashboards_v1_ast_filter_proto_init()
-	file_com_coralogixapis_dashboards_v1_ast_widgets_common_colors_by_proto_init()
-	file_com_coralogixapis_dashboards_v1_ast_widgets_common_queries_proto_init()
-	file_com_coralogixapis_dashboards_v1_ast_widgets_common_scale_proto_init()
-	file_com_coralogixapis_dashboards_v1_ast_widgets_common_sort_by_proto_init()
-	file_com_coralogixapis_dashboards_v1_ast_widgets_common_units_proto_init()
-	file_com_coralogixapis_dashboards_v1_common_logs_aggregation_proto_init()
-	file_com_coralogixapis_dashboards_v1_common_span_field_proto_init()
-	file_com_coralogixapis_dashboards_v1_common_spans_aggregation_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_com_coralogixapis_dashboards_v1_ast_widgets_bar_chart_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*BarChart); i {

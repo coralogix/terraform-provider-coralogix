@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
@@ -183,7 +184,7 @@ var (
 	}
 	dashboardProtoToSchemaSortBy       = ReverseMap(dashboardSchemaToProtoSortBy)
 	dashboardValidSortBy               = GetKeys(dashboardSchemaToProtoSortBy)
-	dashboardValidLogsAggregationTypes = []string{"count", "count_distinct", "sum", "avg", "min", "max"}
+	dashboardValidLogsAggregationTypes = []string{"count", "count_distinct", "sum", "avg", "min", "max", "percentile"}
 	dashboardValidSpanFieldTypes       = []string{"metadata", "tag", "process_tag"}
 	dashboardValidSpanAggregationTypes = []string{"metric", "dimension"}
 	dashboardValidColorSchemes         = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
@@ -346,14 +347,21 @@ type DataTableLogsAggregationModel struct {
 }
 
 type LogsAggregationModel struct {
-	Type  types.String `tfsdk:"type"`
-	Field types.String `tfsdk:"field"`
+	Type    types.String  `tfsdk:"type"`
+	Field   types.String  `tfsdk:"field"`
+	Percent types.Float64 `tfsdk:"percent"`
 }
 
 type DataTableQueryModel struct {
-	Logs    *DataTableQueryLogsModel    `tfsdk:"logs"`
-	Metrics *DataTableQueryMetricsModel `tfsdk:"metrics"`
-	Spans   *DataTableQuerySpansModel   `tfsdk:"spans"`
+	Logs      *DataTableQueryLogsModel    `tfsdk:"logs"`
+	Metrics   *DataTableQueryMetricsModel `tfsdk:"metrics"`
+	Spans     *DataTableQuerySpansModel   `tfsdk:"spans"`
+	DataPrime *DataPrimeModel             `tfsdk:"data_prime"`
+}
+
+type DataPrimeModel struct {
+	Query   types.String `tfsdk:"query"`
+	Filters types.List   `tfsdk:"filters"` //DashboardFilterSourceModel
 }
 
 type DataTableQueryMetricsModel struct {
@@ -409,9 +417,10 @@ type GaugeModel struct {
 }
 
 type GaugeQueryModel struct {
-	Logs    *GaugeQueryLogsModel    `tfsdk:"logs"`
-	Metrics *GaugeQueryMetricsModel `tfsdk:"metrics"`
-	Spans   *GaugeQuerySpansModel   `tfsdk:"spans"`
+	Logs      *GaugeQueryLogsModel    `tfsdk:"logs"`
+	Metrics   *GaugeQueryMetricsModel `tfsdk:"metrics"`
+	Spans     *GaugeQuerySpansModel   `tfsdk:"spans"`
+	DataPrime *DataPrimeModel         `tfsdk:"data_prime"`
 }
 
 type GaugeQueryLogsModel struct {
@@ -692,14 +701,15 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+				MarkdownDescription: "Unique identifier for the dashboard.",
 			},
 			"name": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "Dashboard name.",
+				MarkdownDescription: "Display name of the dashboard.",
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "Dashboard description.",
+				MarkdownDescription: "Brief description or summary of the dashboard's purpose or content.",
 			},
 			"layout": schema.SingleNestedAttribute{
 				Optional: true,
@@ -957,6 +967,13 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						},
 																					},
 																					Optional: true,
+																					Validators: []validator.Object{
+																						objectvalidator.ExactlyOneOf(
+																							path.MatchRelative().AtParent().AtName("spans"),
+																							path.MatchRelative().AtParent().AtName("metrics"),
+																							path.MatchRelative().AtParent().AtName("data_prime"),
+																						),
+																					},
 																				},
 																				"spans": schema.SingleNestedAttribute{
 																					Attributes: map[string]schema.Attribute{
@@ -994,6 +1011,13 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						},
 																					},
 																					Optional: true,
+																					Validators: []validator.Object{
+																						objectvalidator.ExactlyOneOf(
+																							path.MatchRelative().AtParent().AtName("logs"),
+																							path.MatchRelative().AtParent().AtName("metrics"),
+																							path.MatchRelative().AtParent().AtName("data_prime"),
+																						),
+																					},
 																				},
 																				"metrics": schema.SingleNestedAttribute{
 																					Attributes: map[string]schema.Attribute{
@@ -1003,6 +1027,34 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						"filters": metricFiltersSchema(),
 																					},
 																					Optional: true,
+																					Validators: []validator.Object{
+																						objectvalidator.ExactlyOneOf(
+																							path.MatchRelative().AtParent().AtName("logs"),
+																							path.MatchRelative().AtParent().AtName("spans"),
+																							path.MatchRelative().AtParent().AtName("data_prime"),
+																						),
+																					},
+																				},
+																				"data_prime": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{
+																						"query": schema.StringAttribute{
+																							Optional: true,
+																						},
+																						"filters": schema.ListNestedAttribute{
+																							NestedObject: schema.NestedAttributeObject{
+																								Attributes: filtersSourceAttribute(),
+																							},
+																							Optional: true,
+																						},
+																					},
+																					Optional: true,
+																					Validators: []validator.Object{
+																						objectvalidator.ExactlyOneOf(
+																							path.MatchRelative().AtParent().AtName("logs"),
+																							path.MatchRelative().AtParent().AtName("spans"),
+																							path.MatchRelative().AtParent().AtName("metrics"),
+																						),
+																					},
 																				},
 																			},
 																			Required: true,
@@ -1031,10 +1083,10 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																					},
 																				},
 																			},
-																			Required: true,
 																			Validators: []validator.List{
 																				listvalidator.SizeAtLeast(1),
 																			},
+																			Optional: true,
 																		},
 																		"order_by": schema.SingleNestedAttribute{
 																			Attributes: map[string]schema.Attribute{
@@ -1085,6 +1137,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						objectvalidator.ExactlyOneOf(
 																							path.MatchRelative().AtParent().AtName("spans"),
 																							path.MatchRelative().AtParent().AtName("metrics"),
+																							path.MatchRelative().AtParent().AtName("data_prime"),
 																						),
 																					},
 																					Optional: true,
@@ -1113,6 +1166,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						objectvalidator.ExactlyOneOf(
 																							path.MatchRelative().AtParent().AtName("logs"),
 																							path.MatchRelative().AtParent().AtName("spans"),
+																							path.MatchRelative().AtParent().AtName("data_prime"),
 																						),
 																					},
 																				},
@@ -1128,6 +1182,28 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																					Validators: []validator.Object{
 																						objectvalidator.ExactlyOneOf(
 																							path.MatchRelative().AtParent().AtName("logs"),
+																							path.MatchRelative().AtParent().AtName("metrics"),
+																							path.MatchRelative().AtParent().AtName("data_prime"),
+																						),
+																					},
+																				},
+																				"data_prime": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{
+																						"query": schema.StringAttribute{
+																							Optional: true,
+																						},
+																						"filters": schema.ListNestedAttribute{
+																							NestedObject: schema.NestedAttributeObject{
+																								Attributes: filtersSourceAttribute(),
+																							},
+																							Optional: true,
+																						},
+																					},
+																					Optional: true,
+																					Validators: []validator.Object{
+																						objectvalidator.ExactlyOneOf(
+																							path.MatchRelative().AtParent().AtName("logs"),
+																							path.MatchRelative().AtParent().AtName("spans"),
 																							path.MatchRelative().AtParent().AtName("metrics"),
 																						),
 																					},
@@ -1680,6 +1756,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 						MarkdownDescription: "Currently only one section is supported.",
 					},
 				},
+				MarkdownDescription: "Layout configuration for the dashboard's visual elements.",
 			},
 			"variables": schema.ListNestedAttribute{
 				Optional: true,
@@ -1784,67 +1861,15 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
 				},
+				MarkdownDescription: "List of variables that can be used within the dashboard for dynamic content.",
 			},
 			"filters": schema.ListNestedAttribute{
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"source": schema.SingleNestedAttribute{
-							Attributes: map[string]schema.Attribute{
-								"logs": schema.SingleNestedAttribute{
-									Attributes: map[string]schema.Attribute{
-										"field": schema.StringAttribute{
-											Required: true,
-										},
-										"operator": filterOperatorSchema(),
-									},
-									Optional: true,
-									Validators: []validator.Object{
-										objectvalidator.ExactlyOneOf(
-											path.MatchRelative().AtParent().AtName("metrics"),
-											path.MatchRelative().AtParent().AtName("spans"),
-										),
-									},
-								},
-								"spans": schema.SingleNestedAttribute{
-									Attributes: map[string]schema.Attribute{
-										"field": schema.SingleNestedAttribute{
-											Attributes: spansFieldAttributes(),
-											Required:   true,
-											Validators: []validator.Object{
-												spansFieldValidator{},
-											},
-										},
-										"operator": filterOperatorSchema(),
-									},
-									Optional: true,
-									Validators: []validator.Object{
-										objectvalidator.ExactlyOneOf(
-											path.MatchRelative().AtParent().AtName("metrics"),
-											path.MatchRelative().AtParent().AtName("logs"),
-										),
-									},
-								},
-								"metrics": schema.SingleNestedAttribute{
-									Attributes: map[string]schema.Attribute{
-										"metric_name": schema.StringAttribute{
-											Required: true,
-										},
-										"label": schema.StringAttribute{
-											Required: true,
-										},
-										"operator": filterOperatorSchema(),
-									},
-									Validators: []validator.Object{
-										objectvalidator.ExactlyOneOf(
-											path.MatchRelative().AtParent().AtName("spans"),
-											path.MatchRelative().AtParent().AtName("logs"),
-										),
-									},
-									Optional: true,
-								},
-							},
-							Required: true,
+							Attributes: filtersSourceAttribute(),
+							Required:   true,
 						},
 						"enabled": schema.BoolAttribute{
 							Optional: true,
@@ -1861,6 +1886,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 				Validators: []validator.List{
 					listvalidator.SizeAtLeast(1),
 				},
+				MarkdownDescription: "List of filters that can be applied to the dashboard's data.",
 			},
 			"time_frame": schema.SingleNestedAttribute{
 				Optional: true,
@@ -1878,6 +1904,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 						Validators: []validator.Object{
 							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("relative")),
 						},
+						MarkdownDescription: "Absolute time frame specifying a fixed start and end time.",
 					},
 					"relative": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
@@ -1889,8 +1916,10 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 						Validators: []validator.Object{
 							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("absolute")),
 						},
+						MarkdownDescription: "Relative time frame specifying a duration from the current time.",
 					},
 				},
+				MarkdownDescription: "Specifies the time frame for the dashboard's data. Can be either absolute or relative.",
 			},
 			"content_json": schema.StringAttribute{
 				Optional: true,
@@ -1911,6 +1940,64 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 				},
 				Description: "an option to set the dashboard content from a json file.",
 			},
+		},
+	}
+}
+
+func filtersSourceAttribute() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"logs": schema.SingleNestedAttribute{
+			Attributes: map[string]schema.Attribute{
+				"field": schema.StringAttribute{
+					Required:            true,
+					MarkdownDescription: "Field in the logs to apply the filter on.",
+				},
+				"operator": filterOperatorSchema(),
+			},
+			Optional: true,
+			Validators: []validator.Object{
+				objectvalidator.ExactlyOneOf(
+					path.MatchRelative().AtParent().AtName("metrics"),
+					path.MatchRelative().AtParent().AtName("spans"),
+				),
+			},
+		},
+		"spans": schema.SingleNestedAttribute{
+			Attributes: map[string]schema.Attribute{
+				"field": schema.SingleNestedAttribute{
+					Attributes: spansFieldAttributes(),
+					Required:   true,
+					Validators: []validator.Object{
+						spansFieldValidator{},
+					},
+				},
+				"operator": filterOperatorSchema(),
+			},
+			Optional: true,
+			Validators: []validator.Object{
+				objectvalidator.ExactlyOneOf(
+					path.MatchRelative().AtParent().AtName("metrics"),
+					path.MatchRelative().AtParent().AtName("logs"),
+				),
+			},
+		},
+		"metrics": schema.SingleNestedAttribute{
+			Attributes: map[string]schema.Attribute{
+				"metric_name": schema.StringAttribute{
+					Required: true,
+				},
+				"label": schema.StringAttribute{
+					Required: true,
+				},
+				"operator": filterOperatorSchema(),
+			},
+			Validators: []validator.Object{
+				objectvalidator.ExactlyOneOf(
+					path.MatchRelative().AtParent().AtName("spans"),
+					path.MatchRelative().AtParent().AtName("logs"),
+				),
+			},
+			Optional: true,
 		},
 	}
 }
@@ -1948,10 +2035,12 @@ func metricFiltersSchema() schema.ListNestedAttribute {
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
 				"metric": schema.StringAttribute{
-					Optional: true,
+					Required:            true,
+					MarkdownDescription: "Metric name to apply the filter on.",
 				},
 				"label": schema.StringAttribute{
-					Optional: true,
+					Optional:            true,
+					MarkdownDescription: "Label associated with the metric.",
 				},
 				"operator": filterOperatorSchema(),
 			},
@@ -1982,7 +2071,8 @@ func filterOperatorSchema() schema.SingleNestedAttribute {
 		Validators: []validator.Object{
 			filterOperatorValidator{},
 		},
-		Required: true,
+		Required:            true,
+		MarkdownDescription: "Operator to use for filtering.",
 	}
 }
 
@@ -2047,6 +2137,12 @@ func (l logsAggregationValidator) ValidateObject(ctx context.Context, req valida
 	} else if aggregation.Type.ValueString() != "count" && aggregation.Field.IsNull() {
 		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, `field` must be set", aggregation.Type.ValueString())))
 	}
+
+	if aggregation.Type.ValueString() == "percentile" && aggregation.Percent.IsNull() {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", "when type is `percentile`, `percent` must be set"))
+	} else if aggregation.Type.ValueString() != "percentile" && !aggregation.Percent.IsNull() {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, `percent` cannot be set", aggregation.Type.ValueString())))
+	}
 }
 
 func logsAggregationSchema() schema.SingleNestedAttribute {
@@ -2085,6 +2181,13 @@ func logsAggregationAttributes() map[string]schema.Attribute {
 		},
 		"field": schema.StringAttribute{
 			Optional: true,
+		},
+		"percent": schema.Float64Attribute{
+			Optional: true,
+			Validators: []validator.Float64{
+				float64validator.Between(0, 100),
+			},
+			MarkdownDescription: "The percentage of the aggregation to return. required when type is `percentile`.",
 		},
 	}
 }
@@ -3076,6 +3179,15 @@ func expandLogsAggregation(logsAggregation *LogsAggregationModel) (*dashboards.L
 				},
 			},
 		}, nil
+	case "percentile":
+		return &dashboards.LogsAggregation{
+			Value: &dashboards.LogsAggregation_Percentile_{
+				Percentile: &dashboards.LogsAggregation_Percentile{
+					Field:   typeStringToWrapperspbString(logsAggregation.Field),
+					Percent: typeFloat64ToWrapperspbDouble(logsAggregation.Percent),
+				},
+			},
+		}, nil
 	default:
 		return nil, diag.NewErrorDiagnostic("Error expand logs aggregation", fmt.Sprintf("unknown logs aggregation type %s", logsAggregation.Type.ValueString()))
 	}
@@ -3529,9 +3641,65 @@ func expandDataTableQuery(ctx context.Context, dataTableQuery *DataTableQueryMod
 		return &dashboards.DataTable_Query{
 			Value: spans,
 		}, nil
+	case dataTableQuery.DataPrime != nil:
+		dataPrime, diags := expandDataTableDataPrimeQuery(ctx, dataTableQuery.DataPrime)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboards.DataTable_Query{
+			Value: dataPrime,
+		}, nil
 	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand DataTable Query", "unknown data table query type")}
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand DataTable Query", fmt.Sprintf("unknown data table query type %s", dataTableQuery))}
 	}
+}
+
+func expandDataTableDataPrimeQuery(ctx context.Context, dataPrime *DataPrimeModel) (*dashboards.DataTable_Query_Dataprime, diag.Diagnostics) {
+	if dataPrime == nil {
+		return nil, nil
+	}
+
+	filters, diags := expandDashboardFiltersSources(ctx, dataPrime.Filters)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	var dataPrimeQuery *dashboards.DataprimeQuery
+	if !dataPrime.Query.IsNull() {
+		dataPrimeQuery = &dashboards.DataprimeQuery{
+			Text: dataPrime.Query.ValueString(),
+		}
+	}
+
+	return &dashboards.DataTable_Query_Dataprime{
+		Dataprime: &dashboards.DataTable_DataprimeQuery{
+			DataprimeQuery: dataPrimeQuery,
+			Filters:        filters,
+		},
+	}, nil
+}
+
+func expandDashboardFiltersSources(ctx context.Context, filters types.List) ([]*dashboards.Filter_Source, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	var filtersObjects []types.Object
+	var expandedFiltersSources []*dashboards.Filter_Source
+	filters.ElementsAs(ctx, &filtersObjects, true)
+
+	for _, fo := range filtersObjects {
+		var filterSource DashboardFilterSourceModel
+		if dg := fo.As(ctx, &filterSource, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		expandedFilter, expandDiags := expandFilterSource(ctx, &filterSource)
+		if expandDiags.HasError() {
+			diags.Append(expandDiags...)
+			continue
+		}
+		expandedFiltersSources = append(expandedFiltersSources, expandedFilter)
+	}
+
+	return expandedFiltersSources, diags
 }
 
 func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *DataTableQueryMetricsModel) (*dashboards.DataTable_Query_Metrics, diag.Diagnostics) {
@@ -4301,7 +4469,7 @@ func expandDashboardFilter(ctx context.Context, filter *DashboardFilterModel) (*
 		return nil, nil
 	}
 
-	source, diags := expandFilterSource(ctx, filter)
+	source, diags := expandFilterSource(ctx, filter.Source)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4313,8 +4481,7 @@ func expandDashboardFilter(ctx context.Context, filter *DashboardFilterModel) (*
 	}, nil
 }
 
-func expandFilterSource(ctx context.Context, filter *DashboardFilterModel) (*dashboards.Filter_Source, diag.Diagnostics) {
-	source := filter.Source
+func expandFilterSource(ctx context.Context, source *DashboardFilterSourceModel) (*dashboards.Filter_Source, diag.Diagnostics) {
 	if source == nil {
 		return nil, nil
 	}
@@ -4327,7 +4494,7 @@ func expandFilterSource(ctx context.Context, filter *DashboardFilterModel) (*das
 	case source.Spans != nil:
 		return expandFilterSourceSpans(ctx, source.Spans)
 	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Filter Source", fmt.Sprintf("Unknown filter source type: %#v", filter))}
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Filter Source", fmt.Sprintf("Unknown filter source type: %#v", source))}
 	}
 }
 
@@ -4741,6 +4908,16 @@ func widgetModelAttr() map[string]attr.Type {
 										},
 									},
 								},
+								"data_prime": types.ObjectType{
+									AttrTypes: map[string]attr.Type{
+										"query": types.StringType,
+										"filters": types.ListType{
+											ElemType: types.ObjectType{
+												AttrTypes: filterSourceModelAttr(),
+											},
+										},
+									},
+								},
 							},
 						},
 						"results_per_page": types.Int64Type,
@@ -4795,6 +4972,16 @@ func widgetModelAttr() map[string]attr.Type {
 										"filters": types.ListType{
 											ElemType: types.ObjectType{
 												AttrTypes: spansFilterModelAttr(),
+											},
+										},
+									},
+								},
+								"data_prime": types.ObjectType{
+									AttrTypes: map[string]attr.Type{
+										"query": types.StringType,
+										"filters": types.ListType{
+											ElemType: types.ObjectType{
+												AttrTypes: filterSourceModelAttr(),
 											},
 										},
 									},
@@ -5143,8 +5330,9 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 
 func aggregationModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"type":  types.StringType,
-		"field": types.StringType,
+		"type":    types.StringType,
+		"field":   types.StringType,
+		"percent": types.Float64Type,
 	}
 }
 
@@ -5249,14 +5437,18 @@ func dashboardsVariablesModelAttr() map[string]attr.Type {
 func dashboardsFiltersModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"source": types.ObjectType{
-			AttrTypes: map[string]attr.Type{
-				"logs":    types.ObjectType{AttrTypes: filterModelAttr()},
-				"metrics": types.ObjectType{AttrTypes: filterSourceMetricsModelAttr()},
-				"spans":   types.ObjectType{AttrTypes: filterSourceSpansModelAttr()},
-			},
+			AttrTypes: filterSourceModelAttr(),
 		},
 		"enabled":   types.BoolType,
 		"collapsed": types.BoolType,
+	}
+}
+
+func filterSourceModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"logs":    types.ObjectType{AttrTypes: filterModelAttr()},
+		"metrics": types.ObjectType{AttrTypes: filterSourceMetricsModelAttr()},
+		"spans":   types.ObjectType{AttrTypes: filterSourceSpansModelAttr()},
 	}
 }
 
@@ -5759,6 +5951,12 @@ func flattenLogsAggregation(aggregation *dashboards.LogsAggregation) (*LogsAggre
 			Type:  types.StringValue("max"),
 			Field: wrapperspbStringToTypeString(aggregationValue.Max.GetField()),
 		}, nil
+	case *dashboards.LogsAggregation_Percentile_:
+		return &LogsAggregationModel{
+			Type:    types.StringValue("percentile"),
+			Field:   wrapperspbStringToTypeString(aggregationValue.Percentile.GetField()),
+			Percent: wrapperspbDoubleToTypeFloat64(aggregationValue.Percentile.GetPercent()),
+		}, nil
 	default:
 		return nil, diag.NewErrorDiagnostic("Error Flatten Logs Aggregation", "unknown logs aggregation type")
 	}
@@ -6065,9 +6263,34 @@ func flattenDataTableQuery(ctx context.Context, query *dashboards.DataTable_Quer
 		return flattenDataTableMetricsQuery(ctx, query.GetMetrics())
 	case *dashboards.DataTable_Query_Spans:
 		return flattenDataTableSpansQuery(ctx, query.GetSpans())
+	case *dashboards.DataTable_Query_Dataprime:
+		return flattenDataTableDataPrimeQuery(ctx, query.GetDataprime())
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Data Table Query", "unknown data table query type")}
 	}
+}
+
+func flattenDataTableDataPrimeQuery(ctx context.Context, dataPrime *dashboards.DataTable_DataprimeQuery) (*DataTableQueryModel, diag.Diagnostics) {
+	if dataPrime == nil {
+		return nil, nil
+	}
+
+	dataPrimeQuery := types.StringNull()
+	if dataPrime.GetDataprimeQuery() != nil {
+		dataPrimeQuery = types.StringValue(dataPrime.GetDataprimeQuery().GetText())
+	}
+
+	filters, diags := flattenDashboardFiltersSources(ctx, dataPrime.GetFilters())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &DataTableQueryModel{
+		DataPrime: &DataPrimeModel{
+			Query:   dataPrimeQuery,
+			Filters: filters,
+		},
+	}, nil
 }
 
 func flattenDataTableLogsQuery(ctx context.Context, logs *dashboards.DataTable_LogsQuery) (*DataTableQueryModel, diag.Diagnostics) {
@@ -6957,6 +7180,30 @@ func flattenDashboardFilter(filter *dashboards.Filter) (*DashboardFilterModel, d
 		Enabled:   wrapperspbBoolToTypeBool(filter.GetEnabled()),
 		Collapsed: wrapperspbBoolToTypeBool(filter.GetCollapsed()),
 	}, nil
+}
+
+func flattenDashboardFiltersSources(ctx context.Context, sources []*dashboards.Filter_Source) (types.List, diag.Diagnostics) {
+	if len(sources) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: filterSourceModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	filtersElements := make([]attr.Value, 0, len(sources))
+	for _, source := range sources {
+		flattenedFilter, dg := flattenDashboardFilterSource(source)
+		if dg != nil {
+			diagnostics = append(diagnostics, dg)
+			continue
+		}
+		filterElement, diags := types.ObjectValueFrom(ctx, filterSourceModelAttr(), flattenedFilter)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		filtersElements = append(filtersElements, filterElement)
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: filterSourceModelAttr()}, filtersElements), diagnostics
 }
 
 func flattenDashboardFilterSource(source *dashboards.Filter_Source) (*DashboardFilterSourceModel, diag.Diagnostic) {

@@ -7,13 +7,14 @@
 package __
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -28,13 +29,13 @@ type SearchSpansTimeSeriesRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeFrame    *TimeFrame              `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
-	Interval     *durationpb.Duration    `protobuf:"bytes,2,opt,name=interval,proto3" json:"interval,omitempty"`
-	Filters      []*Filter_SpansFilter   `protobuf:"bytes,3,rep,name=filters,proto3" json:"filters,omitempty"`
-	LuceneQuery  *wrapperspb.StringValue `protobuf:"bytes,4,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
-	GroupBy      []*SpanField            `protobuf:"bytes,5,rep,name=group_by,json=groupBy,proto3" json:"group_by,omitempty"`
-	Aggregations []*SpansAggregation     `protobuf:"bytes,6,rep,name=aggregations,proto3" json:"aggregations,omitempty"`
-	Limit        *wrapperspb.Int32Value  `protobuf:"bytes,7,opt,name=limit,proto3" json:"limit,omitempty"`
+	TimeFrame    *TimeFrame          `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
+	Interval     *durationpb.Duration       `protobuf:"bytes,2,opt,name=interval,proto3" json:"interval,omitempty"`
+	Filters      []*Filter_SpansFilter  `protobuf:"bytes,3,rep,name=filters,proto3" json:"filters,omitempty"`
+	LuceneQuery  *wrapperspb.StringValue    `protobuf:"bytes,4,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
+	GroupBy      []*SpanField        `protobuf:"bytes,5,rep,name=group_by,json=groupBy,proto3" json:"group_by,omitempty"`
+	Aggregations []*SpansAggregation `protobuf:"bytes,6,rep,name=aggregations,proto3" json:"aggregations,omitempty"`
+	Limit        *wrapperspb.Int32Value     `protobuf:"bytes,7,opt,name=limit,proto3" json:"limit,omitempty"`
 }
 
 func (x *SearchSpansTimeSeriesRequest) Reset() {
@@ -123,7 +124,7 @@ type SearchSpansTimeSeriesResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeSeries []*TimeSeries          `protobuf:"bytes,1,rep,name=time_series,json=timeSeries,proto3" json:"time_series,omitempty"`
+	TimeSeries []*TimeSeries   `protobuf:"bytes,1,rep,name=time_series,json=timeSeries,proto3" json:"time_series,omitempty"`
 	Total      *wrapperspb.Int64Value `protobuf:"bytes,2,opt,name=total,proto3" json:"total,omitempty"`
 }
 
@@ -178,8 +179,8 @@ type SearchSpansEventsRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeFrame   *TimeFrame                           `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
-	Filters     []*Filter_SpansFilter                `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
+	TimeFrame   *TimeFrame                    `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
+	Filters     []*Filter_SpansFilter            `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
 	LuceneQuery *wrapperspb.StringValue              `protobuf:"bytes,3,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
 	Pagination  *SearchSpansEventsRequest_Pagination `protobuf:"bytes,4,opt,name=pagination,proto3" json:"pagination,omitempty"`
 }
@@ -304,12 +305,12 @@ type SearchSpansEventGroupsRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeFrame     *TimeFrame              `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
-	Filters       []*Filter_SpansFilter   `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
-	LuceneQuery   *wrapperspb.StringValue `protobuf:"bytes,3,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
-	GroupByFields []*SpanField            `protobuf:"bytes,4,rep,name=group_by_fields,json=groupByFields,proto3" json:"group_by_fields,omitempty"`
-	Aggregations  []*SpansAggregation     `protobuf:"bytes,5,rep,name=aggregations,proto3" json:"aggregations,omitempty"`
-	Pagination    *Pagination             `protobuf:"bytes,6,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	TimeFrame     *TimeFrame          `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
+	Filters       []*Filter_SpansFilter  `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
+	LuceneQuery   *wrapperspb.StringValue    `protobuf:"bytes,3,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
+	GroupByFields []*SpanField        `protobuf:"bytes,4,rep,name=group_by_fields,json=groupByFields,proto3" json:"group_by_fields,omitempty"`
+	Aggregations  []*SpansAggregation `protobuf:"bytes,5,rep,name=aggregations,proto3" json:"aggregations,omitempty"`
+	Pagination    *Pagination         `protobuf:"bytes,6,opt,name=pagination,proto3" json:"pagination,omitempty"`
 }
 
 func (x *SearchSpansEventGroupsRequest) Reset() {
@@ -438,10 +439,10 @@ type SearchGroupedSpansSeriesRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeFrame     *TimeFrame                               `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
-	Filters       []*Filter_SpansFilter                    `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
-	GroupByFields []*SpanField                             `protobuf:"bytes,3,rep,name=group_by_fields,json=groupByFields,proto3" json:"group_by_fields,omitempty"`
-	Aggregation   *SpansAggregation                        `protobuf:"bytes,4,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
+	TimeFrame     *TimeFrame                        `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
+	Filters       []*Filter_SpansFilter                `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
+	GroupByFields []*SpanField                      `protobuf:"bytes,3,rep,name=group_by_fields,json=groupByFields,proto3" json:"group_by_fields,omitempty"`
+	Aggregation   *SpansAggregation                 `protobuf:"bytes,4,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
 	LuceneQuery   *wrapperspb.StringValue                  `protobuf:"bytes,5,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
 	Limits        []*SearchGroupedSpansSeriesRequest_Limit `protobuf:"bytes,6,rep,name=limits,proto3" json:"limits,omitempty"`
 }
@@ -572,10 +573,10 @@ type SearchSpansGroupedTimeSeriesRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeFrame   *TimeFrame                                     `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
+	TimeFrame   *TimeFrame                              `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
 	Interval    *durationpb.Duration                           `protobuf:"bytes,2,opt,name=interval,proto3" json:"interval,omitempty"`
-	Filters     []*Filter_SpansFilter                          `protobuf:"bytes,3,rep,name=filters,proto3" json:"filters,omitempty"`
-	Aggregation *SpansAggregation                              `protobuf:"bytes,4,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
+	Filters     []*Filter_SpansFilter                      `protobuf:"bytes,3,rep,name=filters,proto3" json:"filters,omitempty"`
+	Aggregation *SpansAggregation                       `protobuf:"bytes,4,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
 	LuceneQuery *wrapperspb.StringValue                        `protobuf:"bytes,5,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
 	GroupBy     []*SearchSpansGroupedTimeSeriesRequest_GroupBy `protobuf:"bytes,6,rep,name=group_by,json=groupBy,proto3" json:"group_by,omitempty"`
 }
@@ -817,10 +818,10 @@ type SearchSpansTimeValueRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeFrame   *TimeFrame              `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
-	Filters     []*Filter_SpansFilter   `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
-	LuceneQuery *wrapperspb.StringValue `protobuf:"bytes,3,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
-	Aggregation *SpansAggregation       `protobuf:"bytes,4,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
+	TimeFrame   *TimeFrame         `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
+	Filters     []*Filter_SpansFilter `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
+	LuceneQuery *wrapperspb.StringValue   `protobuf:"bytes,3,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
+	Aggregation *SpansAggregation  `protobuf:"bytes,4,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
 }
 
 func (x *SearchSpansTimeValueRequest) Reset() {
@@ -990,7 +991,7 @@ type SearchGroupedSpansSeriesRequest_Limit struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	GroupByFields []*SpanField           `protobuf:"bytes,1,rep,name=group_by_fields,json=groupByFields,proto3" json:"group_by_fields,omitempty"`
+	GroupByFields []*SpanField    `protobuf:"bytes,1,rep,name=group_by_fields,json=groupByFields,proto3" json:"group_by_fields,omitempty"`
 	Limit         *wrapperspb.Int32Value `protobuf:"bytes,2,opt,name=limit,proto3" json:"limit,omitempty"`
 	MinPercentage *wrapperspb.Int32Value `protobuf:"bytes,3,opt,name=min_percentage,json=minPercentage,proto3" json:"min_percentage,omitempty"`
 }
@@ -1053,7 +1054,7 @@ type SearchSpansGroupedTimeSeriesRequest_GroupBy struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Fields        []*SpanField           `protobuf:"bytes,1,rep,name=fields,proto3" json:"fields,omitempty"`
+	Fields        []*SpanField    `protobuf:"bytes,1,rep,name=fields,proto3" json:"fields,omitempty"`
 	Limit         *wrapperspb.Int32Value `protobuf:"bytes,2,opt,name=limit,proto3" json:"limit,omitempty"`
 	MinPercentage *wrapperspb.Int32Value `protobuf:"bytes,3,opt,name=min_percentage,json=minPercentage,proto3" json:"min_percentage,omitempty"`
 }
@@ -1762,8 +1763,10 @@ var file_com_coralogixapis_dashboards_v1_services_spans_data_source_service_prot
 	0x68, 0x53, 0x70, 0x61, 0x6e, 0x73, 0x54, 0x69, 0x6d, 0x65, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x52,
 	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x23, 0xba, 0xb8, 0x02, 0x1f, 0x0a, 0x1d, 0x73,
 	0x65, 0x61, 0x72, 0x63, 0x68, 0x20, 0x73, 0x70, 0x61, 0x6e, 0x73, 0x20, 0x61, 0x67, 0x67, 0x72,
-	0x65, 0x67, 0x61, 0x74, 0x65, 0x64, 0x20, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x04, 0x5a, 0x02,
-	0x2e, 0x2f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x65, 0x67, 0x61, 0x74, 0x65, 0x64, 0x20, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x2a, 0x5a, 0x28,
+	0x63, 0x6f, 0x6d, 0x2f, 0x63, 0x6f, 0x72, 0x61, 0x6c, 0x6f, 0x67, 0x69, 0x78, 0x61, 0x70, 0x69,
+	0x73, 0x2f, 0x64, 0x61, 0x73, 0x68, 0x62, 0x6f, 0x61, 0x72, 0x64, 0x73, 0x2f, 0x76, 0x31, 0x2f,
+	0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1800,58 +1803,58 @@ var file_com_coralogixapis_dashboards_v1_services_spans_data_source_service_prot
 	(*SpansEvent_Tag)(nil),                              // 17: com.coralogixapis.dashboards.v1.services.SpansEvent.Tag
 	(*SpansEvent_Log)(nil),                              // 18: com.coralogixapis.dashboards.v1.services.SpansEvent.Log
 	nil,                                                 // 19: com.coralogixapis.dashboards.v1.services.SpansEvent.Log.FieldsEntry
-	(*TimeFrame)(nil),                                   // 20: com.coralogixapis.dashboards.v1.common.TimeFrame
+	(*TimeFrame)(nil),                            // 20: com.coralogixapis.dashboards.v1.TimeFrame
 	(*durationpb.Duration)(nil),                         // 21: google.protobuf.Duration
-	(*Filter_SpansFilter)(nil),                          // 22: com.coralogixapis.dashboards.v1.ast.Filter.SpansFilter
+	(*Filter_SpansFilter)(nil),                      // 22: com.coralogixapis.dashboards.v1.Filter.SpansFilter
 	(*wrapperspb.StringValue)(nil),                      // 23: google.protobuf.StringValue
-	(*SpanField)(nil),                                   // 24: com.coralogixapis.dashboards.v1.common.SpanField
-	(*SpansAggregation)(nil),                            // 25: com.coralogixapis.dashboards.v1.common.SpansAggregation
+	(*SpanField)(nil),                            // 24: com.coralogixapis.dashboards.v1.SpanField
+	(*SpansAggregation)(nil),                     // 25: com.coralogixapis.dashboards.v1.SpansAggregation
 	(*wrapperspb.Int32Value)(nil),                       // 26: google.protobuf.Int32Value
-	(*TimeSeries)(nil),                                  // 27: com.coralogixapis.dashboards.v1.common.TimeSeries
+	(*TimeSeries)(nil),                           // 27: com.coralogixapis.dashboards.v1.TimeSeries
 	(*wrapperspb.Int64Value)(nil),                       // 28: google.protobuf.Int64Value
-	(*Pagination)(nil),                                  // 29: com.coralogixapis.dashboards.v1.common.Pagination
-	(*MultiGroup)(nil),                                  // 30: com.coralogixapis.dashboards.v1.common.MultiGroup
-	(*GroupedSeries)(nil),                               // 31: com.coralogixapis.dashboards.v1.common.GroupedSeries
+	(*Pagination)(nil),                           // 29: com.coralogixapis.dashboards.v1.Pagination
+	(*MultiGroup)(nil),                           // 30: com.coralogixapis.dashboards.v1.MultiGroup
+	(*GroupedSeries)(nil),                        // 31: com.coralogixapis.dashboards.v1.GroupedSeries
 	(*timestamppb.Timestamp)(nil),                       // 32: google.protobuf.Timestamp
 	(*wrapperspb.DoubleValue)(nil),                      // 33: google.protobuf.DoubleValue
 }
 var file_com_coralogixapis_dashboards_v1_services_spans_data_source_service_proto_depIdxs = []int32{
-	20, // 0: com.coralogixapis.dashboards.v1.services.SearchSpansTimeSeriesRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.common.TimeFrame
+	20, // 0: com.coralogixapis.dashboards.v1.services.SearchSpansTimeSeriesRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.TimeFrame
 	21, // 1: com.coralogixapis.dashboards.v1.services.SearchSpansTimeSeriesRequest.interval:type_name -> google.protobuf.Duration
-	22, // 2: com.coralogixapis.dashboards.v1.services.SearchSpansTimeSeriesRequest.filters:type_name -> com.coralogixapis.dashboards.v1.ast.Filter.SpansFilter
+	22, // 2: com.coralogixapis.dashboards.v1.services.SearchSpansTimeSeriesRequest.filters:type_name -> com.coralogixapis.dashboards.v1.Filter.SpansFilter
 	23, // 3: com.coralogixapis.dashboards.v1.services.SearchSpansTimeSeriesRequest.lucene_query:type_name -> google.protobuf.StringValue
-	24, // 4: com.coralogixapis.dashboards.v1.services.SearchSpansTimeSeriesRequest.group_by:type_name -> com.coralogixapis.dashboards.v1.common.SpanField
-	25, // 5: com.coralogixapis.dashboards.v1.services.SearchSpansTimeSeriesRequest.aggregations:type_name -> com.coralogixapis.dashboards.v1.common.SpansAggregation
+	24, // 4: com.coralogixapis.dashboards.v1.services.SearchSpansTimeSeriesRequest.group_by:type_name -> com.coralogixapis.dashboards.v1.SpanField
+	25, // 5: com.coralogixapis.dashboards.v1.services.SearchSpansTimeSeriesRequest.aggregations:type_name -> com.coralogixapis.dashboards.v1.SpansAggregation
 	26, // 6: com.coralogixapis.dashboards.v1.services.SearchSpansTimeSeriesRequest.limit:type_name -> google.protobuf.Int32Value
-	27, // 7: com.coralogixapis.dashboards.v1.services.SearchSpansTimeSeriesResponse.time_series:type_name -> com.coralogixapis.dashboards.v1.common.TimeSeries
+	27, // 7: com.coralogixapis.dashboards.v1.services.SearchSpansTimeSeriesResponse.time_series:type_name -> com.coralogixapis.dashboards.v1.TimeSeries
 	28, // 8: com.coralogixapis.dashboards.v1.services.SearchSpansTimeSeriesResponse.total:type_name -> google.protobuf.Int64Value
-	20, // 9: com.coralogixapis.dashboards.v1.services.SearchSpansEventsRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.common.TimeFrame
-	22, // 10: com.coralogixapis.dashboards.v1.services.SearchSpansEventsRequest.filters:type_name -> com.coralogixapis.dashboards.v1.ast.Filter.SpansFilter
+	20, // 9: com.coralogixapis.dashboards.v1.services.SearchSpansEventsRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.TimeFrame
+	22, // 10: com.coralogixapis.dashboards.v1.services.SearchSpansEventsRequest.filters:type_name -> com.coralogixapis.dashboards.v1.Filter.SpansFilter
 	23, // 11: com.coralogixapis.dashboards.v1.services.SearchSpansEventsRequest.lucene_query:type_name -> google.protobuf.StringValue
 	13, // 12: com.coralogixapis.dashboards.v1.services.SearchSpansEventsRequest.pagination:type_name -> com.coralogixapis.dashboards.v1.services.SearchSpansEventsRequest.Pagination
 	28, // 13: com.coralogixapis.dashboards.v1.services.SearchSpansEventsResponse.total:type_name -> google.protobuf.Int64Value
 	10, // 14: com.coralogixapis.dashboards.v1.services.SearchSpansEventsResponse.spans_events:type_name -> com.coralogixapis.dashboards.v1.services.SpansEvent
-	20, // 15: com.coralogixapis.dashboards.v1.services.SearchSpansEventGroupsRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.common.TimeFrame
-	22, // 16: com.coralogixapis.dashboards.v1.services.SearchSpansEventGroupsRequest.filters:type_name -> com.coralogixapis.dashboards.v1.ast.Filter.SpansFilter
+	20, // 15: com.coralogixapis.dashboards.v1.services.SearchSpansEventGroupsRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.TimeFrame
+	22, // 16: com.coralogixapis.dashboards.v1.services.SearchSpansEventGroupsRequest.filters:type_name -> com.coralogixapis.dashboards.v1.Filter.SpansFilter
 	23, // 17: com.coralogixapis.dashboards.v1.services.SearchSpansEventGroupsRequest.lucene_query:type_name -> google.protobuf.StringValue
-	24, // 18: com.coralogixapis.dashboards.v1.services.SearchSpansEventGroupsRequest.group_by_fields:type_name -> com.coralogixapis.dashboards.v1.common.SpanField
-	25, // 19: com.coralogixapis.dashboards.v1.services.SearchSpansEventGroupsRequest.aggregations:type_name -> com.coralogixapis.dashboards.v1.common.SpansAggregation
-	29, // 20: com.coralogixapis.dashboards.v1.services.SearchSpansEventGroupsRequest.pagination:type_name -> com.coralogixapis.dashboards.v1.common.Pagination
-	30, // 21: com.coralogixapis.dashboards.v1.services.SearchSpansEventGroupsResponse.groups:type_name -> com.coralogixapis.dashboards.v1.common.MultiGroup
-	20, // 22: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.common.TimeFrame
-	22, // 23: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.filters:type_name -> com.coralogixapis.dashboards.v1.ast.Filter.SpansFilter
-	24, // 24: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.group_by_fields:type_name -> com.coralogixapis.dashboards.v1.common.SpanField
-	25, // 25: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.aggregation:type_name -> com.coralogixapis.dashboards.v1.common.SpansAggregation
+	24, // 18: com.coralogixapis.dashboards.v1.services.SearchSpansEventGroupsRequest.group_by_fields:type_name -> com.coralogixapis.dashboards.v1.SpanField
+	25, // 19: com.coralogixapis.dashboards.v1.services.SearchSpansEventGroupsRequest.aggregations:type_name -> com.coralogixapis.dashboards.v1.SpansAggregation
+	29, // 20: com.coralogixapis.dashboards.v1.services.SearchSpansEventGroupsRequest.pagination:type_name -> com.coralogixapis.dashboards.v1.Pagination
+	30, // 21: com.coralogixapis.dashboards.v1.services.SearchSpansEventGroupsResponse.groups:type_name -> com.coralogixapis.dashboards.v1.MultiGroup
+	20, // 22: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.TimeFrame
+	22, // 23: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.filters:type_name -> com.coralogixapis.dashboards.v1.Filter.SpansFilter
+	24, // 24: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.group_by_fields:type_name -> com.coralogixapis.dashboards.v1.SpanField
+	25, // 25: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.aggregation:type_name -> com.coralogixapis.dashboards.v1.SpansAggregation
 	23, // 26: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.lucene_query:type_name -> google.protobuf.StringValue
 	14, // 27: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.limits:type_name -> com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.Limit
-	31, // 28: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesResponse.series:type_name -> com.coralogixapis.dashboards.v1.common.GroupedSeries
-	20, // 29: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.common.TimeFrame
+	31, // 28: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesResponse.series:type_name -> com.coralogixapis.dashboards.v1.GroupedSeries
+	20, // 29: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.TimeFrame
 	21, // 30: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesRequest.interval:type_name -> google.protobuf.Duration
-	22, // 31: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesRequest.filters:type_name -> com.coralogixapis.dashboards.v1.ast.Filter.SpansFilter
-	25, // 32: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesRequest.aggregation:type_name -> com.coralogixapis.dashboards.v1.common.SpansAggregation
+	22, // 31: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesRequest.filters:type_name -> com.coralogixapis.dashboards.v1.Filter.SpansFilter
+	25, // 32: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesRequest.aggregation:type_name -> com.coralogixapis.dashboards.v1.SpansAggregation
 	23, // 33: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesRequest.lucene_query:type_name -> google.protobuf.StringValue
 	15, // 34: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesRequest.group_by:type_name -> com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesRequest.GroupBy
-	31, // 35: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesResponse.series:type_name -> com.coralogixapis.dashboards.v1.common.GroupedSeries
+	31, // 35: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesResponse.series:type_name -> com.coralogixapis.dashboards.v1.GroupedSeries
 	23, // 36: com.coralogixapis.dashboards.v1.services.SpansEvent.span_id:type_name -> google.protobuf.StringValue
 	23, // 37: com.coralogixapis.dashboards.v1.services.SpansEvent.trace_id:type_name -> google.protobuf.StringValue
 	23, // 38: com.coralogixapis.dashboards.v1.services.SpansEvent.parent_span_id:type_name -> google.protobuf.StringValue
@@ -1861,17 +1864,17 @@ var file_com_coralogixapis_dashboards_v1_services_spans_data_source_service_prot
 	17, // 42: com.coralogixapis.dashboards.v1.services.SpansEvent.tags:type_name -> com.coralogixapis.dashboards.v1.services.SpansEvent.Tag
 	17, // 43: com.coralogixapis.dashboards.v1.services.SpansEvent.process_tags:type_name -> com.coralogixapis.dashboards.v1.services.SpansEvent.Tag
 	18, // 44: com.coralogixapis.dashboards.v1.services.SpansEvent.logs:type_name -> com.coralogixapis.dashboards.v1.services.SpansEvent.Log
-	20, // 45: com.coralogixapis.dashboards.v1.services.SearchSpansTimeValueRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.common.TimeFrame
-	22, // 46: com.coralogixapis.dashboards.v1.services.SearchSpansTimeValueRequest.filters:type_name -> com.coralogixapis.dashboards.v1.ast.Filter.SpansFilter
+	20, // 45: com.coralogixapis.dashboards.v1.services.SearchSpansTimeValueRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.TimeFrame
+	22, // 46: com.coralogixapis.dashboards.v1.services.SearchSpansTimeValueRequest.filters:type_name -> com.coralogixapis.dashboards.v1.Filter.SpansFilter
 	23, // 47: com.coralogixapis.dashboards.v1.services.SearchSpansTimeValueRequest.lucene_query:type_name -> google.protobuf.StringValue
-	25, // 48: com.coralogixapis.dashboards.v1.services.SearchSpansTimeValueRequest.aggregation:type_name -> com.coralogixapis.dashboards.v1.common.SpansAggregation
+	25, // 48: com.coralogixapis.dashboards.v1.services.SearchSpansTimeValueRequest.aggregation:type_name -> com.coralogixapis.dashboards.v1.SpansAggregation
 	33, // 49: com.coralogixapis.dashboards.v1.services.SearchSpansTimeValueResponse.value:type_name -> google.protobuf.DoubleValue
 	26, // 50: com.coralogixapis.dashboards.v1.services.SearchSpansEventsRequest.Pagination.offset:type_name -> google.protobuf.Int32Value
 	26, // 51: com.coralogixapis.dashboards.v1.services.SearchSpansEventsRequest.Pagination.limit:type_name -> google.protobuf.Int32Value
-	24, // 52: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.Limit.group_by_fields:type_name -> com.coralogixapis.dashboards.v1.common.SpanField
+	24, // 52: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.Limit.group_by_fields:type_name -> com.coralogixapis.dashboards.v1.SpanField
 	26, // 53: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.Limit.limit:type_name -> google.protobuf.Int32Value
 	26, // 54: com.coralogixapis.dashboards.v1.services.SearchGroupedSpansSeriesRequest.Limit.min_percentage:type_name -> google.protobuf.Int32Value
-	24, // 55: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesRequest.GroupBy.fields:type_name -> com.coralogixapis.dashboards.v1.common.SpanField
+	24, // 55: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesRequest.GroupBy.fields:type_name -> com.coralogixapis.dashboards.v1.SpanField
 	26, // 56: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesRequest.GroupBy.limit:type_name -> google.protobuf.Int32Value
 	26, // 57: com.coralogixapis.dashboards.v1.services.SearchSpansGroupedTimeSeriesRequest.GroupBy.min_percentage:type_name -> google.protobuf.Int32Value
 	23, // 58: com.coralogixapis.dashboards.v1.services.SpansEvent.Metadata.application_name:type_name -> google.protobuf.StringValue
@@ -1907,15 +1910,6 @@ func file_com_coralogixapis_dashboards_v1_services_spans_data_source_service_pro
 	if File_com_coralogixapis_dashboards_v1_services_spans_data_source_service_proto != nil {
 		return
 	}
-	file_com_coralogixapis_dashboards_v1_ast_filter_proto_init()
-	file_com_coralogixapis_dashboards_v1_audit_log_proto_init()
-	file_com_coralogixapis_dashboards_v1_common_group_proto_init()
-	file_com_coralogixapis_dashboards_v1_common_grouped_series_proto_init()
-	file_com_coralogixapis_dashboards_v1_common_pagination_proto_init()
-	file_com_coralogixapis_dashboards_v1_common_span_field_proto_init()
-	file_com_coralogixapis_dashboards_v1_common_spans_aggregation_proto_init()
-	file_com_coralogixapis_dashboards_v1_common_time_frame_proto_init()
-	file_com_coralogixapis_dashboards_v1_common_time_series_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_com_coralogixapis_dashboards_v1_services_spans_data_source_service_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SearchSpansTimeSeriesRequest); i {
