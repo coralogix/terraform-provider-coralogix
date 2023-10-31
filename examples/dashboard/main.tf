@@ -70,8 +70,9 @@ resource "coralogix_dashboard" dashboard {
                             lucene_query = "kubernetes.namespace_name:\"portal\" AND \"Successfully executed\""
                             aggregations = [
                               {
-                                type  = "avg"
+                                type  = "percentile"
                                 field = "sfResponseTime.numeric"
+                                percent = 95.5
                               },
                             ]
                             group_by = [
@@ -175,14 +176,14 @@ resource "coralogix_dashboard" dashboard {
                 width = 10
               },
               {
-                title = "gauge"
+                title      = "gauge"
                 definition = {
                   gauge = {
-                    unit = "milliseconds"
+                    unit  = "milliseconds"
                     query = {
                       metrics = {
                         promql_query = "vector(1)"
-                        aggregation = "unspecified"
+                        aggregation  = "unspecified"
                       }
                     }
                   }
@@ -474,10 +475,10 @@ resource "coralogix_dashboard" dashboard {
                 title      = "Horizontal Bar-Chart"
                 definition = {
                   horizontal_bar_chart = {
-                    color_scheme        = "cold"
-                    colors_by           = "aggregation"
-                    display_on_bar      = true
-                    query = {
+                    color_scheme   = "cold"
+                    colors_by      = "aggregation"
+                    display_on_bar = true
+                    query          = {
                       logs = {
                         lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
                         aggregation  = {
@@ -492,11 +493,41 @@ resource "coralogix_dashboard" dashboard {
                 }
               },
               {
-                title      = "Markdown"
                 definition = {
                   markdown = {
                     markdown_text = "## Markdown\n\nThis is a markdown widget"
                     tooltip_text  = "This is a tooltip"
+                  }
+                }
+              },
+              {
+                title      = "Data Table"
+                definition = {
+                  data_table = {
+                    results_per_page = 10
+                    row_style        = "one_line"
+                    query            = {
+                      data_prime = {
+                        query   = "xxx"
+                        filters = [
+                          {
+                            logs = {
+                              lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
+                              aggregation  = {
+                                type = "count"
+                              }
+                              group_names        = ["coralogix.logId.keyword"]
+                              stacked_group_name = "coralogix.metadata.severity"
+                              field       = "coralogix.metadata.applicationName"
+                              operator = {
+                                type            = "equals"
+                                selected_values = ["staging"]
+                              }
+                            }
+                          },
+                        ]
+                      }
+                    }
                   }
                 }
               },

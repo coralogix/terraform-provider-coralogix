@@ -7,11 +7,12 @@
 package __
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -21,13 +22,17 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Filter represents the configuration for filtering data on the dashboard.
 type Filter struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Source    *Filter_Source        `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
-	Enabled   *wrapperspb.BoolValue `protobuf:"bytes,2,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// Source of the filter, which can be logs, spans, or metrics.
+	Source *Filter_Source `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
+	// Indicates if the filter is currently enabled or not.
+	Enabled *wrapperspb.BoolValue `protobuf:"bytes,2,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// Indicates if the filter's UI representation should be collapsed or expanded.
 	Collapsed *wrapperspb.BoolValue `protobuf:"bytes,3,opt,name=collapsed,proto3" json:"collapsed,omitempty"`
 }
 
@@ -84,11 +89,14 @@ func (x *Filter) GetCollapsed() *wrapperspb.BoolValue {
 	return nil
 }
 
+// Source defines the type of data the filter applies to.
 type Filter_Source struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Specifies the type of data for the filter.
+	//
 	// Types that are assignable to Value:
 	//	*Filter_Source_Logs
 	//	*Filter_Source_Spans
@@ -161,15 +169,15 @@ type isFilter_Source_Value interface {
 }
 
 type Filter_Source_Logs struct {
-	Logs *Filter_LogsFilter `protobuf:"bytes,1,opt,name=logs,proto3,oneof"`
+	Logs *Filter_LogsFilter `protobuf:"bytes,1,opt,name=logs,proto3,oneof"` // Filter configuration for logs.
 }
 
 type Filter_Source_Spans struct {
-	Spans *Filter_SpansFilter `protobuf:"bytes,2,opt,name=spans,proto3,oneof"`
+	Spans *Filter_SpansFilter `protobuf:"bytes,2,opt,name=spans,proto3,oneof"` // Filter configuration for spans.
 }
 
 type Filter_Source_Metrics struct {
-	Metrics *Filter_MetricsFilter `protobuf:"bytes,3,opt,name=metrics,proto3,oneof"`
+	Metrics *Filter_MetricsFilter `protobuf:"bytes,3,opt,name=metrics,proto3,oneof"` // Filter configuration for metrics.
 }
 
 func (*Filter_Source_Logs) isFilter_Source_Value() {}
@@ -178,13 +186,16 @@ func (*Filter_Source_Spans) isFilter_Source_Value() {}
 
 func (*Filter_Source_Metrics) isFilter_Source_Value() {}
 
+// LogsFilter represents the filter criteria for logs.
 type Filter_LogsFilter struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Field    *wrapperspb.StringValue `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
-	Operator *Filter_Operator        `protobuf:"bytes,2,opt,name=operator,proto3" json:"operator,omitempty"`
+	// Field in the logs to apply the filter on.
+	Field *wrapperspb.StringValue `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
+	// Operator to use for filtering the logs.
+	Operator *Filter_Operator `protobuf:"bytes,2,opt,name=operator,proto3" json:"operator,omitempty"`
 }
 
 func (x *Filter_LogsFilter) Reset() {
@@ -233,12 +244,15 @@ func (x *Filter_LogsFilter) GetOperator() *Filter_Operator {
 	return nil
 }
 
+// SpansFilter represents the filter criteria for spans.
 type Filter_SpansFilter struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Field    *SpanField       `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
+	// Field in the spans to apply the filter on.
+	Field *SpanField `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
+	// Operator to use for filtering the spans.
 	Operator *Filter_Operator `protobuf:"bytes,2,opt,name=operator,proto3" json:"operator,omitempty"`
 }
 
@@ -288,14 +302,18 @@ func (x *Filter_SpansFilter) GetOperator() *Filter_Operator {
 	return nil
 }
 
+// MetricsFilter represents the filter criteria for metrics.
 type Filter_MetricsFilter struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Metric   *wrapperspb.StringValue `protobuf:"bytes,1,opt,name=metric,proto3" json:"metric,omitempty"`
-	Label    *wrapperspb.StringValue `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
-	Operator *Filter_Operator        `protobuf:"bytes,3,opt,name=operator,proto3" json:"operator,omitempty"`
+	// Metric name to apply the filter on.
+	Metric *wrapperspb.StringValue `protobuf:"bytes,1,opt,name=metric,proto3" json:"metric,omitempty"`
+	// Label associated with the metric.
+	Label *wrapperspb.StringValue `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// Operator to use for filtering the metrics.
+	Operator *Filter_Operator `protobuf:"bytes,3,opt,name=operator,proto3" json:"operator,omitempty"`
 }
 
 func (x *Filter_MetricsFilter) Reset() {
@@ -351,11 +369,14 @@ func (x *Filter_MetricsFilter) GetOperator() *Filter_Operator {
 	return nil
 }
 
+// Operator defines the comparison operation for the filter.
 type Filter_Operator struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Specifies the type of comparison operation.
+	//
 	// Types that are assignable to Value:
 	//	*Filter_Operator_Equals
 	//	*Filter_Operator_NotEquals
@@ -420,22 +441,24 @@ type isFilter_Operator_Value interface {
 }
 
 type Filter_Operator_Equals struct {
-	Equals *Filter_Equals `protobuf:"bytes,1,opt,name=equals,proto3,oneof"`
+	Equals *Filter_Equals `protobuf:"bytes,1,opt,name=equals,proto3,oneof"` // Equality comparison.
 }
 
 type Filter_Operator_NotEquals struct {
-	NotEquals *Filter_NotEquals `protobuf:"bytes,2,opt,name=not_equals,json=notEquals,proto3,oneof"`
+	NotEquals *Filter_NotEquals `protobuf:"bytes,2,opt,name=not_equals,json=notEquals,proto3,oneof"` // Non-equality comparison.
 }
 
 func (*Filter_Operator_Equals) isFilter_Operator_Value() {}
 
 func (*Filter_Operator_NotEquals) isFilter_Operator_Value() {}
 
+// Equals represents an equality comparison operation.
 type Filter_Equals struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Selection criteria for the equality comparison.
 	Selection *Filter_Equals_Selection `protobuf:"bytes,1,opt,name=selection,proto3" json:"selection,omitempty"`
 }
 
@@ -478,11 +501,13 @@ func (x *Filter_Equals) GetSelection() *Filter_Equals_Selection {
 	return nil
 }
 
+// NotEquals represents a non-equality comparison operation.
 type Filter_NotEquals struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Selection criteria for the non-equality comparison.
 	Selection *Filter_NotEquals_Selection `protobuf:"bytes,1,opt,name=selection,proto3" json:"selection,omitempty"`
 }
 
@@ -525,11 +550,14 @@ func (x *Filter_NotEquals) GetSelection() *Filter_NotEquals_Selection {
 	return nil
 }
 
+// Selection defines the values for the equality comparison.
 type Filter_Equals_Selection struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Specifies the type of selection for the equality comparison.
+	//
 	// Types that are assignable to Value:
 	//	*Filter_Equals_Selection_All
 	//	*Filter_Equals_Selection_List
@@ -594,17 +622,18 @@ type isFilter_Equals_Selection_Value interface {
 }
 
 type Filter_Equals_Selection_All struct {
-	All *Filter_Equals_Selection_AllSelection `protobuf:"bytes,1,opt,name=all,proto3,oneof"`
+	All *Filter_Equals_Selection_AllSelection `protobuf:"bytes,1,opt,name=all,proto3,oneof"` // Represents a selection of all values.
 }
 
 type Filter_Equals_Selection_List struct {
-	List *Filter_Equals_Selection_ListSelection `protobuf:"bytes,2,opt,name=list,proto3,oneof"`
+	List *Filter_Equals_Selection_ListSelection `protobuf:"bytes,2,opt,name=list,proto3,oneof"` // Represents a selection from a list of values.
 }
 
 func (*Filter_Equals_Selection_All) isFilter_Equals_Selection_Value() {}
 
 func (*Filter_Equals_Selection_List) isFilter_Equals_Selection_Value() {}
 
+// AllSelection indicates that all values are selected.
 type Filter_Equals_Selection_AllSelection struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -643,11 +672,13 @@ func (*Filter_Equals_Selection_AllSelection) Descriptor() ([]byte, []int) {
 	return file_com_coralogixapis_dashboards_v1_ast_filter_proto_rawDescGZIP(), []int{0, 5, 0, 0}
 }
 
+// ListSelection represents a selection from a list of specific values.
 type Filter_Equals_Selection_ListSelection struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// List of values for the selection.
 	Values []*wrapperspb.StringValue `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
 }
 
@@ -690,11 +721,14 @@ func (x *Filter_Equals_Selection_ListSelection) GetValues() []*wrapperspb.String
 	return nil
 }
 
+// Selection defines the values for the non-equality comparison.
 type Filter_NotEquals_Selection struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// Specifies the type of selection for the non-equality comparison.
+	//
 	// Types that are assignable to Value:
 	//	*Filter_NotEquals_Selection_List
 	Value isFilter_NotEquals_Selection_Value `protobuf_oneof:"value"`
@@ -751,16 +785,18 @@ type isFilter_NotEquals_Selection_Value interface {
 }
 
 type Filter_NotEquals_Selection_List struct {
-	List *Filter_NotEquals_Selection_ListSelection `protobuf:"bytes,1,opt,name=list,proto3,oneof"`
+	List *Filter_NotEquals_Selection_ListSelection `protobuf:"bytes,1,opt,name=list,proto3,oneof"` // Represents a selection from a list of values.
 }
 
 func (*Filter_NotEquals_Selection_List) isFilter_NotEquals_Selection_Value() {}
 
+// ListSelection represents a selection from a list of specific values.
 type Filter_NotEquals_Selection_ListSelection struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// List of values for the selection.
 	Values []*wrapperspb.StringValue `protobuf:"bytes,1,rep,name=values,proto3" json:"values,omitempty"`
 }
 
@@ -935,7 +971,9 @@ var file_com_coralogixapis_dashboards_v1_ast_filter_proto_rawDesc = []byte{
 	0x28, 0x0b, 0x32, 0x1c, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74,
 	0x6f, 0x62, 0x75, 0x66, 0x2e, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65,
 	0x52, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x42, 0x07, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75,
-	0x65, 0x42, 0x04, 0x5a, 0x02, 0x2e, 0x2f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x65, 0x42, 0x25, 0x5a, 0x23, 0x63, 0x6f, 0x6d, 0x2f, 0x63, 0x6f, 0x72, 0x61, 0x6c, 0x6f, 0x67,
+	0x69, 0x78, 0x61, 0x70, 0x69, 0x73, 0x2f, 0x64, 0x61, 0x73, 0x68, 0x62, 0x6f, 0x61, 0x72, 0x64,
+	0x73, 0x2f, 0x76, 0x31, 0x2f, 0x61, 0x73, 0x74, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1004,7 +1042,6 @@ func file_com_coralogixapis_dashboards_v1_ast_filter_proto_init() {
 	if File_com_coralogixapis_dashboards_v1_ast_filter_proto != nil {
 		return
 	}
-	file_com_coralogixapis_dashboards_v1_common_span_field_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_com_coralogixapis_dashboards_v1_ast_filter_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Filter); i {

@@ -144,16 +144,16 @@ content_json = file("./dashboard.json")
 ### Optional
 
 - `content_json` (String) an option to set the dashboard content from a json file.
-- `description` (String) Dashboard description.
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--filters))
-- `layout` (Attributes) (see [below for nested schema](#nestedatt--layout))
-- `name` (String) Dashboard name.
-- `time_frame` (Attributes) (see [below for nested schema](#nestedatt--time_frame))
-- `variables` (Attributes List) (see [below for nested schema](#nestedatt--variables))
+- `description` (String) Brief description or summary of the dashboard's purpose or content.
+- `filters` (Attributes List) List of filters that can be applied to the dashboard's data. (see [below for nested schema](#nestedatt--filters))
+- `layout` (Attributes) Layout configuration for the dashboard's visual elements. (see [below for nested schema](#nestedatt--layout))
+- `name` (String) Display name of the dashboard.
+- `time_frame` (Attributes) Specifies the time frame for the dashboard's data. Can be either absolute or relative. (see [below for nested schema](#nestedatt--time_frame))
+- `variables` (Attributes List) List of variables that can be used within the dashboard for dynamic content. (see [below for nested schema](#nestedatt--variables))
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) Unique identifier for the dashboard.
 
 <a id="nestedatt--filters"></a>
 ### Nested Schema for `filters`
@@ -181,8 +181,8 @@ Optional:
 
 Required:
 
-- `field` (String)
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--filters--source--logs--operator))
+- `field` (String) Field in the logs to apply the filter on.
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--filters--source--logs--operator))
 
 <a id="nestedatt--filters--source--logs--operator"></a>
 ### Nested Schema for `filters.source.logs.operator`
@@ -204,7 +204,7 @@ Required:
 
 - `label` (String)
 - `metric_name` (String)
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--filters--source--metrics--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--filters--source--metrics--operator))
 
 <a id="nestedatt--filters--source--metrics--operator"></a>
 ### Nested Schema for `filters.source.metrics.operator`
@@ -225,7 +225,7 @@ Optional:
 Required:
 
 - `field` (Attributes) (see [below for nested schema](#nestedatt--filters--source--spans--field))
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--filters--source--spans--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--filters--source--spans--operator))
 
 <a id="nestedatt--filters--source--spans--field"></a>
 ### Nested Schema for `filters.source.spans.operator`
@@ -233,7 +233,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--filters--source--spans--operator"></a>
@@ -325,9 +325,9 @@ Optional:
 - `max_bars_per_chart` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--query))
 - `scale_type` (String)
-- `sort_by` (String)
+- `sort_by` (String) The field to sort by. Can be one of unspecified, value, name.
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of seconds, kbytes, gbytes, bytes_iec, unspecified, microseconds, milliseconds, mibytes, gibytes, bytes, mbytes, kibytes.
+- `unit` (String) The unit of the chart. Can be one of unspecified, milliseconds, bytes, kbytes, mbytes, gbytes, mibytes, gibytes, microseconds, seconds, bytes_iec, kibytes.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
@@ -358,11 +358,12 @@ Optional:
 
 Required:
 
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max"]
+- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
 
 Optional:
 
 - `field` (String)
+- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters"></a>
@@ -371,7 +372,7 @@ Optional:
 Required:
 
 - `field` (String)
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.operator`
@@ -402,15 +403,15 @@ Optional:
 
 Required:
 
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator))
+- `metric` (String) Metric name to apply the filter on.
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator))
 
 Optional:
 
-- `label` (String)
-- `metric` (String)
+- `label` (String) Label associated with the metric.
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.metric`
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.label`
 
 Required:
 
@@ -439,8 +440,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -450,7 +451,7 @@ Required:
 Required:
 
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--field))
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.operator`
@@ -458,7 +459,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator"></a>
@@ -480,7 +481,7 @@ Optional:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--stacked_group_name"></a>
@@ -489,7 +490,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 
@@ -534,35 +535,116 @@ Optional:
 
 Required:
 
-- `columns` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--columns))
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--query))
 - `results_per_page` (Number) The number of results to display per page.
-- `row_style` (String) The style of the rows. Can be one of ["one_line" "two_line" "condensed" "json"].
+- `row_style` (String) The style of the rows. Can be one of ["condensed" "json" "one_line" "two_line"].
 
 Optional:
 
+- `columns` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--columns))
 - `order_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by))
-
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--columns"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by`
-
-Required:
-
-- `field` (String)
-
-Optional:
-
-- `width` (Number)
-
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by`
 
 Optional:
 
+- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--data_prime))
 - `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--logs))
 - `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--metrics))
 - `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--data_prime"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans`
+
+Optional:
+
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters))
+- `query` (String)
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters`
+
+Optional:
+
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--logs"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans`
+
+Required:
+
+- `field` (String) Field in the logs to apply the filter on.
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--operator))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans.operator`
+
+Required:
+
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+Optional:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--metrics"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans`
+
+Required:
+
+- `label` (String)
+- `metric_name` (String)
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--operator))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans.operator`
+
+Required:
+
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+Optional:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans`
+
+Required:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--operator))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--field"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans.operator`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans.operator`
+
+Required:
+
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+Optional:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+
+
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--logs"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans`
@@ -579,7 +661,7 @@ Optional:
 Required:
 
 - `field` (String)
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.operator`
@@ -623,11 +705,12 @@ Read-Only:
 
 Required:
 
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max"]
+- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
 
 Optional:
 
 - `field` (String)
+- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
 
 
@@ -646,15 +729,15 @@ Optional:
 
 Required:
 
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator))
+- `metric` (String) Metric name to apply the filter on.
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator))
 
 Optional:
 
-- `label` (String)
-- `metric` (String)
+- `label` (String) Label associated with the metric.
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.metric`
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.label`
 
 Required:
 
@@ -682,7 +765,7 @@ Optional:
 Required:
 
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--field))
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.operator`
@@ -690,7 +773,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator"></a>
@@ -732,8 +815,8 @@ Read-Only:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -744,10 +827,22 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--columns"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by`
+
+Required:
+
+- `field` (String)
+
+Optional:
+
+- `width` (Number)
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by"></a>
@@ -756,7 +851,7 @@ Required:
 Optional:
 
 - `field` (String)
-- `order_direction` (String) The order direction. Can be one of ["unspecified" "asc" "desc"].
+- `order_direction` (String) The order direction. Can be one of ["desc" "unspecified" "asc"].
 
 
 
@@ -766,7 +861,7 @@ Optional:
 Required:
 
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--query))
-- `unit` (String) The unit of the gauge. Can be one of ["microseconds" "euro_cents" "euro" "kibytes" "milliseconds" "bytes" "kbytes" "mbytes" "bytes_iec" "gibytes" "gbytes" "mibytes" "usd_cents" "usd" "none" "percent" "seconds"].
+- `unit` (String) The unit of the gauge. Can be one of ["microseconds" "kbytes" "mbytes" "gbytes" "kibytes" "gibytes" "usd" "none" "milliseconds" "bytes_iec" "usd_cents" "percent" "bytes" "euro_cents" "euro" "seconds" "mibytes"].
 
 Optional:
 
@@ -781,9 +876,102 @@ Optional:
 
 Optional:
 
+- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--data_prime))
 - `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--logs))
 - `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--metrics))
 - `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--data_prime"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans`
+
+Optional:
+
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters))
+- `query` (String)
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters`
+
+Optional:
+
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--logs"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans`
+
+Required:
+
+- `field` (String) Field in the logs to apply the filter on.
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--operator))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans.operator`
+
+Required:
+
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+Optional:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--metrics"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans`
+
+Required:
+
+- `label` (String)
+- `metric_name` (String)
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--operator))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans.operator`
+
+Required:
+
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+Optional:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans`
+
+Required:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--operator))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--field"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans.operator`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans.operator`
+
+Required:
+
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+Optional:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+
+
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--logs"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans`
@@ -802,11 +990,12 @@ Optional:
 
 Required:
 
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max"]
+- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
 
 Optional:
 
 - `field` (String)
+- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters"></a>
@@ -815,7 +1004,7 @@ Optional:
 Required:
 
 - `field` (String)
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.operator`
@@ -840,7 +1029,7 @@ Required:
 
 Optional:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["unspecified" "last" "min" "max" "avg" "sum"].
+- `aggregation` (String) The type of aggregation. Can be one of ["avg" "sum" "unspecified" "last" "min" "max"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters"></a>
@@ -848,15 +1037,15 @@ Optional:
 
 Required:
 
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator))
+- `metric` (String) Metric name to apply the filter on.
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator))
 
 Optional:
 
-- `label` (String)
-- `metric` (String)
+- `label` (String) Label associated with the metric.
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.metric`
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.label`
 
 Required:
 
@@ -884,7 +1073,7 @@ Optional:
 Required:
 
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--field))
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.operator`
@@ -892,7 +1081,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator"></a>
@@ -913,8 +1102,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -944,7 +1133,7 @@ Optional:
 - `scale_type` (String)
 - `sort_by` (String)
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of seconds, kbytes, gbytes, bytes_iec, unspecified, microseconds, milliseconds, mibytes, gibytes, bytes, mbytes, kibytes.
+- `unit` (String) The unit of the chart. Can be one of unspecified, milliseconds, bytes, kbytes, mbytes, gbytes, mibytes, gibytes, microseconds, seconds, bytes_iec, kibytes.
 - `y_axis_view_by` (String)
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
@@ -975,11 +1164,12 @@ Optional:
 
 Required:
 
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max"]
+- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
 
 Optional:
 
 - `field` (String)
+- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters"></a>
@@ -988,7 +1178,7 @@ Optional:
 Required:
 
 - `field` (String)
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.filters.operator`
@@ -1019,15 +1209,15 @@ Optional:
 
 Required:
 
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator))
+- `metric` (String) Metric name to apply the filter on.
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator))
 
 Optional:
 
-- `label` (String)
-- `metric` (String)
+- `label` (String) Label associated with the metric.
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.filters.metric`
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.filters.label`
 
 Required:
 
@@ -1056,8 +1246,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1067,7 +1257,7 @@ Required:
 Required:
 
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--field))
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.filters.operator`
@@ -1075,7 +1265,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator"></a>
@@ -1097,7 +1287,7 @@ Optional:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--stacked_group_name"></a>
@@ -1106,7 +1296,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 
@@ -1144,10 +1334,10 @@ Optional:
 
 - `is_visible` (Boolean)
 - `name` (String)
-- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
+- `scale_type` (String) The scale type. Valid values are: unspecified, linear, logarithmic.
 - `series_count_limit` (Number)
 - `series_name_template` (String)
-- `unit` (String) The unit. Valid values are: seconds, kbytes, gbytes, bytes_iec, unspecified, microseconds, milliseconds, mibytes, gibytes, bytes, mbytes, kibytes.
+- `unit` (String) The unit. Valid values are: unspecified, milliseconds, bytes, kbytes, mbytes, gbytes, mibytes, gibytes, microseconds, seconds, bytes_iec, kibytes.
 
 Read-Only:
 
@@ -1180,11 +1370,12 @@ Optional:
 
 Required:
 
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max"]
+- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
 
 Optional:
 
 - `field` (String)
+- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--filters"></a>
@@ -1193,7 +1384,7 @@ Optional:
 Required:
 
 - `field` (String)
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--lucene_query--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--lucene_query--operator))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--lucene_query--operator"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.logs.lucene_query.operator`
@@ -1222,15 +1413,15 @@ Optional:
 
 Required:
 
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics--promql_query--operator))
+- `metric` (String) Metric name to apply the filter on.
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics--promql_query--operator))
 
 Optional:
 
-- `label` (String)
-- `metric` (String)
+- `label` (String) Label associated with the metric.
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics--promql_query--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.metrics.promql_query.metric`
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.metrics.promql_query.label`
 
 Required:
 
@@ -1258,8 +1449,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1269,7 +1460,7 @@ Required:
 Required:
 
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--lucene_query--field))
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--lucene_query--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--lucene_query--operator))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--lucene_query--field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.spans.lucene_query.operator`
@@ -1277,7 +1468,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--lucene_query--operator"></a>
@@ -1299,7 +1490,7 @@ Optional:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 
@@ -1310,7 +1501,7 @@ Required:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: last, unspecified, min, max, sum, avg.
+- `columns` (List of String) The columns to display in the legend. Valid values are: unspecified, min, max, sum, avg, last.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. False by default.
 
@@ -1391,11 +1582,12 @@ Optional:
 
 Required:
 
-- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max"]
+- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
 
 Optional:
 
 - `field` (String)
+- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters"></a>
@@ -1404,7 +1596,7 @@ Optional:
 Required:
 
 - `field` (String)
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.operator`
@@ -1435,15 +1627,15 @@ Optional:
 
 Required:
 
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator))
+- `metric` (String) Metric name to apply the filter on.
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator))
 
 Optional:
 
-- `label` (String)
-- `metric` (String)
+- `label` (String) Label associated with the metric.
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.metric`
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.label`
 
 Required:
 
@@ -1472,8 +1664,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1483,7 +1675,7 @@ Required:
 Required:
 
 - `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--field))
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.operator`
@@ -1491,7 +1683,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator"></a>
@@ -1513,7 +1705,7 @@ Optional:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--stacked_group_name"></a>
@@ -1522,7 +1714,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 
@@ -1547,8 +1739,8 @@ Optional:
 
 Optional:
 
-- `absolute` (Attributes) (see [below for nested schema](#nestedatt--time_frame--absolute))
-- `relative` (Attributes) (see [below for nested schema](#nestedatt--time_frame--relative))
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--time_frame--relative))
 
 <a id="nestedatt--time_frame--absolute"></a>
 ### Nested Schema for `time_frame.absolute`
@@ -1595,7 +1787,7 @@ Optional:
 
 - `selected_values` (List of String)
 - `source` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source))
-- `values_order_direction` (String) The order direction of the values. Can be one of `unspecified`, `asc`, `desc`.
+- `values_order_direction` (String) The order direction of the values. Can be one of `desc`, `unspecified`, `asc`.
 
 <a id="nestedatt--variables--definition--multi_select--source"></a>
 ### Nested Schema for `variables.definition.multi_select.values_order_direction`
@@ -1622,20 +1814,4 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "subsystem_name" "service_name" "operation_name" "unspecified"]
-
-
-### Import
-```sh
-terraform import coralogix_dashboard.example <dashboard-id>
-```
-
-to get the dashboard id run the following command and look for id of the dashboard you want to import:
-```sh
-grpcurl -H "Authorization: Bearer <api-key>" -d @ ng-api-grpc.<region-domain>:443 com.coralogixapis.dashboards.v1.services.DashboardCatalogService/GetDashboardCatalog <<EOF
-{
-}
-EOF
-```
-
-[region-domain table](../index.md#region-domain-table)
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]

@@ -7,12 +7,13 @@
 package __
 
 import (
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
-	reflect "reflect"
-	sync "sync"
 )
 
 const (
@@ -22,17 +23,26 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Dashboard represents the structure and configuration of a Coralogix Custom Dashboard.
 type Dashboard struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Id          *wrapperspb.StringValue `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name        *wrapperspb.StringValue `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Unique identifier for the dashboard.
+	Id *wrapperspb.StringValue `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Display name of the dashboard.
+	Name *wrapperspb.StringValue `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// Brief description or summary of the dashboard's purpose or content.
 	Description *wrapperspb.StringValue `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
-	Layout      *Layout                 `protobuf:"bytes,4,opt,name=layout,proto3" json:"layout,omitempty"`
-	Variables   []*Variable             `protobuf:"bytes,5,rep,name=variables,proto3" json:"variables,omitempty"`
-	Filters     []*Filter               `protobuf:"bytes,6,rep,name=filters,proto3" json:"filters,omitempty"`
+	// Layout configuration for the dashboard's visual elements.
+	Layout *Layout `protobuf:"bytes,4,opt,name=layout,proto3" json:"layout,omitempty"`
+	// List of variables that can be used within the dashboard for dynamic content.
+	Variables []*Variable `protobuf:"bytes,5,rep,name=variables,proto3" json:"variables,omitempty"`
+	// List of filters that can be applied to the dashboard's data.
+	Filters []*Filter `protobuf:"bytes,6,rep,name=filters,proto3" json:"filters,omitempty"`
+	// Specifies the time frame for the dashboard's data. Can be either absolute or relative.
+	//
 	// Types that are assignable to TimeFrame:
 	//	*Dashboard_AbsoluteTimeFrame
 	//	*Dashboard_RelativeTimeFrame
@@ -139,10 +149,12 @@ type isDashboard_TimeFrame interface {
 }
 
 type Dashboard_AbsoluteTimeFrame struct {
+	// Absolute time frame specifying a fixed start and end time.
 	AbsoluteTimeFrame *TimeFrame `protobuf:"bytes,7,opt,name=absolute_time_frame,json=absoluteTimeFrame,proto3,oneof"`
 }
 
 type Dashboard_RelativeTimeFrame struct {
+	// Relative time frame specifying a duration from the current time.
 	RelativeTimeFrame *durationpb.Duration `protobuf:"bytes,8,opt,name=relative_time_frame,json=relativeTimeFrame,proto3,oneof"`
 }
 
@@ -212,7 +224,10 @@ var file_com_coralogixapis_dashboards_v1_ast_dashboard_proto_rawDesc = []byte{
 	0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x44, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x48,
 	0x00, 0x52, 0x11, 0x72, 0x65, 0x6c, 0x61, 0x74, 0x69, 0x76, 0x65, 0x54, 0x69, 0x6d, 0x65, 0x46,
 	0x72, 0x61, 0x6d, 0x65, 0x42, 0x0c, 0x0a, 0x0a, 0x74, 0x69, 0x6d, 0x65, 0x5f, 0x66, 0x72, 0x61,
-	0x6d, 0x65, 0x42, 0x04, 0x5a, 0x02, 0x2e, 0x2f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x6d, 0x65, 0x42, 0x25, 0x5a, 0x23, 0x63, 0x6f, 0x6d, 0x2f, 0x63, 0x6f, 0x72, 0x61, 0x6c, 0x6f,
+	0x67, 0x69, 0x78, 0x61, 0x70, 0x69, 0x73, 0x2f, 0x64, 0x61, 0x73, 0x68, 0x62, 0x6f, 0x61, 0x72,
+	0x64, 0x73, 0x2f, 0x76, 0x31, 0x2f, 0x61, 0x73, 0x74, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
+	0x33,
 }
 
 var (
@@ -261,7 +276,6 @@ func file_com_coralogixapis_dashboards_v1_ast_dashboard_proto_init() {
 	file_com_coralogixapis_dashboards_v1_ast_filter_proto_init()
 	file_com_coralogixapis_dashboards_v1_ast_layout_proto_init()
 	file_com_coralogixapis_dashboards_v1_ast_variable_proto_init()
-	file_com_coralogixapis_dashboards_v1_common_time_frame_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_com_coralogixapis_dashboards_v1_ast_dashboard_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Dashboard); i {
