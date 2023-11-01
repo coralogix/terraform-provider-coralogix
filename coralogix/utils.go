@@ -730,3 +730,19 @@ func GetKeys[K, V comparable](m map[K]V) []K {
 	}
 	return result
 }
+
+func parseNumInt32(desired string) int32 {
+	parsed, err := strconv.ParseInt(desired, 10, 32)
+	if err != nil {
+		return 0
+	}
+	return int32(parsed)
+}
+
+func parseNumUint32(desired string) uint32 {
+	parsed, err := strconv.ParseUint(desired, 10, 32)
+	if err != nil {
+		return 0
+	}
+	return uint32(parsed)
+}
