@@ -93,11 +93,14 @@ resource "coralogix_rules_group" "rules_group_example" {
         #for better example look at - https://coralogix.com/docs/log-parsing-rules/#stringify-json-fields
       }
     }
-
   }
 }
 ```
 
+The above example wil create the following rule-group:
+![img.png](rules_group-example.png)
+rule_group which contains 2 rule_subgroups, the first rule_subgroups contains 4 rules and the second rule_subgroups contains 3 rules.
+On every rule_group there are rule_subgroups with 'and' (&&) operation between them and on every rule_subgroups there are rules with 'or' (||) operation between them.
 ### Extract Rule
 
 ```hcl
