@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	gouuid "github.com/google/uuid"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -745,4 +746,17 @@ func parseNumUint32(desired string) uint32 {
 		return 0
 	}
 	return uint32(parsed)
+}
+
+func typeMapToStringMap(ctx context.Context, m types.Map) (map[string]string, diag2.Diagnostics) {
+	var result map[string]string
+	diags := m.ElementsAs(ctx, &result, true)
+	return result, diags
+}
+
+func expandUuid(uuid types.String) *wrapperspb.StringValue {
+	if uuid.IsNull() || uuid.IsUnknown() {
+		return &wrapperspb.StringValue{Value: gouuid.NewString()}
+	}
+	return &wrapperspb.StringValue{Value: uuid.ValueString()}
 }

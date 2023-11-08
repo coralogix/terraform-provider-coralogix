@@ -358,3 +358,9 @@ New Features:
 #### resource/coralogix_dashboard
 * Adding support for `markdown` and `horizonal_bar_chart` widgets.
 * Adding support for `color_scheme` and `sort_by` for `bar_chart`.
+
+Release 1.9.0
+Breaking Changes:
+#### resource/coralogix_webhook
+* All webhook types changed from `TypeList` to `SingleNestedAttribute` e.g. - `slack { }` => `slack = { }`.
+* Linkage between webhook and alert was changed from webhook's `id` to webhook's `external_id`. e.g.- `integration_id = coralogix_webhook.slack_webhook.id` => `integration_id = coralogix_webhook.slack_webhook.external_id`

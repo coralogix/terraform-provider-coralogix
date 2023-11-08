@@ -25,7 +25,7 @@ resource "coralogix_alert" "standard_alert" {
   notifications_group {
     group_by_fields = ["coralogix.metadata.sdkId", "EventType"]
     notification {
-      integration_id              = coralogix_webhook.slack_webhook.id
+      integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 60
     }
     notification {
@@ -449,7 +449,8 @@ resource "coralogix_alert" "flow_alert" {
 
 resource "coralogix_webhook" "slack_webhook" {
   name = "slack-webhook"
-  slack {
+  slack = {
+    notify_about = ["flow_anomalies"]
     url = "https://join.slack.com/example"
   }
 }

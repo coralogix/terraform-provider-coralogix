@@ -2,44 +2,93 @@ package coralogix
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"log"
-	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
+	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
+
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func dataSourceCoralogixWebhook() *schema.Resource {
-	webhookSchema := datasourceSchemaFromResourceSchema(WebhookSchema())
-	webhookSchema["id"] = &schema.Schema{
-		Type:     schema.TypeString,
-		Required: true,
-	}
+var _ datasource.DataSourceWithConfigure = &WebhookDataSource{}
 
-	return &schema.Resource{
-		ReadContext: dataSourceCoralogixWebhookRead,
-
-		Schema: webhookSchema,
-	}
+func NewWebhookDataSource() datasource.DataSource {
+	return &WebhookDataSource{}
 }
 
-func dataSourceCoralogixWebhookRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	id := d.Get("id").(string)
+type WebhookDataSource struct {
+	client *clientset.WebhooksClient
+}
 
-	log.Printf("[INFO] Reading webhook %s", id)
-	resp, err := meta.(*clientset.ClientSet).Webhooks().GetWebhook(ctx, id)
+func (d *WebhookDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_webhook"
+}
+
+func (d *WebhookDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
+	}
+
+	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	d.client = clientSet.Webhooks()
+}
+
+func (d *WebhookDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	var r WebhookResource
+	var resourceResp resource.SchemaResponse
+	r.Schema(nil, resource.SchemaRequest{}, &resourceResp)
+
+	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+}
+
+func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data *WebhookResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	//Get refreshed Webhook value from Coralogix
+	id := data.ID.ValueString()
+	log.Printf("[INFO] Reading Webhook: %s", id)
+	getWebhookResp, err := d.client.GetWebhook(ctx, &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(id)})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcErrorWithID(err, "webhook", id)
+		if status.Code(err) == codes.NotFound {
+			data.ID = types.StringNull()
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("Webhook %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error reading Webhook",
+				handleRpcErrorNewFramework(err, "Webhook"),
+			)
+		}
+		return
 	}
-	log.Printf("[INFO] Received webhook: %#v", resp)
+	log.Printf("[INFO] Received Webhook: %#v", getWebhookResp)
 
-	var m map[string]interface{}
-	if err = json.Unmarshal([]byte(resp), &m); err != nil {
-		return diag.FromErr(err)
+	data, diags := flattenWebhook(ctx, getWebhookResp.GetWebhook())
+	if diags.HasError() {
+		resp.Diagnostics = diags
+		return
 	}
-	d.SetId(strconv.Itoa(int(m["id"].(float64))))
-	return setWebhook(d, m)
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

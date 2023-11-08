@@ -2,34 +2,66 @@ package clientset
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
-	"terraform-provider-coralogix/coralogix/clientset/rest"
+	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
 )
 
 type WebhooksClient struct {
-	client *rest.Client
+	callPropertiesCreator *CallPropertiesCreator
 }
 
-func (w WebhooksClient) CreateWebhook(ctx context.Context, body string) (string, error) {
-	return w.client.Post(ctx, "/api/v1/external/integrations", "application/json", body)
+func (c WebhooksClient) CreateWebhook(ctx context.Context, req *webhooks.CreateOutgoingWebhookRequest) (*webhooks.CreateOutgoingWebhookResponse, error) {
+	callProperties, err := c.callPropertiesCreator.GetCallProperties(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	conn := callProperties.Connection
+	defer conn.Close()
+	client := webhooks.NewOutgoingWebhooksServiceClient(conn)
+
+	return client.CreateOutgoingWebhook(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (w WebhooksClient) GetWebhook(ctx context.Context, webhookId string) (string, error) {
-	return w.client.Get(ctx, fmt.Sprintf("/api/v1/external/integrations/%s", webhookId))
+func (c WebhooksClient) GetWebhook(ctx context.Context, req *webhooks.GetOutgoingWebhookRequest) (*webhooks.GetOutgoingWebhookResponse, error) {
+	callProperties, err := c.callPropertiesCreator.GetCallProperties(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	conn := callProperties.Connection
+	defer conn.Close()
+	client := webhooks.NewOutgoingWebhooksServiceClient(conn)
+
+	return client.GetOutgoingWebhook(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (w WebhooksClient) UpdateWebhook(ctx context.Context, body string) (string, error) {
-	return w.client.Post(ctx, "/api/v1/external/integrations", "application/json", body)
+func (c WebhooksClient) UpdateWebhook(ctx context.Context, req *webhooks.UpdateOutgoingWebhookRequest) (*webhooks.UpdateOutgoingWebhookResponse, error) {
+	callProperties, err := c.callPropertiesCreator.GetCallProperties(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	conn := callProperties.Connection
+	defer conn.Close()
+	client := webhooks.NewOutgoingWebhooksServiceClient(conn)
+
+	return client.UpdateOutgoingWebhook(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (w WebhooksClient) DeleteWebhook(ctx context.Context, webhookId string) (string, error) {
-	return w.client.Delete(ctx, fmt.Sprintf("/api/v1/external/integrations/%s", webhookId))
+func (c WebhooksClient) DeleteWebhook(ctx context.Context, req *webhooks.DeleteOutgoingWebhookRequest) (*webhooks.DeleteOutgoingWebhookResponse, error) {
+	callProperties, err := c.callPropertiesCreator.GetCallProperties(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	conn := callProperties.Connection
+	defer conn.Close()
+	client := webhooks.NewOutgoingWebhooksServiceClient(conn)
+
+	return client.DeleteOutgoingWebhook(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 func NewWebhooksClient(c *CallPropertiesCreator) *WebhooksClient {
-	targetUrl := "https://" + strings.Replace(c.targetUrl, "grpc", "http", 1)
-	client := rest.NewRestClient(targetUrl, c.apiKey)
-	return &WebhooksClient{client: client}
+	return &WebhooksClient{callPropertiesCreator: c}
 }

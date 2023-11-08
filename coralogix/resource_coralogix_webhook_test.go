@@ -2,15 +2,15 @@ package coralogix
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
+	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
 )
 
 type webhookTestFields struct {
@@ -41,9 +41,9 @@ func TestAccCoralogixResourceSlackWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := getRandomWebhook()
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckWebhookDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
 			{
 
@@ -51,7 +51,7 @@ func TestAccCoralogixResourceSlackWebhook(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
-					resource.TestCheckResourceAttr(resourceName, "slack.0.url", webhook.url),
+					resource.TestCheckResourceAttr(resourceName, "slack.url", webhook.url),
 				),
 			},
 			{
@@ -67,12 +67,12 @@ func TestAccCoralogixResourceCustomWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := &customWebhookTestFields{
 		webhookTestFields: *getRandomWebhook(),
-		method:            selectRandomlyFromSlice(validMethods),
+		method:            selectRandomlyFromSlice(webhooksValidMethods),
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckWebhookDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
 			{
 
@@ -80,8 +80,8 @@ func TestAccCoralogixResourceCustomWebhook(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
-					resource.TestCheckResourceAttr(resourceName, "custom.0.url", webhook.url),
-					resource.TestCheckResourceAttr(resourceName, "custom.0.method", webhook.method),
+					resource.TestCheckResourceAttr(resourceName, "custom.url", webhook.url),
+					resource.TestCheckResourceAttr(resourceName, "custom.method", webhook.method),
 				),
 			},
 			{
@@ -100,9 +100,9 @@ func TestAccCoralogixResourcePagerDutyWebhook(t *testing.T) {
 		serviceKey:        acctest.RandomWithPrefix("tf-acc-test"),
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckWebhookDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
 			{
 
@@ -110,7 +110,7 @@ func TestAccCoralogixResourcePagerDutyWebhook(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
-					resource.TestCheckResourceAttr(resourceName, "pager_duty.0.service_key", webhook.serviceKey),
+					resource.TestCheckResourceAttr(resourceName, "pager_duty.service_key", webhook.serviceKey),
 				),
 			},
 			{
@@ -129,9 +129,9 @@ func TestAccCoralogixResourceEmailGroupWebhook(t *testing.T) {
 		emails:            []string{"example@coralogix.com"},
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckWebhookDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
 			{
 
@@ -139,7 +139,7 @@ func TestAccCoralogixResourceEmailGroupWebhook(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
-					resource.TestCheckResourceAttr(resourceName, "email_group.0.emails.0", webhook.emails[0]),
+					resource.TestCheckResourceAttr(resourceName, "email_group.emails.0", webhook.emails[0]),
 				),
 			},
 			{
@@ -160,9 +160,9 @@ func TestAccCoralogixResourceJiraWebhook(t *testing.T) {
 		projectKey:        acctest.RandomWithPrefix("tf-acc-test"),
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckWebhookDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
 			{
 
@@ -170,10 +170,10 @@ func TestAccCoralogixResourceJiraWebhook(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
-					resource.TestCheckResourceAttr(resourceName, "jira.0.url", webhook.url),
-					resource.TestCheckResourceAttr(resourceName, "jira.0.api_token", webhook.apiToken),
-					resource.TestCheckResourceAttr(resourceName, "jira.0.project_key", webhook.projectKey),
-					resource.TestCheckResourceAttr(resourceName, "jira.0.email", webhook.email),
+					resource.TestCheckResourceAttr(resourceName, "jira.url", webhook.url),
+					resource.TestCheckResourceAttr(resourceName, "jira.api_token", webhook.apiToken),
+					resource.TestCheckResourceAttr(resourceName, "jira.project_key", webhook.projectKey),
+					resource.TestCheckResourceAttr(resourceName, "jira.email", webhook.email),
 				),
 			},
 			{
@@ -189,17 +189,16 @@ func TestAccCoralogixResourceMicrosoftTeamsWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := getRandomWebhook()
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckWebhookDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
 			{
-
 				Config: testAccCoralogixResourceMicrosoftTeamsWebhook(webhook),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
-					resource.TestCheckResourceAttr(resourceName, "microsoft_teams.0.url", webhook.url),
+					resource.TestCheckResourceAttr(resourceName, "microsoft_teams.url", webhook.url),
 				),
 			},
 			{
@@ -215,12 +214,11 @@ func TestAccCoralogixResourceSendLogWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := getRandomWebhook()
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckWebhookDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
 			{
-
 				Config: testAccCoralogixResourceSendLogWebhook(webhook),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
@@ -240,9 +238,9 @@ func TestAccCoralogixResourceOpsgenieTeamsWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := getRandomWebhook()
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckWebhookDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
 			{
 
@@ -250,7 +248,7 @@ func TestAccCoralogixResourceOpsgenieTeamsWebhook(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
-					resource.TestCheckResourceAttr(resourceName, "opsgenie.0.url", webhook.url),
+					resource.TestCheckResourceAttr(resourceName, "opsgenie.url", webhook.url),
 				),
 			},
 			{
@@ -266,9 +264,9 @@ func TestAccCoralogixResourceDemistoTeamsWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := getRandomWebhook()
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckWebhookDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
 			{
 
@@ -297,14 +295,9 @@ func testAccCheckWebhookDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.GetWebhook(ctx, rs.Primary.ID)
+		resp, err := client.GetWebhook(ctx, &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(rs.Primary.ID)})
 		if err == nil {
-			var m map[string]interface{}
-			if err = json.Unmarshal([]byte(resp), &m); err != nil {
-				return nil
-			}
-			id := strconv.Itoa(int(m["id"].(float64)))
-			if id == rs.Primary.ID {
+			if resp.GetWebhook().GetId().GetValue() == rs.Primary.ID {
 				return fmt.Errorf("webhook still exists: %s", rs.Primary.ID)
 			}
 		}
@@ -324,7 +317,7 @@ func getRandomWebhook() *webhookTestFields {
 func testAccCoralogixResourceSlackWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
   	name    = "%s"
-	slack {
+	slack = {
         url  = "%s"
   	}
 }
@@ -335,10 +328,10 @@ func testAccCoralogixResourceSlackWebhook(w *webhookTestFields) string {
 func testAccCoralogixResourceCustomWebhook(w *customWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
   	 name    = "%s"
-     custom {
+     custom = {
     	url     = "%s"
     	method  = "%s"
-    	headers = jsonencode({ "custom" : "header" })
+    	headers = { "Content-Type" : "application/json" }
   		payload = jsonencode({ "custom" : "payload" })
   	}
 }
@@ -349,7 +342,7 @@ func testAccCoralogixResourceCustomWebhook(w *customWebhookTestFields) string {
 func testAccCoralogixResourcePagerdutyWebhook(w *pagerDutyWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
   	name    = "%s"
-	pager_duty {
+	pager_duty = {
         service_key  = "%s"
   	}
 }
@@ -360,7 +353,7 @@ func testAccCoralogixResourcePagerdutyWebhook(w *pagerDutyWebhookTestFields) str
 func testAccCoralogixResourceEmailGroupWebhook(w *emailGroupWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
   	name = "%s"
-	email_group {
+	email_group = {
         emails  = %s
   	}
 }
@@ -371,7 +364,7 @@ func testAccCoralogixResourceEmailGroupWebhook(w *emailGroupWebhookTestFields) s
 func testAccCoralogixResourceSendLogWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" test {
 	name    = "%s"
-	sendlog {
+	sendlog = {
     payload  = jsonencode({ "custom" : "payload" })
   	}
 }
@@ -382,7 +375,7 @@ func testAccCoralogixResourceSendLogWebhook(w *webhookTestFields) string {
 func testAccCoralogixResourceMicrosoftTeamsWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
   	name = "%s"
-	microsoft_teams {
+	microsoft_teams = {
         url  = "%s"
   	}
 }
@@ -393,7 +386,7 @@ func testAccCoralogixResourceMicrosoftTeamsWebhook(w *webhookTestFields) string 
 func testAccCoralogixResourceJiraWebhook(w *jiraWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
   	name        = "%s"
-	jira {
+	jira = {
     url         = "%s"
     api_token   = "%s"
     email       = "%s"
@@ -407,7 +400,7 @@ func testAccCoralogixResourceJiraWebhook(w *jiraWebhookTestFields) string {
 func testAccCoralogixResourceOpsgenieWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
   	name = "%s"
-	opsgenie {
+	opsgenie = {
         url  = "%s"
   	}
 }
@@ -418,10 +411,11 @@ func testAccCoralogixResourceOpsgenieWebhook(w *webhookTestFields) string {
 func testAccCoralogixResourceDemistoWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
   	name = "%s"
-	demisto {
+	demisto = {
         payload = jsonencode({ "custom" : "payload" })
+		url = "%s"
   	}
 }
 `,
-		w.name)
+		w.name, w.url)
 }

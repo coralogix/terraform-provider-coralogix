@@ -68,7 +68,6 @@ func OldProvider() *oldSchema.Provider {
 			"coralogix_hosted_dashboard":           dataSourceCoralogixHostedDashboard(),
 			"coralogix_recording_rules_groups_set": dataSourceCoralogixRecordingRulesGroupsSet(),
 			"coralogix_tco_policy_override":        dataSourceCoralogixTCOPolicyOverride(),
-			"coralogix_webhook":                    dataSourceCoralogixWebhook(),
 		},
 
 		ResourcesMap: map[string]*oldSchema.Resource{
@@ -78,7 +77,6 @@ func OldProvider() *oldSchema.Provider {
 			"coralogix_data_set":                   resourceCoralogixDataSet(),
 			"coralogix_hosted_dashboard":           resourceCoralogixHostedDashboard(),
 			"coralogix_recording_rules_groups_set": resourceCoralogixRecordingRulesGroupsSet(),
-			"coralogix_webhook":                    resourceCoralogixWebhook(),
 			"coralogix_grafana_folder":             resourceGrafanaFolder(),
 		},
 
@@ -282,6 +280,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewTCOPolicyTracesDataSource,
 		NewDashboardDataSource,
 		NewSLIDataSource,
+		NewWebhookDataSource,
 	}
 }
 
@@ -293,5 +292,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewTCOPolicyTracesResource,
 		NewDashboardResource,
 		NewSLIResource,
+		NewWebhookResource,
 	}
 }
