@@ -366,10 +366,11 @@ func testAccCoralogixResourceSendLogWebhook(w *webhookTestFields) string {
 	name    = "%s"
 	sendlog = {
     payload  = jsonencode({ "custom" : "payload" })
+	url      = "%s"
   	}
 }
 `,
-		w.name)
+		w.name, w.url)
 }
 
 func testAccCoralogixResourceMicrosoftTeamsWebhook(w *webhookTestFields) string {
