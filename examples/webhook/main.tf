@@ -76,7 +76,7 @@ resource "coralogix_webhook" "demisto_webhook" {
 
 resource "coralogix_webhook" "sendlog_webhook" {
   name = "sendlog-webhook"
-  send_log = {
+  sendlog = {
     url = "https://example-url.com/"
   }
 }

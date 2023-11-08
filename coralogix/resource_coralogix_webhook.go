@@ -231,7 +231,7 @@ type WebhookResourceModel struct {
 	CustomWebhook  *CustomWebhookModel  `tfsdk:"custom"`
 	Slack          *SlackModel          `tfsdk:"slack"`
 	PagerDuty      *PagerDutyModel      `tfsdk:"pager_duty"`
-	SendLog        *SendLogModel        `tfsdk:"send_log"`
+	SendLog        *SendLogModel        `tfsdk:"sendlog"`
 	EmailGroup     *EmailGroupModel     `tfsdk:"email_group"`
 	MicrosoftTeams *MicrosoftTeamsModel `tfsdk:"microsoft_teams"`
 	Jira           *JiraModel           `tfsdk:"jira"`
@@ -368,7 +368,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					objectvalidator.ExactlyOneOf(
 						path.MatchRelative().AtParent().AtName("slack"),
 						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("send_log"),
+						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
 						path.MatchRelative().AtParent().AtName("jira"),
@@ -398,7 +398,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					objectvalidator.ExactlyOneOf(
 						path.MatchRelative().AtParent().AtName("custom"),
 						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("send_log"),
+						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
 						path.MatchRelative().AtParent().AtName("jira"),
@@ -420,7 +420,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					objectvalidator.ExactlyOneOf(
 						path.MatchRelative().AtParent().AtName("custom"),
 						path.MatchRelative().AtParent().AtName("slack"),
-						path.MatchRelative().AtParent().AtName("send_log"),
+						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
 						path.MatchRelative().AtParent().AtName("jira"),
@@ -431,7 +431,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Optional:            true,
 				MarkdownDescription: "PagerDuty webhook.",
 			},
-			"send_log": schema.SingleNestedAttribute{
+			"sendlog": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"uuid": schema.StringAttribute{
 						Optional:            true,
@@ -477,7 +477,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("custom"),
 						path.MatchRelative().AtParent().AtName("slack"),
 						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("send_log"),
+						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
@@ -499,7 +499,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("custom"),
 						path.MatchRelative().AtParent().AtName("slack"),
 						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("send_log"),
+						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
@@ -533,7 +533,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("custom"),
 						path.MatchRelative().AtParent().AtName("slack"),
 						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("send_log"),
+						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
@@ -555,7 +555,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("custom"),
 						path.MatchRelative().AtParent().AtName("slack"),
 						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("send_log"),
+						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
 						path.MatchRelative().AtParent().AtName("jira"),
@@ -588,7 +588,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("custom"),
 						path.MatchRelative().AtParent().AtName("slack"),
 						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("send_log"),
+						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
 						path.MatchRelative().AtParent().AtName("jira"),

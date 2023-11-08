@@ -25,7 +25,7 @@ Coralogix webhook. For more info please review - https://coralogix.com/docs/cora
 - `name` (String) Webhook name.
 - `opsgenie` (Attributes) Opsgenie webhook. (see [below for nested schema](#nestedatt--opsgenie))
 - `pager_duty` (Attributes) PagerDuty webhook. (see [below for nested schema](#nestedatt--pager_duty))
-- `send_log` (Attributes) Send log webhook. (see [below for nested schema](#nestedatt--send_log))
+- `sendlog` (Attributes) Send log webhook. (see [below for nested schema](#nestedatt--sendlog))
 - `slack` (Attributes) Slack webhook. (see [below for nested schema](#nestedatt--slack))
 
 ### Read-Only
@@ -104,8 +104,8 @@ Optional:
 - `service_key` (String) PagerDuty service key.
 
 
-<a id="nestedatt--send_log"></a>
-### Nested Schema for `send_log`
+<a id="nestedatt--sendlog"></a>
+### Nested Schema for `sendlog`
 
 Required:
 
