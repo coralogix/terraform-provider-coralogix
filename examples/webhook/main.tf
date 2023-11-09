@@ -14,71 +14,70 @@ provider "coralogix" {
 
 resource "coralogix_webhook" "slack_webhook" {
   name = "slack-webhook"
-  slack {
+  slack = {
+    notify_about = ["flow_anomalies"]
     url = "https://join.slack.com/example"
   }
 }
 
-data "coralogix_webhook" "imported_coralogix_webhook_example" {
-  id = coralogix_webhook.slack_webhook.id
-}
-
 resource "coralogix_webhook" "custom_webhook" {
   name = "custom-webhook"
-  custom {
-    url     = "https://example-url.com/"
+  custom = {
     method  = "post"
-    headers = jsonencode({ "Content-Type" : "application/json" })
+    headers = { "Content-Type" : "application/json" }
+    url     = "https://example-url.com/"
   }
 }
 
 resource "coralogix_webhook" "pager_duty_webhook" {
   name = "pagerduty-webhook"
-  pager_duty {
+  pager_duty = {
     service_key = "service-key"
   }
 }
 
 resource "coralogix_webhook" "email_group_webhook" {
   name = "email-group-webhook"
-  email_group {
+  email_group = {
     emails = ["user@example.com"]
   }
 }
-
+#
 resource "coralogix_webhook" "microsoft_teams_webhook" {
   name = "microsoft-teams-webhook"
-  microsoft_teams {
+  microsoft_teams ={
     url = "https://example-url.com/"
   }
 }
 
 resource "coralogix_webhook" "jira_webhook" {
   name = "jira-webhook"
-  jira {
-    url         = "https://coralogix.atlassian.net/jira/your-work"
+  jira = {
     api_token   = "api-token"
     email       = "example@coralogix.com"
     project_key = "project-key"
+    url         = "https://coralogix.atlassian.net/jira/your-work"
   }
 }
 
 resource "coralogix_webhook" "opsgenie_webhook" {
   name = "opsgenie-webhook"
-  opsgenie {
+  opsgenie = {
     url = "https://example-url.com/"
   }
 }
 
 resource "coralogix_webhook" "demisto_webhook" {
   name = "demisto-webhook"
-  demisto {
+  demisto = {
+    url = "https://example-url.com/"
   }
 }
 
 resource "coralogix_webhook" "sendlog_webhook" {
   name = "sendlog-webhook"
-  sendlog {
+  sendlog = {
+    url = "https://example-url.com/"
   }
 }
 
@@ -90,7 +89,7 @@ resource "coralogix_alert" "standard_alert" {
 
   notifications_group {
     notification {
-      integration_id              = coralogix_webhook.slack_webhook.id
+      integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 60
     }
   }

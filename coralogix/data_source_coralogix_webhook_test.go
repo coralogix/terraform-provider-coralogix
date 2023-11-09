@@ -9,15 +9,15 @@ import (
 func TestAccCoralogixDataSourceWebhook_basic(t *testing.T) {
 	w := getRandomWebhook()
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceSlackWebhook(w) +
 					testAccCoralogixDataSourceWebhook_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.coralogix_webhook.test", "name", w.name),
-					resource.TestCheckResourceAttr("data.coralogix_webhook.test", "slack.0.url", w.url),
+					resource.TestCheckResourceAttr("data.coralogix_webhook.test", "slack.url", w.url),
 				),
 			},
 		},
