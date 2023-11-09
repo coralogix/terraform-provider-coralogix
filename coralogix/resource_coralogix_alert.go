@@ -2050,7 +2050,7 @@ func flattenTimeRelativeCondition(condition interface{}) interface{} {
 	}
 
 	timeRelativeCondition["ignore_infinity"] = conditionParams.GetIgnoreInfinity().GetValue()
-	timeRelativeCondition["ratio_threshold"] = int(conditionParams.GetThreshold().GetValue())
+	timeRelativeCondition["ratio_threshold"] = conditionParams.GetThreshold().GetValue()
 	timeRelativeCondition["group_by"] = wrappedStringSliceToStringSlice(conditionParams.GroupBy)
 	timeFrame := conditionParams.GetTimeframe()
 	relativeTimeFrame := conditionParams.GetRelativeTimeframe()
