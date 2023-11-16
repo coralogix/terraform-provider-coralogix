@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.8"
+      version = "~> 1.9"
       source  = "coralogix/coralogix"
     }
   }
@@ -18,6 +18,10 @@ resource "coralogix_webhook" "slack_webhook" {
     notify_about = ["flow_anomalies"]
     url = "https://join.slack.com/example"
   }
+}
+
+data "coralogix_webhook" "imported_webhook" {
+  id = coralogix_webhook.slack_webhook.id
 }
 
 resource "coralogix_webhook" "custom_webhook" {
@@ -42,7 +46,7 @@ resource "coralogix_webhook" "email_group_webhook" {
     emails = ["user@example.com"]
   }
 }
-#
+
 resource "coralogix_webhook" "microsoft_teams_webhook" {
   name = "microsoft-teams-webhook"
   microsoft_teams ={
