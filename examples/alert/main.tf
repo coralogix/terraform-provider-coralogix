@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.6"
+      version = "~> 1.9"
       source  = "coralogix/coralogix"
     }
   }

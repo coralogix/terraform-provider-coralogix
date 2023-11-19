@@ -1660,6 +1660,9 @@ func flattenMetaLabels(labels []*alerts.MetaLabel) interface{} {
 }
 
 func flattenShowInInsight(showInInsight *alerts.ShowInInsight) interface{} {
+	if showInInsight == nil {
+		return nil
+	}
 	notifyEveryMin := int(showInInsight.GetRetriggeringPeriodSeconds().GetValue() / 60)
 	notifyOn := alertProtoNotifyOnToSchemaNotifyOn[showInInsight.GetNotifyOn()]
 	showInInsightSchema := map[string]interface{}{
