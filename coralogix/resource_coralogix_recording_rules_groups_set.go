@@ -6,12 +6,14 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -38,7 +40,7 @@ type RecordingRuleGroupSetResource struct {
 	client *clientset.RecordingRulesGroupsSetsClient
 }
 
-func (r RecordingRuleGroupSetResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
+func (r *RecordingRuleGroupSetResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
 	schemaV0 := recordingRuleGroupSetV0()
 	return map[int64]resource.StateUpgrader{
 		0: {
@@ -83,7 +85,7 @@ func recordingRuleGroupSchemaV0() schema.NestedAttributeObject {
 			"limit": schema.Int64Attribute{
 				Optional: true,
 			},
-			"rule": schema.ListNestedAttribute{
+			"rule": schema.SetNestedAttribute{
 				Required:     true,
 				NestedObject: recordingRulesSchemaV0(),
 			},
@@ -109,14 +111,113 @@ func recordingRulesSchemaV0() schema.NestedAttributeObject {
 }
 
 func upgradeRecordingRuleGroupSetStateV0ToV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+	type RecordingRuleGroupSetResourceModelV0 struct {
+		ID          types.String `tfsdk:"id"`
+		YamlContent types.String `tfsdk:"yaml_content"`
+		Group       types.Set    `tfsdk:"group"` //RecordingRuleGroupModelV0
+		Name        types.String `tfsdk:"name"`
+	}
 
+	var priorStateData RecordingRuleGroupSetResourceModelV0
+	resp.Diagnostics.Append(req.State.Get(ctx, &priorStateData)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	groups, diags := upgradeRecordingRulesGroupsV0(ctx, priorStateData.Group)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	upgradedStateData := RecordingRuleGroupSetResourceModel{
+		ID:          priorStateData.ID,
+		YamlContent: priorStateData.YamlContent,
+		Name:        priorStateData.Name,
+		Groups:      groups,
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, upgradedStateData)...)
 }
 
-func (r RecordingRuleGroupSetResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func upgradeRecordingRulesGroupsV0(ctx context.Context, groups types.Set) (types.Set, diag.Diagnostics) {
+	type RecordingRuleGroupModelV0 struct {
+		Name     types.String `tfsdk:"name"`
+		Interval types.Int64  `tfsdk:"interval"`
+		Limit    types.Int64  `tfsdk:"limit"`
+		Rule     types.Set    `tfsdk:"rule"` //RecordingRuleModel
+	}
+
+	var diags diag.Diagnostics
+	var priorGroupsObjects []types.Object
+	var upgradedGroups []RecordingRuleGroupModel
+	groups.ElementsAs(ctx, &priorGroupsObjects, true)
+
+	for _, groupObject := range priorGroupsObjects {
+		var priorGroup RecordingRuleGroupModelV0
+		if dg := groupObject.As(ctx, &priorGroup, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+
+		rules, dg := upgradeRecordingRulesV0(ctx, priorGroup.Rule)
+		if dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+
+		log.Printf("[INFO] XXXXXXX")
+		upgradedGroup := RecordingRuleGroupModel{
+			Name:     priorGroup.Name,
+			Interval: priorGroup.Interval,
+			Limit:    priorGroup.Limit,
+			Rules:    rules,
+		}
+
+		upgradedGroups = append(upgradedGroups, upgradedGroup)
+	}
+
+	if diags.HasError() {
+		return types.SetNull(types.ObjectType{AttrTypes: recordingRuleGroupAttributes()}), diags
+	}
+
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: recordingRuleGroupAttributes()}, upgradedGroups)
+}
+
+func upgradeRecordingRulesV0(ctx context.Context, rule types.Set) (types.List, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	var priorRulesObjects []types.Object
+	var upgradedRules []RecordingRuleModel
+	rule.ElementsAs(ctx, &priorRulesObjects, true)
+
+	for _, ruleObject := range priorRulesObjects {
+		var priorRule RecordingRuleModel
+		if dg := ruleObject.As(ctx, &priorRule, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+
+		upgradedRule := RecordingRuleModel{
+			Record: priorRule.Record,
+			Expr:   priorRule.Expr,
+			Labels: priorRule.Labels,
+		}
+
+		upgradedRules = append(upgradedRules, upgradedRule)
+	}
+
+	if diags.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: recordingRuleAttributes()}), diags
+	}
+
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: recordingRuleAttributes()}, upgradedRules)
+}
+
+func (r *RecordingRuleGroupSetResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func (r RecordingRuleGroupSetResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *RecordingRuleGroupSetResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -133,11 +234,11 @@ func (r RecordingRuleGroupSetResource) Configure(_ context.Context, req resource
 	r.client = clientSet.RecordingRuleGroupsSets()
 }
 
-func (r RecordingRuleGroupSetResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *RecordingRuleGroupSetResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_recording_rules_groups_set"
 }
 
-func (r RecordingRuleGroupSetResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 1,
 		Attributes: map[string]schema.Attribute{
@@ -150,21 +251,33 @@ func (r RecordingRuleGroupSetResource) Schema(_ context.Context, _ resource.Sche
 			"yaml_content": schema.StringAttribute{
 				Optional: true,
 				Validators: []validator.String{
-					stringvalidator.ExactlyOneOf(
+					stringvalidator.ConflictsWith(
 						path.MatchRelative().AtParent().AtName("groups"),
 						path.MatchRelative().AtParent().AtName("name"),
 					),
 					recordingRulesGroupYamlContentValidator{},
+				},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplaceIf(JSONStringsEqualPlanModifier, "", ""),
 				},
 			},
 			"groups": schema.SetNestedAttribute{
 				Optional:     true,
 				Computed:     true,
 				NestedObject: recordingRuleGroupSchema(),
+				Validators: []validator.Set{
+					setvalidator.ExactlyOneOf(
+						path.MatchRelative().AtParent().AtName("yaml_content"),
+					),
+				},
 			},
 			"name": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
+				Validators: []validator.String{
+					stringvalidator.ExactlyOneOf(
+						path.MatchRelative().AtParent().AtName("yaml_content")),
+				},
 			},
 		},
 	}
@@ -189,6 +302,8 @@ func recordingRuleGroupSchema() schema.NestedAttributeObject {
 			},
 			"limit": schema.Int64Attribute{
 				Optional:    true,
+				Computed:    true,
+				Default:     int64default.StaticInt64(0),
 				Description: "Limit the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit.",
 			},
 			"rules": schema.ListNestedAttribute{
@@ -221,7 +336,7 @@ func recordingRulesSchema() schema.NestedAttributeObject {
 	}
 }
 
-func (r RecordingRuleGroupSetResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan *RecordingRuleGroupSetResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	if diags.HasError() {
@@ -229,14 +344,15 @@ func (r RecordingRuleGroupSetResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	createPolicyRequest, diags := expandRecordingRulesGroupsSet(ctx, plan)
+	createRequest, diags := expandRecordingRulesGroupsSet(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	rrgStr, _ := jsm.MarshalToString(createPolicyRequest)
+	rrgStr, _ := jsm.MarshalToString(createRequest)
 	log.Printf("[INFO] Creating new recogring-rule-group-set: %s", rrgStr)
-	createResp, err := r.client.CreateRecordingRuleGroupsSet(ctx, createPolicyRequest)
+
+	createResp, err := r.client.CreateRecordingRuleGroupsSet(ctx, createRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
@@ -267,7 +383,10 @@ func (r RecordingRuleGroupSetResource) Create(ctx context.Context, req resource.
 		return
 	}
 
-	plan, diags = flattenRecordingRuleGroupSet(ctx, getResp)
+	rrgStr, _ = jsm.MarshalToString(getResp)
+	log.Printf("[INFO] Received recogring-rule-group-set: %s", rrgStr)
+
+	plan, diags = flattenRecordingRuleGroupSet(ctx, plan, getResp)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -277,16 +396,26 @@ func (r RecordingRuleGroupSetResource) Create(ctx context.Context, req resource.
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenRecordingRuleGroupSet(ctx context.Context, resp *rrgs.OutRuleGroupSet) (*RecordingRuleGroupSetResourceModel, diag.Diagnostics) {
+func flattenRecordingRuleGroupSet(ctx context.Context, plan *RecordingRuleGroupSetResourceModel, resp *rrgs.OutRuleGroupSet) (*RecordingRuleGroupSetResourceModel, diag.Diagnostics) {
+	if yamlContent := plan.YamlContent.ValueString(); yamlContent != "" {
+		return &RecordingRuleGroupSetResourceModel{
+			ID:          types.StringValue(resp.GetId()),
+			YamlContent: types.StringValue(plan.YamlContent.ValueString()),
+			Name:        types.StringNull(),
+			Groups:      types.SetNull(types.ObjectType{AttrTypes: recordingRuleGroupAttributes()}),
+		}, nil
+	}
+
 	groups, diags := flattenRecordingRuleGroups(ctx, resp.GetGroups())
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &RecordingRuleGroupSetResourceModel{
-		ID:     types.StringValue(resp.GetId()),
-		Name:   types.StringValue(resp.GetName()),
-		Groups: groups,
+		ID:          types.StringValue(resp.GetId()),
+		Name:        types.StringValue(resp.GetName()),
+		Groups:      groups,
+		YamlContent: types.StringNull(),
 	}, nil
 }
 
@@ -318,7 +447,7 @@ func recordingRuleGroupAttributes() map[string]attr.Type {
 		"name":     types.StringType,
 		"interval": types.Int64Type,
 		"limit":    types.Int64Type,
-		"rules": types.SetType{
+		"rules": types.ListType{
 			ElemType: types.ObjectType{
 				AttrTypes: recordingRuleAttributes(),
 			},
@@ -350,7 +479,7 @@ func flattenRecordingRuleGroup(ctx context.Context, group *rrgs.OutRuleGroup) (*
 	}, nil
 }
 
-func flattenRecordingRules(ctx context.Context, rules []*rrgs.OutRule) (types.Set, diag.Diagnostics) {
+func flattenRecordingRules(ctx context.Context, rules []*rrgs.OutRule) (types.List, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var rulesObjects []types.Object
 	for _, rule := range rules {
@@ -367,10 +496,10 @@ func flattenRecordingRules(ctx context.Context, rules []*rrgs.OutRule) (types.Se
 		rulesObjects = append(rulesObjects, ruleObject)
 	}
 	if diags.HasError() {
-		return types.SetNull(types.ObjectType{AttrTypes: recordingRuleAttributes()}), diags
+		return types.ListNull(types.ObjectType{AttrTypes: recordingRuleAttributes()}), diags
 	}
 
-	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: recordingRuleAttributes()}, rulesObjects)
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: recordingRuleAttributes()}, rulesObjects)
 }
 
 func flattenRecordingRule(ctx context.Context, rule *rrgs.OutRule) (*RecordingRuleModel, diag.Diagnostics) {
@@ -386,19 +515,122 @@ func flattenRecordingRule(ctx context.Context, rule *rrgs.OutRule) (*RecordingRu
 	}, nil
 }
 
-func (r RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	//TODO implement me
-	panic("implement me")
+func (r *RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state *RecordingRuleGroupSetResourceModel
+	diags := req.State.Get(ctx, &state)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	id := state.ID.ValueString()
+	log.Printf("[INFO] Reading recording-rule-group-set id: %s", id)
+	getResp, err := r.client.GetRecordingRuleGroupsSet(ctx, &rrgs.FetchRuleGroupSet{Id: id})
+	if err != nil {
+		log.Printf("[ERROR] Received error: %#v", err)
+		if status.Code(err) == codes.NotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error reading recording-rule-group-set",
+				handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+			)
+		}
+		return
+	}
+
+	state, diags = flattenRecordingRuleGroupSet(ctx, state, getResp)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	// Set state to fully populated data
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 }
 
-func (r RecordingRuleGroupSetResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	//TODO implement me
-	panic("implement me")
+func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan *RecordingRuleGroupSetResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	updateRequest, diags := expandUpdateRecordingRulesGroupsSet(ctx, plan)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	rrgStr, _ := jsm.MarshalToString(updateRequest)
+	log.Printf("[INFO] Updating recording-rule-group-set: %s", rrgStr)
+
+	_, err := r.client.UpdateRecordingRuleGroupsSet(ctx, updateRequest)
+	if err != nil {
+		log.Printf("[ERROR] Received error: %#v", err)
+		resp.Diagnostics.AddError(
+			"Error updating recording-rule-group-set",
+			handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+		)
+		return
+	}
+
+	log.Printf("[INFO] Reading recording-rule-group-set id: %#v", plan.ID.ValueString())
+	getResp, err := r.client.GetRecordingRuleGroupsSet(ctx, &rrgs.FetchRuleGroupSet{Id: plan.ID.ValueString()})
+	if err != nil {
+		log.Printf("[ERROR] Received error: %#v", err)
+		if status.Code(err) == codes.NotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", plan.ID.ValueString()),
+				fmt.Sprintf("%s will be recreated when you apply", plan.ID.ValueString()),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error reading recording-rule-group-set",
+				handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+			)
+		}
+		return
+	}
+
+	plan, diags = flattenRecordingRuleGroupSet(ctx, plan, getResp)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	// Set state to fully populated data
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
 }
 
-func (r RecordingRuleGroupSetResource) Delete(ctx context.Context, request resource.DeleteRequest, response *resource.DeleteResponse) {
-	//TODO implement me
-	panic("implement me")
+func (r *RecordingRuleGroupSetResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state *RecordingRuleGroupSetResourceModel
+	diags := req.State.Get(ctx, &state)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	id := state.ID.ValueString()
+	log.Printf("[INFO] Deleting recording-rule-group-set id: %s", id)
+	_, err := r.client.DeleteRecordingRuleGroupsSet(ctx, &rrgs.DeleteRuleGroupSet{Id: id})
+	if err != nil {
+		log.Printf("[ERROR] Received error: %#v", err)
+		if status.Code(err) == codes.NotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", id),
+				"",
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error deleting recording-rule-group-set",
+				handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+			)
+		}
+		return
+	}
 }
 
 type RecordingRuleGroupSetResourceModel struct {
@@ -412,7 +644,7 @@ type RecordingRuleGroupModel struct {
 	Name     types.String `tfsdk:"name"`
 	Interval types.Int64  `tfsdk:"interval"`
 	Limit    types.Int64  `tfsdk:"limit"`
-	Rules    types.Set    `tfsdk:"rules"` //RecordingRuleModel
+	Rules    types.List   `tfsdk:"rules"` //RecordingRuleModel
 }
 
 type RecordingRuleModel struct {
@@ -427,6 +659,32 @@ func expandRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroup
 	}
 
 	return expandRecordingRulesGroupSetExplicitly(ctx, plan)
+}
+
+func expandUpdateRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroupSetResourceModel) (*rrgs.UpdateRuleGroupSet, diag.Diagnostics) {
+	if yamlContent := plan.YamlContent.ValueString(); yamlContent != "" {
+		rrg, diags := expandRecordingRulesGroupsSetFromYaml(yamlContent)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		return &rrgs.UpdateRuleGroupSet{
+			Id:     plan.ID.ValueString(),
+			Groups: rrg.Groups,
+			Name:   rrg.Name,
+		}, nil
+	}
+
+	rrg, diags := expandRecordingRulesGroupSetExplicitly(ctx, plan)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &rrgs.UpdateRuleGroupSet{
+		Id:     plan.ID.ValueString(),
+		Groups: rrg.Groups,
+		Name:   rrg.Name,
+	}, nil
 }
 
 func expandRecordingRulesGroupsSetFromYaml(yamlContent string) (*rrgs.CreateRuleGroupSet, diag.Diagnostics) {
@@ -489,7 +747,7 @@ func expandRecordingRuleGroup(ctx context.Context, group RecordingRuleGroupModel
 	}, nil
 }
 
-func expandRecordingRules(ctx context.Context, rules types.Set) ([]*rrgs.InRule, diag.Diagnostics) {
+func expandRecordingRules(ctx context.Context, rules types.List) ([]*rrgs.InRule, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var rulesObjects []types.Object
 	var expandedRules []*rrgs.InRule
@@ -536,6 +794,10 @@ func (v recordingRulesGroupYamlContentValidator) MarkdownDescription(ctx context
 }
 
 func (v recordingRulesGroupYamlContentValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() {
+		return
+	}
+
 	var set rrgs.CreateRuleGroupSet
 	if err := yaml.Unmarshal([]byte(req.ConfigValue.ValueString()), &set); err != nil {
 		resp.Diagnostics.AddError("error on validating yaml_content", err.Error())

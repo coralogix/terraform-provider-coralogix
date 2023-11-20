@@ -61,23 +61,21 @@ func OldProvider() *oldSchema.Provider {
 		},
 
 		DataSourcesMap: map[string]*oldSchema.Resource{
-			"coralogix_rules_group":                dataSourceCoralogixRulesGroup(),
-			"coralogix_alert":                      dataSourceCoralogixAlert(),
-			"coralogix_enrichment":                 dataSourceCoralogixEnrichment(),
-			"coralogix_data_set":                   dataSourceCoralogixDataSet(),
-			"coralogix_hosted_dashboard":           dataSourceCoralogixHostedDashboard(),
-			"coralogix_recording_rules_groups_set": dataSourceCoralogixRecordingRulesGroupsSet(),
-			"coralogix_tco_policy_override":        dataSourceCoralogixTCOPolicyOverride(),
+			"coralogix_rules_group":         dataSourceCoralogixRulesGroup(),
+			"coralogix_alert":               dataSourceCoralogixAlert(),
+			"coralogix_enrichment":          dataSourceCoralogixEnrichment(),
+			"coralogix_data_set":            dataSourceCoralogixDataSet(),
+			"coralogix_hosted_dashboard":    dataSourceCoralogixHostedDashboard(),
+			"coralogix_tco_policy_override": dataSourceCoralogixTCOPolicyOverride(),
 		},
 
 		ResourcesMap: map[string]*oldSchema.Resource{
-			"coralogix_rules_group":                resourceCoralogixRulesGroup(),
-			"coralogix_alert":                      resourceCoralogixAlert(),
-			"coralogix_enrichment":                 resourceCoralogixEnrichment(),
-			"coralogix_data_set":                   resourceCoralogixDataSet(),
-			"coralogix_hosted_dashboard":           resourceCoralogixHostedDashboard(),
-			"coralogix_recording_rules_groups_set": resourceCoralogixRecordingRulesGroupsSet(),
-			"coralogix_grafana_folder":             resourceGrafanaFolder(),
+			"coralogix_rules_group":      resourceCoralogixRulesGroup(),
+			"coralogix_alert":            resourceCoralogixAlert(),
+			"coralogix_enrichment":       resourceCoralogixEnrichment(),
+			"coralogix_data_set":         resourceCoralogixDataSet(),
+			"coralogix_hosted_dashboard": resourceCoralogixHostedDashboard(),
+			"coralogix_grafana_folder":   resourceGrafanaFolder(),
 		},
 
 		ConfigureContextFunc: func(context context.Context, d *oldSchema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -281,6 +279,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewDashboardDataSource,
 		NewSLIDataSource,
 		NewWebhookDataSource,
+		NewRecordingRuleGroupSetDataSource,
 	}
 }
 
@@ -293,5 +292,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewDashboardResource,
 		NewSLIResource,
 		NewWebhookResource,
+		NewRecordingRuleGroupSetResource,
 	}
 }

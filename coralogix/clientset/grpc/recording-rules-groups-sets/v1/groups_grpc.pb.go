@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.8
-// source: groups.proto
+// source: proto/groups.proto
 
 package __
 
@@ -218,7 +218,7 @@ var RuleGroups_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "groups.proto",
+	Metadata: "proto/groups.proto",
 }
 
 // RuleGroupSetsClient is the client API for RuleGroupSets service.
@@ -448,5 +448,5 @@ var RuleGroupSets_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "groups.proto",
+	Metadata: "proto/groups.proto",
 }
