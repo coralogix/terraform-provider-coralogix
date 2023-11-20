@@ -132,7 +132,7 @@ func testAccCoralogixResourceRecordingRulesGroupsSetExplicit() string {
               },
               {
                 name     = "Bar"
-                interval = 180
+                interval = 60
                 limit   = 100
                 rules    = [
                   {

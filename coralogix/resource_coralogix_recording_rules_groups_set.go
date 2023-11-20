@@ -398,11 +398,16 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 
 func flattenRecordingRuleGroupSet(ctx context.Context, plan *RecordingRuleGroupSetResourceModel, resp *rrgs.OutRuleGroupSet) (*RecordingRuleGroupSetResourceModel, diag.Diagnostics) {
 	if yamlContent := plan.YamlContent.ValueString(); yamlContent != "" {
+		groups, diags := flattenRecordingRuleGroups(ctx, resp.GetGroups())
+		if diags.HasError() {
+			return nil, diags
+		}
+
 		return &RecordingRuleGroupSetResourceModel{
 			ID:          types.StringValue(resp.GetId()),
 			YamlContent: types.StringValue(plan.YamlContent.ValueString()),
-			Name:        types.StringNull(),
-			Groups:      types.SetNull(types.ObjectType{AttrTypes: recordingRuleGroupAttributes()}),
+			Name:        types.StringValue(plan.Name.ValueString()),
+			Groups:      groups,
 		}, nil
 	}
 
