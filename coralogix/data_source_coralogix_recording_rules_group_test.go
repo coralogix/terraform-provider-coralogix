@@ -19,8 +19,8 @@ func TestAccCoralogixDataSourceRecordingRulesGroupsSet_basic(t *testing.T) {
 	filePath := parent + "/examples/recording_rules_groups_set/rule-group-set.yaml"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceRecordingRulesGroupsSetFromYaml(filePath) +
