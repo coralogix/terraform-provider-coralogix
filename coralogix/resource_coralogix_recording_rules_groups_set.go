@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -270,6 +271,9 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 						path.MatchRelative().AtParent().AtName("yaml_content"),
 					),
 				},
+				PlanModifiers: []planmodifier.Set{
+					setplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Optional: true,
@@ -277,6 +281,9 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 				Validators: []validator.String{
 					stringvalidator.ExactlyOneOf(
 						path.MatchRelative().AtParent().AtName("yaml_content")),
+				},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 		},
