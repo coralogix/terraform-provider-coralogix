@@ -1757,6 +1757,11 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 					},
 				},
 				MarkdownDescription: "Layout configuration for the dashboard's visual elements.",
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(
+						path.MatchRelative().AtParent().AtName("content_json"),
+					),
+				},
 			},
 			"variables": schema.ListNestedAttribute{
 				Optional: true,
@@ -2451,6 +2456,9 @@ func expandDashboardTimeFrame(dashboard *dashboards.Dashboard, timeFrame *Dashbo
 }
 
 func expandDashboardLayout(ctx context.Context, layout *DashboardLayoutModel) (*dashboards.Layout, diag.Diagnostics) {
+	if layout == nil {
+		return nil, nil
+	}
 	sections, diags := expandDashboardSections(ctx, layout.Sections)
 	if diags.HasError() {
 		return nil, diags
