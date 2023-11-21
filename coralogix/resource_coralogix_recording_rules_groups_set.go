@@ -219,10 +219,6 @@ func (r *RecordingRuleGroupSetResource) ImportState(ctx context.Context, req res
 
 func (r *RecordingRuleGroupSetResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			"Expected *clientset.ClientSet, got: nil. Please report this issue to the provider developers.",
-		)
 		return
 	}
 
