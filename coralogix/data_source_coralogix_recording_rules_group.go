@@ -30,6 +30,10 @@ func (d *RecordingRuleGroupSetDataSource) Metadata(_ context.Context, req dataso
 
 func (d *RecordingRuleGroupSetDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			"Expected *clientset.ClientSet, got: nil. Please report this issue to the provider developers.",
+		)
 		return
 	}
 
