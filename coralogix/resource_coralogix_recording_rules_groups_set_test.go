@@ -24,26 +24,26 @@ func TestAccCoralogixRecordingRulesGroupsSetFromYaml(t *testing.T) {
 	parent := filepath.Dir(wd)
 	filePath := parent + "/examples/recording_rules_groups_set/rule-group-set.yaml"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckRecordingRulesGroupDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckRecordingRulesGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceRecordingRulesGroupsSetFromYaml(filePath),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(recordingRulesGroupsSetResourceName, "id"),
-					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "group.*",
+					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "groups.*",
 						map[string]string{
 							"name":     "Foo",
 							"interval": "180",
-							"rule.#":   "2",
+							"rules.#":  "2",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "group.*",
+					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "groups.*",
 						map[string]string{
 							"name":     "Bar",
 							"interval": "60",
-							"rule.#":   "2",
+							"rules.#":  "2",
 						},
 					),
 				),
@@ -54,26 +54,26 @@ func TestAccCoralogixRecordingRulesGroupsSetFromYaml(t *testing.T) {
 
 func TestAccCoralogixRecordingRulesGroupsExplicit(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckRecordingRulesGroupDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckRecordingRulesGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceRecordingRulesGroupsSetExplicit(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(recordingRulesGroupsSetResourceName, "id"),
-					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "group.*",
+					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "groups.*",
 						map[string]string{
 							"name":     "Foo",
 							"interval": "180",
-							"rule.#":   "2",
+							"rules.#":  "2",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "group.*",
+					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "groups.*",
 						map[string]string{
 							"name":     "Bar",
 							"interval": "60",
-							"rule.#":   "2",
+							"rules.#":  "2",
 						},
 					),
 				),
@@ -112,32 +112,40 @@ func testAccCoralogixResourceRecordingRulesGroupsSetFromYaml(filePath string) st
 }
 
 func testAccCoralogixResourceRecordingRulesGroupsSetExplicit() string {
-	return `resource "coralogix_recording_rules_groups_set" "test" {
-				name = "Name"
-  				group {
-  				  name     = "Foo"
-  				  interval = 180
-  				  rule {
-  				    record = "ts3db_live_ingester_write_latency:3m"
-  				    expr   = "sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\"staging\",pod=~\"ts3db-live-ingester.*\"}[2m])) by (pod)"
-  				  }
-  				  rule {
-  				    record = "job:http_requests_total:sum"
-  				    expr   = "sum(rate(http_requests_total[5m])) by (job)"
-  				  }
-  				}
-  				group {
-  				  name     = "Bar"
-  				  interval = 60
-  				  rule {
-  				    record = "ts3db_live_ingester_write_latency:3m"
-  				    expr   = "sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\"staging\",pod=~\"ts3db-live-ingester.*\"}[2m])) by (pod)"
-  				  }
-  				  rule {
-  				    record = "job:http_requests_total:sum"
-  				    expr   = "sum(rate(http_requests_total[5m])) by (job)"
-  				  }
-  				}
-			}
+	return `resource "coralogix_recording_rules_groups_set" test {
+            name   = "Name"
+            groups = [
+              {
+                name     = "Foo"
+                interval = 180
+                limit   = 100
+                rules    = [
+                  {
+                    record = "ts3db_live_ingester_write_latency:3m"
+                    expr   = "sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\"staging\",pod=~\"ts3db-live-ingester.*\"}[2m])) by (pod)"
+                  },
+                  {
+                    record = "job:http_requests_total:sum"
+                    expr   = "sum(rate(http_requests_total[5m])) by (job)"
+                  },
+                ]
+              },
+              {
+                name     = "Bar"
+                interval = 60
+                limit   = 100
+                rules    = [
+                  {
+                    record = "ts3db_live_ingester_write_latency:3m"
+                    expr   = "sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\"staging\",pod=~\"ts3db-live-ingester.*\"}[2m])) by (pod)"
+                  },
+                  {
+                    record = "job:http_requests_total:sum"
+                    expr   = "sum(rate(http_requests_total[5m])) by (job)"
+                  },
+                ]
+              },
+            ]
+		}
 `
 }
