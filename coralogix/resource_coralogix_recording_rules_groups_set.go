@@ -167,7 +167,6 @@ func upgradeRecordingRulesGroupsV0(ctx context.Context, groups types.Set) (types
 			continue
 		}
 
-		log.Printf("[INFO] XXXXXXX")
 		upgradedGroup := RecordingRuleGroupModel{
 			Name:     priorGroup.Name,
 			Interval: priorGroup.Interval,
@@ -706,7 +705,7 @@ func expandUpdateRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRul
 func expandRecordingRulesGroupsSetFromYaml(yamlContent string) (*rrgs.CreateRuleGroupSet, diag.Diagnostics) {
 	var result rrgs.CreateRuleGroupSet
 	if err := yaml.Unmarshal([]byte(yamlContent), &result); err != nil {
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("", "")}
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error on unmarshal yaml_content", err.Error())}
 	}
 	return &result, nil
 }
