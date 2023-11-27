@@ -760,3 +760,12 @@ func expandUuid(uuid types.String) *wrapperspb.StringValue {
 	}
 	return &wrapperspb.StringValue{Value: uuid.ValueString()}
 }
+
+func retryableStatusCode(statusCode codes.Code) bool {
+	switch statusCode {
+	case codes.Unavailable, codes.DeadlineExceeded, codes.Aborted:
+		return true
+	default:
+		return false
+	}
+}

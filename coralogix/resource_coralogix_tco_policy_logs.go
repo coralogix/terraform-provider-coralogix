@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
@@ -453,6 +454,9 @@ func tcoPolicySchemaV0() schema.Schema {
 }
 
 func (r *TCOPolicyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cancel()
+
 	var plan *TCOPolicyResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	if diags.HasError() {
@@ -468,8 +472,13 @@ func (r *TCOPolicyResource) Create(ctx context.Context, req resource.CreateReque
 	policyStr, _ := jsm.MarshalToString(createPolicyRequest)
 	log.Printf("[INFO] Creating new tco-policy: %s", policyStr)
 	createResp, err := r.client.CreateTCOPolicy(ctx, createPolicyRequest)
-	if err != nil {
+	for err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		if retryableStatusCode(status.Code(err)) {
+			log.Printf("[INFO] Retrying to create tco-policy: %s", policyStr)
+			createResp, err = r.client.CreateTCOPolicy(ctx, createPolicyRequest)
+			continue
+		}
 		resp.Diagnostics.AddError(
 			"Error creating tco-policy",
 			"Could not create tco-policy, unexpected error: "+err.Error(),
@@ -494,6 +503,9 @@ func (r *TCOPolicyResource) Create(ctx context.Context, req resource.CreateReque
 }
 
 func (r *TCOPolicyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
 	var state *TCOPolicyResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -505,8 +517,13 @@ func (r *TCOPolicyResource) Read(ctx context.Context, req resource.ReadRequest, 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading tco-policy: %s", id)
 	getPolicyResp, err := r.client.GetTCOPolicy(ctx, &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)})
-	if err != nil {
+	for err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		if retryableStatusCode(status.Code(err)) {
+			log.Printf("[INFO] Retrying to read tco-policy: %s", id)
+			getPolicyResp, err = r.client.GetTCOPolicy(ctx, &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)})
+			continue
+		}
 		if status.Code(err) == codes.NotFound {
 			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -535,6 +552,9 @@ func (r *TCOPolicyResource) Read(ctx context.Context, req resource.ReadRequest, 
 }
 
 func (r *TCOPolicyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
+	defer cancel()
+
 	// Retrieve values from plan
 	var plan *TCOPolicyResourceModel
 	diags := req.Plan.Get(ctx, &plan)
@@ -551,8 +571,13 @@ func (r *TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReque
 
 	log.Printf("[INFO] Updating tco-policy: %#v", policyUpdateReq)
 	policyUpdateResp, err := r.client.UpdateTCOPolicy(ctx, policyUpdateReq)
-	if err != nil {
+	for err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		if retryableStatusCode(status.Code(err)) {
+			log.Printf("[INFO] Retrying to update tco-policy: %#v", policyUpdateReq)
+			policyUpdateResp, err = r.client.UpdateTCOPolicy(ctx, policyUpdateReq)
+			continue
+		}
 		resp.Diagnostics.AddError(
 			"Error updating tco-policy",
 			"Could not update tco-policy, unexpected error: "+err.Error(),
@@ -595,6 +620,9 @@ func (r *TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReque
 }
 
 func (r TCOPolicyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+
 	var state TCOPolicyResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -604,7 +632,15 @@ func (r TCOPolicyResource) Delete(ctx context.Context, req resource.DeleteReques
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting tco-policy %s\n", id)
-	if _, err := r.client.DeleteTCOPolicy(ctx, &tcopolicies.DeletePolicyRequest{Id: wrapperspb.String(id)}); err != nil {
+	deleteReq := &tcopolicies.DeletePolicyRequest{Id: wrapperspb.String(id)}
+	_, err := r.client.DeleteTCOPolicy(ctx, deleteReq)
+	for err != nil {
+		log.Printf("[ERROR] Received error: %#v", err)
+		if retryableStatusCode(status.Code(err)) {
+			log.Printf("[INFO] Retrying to delete tco-policy: %s", id)
+			_, err = r.client.DeleteTCOPolicy(ctx, deleteReq)
+			continue
+		}
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting tco-policy %s", state.ID.ValueString()),
 			handleRpcErrorNewFramework(err, "tco-policy"),
