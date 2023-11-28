@@ -1107,6 +1107,10 @@ func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
       		group_by          = ["coralogix.metadata.sdkId"]
     	}
 	}
+	show_in_insights {
+    	retriggering_period_minutes = 60
+    	notify_on                   = "Triggered_and_resolved"
+  	}
 }
 
 	resource "coralogix_alert" "test" {
