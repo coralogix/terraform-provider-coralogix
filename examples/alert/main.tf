@@ -81,7 +81,7 @@ resource "coralogix_alert" "ratio_alert" {
 
   notifications_group {
     notification {
-      integration_id              = coralogix_webhook.slack_webhook.id
+      integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 1
     }
     notification {
@@ -130,7 +130,7 @@ resource "coralogix_alert" "new_value_alert" {
 
   notifications_group {
     notification {
-      integration_id              = coralogix_webhook.slack_webhook.id
+      integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 1
     }
     notification {
@@ -165,7 +165,7 @@ resource "coralogix_alert" "time_relative_alert" {
 
   notifications_group {
     notification {
-      integration_id              = coralogix_webhook.slack_webhook.id
+      integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 1
     }
     notification {
@@ -201,7 +201,7 @@ resource "coralogix_alert" "metric_lucene_alert" {
 
   notifications_group {
     notification {
-      integration_id              = coralogix_webhook.slack_webhook.id
+      integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 60
     }
     notification {
@@ -247,7 +247,7 @@ resource "coralogix_alert" "metric_promql_alert" {
 
   notifications_group {
     notification {
-      integration_id              = coralogix_webhook.slack_webhook.id
+      integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 1
     }
     notification {
@@ -288,7 +288,7 @@ resource "coralogix_alert" "unique_count_alert" {
   notifications_group {
     group_by_fields = ["coralogix.metadata.sdkId"]
     notification {
-      integration_id              = coralogix_webhook.slack_webhook.id
+      integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 1
     }
     notification {
@@ -332,7 +332,7 @@ resource "coralogix_alert" "tracing_alert" {
     }
     notification {
       notify_on                   = "Triggered_and_resolved"
-      integration_id              = coralogix_webhook.slack_webhook.id
+      integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 1
     }
   }
@@ -389,7 +389,7 @@ resource "coralogix_alert" "flow_alert" {
     }
     notification {
       notify_on                   = "Triggered_and_resolved"
-      integration_id              = coralogix_webhook.slack_webhook.id
+      integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 1
     }
   }

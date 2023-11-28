@@ -265,11 +265,13 @@ func AlertSchema() map[string]*schema.Schema {
 			Description: "The expiration date of the alert (if declared).",
 		},
 		"notifications_group": {
-			Type:        schema.TypeSet,
-			Optional:    true,
-			Elem:        notificationGroupSchema(),
-			Set:         schema.HashResource(notificationGroupSchema()),
-			Description: "Defines notifications settings over list of group-by keys (or on empty list).",
+			Type:         schema.TypeSet,
+			Optional:     true,
+			Computed:     true,
+			Elem:         notificationGroupSchema(),
+			Set:          schema.HashResource(notificationGroupSchema()),
+			Description:  "Defines notifications settings over list of group-by keys (or on empty list).",
+			AtLeastOneOf: []string{"notifications_group", "show_in_insights"},
 		},
 		"payload_filters": {
 			Type:     schema.TypeSet,
@@ -306,6 +308,7 @@ func AlertSchema() map[string]*schema.Schema {
 					},
 				},
 			},
+			AtLeastOneOf: []string{"notifications_group", "show_in_insights"},
 		},
 		"scheduling": {
 			Type:     schema.TypeList,
