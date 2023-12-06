@@ -2355,7 +2355,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	createDashboardReq := &dashboards.CreateDashboardRequest{
 		Dashboard: dashboard,
 	}
-	dashboardStr, _ := jsm.MarshalToString(createDashboardReq)
+	dashboardStr := protojson.Format(createDashboardReq)
 	log.Printf("[INFO] Creating new Dashboard: %#v", dashboardStr)
 	_, err := r.client.CreateDashboard(ctx, createDashboardReq)
 	if err != nil {
@@ -2373,14 +2373,14 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	getDashboardResp, err := r.client.GetDashboard(ctx, getDashboardReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr, _ := jsm.MarshalToString(getDashboardReq)
+		reqStr := protojson.Format(getDashboardReq)
 		resp.Diagnostics.AddError(
 			"Error getting Dashboard",
 			handleRpcErrorNewFramework(err, "Dashboard", reqStr),
 		)
 		return
 	}
-	createDashboardRespStr, _ := jsm.MarshalToString(getDashboardResp.GetDashboard())
+	createDashboardRespStr := protojson.Format(getDashboardResp.GetDashboard())
 	log.Printf("[INFO] Submitted new Dashboard: %#v", createDashboardRespStr)
 
 	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp.GetDashboard())
@@ -4144,6 +4144,9 @@ func expandLineChartSpansQuery(ctx context.Context, spans *LineChartQuerySpansMo
 	}
 
 	groupBy, diags := expandSpansFields(ctx, spans.GroupBy)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	aggregations, diags := expandSpansAggregations(ctx, spans.Aggregations)
 	if diags.HasError() {
@@ -6431,6 +6434,9 @@ func flattenDataTableSpansQueryGrouping(ctx context.Context, grouping *dashboard
 	}
 
 	groupBy, diags := flattenSpansFields(ctx, grouping.GetGroupBy())
+	if diags.HasError() {
+		return nil, diags
+	}
 	return &DataTableSpansQueryGroupingModel{
 		Aggregations: aggregations,
 		GroupBy:      groupBy,
@@ -7346,7 +7352,7 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(getDashboardReq)
+			reqStr := protojson.Format(getDashboardReq)
 			resp.Diagnostics.AddError(
 				"Error reading Dashboard",
 				handleRpcErrorNewFramework(err, "Dashboard", reqStr),
@@ -7383,7 +7389,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	updateReq := &dashboards.ReplaceDashboardRequest{Dashboard: dashboard}
-	reqStr, _ := jsm.MarshalToString(updateReq)
+	reqStr := protojson.Format(updateReq)
 	log.Printf("[INFO] Updating Dashboard: %#v", reqStr)
 	_, err := r.client.UpdateDashboard(ctx, updateReq)
 	if err != nil {
@@ -7398,7 +7404,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 	getDashboardReq := &dashboards.GetDashboardRequest{
 		DashboardId: dashboard.GetId(),
 	}
-	reqStr, _ = jsm.MarshalToString(getDashboardReq)
+	reqStr = protojson.Format(getDashboardReq)
 	getDashboardResp, err := r.client.GetDashboard(ctx, getDashboardReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
@@ -7409,7 +7415,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	updateDashboardRespStr, _ := jsm.MarshalToString(getDashboardResp.GetDashboard())
+	updateDashboardRespStr := protojson.Format(getDashboardResp.GetDashboard())
 	log.Printf("[INFO] Submitted updated Dashboard: %#v", updateDashboardRespStr)
 
 	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp.GetDashboard())
@@ -7436,7 +7442,7 @@ func (r *DashboardResource) Delete(ctx context.Context, req resource.DeleteReque
 	log.Printf("[INFO] Deleting Dashboard %s", id)
 	deleteReq := &dashboards.DeleteDashboardRequest{DashboardId: wrapperspb.String(id)}
 	if _, err := r.client.DeleteDashboard(ctx, deleteReq); err != nil {
-		reqStr, _ := jsm.MarshalToString(deleteReq)
+		reqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Dashboard %s", id),
 			handleRpcErrorNewFramework(err, "Dashboard", reqStr),

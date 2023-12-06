@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	rrgs "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups-sets/v1"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"terraform-provider-coralogix/coralogix/clientset"
-	rrgs "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups-sets/v1"
 )
 
 var _ datasource.DataSourceWithConfigure = &RecordingRuleGroupSetDataSource{}
@@ -45,10 +48,10 @@ func (d *RecordingRuleGroupSetDataSource) Configure(_ context.Context, req datas
 	d.client = clientSet.RecordingRuleGroupsSets()
 }
 
-func (d *RecordingRuleGroupSetDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *RecordingRuleGroupSetDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	var r RecordingRuleGroupSetResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(nil, resource.SchemaRequest{}, &resourceResp)
+	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
@@ -74,7 +77,7 @@ func (d *RecordingRuleGroupSetDataSource) Read(ctx context.Context, req datasour
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(getReq)
+			reqStr := protojson.Format(getReq)
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
 				handleRpcErrorNewFramework(err, "recording-rule-group-set", reqStr),

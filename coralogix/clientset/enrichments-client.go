@@ -96,35 +96,6 @@ func (e EnrichmentsClient) DeleteEnrichments(ctx context.Context, req *enrichmen
 	return err
 }
 
-//func (e EnrichmentsClient) DeleteEnrichmentsByType(ctx context.Context, enrichmentType string) error {
-//	enrichmentsToDelete, err := e.GetEnrichmentsByType(ctx, enrichmentType)
-//	if err != nil {
-//		return err
-//	}
-//
-//	callProperties, err := e.callPropertiesCreator.GetCallProperties(ctx)
-//	if err != nil {
-//		return err
-//	}
-//
-//	conn := callProperties.Connection
-//	defer conn.Close()
-//
-//	client := enrichment.NewEnrichmentServiceClient(conn)
-//
-//	enrichmentIds := make([]*wrapperspb.UInt32Value, 0, len(enrichmentsToDelete))
-//	for _, enrichment := range enrichmentsToDelete {
-//		enrichmentIds = append(enrichmentIds, wrapperspb.UInt32(enrichment.GetId()))
-//	}
-//
-//	req := &enrichment.RemoveEnrichmentsRequest{
-//		EnrichmentIds: enrichmentIds,
-//	}
-//
-//	_, err = client.RemoveEnrichments(callProperties.Ctx, req, callProperties.CallOptions...)
-//	return err
-//}
-
 func NewEnrichmentClient(c *CallPropertiesCreator) *EnrichmentsClient {
 	return &EnrichmentsClient{callPropertiesCreator: c}
 }

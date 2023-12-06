@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"terraform-provider-coralogix/coralogix/clientset"
-	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -47,10 +50,10 @@ func (d *WebhookDataSource) Configure(_ context.Context, req datasource.Configur
 	d.client = clientSet.Webhooks()
 }
 
-func (d *WebhookDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *WebhookDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	var r WebhookResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(nil, resource.SchemaRequest{}, &resourceResp)
+	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
@@ -77,7 +80,7 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(getWebhookReq)
+			reqStr := protojson.Format(getWebhookReq)
 			resp.Diagnostics.AddError(
 				"Error reading Webhook",
 				handleRpcErrorNewFramework(err, "Webhook", reqStr),

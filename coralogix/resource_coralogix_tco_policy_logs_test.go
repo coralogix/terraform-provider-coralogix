@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"testing"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
+
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 )
 
 var tcoPolicyResourceName1 = "coralogix_tco_policy_logs.test_1"
@@ -96,8 +97,7 @@ func testAccTCOPolicyCheckDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceTCOPolicy() string {
-	return fmt.Sprintf(
-		`resource "coralogix_tco_policy_logs" test_1 {
+	return `resource "coralogix_tco_policy_logs" test_1 {
  					name       = "Example tco_policy from terraform 1"
   					priority   = "low"
 					order      = 1
@@ -142,5 +142,5 @@ func testAccCoralogixResourceTCOPolicy() string {
     					names = ["mobile", "web"]
 					}
 				}
-	`)
+	`
 }

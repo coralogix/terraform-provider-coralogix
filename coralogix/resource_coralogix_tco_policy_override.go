@@ -7,9 +7,10 @@ import (
 	"log"
 	"time"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"terraform-provider-coralogix/coralogix/clientset"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"

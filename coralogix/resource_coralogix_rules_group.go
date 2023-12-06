@@ -6,10 +6,13 @@ import (
 	"log"
 	"time"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	rulesv1 "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -460,7 +463,7 @@ func resourceCoralogixRulesGroupCreate(ctx context.Context, d *schema.ResourceDa
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().CreateRuleGroup(ctx, createRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr, _ := jsm.MarshalToString(createRuleGroupRequest)
+		reqStr := protojson.Format(createRuleGroupRequest)
 		return handleRpcError(err, "rule-group", reqStr)
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
@@ -488,7 +491,7 @@ func resourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceData
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		reqStr, _ := jsm.MarshalToString(getRuleGroupRequest)
+		reqStr := protojson.Format(getRuleGroupRequest)
 		return handleRpcErrorWithID(err, "rule-group", reqStr, id)
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
@@ -513,7 +516,7 @@ func resourceCoralogixRulesGroupUpdate(ctx context.Context, d *schema.ResourceDa
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().UpdateRuleGroup(ctx, updateRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr, _ := jsm.MarshalToString(updateRuleGroupRequest)
+		reqStr := protojson.Format(updateRuleGroupRequest)
 		return handleRpcErrorWithID(err, "rule-group", reqStr, id)
 	}
 	log.Printf("[INFO] Submitted updated rule-group: %#v", ruleGroupResp)
@@ -531,7 +534,7 @@ func resourceCoralogixRulesGroupDelete(ctx context.Context, d *schema.ResourceDa
 	_, err := meta.(*clientset.ClientSet).RuleGroups().DeleteRuleGroup(ctx, deleteRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr, _ := jsm.MarshalToString(deleteRuleGroupRequest)
+		reqStr := protojson.Format(deleteRuleGroupRequest)
 		return handleRpcErrorWithID(err, "rule-group", reqStr, id)
 	}
 	log.Printf("[INFO] rule-group %s deleted", id)

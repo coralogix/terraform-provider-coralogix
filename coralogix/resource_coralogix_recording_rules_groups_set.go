@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	rrgs "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups-sets/v1"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -23,8 +28,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v3"
-	"terraform-provider-coralogix/coralogix/clientset"
-	rrgs "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups-sets/v1"
 )
 
 var (
@@ -355,7 +358,7 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	rrgStr, _ := jsm.MarshalToString(createRequest)
+	rrgStr := protojson.Format(createRequest)
 	log.Printf("[INFO] Creating new recogring-rule-group-set: %s", rrgStr)
 
 	createResp, err := r.client.CreateRecordingRuleGroupsSet(ctx, createRequest)
@@ -381,7 +384,7 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(createRequest)
+			reqStr := protojson.Format(createRequest)
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
 				handleRpcErrorNewFramework(err, "recording-rule-group-set", reqStr),
@@ -390,7 +393,7 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 		return
 	}
 
-	rrgStr, _ = jsm.MarshalToString(getResp)
+	rrgStr = protojson.Format(getResp)
 	log.Printf("[INFO] Received recogring-rule-group-set: %s", rrgStr)
 
 	plan, diags = flattenRecordingRuleGroupSet(ctx, plan, getResp)
@@ -547,7 +550,7 @@ func (r *RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.R
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(getReq)
+			reqStr := protojson.Format(getReq)
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
 				handleRpcErrorNewFramework(err, "recording-rule-group-set", reqStr),
@@ -579,13 +582,13 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	rrgStr, _ := jsm.MarshalToString(updateRequest)
+	rrgStr := protojson.Format(updateRequest)
 	log.Printf("[INFO] Updating recording-rule-group-set: %s", rrgStr)
 
 	_, err := r.client.UpdateRecordingRuleGroupsSet(ctx, updateRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr, _ := jsm.MarshalToString(updateRequest)
+		reqStr := protojson.Format(updateRequest)
 		resp.Diagnostics.AddError(
 			"Error updating recording-rule-group-set",
 			handleRpcErrorNewFramework(err, "recording-rule-group-set", reqStr),
@@ -603,7 +606,7 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 				fmt.Sprintf("%s will be recreated when you apply", plan.ID.ValueString()),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(updateRequest)
+			reqStr := protojson.Format(updateRequest)
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
 				handleRpcErrorNewFramework(err, "recording-rule-group-set", reqStr),
@@ -641,7 +644,7 @@ func (r *RecordingRuleGroupSetResource) Delete(ctx context.Context, req resource
 				"",
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(deleteReq)
+			reqStr := protojson.Format(deleteReq)
 			resp.Diagnostics.AddError(
 				"Error deleting recording-rule-group-set",
 				handleRpcErrorNewFramework(err, "recording-rule-group-set", reqStr),

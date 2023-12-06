@@ -7,12 +7,13 @@ import (
 	"strconv"
 	"strings"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 func resourceGrafanaFolder() *schema.Resource {

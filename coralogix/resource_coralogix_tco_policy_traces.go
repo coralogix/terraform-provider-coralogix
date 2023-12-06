@@ -7,6 +7,11 @@ import (
 	"regexp"
 	"strings"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
@@ -25,8 +30,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 )
 
 var (
@@ -293,7 +296,7 @@ func (r *TCOPolicyTracesResource) Create(ctx context.Context, req resource.Creat
 		resp.Diagnostics = diags
 		return
 	}
-	policyStr, _ := jsm.MarshalToString(createPolicyRequest)
+	policyStr := protojson.Format(createPolicyRequest)
 	log.Printf("[INFO] Creating new tco-policy: %s", policyStr)
 	createResp, err := r.client.CreateTCOPolicy(ctx, createPolicyRequest)
 	if err != nil {
@@ -305,8 +308,8 @@ func (r *TCOPolicyTracesResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 	policy := createResp.GetPolicy()
-	policyStr, _ = jsm.MarshalToString(policy)
-	log.Printf("[INFO] Submitted new tco-policy: %#v", policy)
+	policyStr = protojson.Format(policy)
+	log.Printf("[INFO] Submitted new tco-policy: %s", policyStr)
 	plan.ID = types.StringValue(createResp.GetPolicy().GetId().GetValue())
 	id := plan.ID.ValueString()
 	order := int(plan.Order.ValueInt64())
@@ -357,7 +360,7 @@ func (r *TCOPolicyTracesResource) Read(ctx context.Context, req resource.ReadReq
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(getPolicyReq)
+			reqStr := protojson.Format(getPolicyReq)
 			resp.Diagnostics.AddError(
 				"Error reading tco-policy",
 				handleRpcErrorNewFramework(err, "tco-policy", reqStr),
@@ -432,7 +435,7 @@ func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.Update
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ = jsm.MarshalToString(getPolicyReq)
+			reqStr = protojson.Format(getPolicyReq)
 			resp.Diagnostics.AddError(
 				"Error reading tco-policy",
 				handleRpcErrorNewFramework(err, "tco-policy", reqStr),
@@ -464,7 +467,7 @@ func (r TCOPolicyTracesResource) Delete(ctx context.Context, req resource.Delete
 	deleteReq := &tcopolicies.DeletePolicyRequest{Id: wrapperspb.String(id)}
 	log.Printf("[INFO] Deleting tco-policy %s\n", id)
 	if _, err := r.client.DeleteTCOPolicy(ctx, deleteReq); err != nil {
-		reqStr, _ := jsm.MarshalToString(deleteReq)
+		reqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting tco-policy %s", id),
 			handleRpcErrorNewFramework(err, "tco-policy", reqStr),

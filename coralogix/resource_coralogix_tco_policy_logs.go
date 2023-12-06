@@ -7,6 +7,11 @@ import (
 	"strings"
 	"time"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -25,8 +30,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 )
 
 var (
@@ -326,15 +329,11 @@ func upgradeTCOPolicyRuleV0ToV1(ctx context.Context, tCOPolicyRule types.List) t
 	}
 
 	if rule := tCORuleModelObjectV0.Rule.ValueString(); rule != "" {
-		elements := []attr.Value{types.StringValue(rule)}
-		tCORuleModelObjectV1.Names = types.SetValueMust(types.StringType, elements)
+		rules := []attr.Value{types.StringValue(rule)}
+		tCORuleModelObjectV1.Names = types.SetValueMust(types.StringType, rules)
 	} else {
 		rules := tCORuleModelObjectV0.Rules.Elements()
-		elements := make([]attr.Value, 0, len(rules))
-		for _, rule := range rules {
-			elements = append(elements, rule)
-		}
-		tCORuleModelObjectV1.Names = types.SetValueMust(types.StringType, elements)
+		tCORuleModelObjectV1.Names = types.SetValueMust(types.StringType, rules)
 	}
 
 	obj, _ := types.ObjectValueFrom(ctx, tcoPolicyRuleAttributes(), tCORuleModelObjectV1)
@@ -468,7 +467,7 @@ func (r *TCOPolicyResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	policyStr, _ := jsm.MarshalToString(createPolicyRequest)
+	policyStr := protojson.Format(createPolicyRequest)
 	log.Printf("[INFO] Creating new tco-policy: %s", policyStr)
 	createResp, err := r.client.CreateTCOPolicy(ctx, createPolicyRequest)
 	for err != nil {
@@ -485,8 +484,8 @@ func (r *TCOPolicyResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 	policy := createResp.GetPolicy()
-	policyStr, _ = jsm.MarshalToString(policy)
-	log.Printf("[INFO] Submitted new tco-policy: %#v", policy)
+	policyStr = protojson.Format(policy)
+	log.Printf("[INFO] Submitted new tco-policy: %s", policyStr)
 	plan.ID = types.StringValue(createResp.GetPolicy().GetId().GetValue())
 
 	// Update order
@@ -549,7 +548,7 @@ func (r *TCOPolicyResource) Read(ctx context.Context, req resource.ReadRequest, 
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(getPolicyReq)
+			reqStr := protojson.Format(getPolicyReq)
 			resp.Diagnostics.AddError(
 				"Error reading tco-policy",
 				handleRpcErrorNewFramework(err, "tco-policy", reqStr),
@@ -632,7 +631,7 @@ func (r *TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReque
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(getPolicyReq)
+			reqStr = protojson.Format(getPolicyReq)
 			resp.Diagnostics.AddError(
 				"Error reading tco-policy",
 				handleRpcErrorNewFramework(err, "tco-policy", reqStr),
@@ -674,7 +673,7 @@ func (r TCOPolicyResource) Delete(ctx context.Context, req resource.DeleteReques
 			_, err = r.client.DeleteTCOPolicy(ctx, deleteReq)
 			continue
 		}
-		reqStr, _ := jsm.MarshalToString(deleteReq)
+		reqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting tco-policy %s", id),
 			handleRpcErrorNewFramework(err, "tco-policy", reqStr),
@@ -824,7 +823,10 @@ func expandTCOPolicyRule(ctx context.Context, rule types.Object) (*tcopolicies.R
 	}
 
 	ruleType := tcoPoliciesRuleTypeSchemaToProto[tcoRuleModel.RuleType.ValueString()]
-	names := typeStringSliceToStringSlice(ctx, tcoRuleModel.Names.Elements())
+	names, diags := typeStringSliceToStringSlice(ctx, tcoRuleModel.Names.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
 	nameStr := wrapperspb.String(strings.Join(names, ","))
 
 	return &tcopolicies.Rule{
@@ -838,7 +840,7 @@ func updatePoliciesOrder(ctx context.Context, client *clientset.TCOPoliciesClien
 		EnabledOnly: wrapperspb.Bool(false),
 		SourceType:  &sourceType,
 	}
-	getPoliciesReqStr, _ := jsm.MarshalToString(getPoliciesReq)
+	getPoliciesReqStr := protojson.Format(getPoliciesReq)
 	log.Printf("[INFO] Get tco-policies request: %s", getPoliciesReqStr)
 
 	getPoliciesResp, err := client.GetTCOPolicies(ctx, getPoliciesReq)
@@ -847,7 +849,7 @@ func updatePoliciesOrder(ctx context.Context, client *clientset.TCOPoliciesClien
 		return err, getPoliciesReqStr
 	}
 
-	getPoliciesRespStr, _ := jsm.MarshalToString(getPoliciesResp)
+	getPoliciesRespStr := protojson.Format(getPoliciesResp)
 	log.Printf("[INFO] Get tco-policies response: %#v", getPoliciesRespStr)
 
 	policies := getPoliciesResp.GetPolicies()
@@ -864,7 +866,7 @@ func updatePoliciesOrder(ctx context.Context, client *clientset.TCOPoliciesClien
 		Orders:     policiesIDsByOrder,
 		SourceType: sourceType,
 	}
-	reorderReqStr, _ := jsm.MarshalToString(reorderReq)
+	reorderReqStr := protojson.Format(reorderReq)
 	log.Printf("[INFO] Reorder tco-policies request: %s", reorderReqStr)
 
 	reorderResp, err := client.ReorderTCOPolicies(ctx, reorderReq)
@@ -872,7 +874,7 @@ func updatePoliciesOrder(ctx context.Context, client *clientset.TCOPoliciesClien
 		log.Printf("[ERROR] Received error: %#v", err)
 		return err, reorderReqStr
 	}
-	reorderRespStr, _ := jsm.MarshalToString(reorderResp)
+	reorderRespStr := protojson.Format(reorderResp)
 	log.Printf("[INFO] Reorder tco-policies response: %s", reorderRespStr)
 
 	return nil, ""
@@ -923,7 +925,10 @@ func expandTCOPolicySeverities(ctx context.Context, severities []attr.Value) ([]
 			continue
 		}
 		var str string
-		val.As(&str)
+		if err = val.As(&str); err != nil {
+			diags.AddError("Error expanding tco-policy severities", err.Error())
+			continue
+		}
 		s := tcoPolicySeveritySchemaToProto[str]
 		result = append(result, s)
 	}

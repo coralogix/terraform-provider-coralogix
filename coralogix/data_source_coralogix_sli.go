@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	sli "terraform-provider-coralogix/coralogix/clientset/grpc/sli"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -12,8 +17,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	sli "terraform-provider-coralogix/coralogix/clientset/grpc/sli"
 )
 
 var _ datasource.DataSourceWithConfigure = &SLIDataSource{}
@@ -47,10 +50,10 @@ func (d *SLIDataSource) Configure(_ context.Context, req datasource.ConfigureReq
 	d.client = clientSet.SLIs()
 }
 
-func (d *SLIDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *SLIDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	var r SLIResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(nil, resource.SchemaRequest{}, &resourceResp)
+	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	schema := frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 	schema.Attributes["service_name"] = datasourceschema.StringAttribute{
@@ -82,7 +85,7 @@ func (d *SLIDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(getSLIsReq)
+			reqStr := protojson.Format(getSLIsReq)
 			resp.Diagnostics.AddError(
 				"Error reading SLI",
 				handleRpcErrorNewFramework(err, "SLI", reqStr),

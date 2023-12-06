@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"terraform-provider-coralogix/coralogix/clientset"
-	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -47,10 +50,10 @@ func (d *TCOPolicyDataSource) Configure(_ context.Context, req datasource.Config
 	d.client = clientSet.TCOPolicies()
 }
 
-func (d *TCOPolicyDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *TCOPolicyDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	var r TCOPolicyResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(nil, resource.SchemaRequest{}, &resourceResp)
+	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
@@ -76,7 +79,7 @@ func (d *TCOPolicyDataSource) Read(ctx context.Context, req datasource.ReadReque
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(getPolicyReq)
+			reqStr := protojson.Format(getPolicyReq)
 			resp.Diagnostics.AddError(
 				"Error reading tco-policy",
 				handleRpcErrorNewFramework(err, "tco-policy", reqStr),

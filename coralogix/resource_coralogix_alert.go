@@ -9,10 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	alerts "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v2"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	. "github.com/ahmetalpbalkan/go-linq"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -1439,7 +1442,7 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 		return diags
 	}
 
-	createAlertStr, _ := jsm.MarshalToString(createAlertRequest)
+	createAlertStr := protojson.Format(createAlertRequest)
 	log.Printf("[INFO] Creating new alert: %s", createAlertStr)
 	AlertResp, err := meta.(*clientset.ClientSet).Alerts().CreateAlert(ctx, createAlertRequest)
 
@@ -1449,7 +1452,7 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	alert := AlertResp.GetAlert()
-	alertStr, _ := jsm.MarshalToString(alert)
+	alertStr := protojson.Format(alert)
 	log.Printf("[INFO] Submitted new alert: %s", alertStr)
 	d.SetId(alert.GetUniqueIdentifier().GetValue())
 
@@ -1474,11 +1477,11 @@ func resourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, met
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		reqStr, _ := jsm.MarshalToString(getAlertRequest)
+		reqStr := protojson.Format(getAlertRequest)
 		return handleRpcErrorWithID(err, "Alert", reqStr, id.GetValue())
 	}
 	alert := alertResp.GetAlert()
-	alertStr, _ := jsm.MarshalToString(alert)
+	alertStr := protojson.Format(alert)
 	log.Printf("[INFO] Received alert: %s", alertStr)
 
 	return setAlert(d, alert)
@@ -1494,14 +1497,14 @@ func resourceCoralogixAlertUpdate(ctx context.Context, d *schema.ResourceData, m
 	updateAlertRequest := &alerts.UpdateAlertByUniqueIdRequest{
 		Alert: req,
 	}
-	updateAlertStr, _ := jsm.MarshalToString(updateAlertRequest)
+	updateAlertStr := protojson.Format(updateAlertRequest)
 	log.Printf("[INFO] Updating alert %s", updateAlertStr)
 	alertResp, err := meta.(*clientset.ClientSet).Alerts().UpdateAlert(ctx, updateAlertRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return handleRpcErrorWithID(err, "Alert", updateAlertStr, id)
 	}
-	updateAlertStr, _ = jsm.MarshalToString(alertResp)
+	updateAlertStr = protojson.Format(alertResp)
 	log.Printf("[INFO] Submitted updated alert: %s", updateAlertStr)
 	d.SetId(alertResp.GetAlert().GetUniqueIdentifier().GetValue())
 
@@ -1517,7 +1520,7 @@ func resourceCoralogixAlertDelete(ctx context.Context, d *schema.ResourceData, m
 	log.Printf("[INFO] Deleting alert %s\n", id)
 	_, err := meta.(*clientset.ClientSet).Alerts().DeleteAlert(ctx, deleteAlertRequest)
 	if err != nil {
-		reqStr, _ := jsm.MarshalToString(deleteAlertRequest)
+		reqStr := protojson.Format(deleteAlertRequest)
 		log.Printf("[ERROR] Received error: %#v\n", err)
 		return handleRpcErrorWithID(err, "Alert", reqStr, id.GetValue())
 	}

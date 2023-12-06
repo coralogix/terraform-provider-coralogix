@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"testing"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	sli "terraform-provider-coralogix/coralogix/clientset/grpc/sli"
+
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	sli "terraform-provider-coralogix/coralogix/clientset/grpc/sli"
 )
 
 var sliResourceName = "coralogix_sli.test"
@@ -56,12 +57,11 @@ func testAccSLICheckDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceSLI() string {
-	return fmt.Sprintf(
-		`resource "coralogix_sli" "test" {
+	return `resource "coralogix_sli" "test" {
   					name            = "coralogix_sli_example"
 					slo_percentage  = 80
   					service_name    = "service_name"
   					threshold_value = 3
 				}
-	`)
+	`
 }

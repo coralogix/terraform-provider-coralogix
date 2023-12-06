@@ -7,6 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -23,8 +28,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
 )
 
 var (
@@ -615,7 +618,7 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	webhookStr, _ := jsm.MarshalToString(createWebhookRequest)
+	webhookStr := protojson.Format(createWebhookRequest)
 	log.Printf("[INFO] Creating new webhook: %s", webhookStr)
 	createResp, err := r.client.CreateWebhook(ctx, createWebhookRequest)
 	if err != nil {
@@ -642,11 +645,14 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	getWebhookStr, _ := jsm.MarshalToString(getWebhookResp)
+	getWebhookStr := protojson.Format(getWebhookResp)
 	log.Printf("[INFO] Reading webhook - %s", getWebhookStr)
 
 	plan, diags = flattenWebhook(ctx, getWebhookResp.GetWebhook())
-
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -670,14 +676,14 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 	getWebhookResp, err := r.client.GetWebhook(ctx, readWebhookRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		if status.Code(err) == codes.NotFound || status.Code(err) == codes.NotFound {
+		if status.Code(err) == codes.NotFound {
 			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Webhook %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(readWebhookRequest)
+			reqStr := protojson.Format(readWebhookRequest)
 			resp.Diagnostics.AddError(
 				"Error reading Webhook",
 				handleRpcErrorNewFramework(err, "Webhook", reqStr),
@@ -686,10 +692,14 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	getWebhookStr, _ := jsm.MarshalToString(getWebhookResp)
+	getWebhookStr := protojson.Format(getWebhookResp)
 	log.Printf("[INFO] Reading webhook - %s", getWebhookStr)
 
 	state, diags = flattenWebhook(ctx, getWebhookResp.GetWebhook())
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
@@ -727,14 +737,14 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 	getWebhookResp, err := r.client.GetWebhook(ctx, &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(id)})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		if status.Code(err) == codes.NotFound || status.Code(err) == codes.NotFound {
+		if status.Code(err) == codes.NotFound {
 			plan.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Webhook %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(webhookUpdateReq)
+			reqStr := protojson.Format(webhookUpdateReq)
 			resp.Diagnostics.AddError(
 				"Error reading Webhook",
 				handleRpcErrorNewFramework(err, "Webhook", reqStr),
@@ -745,7 +755,10 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 	log.Printf("[INFO] Received Webhook: %#v", getWebhookResp)
 
 	plan, diags = flattenWebhook(ctx, getWebhookResp.GetWebhook())
-
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -764,7 +777,7 @@ func (r WebhookResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	deleteReq := &webhooks.DeleteOutgoingWebhookRequest{Id: wrapperspb.String(id)}
 	_, err := r.client.DeleteWebhook(ctx, deleteReq)
 	if err != nil {
-		reqStr, _ := jsm.MarshalToString(deleteReq)
+		reqStr := protojson.Format(deleteReq)
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error deleting Webhook",
@@ -884,7 +897,10 @@ func expandDigests(ctx context.Context, digestsSet types.Set) ([]*webhooks.Slack
 			continue
 		}
 		var str string
-		val.As(&str)
+		if err = val.As(&str); err != nil {
+			diags.AddError("Error expanding digest", err.Error())
+			continue
+		}
 		digestType := webhooksProtoToSchemaSlackConfigDigestType[str]
 		expandedDigests = append(expandedDigests, expandDigest(digestType))
 	}

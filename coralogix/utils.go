@@ -12,9 +12,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"
 	gouuid "github.com/google/uuid"
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	diag2 "github.com/hashicorp/terraform-plugin-framework/diag"
@@ -34,7 +32,6 @@ var (
 	msInHour   = int(time.Hour.Milliseconds())
 	msInMinute = int(time.Minute.Milliseconds())
 	msInSecond = int(time.Second.Milliseconds())
-	jsm        = &jsonpb.Marshaler{}
 )
 
 func handleRpcError(err error, resource string, requestStr string) diag.Diagnostics {
@@ -369,15 +366,26 @@ func typeBoolToWrapperspbBool(v types.Bool) *wrapperspb.BoolValue {
 	return wrapperspb.Bool(v.ValueBool())
 }
 
-func typeStringSliceToStringSlice(ctx context.Context, s []attr.Value) []string {
+func typeStringSliceToStringSlice(ctx context.Context, s []attr.Value) ([]string, diag2.Diagnostics) {
 	result := make([]string, 0, len(s))
+	var diags diag2.Diagnostics
 	for _, v := range s {
-		val, _ := v.ToTerraformValue(ctx)
+		val, err := v.ToTerraformValue(ctx)
+		if err != nil {
+			diags.AddError("Failed to convert value to Terraform", err.Error())
+			continue
+		}
 		var str string
-		val.As(&str)
+		if err = val.As(&str); err != nil {
+			diags.AddError("Failed to convert value to Terraform", err.Error())
+			continue
+		}
 		result = append(result, str)
 	}
-	return result
+	if diags.HasError() {
+		return nil, diags
+	}
+	return result, nil
 }
 
 func timeInDaySchema(description string) *schema.Schema {
@@ -510,14 +518,6 @@ func getKeysInt32(m map[string]int32) []string {
 	return result
 }
 
-func getKeysInt(m map[string]int) []string {
-	result := make([]string, 0)
-	for k := range m {
-		result = append(result, k)
-	}
-	return result
-}
-
 func getKeysRelativeTimeFrame(m map[string]protoTimeFrameAndRelativeTimeFrame) []string {
 	result := make([]string, 0)
 	for k := range m {
@@ -559,24 +559,24 @@ func uint32ToStr(n uint32) string {
 	return strconv.FormatUint(uint64(n), 10)
 }
 
-func urlValidationFunc() schema.SchemaValidateDiagFunc {
-	return func(v interface{}, _ cty.Path) diag.Diagnostics {
-		if _, err := url.ParseRequestURI(v.(string)); err != nil {
-			return diag.Errorf("%s in not valid url - %s", v.(string), err.Error())
-		}
-		return nil
-	}
-}
-
-func jsonValidationFuncWithDiagnostics() schema.SchemaValidateDiagFunc {
-	return func(v interface{}, _ cty.Path) diag.Diagnostics {
-		var m map[string]interface{}
-		if err := json.Unmarshal([]byte(v.(string)), &m); err != nil {
-			return diag.Errorf("%s in not valid json - %s", v.(string), err.Error())
-		}
-		return nil
-	}
-}
+//func urlValidationFunc() schema.SchemaValidateDiagFunc {
+//	return func(v interface{}, _ cty.Path) diag.Diagnostics {
+//		if _, err := url.ParseRequestURI(v.(string)); err != nil {
+//			return diag.Errorf("%s in not valid url - %s", v.(string), err.Error())
+//		}
+//		return nil
+//	}
+//}
+//
+//func jsonValidationFuncWithDiagnostics() schema.SchemaValidateDiagFunc {
+//	return func(v interface{}, _ cty.Path) diag.Diagnostics {
+//		var m map[string]interface{}
+//		if err := json.Unmarshal([]byte(v.(string)), &m); err != nil {
+//			return diag.Errorf("%s in not valid json - %s", v.(string), err.Error())
+//		}
+//		return nil
+//	}
+//}
 
 type urlValidationFuncFramework struct {
 }

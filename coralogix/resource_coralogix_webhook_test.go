@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"testing"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
+
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
 )
 
 type webhookTestFields struct {

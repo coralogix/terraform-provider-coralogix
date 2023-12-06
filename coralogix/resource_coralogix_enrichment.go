@@ -6,10 +6,13 @@ import (
 	"log"
 	"time"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -88,7 +91,7 @@ func EnrichmentSchema() map[string]*schema.Schema {
 						Optional:    true,
 						Elem:        awsFields(),
 						Set:         hashAwsFields(),
-						Description: fmt.Sprintf("Set of fields to enrich with aws information."),
+						Description: "Set of fields to enrich with aws information.",
 					},
 				},
 			},
@@ -110,7 +113,7 @@ func EnrichmentSchema() map[string]*schema.Schema {
 						Optional:    true,
 						Elem:        fields(),
 						Set:         hashFields(),
-						Description: fmt.Sprintf("Set of fields to enrich with the custom information."),
+						Description: "Set of fields to enrich with the custom information.",
 					},
 				},
 			},
@@ -173,7 +176,7 @@ func resourceCoralogixEnrichmentCreate(ctx context.Context, d *schema.ResourceDa
 	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().CreateEnrichments(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr, _ := jsm.MarshalToString(createReq)
+		reqStr := protojson.Format(createReq)
 		return handleRpcError(err, "enrichment", reqStr)
 	}
 	log.Printf("[INFO] Submitted new enrichment: %#v", enrichmentResp)
@@ -202,7 +205,7 @@ func resourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", customId),
 			}}
 		}
-		reqStr, _ := jsm.MarshalToString(&enrichment.GetEnrichmentsRequest{})
+		reqStr := protojson.Format(&enrichment.GetEnrichmentsRequest{})
 		return handleRpcError(err, "enrichment", reqStr)
 	}
 	log.Printf("[INFO] Received enrichment: %#v", enrichmentResp)
@@ -251,14 +254,14 @@ func resourceCoralogixEnrichmentUpdate(ctx context.Context, d *schema.ResourceDa
 	deleteReq := &enrichment.RemoveEnrichmentsRequest{EnrichmentIds: uint32SliceToWrappedUint32Slice(ids)}
 	if err = meta.(*clientset.ClientSet).Enrichments().DeleteEnrichments(ctx, deleteReq); err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr, _ := jsm.MarshalToString(deleteReq)
+		reqStr := protojson.Format(deleteReq)
 		return handleRpcError(err, "enrichment", reqStr)
 	}
 	createReq := &enrichment.AddEnrichmentsRequest{RequestEnrichments: enrichmentReq}
 	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().CreateEnrichments(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr, _ := jsm.MarshalToString(createReq)
+		reqStr := protojson.Format(createReq)
 		return handleRpcError(err, "enrichment", reqStr)
 	}
 	log.Printf("[INFO] Received enrichment: %#v", enrichmentResp)
@@ -273,7 +276,7 @@ func resourceCoralogixEnrichmentDelete(ctx context.Context, d *schema.ResourceDa
 		enrichments, err := meta.(*clientset.ClientSet).Enrichments().GetEnrichmentsByType(ctx, id)
 		if err != nil {
 			log.Printf("[ERROR] Received error: %#v\n", err)
-			enrichmentsStr, _ := jsm.MarshalToString(&enrichment.GetEnrichmentsRequest{})
+			enrichmentsStr := protojson.Format(&enrichment.GetEnrichmentsRequest{})
 			return handleRpcError(err, "enrichment", enrichmentsStr)
 		}
 		enrichmentIds := make([]*wrapperspb.UInt32Value, 0, len(enrichments))
@@ -283,7 +286,7 @@ func resourceCoralogixEnrichmentDelete(ctx context.Context, d *schema.ResourceDa
 		deleteReq := &enrichment.RemoveEnrichmentsRequest{EnrichmentIds: enrichmentIds}
 		if err = meta.(*clientset.ClientSet).Enrichments().DeleteEnrichments(ctx, deleteReq); err != nil {
 			log.Printf("[ERROR] Received error: %#v\n", err)
-			reqStr, _ := jsm.MarshalToString(deleteReq)
+			reqStr := protojson.Format(deleteReq)
 			return handleRpcError(err, "enrichment", reqStr)
 		}
 	} else {
@@ -291,7 +294,7 @@ func resourceCoralogixEnrichmentDelete(ctx context.Context, d *schema.ResourceDa
 		deleteReq := &enrichment.RemoveEnrichmentsRequest{EnrichmentIds: uint32SliceToWrappedUint32Slice(ids)}
 		if err = meta.(*clientset.ClientSet).Enrichments().DeleteEnrichments(ctx, deleteReq); err != nil {
 			log.Printf("[ERROR] Received error: %#v\n", err)
-			reqStr, _ := jsm.MarshalToString(deleteReq)
+			reqStr := protojson.Format(deleteReq)
 			return handleRpcError(err, "enrichment", reqStr)
 		}
 	}

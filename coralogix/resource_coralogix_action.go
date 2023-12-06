@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -19,8 +24,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
 )
 
 var (
@@ -152,7 +155,7 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	actionStr, _ := jsm.MarshalToString(createActionRequest)
+	actionStr := protojson.Format(createActionRequest)
 	log.Printf("[INFO] Creating new action: %s", actionStr)
 	createResp, err := r.client.CreateAction(ctx, createActionRequest)
 	if err != nil {
@@ -164,8 +167,8 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 	action := createResp.GetAction()
-	actionStr, _ = jsm.MarshalToString(action)
-	log.Printf("[INFO] Submitted new action: %#v", action)
+	actionStr = protojson.Format(action)
+	log.Printf("[INFO] Submitted new action: %s", actionStr)
 
 	plan = flattenAction(action)
 
@@ -210,7 +213,7 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(getActionReq)
+			reqStr := protojson.Format(getActionReq)
 			resp.Diagnostics.AddError(
 				"Error reading Action",
 				handleRpcErrorNewFramework(err, "Action", reqStr),
@@ -266,7 +269,7 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(getActionReq)
+			reqStr := protojson.Format(getActionReq)
 			resp.Diagnostics.AddError(
 				"Error reading Action",
 				handleRpcErrorNewFramework(err, "Action", reqStr),
@@ -295,7 +298,7 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	log.Printf("[INFO] Deleting Action %s\n", id)
 	deleteReq := &actions.DeleteActionRequest{Id: wrapperspb.String(id)}
 	if _, err := r.client.DeleteAction(ctx, deleteReq); err != nil {
-		deleteReqStr, _ := jsm.MarshalToString(deleteReq)
+		deleteReqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Action %s", id),
 			handleRpcErrorNewFramework(err, "Action", deleteReqStr),

@@ -5,14 +5,17 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
 )
 
 var _ datasource.DataSourceWithConfigure = &Events2MetricDataSource{}
@@ -46,10 +49,10 @@ func (d *Events2MetricDataSource) Configure(_ context.Context, req datasource.Co
 	d.client = clientSet.Events2Metrics()
 }
 
-func (d *Events2MetricDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *Events2MetricDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	var r Events2MetricResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(nil, resource.SchemaRequest{}, &resourceResp)
+	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
@@ -75,7 +78,7 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(getE2MReq)
+			reqStr := protojson.Format(getE2MReq)
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
 				handleRpcErrorNewFramework(err, "Events2metric", reqStr),

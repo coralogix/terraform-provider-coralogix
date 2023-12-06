@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -12,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	oldSchema "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"terraform-provider-coralogix/coralogix/clientset"
 
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 )

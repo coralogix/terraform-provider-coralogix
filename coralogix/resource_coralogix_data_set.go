@@ -10,10 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -119,7 +122,7 @@ func resourceCoralogixDataSetCreate(ctx context.Context, d *schema.ResourceData,
 	resp, err := meta.(*clientset.ClientSet).DataSet().CreatDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr, _ := jsm.MarshalToString(req)
+		reqStr := protojson.Format(req)
 		return handleRpcError(err, "enrichment-data", reqStr)
 	}
 
@@ -158,7 +161,7 @@ func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, m
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		reqStr, _ := jsm.MarshalToString(req)
+		reqStr := protojson.Format(req)
 		return handleRpcError(err, "enrichment-data", reqStr)
 	}
 
@@ -176,7 +179,7 @@ func resourceCoralogixDataSetUpdate(ctx context.Context, d *schema.ResourceData,
 	_, err = meta.(*clientset.ClientSet).DataSet().UpdateDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr, _ := jsm.MarshalToString(req)
+		reqStr := protojson.Format(req)
 		return handleRpcError(err, "enrichment-data", reqStr)
 	}
 
@@ -197,7 +200,7 @@ func resourceCoralogixDataSetDelete(ctx context.Context, d *schema.ResourceData,
 	_, err := meta.(*clientset.ClientSet).DataSet().DeleteDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v\n", err)
-		reqStr, _ := jsm.MarshalToString(req)
+		reqStr := protojson.Format(req)
 		return handleRpcErrorWithID(err, "enrichment-data", reqStr, id)
 	}
 

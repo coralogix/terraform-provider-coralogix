@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	sli "terraform-provider-coralogix/coralogix/clientset/grpc/sli"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -22,8 +27,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	sli "terraform-provider-coralogix/coralogix/clientset/grpc/sli"
 )
 
 var (
@@ -62,7 +65,6 @@ var (
 		sli.SloStatusType_SLO_STATUS_TYPE_BREACHED:    "breached",
 	}
 	sliSchemaToProtoSloStatusType = ReverseMap(sliProtoToSchemaSloStatusType)
-	sliValidSloStatusTypes        = GetKeys(sliSchemaToProtoSloStatusType)
 	sliProtoToSchemaTimeUnitType  = map[sli.TimeUnitType]string{
 		sli.TimeUnitType_TIME_UNIT_TYPE_UNSPECIFIED: "unspecified",
 		sli.TimeUnitType_TIME_UNIT_TYPE_MICROSECOND: "microsecond",
@@ -191,6 +193,9 @@ func (r *SLIResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 						},
 						"compare_type": schema.StringAttribute{
 							Required: true,
+							Validators: []validator.String{
+								stringvalidator.OneOf(sliValidCompareTypes...),
+							},
 						},
 						"field_values": schema.ListAttribute{
 							Required:    true,
@@ -281,7 +286,7 @@ func (r *SLIResource) Create(ctx context.Context, req resource.CreateRequest, re
 		resp.Diagnostics = diags
 		return
 	}
-	sliStr, _ := jsm.MarshalToString(createSLIRequest)
+	sliStr := protojson.Format(createSLIRequest)
 	log.Printf("[INFO] Creating new SLI: %s", sliStr)
 	createResp, err := r.client.CreateSLI(ctx, createSLIRequest)
 	if err != nil {
@@ -293,7 +298,7 @@ func (r *SLIResource) Create(ctx context.Context, req resource.CreateRequest, re
 		return
 	}
 	sli := createResp.GetSli()
-	sliStr, _ = jsm.MarshalToString(sli)
+	sliStr = protojson.Format(sli)
 	log.Printf("[INFO] Submitted new SLI: %#v", sliStr)
 	plan.ID = types.StringValue(sli.GetSliId().GetValue())
 	plan, diags = flattenSLI(ctx, sli)
@@ -477,7 +482,7 @@ func (r *SLIResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(getSliReq)
+			reqStr := protojson.Format(getSliReq)
 			resp.Diagnostics.AddError(
 				"Error reading SLI",
 				handleRpcErrorNewFramework(err, "SLI", reqStr),
@@ -502,7 +507,8 @@ func (r *SLIResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		return
 	}
 
-	log.Printf("[INFO] Received SLI: %#v", *SLI)
+	sliStr := protojson.Format(SLI)
+	log.Printf("[INFO] Received SLI: %s", sliStr)
 
 	state, diags = flattenSLI(ctx, SLI)
 	if diags.HasError() {
@@ -553,7 +559,7 @@ func (r *SLIResource) Update(ctx context.Context, req resource.UpdateRequest, re
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr, _ := jsm.MarshalToString(getSliReq)
+			reqStr := protojson.Format(getSliReq)
 			resp.Diagnostics.AddError(
 				"Error reading SLI",
 				handleRpcErrorNewFramework(err, "SLI", reqStr),
@@ -577,7 +583,8 @@ func (r *SLIResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		return
 	}
 
-	log.Printf("[INFO] Received SLI: %#v", *SLI)
+	sliStr := protojson.Format(SLI)
+	log.Printf("[INFO] Received SLI: %s", sliStr)
 
 	plan, diags = flattenSLI(ctx, SLI)
 	if diags.HasError() {
@@ -602,7 +609,7 @@ func (r *SLIResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 	log.Printf("[INFO] Deleting SLI %s\n", id)
 	deleteReq := &sli.DeleteSliRequest{SliId: wrapperspb.String(id)}
 	if _, err := r.client.DeleteSLI(ctx, deleteReq); err != nil {
-		reqStr, _ := jsm.MarshalToString(deleteReq)
+		reqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting SLI %s", state.ID.ValueString()),
 			handleRpcErrorNewFramework(err, "SLI", reqStr),
