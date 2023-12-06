@@ -35,8 +35,9 @@ func dataSourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, m
 	log.Printf("[INFO] Reading alert %s", id)
 	alertResp, err := meta.(*clientset.ClientSet).Alerts().GetAlert(ctx, getAlertRequest)
 	if err != nil {
+		reqStr, _ := jsm.MarshalToString(getAlertRequest)
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcErrorWithID(err, "alert", id.GetValue())
+		return handleRpcErrorWithID(err, "Alert", reqStr, id.GetValue())
 	}
 	alert := alertResp.GetAlert()
 	log.Printf("[INFO] Received alert: %#v", alert)

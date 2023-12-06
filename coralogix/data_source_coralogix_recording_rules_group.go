@@ -63,7 +63,8 @@ func (d *RecordingRuleGroupSetDataSource) Read(ctx context.Context, req datasour
 	//Get refreshed recording-rule-group-set value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading recording-rule-group-set: %s", id)
-	getResp, err := d.client.GetRecordingRuleGroupsSet(ctx, &rrgs.FetchRuleGroupSet{Id: id})
+	getReq := &rrgs.FetchRuleGroupSet{Id: id}
+	getResp, err := d.client.GetRecordingRuleGroupsSet(ctx, getReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -73,9 +74,10 @@ func (d *RecordingRuleGroupSetDataSource) Read(ctx context.Context, req datasour
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(getReq)
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
-				handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+				handleRpcErrorNewFramework(err, "recording-rule-group-set", reqStr),
 			)
 		}
 		return

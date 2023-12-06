@@ -65,7 +65,9 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	//Get refreshed Webhook value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading Webhook: %s", id)
-	getWebhookResp, err := d.client.GetWebhook(ctx, &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(id)})
+
+	getWebhookReq := &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(id)}
+	getWebhookResp, err := d.client.GetWebhook(ctx, getWebhookReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -75,9 +77,10 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(getWebhookReq)
 			resp.Diagnostics.AddError(
 				"Error reading Webhook",
-				handleRpcErrorNewFramework(err, "Webhook"),
+				handleRpcErrorNewFramework(err, "Webhook", reqStr),
 			)
 		}
 		return

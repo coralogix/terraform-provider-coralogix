@@ -308,8 +308,22 @@ func (r *TCOPolicyTracesResource) Create(ctx context.Context, req resource.Creat
 	policyStr, _ = jsm.MarshalToString(policy)
 	log.Printf("[INFO] Submitted new tco-policy: %#v", policy)
 	plan.ID = types.StringValue(createResp.GetPolicy().GetId().GetValue())
-	updatePoliciesOrder(ctx, r.client, plan.ID.ValueString(), int(plan.Order.ValueInt64()), tcopolicies.SourceType_SOURCE_TYPE_SPANS)
-
+	id := plan.ID.ValueString()
+	order := int(plan.Order.ValueInt64())
+	err, reqStr := updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_SPANS)
+	for err != nil {
+		log.Printf("[ERROR] Received error: %#v", err)
+		if retryableStatusCode(status.Code(err)) {
+			log.Print("[INFO] Retrying to reorder tco-policies")
+			err, reqStr = updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_SPANS)
+			continue
+		}
+		resp.Diagnostics.AddError(
+			"Error Reordering tco-policy",
+			handleRpcErrorNewFramework(err, "tco-policy", reqStr),
+		)
+		return
+	}
 	policy.Order = wrapperspb.Int32(int32(plan.Order.ValueInt64()))
 	plan, diags = flattenTCOPolicyTraces(ctx, policy)
 	if diags.HasError() {
@@ -332,7 +346,8 @@ func (r *TCOPolicyTracesResource) Read(ctx context.Context, req resource.ReadReq
 	//Get refreshed tco-policy value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading tco-policy: %s", id)
-	getPolicyResp, err := r.client.GetTCOPolicy(ctx, &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)})
+	getPolicyReq := &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)}
+	getPolicyResp, err := r.client.GetTCOPolicy(ctx, getPolicyReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -342,9 +357,10 @@ func (r *TCOPolicyTracesResource) Read(ctx context.Context, req resource.ReadReq
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(getPolicyReq)
 			resp.Diagnostics.AddError(
 				"Error reading tco-policy",
-				handleRpcErrorNewFramework(err, "tco-policy"),
+				handleRpcErrorNewFramework(err, "tco-policy", reqStr),
 			)
 		}
 		return
@@ -388,11 +404,25 @@ func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.Update
 	}
 	log.Printf("[INFO] Submitted updated tco-policy: %#v", policyUpdateResp)
 
-	updatePoliciesOrder(ctx, r.client, plan.ID.ValueString(), int(plan.Order.ValueInt64()), tcopolicies.SourceType_SOURCE_TYPE_SPANS)
+	id := plan.ID.ValueString()
+	order := int(plan.Order.ValueInt64())
+	err, reqStr := updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_SPANS)
+	for err != nil {
+		log.Printf("[ERROR] Received error: %#v", err)
+		if retryableStatusCode(status.Code(err)) {
+			log.Print("[INFO] Retrying to reorder tco-policies")
+			err, reqStr = updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_SPANS)
+			continue
+		}
+		resp.Diagnostics.AddError(
+			"Error Reordering tco-policy",
+			handleRpcErrorNewFramework(err, "tco-policy", reqStr),
+		)
+	}
 
 	// Get refreshed tco-policy value from Coralogix
-	id := plan.ID.ValueString()
-	getPolicyResp, err := r.client.GetTCOPolicy(ctx, &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)})
+	getPolicyReq := &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)}
+	getPolicyResp, err := r.client.GetTCOPolicy(ctx, getPolicyReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -402,9 +432,10 @@ func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.Update
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ = jsm.MarshalToString(getPolicyReq)
 			resp.Diagnostics.AddError(
 				"Error reading tco-policy",
-				handleRpcErrorNewFramework(err, "tco-policy"),
+				handleRpcErrorNewFramework(err, "tco-policy", reqStr),
 			)
 		}
 		return
@@ -430,11 +461,13 @@ func (r TCOPolicyTracesResource) Delete(ctx context.Context, req resource.Delete
 	}
 
 	id := state.ID.ValueString()
+	deleteReq := &tcopolicies.DeletePolicyRequest{Id: wrapperspb.String(id)}
 	log.Printf("[INFO] Deleting tco-policy %s\n", id)
-	if _, err := r.client.DeleteTCOPolicy(ctx, &tcopolicies.DeletePolicyRequest{Id: wrapperspb.String(id)}); err != nil {
+	if _, err := r.client.DeleteTCOPolicy(ctx, deleteReq); err != nil {
+		reqStr, _ := jsm.MarshalToString(deleteReq)
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting tco-policy %s", state.ID.ValueString()),
-			handleRpcErrorNewFramework(err, "tco-policy"),
+			fmt.Sprintf("Error Deleting tco-policy %s", id),
+			handleRpcErrorNewFramework(err, "tco-policy", reqStr),
 		)
 		return
 	}

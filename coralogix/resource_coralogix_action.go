@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -141,7 +140,6 @@ func (r *ActionResource) ImportState(ctx context.Context, req resource.ImportSta
 }
 
 func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	jsm := &jsonpb.Marshaler{}
 	var plan ActionResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -201,7 +199,8 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 	//Get refreshed Action value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading Action: %s", id)
-	getActionResp, err := r.client.GetAction(ctx, &actions.GetActionRequest{Id: wrapperspb.String(id)})
+	getActionReq := &actions.GetActionRequest{Id: wrapperspb.String(id)}
+	getActionResp, err := r.client.GetAction(ctx, getActionReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -211,9 +210,10 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(getActionReq)
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				handleRpcErrorNewFramework(err, "Action"),
+				handleRpcErrorNewFramework(err, "Action", reqStr),
 			)
 		}
 		return
@@ -255,7 +255,8 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	// Get refreshed Action value from Coralogix
 	id := plan.ID.ValueString()
-	getActionResp, err := r.client.GetAction(ctx, &actions.GetActionRequest{Id: wrapperspb.String(id)})
+	getActionReq := &actions.GetActionRequest{Id: wrapperspb.String(id)}
+	getActionResp, err := r.client.GetAction(ctx, getActionReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -265,9 +266,10 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(getActionReq)
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				handleRpcErrorNewFramework(err, "Action"),
+				handleRpcErrorNewFramework(err, "Action", reqStr),
 			)
 		}
 		return
@@ -291,10 +293,12 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting Action %s\n", id)
-	if _, err := r.client.DeleteAction(ctx, &actions.DeleteActionRequest{Id: wrapperspb.String(id)}); err != nil {
+	deleteReq := &actions.DeleteActionRequest{Id: wrapperspb.String(id)}
+	if _, err := r.client.DeleteAction(ctx, deleteReq); err != nil {
+		deleteReqStr, _ := jsm.MarshalToString(deleteReq)
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting Action %s", state.ID.ValueString()),
-			handleRpcErrorNewFramework(err, "Action"),
+			fmt.Sprintf("Error Deleting Action %s", id),
+			handleRpcErrorNewFramework(err, "Action", deleteReqStr),
 		)
 		return
 	}

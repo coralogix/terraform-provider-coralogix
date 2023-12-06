@@ -111,15 +111,16 @@ func fileContentNoLongerThan(i interface{}, k string) ([]string, []error) {
 func resourceCoralogixDataSetCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	req, fileModificationTime, err := expandDataSetRequest(d)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "enrichment-data")
+		log.Printf("[ERROR] Received error while expanding enrichment-data: %#v", err)
+		return diag.FromErr(err)
 	}
 	log.Printf("[INFO] Creating new enrichment-data: %#v", req)
 
 	resp, err := meta.(*clientset.ClientSet).DataSet().CreatDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "enrichment-data")
+		reqStr, _ := jsm.MarshalToString(req)
+		return handleRpcError(err, "enrichment-data", reqStr)
 	}
 
 	if uploadedFile, ok := d.GetOk("uploaded_file"); ok {
@@ -157,7 +158,8 @@ func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, m
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		return handleRpcErrorWithID(err, "enrichment-data", id)
+		reqStr, _ := jsm.MarshalToString(req)
+		return handleRpcError(err, "enrichment-data", reqStr)
 	}
 
 	log.Printf("[INFO] Received enrichment-data: %#v", DataSetResp)
@@ -174,7 +176,8 @@ func resourceCoralogixDataSetUpdate(ctx context.Context, d *schema.ResourceData,
 	_, err = meta.(*clientset.ClientSet).DataSet().UpdateDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "enrichment-data")
+		reqStr, _ := jsm.MarshalToString(req)
+		return handleRpcError(err, "enrichment-data", reqStr)
 	}
 
 	if uploadedFile, ok := d.GetOk("uploaded_file"); ok {
@@ -194,7 +197,8 @@ func resourceCoralogixDataSetDelete(ctx context.Context, d *schema.ResourceData,
 	_, err := meta.(*clientset.ClientSet).DataSet().DeleteDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v\n", err)
-		return handleRpcErrorWithID(err, "enrichment-data", id)
+		reqStr, _ := jsm.MarshalToString(req)
+		return handleRpcErrorWithID(err, "enrichment-data", reqStr, id)
 	}
 
 	log.Printf("[INFO] enrichment-data %s deleted\n", id)

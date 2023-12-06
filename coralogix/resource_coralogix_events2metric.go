@@ -6,7 +6,6 @@ import (
 	"log"
 	"regexp"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
@@ -819,7 +818,6 @@ func (r *Events2MetricResource) ConfigValidators(_ context.Context) []resource.C
 
 func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
-	jsm := &jsonpb.Marshaler{}
 	var plan Events2MetricResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -870,9 +868,10 @@ func (r *Events2MetricResource) Read(ctx context.Context, req resource.ReadReque
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(getE2MResp)
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				handleRpcErrorNewFramework(err, "Events2metric"),
+				handleRpcErrorNewFramework(err, "Events2metric", reqStr),
 			)
 		}
 		return
@@ -923,9 +922,10 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(e2mUpdateReq)
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				handleRpcErrorNewFramework(err, "Events2metric"),
+				handleRpcErrorNewFramework(err, "Events2metric", reqStr),
 			)
 		}
 		return
@@ -948,11 +948,13 @@ func (r *Events2MetricResource) Delete(ctx context.Context, req resource.DeleteR
 	}
 
 	id := state.ID.ValueString()
+	deleteReq := &e2m.DeleteE2MRequest{Id: wrapperspb.String(id)}
 	log.Printf("[INFO] Deleting Events2metric %s\n", id)
-	if _, err := r.client.DeleteEvents2Metric(ctx, &e2m.DeleteE2MRequest{Id: wrapperspb.String(id)}); err != nil {
+	if _, err := r.client.DeleteEvents2Metric(ctx, deleteReq); err != nil {
+		reqStr, _ := jsm.MarshalToString(deleteReq)
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting Events2Metric %s", state.ID.ValueString()),
-			handleRpcErrorNewFramework(err, "Events2Metric"),
+			fmt.Sprintf("Error Deleting Events2Metric %s", id),
+			handleRpcErrorNewFramework(err, "Events2Metric", reqStr),
 		)
 		return
 	}

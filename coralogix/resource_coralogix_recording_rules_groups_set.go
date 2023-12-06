@@ -381,9 +381,10 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(createRequest)
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
-				handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+				handleRpcErrorNewFramework(err, "recording-rule-group-set", reqStr),
 			)
 		}
 		return
@@ -536,7 +537,8 @@ func (r *RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.R
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading recording-rule-group-set id: %s", id)
-	getResp, err := r.client.GetRecordingRuleGroupsSet(ctx, &rrgs.FetchRuleGroupSet{Id: id})
+	getReq := &rrgs.FetchRuleGroupSet{Id: id}
+	getResp, err := r.client.GetRecordingRuleGroupsSet(ctx, getReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -545,9 +547,10 @@ func (r *RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.R
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(getReq)
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
-				handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+				handleRpcErrorNewFramework(err, "recording-rule-group-set", reqStr),
 			)
 		}
 		return
@@ -582,9 +585,10 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 	_, err := r.client.UpdateRecordingRuleGroupsSet(ctx, updateRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		reqStr, _ := jsm.MarshalToString(updateRequest)
 		resp.Diagnostics.AddError(
 			"Error updating recording-rule-group-set",
-			handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+			handleRpcErrorNewFramework(err, "recording-rule-group-set", reqStr),
 		)
 		return
 	}
@@ -599,9 +603,10 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 				fmt.Sprintf("%s will be recreated when you apply", plan.ID.ValueString()),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(updateRequest)
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
-				handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+				handleRpcErrorNewFramework(err, "recording-rule-group-set", reqStr),
 			)
 		}
 		return
@@ -626,7 +631,8 @@ func (r *RecordingRuleGroupSetResource) Delete(ctx context.Context, req resource
 	}
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting recording-rule-group-set id: %s", id)
-	_, err := r.client.DeleteRecordingRuleGroupsSet(ctx, &rrgs.DeleteRuleGroupSet{Id: id})
+	deleteReq := &rrgs.DeleteRuleGroupSet{Id: id}
+	_, err := r.client.DeleteRecordingRuleGroupsSet(ctx, deleteReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -635,9 +641,10 @@ func (r *RecordingRuleGroupSetResource) Delete(ctx context.Context, req resource
 				"",
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(deleteReq)
 			resp.Diagnostics.AddError(
 				"Error deleting recording-rule-group-set",
-				handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+				handleRpcErrorNewFramework(err, "recording-rule-group-set", reqStr),
 			)
 		}
 		return

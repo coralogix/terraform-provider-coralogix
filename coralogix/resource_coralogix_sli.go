@@ -466,7 +466,8 @@ func (r *SLIResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 	id := state.ID.ValueString()
 	serviceName := state.ServiceName.ValueString()
 	log.Printf("[INFO] Reading SLIs of service: %s", serviceName)
-	getSLIsResp, err := r.client.GetSLIs(ctx, &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)})
+	getSliReq := &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)}
+	getSLIsResp, err := r.client.GetSLIs(ctx, getSliReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -476,9 +477,10 @@ func (r *SLIResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(getSliReq)
 			resp.Diagnostics.AddError(
 				"Error reading SLI",
-				handleRpcErrorNewFramework(err, "SLI"),
+				handleRpcErrorNewFramework(err, "SLI", reqStr),
 			)
 		}
 		return
@@ -541,7 +543,8 @@ func (r *SLIResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	// Get refreshed SLI value from Coralogix
 	id := plan.ID.ValueString()
 	serviceName := plan.ServiceName.ValueString()
-	getSLIsResp, err := r.client.GetSLIs(ctx, &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)})
+	getSliReq := &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)}
+	getSLIsResp, err := r.client.GetSLIs(ctx, getSliReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -550,9 +553,10 @@ func (r *SLIResource) Update(ctx context.Context, req resource.UpdateRequest, re
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(getSliReq)
 			resp.Diagnostics.AddError(
 				"Error reading SLI",
-				handleRpcErrorNewFramework(err, "SLI"),
+				handleRpcErrorNewFramework(err, "SLI", reqStr),
 			)
 		}
 		return
@@ -596,10 +600,12 @@ func (r *SLIResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting SLI %s\n", id)
-	if _, err := r.client.DeleteSLI(ctx, &sli.DeleteSliRequest{SliId: wrapperspb.String(id)}); err != nil {
+	deleteReq := &sli.DeleteSliRequest{SliId: wrapperspb.String(id)}
+	if _, err := r.client.DeleteSLI(ctx, deleteReq); err != nil {
+		reqStr, _ := jsm.MarshalToString(deleteReq)
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting SLI %s", state.ID.ValueString()),
-			handleRpcErrorNewFramework(err, "SLI"),
+			handleRpcErrorNewFramework(err, "SLI", reqStr),
 		)
 		return
 	}

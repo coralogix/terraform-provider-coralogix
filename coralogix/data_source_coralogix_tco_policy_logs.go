@@ -65,7 +65,8 @@ func (d *TCOPolicyDataSource) Read(ctx context.Context, req datasource.ReadReque
 	//Get refreshed tco-policy value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading tco-policy: %s", id)
-	getPolicyResp, err := d.client.GetTCOPolicy(ctx, &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)})
+	getPolicyReq := &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)}
+	getPolicyResp, err := d.client.GetTCOPolicy(ctx, getPolicyReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -75,9 +76,10 @@ func (d *TCOPolicyDataSource) Read(ctx context.Context, req datasource.ReadReque
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(getPolicyReq)
 			resp.Diagnostics.AddError(
 				"Error reading tco-policy",
-				handleRpcErrorNewFramework(err, "tco-policy"),
+				handleRpcErrorNewFramework(err, "tco-policy", reqStr),
 			)
 		}
 		return

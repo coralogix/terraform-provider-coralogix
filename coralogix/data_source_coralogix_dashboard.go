@@ -64,7 +64,8 @@ func (d *DashboardDataSource) Read(ctx context.Context, req datasource.ReadReque
 	//Get refreshed Dashboard value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading Dashboard: %s", id)
-	getDashboardResp, err := d.client.GetDashboard(ctx, &dashboards.GetDashboardRequest{DashboardId: wrapperspb.String(id)})
+	getDashboardReq := &dashboards.GetDashboardRequest{DashboardId: wrapperspb.String(id)}
+	getDashboardResp, err := d.client.GetDashboard(ctx, getDashboardReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -74,9 +75,10 @@ func (d *DashboardDataSource) Read(ctx context.Context, req datasource.ReadReque
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(getDashboardReq)
 			resp.Diagnostics.AddError(
 				"Error reading Dashboard",
-				handleRpcErrorNewFramework(err, "Dashboard"),
+				handleRpcErrorNewFramework(err, "Dashboard", reqStr),
 			)
 		}
 		return

@@ -34,8 +34,9 @@ func dataSourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceDa
 	log.Printf("[INFO] Reading rule-group %s", id)
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().GetRuleGroup(ctx, getRuleGroupRequest)
 	if err != nil {
+		reqStr, _ := jsm.MarshalToString(getRuleGroupRequest)
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcErrorWithID(err, "rule-group", id)
+		return handleRpcErrorWithID(err, "rule-group", reqStr, id)
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
 	log.Printf("[INFO] Received rule-group: %#v", ruleGroup)

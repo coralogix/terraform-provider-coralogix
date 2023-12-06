@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/golang/protobuf/jsonpb"
 	gouuid "github.com/google/uuid"
 	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -33,39 +34,40 @@ var (
 	msInHour   = int(time.Hour.Milliseconds())
 	msInMinute = int(time.Minute.Milliseconds())
 	msInSecond = int(time.Second.Milliseconds())
+	jsm        = &jsonpb.Marshaler{}
 )
 
-func handleRpcError(err error, resource string) diag.Diagnostics {
+func handleRpcError(err error, resource string, requestStr string) diag.Diagnostics {
 	switch status.Code(err) {
 	case codes.PermissionDenied, codes.Unauthenticated:
 		return diag.Errorf("permission denied for %s endpoint, check your api-key", resource)
 	case codes.Internal:
-		return diag.Errorf("internal error for %s in Coralogix backend - %s", resource, err)
+		return diag.Errorf("internal error for %s in Coralogix backend - %s for request - %s", resource, err, requestStr)
 	case codes.InvalidArgument:
-		return diag.Errorf("invalid argument for %s - %s", resource, err)
+		return diag.Errorf("invalid argument for %s - %s for request - %s", resource, err, requestStr)
 	default:
 		return diag.FromErr(err)
 	}
 }
 
-func handleRpcErrorNewFramework(err error, resource string) string {
+func handleRpcErrorNewFramework(err error, resource string, requestStr string) string {
 	switch status.Code(err) {
 	case codes.PermissionDenied, codes.Unauthenticated:
 		return fmt.Sprintf("permission denied for %s endpoint, check your api-key", resource)
 	case codes.Internal:
-		return fmt.Sprintf("internal error for %s in Coralogix backend - %s", resource, err)
+		return fmt.Sprintf("internal error for %s in Coralogix backend - %s for request - %s", resource, err, requestStr)
 	case codes.InvalidArgument:
-		return fmt.Sprintf("invalid argument for %s - %s", resource, err)
+		return fmt.Sprintf("invalid argument for %s - %s for request - %s", resource, err, requestStr)
 	default:
 		return err.Error()
 	}
 }
 
-func handleRpcErrorWithID(err error, resource, id string) diag.Diagnostics {
+func handleRpcErrorWithID(err error, resource, requestStr, id string) diag.Diagnostics {
 	if status.Code(err) == codes.NotFound {
 		return diag.Errorf("no %s with id %s found", resource, id)
 	}
-	return handleRpcError(err, resource)
+	return handleRpcError(err, requestStr, resource)
 }
 
 // datasourceSchemaFromResourceSchema is a recursive func that
@@ -768,4 +770,12 @@ func retryableStatusCode(statusCode codes.Code) bool {
 	default:
 		return false
 	}
+}
+
+func uint32SliceToWrappedUint32Slice(s []uint32) []*wrapperspb.UInt32Value {
+	result := make([]*wrapperspb.UInt32Value, 0, len(s))
+	for _, n := range s {
+		result = append(result, wrapperspb.UInt32(n))
+	}
+	return result
 }

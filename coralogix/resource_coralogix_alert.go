@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -1446,7 +1445,7 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "alert")
+		return handleRpcError(err, "Alert", createAlertStr)
 	}
 
 	alert := AlertResp.GetAlert()
@@ -1475,10 +1474,10 @@ func resourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, met
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		return handleRpcErrorWithID(err, "alert", id.GetValue())
+		reqStr, _ := jsm.MarshalToString(getAlertRequest)
+		return handleRpcErrorWithID(err, "Alert", reqStr, id.GetValue())
 	}
 	alert := alertResp.GetAlert()
-	jsm := jsonpb.Marshaler{}
 	alertStr, _ := jsm.MarshalToString(alert)
 	log.Printf("[INFO] Received alert: %s", alertStr)
 
@@ -1500,7 +1499,7 @@ func resourceCoralogixAlertUpdate(ctx context.Context, d *schema.ResourceData, m
 	alertResp, err := meta.(*clientset.ClientSet).Alerts().UpdateAlert(ctx, updateAlertRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcErrorWithID(err, "alert", id)
+		return handleRpcErrorWithID(err, "Alert", updateAlertStr, id)
 	}
 	updateAlertStr, _ = jsm.MarshalToString(alertResp)
 	log.Printf("[INFO] Submitted updated alert: %s", updateAlertStr)
@@ -1518,8 +1517,9 @@ func resourceCoralogixAlertDelete(ctx context.Context, d *schema.ResourceData, m
 	log.Printf("[INFO] Deleting alert %s\n", id)
 	_, err := meta.(*clientset.ClientSet).Alerts().DeleteAlert(ctx, deleteAlertRequest)
 	if err != nil {
+		reqStr, _ := jsm.MarshalToString(deleteAlertRequest)
 		log.Printf("[ERROR] Received error: %#v\n", err)
-		return handleRpcErrorWithID(err, "alert", id.GetValue())
+		return handleRpcErrorWithID(err, "Alert", reqStr, id.GetValue())
 	}
 	log.Printf("[INFO] alert %s deleted\n", id)
 

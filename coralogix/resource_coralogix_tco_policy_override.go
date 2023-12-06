@@ -70,7 +70,7 @@ func resourceCoralogixTCOPolicyOverrideCreate(ctx context.Context, d *schema.Res
 	tcoPolicyOverrideResp, err := meta.(*clientset.ClientSet).TCOPoliciesOverrides().CreateTCOPolicyOverride(ctx, tcoPolicyReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "tco-policy-override")
+		return handleRpcError(err, "tco-policy-override", "")
 	}
 
 	log.Printf("[INFO] Submitted new tco-policy-override: %#v", tcoPolicyOverrideResp)
@@ -117,7 +117,7 @@ func resourceCoralogixTCOPolicyOverrideUpdate(ctx context.Context, d *schema.Res
 	tcoPolicyOverrideResp, err := meta.(*clientset.ClientSet).TCOPoliciesOverrides().UpdateTCOPolicyOverride(ctx, id, tcoPolicyOverrideReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "tco-policy-override")
+		return handleRpcError(err, "tco-policy-override", "")
 	}
 
 	log.Printf("[INFO] Submitted new tco-policy-override: %#v", tcoPolicyOverrideResp)
@@ -138,7 +138,7 @@ func resourceCoralogixTCOPolicyOverrideDelete(ctx context.Context, d *schema.Res
 	err := meta.(*clientset.ClientSet).TCOPoliciesOverrides().DeleteTCOPolicyOverride(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcErrorWithID(err, "tco-policy-override", id)
+		return handleRpcErrorWithID(err, "tco-policy-override", "", id)
 	}
 	log.Printf("[INFO] tco-policy-override %s deleted", id)
 

@@ -169,10 +169,12 @@ func resourceCoralogixEnrichmentCreate(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 	log.Printf("[INFO] Creating new enrichment: %#v", enrichmentReq)
-	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().CreateEnrichments(ctx, enrichmentReq)
+	createReq := &enrichment.AddEnrichmentsRequest{RequestEnrichments: enrichmentReq}
+	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().CreateEnrichments(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "enrichment")
+		reqStr, _ := jsm.MarshalToString(createReq)
+		return handleRpcError(err, "enrichment", reqStr)
 	}
 	log.Printf("[INFO] Submitted new enrichment: %#v", enrichmentResp)
 	d.SetId(enrichmentTypeOrCustomId)
@@ -200,7 +202,8 @@ func resourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", customId),
 			}}
 		}
-		return handleRpcError(err, "enrichment")
+		reqStr, _ := jsm.MarshalToString(&enrichment.GetEnrichmentsRequest{})
+		return handleRpcError(err, "enrichment", reqStr)
 	}
 	log.Printf("[INFO] Received enrichment: %#v", enrichmentResp)
 	return setEnrichment(d, enrichmentType, enrichmentResp)
@@ -245,10 +248,18 @@ func resourceCoralogixEnrichmentUpdate(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 	log.Print("[INFO] Updating enrichment")
-	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().UpdateEnrichments(ctx, ids, enrichmentReq)
+	deleteReq := &enrichment.RemoveEnrichmentsRequest{EnrichmentIds: uint32SliceToWrappedUint32Slice(ids)}
+	if err = meta.(*clientset.ClientSet).Enrichments().DeleteEnrichments(ctx, deleteReq); err != nil {
+		log.Printf("[ERROR] Received error: %#v", err)
+		reqStr, _ := jsm.MarshalToString(deleteReq)
+		return handleRpcError(err, "enrichment", reqStr)
+	}
+	createReq := &enrichment.AddEnrichmentsRequest{RequestEnrichments: enrichmentReq}
+	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().CreateEnrichments(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "enrichment")
+		reqStr, _ := jsm.MarshalToString(createReq)
+		return handleRpcError(err, "enrichment", reqStr)
 	}
 	log.Printf("[INFO] Received enrichment: %#v", enrichmentResp)
 	return resourceCoralogixEnrichmentRead(ctx, d, meta)
@@ -259,15 +270,32 @@ func resourceCoralogixEnrichmentDelete(ctx context.Context, d *schema.ResourceDa
 	var err error
 	log.Printf("[INFO] Deleting enrichment %s\n", id)
 	if id == "geo_ip" || id == "suspicious_ip" || id == "aws" {
-		err = meta.(*clientset.ClientSet).Enrichments().DeleteEnrichmentsByType(ctx, id)
+		enrichments, err := meta.(*clientset.ClientSet).Enrichments().GetEnrichmentsByType(ctx, id)
+		if err != nil {
+			log.Printf("[ERROR] Received error: %#v\n", err)
+			enrichmentsStr, _ := jsm.MarshalToString(&enrichment.GetEnrichmentsRequest{})
+			return handleRpcError(err, "enrichment", enrichmentsStr)
+		}
+		enrichmentIds := make([]*wrapperspb.UInt32Value, 0, len(enrichments))
+		for _, enrichment := range enrichments {
+			enrichmentIds = append(enrichmentIds, wrapperspb.UInt32(enrichment.GetId()))
+		}
+		deleteReq := &enrichment.RemoveEnrichmentsRequest{EnrichmentIds: enrichmentIds}
+		if err = meta.(*clientset.ClientSet).Enrichments().DeleteEnrichments(ctx, deleteReq); err != nil {
+			log.Printf("[ERROR] Received error: %#v\n", err)
+			reqStr, _ := jsm.MarshalToString(deleteReq)
+			return handleRpcError(err, "enrichment", reqStr)
+		}
 	} else {
 		ids := extractIdsFromEnrichment(d)
-		err = meta.(*clientset.ClientSet).Enrichments().DeleteEnrichments(ctx, ids)
+		deleteReq := &enrichment.RemoveEnrichmentsRequest{EnrichmentIds: uint32SliceToWrappedUint32Slice(ids)}
+		if err = meta.(*clientset.ClientSet).Enrichments().DeleteEnrichments(ctx, deleteReq); err != nil {
+			log.Printf("[ERROR] Received error: %#v\n", err)
+			reqStr, _ := jsm.MarshalToString(deleteReq)
+			return handleRpcError(err, "enrichment", reqStr)
+		}
 	}
-	if err != nil {
-		log.Printf("[ERROR] Received error: %#v\n", err)
-		return handleRpcError(err, "enrichment")
-	}
+
 	log.Printf("[INFO] enrichment %s deleted\n", id)
 
 	d.SetId("")

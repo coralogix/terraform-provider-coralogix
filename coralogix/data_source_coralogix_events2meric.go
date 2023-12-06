@@ -64,7 +64,8 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 	//Get refreshed Events2Metric value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading Events2metric: %s", id)
-	getE2MResp, err := d.client.GetEvents2Metric(ctx, &e2m.GetE2MRequest{Id: wrapperspb.String(id)})
+	getE2MReq := &e2m.GetE2MRequest{Id: wrapperspb.String(id)}
+	getE2MResp, err := d.client.GetEvents2Metric(ctx, getE2MReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -74,9 +75,10 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(getE2MReq)
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				handleRpcErrorNewFramework(err, "Events2metric"),
+				handleRpcErrorNewFramework(err, "Events2metric", reqStr),
 			)
 		}
 		return

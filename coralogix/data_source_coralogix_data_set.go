@@ -33,7 +33,8 @@ func dataSourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData,
 	enrichmentResp, err := meta.(*clientset.ClientSet).DataSet().GetDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcErrorWithID(err, "custom-enrichment-data", id)
+		reqStr, _ := jsm.MarshalToString(req)
+		return handleRpcErrorWithID(err, "custom-enrichment-data", reqStr, id)
 	}
 	log.Printf("[INFO] Received custom-enrichment-data: %#v", enrichmentResp)
 

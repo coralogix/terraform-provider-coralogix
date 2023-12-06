@@ -71,7 +71,8 @@ func (d *SLIDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 	id := data.ID.ValueString()
 	serviceName := data.ServiceName.ValueString()
 	log.Printf("[INFO] Reading sli: %s", id)
-	getSLIsresp, err := d.client.GetSLIs(ctx, &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)})
+	getSLIsReq := &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)}
+	getSLIsResp, err := d.client.GetSLIs(ctx, getSLIsReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -81,16 +82,17 @@ func (d *SLIDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(getSLIsReq)
 			resp.Diagnostics.AddError(
-				"Error reading tco-policy",
-				handleRpcErrorNewFramework(err, "SLI"),
+				"Error reading SLI",
+				handleRpcErrorNewFramework(err, "SLI", reqStr),
 			)
 		}
 		return
 	}
 
 	var SLI *sli.Sli
-	for _, sli := range getSLIsresp.GetSlis() {
+	for _, sli := range getSLIsResp.GetSlis() {
 		if sli.SliId.GetValue() == id {
 			SLI = sli
 			break

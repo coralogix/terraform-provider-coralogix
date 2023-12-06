@@ -31,7 +31,7 @@ func dataSourceCoralogixTCOPolicyOverrideRead(ctx context.Context, d *schema.Res
 	tcoPolicyOverride, err := meta.(*clientset.ClientSet).TCOPoliciesOverrides().GetTCOPolicyOverride(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcErrorWithID(err, "tco-policy-override", id)
+		return handleRpcErrorWithID(err, "tco-policy-override", "", id)
 	}
 	log.Printf("[INFO] Received tco-policy-override: %#v", tcoPolicyOverride)
 

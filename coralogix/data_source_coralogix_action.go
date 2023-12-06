@@ -65,7 +65,8 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	//Get refreshed Action value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading Action: %s", id)
-	getActionResp, err := d.client.GetAction(ctx, &actions.GetActionRequest{Id: wrapperspb.String(id)})
+	getActionReq := &actions.GetActionRequest{Id: wrapperspb.String(id)}
+	getActionResp, err := d.client.GetAction(ctx, getActionReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -75,9 +76,10 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(getActionReq)
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				handleRpcErrorNewFramework(err, "Action"),
+				handleRpcErrorNewFramework(err, "Action", reqStr),
 			)
 		}
 		return

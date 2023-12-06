@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -604,7 +603,6 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 }
 
 func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	jsm := &jsonpb.Marshaler{}
 	var plan *WebhookResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -655,7 +653,6 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 }
 
 func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	jsm := &jsonpb.Marshaler{}
 	var state *WebhookResourceModel
 
 	diags := req.State.Get(ctx, &state)
@@ -680,9 +677,10 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(readWebhookRequest)
 			resp.Diagnostics.AddError(
 				"Error reading Webhook",
-				handleRpcErrorNewFramework(err, "Webhook"),
+				handleRpcErrorNewFramework(err, "Webhook", reqStr),
 			)
 		}
 		return
@@ -736,9 +734,10 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr, _ := jsm.MarshalToString(webhookUpdateReq)
 			resp.Diagnostics.AddError(
 				"Error reading Webhook",
-				handleRpcErrorNewFramework(err, "Webhook"),
+				handleRpcErrorNewFramework(err, "Webhook", reqStr),
 			)
 		}
 		return
@@ -762,12 +761,14 @@ func (r WebhookResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting Webhook: %s", id)
-	_, err := r.client.DeleteWebhook(ctx, &webhooks.DeleteOutgoingWebhookRequest{Id: wrapperspb.String(id)})
+	deleteReq := &webhooks.DeleteOutgoingWebhookRequest{Id: wrapperspb.String(id)}
+	_, err := r.client.DeleteWebhook(ctx, deleteReq)
 	if err != nil {
+		reqStr, _ := jsm.MarshalToString(deleteReq)
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error deleting Webhook",
-			"Could not delete Webhook, unexpected error: "+err.Error(),
+			handleRpcErrorNewFramework(err, "Webhook", reqStr),
 		)
 		return
 	}
