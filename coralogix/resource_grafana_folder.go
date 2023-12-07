@@ -158,7 +158,7 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", d.Id()),
 			}}
 		}
-		return handleRpcError(err, "grafana-folder", fmt.Sprintf("%#v", folder))
+		return diag.Errorf(formatRpcErrors(err, fmt.Sprintf("/grafana/api/folders/%s", folder.UID), fmt.Sprintf("%#v", folder)))
 	}
 
 	d.SetId("")

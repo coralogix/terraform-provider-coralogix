@@ -43,7 +43,7 @@ func dataSourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceDa
 	if err != nil {
 		reqStr := protojson.Format(&enrichmentv1.GetEnrichmentsRequest{})
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "enrichment", reqStr)
+		return diag.Errorf(formatRpcErrors(err, getEnrichmentsURL, reqStr))
 	}
 	log.Printf("[INFO] Received enrichment: %#v", enrichmentResp)
 	d.SetId(id)

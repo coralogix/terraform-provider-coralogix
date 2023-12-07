@@ -85,10 +85,9 @@ func (d *SLIDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr := protojson.Format(getSLIsReq)
 			resp.Diagnostics.AddError(
 				"Error reading SLI",
-				handleRpcErrorNewFramework(err, "SLI", reqStr),
+				formatRpcErrors(err, getSliURL, protojson.Format(getSLIsReq)),
 			)
 		}
 		return

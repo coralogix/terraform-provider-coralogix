@@ -83,7 +83,7 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			reqStr := protojson.Format(getWebhookReq)
 			resp.Diagnostics.AddError(
 				"Error reading Webhook",
-				handleRpcErrorNewFramework(err, "Webhook", reqStr),
+				formatRpcErrors(err, "Webhook", reqStr),
 			)
 		}
 		return

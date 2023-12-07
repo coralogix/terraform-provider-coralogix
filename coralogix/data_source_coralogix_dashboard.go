@@ -78,10 +78,9 @@ func (d *DashboardDataSource) Read(ctx context.Context, req datasource.ReadReque
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr := protojson.Format(getDashboardReq)
 			resp.Diagnostics.AddError(
 				"Error reading Dashboard",
-				handleRpcErrorNewFramework(err, "Dashboard", reqStr),
+				formatRpcErrors(err, getDashboardURL, protojson.Format(getDashboardReq)),
 			)
 		}
 		return

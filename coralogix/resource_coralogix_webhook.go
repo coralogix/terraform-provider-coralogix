@@ -216,6 +216,10 @@ var (
       }
     ]
   }`
+	createWebhookURL = "com.coralogix.outgoing_webhooks.v1.OutgoingWebhooksService/CreateOutgoingWebhook"
+	getWebhookURL    = "com.coralogix.outgoing_webhooks.v1.OutgoingWebhooksService/GetOutgoingWebhook"
+	updateWebhookURL = "com.coralogix.outgoing_webhooks.v1.OutgoingWebhooksService/UpdateOutgoingWebhook"
+	deleteWebhookURL = "com.coralogix.outgoing_webhooks.v1.OutgoingWebhooksService/DeleteOutgoingWebhook"
 )
 
 func NewWebhookResource() resource.Resource {
@@ -625,7 +629,7 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error creating Webhook",
-			"Could not create Webhook, unexpected error: "+err.Error(),
+			formatRpcErrors(err, createWebhookURL, webhookStr),
 		)
 		return
 	}
@@ -640,7 +644,7 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error reading Webhook",
-			"Could not read Webhook, unexpected error: "+err.Error(),
+			formatRpcErrors(err, getWebhookURL, protojson.Format(readWebhookRequest)),
 		)
 		return
 	}
@@ -683,17 +687,15 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr := protojson.Format(readWebhookRequest)
 			resp.Diagnostics.AddError(
 				"Error reading Webhook",
-				handleRpcErrorNewFramework(err, "Webhook", reqStr),
+				formatRpcErrors(err, getWebhookURL, protojson.Format(readWebhookRequest)),
 			)
 		}
 		return
 	}
 
-	getWebhookStr := protojson.Format(getWebhookResp)
-	log.Printf("[INFO] Reading webhook - %s", getWebhookStr)
+	log.Printf("[INFO] Reading webhook - %s", protojson.Format(getWebhookResp))
 
 	state, diags = flattenWebhook(ctx, getWebhookResp.GetWebhook())
 	if diags.HasError() {
@@ -726,7 +728,7 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error updating Webhook",
-			"Could not update Webhook, unexpected error: "+err.Error(),
+			formatRpcErrors(err, updateWebhookURL, protojson.Format(webhookUpdateReq)),
 		)
 		return
 	}
@@ -734,7 +736,8 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 	// Get refreshed Webhook value from Coralogix
 	id := plan.ID.ValueString()
-	getWebhookResp, err := r.client.GetWebhook(ctx, &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(id)})
+	getWebhookReq := &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(id)}
+	getWebhookResp, err := r.client.GetWebhook(ctx, getWebhookReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -744,15 +747,14 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr := protojson.Format(webhookUpdateReq)
 			resp.Diagnostics.AddError(
 				"Error reading Webhook",
-				handleRpcErrorNewFramework(err, "Webhook", reqStr),
+				formatRpcErrors(err, getWebhookURL, protojson.Format(getWebhookReq)),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Webhook: %#v", getWebhookResp)
+	log.Printf("[INFO] Received Webhook: %s", protojson.Format(getWebhookResp))
 
 	plan, diags = flattenWebhook(ctx, getWebhookResp.GetWebhook())
 	if diags.HasError() {
@@ -777,11 +779,10 @@ func (r WebhookResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	deleteReq := &webhooks.DeleteOutgoingWebhookRequest{Id: wrapperspb.String(id)}
 	_, err := r.client.DeleteWebhook(ctx, deleteReq)
 	if err != nil {
-		reqStr := protojson.Format(deleteReq)
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error deleting Webhook",
-			handleRpcErrorNewFramework(err, "Webhook", reqStr),
+			formatRpcErrors(err, deleteTCOPolicyURL, protojson.Format(deleteReq)),
 		)
 		return
 	}

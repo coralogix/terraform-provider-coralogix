@@ -24,7 +24,13 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-var fileContentLimit = int(1e6)
+var (
+	fileContentLimit = int(1e6)
+	createDataSetURL = "com.coralogix.enrichment.v1.CustomEnrichmentService/CreateCustomEnrichment"
+	getDataSetURL    = "com.coralogix.enrichment.v1.CustomEnrichmentService/GetCustomEnrichment"
+	updateDataSetURL = "com.coralogix.enrichment.v1.CustomEnrichmentService/UpdateCustomEnrichment"
+	deleteDataSetURL = "com.coralogix.enrichment.v1.CustomEnrichmentService/DeleteCustomEnrichment"
+)
 
 func resourceCoralogixDataSet() *schema.Resource {
 	return &schema.Resource{
@@ -117,13 +123,12 @@ func resourceCoralogixDataSetCreate(ctx context.Context, d *schema.ResourceData,
 		log.Printf("[ERROR] Received error while expanding enrichment-data: %#v", err)
 		return diag.FromErr(err)
 	}
-	log.Printf("[INFO] Creating new enrichment-data: %#v", req)
+	log.Printf("[INFO] Creating new enrichment-data: %s", protojson.Format(req))
 
 	resp, err := meta.(*clientset.ClientSet).DataSet().CreatDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr := protojson.Format(req)
-		return handleRpcError(err, "enrichment-data", reqStr)
+		return diag.Errorf(formatRpcErrors(err, createDataSetURL, protojson.Format(req)))
 	}
 
 	if uploadedFile, ok := d.GetOk("uploaded_file"); ok {
@@ -161,8 +166,7 @@ func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, m
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		reqStr := protojson.Format(req)
-		return handleRpcError(err, "enrichment-data", reqStr)
+		return diag.Errorf(formatRpcErrors(err, getDataSetURL, protojson.Format(req)))
 	}
 
 	log.Printf("[INFO] Received enrichment-data: %#v", DataSetResp)
@@ -179,12 +183,11 @@ func resourceCoralogixDataSetUpdate(ctx context.Context, d *schema.ResourceData,
 	_, err = meta.(*clientset.ClientSet).DataSet().UpdateDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr := protojson.Format(req)
-		return handleRpcError(err, "enrichment-data", reqStr)
+		return diag.Errorf(formatRpcErrors(err, getDataSetURL, protojson.Format(req)))
 	}
 
 	if uploadedFile, ok := d.GetOk("uploaded_file"); ok {
-		if err := setModificationTimeUploaded(d, uploadedFile, fileModificationTime); err != nil {
+		if err = setModificationTimeUploaded(d, uploadedFile, fileModificationTime); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -200,8 +203,7 @@ func resourceCoralogixDataSetDelete(ctx context.Context, d *schema.ResourceData,
 	_, err := meta.(*clientset.ClientSet).DataSet().DeleteDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v\n", err)
-		reqStr := protojson.Format(req)
-		return handleRpcErrorWithID(err, "enrichment-data", reqStr, id)
+		return diag.Errorf(formatRpcErrors(err, deleteDataSetURL, protojson.Format(req)))
 	}
 
 	log.Printf("[INFO] enrichment-data %s deleted\n", id)

@@ -62,12 +62,11 @@ func OldProvider() *oldSchema.Provider {
 		},
 
 		DataSourcesMap: map[string]*oldSchema.Resource{
-			"coralogix_rules_group":         dataSourceCoralogixRulesGroup(),
-			"coralogix_alert":               dataSourceCoralogixAlert(),
-			"coralogix_enrichment":          dataSourceCoralogixEnrichment(),
-			"coralogix_data_set":            dataSourceCoralogixDataSet(),
-			"coralogix_hosted_dashboard":    dataSourceCoralogixHostedDashboard(),
-			"coralogix_tco_policy_override": dataSourceCoralogixTCOPolicyOverride(),
+			"coralogix_rules_group":      dataSourceCoralogixRulesGroup(),
+			"coralogix_alert":            dataSourceCoralogixAlert(),
+			"coralogix_enrichment":       dataSourceCoralogixEnrichment(),
+			"coralogix_data_set":         dataSourceCoralogixDataSet(),
+			"coralogix_hosted_dashboard": dataSourceCoralogixHostedDashboard(),
 		},
 
 		ResourcesMap: map[string]*oldSchema.Resource{

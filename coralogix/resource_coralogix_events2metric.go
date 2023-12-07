@@ -53,7 +53,11 @@ var (
 		e2m.E2MAggSamples_SAMPLE_TYPE_MIN: "Min",
 		e2m.E2MAggSamples_SAMPLE_TYPE_MAX: "Max",
 	}
-	validSampleTypes = []string{"Min", "Max"}
+	validSampleTypes       = []string{"Min", "Max"}
+	createEvents2MetricURL = "com.coralogixapis.events2metrics.v2.Events2MetricService/CreateE2M"
+	getEvents2MetricURL    = "com.coralogixapis.events2metrics.v2.Events2MetricService/GetE2M"
+	updateEvents2MetricURL = "com.coralogixapis.events2metrics.v2.Events2MetricService/ReplaceE2M"
+	deleteEvents2MetricURL = "com.coralogixapis.events2metrics.v2.Events2MetricService/DeleteE2M"
 )
 
 var (
@@ -833,19 +837,16 @@ func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateR
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	e2mStr := protojson.Format(e2mCreateReq)
-	log.Printf("[INFO] Creating new Events2metric: %#v", e2mStr)
+	log.Printf("[INFO] Creating new Events2metric: %s", protojson.Format(e2mCreateReq))
 	e2mCreateResp, err := r.client.CreateEvents2Metric(ctx, e2mCreateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error creating Events2Metric",
-			"Could not create Events2Metric, unexpected error: "+err.Error(),
+			formatRpcErrors(err, createEvents2MetricURL, protojson.Format(e2mCreateReq)),
 		)
-		return
 	}
-	e2mStr = protojson.Format(e2mCreateResp)
-	log.Printf("[INFO] Submitted new Events2metric: %#v", e2mStr)
+	log.Printf("[INFO] Submitted new Events2metric: %s", protojson.Format(e2mCreateResp))
 
 	plan = flattenE2M(ctx, e2mCreateResp.GetE2M())
 
@@ -875,10 +876,9 @@ func (r *Events2MetricResource) Read(ctx context.Context, req resource.ReadReque
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr := protojson.Format(getE2MResp)
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				handleRpcErrorNewFramework(err, "Events2metric", reqStr),
+				formatRpcErrors(err, getEvents2MetricURL, protojson.Format(getE2MResp)),
 			)
 		}
 		return
@@ -905,14 +905,13 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	reqStr := protojson.Format(e2mUpdateReq)
-	log.Printf("[INFO] Updating Events2metric: %s", reqStr)
+	log.Printf("[INFO] Updating Events2metric: %s", protojson.Format(e2mUpdateReq))
 	e2mUpdateResp, err := r.client.UpdateEvents2Metric(ctx, e2mUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error updating Events2Metric",
-			"Could not update Events2Metric, unexpected error: "+err.Error(),
+			formatRpcErrors(err, updateEvents2MetricURL, protojson.Format(e2mUpdateReq)),
 		)
 		return
 	}
@@ -930,15 +929,14 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr = protojson.Format(e2mUpdateReq)
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				handleRpcErrorNewFramework(err, "Events2metric", reqStr),
+				formatRpcErrors(err, getEvents2MetricURL, protojson.Format(e2mUpdateReq)),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Events2metric: %#v", getE2MResp)
+	log.Printf("[INFO] Received Events2metric: %s", protojson.Format(getE2MResp))
 
 	plan = flattenE2M(ctx, e2mUpdateResp.GetE2M())
 
@@ -959,10 +957,9 @@ func (r *Events2MetricResource) Delete(ctx context.Context, req resource.DeleteR
 	deleteReq := &e2m.DeleteE2MRequest{Id: wrapperspb.String(id)}
 	log.Printf("[INFO] Deleting Events2metric %s\n", id)
 	if _, err := r.client.DeleteEvents2Metric(ctx, deleteReq); err != nil {
-		reqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting Events2Metric %s", id),
-			handleRpcErrorNewFramework(err, "Events2Metric", reqStr),
+			"Error Deleting Events2Metric",
+			formatRpcErrors(err, deleteEvents2MetricURL, protojson.Format(deleteReq)),
 		)
 		return
 	}

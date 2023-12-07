@@ -77,10 +77,9 @@ func (d *RecordingRuleGroupSetDataSource) Read(ctx context.Context, req datasour
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr := protojson.Format(getReq)
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
-				handleRpcErrorNewFramework(err, "recording-rule-group-set", reqStr),
+				formatRpcErrors(err, getRuleGroupURL, protojson.Format(getReq)),
 			)
 		}
 		return

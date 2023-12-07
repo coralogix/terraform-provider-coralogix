@@ -168,6 +168,10 @@ var (
 		alerts.EvaluationWindow_EVALUATION_WINDOW_DYNAMIC:                "Dynamic",
 	}
 	validEvaluationWindow = []string{"Rolling", "Dynamic"}
+	getAlertURL           = "com.coralogix.alerts.v2.AlertService/CreateAlert"
+	createAlertURL        = "com.coralogix.alerts.v2.AlertService/GetAlertByUniqueId"
+	updateAlertURL        = "com.coralogix.alerts.v2.AlertService/UpdateAlertByUniqueId"
+	deleteAlertURL        = "com.coralogix.alerts.v2.AlertService/DeleteAlertByUniqueId"
 )
 
 type alertParams struct {
@@ -1448,7 +1452,7 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "Alert", createAlertStr)
+		return diag.Errorf(formatRpcErrors(err, createAlertStr, createAlertStr))
 	}
 
 	alert := AlertResp.GetAlert()
@@ -1477,8 +1481,7 @@ func resourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, met
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		reqStr := protojson.Format(getAlertRequest)
-		return handleRpcErrorWithID(err, "Alert", reqStr, id.GetValue())
+		return diag.Errorf(formatRpcErrors(err, getAlertURL, protojson.Format(getAlertRequest)))
 	}
 	alert := alertResp.GetAlert()
 	alertStr := protojson.Format(alert)
@@ -1493,7 +1496,6 @@ func resourceCoralogixAlertUpdate(ctx context.Context, d *schema.ResourceData, m
 		return diags
 	}
 
-	id := d.Id()
 	updateAlertRequest := &alerts.UpdateAlertByUniqueIdRequest{
 		Alert: req,
 	}
@@ -1502,7 +1504,7 @@ func resourceCoralogixAlertUpdate(ctx context.Context, d *schema.ResourceData, m
 	alertResp, err := meta.(*clientset.ClientSet).Alerts().UpdateAlert(ctx, updateAlertRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcErrorWithID(err, "Alert", updateAlertStr, id)
+		return diag.Errorf(formatRpcErrors(err, updateAlertURL, updateAlertStr))
 	}
 	updateAlertStr = protojson.Format(alertResp)
 	log.Printf("[INFO] Submitted updated alert: %s", updateAlertStr)
@@ -1520,9 +1522,8 @@ func resourceCoralogixAlertDelete(ctx context.Context, d *schema.ResourceData, m
 	log.Printf("[INFO] Deleting alert %s\n", id)
 	_, err := meta.(*clientset.ClientSet).Alerts().DeleteAlert(ctx, deleteAlertRequest)
 	if err != nil {
-		reqStr := protojson.Format(deleteAlertRequest)
 		log.Printf("[ERROR] Received error: %#v\n", err)
-		return handleRpcErrorWithID(err, "Alert", reqStr, id.GetValue())
+		return diag.Errorf(formatRpcErrors(err, getAlertURL, protojson.Format(deleteAlertRequest)))
 	}
 	log.Printf("[INFO] alert %s deleted\n", id)
 

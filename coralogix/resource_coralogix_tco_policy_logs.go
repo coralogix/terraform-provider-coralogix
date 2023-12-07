@@ -62,6 +62,11 @@ var (
 	}
 	tcoPolicySeverityProtoToSchema = ReverseMap(tcoPolicySeveritySchemaToProto)
 	validPolicySeverities          = GetKeys(tcoPolicySeveritySchemaToProto)
+	createTCOPolicyURL             = "com.coralogix.quota.v1.PoliciesService/CreatePolicy"
+	getTCOPolicyURL                = "com.coralogix.quota.v1.PoliciesService/GetPolicy"
+	updateTCOPolicyURL             = "com.coralogix.quota.v1.PoliciesService/UpdatePolicy"
+	deleteTCOPolicyURL             = "com.coralogix.quota.v1.PoliciesService/DeletePolicy"
+	updateTCOPoliciesOrderURL      = "com.coralogix.quota.v1.PoliciesService/ReorderPolicies"
 )
 
 func NewTCOPolicyResource() resource.Resource {
@@ -467,42 +472,40 @@ func (r *TCOPolicyResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	policyStr := protojson.Format(createPolicyRequest)
-	log.Printf("[INFO] Creating new tco-policy: %s", policyStr)
+	log.Printf("[INFO] Creating new tco-policy: %s", protojson.Format(createPolicyRequest))
 	createResp, err := r.client.CreateTCOPolicy(ctx, createPolicyRequest)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if retryableStatusCode(status.Code(err)) {
-			log.Printf("[INFO] Retrying to create tco-policy: %s", policyStr)
+			log.Printf("[INFO] Retrying to create tco-policy: %s", protojson.Format(createPolicyRequest))
 			createResp, err = r.client.CreateTCOPolicy(ctx, createPolicyRequest)
 			continue
 		}
 		resp.Diagnostics.AddError(
 			"Error creating tco-policy",
-			handleRpcErrorNewFramework(err, "tco-policy", policyStr),
+			formatRpcErrors(err, createTCOPolicyURL, protojson.Format(createPolicyRequest)),
 		)
 		return
 	}
 	policy := createResp.GetPolicy()
-	policyStr = protojson.Format(policy)
-	log.Printf("[INFO] Submitted new tco-policy: %s", policyStr)
+	log.Printf("[INFO] Submitted new tco-policy: %s", protojson.Format(policy))
 	plan.ID = types.StringValue(createResp.GetPolicy().GetId().GetValue())
 
 	// Update order
 	id := plan.ID.ValueString()
 	order := int(plan.Order.ValueInt64())
 	log.Print("[INFO] Reordering tco-policies")
-	err, reqStr := updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_LOGS)
+	err, updateReq := updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_LOGS)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if retryableStatusCode(status.Code(err)) {
 			log.Print("[INFO] Retrying to reorder tco-policies")
-			err, reqStr = updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_LOGS)
+			err, updateReq = updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_LOGS)
 			continue
 		}
 		resp.Diagnostics.AddError(
 			"Error Reordering tco-policy",
-			handleRpcErrorNewFramework(err, "tco-policy", reqStr),
+			formatRpcErrors(err, updateTCOPoliciesOrderURL, updateReq),
 		)
 		return
 	}
@@ -538,7 +541,7 @@ func (r *TCOPolicyResource) Read(ctx context.Context, req resource.ReadRequest, 
 		log.Printf("[ERROR] Received error: %#v", err)
 		if retryableStatusCode(status.Code(err)) {
 			log.Printf("[INFO] Retrying to read tco-policy: %s", id)
-			getPolicyResp, err = r.client.GetTCOPolicy(ctx, &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)})
+			getPolicyResp, err = r.client.GetTCOPolicy(ctx, getPolicyReq)
 			continue
 		}
 		if status.Code(err) == codes.NotFound {
@@ -548,16 +551,15 @@ func (r *TCOPolicyResource) Read(ctx context.Context, req resource.ReadRequest, 
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr := protojson.Format(getPolicyReq)
 			resp.Diagnostics.AddError(
 				"Error reading tco-policy",
-				handleRpcErrorNewFramework(err, "tco-policy", reqStr),
+				formatRpcErrors(err, getTCOPolicyURL, protojson.Format(getPolicyReq)),
 			)
 		}
 		return
 	}
 	policy := getPolicyResp.GetPolicy()
-	log.Printf("[INFO] Received tco-policy: %#v", policy)
+	log.Printf("[INFO] Received tco-policy: %s", protojson.Format(policy))
 
 	state, diags = flattenTCOPolicy(ctx, policy)
 	if diags.HasError() {
@@ -598,7 +600,7 @@ func (r *TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReque
 		}
 		resp.Diagnostics.AddError(
 			"Error updating tco-policy",
-			"Could not update tco-policy, unexpected error: "+err.Error(),
+			formatRpcErrors(err, updateTCOPolicyURL, protojson.Format(policyUpdateReq)),
 		)
 		return
 	}
@@ -614,13 +616,14 @@ func (r *TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReque
 		}
 		resp.Diagnostics.AddError(
 			"Error Reordering tco-policy",
-			handleRpcErrorNewFramework(err, "tco-policy", reqStr),
+			formatRpcErrors(err, updateTCOPolicyURL, reqStr),
 		)
 		return
 	}
 	// Get refreshed tco-policy value from Coralogix
 	id := plan.ID.ValueString()
 	getPolicyReq := &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)}
+	log.Printf("[INFO] Reading tco-policy %s", id)
 	getPolicyResp, err := r.client.GetTCOPolicy(ctx, getPolicyReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
@@ -631,15 +634,14 @@ func (r *TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReque
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr = protojson.Format(getPolicyReq)
 			resp.Diagnostics.AddError(
 				"Error reading tco-policy",
-				handleRpcErrorNewFramework(err, "tco-policy", reqStr),
+				formatRpcErrors(err, getTCOPolicyURL, protojson.Format(getPolicyReq)),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received tco-policy: %#v", getPolicyResp)
+	log.Printf("[INFO] Received tco-policy: %s", protojson.Format(getPolicyResp))
 
 	plan, diags = flattenTCOPolicy(ctx, getPolicyResp.GetPolicy())
 	if diags.HasError() {
@@ -676,7 +678,7 @@ func (r TCOPolicyResource) Delete(ctx context.Context, req resource.DeleteReques
 		reqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting tco-policy %s", id),
-			handleRpcErrorNewFramework(err, "tco-policy", reqStr),
+			formatRpcErrors(err, deleteTCOPolicyURL, reqStr),
 		)
 		return
 	}

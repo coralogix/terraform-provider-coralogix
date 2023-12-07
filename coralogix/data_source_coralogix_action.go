@@ -79,10 +79,9 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr := protojson.Format(getActionReq)
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				handleRpcErrorNewFramework(err, "Action", reqStr),
+				formatRpcErrors(err, getActionURL, protojson.Format(getActionReq)),
 			)
 		}
 		return

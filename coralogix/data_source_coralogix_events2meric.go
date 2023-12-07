@@ -78,10 +78,9 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr := protojson.Format(getE2MReq)
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				handleRpcErrorNewFramework(err, "Events2metric", reqStr),
+				formatRpcErrors(err, getEvents2MetricURL, protojson.Format(getE2MReq)),
 			)
 		}
 		return

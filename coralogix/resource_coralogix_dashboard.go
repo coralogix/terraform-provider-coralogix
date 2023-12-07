@@ -187,6 +187,10 @@ var (
 	dashboardValidSpanFieldTypes       = []string{"metadata", "tag", "process_tag"}
 	dashboardValidSpanAggregationTypes = []string{"metric", "dimension"}
 	dashboardValidColorSchemes         = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
+	createDashboardURL                 = "com.coralogixapis.dashboards.v1.services.DashboardsService/CreateDashboard"
+	getDashboardURL                    = "com.coralogixapis.dashboards.v1.services.DashboardsService/GetDashboard"
+	updateDashboardURL                 = "com.coralogixapis.dashboards.v1.services.DashboardsService/ReplaceDashboard"
+	deleteDashboardURL                 = "com.coralogixapis.dashboards.v1.services.DashboardsService/DeleteDashboard"
 )
 
 var (
@@ -2362,7 +2366,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error creating Dashboard",
-			handleRpcErrorNewFramework(err, "Dashboard", dashboardStr),
+			formatRpcErrors(err, createDashboardURL, dashboardStr),
 		)
 		return
 	}
@@ -2376,7 +2380,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		reqStr := protojson.Format(getDashboardReq)
 		resp.Diagnostics.AddError(
 			"Error getting Dashboard",
-			handleRpcErrorNewFramework(err, "Dashboard", reqStr),
+			formatRpcErrors(err, getDashboardURL, reqStr),
 		)
 		return
 	}
@@ -7355,7 +7359,7 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 			reqStr := protojson.Format(getDashboardReq)
 			resp.Diagnostics.AddError(
 				"Error reading Dashboard",
-				handleRpcErrorNewFramework(err, "Dashboard", reqStr),
+				formatRpcErrors(err, getDashboardURL, reqStr),
 			)
 		}
 		return
@@ -7396,7 +7400,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error updating Dashboard",
-			handleRpcErrorNewFramework(err, "Dashboard", reqStr),
+			formatRpcErrors(err, updateDashboardURL, reqStr),
 		)
 		return
 	}
@@ -7404,13 +7408,12 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 	getDashboardReq := &dashboards.GetDashboardRequest{
 		DashboardId: dashboard.GetId(),
 	}
-	reqStr = protojson.Format(getDashboardReq)
 	getDashboardResp, err := r.client.GetDashboard(ctx, getDashboardReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error getting Dashboard",
-			handleRpcErrorNewFramework(err, "Dashboard", reqStr),
+			formatRpcErrors(err, getDashboardURL, protojson.Format(getDashboardReq)),
 		)
 		return
 	}
@@ -7442,10 +7445,9 @@ func (r *DashboardResource) Delete(ctx context.Context, req resource.DeleteReque
 	log.Printf("[INFO] Deleting Dashboard %s", id)
 	deleteReq := &dashboards.DeleteDashboardRequest{DashboardId: wrapperspb.String(id)}
 	if _, err := r.client.DeleteDashboard(ctx, deleteReq); err != nil {
-		reqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Dashboard %s", id),
-			handleRpcErrorNewFramework(err, "Dashboard", reqStr),
+			formatRpcErrors(err, deleteDashboardURL, protojson.Format(deleteReq)),
 		)
 		return
 	}

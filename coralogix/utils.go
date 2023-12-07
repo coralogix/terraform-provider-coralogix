@@ -19,7 +19,6 @@ import (
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -34,37 +33,17 @@ var (
 	msInSecond = int(time.Second.Milliseconds())
 )
 
-func handleRpcError(err error, resource string, requestStr string) diag.Diagnostics {
+func formatRpcErrors(err error, url, requestStr string) string {
 	switch status.Code(err) {
 	case codes.PermissionDenied, codes.Unauthenticated:
-		return diag.Errorf("permission denied for %s endpoint, check your api-key", resource)
+		return fmt.Sprintf("permission denied for url - %s\ncheck your api-key and permissions", url)
 	case codes.Internal:
-		return diag.Errorf("internal error for %s in Coralogix backend - %s for request - %s", resource, err, requestStr)
+		return fmt.Sprintf("internal error in Coralogix backend - %s\nurl - %s request - %s", url, err, requestStr)
 	case codes.InvalidArgument:
-		return diag.Errorf("invalid argument for %s - %s for request - %s", resource, err, requestStr)
-	default:
-		return diag.FromErr(err)
-	}
-}
-
-func handleRpcErrorNewFramework(err error, resource string, requestStr string) string {
-	switch status.Code(err) {
-	case codes.PermissionDenied, codes.Unauthenticated:
-		return fmt.Sprintf("permission denied for %s endpoint, check your api-key", resource)
-	case codes.Internal:
-		return fmt.Sprintf("internal error for %s in Coralogix backend - %s for request - %s", resource, err, requestStr)
-	case codes.InvalidArgument:
-		return fmt.Sprintf("invalid argument for %s - %s for request - %s", resource, err, requestStr)
+		return fmt.Sprintf("invalid argument error - %s\nurl - %s request - %s", err, url, requestStr)
 	default:
 		return err.Error()
 	}
-}
-
-func handleRpcErrorWithID(err error, resource, requestStr, id string) diag.Diagnostics {
-	if status.Code(err) == codes.NotFound {
-		return diag.Errorf("no %s with id %s found", resource, id)
-	}
-	return handleRpcError(err, requestStr, resource)
 }
 
 // datasourceSchemaFromResourceSchema is a recursive func that
@@ -236,37 +215,6 @@ func convertAttribute(resourceAttribute resourceschema.Attribute) datasourcesche
 		panic(fmt.Sprintf("unknown resource attribute type: %T", resourceAttribute))
 	}
 }
-
-//func convertBlocks(blocks map[string]resourceschema.Block) map[string]datasourceschema.Block {
-//	result := make(map[string]datasourceschema.Block, len(blocks))
-//	for k, v := range blocks {
-//		result[k] = convertBlock(v)
-//	}
-//	return result
-//}
-
-//func convertBlock(resourceBlock resourceschema.Block) datasourceschema.Block {
-//	switch block := resourceBlock.(type) {
-//	case resourceschema.ListNestedBlock:
-//		return datasourceschema.ListNestedBlock{
-//			NestedObject:
-//			Description:         attr.Description,
-//			MarkdownDescription: attr.MarkdownDescription,
-//		}
-//	case resourceschema.SetNestedBlock:
-//		return datasourceschema.SetNestedBlock{
-//			Description:         attr.Description,
-//			MarkdownDescription: attr.MarkdownDescription,
-//		}
-//	case resourceschema.SingleNestedBlock:
-//		return datasourceschema.SingleNestedBlock{
-//			Description:         attr.Description,
-//			MarkdownDescription: attr.MarkdownDescription,
-//		}
-//	default:
-//		panic(fmt.Sprintf("unknown resource block type: %T", resourceAttribute))
-//	}
-//}
 
 func interfaceSliceToStringSlice(s []interface{}) []string {
 	result := make([]string, 0, len(s))
@@ -606,15 +554,6 @@ func (u urlValidationFuncFramework) ValidateString(ctx context.Context, req vali
 		)
 	}
 }
-
-//func urlValidationFuncFramework() schema.SchemaValidateDiagFunc {
-//	return func(v interface{}, _ cty.Path) diag.Diagnostics {
-//		if _, err := url.ParseRequestURI(v.(string)); err != nil {
-//			return diag.Errorf("%s in not valid url - %s", v.(string), err.Error())
-//		}
-//		return nil
-//	}
-//}
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 

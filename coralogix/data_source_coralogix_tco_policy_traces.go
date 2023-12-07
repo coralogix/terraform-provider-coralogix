@@ -79,10 +79,9 @@ func (d *TCOPolicyTracesDataSource) Read(ctx context.Context, req datasource.Rea
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr := protojson.Format(getPolicyReq)
 			resp.Diagnostics.AddError(
 				"Error reading tco-policy",
-				handleRpcErrorNewFramework(err, "tco-policy", reqStr),
+				formatRpcErrors(err, getTCOPolicyURL, protojson.Format(getPolicyReq)),
 			)
 		}
 		return

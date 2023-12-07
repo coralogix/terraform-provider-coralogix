@@ -36,7 +36,7 @@ func dataSourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		reqStr := protojson.Format(req)
-		return handleRpcErrorWithID(err, "custom-enrichment-data", reqStr, id)
+		return diag.Errorf(formatRpcErrors(err, getDataSetURL, reqStr))
 	}
 	log.Printf("[INFO] Received custom-enrichment-data: %#v", enrichmentResp)
 

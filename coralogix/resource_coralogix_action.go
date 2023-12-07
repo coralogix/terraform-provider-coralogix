@@ -35,6 +35,10 @@ var (
 	}
 	actionProtoSourceTypeToSchemaSourceType = ReverseMap(actionSchemaSourceTypeToProtoSourceType)
 	actionValidSourceTypes                  = GetKeys(actionSchemaSourceTypeToProtoSourceType)
+	createActionURL                         = "com.coralogixapis.actions.v2.ActionsService/CreateAction"
+	updateActionURL                         = "com.coralogixapis.actions.v2.ActionsService/ReplaceAction"
+	getActionURL                            = "com.coralogixapis.actions.v2.ActionsService/GetAction"
+	deleteActionURL                         = "com.coralogixapis.actions.v2.ActionsService/DeleteAction"
 )
 
 func NewActionResource() resource.Resource {
@@ -160,15 +164,11 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 	createResp, err := r.client.CreateAction(ctx, createActionRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		resp.Diagnostics.AddError(
-			"Error creating Action",
-			"Could not create Action, unexpected error: "+err.Error(),
-		)
+		formatRpcErrors(err, createActionURL, actionStr)
 		return
 	}
 	action := createResp.GetAction()
-	actionStr = protojson.Format(action)
-	log.Printf("[INFO] Submitted new action: %s", actionStr)
+	log.Printf("[INFO] Submitted new action: %s", protojson.Format(action))
 
 	plan = flattenAction(action)
 
@@ -213,16 +213,15 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr := protojson.Format(getActionReq)
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				handleRpcErrorNewFramework(err, "Action", reqStr),
+				formatRpcErrors(err, getActionURL, protojson.Format(getActionReq)),
 			)
 		}
 		return
 	}
 	action := getActionResp.GetAction()
-	log.Printf("[INFO] Received Action: %#v", action)
+	log.Printf("[INFO] Received Action: %s", protojson.Format(action))
 
 	state = flattenAction(action)
 	//
@@ -250,7 +249,7 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error updating Action",
-			"Could not update Action, unexpected error: "+err.Error(),
+			formatRpcErrors(err, updateActionURL, protojson.Format(actionUpdateReq)),
 		)
 		return
 	}
@@ -269,15 +268,14 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr := protojson.Format(getActionReq)
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				handleRpcErrorNewFramework(err, "Action", reqStr),
+				formatRpcErrors(err, getActionURL, protojson.Format(getActionReq)),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Action: %#v", getActionResp)
+	log.Printf("[INFO] Received Action: %s", protojson.Format(getActionResp))
 
 	plan = flattenAction(getActionResp.GetAction())
 
@@ -298,10 +296,9 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	log.Printf("[INFO] Deleting Action %s\n", id)
 	deleteReq := &actions.DeleteActionRequest{Id: wrapperspb.String(id)}
 	if _, err := r.client.DeleteAction(ctx, deleteReq); err != nil {
-		deleteReqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Action %s", id),
-			handleRpcErrorNewFramework(err, "Action", deleteReqStr),
+			formatRpcErrors(err, deleteActionURL, protojson.Format(deleteReq)),
 		)
 		return
 	}

@@ -51,6 +51,10 @@ var (
 	}
 	rulesProtoFormatStandardToSchemaFormatStandard = reverseMapStrings(rulesSchemaFormatStandardToProtoFormatStandard)
 	rulesValidFormatStandards                      = getKeysStrings(rulesSchemaFormatStandardToProtoFormatStandard)
+	createParsingRuleURL                           = "com.coralogix.rules.v1.RuleGroupsService/CreateRuleGroup"
+	getParsingRuleURL                              = "com.coralogix.rules.v1.RuleGroupsService/GetRuleGroup"
+	updateParsingRuleURL                           = "com.coralogix.rules.v1.RuleGroupsService/UpdateRuleGroup"
+	deleteParsingRuleURL                           = "com.coralogix.rules.v1.RuleGroupsService/DeleteRuleGroup"
 )
 
 func resourceCoralogixRulesGroup() *schema.Resource {
@@ -459,15 +463,14 @@ func resourceCoralogixRulesGroupCreate(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 
-	log.Printf("[INFO] Creating new rule-group: %#v", createRuleGroupRequest)
+	log.Printf("[INFO] Creating new rule-group: %s", protojson.Format(createRuleGroupRequest))
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().CreateRuleGroup(ctx, createRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr := protojson.Format(createRuleGroupRequest)
-		return handleRpcError(err, "rule-group", reqStr)
+		return diag.Errorf(formatRpcErrors(err, createParsingRuleURL, protojson.Format(createRuleGroupRequest)))
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
-	log.Printf("[INFO] Submitted new rule-group: %#v", ruleGroup)
+	log.Printf("[INFO] Submitted new rule-group: %s", protojson.Format(ruleGroup))
 	d.SetId(ruleGroup.GetId().GetValue())
 
 	return resourceCoralogixRulesGroupRead(ctx, d, meta)
@@ -491,11 +494,10 @@ func resourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceData
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		reqStr := protojson.Format(getRuleGroupRequest)
-		return handleRpcErrorWithID(err, "rule-group", reqStr, id)
+		return diag.Errorf(formatRpcErrors(err, getParsingRuleURL, protojson.Format(getRuleGroupRequest)))
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
-	log.Printf("[INFO] Received rule-group: %#v", ruleGroup)
+	log.Printf("[INFO] Received rule-group: %s", protojson.Format(ruleGroup))
 
 	return setRuleGroup(d, ruleGroup)
 }
@@ -512,14 +514,13 @@ func resourceCoralogixRulesGroupUpdate(ctx context.Context, d *schema.ResourceDa
 		RuleGroup: req,
 	}
 
-	log.Printf("[INFO] Updating rule-group %s to %s", id, updateRuleGroupRequest)
+	log.Printf("[INFO] Updating rule-group %s to %s", id, protojson.Format(updateRuleGroupRequest))
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().UpdateRuleGroup(ctx, updateRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr := protojson.Format(updateRuleGroupRequest)
-		return handleRpcErrorWithID(err, "rule-group", reqStr, id)
+		return diag.Errorf(formatRpcErrors(err, updateParsingRuleURL, protojson.Format(updateRuleGroupRequest)))
 	}
-	log.Printf("[INFO] Submitted updated rule-group: %#v", ruleGroupResp)
+	log.Printf("[INFO] Submitted updated rule-group: %s", protojson.Format(ruleGroupResp))
 
 	return resourceCoralogixRulesGroupRead(ctx, d, meta)
 }
@@ -534,8 +535,7 @@ func resourceCoralogixRulesGroupDelete(ctx context.Context, d *schema.ResourceDa
 	_, err := meta.(*clientset.ClientSet).RuleGroups().DeleteRuleGroup(ctx, deleteRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		reqStr := protojson.Format(deleteRuleGroupRequest)
-		return handleRpcErrorWithID(err, "rule-group", reqStr, id)
+		return diag.Errorf(formatRpcErrors(err, deleteParsingRuleURL, protojson.Format(deleteRuleGroupRequest)))
 	}
 	log.Printf("[INFO] rule-group %s deleted", id)
 
