@@ -1456,8 +1456,7 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 	}
 
 	alert := AlertResp.GetAlert()
-	alertStr := protojson.Format(alert)
-	log.Printf("[INFO] Submitted new alert: %s", alertStr)
+	log.Printf("[INFO] Submitted new alert: %s", protojson.Format(alert))
 	d.SetId(alert.GetUniqueIdentifier().GetValue())
 
 	return resourceCoralogixAlertRead(ctx, d, meta)
@@ -1519,13 +1518,13 @@ func resourceCoralogixAlertDelete(ctx context.Context, d *schema.ResourceData, m
 		Id: id,
 	}
 
-	log.Printf("[INFO] Deleting alert %s\n", id)
+	log.Printf("[INFO] Deleting alert %s", id)
 	_, err := meta.(*clientset.ClientSet).Alerts().DeleteAlert(ctx, deleteAlertRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v\n", err)
 		return diag.Errorf(formatRpcErrors(err, getAlertURL, protojson.Format(deleteAlertRequest)))
 	}
-	log.Printf("[INFO] alert %s deleted\n", id)
+	log.Printf("[INFO] alert %s deleted", id)
 
 	d.SetId("")
 	return nil

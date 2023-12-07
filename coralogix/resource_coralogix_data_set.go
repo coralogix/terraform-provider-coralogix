@@ -169,7 +169,7 @@ func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.Errorf(formatRpcErrors(err, getDataSetURL, protojson.Format(req)))
 	}
 
-	log.Printf("[INFO] Received enrichment-data: %#v", DataSetResp)
+	log.Printf("[INFO] Received enrichment-data: %s", protojson.Format(DataSetResp))
 	return setDataSet(d, DataSetResp.GetCustomEnrichment())
 }
 
@@ -199,14 +199,14 @@ func resourceCoralogixDataSetDelete(ctx context.Context, d *schema.ResourceData,
 	id := d.Id()
 	req := &enrichment.DeleteCustomEnrichmentRequest{CustomEnrichmentId: wrapperspb.UInt32(strToUint32(id))}
 
-	log.Printf("[INFO] Deleting enrichment-data %s\n", id)
+	log.Printf("[INFO] Deleting enrichment-data %s", id)
 	_, err := meta.(*clientset.ClientSet).DataSet().DeleteDataSet(ctx, req)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v\n", err)
+		log.Printf("[ERROR] Received error: %#v", err)
 		return diag.Errorf(formatRpcErrors(err, deleteDataSetURL, protojson.Format(req)))
 	}
 
-	log.Printf("[INFO] enrichment-data %s deleted\n", id)
+	log.Printf("[INFO] enrichment-data %s deleted", id)
 
 	d.SetId("")
 	return nil

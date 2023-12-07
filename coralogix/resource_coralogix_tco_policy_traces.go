@@ -369,7 +369,7 @@ func (r *TCOPolicyTracesResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 	policy := getPolicyResp.GetPolicy()
-	log.Printf("[INFO] Received tco-policy: %#v", policy)
+	log.Printf("[INFO] Received tco-policy: %s", protojson.Format(policy))
 
 	state, diags = flattenTCOPolicyTraces(ctx, policy)
 	if diags.HasError() {
@@ -395,7 +395,7 @@ func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.Update
 		resp.Diagnostics = diags
 		return
 	}
-	log.Printf("[INFO] Updating tco-policy: %#v", policyUpdateReq)
+	log.Printf("[INFO] Updating tco-policy: %s", protojson.Format(policyUpdateReq))
 	policyUpdateResp, err := r.client.UpdateTCOPolicy(ctx, policyUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
@@ -405,7 +405,7 @@ func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.Update
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted updated tco-policy: %#v", policyUpdateResp)
+	log.Printf("[INFO] Submitted updated tco-policy: %s", protojson.Format(policyUpdateResp))
 
 	id := plan.ID.ValueString()
 	order := int(plan.Order.ValueInt64())
@@ -464,7 +464,7 @@ func (r TCOPolicyTracesResource) Delete(ctx context.Context, req resource.Delete
 
 	id := state.ID.ValueString()
 	deleteReq := &tcopolicies.DeletePolicyRequest{Id: wrapperspb.String(id)}
-	log.Printf("[INFO] Deleting tco-policy %s\n", id)
+	log.Printf("[INFO] Deleting tco-policy %s", id)
 	if _, err := r.client.DeleteTCOPolicy(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting tco-policy %s", id),
@@ -472,7 +472,7 @@ func (r TCOPolicyTracesResource) Delete(ctx context.Context, req resource.Delete
 		)
 		return
 	}
-	log.Printf("[INFO] tco-policy %s deleted\n", id)
+	log.Printf("[INFO] tco-policy %s deleted", id)
 }
 
 func flattenTCOPolicyTraces(ctx context.Context, policy *tcopolicies.Policy) (*TCOPolicyTracesResourceModel, diag.Diagnostics) {

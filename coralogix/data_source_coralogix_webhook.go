@@ -88,7 +88,7 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		}
 		return
 	}
-	log.Printf("[INFO] Received Webhook: %#v", getWebhookResp)
+	log.Printf("[INFO] Received Webhook: %s", protojson.Format(getWebhookResp))
 
 	data, diags := flattenWebhook(ctx, getWebhookResp.GetWebhook())
 	if diags.HasError() {

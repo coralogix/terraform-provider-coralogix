@@ -243,7 +243,7 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Updating Action: %#v", actionUpdateReq)
+	log.Printf("[INFO] Updating Action: %s", protojson.Format(actionUpdateReq))
 	actionUpdateResp, err := r.client.UpdateAction(ctx, actionUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
@@ -253,7 +253,7 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted updated Action: %#v", actionUpdateResp)
+	log.Printf("[INFO] Submitted updated Action: %s", protojson.Format(actionUpdateResp))
 
 	// Get refreshed Action value from Coralogix
 	id := plan.ID.ValueString()
@@ -293,7 +293,7 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting Action %s\n", id)
+	log.Printf("[INFO] Deleting Action %s", id)
 	deleteReq := &actions.DeleteActionRequest{Id: wrapperspb.String(id)}
 	if _, err := r.client.DeleteAction(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
@@ -302,7 +302,7 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		)
 		return
 	}
-	log.Printf("[INFO] Action %s deleted\n", id)
+	log.Printf("[INFO] Action %s deleted", id)
 }
 
 type ActionResourceModel struct {

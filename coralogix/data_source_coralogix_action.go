@@ -86,7 +86,7 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		}
 		return
 	}
-	log.Printf("[INFO] Received Action: %#v", getActionResp)
+	log.Printf("[INFO] Received Action: %s", protojson.Format(getActionResp))
 
 	data = flattenAction(getActionResp.GetAction())
 

@@ -84,7 +84,7 @@ func (d *RecordingRuleGroupSetDataSource) Read(ctx context.Context, req datasour
 		}
 		return
 	}
-	log.Printf("[INFO] Received recording-rule-group-set: %#v", getResp)
+	log.Printf("[INFO] Received recording-rule-group-set: %s", protojson.Format(getResp))
 
 	data, diags := flattenRecordingRuleGroupSet(ctx, &RecordingRuleGroupSetResourceModel{}, getResp)
 	if diags.HasError() {

@@ -109,7 +109,7 @@ func (d *SLIDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 		return
 	}
 
-	log.Printf("[INFO] Received SLI: %#v", SLI)
+	log.Printf("[INFO] Received SLI: %s", protojson.Format(SLI))
 
 	data, diags := flattenSLI(ctx, SLI)
 	if diags.HasError() {

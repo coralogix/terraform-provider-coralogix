@@ -86,7 +86,7 @@ func (d *TCOPolicyDataSource) Read(ctx context.Context, req datasource.ReadReque
 		}
 		return
 	}
-	log.Printf("[INFO] Received tco-policy: %#v", getPolicyResp)
+	log.Printf("[INFO] Received tco-policy: %s", protojson.Format(getPolicyResp))
 
 	data, diags := flattenTCOPolicy(ctx, getPolicyResp.GetPolicy())
 	if diags.HasError() {

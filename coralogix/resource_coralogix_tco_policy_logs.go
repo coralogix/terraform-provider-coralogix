@@ -589,12 +589,12 @@ func (r *TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	log.Printf("[INFO] Updating tco-policy: %#v", policyUpdateReq)
+	log.Printf("[INFO] Updating tco-policy: %s", protojson.Format(policyUpdateReq))
 	policyUpdateResp, err := r.client.UpdateTCOPolicy(ctx, policyUpdateReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if retryableStatusCode(status.Code(err)) {
-			log.Printf("[INFO] Retrying to update tco-policy: %#v", policyUpdateReq)
+			log.Printf("[INFO] Retrying to update tco-policy: %s", protojson.Format(policyUpdateReq))
 			policyUpdateResp, err = r.client.UpdateTCOPolicy(ctx, policyUpdateReq)
 			continue
 		}
@@ -604,7 +604,7 @@ func (r *TCOPolicyResource) Update(ctx context.Context, req resource.UpdateReque
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted updated tco-policy: %#v", policyUpdateResp)
+	log.Printf("[INFO] Submitted updated tco-policy: %s", protojson.Format(policyUpdateResp))
 
 	err, reqStr := updatePoliciesOrder(ctx, r.client, plan.ID.ValueString(), int(plan.Order.ValueInt64()), tcopolicies.SourceType_SOURCE_TYPE_LOGS)
 	for err != nil {
@@ -665,7 +665,7 @@ func (r TCOPolicyResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting tco-policy %s\n", id)
+	log.Printf("[INFO] Deleting tco-policy %s", id)
 	deleteReq := &tcopolicies.DeletePolicyRequest{Id: wrapperspb.String(id)}
 	_, err := r.client.DeleteTCOPolicy(ctx, deleteReq)
 	for err != nil {

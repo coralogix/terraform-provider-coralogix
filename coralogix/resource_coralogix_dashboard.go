@@ -2360,7 +2360,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		Dashboard: dashboard,
 	}
 	dashboardStr := protojson.Format(createDashboardReq)
-	log.Printf("[INFO] Creating new Dashboard: %#v", dashboardStr)
+	log.Printf("[INFO] Creating new Dashboard: %s", dashboardStr)
 	_, err := r.client.CreateDashboard(ctx, createDashboardReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
@@ -2385,7 +2385,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 	createDashboardRespStr := protojson.Format(getDashboardResp.GetDashboard())
-	log.Printf("[INFO] Submitted new Dashboard: %#v", createDashboardRespStr)
+	log.Printf("[INFO] Submitted new Dashboard: %s", createDashboardRespStr)
 
 	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp.GetDashboard())
 	if diags.HasError() {
@@ -7356,15 +7356,14 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
-			reqStr := protojson.Format(getDashboardReq)
 			resp.Diagnostics.AddError(
 				"Error reading Dashboard",
-				formatRpcErrors(err, getDashboardURL, reqStr),
+				formatRpcErrors(err, getDashboardURL, protojson.Format(getDashboardReq)),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Dashboard: %#v", getDashboardResp)
+	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
 
 	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp.GetDashboard())
 	if diags != nil {

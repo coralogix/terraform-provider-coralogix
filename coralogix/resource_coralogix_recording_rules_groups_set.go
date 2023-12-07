@@ -374,10 +374,10 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 		return
 	}
 	id := createResp.GetId()
-	log.Printf("[INFO] Submitted new recording-rule-group-set id: %#v", id)
+	log.Printf("[INFO] Submitted new recording-rule-group-set id: %s", id)
 	plan.ID = types.StringValue(id)
 
-	log.Printf("[INFO] Reading recording-rule-group-set id: %#v", id)
+	log.Printf("[INFO] Reading recording-rule-group-set id: %s", id)
 	getResp, err := r.client.GetRecordingRuleGroupsSet(ctx, &rrgs.FetchRuleGroupSet{Id: id})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
@@ -594,7 +594,7 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		return
 	}
 
-	log.Printf("[INFO] Reading recording-rule-group-set id: %#v", plan.ID.ValueString())
+	log.Printf("[INFO] Reading recording-rule-group-set id: %s", plan.ID.ValueString())
 	getReq := &rrgs.FetchRuleGroupSet{Id: plan.ID.ValueString()}
 	getResp, err := r.client.GetRecordingRuleGroupsSet(ctx, getReq)
 	if err != nil {

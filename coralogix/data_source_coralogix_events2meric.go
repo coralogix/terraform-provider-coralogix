@@ -85,7 +85,7 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 		}
 		return
 	}
-	log.Printf("[INFO] Received Events2metric: %#v", getE2MResp)
+	log.Printf("[INFO] Received Events2metric: %s", protojson.Format(getE2MResp))
 
 	data = flattenE2M(ctx, getE2MResp.GetE2M())
 

@@ -42,7 +42,7 @@ func dataSourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.Errorf(formatRpcErrors(err, getAlertURL, reqStr))
 	}
 	alert := alertResp.GetAlert()
-	log.Printf("[INFO] Received alert: %#v", alert)
+	log.Printf("[INFO] Received alert: %s", protojson.Format(alert))
 
 	d.SetId(alert.GetId().GetValue())
 

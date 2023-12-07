@@ -176,21 +176,21 @@ func resourceCoralogixEnrichmentCreate(ctx context.Context, d *schema.ResourceDa
 	if err != nil {
 		return diag.FromErr(err)
 	}
-	log.Printf("[INFO] Creating new enrichment: %#v", enrichmentReq)
 	createReq := &enrichment.AddEnrichmentsRequest{RequestEnrichments: enrichmentReq}
+	log.Printf("[INFO] Creating new enrichment: %s", protojson.Format(createReq))
 	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().CreateEnrichments(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		return diag.Errorf(formatRpcErrors(err, createEnrichmentsURL, protojson.Format(createReq)))
 	}
-	log.Printf("[INFO] Submitted new enrichment: %#v", enrichmentResp)
+	log.Printf("[INFO] Submitted new enrichment: %s", protojson.Format(&enrichment.AddEnrichmentsResponse{Enrichments: enrichmentResp}))
 	d.SetId(enrichmentTypeOrCustomId)
 	return resourceCoralogixEnrichmentRead(ctx, d, meta)
 }
 
 func resourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	enrichmentType, customId := extractEnrichmentTypeAndCustomId(d)
-	log.Print("[INFO] Reading enrichment")
+	log.Printf("[INFO] Reading enrichment %s", customId)
 	var enrichmentResp []*enrichment.Enrichment
 	var err error
 	if customId == "" {
@@ -212,7 +212,7 @@ func resourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData
 		return diag.Errorf(formatRpcErrors(err, getEnrichmentsURL, protojson.Format(&enrichment.GetEnrichmentsRequest{})))
 
 	}
-	log.Printf("[INFO] Received enrichment: %#v", enrichmentResp)
+	log.Printf("[INFO] Received enrichment: %s", enrichmentResp)
 	return setEnrichment(d, enrichmentType, enrichmentResp)
 }
 
@@ -272,11 +272,11 @@ func resourceCoralogixEnrichmentUpdate(ctx context.Context, d *schema.ResourceDa
 
 func resourceCoralogixEnrichmentDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
-	log.Printf("[INFO] Deleting enrichment %s\n", id)
+	log.Printf("[INFO] Deleting enrichment %s", id)
 	if id == "geo_ip" || id == "suspicious_ip" || id == "aws" {
 		enrichments, err := meta.(*clientset.ClientSet).Enrichments().GetEnrichmentsByType(ctx, id)
 		if err != nil {
-			log.Printf("[ERROR] Received error: %#v\n", err)
+			log.Printf("[ERROR] Received error: %#v", err)
 			return diag.Errorf(formatRpcErrors(err, getEnrichmentsURL, protojson.Format(&enrichment.GetEnrichmentsRequest{})))
 		}
 		enrichmentIds := make([]*wrapperspb.UInt32Value, 0, len(enrichments))
@@ -297,7 +297,7 @@ func resourceCoralogixEnrichmentDelete(ctx context.Context, d *schema.ResourceDa
 		}
 	}
 
-	log.Printf("[INFO] enrichment %s deleted\n", id)
+	log.Printf("[INFO] enrichment %s deleted", id)
 
 	d.SetId("")
 	return nil
