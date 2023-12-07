@@ -507,25 +507,6 @@ func uint32ToStr(n uint32) string {
 	return strconv.FormatUint(uint64(n), 10)
 }
 
-//func urlValidationFunc() schema.SchemaValidateDiagFunc {
-//	return func(v interface{}, _ cty.Path) diag.Diagnostics {
-//		if _, err := url.ParseRequestURI(v.(string)); err != nil {
-//			return diag.Errorf("%s in not valid url - %s", v.(string), err.Error())
-//		}
-//		return nil
-//	}
-//}
-//
-//func jsonValidationFuncWithDiagnostics() schema.SchemaValidateDiagFunc {
-//	return func(v interface{}, _ cty.Path) diag.Diagnostics {
-//		var m map[string]interface{}
-//		if err := json.Unmarshal([]byte(v.(string)), &m); err != nil {
-//			return diag.Errorf("%s in not valid json - %s", v.(string), err.Error())
-//		}
-//		return nil
-//	}
-//}
-
 type urlValidationFuncFramework struct {
 }
 
@@ -563,10 +544,6 @@ func RandStringBytes(n int) string {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
 	return string(b)
-}
-
-func SuppressEquivalentJSONDiffs(k, old, new string, d *schema.ResourceData) bool {
-	return JSONStringsEqual(old, new)
 }
 
 func JSONStringsEqual(s1, s2 string) bool {
