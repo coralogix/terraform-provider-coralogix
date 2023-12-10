@@ -336,43 +336,43 @@ DEVELOPERS:
 * using grpc endpoint instead of the REST endpoint.
 * moved to `plugin-framework`.
 
-Release 1.8.0
+## Release 1.8.0
 Breaking Changes:
 #### resource/coralogix_dashboard
 * schemas where changed to support the new dashboard widgets and more convenient schema.
 
-Release 1.8.6
+## Release 1.8.6
 New Features:
 #### resource/coralogix_alert
 * Adding support for `flow.group_by`.
 
-Release 1.8.10
+## Release 1.8.10
 New Features:
 #### resource/coralogix_dashboard
 * Adding limitation for `layout.sections` length (will support few sections in the future).
 * is_visible is true by default (for all is_visible fields).
 * Removing `gauge.query.logs/spans.aggregation` from schema.
 
-Release 1.8.11
+## Release 1.8.11
 New Features:
 #### resource/coralogix_dashboard
 * Adding support for `markdown` and `horizonal_bar_chart` widgets.
 * Adding support for `color_scheme` and `sort_by` for `bar_chart`.
 
-Release 1.9.0
+## Release 1.9.0
 Breaking Changes:
 #### resource/coralogix_webhook
 * All webhook types changed from `TypeList` to `SingleNestedAttribute` e.g. - `slack { }` => `slack = { }`.
 * Linkage between webhook and alert was changed from webhook's `id` to webhook's `external_id`. e.g.- `integration_id = coralogix_webhook.slack_webhook.id` => `integration_id = coralogix_webhook.slack_webhook.external_id`
 
-Release 1.10.0
+## Release 1.10.0
 Breaking Changes:
 #### resource/coralogix_recording_rules_groups_set
 * `group` was changed to `groups` and from `TypeSet` to `SetNestedAttribute`. e.g. - `group { }` => `groups = [{ }]`.
 * `group.rule` was changed to `groups.rules` and from `TypeList` to `ListNestedAttribute`. e.g. - `rule { }` => `rules = [{ }]`.
 * this version contains a [State Upgrader](https://developer.hashicorp.com/terraform/plugin/framework/migrating/resources/state-upgrade#framework). It will upgrade the state to the new schema. Please make sure to back up your state before upgrading.
 
-Release 1.10.4
+## Release 1.10.4
 Breaking Changes:
 #### resource/coralogix_tco_policy_overrides
-* the resource was deprecated.
+* the resource was deprecated and removed.
