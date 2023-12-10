@@ -7,6 +7,11 @@ import (
 	"regexp"
 	"strings"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
@@ -25,8 +30,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 )
 
 var (
@@ -293,23 +296,37 @@ func (r *TCOPolicyTracesResource) Create(ctx context.Context, req resource.Creat
 		resp.Diagnostics = diags
 		return
 	}
-	policyStr, _ := jsm.MarshalToString(createPolicyRequest)
+	policyStr := protojson.Format(createPolicyRequest)
 	log.Printf("[INFO] Creating new tco-policy: %s", policyStr)
 	createResp, err := r.client.CreateTCOPolicy(ctx, createPolicyRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error creating tco-policy",
-			"Could not create tco-policy, unexpected error: "+err.Error(),
+			formatRpcErrors(err, createTCOPolicyURL, policyStr),
 		)
 		return
 	}
 	policy := createResp.GetPolicy()
-	policyStr, _ = jsm.MarshalToString(policy)
-	log.Printf("[INFO] Submitted new tco-policy: %#v", policy)
+	policyStr = protojson.Format(policy)
+	log.Printf("[INFO] Submitted new tco-policy: %s", policyStr)
 	plan.ID = types.StringValue(createResp.GetPolicy().GetId().GetValue())
-	updatePoliciesOrder(ctx, r.client, plan.ID.ValueString(), int(plan.Order.ValueInt64()), tcopolicies.SourceType_SOURCE_TYPE_SPANS)
-
+	id := plan.ID.ValueString()
+	order := int(plan.Order.ValueInt64())
+	err, reqStr := updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_SPANS)
+	for err != nil {
+		log.Printf("[ERROR] Received error: %#v", err)
+		if retryableStatusCode(status.Code(err)) {
+			log.Print("[INFO] Retrying to reorder tco-policies")
+			err, reqStr = updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_SPANS)
+			continue
+		}
+		resp.Diagnostics.AddError(
+			"Error Reordering tco-policy",
+			formatRpcErrors(err, updateTCOPoliciesOrderURL, reqStr),
+		)
+		return
+	}
 	policy.Order = wrapperspb.Int32(int32(plan.Order.ValueInt64()))
 	plan, diags = flattenTCOPolicyTraces(ctx, policy)
 	if diags.HasError() {
@@ -332,7 +349,8 @@ func (r *TCOPolicyTracesResource) Read(ctx context.Context, req resource.ReadReq
 	//Get refreshed tco-policy value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading tco-policy: %s", id)
-	getPolicyResp, err := r.client.GetTCOPolicy(ctx, &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)})
+	getPolicyReq := &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)}
+	getPolicyResp, err := r.client.GetTCOPolicy(ctx, getPolicyReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -342,15 +360,16 @@ func (r *TCOPolicyTracesResource) Read(ctx context.Context, req resource.ReadReq
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr := protojson.Format(getPolicyReq)
 			resp.Diagnostics.AddError(
 				"Error reading tco-policy",
-				handleRpcErrorNewFramework(err, "tco-policy"),
+				formatRpcErrors(err, getTCOPolicyURL, reqStr),
 			)
 		}
 		return
 	}
 	policy := getPolicyResp.GetPolicy()
-	log.Printf("[INFO] Received tco-policy: %#v", policy)
+	log.Printf("[INFO] Received tco-policy: %s", protojson.Format(policy))
 
 	state, diags = flattenTCOPolicyTraces(ctx, policy)
 	if diags.HasError() {
@@ -376,23 +395,37 @@ func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.Update
 		resp.Diagnostics = diags
 		return
 	}
-	log.Printf("[INFO] Updating tco-policy: %#v", policyUpdateReq)
+	log.Printf("[INFO] Updating tco-policy: %s", protojson.Format(policyUpdateReq))
 	policyUpdateResp, err := r.client.UpdateTCOPolicy(ctx, policyUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error updating tco-policy",
-			"Could not update tco-policy, unexpected error: "+err.Error(),
+			formatRpcErrors(err, updateTCOPolicyURL, protojson.Format(policyUpdateReq)),
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted updated tco-policy: %#v", policyUpdateResp)
+	log.Printf("[INFO] Submitted updated tco-policy: %s", protojson.Format(policyUpdateResp))
 
-	updatePoliciesOrder(ctx, r.client, plan.ID.ValueString(), int(plan.Order.ValueInt64()), tcopolicies.SourceType_SOURCE_TYPE_SPANS)
+	id := plan.ID.ValueString()
+	order := int(plan.Order.ValueInt64())
+	err, reqStr := updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_SPANS)
+	for err != nil {
+		log.Printf("[ERROR] Received error: %#v", err)
+		if retryableStatusCode(status.Code(err)) {
+			log.Print("[INFO] Retrying to reorder tco-policies")
+			err, reqStr = updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_SPANS)
+			continue
+		}
+		resp.Diagnostics.AddError(
+			"Error Reordering tco-policy",
+			formatRpcErrors(err, updateTCOPoliciesOrderURL, reqStr),
+		)
+	}
 
 	// Get refreshed tco-policy value from Coralogix
-	id := plan.ID.ValueString()
-	getPolicyResp, err := r.client.GetTCOPolicy(ctx, &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)})
+	getPolicyReq := &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)}
+	getPolicyResp, err := r.client.GetTCOPolicy(ctx, getPolicyReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -404,12 +437,12 @@ func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.Update
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading tco-policy",
-				handleRpcErrorNewFramework(err, "tco-policy"),
+				formatRpcErrors(err, getTCOPolicyURL, protojson.Format(getPolicyReq)),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received tco-policy: %#v", getPolicyResp)
+	log.Printf("[INFO] Received tco-policy: %s", getPolicyResp)
 
 	plan, diags = flattenTCOPolicyTraces(ctx, getPolicyResp.GetPolicy())
 	if diags.HasError() {
@@ -430,15 +463,16 @@ func (r TCOPolicyTracesResource) Delete(ctx context.Context, req resource.Delete
 	}
 
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting tco-policy %s\n", id)
-	if _, err := r.client.DeleteTCOPolicy(ctx, &tcopolicies.DeletePolicyRequest{Id: wrapperspb.String(id)}); err != nil {
+	deleteReq := &tcopolicies.DeletePolicyRequest{Id: wrapperspb.String(id)}
+	log.Printf("[INFO] Deleting tco-policy %s", id)
+	if _, err := r.client.DeleteTCOPolicy(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting tco-policy %s", state.ID.ValueString()),
-			handleRpcErrorNewFramework(err, "tco-policy"),
+			fmt.Sprintf("Error Deleting tco-policy %s", id),
+			formatRpcErrors(err, deleteTCOPolicyURL, protojson.Format(deleteReq)),
 		)
 		return
 	}
-	log.Printf("[INFO] tco-policy %s deleted\n", id)
+	log.Printf("[INFO] tco-policy %s deleted", id)
 }
 
 func flattenTCOPolicyTraces(ctx context.Context, policy *tcopolicies.Policy) (*TCOPolicyTracesResourceModel, diag.Diagnostics) {

@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	rrgs "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups-sets/v1"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -23,14 +28,16 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v3"
-	"terraform-provider-coralogix/coralogix/clientset"
-	rrgs "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups-sets/v1"
 )
 
 var (
-	_ resource.ResourceWithConfigure    = &RecordingRuleGroupSetResource{}
-	_ resource.ResourceWithImportState  = &RecordingRuleGroupSetResource{}
-	_ resource.ResourceWithUpgradeState = &RecordingRuleGroupSetResource{}
+	_                  resource.ResourceWithConfigure    = &RecordingRuleGroupSetResource{}
+	_                  resource.ResourceWithImportState  = &RecordingRuleGroupSetResource{}
+	_                  resource.ResourceWithUpgradeState = &RecordingRuleGroupSetResource{}
+	createRuleGroupURL                                   = "rule_manager.groups.RuleGroupSets/Create"
+	getRuleGroupURL                                      = "rule_manager.groups.RuleGroupSets/Fetch"
+	updateRuleGroupURL                                   = "rule_manager.groups.RuleGroupSets/Update"
+	deleteRuleGroupURL                                   = "rule_manager.groups.RuleGroupSets/Delete"
 )
 
 func NewRecordingRuleGroupSetResource() resource.Resource {
@@ -355,23 +362,22 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	rrgStr, _ := jsm.MarshalToString(createRequest)
-	log.Printf("[INFO] Creating new recogring-rule-group-set: %s", rrgStr)
+	log.Printf("[INFO] Creating new recogring-rule-group-set: %s", protojson.Format(createRequest))
 
 	createResp, err := r.client.CreateRecordingRuleGroupsSet(ctx, createRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error creating recording-rule-group-set",
-			"Could not create recording-rule-group-set, unexpected error: "+err.Error(),
+			formatRpcErrors(err, createRuleGroupURL, protojson.Format(createRequest)),
 		)
 		return
 	}
 	id := createResp.GetId()
-	log.Printf("[INFO] Submitted new recording-rule-group-set id: %#v", id)
+	log.Printf("[INFO] Submitted new recording-rule-group-set id: %s", id)
 	plan.ID = types.StringValue(id)
 
-	log.Printf("[INFO] Reading recording-rule-group-set id: %#v", id)
+	log.Printf("[INFO] Reading recording-rule-group-set id: %s", id)
 	getResp, err := r.client.GetRecordingRuleGroupsSet(ctx, &rrgs.FetchRuleGroupSet{Id: id})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
@@ -383,14 +389,13 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
-				handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+				formatRpcErrors(err, getRuleGroupURL, protojson.Format(createRequest)),
 			)
 		}
 		return
 	}
 
-	rrgStr, _ = jsm.MarshalToString(getResp)
-	log.Printf("[INFO] Received recogring-rule-group-set: %s", rrgStr)
+	log.Printf("[INFO] Received recogring-rule-group-set: %s", protojson.Format(getResp))
 
 	plan, diags = flattenRecordingRuleGroupSet(ctx, plan, getResp)
 	if diags.HasError() {
@@ -536,7 +541,8 @@ func (r *RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.R
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading recording-rule-group-set id: %s", id)
-	getResp, err := r.client.GetRecordingRuleGroupsSet(ctx, &rrgs.FetchRuleGroupSet{Id: id})
+	getReq := &rrgs.FetchRuleGroupSet{Id: id}
+	getResp, err := r.client.GetRecordingRuleGroupsSet(ctx, getReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -547,7 +553,7 @@ func (r *RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.R
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
-				handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+				formatRpcErrors(err, getRuleGroupURL, protojson.Format(getReq)),
 			)
 		}
 		return
@@ -576,21 +582,21 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	rrgStr, _ := jsm.MarshalToString(updateRequest)
-	log.Printf("[INFO] Updating recording-rule-group-set: %s", rrgStr)
+	log.Printf("[INFO] Updating recording-rule-group-set: %s", protojson.Format(updateRequest))
 
 	_, err := r.client.UpdateRecordingRuleGroupsSet(ctx, updateRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error updating recording-rule-group-set",
-			handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+			formatRpcErrors(err, updateRuleGroupURL, protojson.Format(updateRequest)),
 		)
 		return
 	}
 
-	log.Printf("[INFO] Reading recording-rule-group-set id: %#v", plan.ID.ValueString())
-	getResp, err := r.client.GetRecordingRuleGroupsSet(ctx, &rrgs.FetchRuleGroupSet{Id: plan.ID.ValueString()})
+	log.Printf("[INFO] Reading recording-rule-group-set id: %s", plan.ID.ValueString())
+	getReq := &rrgs.FetchRuleGroupSet{Id: plan.ID.ValueString()}
+	getResp, err := r.client.GetRecordingRuleGroupsSet(ctx, getReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -601,7 +607,7 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
-				handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+				formatRpcErrors(err, getRuleGroupURL, protojson.Format(getReq)),
 			)
 		}
 		return
@@ -626,7 +632,8 @@ func (r *RecordingRuleGroupSetResource) Delete(ctx context.Context, req resource
 	}
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting recording-rule-group-set id: %s", id)
-	_, err := r.client.DeleteRecordingRuleGroupsSet(ctx, &rrgs.DeleteRuleGroupSet{Id: id})
+	deleteReq := &rrgs.DeleteRuleGroupSet{Id: id}
+	_, err := r.client.DeleteRecordingRuleGroupsSet(ctx, deleteReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -637,7 +644,7 @@ func (r *RecordingRuleGroupSetResource) Delete(ctx context.Context, req resource
 		} else {
 			resp.Diagnostics.AddError(
 				"Error deleting recording-rule-group-set",
-				handleRpcErrorNewFramework(err, "recording-rule-group-set"),
+				formatRpcErrors(err, deleteRuleGroupURL, protojson.Format(deleteReq)),
 			)
 		}
 		return

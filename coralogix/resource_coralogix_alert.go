@@ -9,11 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/jsonpb"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	alerts "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v2"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	. "github.com/ahmetalpbalkan/go-linq"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -166,6 +168,10 @@ var (
 		alerts.EvaluationWindow_EVALUATION_WINDOW_DYNAMIC:                "Dynamic",
 	}
 	validEvaluationWindow = []string{"Rolling", "Dynamic"}
+	getAlertURL           = "com.coralogix.alerts.v2.AlertService/CreateAlert"
+	createAlertURL        = "com.coralogix.alerts.v2.AlertService/GetAlertByUniqueId"
+	updateAlertURL        = "com.coralogix.alerts.v2.AlertService/UpdateAlertByUniqueId"
+	deleteAlertURL        = "com.coralogix.alerts.v2.AlertService/DeleteAlertByUniqueId"
 )
 
 type alertParams struct {
@@ -1440,18 +1446,17 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 		return diags
 	}
 
-	createAlertStr, _ := jsm.MarshalToString(createAlertRequest)
+	createAlertStr := protojson.Format(createAlertRequest)
 	log.Printf("[INFO] Creating new alert: %s", createAlertStr)
 	AlertResp, err := meta.(*clientset.ClientSet).Alerts().CreateAlert(ctx, createAlertRequest)
 
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "alert")
+		return diag.Errorf(formatRpcErrors(err, createAlertStr, createAlertStr))
 	}
 
 	alert := AlertResp.GetAlert()
-	alertStr, _ := jsm.MarshalToString(alert)
-	log.Printf("[INFO] Submitted new alert: %s", alertStr)
+	log.Printf("[INFO] Submitted new alert: %s", protojson.Format(alert))
 	d.SetId(alert.GetUniqueIdentifier().GetValue())
 
 	return resourceCoralogixAlertRead(ctx, d, meta)
@@ -1475,11 +1480,10 @@ func resourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, met
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		return handleRpcErrorWithID(err, "alert", id.GetValue())
+		return diag.Errorf(formatRpcErrors(err, getAlertURL, protojson.Format(getAlertRequest)))
 	}
 	alert := alertResp.GetAlert()
-	jsm := jsonpb.Marshaler{}
-	alertStr, _ := jsm.MarshalToString(alert)
+	alertStr := protojson.Format(alert)
 	log.Printf("[INFO] Received alert: %s", alertStr)
 
 	return setAlert(d, alert)
@@ -1491,18 +1495,17 @@ func resourceCoralogixAlertUpdate(ctx context.Context, d *schema.ResourceData, m
 		return diags
 	}
 
-	id := d.Id()
 	updateAlertRequest := &alerts.UpdateAlertByUniqueIdRequest{
 		Alert: req,
 	}
-	updateAlertStr, _ := jsm.MarshalToString(updateAlertRequest)
+	updateAlertStr := protojson.Format(updateAlertRequest)
 	log.Printf("[INFO] Updating alert %s", updateAlertStr)
 	alertResp, err := meta.(*clientset.ClientSet).Alerts().UpdateAlert(ctx, updateAlertRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcErrorWithID(err, "alert", id)
+		return diag.Errorf(formatRpcErrors(err, updateAlertURL, updateAlertStr))
 	}
-	updateAlertStr, _ = jsm.MarshalToString(alertResp)
+	updateAlertStr = protojson.Format(alertResp)
 	log.Printf("[INFO] Submitted updated alert: %s", updateAlertStr)
 	d.SetId(alertResp.GetAlert().GetUniqueIdentifier().GetValue())
 
@@ -1515,13 +1518,13 @@ func resourceCoralogixAlertDelete(ctx context.Context, d *schema.ResourceData, m
 		Id: id,
 	}
 
-	log.Printf("[INFO] Deleting alert %s\n", id)
+	log.Printf("[INFO] Deleting alert %s", id)
 	_, err := meta.(*clientset.ClientSet).Alerts().DeleteAlert(ctx, deleteAlertRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v\n", err)
-		return handleRpcErrorWithID(err, "alert", id.GetValue())
+		return diag.Errorf(formatRpcErrors(err, getAlertURL, protojson.Format(deleteAlertRequest)))
 	}
-	log.Printf("[INFO] alert %s deleted\n", id)
+	log.Printf("[INFO] alert %s deleted", id)
 
 	d.SetId("")
 	return nil

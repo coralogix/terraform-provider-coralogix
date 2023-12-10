@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	sli "terraform-provider-coralogix/coralogix/clientset/grpc/sli"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -22,8 +27,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	sli "terraform-provider-coralogix/coralogix/clientset/grpc/sli"
 )
 
 var (
@@ -62,7 +65,6 @@ var (
 		sli.SloStatusType_SLO_STATUS_TYPE_BREACHED:    "breached",
 	}
 	sliSchemaToProtoSloStatusType = ReverseMap(sliProtoToSchemaSloStatusType)
-	sliValidSloStatusTypes        = GetKeys(sliSchemaToProtoSloStatusType)
 	sliProtoToSchemaTimeUnitType  = map[sli.TimeUnitType]string{
 		sli.TimeUnitType_TIME_UNIT_TYPE_UNSPECIFIED: "unspecified",
 		sli.TimeUnitType_TIME_UNIT_TYPE_MICROSECOND: "microsecond",
@@ -81,6 +83,10 @@ var (
 	}
 	sliSchemaToProtoCompareType = ReverseMap(sliProtoToSchemaCompareType)
 	sliValidCompareTypes        = GetKeys(sliSchemaToProtoCompareType)
+	createSliURL                = "com.coralogix.catalog.v1.SliService/CreateSli"
+	getSliURL                   = "com.coralogix.catalog.v1.SliService/GetSli"
+	updateSliURL                = "com.coralogix.catalog.v1.SliService/UpdateSli"
+	deleteSliURL                = "com.coralogix.catalog.v1.SliService/DeleteSli"
 )
 
 func NewSLIResource() resource.Resource {
@@ -191,6 +197,9 @@ func (r *SLIResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 						},
 						"compare_type": schema.StringAttribute{
 							Required: true,
+							Validators: []validator.String{
+								stringvalidator.OneOf(sliValidCompareTypes...),
+							},
 						},
 						"field_values": schema.ListAttribute{
 							Required:    true,
@@ -281,20 +290,18 @@ func (r *SLIResource) Create(ctx context.Context, req resource.CreateRequest, re
 		resp.Diagnostics = diags
 		return
 	}
-	sliStr, _ := jsm.MarshalToString(createSLIRequest)
-	log.Printf("[INFO] Creating new SLI: %s", sliStr)
+	log.Printf("[INFO] Creating new SLI: %s", protojson.Format(createSLIRequest))
 	createResp, err := r.client.CreateSLI(ctx, createSLIRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error creating SLI",
-			"Could not create SLI, unexpected error: "+err.Error(),
+			formatRpcErrors(err, createSliURL, protojson.Format(createSLIRequest)),
 		)
 		return
 	}
 	sli := createResp.GetSli()
-	sliStr, _ = jsm.MarshalToString(sli)
-	log.Printf("[INFO] Submitted new SLI: %#v", sliStr)
+	log.Printf("[INFO] Submitted new SLI: %s", protojson.Format(sli))
 	plan.ID = types.StringValue(sli.GetSliId().GetValue())
 	plan, diags = flattenSLI(ctx, sli)
 	if diags.HasError() {
@@ -466,7 +473,8 @@ func (r *SLIResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 	id := state.ID.ValueString()
 	serviceName := state.ServiceName.ValueString()
 	log.Printf("[INFO] Reading SLIs of service: %s", serviceName)
-	getSLIsResp, err := r.client.GetSLIs(ctx, &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)})
+	getSliReq := &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)}
+	getSLIsResp, err := r.client.GetSLIs(ctx, getSliReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -478,7 +486,7 @@ func (r *SLIResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLI",
-				handleRpcErrorNewFramework(err, "SLI"),
+				formatRpcErrors(err, getSliURL, protojson.Format(getSliReq)),
 			)
 		}
 		return
@@ -500,7 +508,8 @@ func (r *SLIResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		return
 	}
 
-	log.Printf("[INFO] Received SLI: %#v", *SLI)
+	sliStr := protojson.Format(SLI)
+	log.Printf("[INFO] Received SLI: %s", sliStr)
 
 	state, diags = flattenSLI(ctx, SLI)
 	if diags.HasError() {
@@ -526,22 +535,25 @@ func (r *SLIResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		resp.Diagnostics = diags
 		return
 	}
-	log.Printf("[INFO] Updating SLI: %#v", SLI)
-	sliUpdateResp, err := r.client.UpdateSLI(ctx, &sli.UpdateSliRequest{Sli: SLI})
+
+	updateSliReq := &sli.UpdateSliRequest{Sli: SLI}
+	log.Printf("[INFO] Updating SLI: %s", protojson.Format(updateSliReq))
+	updateSliResp, err := r.client.UpdateSLI(ctx, updateSliReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error updating SLI",
-			"Could not update SLI, unexpected error: "+err.Error(),
+			formatRpcErrors(err, updateSliURL, protojson.Format(updateSliReq)),
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted updated SLI: %#v", sliUpdateResp)
+	log.Printf("[INFO] Submitted updated SLI: %s", updateSliResp)
 
 	// Get refreshed SLI value from Coralogix
 	id := plan.ID.ValueString()
 	serviceName := plan.ServiceName.ValueString()
-	getSLIsResp, err := r.client.GetSLIs(ctx, &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)})
+	getSliReq := &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)}
+	getSLIsResp, err := r.client.GetSLIs(ctx, getSliReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -552,7 +564,7 @@ func (r *SLIResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLI",
-				handleRpcErrorNewFramework(err, "SLI"),
+				formatRpcErrors(err, getSliURL, protojson.Format(getSliReq)),
 			)
 		}
 		return
@@ -573,7 +585,7 @@ func (r *SLIResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		return
 	}
 
-	log.Printf("[INFO] Received SLI: %#v", *SLI)
+	log.Printf("[INFO] Received SLI: %s", protojson.Format(SLI))
 
 	plan, diags = flattenSLI(ctx, SLI)
 	if diags.HasError() {
@@ -596,10 +608,12 @@ func (r *SLIResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting SLI %s\n", id)
-	if _, err := r.client.DeleteSLI(ctx, &sli.DeleteSliRequest{SliId: wrapperspb.String(id)}); err != nil {
+	deleteReq := &sli.DeleteSliRequest{SliId: wrapperspb.String(id)}
+	if _, err := r.client.DeleteSLI(ctx, deleteReq); err != nil {
+		reqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting SLI %s", state.ID.ValueString()),
-			handleRpcErrorNewFramework(err, "SLI"),
+			formatRpcErrors(err, deleteSliURL, reqStr),
 		)
 		return
 	}

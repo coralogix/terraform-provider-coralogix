@@ -13,14 +13,12 @@ import (
 	"time"
 
 	gouuid "github.com/google/uuid"
-	"github.com/hashicorp/go-cty/cty"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	diag2 "github.com/hashicorp/terraform-plugin-framework/diag"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -35,37 +33,17 @@ var (
 	msInSecond = int(time.Second.Milliseconds())
 )
 
-func handleRpcError(err error, resource string) diag.Diagnostics {
+func formatRpcErrors(err error, url, requestStr string) string {
 	switch status.Code(err) {
 	case codes.PermissionDenied, codes.Unauthenticated:
-		return diag.Errorf("permission denied for %s endpoint, check your api-key", resource)
+		return fmt.Sprintf("permission denied for url - %s\ncheck your api-key and permissions", url)
 	case codes.Internal:
-		return diag.Errorf("internal error for %s in Coralogix backend - %s", resource, err)
+		return fmt.Sprintf("internal error in Coralogix backend - %s\nurl - %s request - %s", url, err, requestStr)
 	case codes.InvalidArgument:
-		return diag.Errorf("invalid argument for %s - %s", resource, err)
-	default:
-		return diag.FromErr(err)
-	}
-}
-
-func handleRpcErrorNewFramework(err error, resource string) string {
-	switch status.Code(err) {
-	case codes.PermissionDenied, codes.Unauthenticated:
-		return fmt.Sprintf("permission denied for %s endpoint, check your api-key", resource)
-	case codes.Internal:
-		return fmt.Sprintf("internal error for %s in Coralogix backend - %s", resource, err)
-	case codes.InvalidArgument:
-		return fmt.Sprintf("invalid argument for %s - %s", resource, err)
+		return fmt.Sprintf("invalid argument error - %s\nurl - %s request - %s", err, url, requestStr)
 	default:
 		return err.Error()
 	}
-}
-
-func handleRpcErrorWithID(err error, resource, id string) diag.Diagnostics {
-	if status.Code(err) == codes.NotFound {
-		return diag.Errorf("no %s with id %s found", resource, id)
-	}
-	return handleRpcError(err, resource)
 }
 
 // datasourceSchemaFromResourceSchema is a recursive func that
@@ -238,37 +216,6 @@ func convertAttribute(resourceAttribute resourceschema.Attribute) datasourcesche
 	}
 }
 
-//func convertBlocks(blocks map[string]resourceschema.Block) map[string]datasourceschema.Block {
-//	result := make(map[string]datasourceschema.Block, len(blocks))
-//	for k, v := range blocks {
-//		result[k] = convertBlock(v)
-//	}
-//	return result
-//}
-
-//func convertBlock(resourceBlock resourceschema.Block) datasourceschema.Block {
-//	switch block := resourceBlock.(type) {
-//	case resourceschema.ListNestedBlock:
-//		return datasourceschema.ListNestedBlock{
-//			NestedObject:
-//			Description:         attr.Description,
-//			MarkdownDescription: attr.MarkdownDescription,
-//		}
-//	case resourceschema.SetNestedBlock:
-//		return datasourceschema.SetNestedBlock{
-//			Description:         attr.Description,
-//			MarkdownDescription: attr.MarkdownDescription,
-//		}
-//	case resourceschema.SingleNestedBlock:
-//		return datasourceschema.SingleNestedBlock{
-//			Description:         attr.Description,
-//			MarkdownDescription: attr.MarkdownDescription,
-//		}
-//	default:
-//		panic(fmt.Sprintf("unknown resource block type: %T", resourceAttribute))
-//	}
-//}
-
 func interfaceSliceToStringSlice(s []interface{}) []string {
 	result := make([]string, 0, len(s))
 	for _, v := range s {
@@ -367,15 +314,26 @@ func typeBoolToWrapperspbBool(v types.Bool) *wrapperspb.BoolValue {
 	return wrapperspb.Bool(v.ValueBool())
 }
 
-func typeStringSliceToStringSlice(ctx context.Context, s []attr.Value) []string {
+func typeStringSliceToStringSlice(ctx context.Context, s []attr.Value) ([]string, diag2.Diagnostics) {
 	result := make([]string, 0, len(s))
+	var diags diag2.Diagnostics
 	for _, v := range s {
-		val, _ := v.ToTerraformValue(ctx)
+		val, err := v.ToTerraformValue(ctx)
+		if err != nil {
+			diags.AddError("Failed to convert value to Terraform", err.Error())
+			continue
+		}
 		var str string
-		val.As(&str)
+		if err = val.As(&str); err != nil {
+			diags.AddError("Failed to convert value to Terraform", err.Error())
+			continue
+		}
 		result = append(result, str)
 	}
-	return result
+	if diags.HasError() {
+		return nil, diags
+	}
+	return result, nil
 }
 
 func timeInDaySchema(description string) *schema.Schema {
@@ -508,14 +466,6 @@ func getKeysInt32(m map[string]int32) []string {
 	return result
 }
 
-func getKeysInt(m map[string]int) []string {
-	result := make([]string, 0)
-	for k := range m {
-		result = append(result, k)
-	}
-	return result
-}
-
 func getKeysRelativeTimeFrame(m map[string]protoTimeFrameAndRelativeTimeFrame) []string {
 	result := make([]string, 0)
 	for k := range m {
@@ -557,25 +507,6 @@ func uint32ToStr(n uint32) string {
 	return strconv.FormatUint(uint64(n), 10)
 }
 
-func urlValidationFunc() schema.SchemaValidateDiagFunc {
-	return func(v interface{}, _ cty.Path) diag.Diagnostics {
-		if _, err := url.ParseRequestURI(v.(string)); err != nil {
-			return diag.Errorf("%s in not valid url - %s", v.(string), err.Error())
-		}
-		return nil
-	}
-}
-
-func jsonValidationFuncWithDiagnostics() schema.SchemaValidateDiagFunc {
-	return func(v interface{}, _ cty.Path) diag.Diagnostics {
-		var m map[string]interface{}
-		if err := json.Unmarshal([]byte(v.(string)), &m); err != nil {
-			return diag.Errorf("%s in not valid json - %s", v.(string), err.Error())
-		}
-		return nil
-	}
-}
-
 type urlValidationFuncFramework struct {
 }
 
@@ -605,15 +536,6 @@ func (u urlValidationFuncFramework) ValidateString(ctx context.Context, req vali
 	}
 }
 
-//func urlValidationFuncFramework() schema.SchemaValidateDiagFunc {
-//	return func(v interface{}, _ cty.Path) diag.Diagnostics {
-//		if _, err := url.ParseRequestURI(v.(string)); err != nil {
-//			return diag.Errorf("%s in not valid url - %s", v.(string), err.Error())
-//		}
-//		return nil
-//	}
-//}
-
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 func RandStringBytes(n int) string {
@@ -622,10 +544,6 @@ func RandStringBytes(n int) string {
 		b[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
 	return string(b)
-}
-
-func SuppressEquivalentJSONDiffs(k, old, new string, d *schema.ResourceData) bool {
-	return JSONStringsEqual(old, new)
 }
 
 func JSONStringsEqual(s1, s2 string) bool {
@@ -768,4 +686,12 @@ func retryableStatusCode(statusCode codes.Code) bool {
 	default:
 		return false
 	}
+}
+
+func uint32SliceToWrappedUint32Slice(s []uint32) []*wrapperspb.UInt32Value {
+	result := make([]*wrapperspb.UInt32Value, 0, len(s))
+	for _, n := range s {
+		result = append(result, wrapperspb.UInt32(n))
+	}
+	return result
 }

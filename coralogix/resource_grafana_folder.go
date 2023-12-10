@@ -7,12 +7,13 @@ import (
 	"strconv"
 	"strings"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 func resourceGrafanaFolder() *schema.Resource {
@@ -157,7 +158,7 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", d.Id()),
 			}}
 		}
-		return handleRpcError(err, "grafana-folder")
+		return diag.Errorf(formatRpcErrors(err, fmt.Sprintf("/grafana/api/folders/%s", folder.UID), fmt.Sprintf("%#v", folder)))
 	}
 
 	d.SetId("")

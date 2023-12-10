@@ -10,10 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -21,7 +24,13 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-var fileContentLimit = int(1e6)
+var (
+	fileContentLimit = int(1e6)
+	createDataSetURL = "com.coralogix.enrichment.v1.CustomEnrichmentService/CreateCustomEnrichment"
+	getDataSetURL    = "com.coralogix.enrichment.v1.CustomEnrichmentService/GetCustomEnrichment"
+	updateDataSetURL = "com.coralogix.enrichment.v1.CustomEnrichmentService/UpdateCustomEnrichment"
+	deleteDataSetURL = "com.coralogix.enrichment.v1.CustomEnrichmentService/DeleteCustomEnrichment"
+)
 
 func resourceCoralogixDataSet() *schema.Resource {
 	return &schema.Resource{
@@ -111,15 +120,15 @@ func fileContentNoLongerThan(i interface{}, k string) ([]string, []error) {
 func resourceCoralogixDataSetCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	req, fileModificationTime, err := expandDataSetRequest(d)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "enrichment-data")
+		log.Printf("[ERROR] Received error while expanding enrichment-data: %#v", err)
+		return diag.FromErr(err)
 	}
-	log.Printf("[INFO] Creating new enrichment-data: %#v", req)
+	log.Printf("[INFO] Creating new enrichment-data: %s", protojson.Format(req))
 
 	resp, err := meta.(*clientset.ClientSet).DataSet().CreatDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "enrichment-data")
+		return diag.Errorf(formatRpcErrors(err, createDataSetURL, protojson.Format(req)))
 	}
 
 	if uploadedFile, ok := d.GetOk("uploaded_file"); ok {
@@ -157,10 +166,10 @@ func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, m
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		return handleRpcErrorWithID(err, "enrichment-data", id)
+		return diag.Errorf(formatRpcErrors(err, getDataSetURL, protojson.Format(req)))
 	}
 
-	log.Printf("[INFO] Received enrichment-data: %#v", DataSetResp)
+	log.Printf("[INFO] Received enrichment-data: %s", protojson.Format(DataSetResp))
 	return setDataSet(d, DataSetResp.GetCustomEnrichment())
 }
 
@@ -174,11 +183,11 @@ func resourceCoralogixDataSetUpdate(ctx context.Context, d *schema.ResourceData,
 	_, err = meta.(*clientset.ClientSet).DataSet().UpdateDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "enrichment-data")
+		return diag.Errorf(formatRpcErrors(err, getDataSetURL, protojson.Format(req)))
 	}
 
 	if uploadedFile, ok := d.GetOk("uploaded_file"); ok {
-		if err := setModificationTimeUploaded(d, uploadedFile, fileModificationTime); err != nil {
+		if err = setModificationTimeUploaded(d, uploadedFile, fileModificationTime); err != nil {
 			return diag.FromErr(err)
 		}
 	}
@@ -190,14 +199,14 @@ func resourceCoralogixDataSetDelete(ctx context.Context, d *schema.ResourceData,
 	id := d.Id()
 	req := &enrichment.DeleteCustomEnrichmentRequest{CustomEnrichmentId: wrapperspb.UInt32(strToUint32(id))}
 
-	log.Printf("[INFO] Deleting enrichment-data %s\n", id)
+	log.Printf("[INFO] Deleting enrichment-data %s", id)
 	_, err := meta.(*clientset.ClientSet).DataSet().DeleteDataSet(ctx, req)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v\n", err)
-		return handleRpcErrorWithID(err, "enrichment-data", id)
+		log.Printf("[ERROR] Received error: %#v", err)
+		return diag.Errorf(formatRpcErrors(err, deleteDataSetURL, protojson.Format(req)))
 	}
 
-	log.Printf("[INFO] enrichment-data %s deleted\n", id)
+	log.Printf("[INFO] enrichment-data %s deleted", id)
 
 	d.SetId("")
 	return nil

@@ -6,11 +6,12 @@ import (
 	"strconv"
 	"testing"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
+
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	"terraform-provider-coralogix/coralogix/clientset"
-	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )

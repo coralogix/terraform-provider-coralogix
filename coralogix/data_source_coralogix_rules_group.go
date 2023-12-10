@@ -7,6 +7,8 @@ import (
 	"terraform-provider-coralogix/coralogix/clientset"
 	v1 "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -34,8 +36,9 @@ func dataSourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceDa
 	log.Printf("[INFO] Reading rule-group %s", id)
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().GetRuleGroup(ctx, getRuleGroupRequest)
 	if err != nil {
+		reqStr := protojson.Format(getRuleGroupRequest)
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcErrorWithID(err, "rule-group", id)
+		return diag.Errorf(formatRpcErrors(err, getParsingRuleURL, reqStr))
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
 	log.Printf("[INFO] Received rule-group: %#v", ruleGroup)

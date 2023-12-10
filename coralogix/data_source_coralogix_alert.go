@@ -4,6 +4,8 @@ import (
 	"context"
 	"log"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"terraform-provider-coralogix/coralogix/clientset"
 	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v2"
 
@@ -35,11 +37,12 @@ func dataSourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, m
 	log.Printf("[INFO] Reading alert %s", id)
 	alertResp, err := meta.(*clientset.ClientSet).Alerts().GetAlert(ctx, getAlertRequest)
 	if err != nil {
+		reqStr := protojson.Format(getAlertRequest)
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcErrorWithID(err, "alert", id.GetValue())
+		return diag.Errorf(formatRpcErrors(err, getAlertURL, reqStr))
 	}
 	alert := alertResp.GetAlert()
-	log.Printf("[INFO] Received alert: %#v", alert)
+	log.Printf("[INFO] Received alert: %s", protojson.Format(alert))
 
 	d.SetId(alert.GetId().GetValue())
 

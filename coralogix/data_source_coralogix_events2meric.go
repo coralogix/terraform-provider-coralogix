@@ -5,14 +5,17 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
 )
 
 var _ datasource.DataSourceWithConfigure = &Events2MetricDataSource{}
@@ -46,10 +49,10 @@ func (d *Events2MetricDataSource) Configure(_ context.Context, req datasource.Co
 	d.client = clientSet.Events2Metrics()
 }
 
-func (d *Events2MetricDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *Events2MetricDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	var r Events2MetricResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(nil, resource.SchemaRequest{}, &resourceResp)
+	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
@@ -64,7 +67,8 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 	//Get refreshed Events2Metric value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading Events2metric: %s", id)
-	getE2MResp, err := d.client.GetEvents2Metric(ctx, &e2m.GetE2MRequest{Id: wrapperspb.String(id)})
+	getE2MReq := &e2m.GetE2MRequest{Id: wrapperspb.String(id)}
+	getE2MResp, err := d.client.GetEvents2Metric(ctx, getE2MReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -76,12 +80,12 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				handleRpcErrorNewFramework(err, "Events2metric"),
+				formatRpcErrors(err, getEvents2MetricURL, protojson.Format(getE2MReq)),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Events2metric: %#v", getE2MResp)
+	log.Printf("[INFO] Received Events2metric: %s", protojson.Format(getE2MResp))
 
 	data = flattenE2M(ctx, getE2MResp.GetE2M())
 

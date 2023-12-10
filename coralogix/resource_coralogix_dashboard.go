@@ -17,7 +17,6 @@ import (
 	"terraform-provider-coralogix/coralogix/clientset"
 	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -188,6 +187,10 @@ var (
 	dashboardValidSpanFieldTypes       = []string{"metadata", "tag", "process_tag"}
 	dashboardValidSpanAggregationTypes = []string{"metric", "dimension"}
 	dashboardValidColorSchemes         = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
+	createDashboardURL                 = "com.coralogixapis.dashboards.v1.services.DashboardsService/CreateDashboard"
+	getDashboardURL                    = "com.coralogixapis.dashboards.v1.services.DashboardsService/GetDashboard"
+	updateDashboardURL                 = "com.coralogixapis.dashboards.v1.services.DashboardsService/ReplaceDashboard"
+	deleteDashboardURL                 = "com.coralogixapis.dashboards.v1.services.DashboardsService/DeleteDashboard"
 )
 
 var (
@@ -2340,7 +2343,6 @@ func spansFilterSchema() schema.ListNestedAttribute {
 
 func (r DashboardResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
-	jsm := &jsonpb.Marshaler{}
 	var plan DashboardResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -2354,17 +2356,17 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	dashboardStr, _ := jsm.MarshalToString(dashboard)
-	log.Printf("[INFO] Creating new Dashboard: %#v", dashboardStr)
 	createDashboardReq := &dashboards.CreateDashboardRequest{
 		Dashboard: dashboard,
 	}
+	dashboardStr := protojson.Format(createDashboardReq)
+	log.Printf("[INFO] Creating new Dashboard: %s", dashboardStr)
 	_, err := r.client.CreateDashboard(ctx, createDashboardReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error creating Dashboard",
-			"Could not create Dashboard, unexpected error: "+err.Error(),
+			formatRpcErrors(err, createDashboardURL, dashboardStr),
 		)
 		return
 	}
@@ -2375,14 +2377,15 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	getDashboardResp, err := r.client.GetDashboard(ctx, getDashboardReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
+		reqStr := protojson.Format(getDashboardReq)
 		resp.Diagnostics.AddError(
 			"Error getting Dashboard",
-			"Could not create Dashboard, unexpected error: "+err.Error(),
+			formatRpcErrors(err, getDashboardURL, reqStr),
 		)
 		return
 	}
-	createDashboardRespStr, _ := jsm.MarshalToString(getDashboardResp.GetDashboard())
-	log.Printf("[INFO] Submitted new Dashboard: %#v", createDashboardRespStr)
+	createDashboardRespStr := protojson.Format(getDashboardResp.GetDashboard())
+	log.Printf("[INFO] Submitted new Dashboard: %s", createDashboardRespStr)
 
 	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp.GetDashboard())
 	if diags.HasError() {
@@ -4145,6 +4148,9 @@ func expandLineChartSpansQuery(ctx context.Context, spans *LineChartQuerySpansMo
 	}
 
 	groupBy, diags := expandSpansFields(ctx, spans.GroupBy)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	aggregations, diags := expandSpansAggregations(ctx, spans.Aggregations)
 	if diags.HasError() {
@@ -6432,6 +6438,9 @@ func flattenDataTableSpansQueryGrouping(ctx context.Context, grouping *dashboard
 	}
 
 	groupBy, diags := flattenSpansFields(ctx, grouping.GetGroupBy())
+	if diags.HasError() {
+		return nil, diags
+	}
 	return &DataTableSpansQueryGroupingModel{
 		Aggregations: aggregations,
 		GroupBy:      groupBy,
@@ -7336,7 +7345,8 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 	//Get refreshed Dashboard value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading Dashboard: %s", id)
-	getDashboardResp, err := r.client.GetDashboard(ctx, &dashboards.GetDashboardRequest{DashboardId: wrapperspb.String(id)})
+	getDashboardReq := &dashboards.GetDashboardRequest{DashboardId: wrapperspb.String(id)}
+	getDashboardResp, err := r.client.GetDashboard(ctx, getDashboardReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -7348,12 +7358,12 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Dashboard",
-				handleRpcErrorNewFramework(err, "Dashboard"),
+				formatRpcErrors(err, getDashboardURL, protojson.Format(getDashboardReq)),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Dashboard: %#v", getDashboardResp)
+	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
 
 	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp.GetDashboard())
 	if diags != nil {
@@ -7380,13 +7390,16 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Updating Dashboard: %#v", *dashboard)
-	_, err := r.client.UpdateDashboard(ctx, &dashboards.ReplaceDashboardRequest{Dashboard: dashboard})
+
+	updateReq := &dashboards.ReplaceDashboardRequest{Dashboard: dashboard}
+	reqStr := protojson.Format(updateReq)
+	log.Printf("[INFO] Updating Dashboard: %#v", reqStr)
+	_, err := r.client.UpdateDashboard(ctx, updateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error updating Dashboard",
-			"Could not update Dashboard, unexpected error: "+err.Error(),
+			formatRpcErrors(err, updateDashboardURL, reqStr),
 		)
 		return
 	}
@@ -7399,12 +7412,12 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error getting Dashboard",
-			"Could not create Dashboard, unexpected error: "+err.Error(),
+			formatRpcErrors(err, getDashboardURL, protojson.Format(getDashboardReq)),
 		)
 		return
 	}
 
-	updateDashboardRespStr, _ := jsm.MarshalToString(getDashboardResp.GetDashboard())
+	updateDashboardRespStr := protojson.Format(getDashboardResp.GetDashboard())
 	log.Printf("[INFO] Submitted updated Dashboard: %#v", updateDashboardRespStr)
 
 	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp.GetDashboard())
@@ -7429,10 +7442,11 @@ func (r *DashboardResource) Delete(ctx context.Context, req resource.DeleteReque
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting Dashboard %s", id)
-	if _, err := r.client.DeleteDashboard(ctx, &dashboards.DeleteDashboardRequest{DashboardId: wrapperspb.String(id)}); err != nil {
+	deleteReq := &dashboards.DeleteDashboardRequest{DashboardId: wrapperspb.String(id)}
+	if _, err := r.client.DeleteDashboard(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting Dashboard %s", state.ID.ValueString()),
-			handleRpcErrorNewFramework(err, "Dashboard"),
+			fmt.Sprintf("Error Deleting Dashboard %s", id),
+			formatRpcErrors(err, deleteDashboardURL, protojson.Format(deleteReq)),
 		)
 		return
 	}

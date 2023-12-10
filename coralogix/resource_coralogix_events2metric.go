@@ -6,7 +6,12 @@ import (
 	"log"
 	"regexp"
 
-	"github.com/golang/protobuf/jsonpb"
+	"terraform-provider-coralogix/coralogix/clientset"
+	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
+	l2m "terraform-provider-coralogix/coralogix/clientset/grpc/logs2metrics/v2"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
@@ -27,9 +32,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
-	l2m "terraform-provider-coralogix/coralogix/clientset/grpc/logs2metrics/v2"
 )
 
 var (
@@ -51,7 +53,11 @@ var (
 		e2m.E2MAggSamples_SAMPLE_TYPE_MIN: "Min",
 		e2m.E2MAggSamples_SAMPLE_TYPE_MAX: "Max",
 	}
-	validSampleTypes = []string{"Min", "Max"}
+	validSampleTypes       = []string{"Min", "Max"}
+	createEvents2MetricURL = "com.coralogixapis.events2metrics.v2.Events2MetricService/CreateE2M"
+	getEvents2MetricURL    = "com.coralogixapis.events2metrics.v2.Events2MetricService/GetE2M"
+	updateEvents2MetricURL = "com.coralogixapis.events2metrics.v2.Events2MetricService/ReplaceE2M"
+	deleteEvents2MetricURL = "com.coralogixapis.events2metrics.v2.Events2MetricService/DeleteE2M"
 )
 
 var (
@@ -819,28 +825,28 @@ func (r *Events2MetricResource) ConfigValidators(_ context.Context) []resource.C
 
 func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
-	jsm := &jsonpb.Marshaler{}
 	var plan Events2MetricResourceModel
 	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	e2mCreateReq := extractCreateE2M(ctx, plan)
-	e2mStr, _ := jsm.MarshalToString(e2mCreateReq)
-	log.Printf("[INFO] Creating new Events2metric: %#v", e2mStr)
+	e2mCreateReq, diags := extractCreateE2M(ctx, plan)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	log.Printf("[INFO] Creating new Events2metric: %s", protojson.Format(e2mCreateReq))
 	e2mCreateResp, err := r.client.CreateEvents2Metric(ctx, e2mCreateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error creating Events2Metric",
-			"Could not create Events2Metric, unexpected error: "+err.Error(),
+			formatRpcErrors(err, createEvents2MetricURL, protojson.Format(e2mCreateReq)),
 		)
-		return
 	}
-	e2mStr, _ = jsm.MarshalToString(e2mCreateResp)
-	log.Printf("[INFO] Submitted new Events2metric: %#v", e2mStr)
+	log.Printf("[INFO] Submitted new Events2metric: %s", protojson.Format(e2mCreateResp))
 
 	plan = flattenE2M(ctx, e2mCreateResp.GetE2M())
 
@@ -872,12 +878,12 @@ func (r *Events2MetricResource) Read(ctx context.Context, req resource.ReadReque
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				handleRpcErrorNewFramework(err, "Events2metric"),
+				formatRpcErrors(err, getEvents2MetricURL, protojson.Format(getE2MResp)),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Events2metric: %#v", getE2MResp)
+	log.Printf("[INFO] Received Events2metric: %s", protojson.Format(getE2MResp))
 
 	state = flattenE2M(ctx, getE2MResp.GetE2M())
 	//
@@ -899,13 +905,13 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Updating Events2metric: %#v", *e2mUpdateReq)
+	log.Printf("[INFO] Updating Events2metric: %s", protojson.Format(e2mUpdateReq))
 	e2mUpdateResp, err := r.client.UpdateEvents2Metric(ctx, e2mUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error updating Events2Metric",
-			"Could not update Events2Metric, unexpected error: "+err.Error(),
+			formatRpcErrors(err, updateEvents2MetricURL, protojson.Format(e2mUpdateReq)),
 		)
 		return
 	}
@@ -925,12 +931,12 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				handleRpcErrorNewFramework(err, "Events2metric"),
+				formatRpcErrors(err, getEvents2MetricURL, protojson.Format(e2mUpdateReq)),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Events2metric: %#v", getE2MResp)
+	log.Printf("[INFO] Received Events2metric: %s", protojson.Format(getE2MResp))
 
 	plan = flattenE2M(ctx, e2mUpdateResp.GetE2M())
 
@@ -948,11 +954,12 @@ func (r *Events2MetricResource) Delete(ctx context.Context, req resource.DeleteR
 	}
 
 	id := state.ID.ValueString()
+	deleteReq := &e2m.DeleteE2MRequest{Id: wrapperspb.String(id)}
 	log.Printf("[INFO] Deleting Events2metric %s\n", id)
-	if _, err := r.client.DeleteEvents2Metric(ctx, &e2m.DeleteE2MRequest{Id: wrapperspb.String(id)}); err != nil {
+	if _, err := r.client.DeleteEvents2Metric(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting Events2Metric %s", state.ID.ValueString()),
-			handleRpcErrorNewFramework(err, "Events2Metric"),
+			"Error Deleting Events2Metric",
+			formatRpcErrors(err, deleteEvents2MetricURL, protojson.Format(deleteReq)),
 		)
 		return
 	}
@@ -983,12 +990,15 @@ func flattenDescription(e2mDescription *wrapperspb.StringValue) types.String {
 	return types.StringValue(e2mDescription.GetValue())
 }
 
-func extractCreateE2M(ctx context.Context, plan Events2MetricResourceModel) *e2m.CreateE2MRequest {
+func extractCreateE2M(ctx context.Context, plan Events2MetricResourceModel) (*e2m.CreateE2MRequest, diag.Diagnostics) {
 	name := typeStringToWrapperspbString(plan.Name)
 	description := typeStringToWrapperspbString(plan.Description)
 	permutations := expandPermutations(plan.Permutations)
 	permutationsLimit := wrapperspb.Int32(permutations.GetLimit())
-	metricLabels := expandE2MLabels(ctx, plan.MetricLabels)
+	metricLabels, diags := expandE2MLabels(ctx, plan.MetricLabels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	metricFields := expandE2MFields(ctx, plan.MetricFields)
 
 	e2mParams := &e2m.E2MCreateParams{
@@ -999,7 +1009,6 @@ func extractCreateE2M(ctx context.Context, plan Events2MetricResourceModel) *e2m
 		MetricFields:      metricFields,
 	}
 
-	var diags diag.Diagnostics
 	if spansQuery := plan.SpansQuery; spansQuery != nil {
 		e2mParams.Type = e2m.E2MType_E2M_TYPE_SPANS2METRICS
 		e2mParams.Query, diags = expandSpansQuery(ctx, spansQuery)
@@ -1009,12 +1018,12 @@ func extractCreateE2M(ctx context.Context, plan Events2MetricResourceModel) *e2m
 	}
 
 	if diags.HasError() {
-		return nil
+		return nil, diags
 	}
 
 	return &e2m.CreateE2MRequest{
 		E2M: e2mParams,
-	}
+	}, nil
 }
 
 func expandPermutations(permutations *PermutationsModel) *e2m.E2MPermutations {
@@ -1032,7 +1041,10 @@ func extractUpdateE2M(ctx context.Context, plan Events2MetricResourceModel) (*e2
 	name := wrapperspb.String(plan.Name.ValueString())
 	description := wrapperspb.String(plan.Description.ValueString())
 	permutations := expandPermutations(plan.Permutations)
-	metricLabels := expandE2MLabels(ctx, plan.MetricLabels)
+	metricLabels, diags := expandE2MLabels(ctx, plan.MetricLabels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	metricFields := expandE2MFields(ctx, plan.MetricFields)
 
 	e2mParams := &e2m.E2M{
@@ -1044,7 +1056,6 @@ func extractUpdateE2M(ctx context.Context, plan Events2MetricResourceModel) (*e2
 		MetricFields: metricFields,
 	}
 
-	var diags diag.Diagnostics
 	if spansQuery := plan.SpansQuery; spansQuery != nil {
 		e2mParams.Type = e2m.E2MType_E2M_TYPE_SPANS2METRICS
 		e2mParams.Query, diags = expandUpdateSpansQuery(ctx, spansQuery)
@@ -1062,18 +1073,26 @@ func extractUpdateE2M(ctx context.Context, plan Events2MetricResourceModel) (*e2
 	}, nil
 }
 
-func expandE2MLabels(ctx context.Context, labels types.Map) []*e2m.MetricLabel {
+func expandE2MLabels(ctx context.Context, labels types.Map) ([]*e2m.MetricLabel, diag.Diagnostics) {
 	labelsMap := labels.Elements()
 	result := make([]*e2m.MetricLabel, 0, len(labelsMap))
+	var diags diag.Diagnostics
 	for targetField, value := range labelsMap {
 		v, _ := value.ToTerraformValue(ctx)
 		var sourceField string
-		v.As(&sourceField)
+		if err := v.As(&sourceField); err != nil {
+			diags.AddError("error expanding metric labels",
+				err.Error())
+			continue
+		}
 		label := expandE2MLabel(targetField, sourceField)
 		result = append(result, label)
 	}
+	if diags.HasError() {
+		return nil, diags
+	}
 
-	return result
+	return result, nil
 }
 
 func expandE2MLabel(targetLabel, sourceField string) *e2m.MetricLabel {
@@ -1163,19 +1182,19 @@ func expandBuckets(buckets []types.Float64) []float32 {
 func expandSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) (*e2m.E2MCreateParams_SpansQuery, diag.Diagnostics) {
 	lucene := typeStringToWrapperspbString(spansQuery.Lucene)
 	applications, diags := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Applications.Elements())
-	if diags != nil {
+	if diags.HasError() {
 		return nil, diags
 	}
 	subsystems, diags := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Subsystems.Elements())
-	if diags != nil {
+	if diags.HasError() {
 		return nil, diags
 	}
 	actions, diags := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Actions.Elements())
-	if diags != nil {
+	if diags.HasError() {
 		return nil, diags
 	}
 	services, diags := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Services.Elements())
-	if diags != nil {
+	if diags.HasError() {
 		return nil, diags
 	}
 
@@ -1200,7 +1219,10 @@ func expandLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) (*e2m.E2MCr
 	if diags.HasError() {
 		return nil, diags
 	}
-	severities := expandLogsQuerySeverities(ctx, logsQuery.Severities.Elements())
+	severities, diags := expandLogsQuerySeverities(ctx, logsQuery.Severities.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	return &e2m.E2MCreateParams_LogsQuery{
 		LogsQuery: &l2m.LogsQuery{
@@ -1245,14 +1267,17 @@ func expandUpdateSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) (*
 func expandUpdateLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) (*e2m.E2M_LogsQuery, diag.Diagnostics) {
 	searchQuery := wrapperspb.String(logsQuery.Lucene.ValueString())
 	applications, diags := typeStringSliceToWrappedStringSlice(ctx, logsQuery.Applications.Elements())
-	if diags != nil {
+	if diags.HasError() {
 		return nil, diags
 	}
 	subsystems, diags := typeStringSliceToWrappedStringSlice(ctx, logsQuery.Subsystems.Elements())
-	if diags != nil {
+	if diags.HasError() {
 		return nil, diags
 	}
-	severities := expandLogsQuerySeverities(ctx, logsQuery.Severities.Elements())
+	severities, diags := expandLogsQuerySeverities(ctx, logsQuery.Severities.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	return &e2m.E2M_LogsQuery{
 		LogsQuery: &l2m.LogsQuery{
@@ -1264,17 +1289,31 @@ func expandUpdateLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) (*e2m
 	}, nil
 }
 
-func expandLogsQuerySeverities(ctx context.Context, severities []attr.Value) []l2m.Severity {
+func expandLogsQuerySeverities(ctx context.Context, severities []attr.Value) ([]l2m.Severity, diag.Diagnostics) {
 	result := make([]l2m.Severity, 0, len(severities))
+	var diags diag.Diagnostics
 	for _, s := range severities {
-		v, _ := s.ToTerraformValue(ctx)
+		v, err := s.ToTerraformValue(ctx)
+		if err != nil {
+			diags.AddError("error expanding logs query severities",
+				err.Error())
+			continue
+		}
 		var str string
-		v.As(&str)
+		if err = v.As(&str); err != nil {
+			diags.AddError("error expanding logs query severities",
+				err.Error())
+			continue
+		}
 		severity := l2m.Severity(l2m.Severity_value[str])
 		result = append(result, severity)
 	}
 
-	return result
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return result, nil
 }
 
 func flattenE2MPermutations(permutations *e2m.E2MPermutations) *PermutationsModel {

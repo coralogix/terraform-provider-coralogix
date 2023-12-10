@@ -7,6 +7,8 @@ import (
 	"terraform-provider-coralogix/coralogix/clientset"
 	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 )
@@ -39,8 +41,9 @@ func dataSourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceDa
 		enrichmentResp, err = meta.(*clientset.ClientSet).Enrichments().GetCustomEnrichments(ctx, strToUint32(id))
 	}
 	if err != nil {
+		reqStr := protojson.Format(&enrichmentv1.GetEnrichmentsRequest{})
 		log.Printf("[ERROR] Received error: %#v", err)
-		return handleRpcError(err, "enrichment")
+		return diag.Errorf(formatRpcErrors(err, getEnrichmentsURL, reqStr))
 	}
 	log.Printf("[INFO] Received enrichment: %#v", enrichmentResp)
 	d.SetId(id)

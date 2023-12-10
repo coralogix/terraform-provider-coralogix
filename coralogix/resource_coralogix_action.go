@@ -5,7 +5,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/golang/protobuf/jsonpb"
+	"terraform-provider-coralogix/coralogix/clientset"
+	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -20,8 +24,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
 )
 
 var (
@@ -33,6 +35,10 @@ var (
 	}
 	actionProtoSourceTypeToSchemaSourceType = ReverseMap(actionSchemaSourceTypeToProtoSourceType)
 	actionValidSourceTypes                  = GetKeys(actionSchemaSourceTypeToProtoSourceType)
+	createActionURL                         = "com.coralogixapis.actions.v2.ActionsService/CreateAction"
+	updateActionURL                         = "com.coralogixapis.actions.v2.ActionsService/ReplaceAction"
+	getActionURL                            = "com.coralogixapis.actions.v2.ActionsService/GetAction"
+	deleteActionURL                         = "com.coralogixapis.actions.v2.ActionsService/DeleteAction"
 )
 
 func NewActionResource() resource.Resource {
@@ -141,7 +147,6 @@ func (r *ActionResource) ImportState(ctx context.Context, req resource.ImportSta
 }
 
 func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	jsm := &jsonpb.Marshaler{}
 	var plan ActionResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -154,20 +159,16 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	actionStr, _ := jsm.MarshalToString(createActionRequest)
+	actionStr := protojson.Format(createActionRequest)
 	log.Printf("[INFO] Creating new action: %s", actionStr)
 	createResp, err := r.client.CreateAction(ctx, createActionRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		resp.Diagnostics.AddError(
-			"Error creating Action",
-			"Could not create Action, unexpected error: "+err.Error(),
-		)
+		formatRpcErrors(err, createActionURL, actionStr)
 		return
 	}
 	action := createResp.GetAction()
-	actionStr, _ = jsm.MarshalToString(action)
-	log.Printf("[INFO] Submitted new action: %#v", action)
+	log.Printf("[INFO] Submitted new action: %s", protojson.Format(action))
 
 	plan = flattenAction(action)
 
@@ -201,7 +202,8 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 	//Get refreshed Action value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading Action: %s", id)
-	getActionResp, err := r.client.GetAction(ctx, &actions.GetActionRequest{Id: wrapperspb.String(id)})
+	getActionReq := &actions.GetActionRequest{Id: wrapperspb.String(id)}
+	getActionResp, err := r.client.GetAction(ctx, getActionReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -213,13 +215,13 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				handleRpcErrorNewFramework(err, "Action"),
+				formatRpcErrors(err, getActionURL, protojson.Format(getActionReq)),
 			)
 		}
 		return
 	}
 	action := getActionResp.GetAction()
-	log.Printf("[INFO] Received Action: %#v", action)
+	log.Printf("[INFO] Received Action: %s", protojson.Format(action))
 
 	state = flattenAction(action)
 	//
@@ -241,21 +243,22 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Updating Action: %#v", actionUpdateReq)
+	log.Printf("[INFO] Updating Action: %s", protojson.Format(actionUpdateReq))
 	actionUpdateResp, err := r.client.UpdateAction(ctx, actionUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error updating Action",
-			"Could not update Action, unexpected error: "+err.Error(),
+			formatRpcErrors(err, updateActionURL, protojson.Format(actionUpdateReq)),
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted updated Action: %#v", actionUpdateResp)
+	log.Printf("[INFO] Submitted updated Action: %s", protojson.Format(actionUpdateResp))
 
 	// Get refreshed Action value from Coralogix
 	id := plan.ID.ValueString()
-	getActionResp, err := r.client.GetAction(ctx, &actions.GetActionRequest{Id: wrapperspb.String(id)})
+	getActionReq := &actions.GetActionRequest{Id: wrapperspb.String(id)}
+	getActionResp, err := r.client.GetAction(ctx, getActionReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -267,12 +270,12 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				handleRpcErrorNewFramework(err, "Action"),
+				formatRpcErrors(err, getActionURL, protojson.Format(getActionReq)),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Action: %#v", getActionResp)
+	log.Printf("[INFO] Received Action: %s", protojson.Format(getActionResp))
 
 	plan = flattenAction(getActionResp.GetAction())
 
@@ -290,15 +293,16 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting Action %s\n", id)
-	if _, err := r.client.DeleteAction(ctx, &actions.DeleteActionRequest{Id: wrapperspb.String(id)}); err != nil {
+	log.Printf("[INFO] Deleting Action %s", id)
+	deleteReq := &actions.DeleteActionRequest{Id: wrapperspb.String(id)}
+	if _, err := r.client.DeleteAction(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting Action %s", state.ID.ValueString()),
-			handleRpcErrorNewFramework(err, "Action"),
+			fmt.Sprintf("Error Deleting Action %s", id),
+			formatRpcErrors(err, deleteActionURL, protojson.Format(deleteReq)),
 		)
 		return
 	}
-	log.Printf("[INFO] Action %s deleted\n", id)
+	log.Printf("[INFO] Action %s deleted", id)
 }
 
 type ActionResourceModel struct {

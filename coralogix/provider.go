@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -12,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	oldSchema "github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
-	"terraform-provider-coralogix/coralogix/clientset"
 
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 )
@@ -61,12 +62,11 @@ func OldProvider() *oldSchema.Provider {
 		},
 
 		DataSourcesMap: map[string]*oldSchema.Resource{
-			"coralogix_rules_group":         dataSourceCoralogixRulesGroup(),
-			"coralogix_alert":               dataSourceCoralogixAlert(),
-			"coralogix_enrichment":          dataSourceCoralogixEnrichment(),
-			"coralogix_data_set":            dataSourceCoralogixDataSet(),
-			"coralogix_hosted_dashboard":    dataSourceCoralogixHostedDashboard(),
-			"coralogix_tco_policy_override": dataSourceCoralogixTCOPolicyOverride(),
+			"coralogix_rules_group":      dataSourceCoralogixRulesGroup(),
+			"coralogix_alert":            dataSourceCoralogixAlert(),
+			"coralogix_enrichment":       dataSourceCoralogixEnrichment(),
+			"coralogix_data_set":         dataSourceCoralogixDataSet(),
+			"coralogix_hosted_dashboard": dataSourceCoralogixHostedDashboard(),
 		},
 
 		ResourcesMap: map[string]*oldSchema.Resource{

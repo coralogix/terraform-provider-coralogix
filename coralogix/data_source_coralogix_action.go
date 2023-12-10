@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"log"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
+	"terraform-provider-coralogix/coralogix/clientset"
+	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"terraform-provider-coralogix/coralogix/clientset"
-	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -47,10 +50,10 @@ func (d *ActionDataSource) Configure(_ context.Context, req datasource.Configure
 	d.client = clientSet.Actions()
 }
 
-func (d *ActionDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *ActionDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	var r ActionResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(nil, resource.SchemaRequest{}, &resourceResp)
+	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
@@ -65,7 +68,8 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	//Get refreshed Action value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading Action: %s", id)
-	getActionResp, err := d.client.GetAction(ctx, &actions.GetActionRequest{Id: wrapperspb.String(id)})
+	getActionReq := &actions.GetActionRequest{Id: wrapperspb.String(id)}
+	getActionResp, err := d.client.GetAction(ctx, getActionReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -77,12 +81,12 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				handleRpcErrorNewFramework(err, "Action"),
+				formatRpcErrors(err, getActionURL, protojson.Format(getActionReq)),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Action: %#v", getActionResp)
+	log.Printf("[INFO] Received Action: %s", protojson.Format(getActionResp))
 
 	data = flattenAction(getActionResp.GetAction())
 

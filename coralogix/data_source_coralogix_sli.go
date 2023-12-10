@@ -5,6 +5,11 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	sli "terraform-provider-coralogix/coralogix/clientset/grpc/sli"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -12,8 +17,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	sli "terraform-provider-coralogix/coralogix/clientset/grpc/sli"
 )
 
 var _ datasource.DataSourceWithConfigure = &SLIDataSource{}
@@ -47,10 +50,10 @@ func (d *SLIDataSource) Configure(_ context.Context, req datasource.ConfigureReq
 	d.client = clientSet.SLIs()
 }
 
-func (d *SLIDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *SLIDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	var r SLIResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(nil, resource.SchemaRequest{}, &resourceResp)
+	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	schema := frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 	schema.Attributes["service_name"] = datasourceschema.StringAttribute{
@@ -71,7 +74,8 @@ func (d *SLIDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 	id := data.ID.ValueString()
 	serviceName := data.ServiceName.ValueString()
 	log.Printf("[INFO] Reading sli: %s", id)
-	getSLIsresp, err := d.client.GetSLIs(ctx, &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)})
+	getSLIsReq := &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)}
+	getSLIsResp, err := d.client.GetSLIs(ctx, getSLIsReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -82,15 +86,15 @@ func (d *SLIDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 			)
 		} else {
 			resp.Diagnostics.AddError(
-				"Error reading tco-policy",
-				handleRpcErrorNewFramework(err, "SLI"),
+				"Error reading SLI",
+				formatRpcErrors(err, getSliURL, protojson.Format(getSLIsReq)),
 			)
 		}
 		return
 	}
 
 	var SLI *sli.Sli
-	for _, sli := range getSLIsresp.GetSlis() {
+	for _, sli := range getSLIsResp.GetSlis() {
 		if sli.SliId.GetValue() == id {
 			SLI = sli
 			break
@@ -105,7 +109,7 @@ func (d *SLIDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 		return
 	}
 
-	log.Printf("[INFO] Received SLI: %#v", SLI)
+	log.Printf("[INFO] Received SLI: %s", protojson.Format(SLI))
 
 	data, diags := flattenSLI(ctx, SLI)
 	if diags.HasError() {

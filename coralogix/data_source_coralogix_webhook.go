@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
+
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"terraform-provider-coralogix/coralogix/clientset"
-	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -47,10 +50,10 @@ func (d *WebhookDataSource) Configure(_ context.Context, req datasource.Configur
 	d.client = clientSet.Webhooks()
 }
 
-func (d *WebhookDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+func (d *WebhookDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	var r WebhookResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(nil, resource.SchemaRequest{}, &resourceResp)
+	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
@@ -65,7 +68,9 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	//Get refreshed Webhook value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading Webhook: %s", id)
-	getWebhookResp, err := d.client.GetWebhook(ctx, &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(id)})
+
+	getWebhookReq := &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(id)}
+	getWebhookResp, err := d.client.GetWebhook(ctx, getWebhookReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -75,14 +80,15 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
+			reqStr := protojson.Format(getWebhookReq)
 			resp.Diagnostics.AddError(
 				"Error reading Webhook",
-				handleRpcErrorNewFramework(err, "Webhook"),
+				formatRpcErrors(err, "Webhook", reqStr),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Webhook: %#v", getWebhookResp)
+	log.Printf("[INFO] Received Webhook: %s", protojson.Format(getWebhookResp))
 
 	data, diags := flattenWebhook(ctx, getWebhookResp.GetWebhook())
 	if diags.HasError() {
