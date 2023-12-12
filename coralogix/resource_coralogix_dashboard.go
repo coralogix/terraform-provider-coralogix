@@ -646,13 +646,13 @@ type FilterSourceSpansModel struct {
 }
 
 type DashboardTimeFrameModel struct {
-	Absolute *DashboardTimeFrameAbsoluteModel `tfsdk:"absolute"`
-	Relative *DashboardTimeFrameRelativeModel `tfsdk:"relative"`
+	Absolute types.Object `tfsdk:"absolute"` //DashboardTimeFrameAbsoluteModel
+	Relative types.Object `tfsdk:"relative"` //DashboardTimeFrameRelativeModel
 }
 
 type DashboardTimeFrameAbsoluteModel struct {
-	From types.String `tfsdk:"from"`
-	To   types.String `tfsdk:"to"`
+	Start types.String `tfsdk:"start"`
+	End   types.String `tfsdk:"end"`
 }
 
 type DashboardTimeFrameRelativeModel struct {
@@ -2434,26 +2434,26 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashbo
 		Filters:     filters,
 	}
 
-	dashboard, dg := expandDashboardTimeFrame(dashboard, plan.TimeFrame)
-	if dg != nil {
-		return nil, diag.Diagnostics{dg}
+	dashboard, dgs := expandDashboardTimeFrame(ctx, dashboard, plan.TimeFrame)
+	if dgs.HasError() {
+		return nil, dgs
 	}
 
 	return dashboard, nil
 }
 
-func expandDashboardTimeFrame(dashboard *dashboards.Dashboard, timeFrame *DashboardTimeFrameModel) (*dashboards.Dashboard, diag.Diagnostic) {
+func expandDashboardTimeFrame(ctx context.Context, dashboard *dashboards.Dashboard, timeFrame *DashboardTimeFrameModel) (*dashboards.Dashboard, diag.Diagnostics) {
 	if timeFrame == nil {
 		return dashboard, nil
 	}
-	var dg diag.Diagnostic
+	var dg diag.Diagnostics
 	switch {
-	case timeFrame.Relative != nil:
-		dashboard.TimeFrame, dg = expandRelativeDashboardTimeFrame(timeFrame.Relative)
-	case timeFrame.Absolute != nil:
-		dashboard.TimeFrame, dg = expandAbsoluteeDashboardTimeFrame(timeFrame.Absolute)
+	case !(timeFrame.Relative.IsNull() || timeFrame.Relative.IsUnknown()):
+		dashboard.TimeFrame, dg = expandRelativeDashboardTimeFrame(ctx, timeFrame.Relative)
+	case !(timeFrame.Absolute.IsNull() || timeFrame.Absolute.IsUnknown()):
+		dashboard.TimeFrame, dg = expandAbsoluteDashboardTimeFrame(ctx, timeFrame.Absolute)
 	default:
-		dg = diag.NewErrorDiagnostic("Error Expand Time Frame", "Dashboard TimeFrame must be either Relative or Absolutee")
+		dg = diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Time Frame", "Dashboard TimeFrame must be either Relative or Absolute")}
 	}
 	return dashboard, dg
 }
@@ -4578,18 +4578,19 @@ func expandFilterSourceSpans(ctx context.Context, spans *FilterSourceSpansModel)
 	}, nil
 }
 
-func expandAbsoluteeDashboardTimeFrame(timeFrame *DashboardTimeFrameAbsoluteModel) (*dashboards.Dashboard_AbsoluteTimeFrame, diag.Diagnostic) {
-	if timeFrame == nil {
-		return nil, nil
+func expandAbsoluteDashboardTimeFrame(ctx context.Context, timeFrame types.Object) (*dashboards.Dashboard_AbsoluteTimeFrame, diag.Diagnostics) {
+	timeFrameModel := &DashboardTimeFrameAbsoluteModel{}
+	dgs := timeFrame.As(ctx, timeFrameModel, basetypes.ObjectAsOptions{})
+	if dgs.HasError() {
+		return nil, dgs
 	}
-
-	fromTime, err := time.Parse(time.RFC3339, timeFrame.From.ValueString())
+	fromTime, err := time.Parse(time.RFC3339, timeFrameModel.Start.ValueString())
 	if err != nil {
-		return nil, diag.NewErrorDiagnostic("Error Expand Absolutee Dashboard Time Frame", fmt.Sprintf("Error parsing from time: %s", err.Error()))
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Absolute Dashboard Time Frame", fmt.Sprintf("Error parsing from time: %s", err.Error()))}
 	}
-	toTime, err := time.Parse(time.RFC3339, timeFrame.To.ValueString())
+	toTime, err := time.Parse(time.RFC3339, timeFrameModel.End.ValueString())
 	if err != nil {
-		return nil, diag.NewErrorDiagnostic("Error Expand Absolutee Dashboard Time Frame", fmt.Sprintf("Error parsing from time: %s", err.Error()))
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Absolute Dashboard Time Frame", fmt.Sprintf("Error parsing from time: %s", err.Error()))}
 	}
 
 	from := timestamppb.New(fromTime)
@@ -4626,13 +4627,15 @@ func parseRelativeTimeDuration(ti string) (*time.Duration, diag.Diagnostic) {
 	return &duration, nil
 }
 
-func expandRelativeDashboardTimeFrame(timeFrame *DashboardTimeFrameRelativeModel) (*dashboards.Dashboard_RelativeTimeFrame, diag.Diagnostic) {
-	if timeFrame == nil {
-		return nil, nil
+func expandRelativeDashboardTimeFrame(ctx context.Context, timeFrame types.Object) (*dashboards.Dashboard_RelativeTimeFrame, diag.Diagnostics) {
+	timeFrameModel := &DashboardTimeFrameRelativeModel{}
+	dgs := timeFrame.As(ctx, timeFrameModel, basetypes.ObjectAsOptions{})
+	if dgs.HasError() {
+		return nil, dgs
 	}
-	duration, err := parseRelativeTimeDuration(timeFrame.Duration.ValueString())
-	if err != nil {
-		return nil, err
+	duration, dg := parseRelativeTimeDuration(timeFrameModel.Duration.ValueString())
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
 	}
 	return &dashboards.Dashboard_RelativeTimeFrame{
 		RelativeTimeFrame: durationpb.New(*duration),
@@ -4696,7 +4699,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 		Layout:      layout,
 		Variables:   variables,
 		Filters:     filters,
-		TimeFrame:   flattenDashboardTimeFrame(dashboard),
+		TimeFrame:   flattenDashboardTimeFrame(ctx, dashboard),
 		ContentJson: types.StringNull(),
 	}, nil
 }
@@ -7306,31 +7309,50 @@ func flattenDashboardFilterSourceMetrics(metrics *dashboards.Filter_MetricsFilte
 	}, nil
 }
 
-func flattenDashboardTimeFrame(d *dashboards.Dashboard) *DashboardTimeFrameModel {
+func flattenDashboardTimeFrame(ctx context.Context, d *dashboards.Dashboard) *DashboardTimeFrameModel {
 	switch d.GetTimeFrame().(type) {
 	case *dashboards.Dashboard_AbsoluteTimeFrame:
-		return flattenAbsoluteDashboardTimeFrame(d.GetAbsoluteTimeFrame())
+		return flattenAbsoluteDashboardTimeFrame(ctx, d.GetAbsoluteTimeFrame())
 	case *dashboards.Dashboard_RelativeTimeFrame:
-		return flattenRelativeDashboardTimeFrame(d.GetRelativeTimeFrame())
+		return flattenRelativeDashboardTimeFrame(ctx, d.GetRelativeTimeFrame())
 	default:
 		return nil
 	}
 }
 
-func flattenAbsoluteDashboardTimeFrame(timeFrame *dashboards.TimeFrame) *DashboardTimeFrameModel {
+func flattenAbsoluteDashboardTimeFrame(ctx context.Context, timeFrame *dashboards.TimeFrame) *DashboardTimeFrameModel {
+	absoluteTimeFrame := &DashboardTimeFrameAbsoluteModel{
+		Start: types.StringValue(timeFrame.GetFrom().String()),
+		End:   types.StringValue(timeFrame.GetTo().String()),
+	}
+	timeFrameObject, _ := types.ObjectValueFrom(ctx, absoluteTimeFrameAttributes(), absoluteTimeFrame)
 	return &DashboardTimeFrameModel{
-		Absolute: &DashboardTimeFrameAbsoluteModel{
-			From: types.StringValue(timeFrame.GetFrom().String()),
-			To:   types.StringValue(timeFrame.GetTo().String()),
-		},
+		Absolute: timeFrameObject,
+		Relative: types.ObjectNull(relativeTimeFrameAttributes()),
 	}
 }
 
-func flattenRelativeDashboardTimeFrame(timeFrame *durationpb.Duration) *DashboardTimeFrameModel {
+func absoluteTimeFrameAttributes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"start": types.StringType,
+		"end":   types.StringType,
+	}
+}
+
+func flattenRelativeDashboardTimeFrame(ctx context.Context, timeFrame *durationpb.Duration) *DashboardTimeFrameModel {
+	relativeTimeFrame := &DashboardTimeFrameRelativeModel{
+		Duration: types.StringValue(timeFrame.String()),
+	}
+	timeFrameObject, _ := types.ObjectValueFrom(ctx, relativeTimeFrameAttributes(), relativeTimeFrame)
 	return &DashboardTimeFrameModel{
-		Relative: &DashboardTimeFrameRelativeModel{
-			Duration: types.StringValue(timeFrame.String()),
-		},
+		Relative: timeFrameObject,
+		Absolute: types.ObjectNull(absoluteTimeFrameAttributes()),
+	}
+}
+
+func relativeTimeFrameAttributes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"duration": types.StringType,
 	}
 }
 

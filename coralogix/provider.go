@@ -293,5 +293,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewSLIResource,
 		NewWebhookResource,
 		NewRecordingRuleGroupSetResource,
+		NewArchiveRetentionsResource,
 	}
 }
