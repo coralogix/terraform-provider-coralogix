@@ -179,7 +179,7 @@ func flattenArchiveRetentions(ctx context.Context, retentions []*archiveRetentio
 		r, _ := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: archiveRetentionAttributes()}, []types.Object{})
 		return &ArchiveRetentionsResourceModel{
 			Retentions: r,
-			ID:         types.StringNull(),
+			ID:         types.StringValue(""),
 		}, nil
 	}
 
@@ -210,7 +210,7 @@ func flattenArchiveRetentions(ctx context.Context, retentions []*archiveRetentio
 
 	return &ArchiveRetentionsResourceModel{
 		Retentions: flattenedRetentions,
-		ID:         types.StringNull(),
+		ID:         types.StringValue(""),
 	}, nil
 }
 
