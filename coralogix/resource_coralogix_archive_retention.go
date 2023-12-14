@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
 	archiveRetention "terraform-provider-coralogix/coralogix/clientset/grpc/archive-retentions"
 )
@@ -50,7 +53,6 @@ func (r *ArchiveRetentionsResource) Schema(_ context.Context, _ resource.SchemaR
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Computed:            true,
-							Optional:            true,
 							MarkdownDescription: "The retention id.",
 						},
 						"order": schema.Int64Attribute{
@@ -58,8 +60,9 @@ func (r *ArchiveRetentionsResource) Schema(_ context.Context, _ resource.SchemaR
 							MarkdownDescription: "The retention order. Computed by the order of the retention in the retentions list definition.",
 						},
 						"name": schema.StringAttribute{
-							Required:            true,
-							MarkdownDescription: "The retention name.",
+							Computed:            true,
+							Optional:            true,
+							MarkdownDescription: "The retention name. If not set, the retention will be named by backend.",
 						},
 						"editable": schema.BoolAttribute{
 							Computed:            true,
@@ -68,9 +71,47 @@ func (r *ArchiveRetentionsResource) Schema(_ context.Context, _ resource.SchemaR
 					},
 				},
 				Required: true,
+				Validators: []validator.List{
+					listvalidator.SizeBetween(4, 4),
+					retentionsValidator{},
+				},
+				MarkdownDescription: "List of 4 retentions. The first retention is the default retention and can't be renamed.",
 			},
 		},
 		MarkdownDescription: "Coralogix archive-retention. For more info please review - https://coralogix.com/docs/archive-setup-grpc-api/.",
+	}
+}
+
+type retentionsValidator struct{}
+
+func (r retentionsValidator) Description(_ context.Context) string {
+	return "Retentions validator"
+}
+
+func (r retentionsValidator) MarkdownDescription(_ context.Context) string {
+	return "Retentions validator"
+}
+
+func (r retentionsValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		resp.Diagnostics.AddError("error on validating retentions", "retentions can not be null or unknown")
+	}
+
+	var retentionsObjects []types.Object
+	diag := req.ConfigValue.ElementsAs(ctx, &retentionsObjects, true)
+	if diag.HasError() {
+		resp.Diagnostics.Append(diag...)
+		return
+	}
+
+	if length := len(retentionsObjects); length != 4 {
+		resp.Diagnostics.AddError("error on validating retentions", fmt.Sprintf("retentions list must have 4 elements but got %d", length))
+	}
+
+	var archiveRetentionResourceModel ArchiveRetentionResourceModel
+	retentionsObjects[0].As(ctx, &archiveRetentionResourceModel, basetypes.ObjectAsOptions{})
+	if !archiveRetentionResourceModel.Name.IsNull() {
+		resp.Diagnostics.AddError("error on validating retentions", "first retention's name can't be set")
 	}
 }
 
@@ -93,7 +134,17 @@ func (r *ArchiveRetentionsResource) Create(ctx context.Context, req resource.Cre
 		return
 	}
 
-	createArchiveRetentions, diags := extractUpdateArchiveRetentions(ctx, plan)
+	log.Print("[INFO] Reading archive-retentions")
+	getArchiveRetentionsReq := &archiveRetention.GetRetentionsRequest{}
+	getArchiveRetentionsResp, err := r.client.GetRetentions(ctx, getArchiveRetentionsReq)
+	if err != nil {
+		log.Printf("[ERROR] Received error: %#v", err)
+		formatRpcErrors(err, getArchiveRetentionsURL, protojson.Format(getArchiveRetentionsReq))
+		return
+	}
+	log.Printf("[INFO] Received archive-retentions: %s", protojson.Format(getArchiveRetentionsResp))
+
+	createArchiveRetentions, diags := extractCreateArchiveRetentions(ctx, plan, getArchiveRetentionsResp.GetRetentions())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -165,22 +216,52 @@ func archiveRetentionAttributes() map[string]attr.Type {
 	}
 }
 
-func extractUpdateArchiveRetentions(ctx context.Context, plan *ArchiveRetentionsResourceModel) (*archiveRetention.UpdateRetentionsRequest, diag.Diagnostics) {
+func extractCreateArchiveRetentions(ctx context.Context, plan *ArchiveRetentionsResourceModel, exitingRetentions []*archiveRetention.Retention) (*archiveRetention.UpdateRetentionsRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var retentions []*archiveRetention.RetentionUpdateElement
 	var retentionsObjects []types.Object
 	plan.Retentions.ElementsAs(ctx, &retentionsObjects, true)
-	for _, retentionObject := range retentionsObjects {
+	for i, retentionObject := range retentionsObjects {
 		var retentionModel ArchiveRetentionResourceModel
 		if dg := retentionObject.As(ctx, &retentionModel, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
 		}
 		retentions = append(retentions, &archiveRetention.RetentionUpdateElement{
-			Id:   typeStringToWrapperspbString(retentionModel.Id),
+			Id:   wrapperspb.String(exitingRetentions[i].GetId().GetValue()),
 			Name: typeStringToWrapperspbString(retentionModel.Name),
 		})
+
 	}
+	retentions[0].Name = wrapperspb.String("Default")
+	return &archiveRetention.UpdateRetentionsRequest{
+		RetentionUpdateElements: retentions,
+	}, diags
+}
+
+func extractUpdateArchiveRetentions(ctx context.Context, plan, state *ArchiveRetentionsResourceModel) (*archiveRetention.UpdateRetentionsRequest, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	var planRetentionsObjects, stateRetentionsObjects []types.Object
+	plan.Retentions.ElementsAs(ctx, &planRetentionsObjects, true)
+	state.Retentions.ElementsAs(ctx, &stateRetentionsObjects, true)
+
+	var retentions []*archiveRetention.RetentionUpdateElement
+	for i := range planRetentionsObjects {
+		var planRetentionModel, stateRetentionModel ArchiveRetentionResourceModel
+		if dg := planRetentionsObjects[i].As(ctx, &planRetentionModel, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		if dg := stateRetentionsObjects[i].As(ctx, &stateRetentionModel, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		retentions = append(retentions, &archiveRetention.RetentionUpdateElement{
+			Id:   typeStringToWrapperspbString(stateRetentionModel.Id),
+			Name: typeStringToWrapperspbString(planRetentionModel.Name),
+		})
+	}
+	retentions[0].Name = wrapperspb.String("Default")
 	return &archiveRetention.UpdateRetentionsRequest{
 		RetentionUpdateElements: retentions,
 	}, diags
@@ -222,7 +303,14 @@ func (r *ArchiveRetentionsResource) Update(ctx context.Context, req resource.Upd
 		return
 	}
 
-	archiveRetentionsUpdateReq, diags := extractUpdateArchiveRetentions(ctx, plan)
+	var state *ArchiveRetentionsResourceModel
+	diags = req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	archiveRetentionsUpdateReq, diags := extractUpdateArchiveRetentions(ctx, plan, state)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

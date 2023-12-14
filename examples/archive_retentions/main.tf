@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.9"
+      version = "~> 1.10"
       source  = "coralogix/coralogix"
     }
   }
@@ -15,20 +15,18 @@ provider "coralogix" {
 resource "coralogix_archive_retentions" "example" {
   retentions = [
     {
-      id   = "e1c980d0-c910-4c54-8326-67f3cf95645a"
-      name = "test1"
     },
     {
-      id   = "729ee424-60de-4d31-9983-e6431250e5f2"
-      name = "test2"
+      name = "name_2"
     },
     {
-      id   = "6e6ed3ac-a365-4ded-ac00-7c1cfd429d1d"
-      name = "test3"
+      name = "name_3"
     },
     {
-      id   = "d3a169a7-b9ca-4187-bf97-3267eb89b882"
-      name = "test4"
+      name = "name_4"
     },
   ]
+}
+
+data "coralogix_archive_retentions" "example" {
 }

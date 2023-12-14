@@ -94,10 +94,12 @@ func datasourceSchemaFromResourceSchema(rs map[string]*schema.Schema) map[string
 
 func frameworkDatasourceSchemaFromFrameworkResourceSchema(rs resourceschema.Schema) datasourceschema.Schema {
 	attributes := convertAttributes(rs.Attributes)
-	attributes["id"] = datasourceschema.StringAttribute{
-		Required:            true,
-		Description:         rs.Attributes["id"].GetDescription(),
-		MarkdownDescription: rs.Attributes["id"].GetMarkdownDescription(),
+	if idSchema, ok := rs.Attributes["id"]; ok {
+		attributes["id"] = datasourceschema.StringAttribute{
+			Required:            true,
+			Description:         idSchema.GetDescription(),
+			MarkdownDescription: idSchema.GetMarkdownDescription(),
+		}
 	}
 
 	return datasourceschema.Schema{

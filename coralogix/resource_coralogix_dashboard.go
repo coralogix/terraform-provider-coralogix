@@ -4692,6 +4692,11 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 		return nil, diags
 	}
 
+	timeFrame, diags := flattenDashboardTimeFrame(ctx, dashboard)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &DashboardResourceModel{
 		ID:          types.StringValue(dashboard.GetId().GetValue()),
 		Name:        wrapperspbStringToTypeString(dashboard.GetName()),
@@ -4699,7 +4704,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 		Layout:      layout,
 		Variables:   variables,
 		Filters:     filters,
-		TimeFrame:   flattenDashboardTimeFrame(ctx, dashboard),
+		TimeFrame:   timeFrame,
 		ContentJson: types.StringNull(),
 	}, nil
 }
@@ -7309,27 +7314,30 @@ func flattenDashboardFilterSourceMetrics(metrics *dashboards.Filter_MetricsFilte
 	}, nil
 }
 
-func flattenDashboardTimeFrame(ctx context.Context, d *dashboards.Dashboard) *DashboardTimeFrameModel {
+func flattenDashboardTimeFrame(ctx context.Context, d *dashboards.Dashboard) (*DashboardTimeFrameModel, diag.Diagnostics) {
 	switch d.GetTimeFrame().(type) {
 	case *dashboards.Dashboard_AbsoluteTimeFrame:
 		return flattenAbsoluteDashboardTimeFrame(ctx, d.GetAbsoluteTimeFrame())
 	case *dashboards.Dashboard_RelativeTimeFrame:
 		return flattenRelativeDashboardTimeFrame(ctx, d.GetRelativeTimeFrame())
 	default:
-		return nil
+		return nil, nil
 	}
 }
 
-func flattenAbsoluteDashboardTimeFrame(ctx context.Context, timeFrame *dashboards.TimeFrame) *DashboardTimeFrameModel {
+func flattenAbsoluteDashboardTimeFrame(ctx context.Context, timeFrame *dashboards.TimeFrame) (*DashboardTimeFrameModel, diag.Diagnostics) {
 	absoluteTimeFrame := &DashboardTimeFrameAbsoluteModel{
 		Start: types.StringValue(timeFrame.GetFrom().String()),
 		End:   types.StringValue(timeFrame.GetTo().String()),
 	}
-	timeFrameObject, _ := types.ObjectValueFrom(ctx, absoluteTimeFrameAttributes(), absoluteTimeFrame)
+	timeFrameObject, dgs := types.ObjectValueFrom(ctx, absoluteTimeFrameAttributes(), absoluteTimeFrame)
+	if dgs.HasError() {
+		return nil, dgs
+	}
 	return &DashboardTimeFrameModel{
 		Absolute: timeFrameObject,
 		Relative: types.ObjectNull(relativeTimeFrameAttributes()),
-	}
+	}, nil
 }
 
 func absoluteTimeFrameAttributes() map[string]attr.Type {
@@ -7339,15 +7347,18 @@ func absoluteTimeFrameAttributes() map[string]attr.Type {
 	}
 }
 
-func flattenRelativeDashboardTimeFrame(ctx context.Context, timeFrame *durationpb.Duration) *DashboardTimeFrameModel {
+func flattenRelativeDashboardTimeFrame(ctx context.Context, timeFrame *durationpb.Duration) (*DashboardTimeFrameModel, diag.Diagnostics) {
 	relativeTimeFrame := &DashboardTimeFrameRelativeModel{
 		Duration: types.StringValue(timeFrame.String()),
 	}
-	timeFrameObject, _ := types.ObjectValueFrom(ctx, relativeTimeFrameAttributes(), relativeTimeFrame)
+	timeFrameObject, dgs := types.ObjectValueFrom(ctx, relativeTimeFrameAttributes(), relativeTimeFrame)
+	if dgs.HasError() {
+		return nil, dgs
+	}
 	return &DashboardTimeFrameModel{
 		Relative: timeFrameObject,
 		Absolute: types.ObjectNull(absoluteTimeFrameAttributes()),
-	}
+	}, nil
 }
 
 func relativeTimeFrameAttributes() map[string]attr.Type {
