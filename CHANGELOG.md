@@ -376,3 +376,8 @@ Breaking Changes:
 Breaking Changes:
 #### resource/coralogix_tco_policy_overrides
 * the resource was deprecated and removed.
+
+## Release 1.10.6
+New Features:
+#### resource/coralogix_archive_retentions
+* Adding support for `coralogix_archive_retentions` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/archive_retentions.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/archive_retentions.md).
