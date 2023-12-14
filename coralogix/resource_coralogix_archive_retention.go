@@ -119,7 +119,8 @@ func (r retentionsValidator) ValidateList(ctx context.Context, req validator.Lis
 }
 
 type ArchiveRetentionsResourceModel struct {
-	Retentions types.List `tfsdk:"retentions"` //ArchiveRetentionResourceModel
+	Retentions types.List   `tfsdk:"retentions"` //ArchiveRetentionResourceModel
+	ID         types.String `tfsdk:"id"`
 }
 
 type ArchiveRetentionResourceModel struct {
