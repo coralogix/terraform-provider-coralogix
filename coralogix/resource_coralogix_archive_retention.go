@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -41,7 +42,7 @@ func (r *ArchiveRetentionsResource) Metadata(_ context.Context, req resource.Met
 }
 
 func (r *ArchiveRetentionsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	//TODO implement me
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func (r *ArchiveRetentionsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -124,7 +125,7 @@ type ArchiveRetentionsResourceModel struct {
 }
 
 type ArchiveRetentionResourceModel struct {
-	Id       types.String `tfsdk:"id"`
+	ID       types.String `tfsdk:"id"`
 	Order    types.Int64  `tfsdk:"order"`
 	Name     types.String `tfsdk:"name"`
 	Editable types.Bool   `tfsdk:"editable"`
@@ -178,6 +179,7 @@ func flattenArchiveRetentions(ctx context.Context, retentions []*archiveRetentio
 		r, _ := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: archiveRetentionAttributes()}, []types.Object{})
 		return &ArchiveRetentionsResourceModel{
 			Retentions: r,
+			ID:         types.StringNull(),
 		}, nil
 	}
 
@@ -185,7 +187,7 @@ func flattenArchiveRetentions(ctx context.Context, retentions []*archiveRetentio
 	var retentionsObjects []types.Object
 	for _, retention := range retentions {
 		retentionModel := ArchiveRetentionResourceModel{
-			Id:       wrapperspbStringToTypeString(retention.GetId()),
+			ID:       wrapperspbStringToTypeString(retention.GetId()),
 			Order:    wrapperspbInt32ToTypeInt64(retention.GetOrder()),
 			Name:     wrapperspbStringToTypeString(retention.GetName()),
 			Editable: wrapperspbBoolToTypeBool(retention.GetEditable()),
@@ -208,6 +210,7 @@ func flattenArchiveRetentions(ctx context.Context, retentions []*archiveRetentio
 
 	return &ArchiveRetentionsResourceModel{
 		Retentions: flattenedRetentions,
+		ID:         types.StringNull(),
 	}, nil
 }
 
@@ -261,7 +264,7 @@ func extractUpdateArchiveRetentions(ctx context.Context, plan, state *ArchiveRet
 			continue
 		}
 		retentions = append(retentions, &archiveRetention.RetentionUpdateElement{
-			Id:   typeStringToWrapperspbString(stateRetentionModel.Id),
+			Id:   typeStringToWrapperspbString(stateRetentionModel.ID),
 			Name: typeStringToWrapperspbString(planRetentionModel.Name),
 		})
 	}
