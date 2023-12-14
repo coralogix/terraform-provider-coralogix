@@ -43,7 +43,7 @@ func TestAccCoralogixResourceResourceArchiveRetentions(t *testing.T) {
 }
 
 func testAccCoralogixResourceArchiveRetentions() string {
-	return `"resource coralogix_archive_retentions" "test" {
+	return `resource "coralogix_archive_retentions" "test" {
 	retentions = [
 		{
 		},
@@ -62,7 +62,7 @@ func testAccCoralogixResourceArchiveRetentions() string {
 }
 
 func testAccCoralogixResourceArchiveRetentionsUpdate() string {
-	return `"resource coralogix_archive_retentions" "test" {
+	return `resource "coralogix_archive_retentions" "test" {
 	retentions = [
 		{
 		},
