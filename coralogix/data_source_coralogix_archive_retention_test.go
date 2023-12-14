@@ -17,7 +17,7 @@ func TestAccCoralogixDataSourceArchiveRetentions_basic(t *testing.T) {
 				Config: testAccCoralogixResourceArchiveRetentions() +
 					testAccCoralogixDataSourceArchiveRetentions_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(dashboardDataSourceName, "retentions.#", "4"),
+					resource.TestCheckResourceAttr(archiveRetentionsDataSourceName, "retentions.#", "4"),
 				),
 			},
 		},
