@@ -183,7 +183,7 @@ func resourceCoralogixDataSetUpdate(ctx context.Context, d *schema.ResourceData,
 	_, err = meta.(*clientset.ClientSet).DataSet().UpdateDataSet(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return diag.Errorf(formatRpcErrors(err, getDataSetURL, protojson.Format(req)))
+		return diag.Errorf(formatRpcErrors(err, updateDataSetURL, protojson.Format(req)))
 	}
 
 	if uploadedFile, ok := d.GetOk("uploaded_file"); ok {

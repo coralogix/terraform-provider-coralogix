@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	archiveRetention "terraform-provider-coralogix/coralogix/clientset/grpc/archive-retentions"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -18,17 +21,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	archiveRetention "terraform-provider-coralogix/coralogix/clientset/grpc/archive-retentions"
 )
 
 var (
-	_                           resource.ResourceWithConfigure   = &ArchiveRetentionsResource{}
-	_                           resource.ResourceWithImportState = &ArchiveRetentionsResource{}
-	getArchiveRetentionsURL                                      = "com.coralogix.archive.v1.RetentionsService/GetRetentions"
-	updateArchiveRetentionsURL                                   = "com.coralogix.archive.v1.RetentionsService/UpdateRetentions"
-	activeArchiveRetentionsURL                                   = "com.coralogix.archive.v1.RetentionsService/ActivateRetentions"
-	enablesArchiveRetentionsURL                                  = "com.coralogix.archive.v1.RetentionsService/GetRetentionsEnabled"
+	_                          resource.ResourceWithConfigure   = &ArchiveRetentionsResource{}
+	_                          resource.ResourceWithImportState = &ArchiveRetentionsResource{}
+	getArchiveRetentionsURL                                     = "com.coralogix.archive.v1.RetentionsService/GetRetentions"
+	updateArchiveRetentionsURL                                  = "com.coralogix.archive.v1.RetentionsService/UpdateRetentions"
 )
 
 func NewArchiveRetentionsResource() resource.Resource {
@@ -173,7 +172,10 @@ func (r *ArchiveRetentionsResource) Create(ctx context.Context, req resource.Cre
 	log.Printf("[INFO] Submitted updated archive-retentions: %s", protojson.Format(updateResp))
 
 	plan, diags = flattenArchiveRetentions(ctx, updateResp.GetRetentions())
-
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)

@@ -1452,7 +1452,7 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		return diag.Errorf(formatRpcErrors(err, createAlertStr, createAlertStr))
+		return diag.Errorf(formatRpcErrors(err, createAlertURL, createAlertStr))
 	}
 
 	alert := AlertResp.GetAlert()
@@ -1522,7 +1522,7 @@ func resourceCoralogixAlertDelete(ctx context.Context, d *schema.ResourceData, m
 	_, err := meta.(*clientset.ClientSet).Alerts().DeleteAlert(ctx, deleteAlertRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v\n", err)
-		return diag.Errorf(formatRpcErrors(err, getAlertURL, protojson.Format(deleteAlertRequest)))
+		return diag.Errorf(formatRpcErrors(err, deleteAlertURL, protojson.Format(deleteAlertRequest)))
 	}
 	log.Printf("[INFO] alert %s deleted", id)
 

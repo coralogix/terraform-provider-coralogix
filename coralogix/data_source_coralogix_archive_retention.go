@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"log"
 
+	archiveRetention "terraform-provider-coralogix/coralogix/clientset/grpc/archive-retentions"
+
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"google.golang.org/protobuf/encoding/protojson"
-	archiveRetention "terraform-provider-coralogix/coralogix/clientset/grpc/archive-retentions"
+
+	"terraform-provider-coralogix/coralogix/clientset"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 var _ datasource.DataSourceWithConfigure = &ArchiveRetentionsDataSource{}

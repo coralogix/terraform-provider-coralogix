@@ -24,11 +24,11 @@ func TestAccCoralogixResourceResourceArchiveRetentions(t *testing.T) {
 					resource.TestCheckResourceAttr(archiveRetentionsResourceName, "retentions.3.name", "name_4"),
 				),
 			},
-			//{
-			//	ResourceName:      archiveRetentionsResourceName,
-			//	ImportState:       true,
-			//	ImportStateVerify: true,
-			//},
+			{
+				ResourceName:      archiveRetentionsResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 			{
 				Config: testAccCoralogixResourceArchiveRetentionsUpdate(),
 				Check: resource.ComposeAggregateTestCheckFunc(

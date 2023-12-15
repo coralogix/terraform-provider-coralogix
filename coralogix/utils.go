@@ -484,14 +484,6 @@ func reverseMapStrings(m map[string]string) map[string]string {
 	return n
 }
 
-func reverseMapIntToString(m map[string]int) map[int]string {
-	n := make(map[int]string)
-	for k, v := range m {
-		n[v] = k
-	}
-	return n
-}
-
 func reverseMapRelativeTimeFrame(m map[string]protoTimeFrameAndRelativeTimeFrame) map[protoTimeFrameAndRelativeTimeFrame]string {
 	n := make(map[protoTimeFrameAndRelativeTimeFrame]string)
 	for k, v := range m {
