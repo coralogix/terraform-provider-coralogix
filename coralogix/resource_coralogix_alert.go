@@ -168,8 +168,8 @@ var (
 		alerts.EvaluationWindow_EVALUATION_WINDOW_DYNAMIC:                "Dynamic",
 	}
 	validEvaluationWindow = []string{"Rolling", "Dynamic"}
-	getAlertURL           = "com.coralogix.alerts.v2.AlertService/CreateAlert"
-	createAlertURL        = "com.coralogix.alerts.v2.AlertService/GetAlertByUniqueId"
+	createAlertURL        = "com.coralogix.alerts.v2.AlertService/CreateAlert"
+	getAlertURL           = "com.coralogix.alerts.v2.AlertService/GetAlertByUniqueId"
 	updateAlertURL        = "com.coralogix.alerts.v2.AlertService/UpdateAlertByUniqueId"
 	deleteAlertURL        = "com.coralogix.alerts.v2.AlertService/DeleteAlertByUniqueId"
 )
