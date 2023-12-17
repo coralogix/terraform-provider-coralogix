@@ -1,19 +1,20 @@
 package clientset
 
 type ClientSet struct {
-	ruleGroups           *RuleGroupsClient
-	alerts               *AlertsClient
-	enrichments          *EnrichmentsClient
-	dataSet              *DataSetClient
-	dashboards           *DashboardsClient
-	grafana              *GrafanaClient
-	actions              *ActionsClient
-	recordingRuleGroups  *RecordingRulesGroupsSetsClient
-	tcoPolicies          *TCOPoliciesClient
-	tcoPoliciesOverrides *TCOPoliciesOverrides
-	webhooks             *WebhooksClient
-	events2Metrics       *Events2MetricsClient
-	slis                 *SLIClient
+	ruleGroups            *RuleGroupsClient
+	alerts                *AlertsClient
+	enrichments           *EnrichmentsClient
+	dataSet               *DataSetClient
+	dashboards            *DashboardsClient
+	grafana               *GrafanaClient
+	actions               *ActionsClient
+	recordingRuleGroups   *RecordingRulesGroupsSetsClient
+	tcoPolicies           *TCOPoliciesClient
+	tcoPoliciesOverrides  *TCOPoliciesOverrides
+	webhooks              *WebhooksClient
+	events2Metrics        *Events2MetricsClient
+	slis                  *SLIClient
+	metricsConfigurations *MetricsConfigurationClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -68,23 +69,28 @@ func (c *ClientSet) SLIs() *SLIClient {
 	return c.slis
 }
 
+func (c *ClientSet) MetricsConfiguration() *MetricsConfigurationClient {
+	return c.metricsConfigurations
+}
+
 func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 	_ = NewCallPropertiesCreator(targetUrl, teamsApiKey)
 
 	return &ClientSet{
-		ruleGroups:           NewRuleGroupsClient(apikeyCPC),
-		alerts:               NewAlertsClient(apikeyCPC),
-		events2Metrics:       NewEvents2MetricsClient(apikeyCPC),
-		enrichments:          NewEnrichmentClient(apikeyCPC),
-		dataSet:              NewDataSetClient(apikeyCPC),
-		dashboards:           NewDashboardsClient(apikeyCPC),
-		grafana:              NewGrafanaClient(apikeyCPC),
-		actions:              NewActionsClient(apikeyCPC),
-		recordingRuleGroups:  NewRecordingRuleGroupsClient(apikeyCPC),
-		tcoPolicies:          NewTCOPoliciesClient(apikeyCPC),
-		tcoPoliciesOverrides: NewTCOPoliciesOverridesClient(apikeyCPC),
-		webhooks:             NewWebhooksClient(apikeyCPC),
-		slis:                 NewSLIsClient(apikeyCPC),
+		ruleGroups:            NewRuleGroupsClient(apikeyCPC),
+		alerts:                NewAlertsClient(apikeyCPC),
+		events2Metrics:        NewEvents2MetricsClient(apikeyCPC),
+		enrichments:           NewEnrichmentClient(apikeyCPC),
+		dataSet:               NewDataSetClient(apikeyCPC),
+		dashboards:            NewDashboardsClient(apikeyCPC),
+		grafana:               NewGrafanaClient(apikeyCPC),
+		actions:               NewActionsClient(apikeyCPC),
+		recordingRuleGroups:   NewRecordingRuleGroupsClient(apikeyCPC),
+		tcoPolicies:           NewTCOPoliciesClient(apikeyCPC),
+		tcoPoliciesOverrides:  NewTCOPoliciesOverridesClient(apikeyCPC),
+		webhooks:              NewWebhooksClient(apikeyCPC),
+		slis:                  NewSLIsClient(apikeyCPC),
+		metricsConfigurations: NewMetricsConfiguration(apikeyCPC),
 	}
 }
