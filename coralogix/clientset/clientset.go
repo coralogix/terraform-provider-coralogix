@@ -14,6 +14,7 @@ type ClientSet struct {
 	webhooks             *WebhooksClient
 	events2Metrics       *Events2MetricsClient
 	slis                 *SLIClient
+	archiveRetentions    *ArchiveRetentionsClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -68,6 +69,11 @@ func (c *ClientSet) SLIs() *SLIClient {
 	return c.slis
 }
 
+func (c *ClientSet) ArchiveRetentions() *ArchiveRetentionsClient {
+	return c.archiveRetentions
+
+}
+
 func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 	_ = NewCallPropertiesCreator(targetUrl, teamsApiKey)
@@ -86,5 +92,6 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 		tcoPoliciesOverrides: NewTCOPoliciesOverridesClient(apikeyCPC),
 		webhooks:             NewWebhooksClient(apikeyCPC),
 		slis:                 NewSLIsClient(apikeyCPC),
+		archiveRetentions:    NewArchiveRetentionsClient(apikeyCPC),
 	}
 }
