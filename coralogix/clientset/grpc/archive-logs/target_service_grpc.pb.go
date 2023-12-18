@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.8
-// source: com/coralogix/archive/v2/target_service.proto
+// source: com/coralogix/archive/v1/target_service.proto
 
 package __
 
@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TargetServiceClient interface {
+	IsArchiveConfigured(ctx context.Context, in *IsArchiveConfiguredRequest, opts ...grpc.CallOption) (*IsArchiveConfiguredResponse, error)
 	GetTarget(ctx context.Context, in *GetTargetRequest, opts ...grpc.CallOption) (*GetTargetResponse, error)
 	SetTarget(ctx context.Context, in *SetTargetRequest, opts ...grpc.CallOption) (*SetTargetResponse, error)
 }
@@ -34,9 +35,18 @@ func NewTargetServiceClient(cc grpc.ClientConnInterface) TargetServiceClient {
 	return &targetServiceClient{cc}
 }
 
+func (c *targetServiceClient) IsArchiveConfigured(ctx context.Context, in *IsArchiveConfiguredRequest, opts ...grpc.CallOption) (*IsArchiveConfiguredResponse, error) {
+	out := new(IsArchiveConfiguredResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogix.archive.v1.TargetService/IsArchiveConfigured", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *targetServiceClient) GetTarget(ctx context.Context, in *GetTargetRequest, opts ...grpc.CallOption) (*GetTargetResponse, error) {
 	out := new(GetTargetResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogix.archive.v2.TargetService/GetTarget", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.coralogix.archive.v1.TargetService/GetTarget", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +55,7 @@ func (c *targetServiceClient) GetTarget(ctx context.Context, in *GetTargetReques
 
 func (c *targetServiceClient) SetTarget(ctx context.Context, in *SetTargetRequest, opts ...grpc.CallOption) (*SetTargetResponse, error) {
 	out := new(SetTargetResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogix.archive.v2.TargetService/SetTarget", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/com.coralogix.archive.v1.TargetService/SetTarget", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +66,7 @@ func (c *targetServiceClient) SetTarget(ctx context.Context, in *SetTargetReques
 // All implementations must embed UnimplementedTargetServiceServer
 // for forward compatibility
 type TargetServiceServer interface {
+	IsArchiveConfigured(context.Context, *IsArchiveConfiguredRequest) (*IsArchiveConfiguredResponse, error)
 	GetTarget(context.Context, *GetTargetRequest) (*GetTargetResponse, error)
 	SetTarget(context.Context, *SetTargetRequest) (*SetTargetResponse, error)
 	mustEmbedUnimplementedTargetServiceServer()
@@ -65,6 +76,9 @@ type TargetServiceServer interface {
 type UnimplementedTargetServiceServer struct {
 }
 
+func (UnimplementedTargetServiceServer) IsArchiveConfigured(context.Context, *IsArchiveConfiguredRequest) (*IsArchiveConfiguredResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsArchiveConfigured not implemented")
+}
 func (UnimplementedTargetServiceServer) GetTarget(context.Context, *GetTargetRequest) (*GetTargetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTarget not implemented")
 }
@@ -84,6 +98,24 @@ func RegisterTargetServiceServer(s grpc.ServiceRegistrar, srv TargetServiceServe
 	s.RegisterService(&TargetService_ServiceDesc, srv)
 }
 
+func _TargetService_IsArchiveConfigured_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IsArchiveConfiguredRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TargetServiceServer).IsArchiveConfigured(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogix.archive.v1.TargetService/IsArchiveConfigured",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TargetServiceServer).IsArchiveConfigured(ctx, req.(*IsArchiveConfiguredRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _TargetService_GetTarget_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetTargetRequest)
 	if err := dec(in); err != nil {
@@ -94,7 +126,7 @@ func _TargetService_GetTarget_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogix.archive.v2.TargetService/GetTarget",
+		FullMethod: "/com.coralogix.archive.v1.TargetService/GetTarget",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(TargetServiceServer).GetTarget(ctx, req.(*GetTargetRequest))
@@ -112,7 +144,7 @@ func _TargetService_SetTarget_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogix.archive.v2.TargetService/SetTarget",
+		FullMethod: "/com.coralogix.archive.v1.TargetService/SetTarget",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(TargetServiceServer).SetTarget(ctx, req.(*SetTargetRequest))
@@ -124,9 +156,13 @@ func _TargetService_SetTarget_Handler(srv interface{}, ctx context.Context, dec 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var TargetService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "com.coralogix.archive.v2.TargetService",
+	ServiceName: "com.coralogix.archive.v1.TargetService",
 	HandlerType: (*TargetServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "IsArchiveConfigured",
+			Handler:    _TargetService_IsArchiveConfigured_Handler,
+		},
 		{
 			MethodName: "GetTarget",
 			Handler:    _TargetService_GetTarget_Handler,
@@ -137,5 +173,5 @@ var TargetService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "com/coralogix/archive/v2/target_service.proto",
+	Metadata: "com/coralogix/archive/v1/target_service.proto",
 }

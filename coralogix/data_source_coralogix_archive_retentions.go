@@ -7,8 +7,6 @@ import (
 
 	archiveRetention "terraform-provider-coralogix/coralogix/clientset/grpc/archive-retentions"
 
-	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -53,17 +51,7 @@ func (d *ArchiveRetentionsDataSource) Schema(ctx context.Context, _ datasource.S
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = convertSchema(resourceResp.Schema)
-}
-
-func convertSchema(rs resourceschema.Schema) datasourceschema.Schema {
-	attributes := convertAttributes(rs.Attributes)
-	return datasourceschema.Schema{
-		Attributes:          attributes,
-		Description:         rs.Description,
-		MarkdownDescription: rs.MarkdownDescription,
-		DeprecationMessage:  rs.DeprecationMessage,
-	}
+	resp.Schema = convertSchemaWithoutID(resourceResp.Schema)
 }
 
 func (d *ArchiveRetentionsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {

@@ -38,9 +38,9 @@ func formatRpcErrors(err error, url, requestStr string) string {
 	case codes.PermissionDenied, codes.Unauthenticated:
 		return fmt.Sprintf("permission denied for url - %s\ncheck your api-key and permissions", url)
 	case codes.Internal:
-		return fmt.Sprintf("internal error in Coralogix backend - %s\nurl - %s request - %s", url, err, requestStr)
+		return fmt.Sprintf("internal error in Coralogix backend.\nerror - %s\nurl - %s\nrequest - %s", err, url, requestStr)
 	case codes.InvalidArgument:
-		return fmt.Sprintf("invalid argument error - %s\nurl - %s request - %s", err, url, requestStr)
+		return fmt.Sprintf("invalid argument error.\nerror - %s\nurl - %s\nrequest - %s", err, url, requestStr)
 	default:
 		return err.Error()
 	}
@@ -688,4 +688,14 @@ func uint32SliceToWrappedUint32Slice(s []uint32) []*wrapperspb.UInt32Value {
 		result = append(result, wrapperspb.UInt32(n))
 	}
 	return result
+}
+
+func convertSchemaWithoutID(rs resourceschema.Schema) datasourceschema.Schema {
+	attributes := convertAttributes(rs.Attributes)
+	return datasourceschema.Schema{
+		Attributes:          attributes,
+		Description:         rs.Description,
+		MarkdownDescription: rs.MarkdownDescription,
+		DeprecationMessage:  rs.DeprecationMessage,
+	}
 }

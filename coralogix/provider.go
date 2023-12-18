@@ -281,6 +281,8 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewWebhookDataSource,
 		NewRecordingRuleGroupSetDataSource,
 		NewArchiveRetentionsDataSource,
+		NewArchiveMetricsDataSource,
+		NewArchiveLogsDataSource,
 	}
 }
 
@@ -295,5 +297,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewWebhookResource,
 		NewRecordingRuleGroupSetResource,
 		NewArchiveRetentionsResource,
+		NewArchiveMetricsResource,
+		NewArchiveLogsResource,
 	}
 }
