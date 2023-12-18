@@ -50,7 +50,7 @@ func (d *ArchiveLogsDataSource) Schema(ctx context.Context, _ datasource.SchemaR
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = convertSchemaWithoutID(resourceResp.Schema)
 }
 
 func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {

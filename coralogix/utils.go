@@ -689,3 +689,13 @@ func uint32SliceToWrappedUint32Slice(s []uint32) []*wrapperspb.UInt32Value {
 	}
 	return result
 }
+
+func convertSchemaWithoutID(rs resourceschema.Schema) datasourceschema.Schema {
+	attributes := convertAttributes(rs.Attributes)
+	return datasourceschema.Schema{
+		Attributes:          attributes,
+		Description:         rs.Description,
+		MarkdownDescription: rs.MarkdownDescription,
+		DeprecationMessage:  rs.DeprecationMessage,
+	}
+}
