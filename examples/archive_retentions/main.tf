@@ -12,9 +12,21 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_archive_metrics" example {
-  s3 = {
-    region = "eu-north-1"
-    bucket = "coralogix-c4c-eu2-prometheus-data"
-  }
+resource "coralogix_archive_retentions" "example" {
+  retentions = [
+    {
+    },
+    {
+      name = "name_2"
+    },
+    {
+      name = "name_3"
+    },
+    {
+      name = "name_4"
+    },
+  ]
+}
+
+data "coralogix_archive_retentions" "example" {
 }

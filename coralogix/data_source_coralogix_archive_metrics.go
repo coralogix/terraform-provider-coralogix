@@ -21,7 +21,7 @@ func NewArchiveMetricsDataSource() datasource.DataSource {
 }
 
 type ArchiveMetricsDataSource struct {
-	client *clientset.MetricsConfigurationClient
+	client *clientset.ArchiveMetricsClient
 }
 
 func (d *ArchiveMetricsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -42,7 +42,7 @@ func (d *ArchiveMetricsDataSource) Configure(_ context.Context, req datasource.C
 		return
 	}
 
-	d.client = clientSet.MetricsConfiguration()
+	d.client = clientSet.ArchiveMetrics()
 }
 
 func (d *ArchiveMetricsDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -63,7 +63,7 @@ func (d *ArchiveMetricsDataSource) Read(ctx context.Context, req datasource.Read
 	//Get refreshed archive-metrics value from Coralogix
 	id := data.ID.ValueString()
 	log.Print("[INFO] Reading archive-metrics")
-	getResp, err := d.client.GetMetricsConfiguration(ctx)
+	getResp, err := d.client.GetArchiveMetrics(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {

@@ -22,7 +22,6 @@ func (r RecordingRulesGroupsSetsClient) CreateRecordingRuleGroupsSet(ctx context
 	defer conn.Close()
 	client := rrg.NewRuleGroupSetsClient(conn)
 
-	ctx = createAuthContext(ctx, r.callPropertiesCreator.apiKey)
 	return client.Create(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
@@ -75,7 +74,6 @@ func (r RecordingRulesGroupsSetsClient) ListRecordingRuleGroupsSets(ctx context.
 	defer conn.Close()
 	client := rrg.NewRuleGroupSetsClient(conn)
 
-	ctx = createAuthContext(ctx, r.callPropertiesCreator.apiKey)
 	return client.List(callProperties.Ctx, &emptypb.Empty{}, callProperties.CallOptions...)
 }
 

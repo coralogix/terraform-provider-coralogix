@@ -38,9 +38,9 @@ func formatRpcErrors(err error, url, requestStr string) string {
 	case codes.PermissionDenied, codes.Unauthenticated:
 		return fmt.Sprintf("permission denied for url - %s\ncheck your api-key and permissions", url)
 	case codes.Internal:
-		return fmt.Sprintf("internal error in Coralogix backend - %s\nurl - %s request - %s", url, err, requestStr)
+		return fmt.Sprintf("internal error in Coralogix backend.\nerror - %s\nurl - %s\nrequest - %s", err, url, requestStr)
 	case codes.InvalidArgument:
-		return fmt.Sprintf("invalid argument error - %s\nurl - %s request - %s", err, url, requestStr)
+		return fmt.Sprintf("invalid argument error.\nerror - %s\nurl - %s\nrequest - %s", err, url, requestStr)
 	default:
 		return err.Error()
 	}
@@ -94,10 +94,12 @@ func datasourceSchemaFromResourceSchema(rs map[string]*schema.Schema) map[string
 
 func frameworkDatasourceSchemaFromFrameworkResourceSchema(rs resourceschema.Schema) datasourceschema.Schema {
 	attributes := convertAttributes(rs.Attributes)
-	attributes["id"] = datasourceschema.StringAttribute{
-		Required:            true,
-		Description:         rs.Attributes["id"].GetDescription(),
-		MarkdownDescription: rs.Attributes["id"].GetMarkdownDescription(),
+	if idSchema, ok := rs.Attributes["id"]; ok {
+		attributes["id"] = datasourceschema.StringAttribute{
+			Required:            true,
+			Description:         idSchema.GetDescription(),
+			MarkdownDescription: idSchema.GetMarkdownDescription(),
+		}
 	}
 
 	return datasourceschema.Schema{
@@ -476,14 +478,6 @@ func getKeysRelativeTimeFrame(m map[string]protoTimeFrameAndRelativeTimeFrame) [
 
 func reverseMapStrings(m map[string]string) map[string]string {
 	n := make(map[string]string)
-	for k, v := range m {
-		n[v] = k
-	}
-	return n
-}
-
-func reverseMapIntToString(m map[string]int) map[int]string {
-	n := make(map[int]string)
 	for k, v := range m {
 		n[v] = k
 	}

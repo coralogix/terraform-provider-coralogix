@@ -782,7 +782,7 @@ func (r WebhookResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
 			"Error deleting Webhook",
-			formatRpcErrors(err, deleteTCOPolicyURL, protojson.Format(deleteReq)),
+			formatRpcErrors(err, deleteWebhookURL, protojson.Format(deleteReq)),
 		)
 		return
 	}

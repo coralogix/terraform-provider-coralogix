@@ -1,20 +1,22 @@
 package clientset
 
 type ClientSet struct {
-	ruleGroups            *RuleGroupsClient
-	alerts                *AlertsClient
-	enrichments           *EnrichmentsClient
-	dataSet               *DataSetClient
-	dashboards            *DashboardsClient
-	grafana               *GrafanaClient
-	actions               *ActionsClient
-	recordingRuleGroups   *RecordingRulesGroupsSetsClient
-	tcoPolicies           *TCOPoliciesClient
-	tcoPoliciesOverrides  *TCOPoliciesOverrides
-	webhooks              *WebhooksClient
-	events2Metrics        *Events2MetricsClient
-	slis                  *SLIClient
-	metricsConfigurations *MetricsConfigurationClient
+	ruleGroups           *RuleGroupsClient
+	alerts               *AlertsClient
+	enrichments          *EnrichmentsClient
+	dataSet              *DataSetClient
+	dashboards           *DashboardsClient
+	grafana              *GrafanaClient
+	actions              *ActionsClient
+	recordingRuleGroups  *RecordingRulesGroupsSetsClient
+	tcoPolicies          *TCOPoliciesClient
+	tcoPoliciesOverrides *TCOPoliciesOverrides
+	webhooks             *WebhooksClient
+	events2Metrics       *Events2MetricsClient
+	slis                 *SLIClient
+	archiveRetentions    *ArchiveRetentionsClient
+	archiveMetrics       *ArchiveMetricsClient
+	archiveLogs          *ArchiveLogsClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -69,8 +71,17 @@ func (c *ClientSet) SLIs() *SLIClient {
 	return c.slis
 }
 
-func (c *ClientSet) MetricsConfiguration() *MetricsConfigurationClient {
-	return c.metricsConfigurations
+func (c *ClientSet) ArchiveRetentions() *ArchiveRetentionsClient {
+	return c.archiveRetentions
+
+}
+
+func (c *ClientSet) ArchiveMetrics() *ArchiveMetricsClient {
+	return c.archiveMetrics
+}
+
+func (c *ClientSet) ArchiveLogs() *ArchiveLogsClient {
+	return c.archiveLogs
 }
 
 func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
@@ -78,19 +89,21 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	_ = NewCallPropertiesCreator(targetUrl, teamsApiKey)
 
 	return &ClientSet{
-		ruleGroups:            NewRuleGroupsClient(apikeyCPC),
-		alerts:                NewAlertsClient(apikeyCPC),
-		events2Metrics:        NewEvents2MetricsClient(apikeyCPC),
-		enrichments:           NewEnrichmentClient(apikeyCPC),
-		dataSet:               NewDataSetClient(apikeyCPC),
-		dashboards:            NewDashboardsClient(apikeyCPC),
-		grafana:               NewGrafanaClient(apikeyCPC),
-		actions:               NewActionsClient(apikeyCPC),
-		recordingRuleGroups:   NewRecordingRuleGroupsClient(apikeyCPC),
-		tcoPolicies:           NewTCOPoliciesClient(apikeyCPC),
-		tcoPoliciesOverrides:  NewTCOPoliciesOverridesClient(apikeyCPC),
-		webhooks:              NewWebhooksClient(apikeyCPC),
-		slis:                  NewSLIsClient(apikeyCPC),
-		metricsConfigurations: NewMetricsConfiguration(apikeyCPC),
+		ruleGroups:           NewRuleGroupsClient(apikeyCPC),
+		alerts:               NewAlertsClient(apikeyCPC),
+		events2Metrics:       NewEvents2MetricsClient(apikeyCPC),
+		enrichments:          NewEnrichmentClient(apikeyCPC),
+		dataSet:              NewDataSetClient(apikeyCPC),
+		dashboards:           NewDashboardsClient(apikeyCPC),
+		grafana:              NewGrafanaClient(apikeyCPC),
+		actions:              NewActionsClient(apikeyCPC),
+		recordingRuleGroups:  NewRecordingRuleGroupsClient(apikeyCPC),
+		tcoPolicies:          NewTCOPoliciesClient(apikeyCPC),
+		tcoPoliciesOverrides: NewTCOPoliciesOverridesClient(apikeyCPC),
+		webhooks:             NewWebhooksClient(apikeyCPC),
+		slis:                 NewSLIsClient(apikeyCPC),
+		archiveRetentions:    NewArchiveRetentionsClient(apikeyCPC),
+		archiveMetrics:       NewArchiveMetricsClient(apikeyCPC),
+		archiveLogs:          NewArchiveLogsClient(apikeyCPC),
 	}
 }

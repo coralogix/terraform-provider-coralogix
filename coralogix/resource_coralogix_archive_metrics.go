@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -20,7 +22,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"terraform-provider-coralogix/coralogix/clientset"
-	ArchiveMetrics "terraform-provider-coralogix/coralogix/clientset/grpc/metrics-configurator"
+	archiveMetrics "terraform-provider-coralogix/coralogix/clientset/grpc/archive-metrics"
 )
 
 var (
@@ -31,12 +33,12 @@ var (
 )
 
 type ArchiveMetricsResourceModel struct {
-	ID                 types.String `tfsdk:"id"`
-	TenantID           types.Int64  `tfsdk:"tenant_id"`
-	Prefix             types.String `tfsdk:"prefix"`
-	RetentionsPolicies types.List   `tfsdk:"retentions_policies"` //RetentionsPolicyModel
-	IBM                types.Object `tfsdk:"ibm"`                 //IBMConfigModel
-	S3                 types.Object `tfsdk:"s3"`                  //S3ConfigModel
+	ID              types.String `tfsdk:"id"`
+	TenantID        types.Int64  `tfsdk:"tenant_id"`
+	Prefix          types.String `tfsdk:"prefix"`
+	RetentionPolicy types.Object `tfsdk:"retention_policy"` //RetentionPolicyModel
+	IBM             types.Object `tfsdk:"ibm"`              //IBMConfigModel
+	S3              types.Object `tfsdk:"s3"`               //S3ConfigModel
 }
 
 func NewArchiveMetricsResource() resource.Resource {
@@ -44,7 +46,7 @@ func NewArchiveMetricsResource() resource.Resource {
 }
 
 type ArchiveMetricsResource struct {
-	client *clientset.MetricsConfigurationClient
+	client *clientset.ArchiveMetricsClient
 }
 
 func (r *ArchiveMetricsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -65,7 +67,7 @@ func (r *ArchiveMetricsResource) Configure(ctx context.Context, req resource.Con
 		return
 	}
 
-	r.client = clientSet.MetricsConfiguration()
+	r.client = clientSet.ArchiveMetrics()
 }
 
 type IBMConfigModel struct {
@@ -78,16 +80,17 @@ type S3ConfigModel struct {
 	Region types.String `tfsdk:"region"`
 }
 
-type RetentionsPolicyModel struct {
-	Resolution    types.Int64 `tfsdk:"resolution"`
-	RetentionDays types.Int64 `tfsdk:"retention_days"`
+type RetentionPolicyModel struct {
+	RawResolution         types.Int64 `tfsdk:"raw_resolution"`
+	FiveMinutesResolution types.Int64 `tfsdk:"five_minutes_resolution"`
+	OneHourResolution     types.Int64 `tfsdk:"one_hour_resolution"`
 }
 
 func (r *ArchiveMetricsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_archive_metrics"
 }
 
-func (r ArchiveMetricsResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *ArchiveMetricsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 0,
 		Attributes: map[string]schema.Attribute{
@@ -99,22 +102,34 @@ func (r ArchiveMetricsResource) Schema(_ context.Context, req resource.SchemaReq
 			},
 			"tenant_id": schema.Int64Attribute{
 				Computed: true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"prefix": schema.StringAttribute{
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
-			"retentions_policies": schema.ListNestedAttribute{
+			"retention_policy": schema.SingleNestedAttribute{
+				Computed: true,
 				Optional: true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"resolution": schema.Int64Attribute{
-							Required: true,
-						},
-						"retention_days": schema.Int64Attribute{
-							Required: true,
-						},
+				Attributes: map[string]schema.Attribute{
+					"raw_resolution": schema.Int64Attribute{
+						Required: true,
+					},
+					"five_minutes_resolution": schema.Int64Attribute{
+						Required: true,
+					},
+					"one_hour_resolution": schema.Int64Attribute{
+						Required: true,
 					},
 				},
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "The retention policy (in days) for the archived metrics. Having default values when not specified.",
 			},
 			"ibm": schema.SingleNestedAttribute{
 				Optional: true,
@@ -136,10 +151,12 @@ func (r ArchiveMetricsResource) Schema(_ context.Context, req resource.SchemaReq
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"bucket": schema.StringAttribute{
-						Required: true,
+						Required:            true,
+						MarkdownDescription: "The bucket name to store the archived metrics in.",
 					},
 					"region": schema.StringAttribute{
-						Required: true,
+						Required:            true,
+						MarkdownDescription: "The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions",
 					},
 				},
 				Validators: []validator.Object{
@@ -166,28 +183,28 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Creating new ArchiveMetrics: %s", protojson.Format(createReq))
-	_, err := r.client.UpdateMetricsConfiguration(ctx, createReq)
+	log.Printf("[INFO] Creating new archive-metrics: %s", protojson.Format(createReq))
+	_, err := r.client.UpdateArchiveMetrics(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
-			"Error creating ArchiveMetrics",
+			"Error creating archive-metrics",
 			formatRpcErrors(err, updateArchiveMetricsURL, protojson.Format(createReq)),
 		)
 		return
 	}
-	log.Print("[INFO] Submitted new ArchiveMetrics")
+	log.Print("[INFO] Submitted new archive-metrics")
 
-	readResp, err := r.client.GetMetricsConfiguration(ctx)
+	readResp, err := r.client.GetArchiveMetrics(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
-			"Error reading ArchiveMetrics",
+			"Error reading archive-metrics",
 			formatRpcErrors(err, getArchiveMetricsURL, ""),
 		)
 		return
 	}
-	log.Printf("[INFO] Received ArchiveMetrics: %s", protojson.Format(readResp))
+	log.Printf("[INFO] Received archiveMetrics: %s", protojson.Format(readResp))
 	plan, diags = flattenArchiveMetrics(ctx, readResp.GetTenantConfig())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -198,7 +215,7 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenArchiveMetrics(ctx context.Context, metricConfig *ArchiveMetrics.TenantConfigV2) (*ArchiveMetricsResourceModel, diag.Diagnostics) {
+func flattenArchiveMetrics(ctx context.Context, metricConfig *archiveMetrics.TenantConfigV2) (*ArchiveMetricsResourceModel, diag.Diagnostics) {
 	flattenedMetricsConfig := &ArchiveMetricsResourceModel{
 		ID:       types.StringValue(""),
 		TenantID: types.Int64Value(int64(metricConfig.GetTenantId())),
@@ -210,43 +227,47 @@ func flattenArchiveMetrics(ctx context.Context, metricConfig *ArchiveMetrics.Ten
 		return nil, diags
 	}
 
-	retentionsPolicies, diags := flattenRetentionPolicies(ctx, metricConfig.GetRetentionPolicy())
+	retentionPolicy, diags := flattenRetentionPolicy(ctx, metricConfig.GetRetentionPolicy())
 	if diags.HasError() {
 		return nil, diags
 	}
-	flattenedMetricsConfig.RetentionsPolicies = retentionsPolicies
+	flattenedMetricsConfig.RetentionPolicy = retentionPolicy
 
 	return flattenedMetricsConfig, nil
 }
 
-func flattenRetentionPolicies(ctx context.Context, retentionPolicies []*ArchiveMetrics.RetentionPolicy) (types.List, diag.Diagnostics) {
-	if retentionPolicies == nil {
-		return types.ListNull(types.ObjectType{AttrTypes: retentionsPolicyModelAttr()}), nil
+func flattenRetentionPolicy(ctx context.Context, policy *archiveMetrics.RetentionPolicyRequest) (types.Object, diag.Diagnostics) {
+	if policy == nil {
+		return types.ObjectNull(retentionPolicyModelAttr()), nil
 	}
 
-	var policies []RetentionsPolicyModel
-	for _, policy := range retentionPolicies {
-		policies = append(policies, RetentionsPolicyModel{
-			Resolution:    types.Int64Value(int64(policy.GetResolution())),
-			RetentionDays: types.Int64Value(int64(policy.GetRetentionDays())),
-		})
+	flattenedPolicy := RetentionPolicyModel{
+		RawResolution:         types.Int64Value(int64(policy.GetRawResolution())),
+		FiveMinutesResolution: types.Int64Value(int64(policy.GetFiveMinutesResolution())),
+		OneHourResolution:     types.Int64Value(int64(policy.GetOneHourResolution())),
 	}
 
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: retentionsPolicyModelAttr()}, policies)
+	return types.ObjectValueFrom(ctx, retentionPolicyModelAttr(), flattenedPolicy)
 }
 
-func flattenStorageConfig(ctx context.Context, metricConfig *ArchiveMetrics.TenantConfigV2, flattenedMetricsConfig *ArchiveMetricsResourceModel) (*ArchiveMetricsResourceModel, diag.Diagnostics) {
-	switch metricConfig.GetStorageConfig().(type) {
-	case *ArchiveMetrics.TenantConfigV2_Ibm:
-		var ibmConfig *IBMConfigModel
+func flattenStorageConfig(ctx context.Context, metricConfig *archiveMetrics.TenantConfigV2, flattenedMetricsConfig *ArchiveMetricsResourceModel) (*ArchiveMetricsResourceModel, diag.Diagnostics) {
+	switch storageConfig := metricConfig.GetStorageConfig().(type) {
+	case *archiveMetrics.TenantConfigV2_Ibm:
+		ibmConfig := &IBMConfigModel{
+			Endpoint: types.StringValue(storageConfig.Ibm.GetEndpoint()),
+			Crn:      types.StringValue(storageConfig.Ibm.GetCrn()),
+		}
 		ibmConfigObject, diags := types.ObjectValueFrom(ctx, ibmConfigModelAttr(), ibmConfig)
 		if diags.HasError() {
 			return nil, diags
 		}
 		flattenedMetricsConfig.IBM = ibmConfigObject
 		flattenedMetricsConfig.S3 = types.ObjectNull(s3ConfigModelAttr())
-	case *ArchiveMetrics.TenantConfigV2_S3:
-		var s3Config *S3ConfigModel
+	case *archiveMetrics.TenantConfigV2_S3:
+		s3Config := &S3ConfigModel{
+			Bucket: types.StringValue(storageConfig.S3.GetBucket()),
+			Region: types.StringValue(storageConfig.S3.GetRegion()),
+		}
 		s3ConfigObject, diags := types.ObjectValueFrom(ctx, s3ConfigModelAttr(), s3Config)
 		if diags.HasError() {
 			return nil, diags
@@ -258,10 +279,11 @@ func flattenStorageConfig(ctx context.Context, metricConfig *ArchiveMetrics.Tena
 	return flattenedMetricsConfig, nil
 }
 
-func retentionsPolicyModelAttr() map[string]attr.Type {
+func retentionPolicyModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"resolution":     types.Int64Type,
-		"retention_days": types.Int64Type,
+		"raw_resolution":          types.Int64Type,
+		"five_minutes_resolution": types.Int64Type,
+		"one_hour_resolution":     types.Int64Type,
 	}
 }
 
@@ -279,16 +301,16 @@ func s3ConfigModelAttr() map[string]attr.Type {
 	}
 }
 
-func extractArchiveMetrics(ctx context.Context, plan ArchiveMetricsResourceModel) (*ArchiveMetrics.TenantConfigV2, diag.Diagnostics) {
-	tenantConfig := ArchiveMetrics.TenantConfigV2{}
+func extractArchiveMetrics(ctx context.Context, plan ArchiveMetricsResourceModel) (*archiveMetrics.ConfigureTenantRequest, diag.Diagnostics) {
+	tenantConfig := archiveMetrics.ConfigureTenantRequest{}
 	if !plan.IBM.IsNull() {
 		var ibmConfig IBMConfigModel
 		diags := plan.IBM.As(ctx, &ibmConfig, basetypes.ObjectAsOptions{})
 		if diags.HasError() {
 			return nil, diags
 		}
-		tenantConfig.StorageConfig = &ArchiveMetrics.TenantConfigV2_Ibm{
-			Ibm: &ArchiveMetrics.IbmConfigV2{
+		tenantConfig.StorageConfig = &archiveMetrics.ConfigureTenantRequest_Ibm{
+			Ibm: &archiveMetrics.IbmConfigV2{
 				Endpoint: ibmConfig.Endpoint.ValueString(),
 				Crn:      ibmConfig.Crn.ValueString(),
 			},
@@ -299,14 +321,14 @@ func extractArchiveMetrics(ctx context.Context, plan ArchiveMetricsResourceModel
 		if diags.HasError() {
 			return nil, diags
 		}
-		tenantConfig.StorageConfig = &ArchiveMetrics.TenantConfigV2_S3{
-			S3: &ArchiveMetrics.S3Config{
+		tenantConfig.StorageConfig = &archiveMetrics.ConfigureTenantRequest_S3{
+			S3: &archiveMetrics.S3Config{
 				Bucket: s3Config.Bucket.ValueString(),
 				Region: s3Config.Region.ValueString(),
 			},
 		}
 	}
-	retentionPolicy, diags := extractRetentionPolicies(ctx, plan.RetentionsPolicies)
+	retentionPolicy, diags := extractRetentionPolicies(ctx, plan.RetentionPolicy)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -315,28 +337,21 @@ func extractArchiveMetrics(ctx context.Context, plan ArchiveMetricsResourceModel
 	return &tenantConfig, nil
 }
 
-func extractRetentionPolicies(ctx context.Context, policies types.List) ([]*ArchiveMetrics.RetentionPolicy, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	var policiesObjects []types.Object
-	var expandedPolicies []*ArchiveMetrics.RetentionPolicy
-	policies.ElementsAs(ctx, &policiesObjects, true)
-
-	for _, po := range policiesObjects {
-		var policy RetentionsPolicyModel
-		if dg := po.As(ctx, &policy, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedPolicies = append(expandedPolicies, &ArchiveMetrics.RetentionPolicy{
-			Resolution:    int32(policy.Resolution.ValueInt64()),
-			RetentionDays: int32(policy.RetentionDays.ValueInt64()),
-		})
+func extractRetentionPolicies(ctx context.Context, policy types.Object) (*archiveMetrics.RetentionPolicyRequest, diag.Diagnostics) {
+	if policy.IsNull() || policy.IsUnknown() {
+		return nil, nil
 	}
-	if diags.HasError() {
+
+	var policyModel RetentionPolicyModel
+	if diags := policy.As(ctx, &policyModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
-
 	}
-	return expandedPolicies, nil
+
+	return &archiveMetrics.RetentionPolicyRequest{
+		RawResolution:         uint32(policyModel.RawResolution.ValueInt64()),
+		FiveMinutesResolution: uint32(policyModel.FiveMinutesResolution.ValueInt64()),
+		OneHourResolution:     uint32(policyModel.OneHourResolution.ValueInt64()),
+	}, nil
 }
 
 func (r *ArchiveMetricsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -347,27 +362,27 @@ func (r *ArchiveMetricsResource) Read(ctx context.Context, req resource.ReadRequ
 		return
 	}
 
-	//Get refreshed ArchiveMetrics value from Coralogix
+	//Get refreshed archiveMetrics value from Coralogix
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Reading ArchiveMetrics: %s", id)
-	getResp, err := r.client.GetMetricsConfiguration(ctx)
+	log.Printf("[INFO] Reading archiveMetrics: %s", id)
+	getResp, err := r.client.GetArchiveMetrics(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
 			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("ArchiveMetrics %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("archiveMetrics %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
 			resp.Diagnostics.AddError(
-				"Error reading ArchiveMetrics",
+				"Error reading archive-metrics",
 				formatRpcErrors(err, getArchiveMetricsURL, ""),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received ArchiveMetrics: %s", protojson.Format(getResp))
+	log.Printf("[INFO] Received archive-metrics: %s", protojson.Format(getResp))
 
 	state, diags = flattenArchiveMetrics(ctx, getResp.GetTenantConfig())
 	//
@@ -389,27 +404,28 @@ func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.Update
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Updating new ArchiveMetrics: %s", protojson.Format(createReq))
-	_, err := r.client.UpdateMetricsConfiguration(ctx, createReq)
+	log.Printf("[INFO] Updating new archiveMetrics: %s", protojson.Format(createReq))
+	_, err := r.client.UpdateArchiveMetrics(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
-			"Error updating ArchiveMetrics",
+			"Error updating archive-metrics",
 			formatRpcErrors(err, createEvents2MetricURL, protojson.Format(createReq)),
 		)
 		return
 	}
-	log.Print("[INFO] Submitted updated ArchiveMetrics")
+	log.Print("[INFO] Submitted updated archive-metrics")
 
-	readResp, err := r.client.GetMetricsConfiguration(ctx)
+	readResp, err := r.client.GetArchiveMetrics(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		resp.Diagnostics.AddError(
-			"Error reading ArchiveMetrics",
-			formatRpcErrors(err, getEvents2MetricURL, ""),
+			"Error reading archive-metrics",
+			formatRpcErrors(err, getArchiveMetricsURL, ""),
 		)
 		return
 	}
+	log.Printf("[INFO] Read updated archive-metrics %s", protojson.Format(readResp))
 	plan, diags = flattenArchiveMetrics(ctx, readResp.GetTenantConfig())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)

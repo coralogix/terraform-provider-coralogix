@@ -23,8 +23,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MetricsConfiguratorPublicServiceClient interface {
-	ConfigureTenant(ctx context.Context, in *TenantConfigV2, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	ValidateBucket(ctx context.Context, in *TenantConfigV2, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ConfigureTenant(ctx context.Context, in *ConfigureTenantRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	ValidateBucket(ctx context.Context, in *ValidateBucketRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetTenantConfig(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetTenantConfigResponseV2, error)
 }
 
@@ -36,7 +36,7 @@ func NewMetricsConfiguratorPublicServiceClient(cc grpc.ClientConnInterface) Metr
 	return &metricsConfiguratorPublicServiceClient{cc}
 }
 
-func (c *metricsConfiguratorPublicServiceClient) ConfigureTenant(ctx context.Context, in *TenantConfigV2, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *metricsConfiguratorPublicServiceClient) ConfigureTenant(ctx context.Context, in *ConfigureTenantRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/com.coralogix.metrics.metrics_configurator.MetricsConfiguratorPublicService/ConfigureTenant", in, out, opts...)
 	if err != nil {
@@ -45,7 +45,7 @@ func (c *metricsConfiguratorPublicServiceClient) ConfigureTenant(ctx context.Con
 	return out, nil
 }
 
-func (c *metricsConfiguratorPublicServiceClient) ValidateBucket(ctx context.Context, in *TenantConfigV2, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *metricsConfiguratorPublicServiceClient) ValidateBucket(ctx context.Context, in *ValidateBucketRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/com.coralogix.metrics.metrics_configurator.MetricsConfiguratorPublicService/ValidateBucket", in, out, opts...)
 	if err != nil {
@@ -67,8 +67,8 @@ func (c *metricsConfiguratorPublicServiceClient) GetTenantConfig(ctx context.Con
 // All implementations must embed UnimplementedMetricsConfiguratorPublicServiceServer
 // for forward compatibility
 type MetricsConfiguratorPublicServiceServer interface {
-	ConfigureTenant(context.Context, *TenantConfigV2) (*emptypb.Empty, error)
-	ValidateBucket(context.Context, *TenantConfigV2) (*emptypb.Empty, error)
+	ConfigureTenant(context.Context, *ConfigureTenantRequest) (*emptypb.Empty, error)
+	ValidateBucket(context.Context, *ValidateBucketRequest) (*emptypb.Empty, error)
 	GetTenantConfig(context.Context, *emptypb.Empty) (*GetTenantConfigResponseV2, error)
 	mustEmbedUnimplementedMetricsConfiguratorPublicServiceServer()
 }
@@ -77,10 +77,10 @@ type MetricsConfiguratorPublicServiceServer interface {
 type UnimplementedMetricsConfiguratorPublicServiceServer struct {
 }
 
-func (UnimplementedMetricsConfiguratorPublicServiceServer) ConfigureTenant(context.Context, *TenantConfigV2) (*emptypb.Empty, error) {
+func (UnimplementedMetricsConfiguratorPublicServiceServer) ConfigureTenant(context.Context, *ConfigureTenantRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ConfigureTenant not implemented")
 }
-func (UnimplementedMetricsConfiguratorPublicServiceServer) ValidateBucket(context.Context, *TenantConfigV2) (*emptypb.Empty, error) {
+func (UnimplementedMetricsConfiguratorPublicServiceServer) ValidateBucket(context.Context, *ValidateBucketRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ValidateBucket not implemented")
 }
 func (UnimplementedMetricsConfiguratorPublicServiceServer) GetTenantConfig(context.Context, *emptypb.Empty) (*GetTenantConfigResponseV2, error) {
@@ -101,7 +101,7 @@ func RegisterMetricsConfiguratorPublicServiceServer(s grpc.ServiceRegistrar, srv
 }
 
 func _MetricsConfiguratorPublicService_ConfigureTenant_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TenantConfigV2)
+	in := new(ConfigureTenantRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -113,13 +113,13 @@ func _MetricsConfiguratorPublicService_ConfigureTenant_Handler(srv interface{}, 
 		FullMethod: "/com.coralogix.metrics.metrics_configurator.MetricsConfiguratorPublicService/ConfigureTenant",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MetricsConfiguratorPublicServiceServer).ConfigureTenant(ctx, req.(*TenantConfigV2))
+		return srv.(MetricsConfiguratorPublicServiceServer).ConfigureTenant(ctx, req.(*ConfigureTenantRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _MetricsConfiguratorPublicService_ValidateBucket_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TenantConfigV2)
+	in := new(ValidateBucketRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func _MetricsConfiguratorPublicService_ValidateBucket_Handler(srv interface{}, c
 		FullMethod: "/com.coralogix.metrics.metrics_configurator.MetricsConfiguratorPublicService/ValidateBucket",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MetricsConfiguratorPublicServiceServer).ValidateBucket(ctx, req.(*TenantConfigV2))
+		return srv.(MetricsConfiguratorPublicServiceServer).ValidateBucket(ctx, req.(*ValidateBucketRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
