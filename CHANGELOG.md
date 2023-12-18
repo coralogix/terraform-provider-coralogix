@@ -381,3 +381,9 @@ Breaking Changes:
 New Features:
 #### resource/coralogix_archive_retentions
 * Adding support for `coralogix_archive_retentions` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/archive_retentions.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/archive_retentions.md).
+
+## Release 1.10.7
+New Features:
+#### resource/coralogix_archive_logs
+* Adding support for `coralogix_archive_logs` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/archive_logs.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/archive_logs.md).
+* Adding support for `coralogix_archive_metrics` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/archive_metrics.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/archive_metrics.md).
