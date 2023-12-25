@@ -305,7 +305,7 @@ func testAccCoralogixResourceDashboardFromJson(jsonFilePath string) string {
 }
 
 func TestParseRelativeTimeDuration(t *testing.T) {
-	res, err := parseDuration("seconds:900")
+	res, err := parseDuration("seconds:900", "relative")
 	if err != nil {
 		t.Fatal(err)
 	}

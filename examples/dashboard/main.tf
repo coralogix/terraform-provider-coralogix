@@ -45,10 +45,9 @@ resource "coralogix_dashboard" dashboard {
                         scale_type         = "linear"
                         series_count_limit = 100
                         unit               = "milliseconds"
-#                        resolution = {
-#                          interval = "1m"
-#                          buckets_presented = 10
-#                        }
+                        resolution = {
+                          interval = "seconds:900"
+                        }
                       },
                     ]
                     legend = {
@@ -583,7 +582,7 @@ resource "coralogix_dashboard" dashboard {
   ]
 }
 
-#resource "coralogix_dashboard" dashboard_from_json {
-#  content_json = file("./dashboard.json")
-#}
+resource "coralogix_dashboard" dashboard_from_json {
+  content_json = file("./dashboard.json")
+}
 
