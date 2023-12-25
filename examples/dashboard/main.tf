@@ -37,7 +37,6 @@ resource "coralogix_dashboard" dashboard {
                                 field = "meta.responseTime.numeric"
                               },
                             ]
-
                             group_by = [
                               "meta.organization.keyword"
                             ]
@@ -46,6 +45,10 @@ resource "coralogix_dashboard" dashboard {
                         scale_type         = "linear"
                         series_count_limit = 100
                         unit               = "milliseconds"
+#                        resolution = {
+#                          interval = "1m"
+#                          buckets_presented = 10
+#                        }
                       },
                     ]
                     legend = {
@@ -119,6 +122,9 @@ resource "coralogix_dashboard" dashboard {
                         scale_type         = "linear"
                         series_count_limit = 100
                         unit               = "milliseconds"
+                        resolution = {
+                          buckets_presented = 10
+                        }
                       },
                     ]
                     legend = {
@@ -460,6 +466,16 @@ resource "coralogix_dashboard" dashboard {
                         aggregation  = {
                           type = "count"
                         }
+                        group_names_fields = [
+                          {
+                            keypath = ["logid"]
+                            scope   = "metadata"
+                          },
+                        ]
+                        stacked_group_name_field = {
+                          keypath = ["logid"]
+                          scope   = "metadata"
+                        }
                       }
                     }
                     xaxis = {
@@ -567,7 +583,7 @@ resource "coralogix_dashboard" dashboard {
   ]
 }
 
-resource "coralogix_dashboard" dashboard_from_json {
-  content_json = file("./dashboard.json")
-}
+#resource "coralogix_dashboard" dashboard_from_json {
+#  content_json = file("./dashboard.json")
+#}
 
