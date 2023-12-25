@@ -37,7 +37,6 @@ resource "coralogix_dashboard" dashboard {
                                 field = "meta.responseTime.numeric"
                               },
                             ]
-
                             group_by = [
                               "meta.organization.keyword"
                             ]
@@ -46,6 +45,9 @@ resource "coralogix_dashboard" dashboard {
                         scale_type         = "linear"
                         series_count_limit = 100
                         unit               = "milliseconds"
+                        resolution = {
+                          interval = "seconds:900"
+                        }
                       },
                     ]
                     legend = {
@@ -119,6 +121,9 @@ resource "coralogix_dashboard" dashboard {
                         scale_type         = "linear"
                         series_count_limit = 100
                         unit               = "milliseconds"
+                        resolution = {
+                          buckets_presented = 10
+                        }
                       },
                     ]
                     legend = {
@@ -459,6 +464,16 @@ resource "coralogix_dashboard" dashboard {
                         lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
                         aggregation  = {
                           type = "count"
+                        }
+                        group_names_fields = [
+                          {
+                            keypath = ["logid"]
+                            scope   = "metadata"
+                          },
+                        ]
+                        stacked_group_name_field = {
+                          keypath = ["logid"]
+                          scope   = "metadata"
                         }
                       }
                     }
