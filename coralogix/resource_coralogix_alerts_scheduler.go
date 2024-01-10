@@ -14,9 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -164,10 +162,7 @@ func (r *AlertsSchedulerResource) Schema(_ context.Context, _ resource.SchemaReq
 		Version: 0,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				Computed:            true,
 				MarkdownDescription: "Alert Scheduler ID.",
 			},
 			"name": schema.StringAttribute{
@@ -368,7 +363,7 @@ func (r *AlertsSchedulerResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	alertScheduler, diags := extractAlertsScheduler(ctx, plan)
+	alertScheduler, diags := extractAlertsScheduler(ctx, plan, nil)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -471,6 +466,8 @@ func flattenFilter(ctx context.Context, filter *alertsSchedulers.Filter) (types.
 	case *alertsSchedulers.Filter_AlertUniqueIds:
 		filterModel.AlertsUniqueIDs = stringSliceToTypeStringSet(filterType.AlertUniqueIds.GetValue())
 		filterModel.MetaLabels = types.SetNull(types.ObjectType{AttrTypes: labelModelAttr()})
+	default:
+		return types.ObjectNull(filterModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("error flatten filter", fmt.Sprintf("unknown filter type: %T", filterType))}
 	}
 
 	filterModel.WhatExpression = types.StringValue(filter.GetWhatExpression())
@@ -512,6 +509,8 @@ func flattenSchedule(ctx context.Context, schedule *alertsSchedulers.Schedule) (
 		}
 		scheduleModel.Recurring = recurring
 		scheduleModel.OneTime = types.ObjectNull(oneTimeModelAttr())
+	default:
+		return types.ObjectNull(scheduleModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("error flatten schedule", fmt.Sprintf("unknown filter type: %T", scheduleType))}
 	}
 
 	return types.ObjectValueFrom(ctx, scheduleModelAttr(), scheduleModel)
@@ -584,6 +583,8 @@ func flattenFrequency(ctx context.Context, dynamic *alertsSchedulers.Recurring_D
 		frequencyModel.Monthly = monthly
 		frequencyModel.Daily = types.ObjectNull(map[string]attr.Type{})
 		frequencyModel.Weekly = types.ObjectNull(weeklyModelAttr())
+	default:
+		return types.ObjectNull(frequencyModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("error flatten frequency", fmt.Sprintf("unknown filter type: %T", frequencyType))}
 	}
 
 	return types.ObjectValueFrom(ctx, frequencyModelAttr(), frequencyModel)
@@ -654,6 +655,8 @@ func flattenAlertsSchedulerTimeFrame(ctx context.Context, timeFrame *alertsSched
 			return types.ObjectNull(timeFrameModelAttr()), diags
 		}
 		timeFrameModel.EndTime = types.StringNull()
+	default:
+		return types.ObjectNull(timeFrameModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("error flatten time frame", fmt.Sprintf("unknown filter type: %T", untilType))}
 	}
 
 	return types.ObjectValueFrom(ctx, timeFrameModelAttr(), timeFrameModel)
@@ -761,7 +764,7 @@ func timeFrameModelAttr() map[string]attr.Type {
 	}
 }
 
-func extractAlertsScheduler(ctx context.Context, plan *AlertsSchedulerResourceModel) (*alertsSchedulers.AlertSchedulerRule, diag.Diagnostics) {
+func extractAlertsScheduler(ctx context.Context, plan *AlertsSchedulerResourceModel, id *string) (*alertsSchedulers.AlertSchedulerRule, diag.Diagnostics) {
 	metaLabels, diags := extractAlertsSchedulerMetaLabels(ctx, plan.MetaLabels)
 	if diags.HasError() {
 		return nil, diags
@@ -778,7 +781,7 @@ func extractAlertsScheduler(ctx context.Context, plan *AlertsSchedulerResourceMo
 	}
 
 	return &alertsSchedulers.AlertSchedulerRule{
-		Id:          typeStringToStringPointer(plan.ID),
+		Id:          id,
 		Name:        plan.Name.ValueString(),
 		Description: typeStringToStringPointer(plan.Description),
 		MetaLabels:  metaLabels,
@@ -1087,7 +1090,7 @@ func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadReq
 	getAlertsSchedulerReq := &alertsSchedulers.GetAlertSchedulerRuleRequest{AlertSchedulerRuleId: id}
 	getAlertsSchedulerResp, err := r.client.GetAlertScheduler(ctx, getAlertsSchedulerReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -1124,7 +1127,11 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	alertsScheduler, diags := extractAlertsScheduler(ctx, plan)
+	var state *AlertsSchedulerResourceModel
+	req.State.Get(ctx, &state)
+	id := new(string)
+	*id = state.ID.ValueString()
+	alertsScheduler, diags := extractAlertsScheduler(ctx, plan, id)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -1135,7 +1142,7 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 	log.Printf("[INFO] Updating alerts-scheduler: %s", protojson.Format(updateAlertsSchedulerReq))
 	updateAlertsSchedulerResp, err := r.client.UpdateAlertScheduler(ctx, updateAlertsSchedulerReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating alerts-scheduler",
 			formatRpcErrors(err, updateAlertsSchedulerURL, protojson.Format(updateAlertsSchedulerReq)),
@@ -1145,11 +1152,10 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 	log.Printf("[INFO] Submitted updated alerts-scheduler: %s", protojson.Format(updateAlertsSchedulerResp))
 
 	// Get refreshed alerts-scheduler value from Coralogix
-	id := plan.ID.ValueString()
-	getAlertsSchedulerReq := &alertsSchedulers.GetAlertSchedulerRuleRequest{AlertSchedulerRuleId: id}
+	getAlertsSchedulerReq := &alertsSchedulers.GetAlertSchedulerRuleRequest{AlertSchedulerRuleId: updateAlertsSchedulerResp.GetAlertSchedulerRule().GetId()}
 	getAlertsSchedulerResp, err := r.client.GetAlertScheduler(ctx, getAlertsSchedulerReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			plan.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(

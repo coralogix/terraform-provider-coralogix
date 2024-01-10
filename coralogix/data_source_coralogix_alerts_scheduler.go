@@ -9,9 +9,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	alertsSchedulers "terraform-provider-coralogix/coralogix/clientset/grpc/alerts-scheduler"
 )
@@ -69,18 +66,10 @@ func (d *AlertsSchedulerDataSource) Read(ctx context.Context, req datasource.Rea
 	getAlertsSchedulerResp, err := d.client.GetAlertScheduler(ctx, getAlertsSchedulerReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
-		if status.Code(err) == codes.NotFound {
-			data.ID = types.StringNull()
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("alerts-scheduler %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading alerts-scheduler",
-				formatRpcErrors(err, getAlertsSchedulerURL, protojson.Format(getAlertsSchedulerReq)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error reading alerts-scheduler",
+			formatRpcErrors(err, getAlertsSchedulerURL, protojson.Format(getAlertsSchedulerReq)),
+		)
 		return
 	}
 	log.Printf("[INFO] Received alerts-scheduler: %s", protojson.Format(getAlertsSchedulerResp))
