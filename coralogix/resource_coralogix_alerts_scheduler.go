@@ -459,14 +459,12 @@ func flattenFilter(ctx context.Context, filter *alertsSchedulers.Filter) (types.
 		return types.ObjectNull(filterModelAttr()), nil
 	}
 
-	var diagnostics diag.Diagnostics
 	var filterModel FilterModel
 	switch filterType := filter.WhichAlerts.(type) {
 	case *alertsSchedulers.Filter_AlertMetaLabels:
 		metaLabels, diags := flattenAlertsSchedulerMetaLabels(ctx, filterType.AlertMetaLabels.GetValue())
 		if diags.HasError() {
-			diagnostics = append(diagnostics, diags...)
-			break
+			return types.ObjectNull(filterModelAttr()), diags
 		}
 		filterModel.MetaLabels = metaLabels
 		filterModel.AlertsUniqueIDs = types.SetNull(types.StringType)

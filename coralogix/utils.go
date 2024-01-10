@@ -286,17 +286,6 @@ func wrappedStringSliceToTypeStringList(s []*wrapperspb.StringValue) types.List 
 	return types.ListValueMust(types.StringType, elements)
 }
 
-func stringSliceToTypeStringList(s []string) types.List {
-	if len(s) == 0 {
-		return types.ListNull(types.StringType)
-	}
-	elements := make([]attr.Value, 0, len(s))
-	for _, v := range s {
-		elements = append(elements, types.StringValue(v))
-	}
-	return types.ListValueMust(types.StringType, elements)
-}
-
 func typeStringSliceToWrappedStringSlice(ctx context.Context, s []attr.Value) ([]*wrapperspb.StringValue, diag2.Diagnostics) {
 	var diags diag2.Diagnostics
 	result := make([]*wrapperspb.StringValue, 0, len(s))
@@ -353,28 +342,6 @@ func typeStringSliceToStringSlice(ctx context.Context, s []attr.Value) ([]string
 			continue
 		}
 		result = append(result, str)
-	}
-	if diags.HasError() {
-		return nil, diags
-	}
-	return result, nil
-}
-
-func typeInt64SliceToInt64Slice(ctx context.Context, s []attr.Value) ([]int64, diag2.Diagnostics) {
-	result := make([]int64, 0, len(s))
-	var diags diag2.Diagnostics
-	for _, v := range s {
-		val, err := v.ToTerraformValue(ctx)
-		if err != nil {
-			diags.AddError("Failed to convert value to Terraform", err.Error())
-			continue
-		}
-		var n int64
-		if err = val.As(&n); err != nil {
-			diags.AddError("Failed to convert value to Terraform", err.Error())
-			continue
-		}
-		result = append(result, n)
 	}
 	if diags.HasError() {
 		return nil, diags
