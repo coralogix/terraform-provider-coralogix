@@ -17,6 +17,7 @@ type ClientSet struct {
 	archiveRetentions    *ArchiveRetentionsClient
 	archiveMetrics       *ArchiveMetricsClient
 	archiveLogs          *ArchiveLogsClient
+	alertsSchedulers     *AlertsSchedulersClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -84,6 +85,10 @@ func (c *ClientSet) ArchiveLogs() *ArchiveLogsClient {
 	return c.archiveLogs
 }
 
+func (c *ClientSet) AlertSchedulers() *AlertsSchedulersClient {
+	return c.alertsSchedulers
+}
+
 func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 	_ = NewCallPropertiesCreator(targetUrl, teamsApiKey)
@@ -105,5 +110,6 @@ func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
 		archiveRetentions:    NewArchiveRetentionsClient(apikeyCPC),
 		archiveMetrics:       NewArchiveMetricsClient(apikeyCPC),
 		archiveLogs:          NewArchiveLogsClient(apikeyCPC),
+		alertsSchedulers:     NewAlertsSchedulersClient(apikeyCPC),
 	}
 }

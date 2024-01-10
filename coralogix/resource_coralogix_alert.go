@@ -148,7 +148,7 @@ var (
 	}
 	alertProtoDeadmanRatiosToSchemaDeadmanRatios = reverseMapStrings(alertSchemaDeadmanRatiosToProtoDeadmanRatios)
 	alertValidDeadmanRatioValues                 = getKeysStrings(alertSchemaDeadmanRatiosToProtoDeadmanRatios)
-	alertValidTimeZones                          = []string{"UTC-11", "UTC-10", "UTC-9", "UTC-8", "UTC-7", "UTC-6", "UTC-5", "UTC-4", "UTC-3", "UTC-2", "UTC-1",
+	validTimeZones                               = []string{"UTC-11", "UTC-10", "UTC-9", "UTC-8", "UTC-7", "UTC-6", "UTC-5", "UTC-4", "UTC-3", "UTC-2", "UTC-1",
 		"UTC+0", "UTC+1", "UTC+2", "UTC+3", "UTC+4", "UTC+5", "UTC+6", "UTC+7", "UTC+8", "UTC+9", "UTC+10", "UTC+11", "UTC+12", "UTC+13", "UTC+14"}
 	alertSchemaNotifyOnToProtoNotifyOn = map[string]alerts.NotifyOn{
 		"Triggered_only":         alerts.NotifyOn_TRIGGERED_ONLY,
@@ -476,8 +476,8 @@ func schedulingSchema() map[string]*schema.Schema {
 			Type:         schema.TypeString,
 			Optional:     true,
 			Default:      "UTC+0",
-			ValidateFunc: validation.StringInSlice(alertValidTimeZones, false),
-			Description:  fmt.Sprintf("Specifies the time zone to be used in interpreting the schedule. Can be one of %q", alertValidTimeZones),
+			ValidateFunc: validation.StringInSlice(validTimeZones, false),
+			Description:  fmt.Sprintf("Specifies the time zone to be used in interpreting the schedule. Can be one of %q", validTimeZones),
 		},
 		"time_frame": {
 			Type:        schema.TypeSet,

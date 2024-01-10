@@ -264,6 +264,17 @@ func stringSliceToTypeStringSet(s []string) types.Set {
 	return types.SetValueMust(types.StringType, elements)
 }
 
+func int32SliceToTypeInt64Set(arr []int32) types.Set {
+	if len(arr) == 0 {
+		return types.SetNull(types.Int64Type)
+	}
+	elements := make([]attr.Value, 0, len(arr))
+	for _, n := range arr {
+		elements = append(elements, types.Int64Value(int64(n)))
+	}
+	return types.SetValueMust(types.StringType, elements)
+}
+
 func wrappedStringSliceToTypeStringList(s []*wrapperspb.StringValue) types.List {
 	if len(s) == 0 {
 		return types.ListNull(types.StringType)
@@ -331,6 +342,28 @@ func typeStringSliceToStringSlice(ctx context.Context, s []attr.Value) ([]string
 			continue
 		}
 		result = append(result, str)
+	}
+	if diags.HasError() {
+		return nil, diags
+	}
+	return result, nil
+}
+
+func typeInt64SliceToInt32Slice(ctx context.Context, s []attr.Value) ([]int32, diag2.Diagnostics) {
+	result := make([]int32, 0, len(s))
+	var diags diag2.Diagnostics
+	for _, v := range s {
+		val, err := v.ToTerraformValue(ctx)
+		if err != nil {
+			diags.AddError("Failed to convert value to Terraform", err.Error())
+			continue
+		}
+		var n int64
+		if err = val.As(&n); err != nil {
+			diags.AddError("Failed to convert value to Terraform", err.Error())
+			continue
+		}
+		result = append(result, int32(n))
 	}
 	if diags.HasError() {
 		return nil, diags
@@ -578,6 +611,22 @@ func typeStringToWrapperspbString(str types.String) *wrapperspb.StringValue {
 		result = wrapperspb.String(str.ValueString())
 	}
 	return result
+}
+
+func typeStringToStringPointer(str types.String) *string {
+	if str.IsNull() || str.IsUnknown() {
+		return nil
+	}
+	result := new(string)
+	*result = str.ValueString()
+	return result
+}
+
+func stringPointerToTypeString(str *string) types.String {
+	if str == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(*str)
 }
 
 func typeFloat64ToWrapperspbDouble(num types.Float64) *wrapperspb.DoubleValue {
