@@ -33,7 +33,7 @@ func TestAccCoralogixResourceResourceAlertsScheduler(t *testing.T) {
 					}),
 					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.operation", "active"),
 					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.repeat_every", "2"),
-					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.frequency.weekly.days.*", "Sunday"),
+					resource.TestCheckTypeSetElemAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.frequency.weekly.days.*", "Sunday"),
 					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.time_frame.start_time", "2021-01-01T00:00:00.000"),
 					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.time_frame.duration.for_over", "2"),
 					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.time_frame.duration.frequency", "hours"),
