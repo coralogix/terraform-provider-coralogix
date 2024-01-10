@@ -385,6 +385,10 @@ func (r *ArchiveMetricsResource) Read(ctx context.Context, req resource.ReadRequ
 	log.Printf("[INFO] Received archive-metrics: %s", protojson.Format(getResp))
 
 	state, diags = flattenArchiveMetrics(ctx, getResp.GetTenantConfig())
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 	//
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)

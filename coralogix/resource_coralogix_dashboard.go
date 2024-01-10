@@ -6326,11 +6326,10 @@ func flattenLineChartQueryResolution(ctx context.Context, resolution *dashboards
 	}
 
 	interval := types.StringNull()
-	bucketsPresented := types.Int64Null()
 	if resolution.GetInterval() != nil {
 		interval = types.StringValue(resolution.GetInterval().String())
 	}
-	bucketsPresented = wrapperspbInt32ToTypeInt64(resolution.GetBucketsPresented())
+	bucketsPresented := wrapperspbInt32ToTypeInt64(resolution.GetBucketsPresented())
 
 	resolutionModel := LineChartResolutionModel{
 		Interval:         interval,

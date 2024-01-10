@@ -1272,7 +1272,7 @@ type activeWhen struct {
 
 func randActiveWhen() activeWhen {
 	return activeWhen{
-		timeZone:       selectRandomlyFromSlice(alertValidTimeZones),
+		timeZone:       selectRandomlyFromSlice(validTimeZones),
 		daysOfWeek:     selectManyRandomlyFromSlice(alertValidDaysOfWeek),
 		activityStarts: randHourStr(),
 		activityEnds:   randHourStr(),

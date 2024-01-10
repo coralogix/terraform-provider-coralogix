@@ -283,6 +283,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewArchiveRetentionsDataSource,
 		NewArchiveMetricsDataSource,
 		NewArchiveLogsDataSource,
+		NewAlertsSchedulerDataSource,
 	}
 }
 
@@ -299,5 +300,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewArchiveRetentionsResource,
 		NewArchiveMetricsResource,
 		NewArchiveLogsResource,
+		NewAlertsSchedulerResource,
 	}
 }
