@@ -27,7 +27,7 @@ func TestAccCoralogixResourceResourceAlertsScheduler(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "name", "example"),
 					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "filter.what_expression", "source logs | filter $d.cpodId:string == '122'"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertsSchedulerResourceName, "filter.meta_labels.*.", map[string]string{
+					resource.TestCheckTypeSetElemNestedAttrs(alertsSchedulerResourceName, "filter.meta_labels.*", map[string]string{
 						"key":   "key",
 						"value": "value",
 					}),
@@ -37,7 +37,7 @@ func TestAccCoralogixResourceResourceAlertsScheduler(t *testing.T) {
 					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.time_frame.start_time", "2021-01-01T00:00:00.000"),
 					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.time_frame.duration.for_over", "2"),
 					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.time_frame.duration.frequency", "hours"),
-					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.time_frame.duration.time_zone", "UTC+2"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.time_frame.time_zone", "UTC+2"),
 					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.termination_date", "2025-01-01T00:00:00.000"),
 				),
 			},
