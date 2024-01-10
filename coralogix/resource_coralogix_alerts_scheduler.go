@@ -1160,7 +1160,7 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 			plan.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("alerts-scheduler %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
+				fmt.Sprintf("%s will be recreated when you apply", *id),
 			)
 		} else {
 			resp.Diagnostics.AddError(
