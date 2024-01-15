@@ -24,6 +24,8 @@ const _ = grpc.SupportPackageIsVersion7
 type TeamServiceClient interface {
 	CreateTeamInOrg(ctx context.Context, in *CreateTeamInOrgRequest, opts ...grpc.CallOption) (*CreateTeamInOrgResponse, error)
 	MoveQuota(ctx context.Context, in *MoveQuotaRequest, opts ...grpc.CallOption) (*MoveQuotaResponse, error)
+	GetTeamQuota(ctx context.Context, in *GetTeamQuotaRequest, opts ...grpc.CallOption) (*GetTeamQuotaResponse, error)
+	InviteUsersToTeam(ctx context.Context, in *InviteUsersToTeamRequest, opts ...grpc.CallOption) (*InviteUsersToTeamResponse, error)
 }
 
 type teamServiceClient struct {
@@ -52,12 +54,32 @@ func (c *teamServiceClient) MoveQuota(ctx context.Context, in *MoveQuotaRequest,
 	return out, nil
 }
 
+func (c *teamServiceClient) GetTeamQuota(ctx context.Context, in *GetTeamQuotaRequest, opts ...grpc.CallOption) (*GetTeamQuotaResponse, error) {
+	out := new(GetTeamQuotaResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogixapis.aaa.organisations.v2.TeamService/GetTeamQuota", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *teamServiceClient) InviteUsersToTeam(ctx context.Context, in *InviteUsersToTeamRequest, opts ...grpc.CallOption) (*InviteUsersToTeamResponse, error) {
+	out := new(InviteUsersToTeamResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogixapis.aaa.organisations.v2.TeamService/InviteUsersToTeam", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TeamServiceServer is the server API for TeamService service.
 // All implementations must embed UnimplementedTeamServiceServer
 // for forward compatibility
 type TeamServiceServer interface {
 	CreateTeamInOrg(context.Context, *CreateTeamInOrgRequest) (*CreateTeamInOrgResponse, error)
 	MoveQuota(context.Context, *MoveQuotaRequest) (*MoveQuotaResponse, error)
+	GetTeamQuota(context.Context, *GetTeamQuotaRequest) (*GetTeamQuotaResponse, error)
+	InviteUsersToTeam(context.Context, *InviteUsersToTeamRequest) (*InviteUsersToTeamResponse, error)
 	mustEmbedUnimplementedTeamServiceServer()
 }
 
@@ -70,6 +92,12 @@ func (UnimplementedTeamServiceServer) CreateTeamInOrg(context.Context, *CreateTe
 }
 func (UnimplementedTeamServiceServer) MoveQuota(context.Context, *MoveQuotaRequest) (*MoveQuotaResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MoveQuota not implemented")
+}
+func (UnimplementedTeamServiceServer) GetTeamQuota(context.Context, *GetTeamQuotaRequest) (*GetTeamQuotaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTeamQuota not implemented")
+}
+func (UnimplementedTeamServiceServer) InviteUsersToTeam(context.Context, *InviteUsersToTeamRequest) (*InviteUsersToTeamResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InviteUsersToTeam not implemented")
 }
 func (UnimplementedTeamServiceServer) mustEmbedUnimplementedTeamServiceServer() {}
 
@@ -120,6 +148,42 @@ func _TeamService_MoveQuota_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TeamService_GetTeamQuota_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTeamQuotaRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TeamServiceServer).GetTeamQuota(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogixapis.aaa.organisations.v2.TeamService/GetTeamQuota",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TeamServiceServer).GetTeamQuota(ctx, req.(*GetTeamQuotaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TeamService_InviteUsersToTeam_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InviteUsersToTeamRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TeamServiceServer).InviteUsersToTeam(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogixapis.aaa.organisations.v2.TeamService/InviteUsersToTeam",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TeamServiceServer).InviteUsersToTeam(ctx, req.(*InviteUsersToTeamRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TeamService_ServiceDesc is the grpc.ServiceDesc for TeamService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -134,6 +198,14 @@ var TeamService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MoveQuota",
 			Handler:    _TeamService_MoveQuota_Handler,
+		},
+		{
+			MethodName: "GetTeamQuota",
+			Handler:    _TeamService_GetTeamQuota_Handler,
+		},
+		{
+			MethodName: "InviteUsersToTeam",
+			Handler:    _TeamService_InviteUsersToTeam_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
