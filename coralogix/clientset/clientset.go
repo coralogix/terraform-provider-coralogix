@@ -1,23 +1,23 @@
 package clientset
 
 type ClientSet struct {
-	ruleGroups           *RuleGroupsClient
-	alerts               *AlertsClient
-	enrichments          *EnrichmentsClient
-	dataSet              *DataSetClient
-	dashboards           *DashboardsClient
-	grafana              *GrafanaClient
-	actions              *ActionsClient
-	recordingRuleGroups  *RecordingRulesGroupsSetsClient
-	tcoPolicies          *TCOPoliciesClient
-	tcoPoliciesOverrides *TCOPoliciesOverrides
-	webhooks             *WebhooksClient
-	events2Metrics       *Events2MetricsClient
-	slis                 *SLIClient
-	archiveRetentions    *ArchiveRetentionsClient
-	archiveMetrics       *ArchiveMetricsClient
-	archiveLogs          *ArchiveLogsClient
-	alertsSchedulers     *AlertsSchedulersClient
+	ruleGroups          *RuleGroupsClient
+	alerts              *AlertsClient
+	enrichments         *EnrichmentsClient
+	dataSet             *DataSetClient
+	dashboards          *DashboardsClient
+	grafana             *GrafanaClient
+	actions             *ActionsClient
+	recordingRuleGroups *RecordingRulesGroupsSetsClient
+	tcoPolicies         *TCOPoliciesClient
+	webhooks            *WebhooksClient
+	events2Metrics      *Events2MetricsClient
+	slis                *SLIClient
+	archiveRetentions   *ArchiveRetentionsClient
+	archiveMetrics      *ArchiveMetricsClient
+	archiveLogs         *ArchiveLogsClient
+	alertsSchedulers    *AlertsSchedulersClient
+	teams               *TeamsClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -56,10 +56,6 @@ func (c *ClientSet) TCOPolicies() *TCOPoliciesClient {
 	return c.tcoPolicies
 }
 
-func (c *ClientSet) TCOPoliciesOverrides() *TCOPoliciesOverrides {
-	return c.tcoPoliciesOverrides
-}
-
 func (c *ClientSet) Webhooks() *WebhooksClient {
 	return c.webhooks
 }
@@ -89,27 +85,31 @@ func (c *ClientSet) AlertSchedulers() *AlertsSchedulersClient {
 	return c.alertsSchedulers
 }
 
-func NewClientSet(targetUrl, apiKey, teamsApiKey string) *ClientSet {
+func (c *ClientSet) Teams() *TeamsClient {
+	return c.teams
+}
+
+func NewClientSet(targetUrl, apiKey, orgKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
-	_ = NewCallPropertiesCreator(targetUrl, teamsApiKey)
+	teamsCPC := NewCallPropertiesCreator(targetUrl, orgKey)
 
 	return &ClientSet{
-		ruleGroups:           NewRuleGroupsClient(apikeyCPC),
-		alerts:               NewAlertsClient(apikeyCPC),
-		events2Metrics:       NewEvents2MetricsClient(apikeyCPC),
-		enrichments:          NewEnrichmentClient(apikeyCPC),
-		dataSet:              NewDataSetClient(apikeyCPC),
-		dashboards:           NewDashboardsClient(apikeyCPC),
-		grafana:              NewGrafanaClient(apikeyCPC),
-		actions:              NewActionsClient(apikeyCPC),
-		recordingRuleGroups:  NewRecordingRuleGroupsClient(apikeyCPC),
-		tcoPolicies:          NewTCOPoliciesClient(apikeyCPC),
-		tcoPoliciesOverrides: NewTCOPoliciesOverridesClient(apikeyCPC),
-		webhooks:             NewWebhooksClient(apikeyCPC),
-		slis:                 NewSLIsClient(apikeyCPC),
-		archiveRetentions:    NewArchiveRetentionsClient(apikeyCPC),
-		archiveMetrics:       NewArchiveMetricsClient(apikeyCPC),
-		archiveLogs:          NewArchiveLogsClient(apikeyCPC),
-		alertsSchedulers:     NewAlertsSchedulersClient(apikeyCPC),
+		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
+		alerts:              NewAlertsClient(apikeyCPC),
+		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
+		enrichments:         NewEnrichmentClient(apikeyCPC),
+		dataSet:             NewDataSetClient(apikeyCPC),
+		dashboards:          NewDashboardsClient(apikeyCPC),
+		grafana:             NewGrafanaClient(apikeyCPC),
+		actions:             NewActionsClient(apikeyCPC),
+		recordingRuleGroups: NewRecordingRuleGroupsClient(apikeyCPC),
+		tcoPolicies:         NewTCOPoliciesClient(apikeyCPC),
+		webhooks:            NewWebhooksClient(apikeyCPC),
+		slis:                NewSLIsClient(apikeyCPC),
+		archiveRetentions:   NewArchiveRetentionsClient(apikeyCPC),
+		archiveMetrics:      NewArchiveMetricsClient(apikeyCPC),
+		archiveLogs:         NewArchiveLogsClient(apikeyCPC),
+		alertsSchedulers:    NewAlertsSchedulersClient(apikeyCPC),
+		teams:               NewTeamsClient(teamsCPC),
 	}
 }
