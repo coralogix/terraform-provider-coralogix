@@ -18,6 +18,7 @@ type ClientSet struct {
 	archiveLogs         *ArchiveLogsClient
 	alertsSchedulers    *AlertsSchedulersClient
 	teams               *TeamsClient
+	slos                *SLOsClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -70,7 +71,6 @@ func (c *ClientSet) SLIs() *SLIClient {
 
 func (c *ClientSet) ArchiveRetentions() *ArchiveRetentionsClient {
 	return c.archiveRetentions
-
 }
 
 func (c *ClientSet) ArchiveMetrics() *ArchiveMetricsClient {
@@ -87,6 +87,10 @@ func (c *ClientSet) AlertSchedulers() *AlertsSchedulersClient {
 
 func (c *ClientSet) Teams() *TeamsClient {
 	return c.teams
+}
+
+func (c *ClientSet) SLOs() *SLOsClient {
+	return c.slos
 }
 
 func NewClientSet(targetUrl, apiKey, orgKey string) *ClientSet {
@@ -111,5 +115,6 @@ func NewClientSet(targetUrl, apiKey, orgKey string) *ClientSet {
 		archiveLogs:         NewArchiveLogsClient(apikeyCPC),
 		alertsSchedulers:    NewAlertsSchedulersClient(apikeyCPC),
 		teams:               NewTeamsClient(teamsCPC),
+		slos:                NewSLOsClient(apikeyCPC),
 	}
 }

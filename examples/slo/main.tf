@@ -12,14 +12,29 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_sli" "example" {
-  name            = "coralogix_sli_example"
-  slo_percentage  = 80
+resource "coralogix_slo" "example" {
+  name            = "coralogix_slo_example"
   service_name    = "service_name"
-  threshold_value = 3
+  description     = "description"
+  target_percentage = 30
+  type            = "error"
+  period          = "7_days"
 }
 
-data "coralogix_sli" "data_example" {
-  id = coralogix_sli.example.id
-  service_name = coralogix_sli.example.service_name
+resource "coralogix_slo" "example_2" {
+  name            = "coralogix_slo_example"
+  service_name    = "service_name"
+  description     = "description"
+  target_percentage = 30
+  type            = "latency"
+  threshold_microseconds = 1000000
+  threshold_symbol_type = "greater"
+  period          = "7_days"
+  filters = [
+    {
+      field = "severity"
+      compare_type = "is"
+      field_values = ["error", "warning"]
+    },
+  ]
 }

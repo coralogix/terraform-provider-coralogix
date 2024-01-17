@@ -15,7 +15,7 @@ import (
 
 var sliResourceName = "coralogix_sli.test"
 
-func TestAccCoralogixResourceSLIyCreate(t *testing.T) {
+func TestAccCoralogixResourceSLICreate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

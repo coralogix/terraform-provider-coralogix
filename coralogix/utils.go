@@ -320,6 +320,13 @@ func typeInt64ToWrappedInt32(v types.Int64) *wrapperspb.Int32Value {
 	return wrapperspb.Int32(int32(v.ValueInt64()))
 }
 
+func typeInt64ToWrappedUint32(v types.Int64) *wrapperspb.UInt32Value {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	return wrapperspb.UInt32(uint32(v.ValueInt64()))
+}
+
 func typeBoolToWrapperspbBool(v types.Bool) *wrapperspb.BoolValue {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
@@ -606,11 +613,11 @@ func randBool() bool {
 }
 
 func typeStringToWrapperspbString(str types.String) *wrapperspb.StringValue {
-	var result *wrapperspb.StringValue
-	if !str.IsNull() {
-		result = wrapperspb.String(str.ValueString())
+	if str.IsNull() || str.IsUnknown() {
+		return nil
+
 	}
-	return result
+	return wrapperspb.String(str.ValueString())
 }
 
 func typeStringToStringPointer(str types.String) *string {
@@ -651,6 +658,14 @@ func wrapperspbInt64ToTypeInt64(num *wrapperspb.Int64Value) types.Int64 {
 	}
 
 	return types.Int64Value(num.GetValue())
+}
+
+func wrapperspbUint32ToTypeInt64(num *wrapperspb.UInt32Value) types.Int64 {
+	if num == nil {
+		return types.Int64Null()
+	}
+
+	return types.Int64Value(int64(num.GetValue()))
 }
 
 func wrapperspbDoubleToTypeFloat64(num *wrapperspb.DoubleValue) types.Float64 {

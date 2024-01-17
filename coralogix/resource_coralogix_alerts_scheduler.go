@@ -427,11 +427,11 @@ func flattenAlertsSchedulerMetaLabels(ctx context.Context, labels []*alertsSched
 	var diagnostics diag.Diagnostics
 	labelsElements := make([]attr.Value, 0, len(labels))
 	for _, label := range labels {
-		flattenedSection := MetaLabelModel{
+		flattenedLabel := MetaLabelModel{
 			Key:   types.StringValue(label.GetKey()),
 			Value: stringPointerToTypeString(label.Value),
 		}
-		labelElement, diags := types.ObjectValueFrom(ctx, labelModelAttr(), flattenedSection)
+		labelElement, diags := types.ObjectValueFrom(ctx, labelModelAttr(), flattenedLabel)
 		if diags.HasError() {
 			diagnostics = append(diagnostics, diags...)
 			continue
