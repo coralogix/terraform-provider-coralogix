@@ -392,3 +392,8 @@ New Features:
 New Features:
 #### resource/coralogix_archive_retentions
 * Adding support for `coralogix_archive_retentions` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/alerts_scheduler.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/alerts_scheduler.md).
+
+## Release 1.10.10
+New Features:
+#### resource/coralogix_slo 
+* Adding support for `coralogix_slo` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/slo.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/slo.md).
