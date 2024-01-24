@@ -552,14 +552,11 @@ func extractTracingAlertChecks(alert tracingAlertTestParams) []resource.TestChec
 		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
 		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
 			map[string]string{
-				"integration_id":              alert.webhookID,
-				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+				"integration_id": alert.webhookID,
 			}),
 		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
 			map[string]string{
-				"email_recipients.0":          alert.emailRecipients[0],
-				"notify_on":                   "Triggered_and_resolved",
-				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+				"email_recipients.0": alert.emailRecipients[0],
 			}),
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.latency_threshold_milliseconds", fmt.Sprintf("%.3f", alert.conditionLatencyMs)),
 		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.more_than", "true"),
@@ -1079,7 +1076,9 @@ func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
 
 	notifications_group {
     	notification {
-      	email_recipients            = ["example@coralogix.com"]
+      		email_recipients            = ["example@coralogix.com"]
+			retriggering_period_minutes = 1
+     		notify_on                   = "Triggered_only"
     	}
   	}
 
