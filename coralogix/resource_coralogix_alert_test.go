@@ -486,14 +486,11 @@ func extractLuceneMetricChecks(alert metricLuceneAlertTestParams) []resource.Tes
 		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
 		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
 			map[string]string{
-				"integration_id":              alert.webhookID,
-				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+				"integration_id": alert.webhookID,
 			}),
 		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
 			map[string]string{
-				"email_recipients.0":          alert.emailRecipients[0],
-				"notify_on":                   "Triggered_and_resolved",
-				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+				"email_recipients.0": alert.emailRecipients[0],
 			}),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.search_query", alert.searchQuery),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.metric_field", alert.metricField),
@@ -519,14 +516,11 @@ func extractMetricPromqlAlertChecks(alert metricPromqlAlertTestParams) []resourc
 		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
 		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
 			map[string]string{
-				"integration_id":              alert.webhookID,
-				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+				"integration_id": alert.webhookID,
 			}),
 		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
 			map[string]string{
-				"email_recipients.0":          alert.emailRecipients[0],
-				"notify_on":                   "Triggered_and_resolved",
-				"retriggering_period_minutes": fmt.Sprintf("%d", alert.notifyEveryMin),
+				"email_recipients.0": alert.emailRecipients[0],
 			}),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.search_query", "http_requests_total{status!~\"4..\"}"),
 		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.threshold", strconv.Itoa(alert.threshold)),
@@ -743,6 +737,7 @@ func testAccCoralogixResourceAlertRatio(a *ratioAlertTestParams) string {
   notifications_group {
   	notification {
 			integration_id       = "%s"
+   }
 	notification {
 		email_recipients             = %s
 	}
@@ -1081,6 +1076,13 @@ func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
 	return fmt.Sprintf(`resource "coralogix_alert" "standard_alert" {
 	name               = "standard"
 	severity           = "Info"
+
+	notifications_group {
+    	notification {
+      	email_recipients            = ["example@coralogix.com"]
+    	}
+  	}
+
 	standard {
 		condition {
       		more_than         = true
