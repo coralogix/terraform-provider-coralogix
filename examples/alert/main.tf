@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.9"
+      version = "~> 1.11"
       source  = "coralogix/coralogix"
     }
   }
@@ -26,24 +26,20 @@ resource "coralogix_alert" "standard_alert" {
     group_by_fields = ["coralogix.metadata.sdkId", "EventType"]
     notification {
       integration_id              = coralogix_webhook.slack_webhook.external_id
-      retriggering_period_minutes = 60
     }
     notification {
-      notify_on                   = "Triggered_and_resolved"
       email_recipients            = ["example@coralogix.com"]
-      retriggering_period_minutes = 60
     }
   }
   notifications_group {
     notification {
       email_recipients            = ["example@coralogix.com"]
-      retriggering_period_minutes = 60
     }
   }
 
-  show_in_insights {
+  incident_settings {
+    notify_on = "Triggered_and_resolved"
     retriggering_period_minutes = 60
-    notify_on                   = "Triggered_and_resolved"
   }
 
   scheduling {
@@ -83,11 +79,12 @@ resource "coralogix_alert" "ratio_alert" {
     notification {
       integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 1
+      notify_on                   = "Triggered_only"
     }
     notification {
-      notify_on                   = "Triggered_and_resolved"
       email_recipients            = ["example@coralogix.com"]
       retriggering_period_minutes = 1
+      notify_on                   = "Triggered_and_resolved"
     }
   }
 
@@ -132,11 +129,12 @@ resource "coralogix_alert" "new_value_alert" {
     notification {
       integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 1
+      notify_on                   = "Triggered_only"
     }
     notification {
-      notify_on                   = "Triggered_and_resolved"
       email_recipients            = ["example@coralogix.com"]
       retriggering_period_minutes = 1
+      notify_on                   = "Triggered_and_resolved"
     }
   }
 
@@ -166,13 +164,15 @@ resource "coralogix_alert" "time_relative_alert" {
   notifications_group {
     notification {
       integration_id              = coralogix_webhook.slack_webhook.external_id
-      retriggering_period_minutes = 1
     }
     notification {
-      notify_on                   = "Triggered_and_resolved"
       email_recipients            = ["example@coralogix.com"]
-      retriggering_period_minutes = 1
     }
+  }
+
+  incident_settings {
+    notify_on = "Triggered_and_resolved"
+    retriggering_period_minutes = 1
   }
 
   scheduling {
@@ -202,13 +202,15 @@ resource "coralogix_alert" "metric_lucene_alert" {
   notifications_group {
     notification {
       integration_id              = coralogix_webhook.slack_webhook.external_id
-      retriggering_period_minutes = 60
     }
     notification {
-      notify_on                   = "Triggered_and_resolved"
       email_recipients            = ["example@coralogix.com"]
-      retriggering_period_minutes = 60
     }
+  }
+
+  incident_settings {
+    notify_on = "Triggered_and_resolved"
+    retriggering_period_minutes = 60
   }
 
   scheduling {
@@ -247,6 +249,7 @@ resource "coralogix_alert" "metric_promql_alert" {
 
   notifications_group {
     notification {
+      notify_on                   = "Triggered_and_resolved"
       integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 1
     }
@@ -270,7 +273,7 @@ resource "coralogix_alert" "metric_promql_alert" {
     promql {
       search_query = "http_requests_total{status!~\"4..\"}"
       condition {
-        more_than                       = true
+        less_than_usual                 = true
         threshold                       = 3
         sample_threshold_percentage     = 50
         time_window                     = "12H"
@@ -290,11 +293,12 @@ resource "coralogix_alert" "unique_count_alert" {
     notification {
       integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 1
+      notify_on                   = "Triggered_and_resolved"
     }
     notification {
-      notify_on                   = "Triggered_and_resolved"
       email_recipients            = ["example@coralogix.com"]
       retriggering_period_minutes = 1
+      notify_on                   = "Triggered_and_resolved"
     }
   }
 
