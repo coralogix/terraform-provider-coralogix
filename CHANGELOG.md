@@ -417,3 +417,4 @@ New Features:
 
 Bug fixing:
 * avoiding calling moving quota endpoint when moving quota is not needed.
+* fixing `coralogix_alerts_scheduler` terraform lose track over the resource when `coralogix_alerts_scheduler` is change externally.
