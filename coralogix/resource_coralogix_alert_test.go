@@ -742,8 +742,7 @@ func testAccCoralogixResourceAlertRatio(a *ratioAlertTestParams) string {
 
   notifications_group {
   	notification {
-        retriggering_period_minutes = %d
-	}
+			integration_id       = "%s"
 	notification {
 		email_recipients             = %s
 	}
