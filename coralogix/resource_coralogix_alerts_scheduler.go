@@ -376,7 +376,8 @@ func (r *AlertsSchedulerResource) Create(ctx context.Context, req resource.Creat
 	createResp, err := r.client.CreateAlertScheduler(ctx, createAlertSchedulerRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		formatRpcErrors(err, createAlertsSchedulerURL, alertsSchedulerStr)
+		resp.Diagnostics.AddError("Error creating alerts-scheduler",
+			formatRpcErrors(err, createAlertsSchedulerURL, alertsSchedulerStr))
 		return
 	}
 	alertScheduler = createResp.GetAlertSchedulerRule()

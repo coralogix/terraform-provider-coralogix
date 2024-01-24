@@ -688,15 +688,16 @@ func testAccCoralogixResourceAlertStandard(a *standardAlertTestParams) string {
   notifications_group {
 	notification {
 		integration_id       = "%s"
-        retriggering_period_minutes = %d
-		notify_on          = "Triggered_and_resolved"
 	}
     notification {
         email_recipients             = %s
-        notify_on          = "Triggered_and_resolved"
-        retriggering_period_minutes   = %d
     }
   }
+
+	incident_settings {
+		notify_on = %s
+		retriggering_period_minutes = %d
+	}
 
   scheduling {
     time_zone =  "%s"
@@ -728,7 +729,7 @@ func testAccCoralogixResourceAlertStandard(a *standardAlertTestParams) string {
   }
 }
 `,
-		a.name, a.description, a.severity, a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
+		a.name, a.description, a.severity, a.webhookID, sliceToString(a.emailRecipients), a.notifyOn, a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
 		sliceToString(a.severities), a.searchQuery, sliceToString(a.groupBy), a.occurrencesThreshold, a.timeWindow, a.deadmanRatio)
 }
@@ -741,16 +742,17 @@ func testAccCoralogixResourceAlertRatio(a *ratioAlertTestParams) string {
 
   notifications_group {
   	notification {
-        integration_id       = "%s"
         retriggering_period_minutes = %d
-		notify_on          = "Triggered_and_resolved"
 	}
 	notification {
 		email_recipients             = %s
-        notify_on          = "Triggered_and_resolved"
-        retriggering_period_minutes   = %d
 	}
   }
+
+	incident_settings {
+		notify_on = %s
+		retriggering_period_minutes = %d
+	}	
 
   scheduling {
     time_zone =  "%s"
@@ -781,7 +783,7 @@ func testAccCoralogixResourceAlertRatio(a *ratioAlertTestParams) string {
     }
   }
 }`,
-		a.name, a.description, a.severity, a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
+		a.name, a.description, a.severity, a.webhookID, sliceToString(a.emailRecipients), a.notifyOn, a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
 		sliceToString(a.severities), a.searchQuery, sliceToString(a.q2Severities), a.q2SearchQuery,
 		a.ratio, a.timeWindow, sliceToString(a.groupBy), a.ignoreInfinity)
@@ -796,15 +798,16 @@ func testAccCoralogixResourceAlertNewValue(a *newValueAlertTestParams) string {
   notifications_group {
 		notification {
         	integration_id       = "%s"
-        	retriggering_period_minutes = %d
-			notify_on          = "Triggered_only"
 		}
 		notification{
      		email_recipients             = %s
-			notify_on          = "Triggered_and_resolved"
-       	 	retriggering_period_minutes   = %d
      	}
 	}
+
+	  incident_settings {
+			notify_on = %s
+			retriggering_period_minutes = %d
+		}
 
   scheduling {
     time_zone =  "%s"
@@ -825,7 +828,7 @@ func testAccCoralogixResourceAlertNewValue(a *newValueAlertTestParams) string {
     }
   }
 }`,
-		a.name, a.description, a.severity, a.webhookID, a.notifyEveryMin, sliceToString(a.emailRecipients), a.notifyEveryMin, a.timeZone,
+		a.name, a.description, a.severity, a.webhookID, sliceToString(a.emailRecipients), a.notifyOn, a.notifyEveryMin, a.timeZone,
 		sliceToString(a.daysOfWeek), a.activityStarts, a.activityEnds,
 		sliceToString(a.severities), a.searchQuery, a.keyToTrack, a.timeWindow)
 }
