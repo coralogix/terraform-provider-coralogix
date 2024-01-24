@@ -695,7 +695,7 @@ func testAccCoralogixResourceAlertStandard(a *standardAlertTestParams) string {
   }
 
 	incident_settings {
-		notify_on = %s
+		notify_on = "%s"
 		retriggering_period_minutes = %d
 	}
 
@@ -749,7 +749,7 @@ func testAccCoralogixResourceAlertRatio(a *ratioAlertTestParams) string {
   }
 
 	incident_settings {
-		notify_on = %s
+		notify_on = "%s"
 		retriggering_period_minutes = %d
 	}	
 
@@ -804,7 +804,7 @@ func testAccCoralogixResourceAlertNewValue(a *newValueAlertTestParams) string {
 	}
 
 	  incident_settings {
-			notify_on = %s
+			notify_on = "%s"
 			retriggering_period_minutes = %d
 		}
 
@@ -849,7 +849,7 @@ func testAccCoralogixResourceAlertUniqueCount(a *uniqueCountAlertTestParams) str
 	}
 	
 	incident_settings {
-    	notify_on = %s
+    	notify_on = "%s"
     	retriggering_period_minutes = %d
   	}
 
@@ -895,7 +895,7 @@ func testAccCoralogixResourceAlertTimeRelative(a *timeRelativeAlertTestParams) s
 	}
 
   incident_settings {
-    	notify_on = %s
+    	notify_on = "%s"
     	retriggering_period_minutes = %d
  }
 
@@ -942,7 +942,7 @@ func testAccCoralogixResourceAlertMetricLucene(a *metricLuceneAlertTestParams) s
 	}
 
 	incident_settings {
-    	notify_on = %s
+    	notify_on = "%s"
     	retriggering_period_minutes = %d
  	}
 
@@ -996,7 +996,7 @@ func testAccCoralogixResourceAlertMetricPromql(a *metricPromqlAlertTestParams) s
 	}
 
   incident_settings {
-	notify_on = %s
+	notify_on = "%s"
 	retriggering_period_minutes = %d	
   }
 
@@ -1043,7 +1043,7 @@ func testAccCoralogixResourceAlertTracing(a *tracingAlertTestParams) string {
 	}
 
  incident_settings {
- 	notify_on = %s
+ 	notify_on = "%s"
     retriggering_period_minutes = %d
  }
 
@@ -1106,7 +1106,7 @@ func testAccCoralogixResourceAlertFLow(a *flowAlertTestParams) string {
 	}
 
 	incident_settings {
-			notify_on = %s
+			notify_on = "%s"
 			retriggering_period_minutes = %d
     }
 
