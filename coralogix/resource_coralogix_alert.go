@@ -271,13 +271,12 @@ func AlertSchema() map[string]*schema.Schema {
 			Description: "The expiration date of the alert (if declared).",
 		},
 		"notifications_group": {
-			Type:         schema.TypeSet,
-			Optional:     true,
-			Computed:     true,
-			Elem:         notificationGroupSchema(),
-			Set:          schema.HashResource(notificationGroupSchema()),
-			Description:  "Defines notifications settings over list of group-by keys (or on empty list).",
-			AtLeastOneOf: []string{"notifications_group", "show_in_insights"},
+			Type:        schema.TypeSet,
+			Optional:    true,
+			Computed:    true,
+			Elem:        notificationGroupSchema(),
+			Set:         schema.HashResource(notificationGroupSchema()),
+			Description: "Defines notifications settings over list of group-by keys (or on empty list).",
 		},
 		"payload_filters": {
 			Type:     schema.TypeSet,
@@ -288,22 +287,16 @@ func AlertSchema() map[string]*schema.Schema {
 			Description: "A list of log fields out of the log example which will be included with the alert notification.",
 			Set:         schema.HashString,
 		},
-		"show_in_insights": {
+		"incident_settings": {
 			Type:     schema.TypeList,
 			MaxItems: 1,
 			Optional: true,
-			Computed: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"retriggering_period_minutes": {
 						Type:         schema.TypeInt,
-						Optional:     true,
-						Computed:     true,
+						Required:     true,
 						ValidateFunc: validation.IntAtLeast(1),
-						Description: "By default, retriggering_period_minutes will be populated with minute for immediate," +
-							" more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time" +
-							" frame for the less_than condition (in minutes). You may choose to change the suppress window so the " +
-							"alert will be suppressed for a longer period.",
 					},
 					"notify_on": {
 						Type:         schema.TypeString,
@@ -314,7 +307,7 @@ func AlertSchema() map[string]*schema.Schema {
 					},
 				},
 			},
-			AtLeastOneOf: []string{"notifications_group", "show_in_insights"},
+			//AtLeastOneOf: []string{"notifications_group", "show_in_insights", "incident_settings"},
 		},
 		"scheduling": {
 			Type:     schema.TypeList,
@@ -436,19 +429,19 @@ func notificationSubgroupSchema() *schema.Resource {
 			"retriggering_period_minutes": {
 				Type:         schema.TypeInt,
 				Optional:     true,
-				Computed:     true,
 				ValidateFunc: validation.IntAtLeast(1),
 				Description: "By default, retriggering_period_minutes will be populated with min for immediate," +
 					" more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time" +
 					" frame for the less_than condition (in minutes). You may choose to change the suppress window so the " +
 					"alert will be suppressed for a longer period.",
+				ExactlyOneOf: []string{"incident_settings"},
 			},
 			"notify_on": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				Default:      "Triggered_only",
 				ValidateFunc: validation.StringInSlice(validNotifyOn, false),
 				Description:  fmt.Sprintf("Defines the alert's triggering logic. Can be one of %q. Triggered_and_resolved conflicts with new_value, unique_count and flow alerts, and with immediately and more_than_usual conditions", validNotifyOn),
+				ExactlyOneOf: []string{"incident_settings"},
 			},
 			"integration_id": {
 				Type:         schema.TypeString,
@@ -1172,18 +1165,20 @@ func metricSchema() map[string]*schema.Schema {
 								"less_than": {
 									Type:     schema.TypeBool,
 									Optional: true,
-									ExactlyOneOf: []string{"metric.0.promql.0.condition.0.less_than",
-										"metric.0.promql.0.condition.0.more_than",
-										"metric.0.promql.0.condition.0.more_than_usual"},
+									ExactlyOneOf: []string{"metric.0.promql.0.condition.0.more_than",
+										"metric.0.promql.0.condition.0.less_than",
+										"metric.0.promql.0.condition.0.more_than_usual",
+										"metric.0.promql.0.condition.0.less_than_usual"},
 									Description: "Determines the condition operator." +
 										" Must be one of - less_than or more_than.",
 								},
 								"more_than": {
 									Type:     schema.TypeBool,
 									Optional: true,
-									ExactlyOneOf: []string{"metric.0.promql.0.condition.0.less_than",
-										"metric.0.promql.0.condition.0.more_than",
-										"metric.0.promql.0.condition.0.more_than_usual"},
+									ExactlyOneOf: []string{"metric.0.promql.0.condition.0.more_than",
+										"metric.0.promql.0.condition.0.less_than",
+										"metric.0.promql.0.condition.0.more_than_usual",
+										"metric.0.promql.0.condition.0.less_than_usual"},
 									Description: "Determines the condition operator." +
 										" Must be one of - less_than or more_than.",
 								},
@@ -1192,7 +1187,18 @@ func metricSchema() map[string]*schema.Schema {
 									Optional: true,
 									ExactlyOneOf: []string{"metric.0.promql.0.condition.0.more_than",
 										"metric.0.promql.0.condition.0.less_than",
-										"metric.0.promql.0.condition.0.more_than_usual"},
+										"metric.0.promql.0.condition.0.more_than_usual",
+										"metric.0.promql.0.condition.0.less_than_usual"},
+									Description: "Determines the condition operator." +
+										" Must be one of - immediately, less_than, more_than or more_than_usual.",
+								},
+								"less_than_usual": {
+									Type:     schema.TypeBool,
+									Optional: true,
+									ExactlyOneOf: []string{"metric.0.promql.0.condition.0.more_than",
+										"metric.0.promql.0.condition.0.less_than",
+										"metric.0.promql.0.condition.0.more_than_usual",
+										"metric.0.promql.0.condition.0.less_than_usual"},
 									Description: "Determines the condition operator." +
 										" Must be one of - immediately, less_than, more_than or more_than_usual.",
 								},
@@ -1538,7 +1544,7 @@ func extractCreateAlertRequest(d *schema.ResourceData) (*alerts.CreateAlertReque
 	severity := expandAlertSeverity(d.Get("severity").(string))
 	metaLabels := extractMetaLabels(d.Get("meta_labels"))
 	expirationDate := expandExpirationDate(d.Get("expiration_date"))
-	showInInsight := expandShowInInsight(d.Get("show_in_insights"))
+	incidentSettings := expandIncidentSettings(d.Get("incident_settings"))
 	notificationGroups, dgs := expandNotificationGroups(d.Get("notifications_group"))
 	diags = append(diags, dgs...)
 	payloadFilters := expandPayloadFilters(d.Get("payload_filters"))
@@ -1553,8 +1559,8 @@ func extractCreateAlertRequest(d *schema.ResourceData) (*alerts.CreateAlertReque
 		Severity:                   severity,
 		MetaLabels:                 metaLabels,
 		Expiration:                 expirationDate,
-		ShowInInsight:              showInInsight,
 		NotificationGroups:         notificationGroups,
+		IncidentSettings:           incidentSettings,
 		NotificationPayloadFilters: payloadFilters,
 		ActiveWhen:                 scheduling,
 		Filters:                    alertTypeParams.Filters,
@@ -1572,13 +1578,16 @@ func extractAlert(d *schema.ResourceData) (*alerts.Alert, diag.Diagnostics) {
 	severity := expandAlertSeverity(d.Get("severity").(string))
 	metaLabels := extractMetaLabels(d.Get("meta_labels"))
 	expirationDate := expandExpirationDate(d.Get("expiration_date"))
-	showInInsight := expandShowInInsight(d.Get("show_in_insights"))
+	incidentSettings := expandIncidentSettings(d.Get("incident_settings"))
 	notificationGroups, dgs := expandNotificationGroups(d.Get("notifications_group"))
 	diags = append(diags, dgs...)
 	payloadFilters := expandPayloadFilters(d.Get("payload_filters"))
 	scheduling := expandActiveWhen(d.Get("scheduling"))
 	alertTypeParams, tracingAlert, dgs := expandAlertType(d)
 	diags = append(diags, dgs...)
+	if len(diags) != 0 {
+		return nil, diags
+	}
 
 	return &alerts.Alert{
 		UniqueIdentifier:           id,
@@ -1588,7 +1597,7 @@ func extractAlert(d *schema.ResourceData) (*alerts.Alert, diag.Diagnostics) {
 		Severity:                   severity,
 		MetaLabels:                 metaLabels,
 		Expiration:                 expirationDate,
-		ShowInInsight:              showInInsight,
+		IncidentSettings:           incidentSettings,
 		NotificationGroups:         notificationGroups,
 		NotificationPayloadFilters: payloadFilters,
 		ActiveWhen:                 scheduling,
@@ -1627,15 +1636,16 @@ func setAlert(d *schema.ResourceData, alert *alerts.Alert) diag.Diagnostics {
 		return diag.FromErr(err)
 	}
 
-	if err := d.Set("notifications_group", flattenNotificationGroups(alert.GetNotificationGroups())); err != nil {
+	incidentSettings := flattenIncidentSettings(alert.GetIncidentSettings())
+	if err := d.Set("incident_settings", incidentSettings); err != nil {
+		return diag.FromErr(err)
+	}
+
+	if err := d.Set("notifications_group", flattenNotificationGroups(alert.GetNotificationGroups(), incidentSettings != nil)); err != nil {
 		return diag.FromErr(err)
 	}
 
 	if err := d.Set("payload_filters", wrappedStringSliceToStringSlice(alert.GetNotificationPayloadFilters())); err != nil {
-		return diag.FromErr(err)
-	}
-
-	if err := d.Set("show_in_insights", flattenShowInInsight(alert.GetShowInInsight())); err != nil {
 		return diag.FromErr(err)
 	}
 
@@ -1649,6 +1659,21 @@ func setAlert(d *schema.ResourceData, alert *alerts.Alert) diag.Diagnostics {
 	}
 
 	return nil
+}
+
+func flattenIncidentSettings(settings *alerts.AlertIncidentSettings) interface{} {
+	if settings == nil {
+		return nil
+	}
+	if !settings.GetUseAsNotificationSettings().GetValue() {
+		return nil
+	}
+	return []interface{}{
+		map[string]interface{}{
+			"retriggering_period_minutes": int(settings.GetRetriggeringPeriodSeconds().GetValue() / 60),
+			"notify_on":                   alertProtoNotifyOnToSchemaNotifyOn[settings.GetNotifyOn()],
+		},
+	}
 }
 
 func flattenAlertSeverity(str string) string {
@@ -1680,41 +1705,39 @@ func flattenShowInInsight(showInInsight *alerts.ShowInInsight) interface{} {
 	}
 }
 
-func flattenNotificationGroups(notificationGroups []*alerts.AlertNotificationGroups) interface{} {
+func flattenNotificationGroups(notificationGroups []*alerts.AlertNotificationGroups, incidentSettingsConfigured bool) interface{} {
 	result := make([]interface{}, 0, len(notificationGroups))
 	for _, group := range notificationGroups {
-		notificationGroup := flattenNotificationGroup(group)
+		notificationGroup := flattenNotificationGroup(group, incidentSettingsConfigured)
 		result = append(result, notificationGroup)
 	}
 	return result
 }
 
-func flattenNotificationGroup(notificationGroup *alerts.AlertNotificationGroups) interface{} {
+func flattenNotificationGroup(notificationGroup *alerts.AlertNotificationGroups, incidentSettingsConfigured bool) interface{} {
 	groupByFields := wrappedStringSliceToStringSlice(notificationGroup.GetGroupByFields())
-	notifications := flattenNotifications(notificationGroup.GetNotifications())
+	notifications := flattenNotifications(notificationGroup.GetNotifications(), incidentSettingsConfigured)
 	return map[string]interface{}{
 		"group_by_fields": groupByFields,
 		"notification":    notifications,
 	}
 }
 
-func flattenNotifications(notifications []*alerts.AlertNotification) interface{} {
+func flattenNotifications(notifications []*alerts.AlertNotification, incidentSettingsConfigured bool) interface{} {
 	result := make([]interface{}, 0, len(notifications))
 	for _, n := range notifications {
-		notificationSubgroup := flattenNotificationSubgroup(n)
+		notificationSubgroup := flattenNotificationSubgroup(n, incidentSettingsConfigured)
 		result = append(result, notificationSubgroup)
 	}
 	return result
 }
 
-func flattenNotificationSubgroup(notification *alerts.AlertNotification) interface{} {
-	notifyEveryMin := int(notification.GetRetriggeringPeriodSeconds().GetValue() / 60)
-	notifyOn := alertProtoNotifyOnToSchemaNotifyOn[notification.GetNotifyOn()]
-	notificationSchema := map[string]interface{}{
-		"retriggering_period_minutes": notifyEveryMin,
-		"notify_on":                   notifyOn,
+func flattenNotificationSubgroup(notification *alerts.AlertNotification, incidentSettingsConfigured bool) interface{} {
+	notificationSchema := map[string]interface{}{}
+	if !incidentSettingsConfigured {
+		notificationSchema["retriggering_period_minutes"] = int(notification.GetRetriggeringPeriodSeconds().GetValue() / 60)
+		notificationSchema["notify_on"] = alertProtoNotifyOnToSchemaNotifyOn[notification.GetNotifyOn()]
 	}
-
 	switch integration := notification.GetIntegrationType().(type) {
 	case *alerts.AlertNotification_IntegrationId:
 		notificationSchema["integration_id"] = strconv.Itoa(int(integration.IntegrationId.GetValue()))
@@ -2086,6 +2109,9 @@ func flattenMetricAlert(filters *alerts.AlertFilters, condition interface{}) int
 	case *alerts.AlertCondition_MoreThanUsual:
 		conditionParams = condition.MoreThanUsual.GetParameters()
 		conditionStr = "more_than_usual"
+	case *alerts.AlertCondition_LessThanUsual:
+		conditionParams = condition.LessThanUsual.GetParameters()
+		conditionStr = "less_than_usual"
 	default:
 		return nil
 	}
@@ -2366,9 +2392,9 @@ func expandExpirationDate(v interface{}) *alerts.Date {
 	}
 }
 
-func expandShowInInsight(v interface{}) *alerts.ShowInInsight {
-	l := v.([]interface{})
-	if len(l) == 0 || l[0] == nil {
+func expandIncidentSettings(v interface{}) *alerts.AlertIncidentSettings {
+	l, ok := v.([]interface{})
+	if !ok || len(l) == 0 || l[0] == nil {
 		return nil
 	}
 	raw := l[0]
@@ -2376,10 +2402,13 @@ func expandShowInInsight(v interface{}) *alerts.ShowInInsight {
 
 	retriggeringPeriodSeconds := wrapperspb.UInt32(uint32(m["retriggering_period_minutes"].(int)) * 60)
 	notifyOn := alertSchemaNotifyOnToProtoNotifyOn[m["notify_on"].(string)]
-	return &alerts.ShowInInsight{
+
+	return &alerts.AlertIncidentSettings{
 		RetriggeringPeriodSeconds: retriggeringPeriodSeconds,
-		NotifyOn:                  &notifyOn,
+		NotifyOn:                  notifyOn,
+		UseAsNotificationSettings: wrapperspb.Bool(true),
 	}
+
 }
 
 func expandNotificationGroups(v interface{}) ([]*alerts.AlertNotificationGroups, diag.Diagnostics) {
@@ -2434,12 +2463,20 @@ func expandNotificationSubgroup(v interface{}) (*alerts.AlertNotification, error
 	}
 	m := v.(map[string]interface{})
 
-	notifyEverySec := wrapperspb.UInt32(uint32(m["retriggering_period_minutes"].(int)) * 60)
-	notifyOn := alertSchemaNotifyOnToProtoNotifyOn[m["notify_on"].(string)]
+	var notifyEverySec *wrapperspb.UInt32Value
+	if minutes, ok := m["retriggering_period_minutes"].(int); ok && minutes != 0 {
+		notifyEverySec = wrapperspb.UInt32(uint32(minutes) * 60)
+	}
+
+	var notifyOn *alerts.NotifyOn
+	if notifyOnStr, ok := m["notify_on"].(string); ok {
+		notifyOn = new(alerts.NotifyOn)
+		*notifyOn = alertSchemaNotifyOnToProtoNotifyOn[notifyOnStr]
+	}
 
 	notification := &alerts.AlertNotification{
 		RetriggeringPeriodSeconds: notifyEverySec,
-		NotifyOn:                  &notifyOn,
+		NotifyOn:                  notifyOn,
 	}
 
 	var isWebhookIdDefined bool
@@ -2981,8 +3018,7 @@ func trueIfIsLessThanFalseIfMoreThanAndErrorOtherwise(m map[string]interface{}) 
 	return false, fmt.Errorf("less_than or more_than have to be true")
 }
 
-func expandLessThanMoreThanOrMoreThanUsualAlertCondition(
-	m map[string]interface{}, parameters *alerts.ConditionParameters) (*alerts.AlertCondition, error) {
+func expandPromqlCondition(m map[string]interface{}, parameters *alerts.ConditionParameters) (*alerts.AlertCondition, error) {
 	conditionsStr, err := returnAlertConditionString(m)
 	if err != nil {
 		return nil, err
@@ -3007,9 +3043,15 @@ func expandLessThanMoreThanOrMoreThanUsualAlertCondition(
 				MoreThanUsual: &alerts.MoreThanUsualCondition{Parameters: parameters},
 			},
 		}, nil
+	case "less_than_usual":
+		return &alerts.AlertCondition{
+			Condition: &alerts.AlertCondition_LessThanUsual{
+				LessThanUsual: &alerts.LessThanUsualCondition{Parameters: parameters},
+			},
+		}, nil
 	}
 
-	return nil, fmt.Errorf("less_than or more_than or more_than_usual must be true")
+	return nil, fmt.Errorf("less_than, more_than, more_than_usual, or less_than_usual must be set to true")
 }
 
 func returnAlertConditionString(m map[string]interface{}) (string, error) {
@@ -3019,8 +3061,11 @@ func returnAlertConditionString(m map[string]interface{}) (string, error) {
 		return "more_than", nil
 	} else if moreThanUsual := m["more_than_usual"]; moreThanUsual != nil && moreThanUsual.(bool) {
 		return "more_than_usual", nil
+	} else if lessThanUsual := m["less_than_usual"]; lessThanUsual != nil && lessThanUsual.(bool) {
+		return "less_than_usual", nil
 	}
-	return "", fmt.Errorf("less_than or more_than or more_than_usual must be true")
+
+	return "", fmt.Errorf("less_than, more_than, more_than_usual, or less_than_usual must be set to true")
 }
 
 func expandTimeRelativeConditionParameters(m map[string]interface{}) (*alerts.ConditionParameters, error) {
@@ -3119,7 +3164,7 @@ func expandMetricCondition(m map[string]interface{}) (*alerts.AlertCondition, er
 		}
 	}
 
-	return expandLessThanMoreThanOrMoreThanUsualAlertCondition(conditionMap, parameters)
+	return expandPromqlCondition(conditionMap, parameters)
 }
 
 func expandArithmeticOperator(s string) alerts.MetricAlertConditionParameters_ArithmeticOperator {

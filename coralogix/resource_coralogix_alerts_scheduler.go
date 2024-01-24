@@ -376,7 +376,8 @@ func (r *AlertsSchedulerResource) Create(ctx context.Context, req resource.Creat
 	createResp, err := r.client.CreateAlertScheduler(ctx, createAlertSchedulerRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		formatRpcErrors(err, createAlertsSchedulerURL, alertsSchedulerStr)
+		resp.Diagnostics.AddError("Error creating alerts-scheduler",
+			formatRpcErrors(err, createAlertsSchedulerURL, alertsSchedulerStr))
 		return
 	}
 	alertScheduler = createResp.GetAlertSchedulerRule()
@@ -409,7 +410,7 @@ func flattenAlertScheduler(ctx context.Context, scheduler *alertsSchedulers.Aler
 	}
 
 	return &AlertsSchedulerResourceModel{
-		ID:          types.StringValue(scheduler.GetId()),
+		ID:          types.StringValue(scheduler.GetUniqueIdentifier()),
 		Name:        types.StringValue(scheduler.GetName()),
 		Description: types.StringValue(scheduler.GetDescription()),
 		MetaLabels:  metaLabels,
@@ -781,13 +782,13 @@ func extractAlertsScheduler(ctx context.Context, plan *AlertsSchedulerResourceMo
 	}
 
 	return &alertsSchedulers.AlertSchedulerRule{
-		Id:          id,
-		Name:        plan.Name.ValueString(),
-		Description: typeStringToStringPointer(plan.Description),
-		MetaLabels:  metaLabels,
-		Filter:      filter,
-		Schedule:    schedule,
-		Enabled:     plan.Enabled.ValueBool(),
+		UniqueIdentifier: id,
+		Name:             plan.Name.ValueString(),
+		Description:      typeStringToStringPointer(plan.Description),
+		MetaLabels:       metaLabels,
+		Filter:           filter,
+		Schedule:         schedule,
+		Enabled:          plan.Enabled.ValueBool(),
 	}, nil
 }
 

@@ -390,10 +390,31 @@ New Features:
 
 ## Release 1.10.9
 New Features:
-#### resource/coralogix_archive_retentions
-* Adding support for `coralogix_archive_retentions` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/alerts_scheduler.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/alerts_scheduler.md).
+#### resource/coralogix_alerts_scheduler
+* Adding support for `coralogix_alerts_scheduler` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/alerts_scheduler.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/alerts_scheduler.md).
 
 ## Release 1.10.10
 New Features:
+#### resource/coralogix_team
+* Adding support for `coralogix_team` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/team.md)
+### resource/coralogix_moving_quota
+* Adding support for `coralogix_moving_quota` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/moving_quota.md)
+
+## Release 1.10.11
+New Features:
 #### resource/coralogix_slo 
 * Adding support for `coralogix_slo` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/slo.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/slo.md).
+
+## Release 1.11.0
+Breaking Changes:
+#### resource/coralogix_alert
+* `show_in_insights` was removed. use `incident_settings` or notification's `notify_on` and `retriggering_period_minutes` instead.
+* exactly one of `incident_settings` or all of  `notifications_group.*.notification.*.` `notify_on` and `retriggering_period_minutes` must be set.
+
+New Features:
+#### resource/coralogix_alert
+* Adding support for `metric.0.promql.0.condition.0.less_than_usual`.
+
+Bug fixing:
+* avoiding calling moving quota endpoint when moving quota is not needed.
+* fixing `coralogix_alerts_scheduler` terraform lose track over the resource when `coralogix_alerts_scheduler` is change externally.

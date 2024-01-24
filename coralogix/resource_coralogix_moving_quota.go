@@ -249,6 +249,15 @@ func (r *MovingQuotaResource) UpdateOrCreate(ctx context.Context, plan *MovingQu
 	unitsToMove := float32(plan.DesiredDestinationTeamQuota.ValueFloat64()) - getDestinationTeamQuotaResp.GetQuota()
 	if unitsToMove < 0 {
 		return nil, diag.NewErrorDiagnostic("Error moving Team quota", fmt.Sprintf("Desired source team quota (%f) is less than destination team quota (%f).", plan.DesiredDestinationTeamQuota.ValueFloat64(), getDestinationTeamQuotaResp.GetQuota()))
+	} else if unitsToMove == 0 {
+		return &MovingQuotaResourceModel{
+			ID:                          types.StringValue(""),
+			SourceTeamID:                plan.SourceTeamID,
+			SourceTeamQuota:             types.Float64Value(float64(getSourceTeamQuotaResp.GetQuota())),
+			DestinationTeamID:           plan.DestinationTeamID,
+			DestinationTeamQuota:        types.Float64Value(float64(getDestinationTeamQuotaResp.GetQuota())),
+			DesiredDestinationTeamQuota: plan.DesiredDestinationTeamQuota,
+		}, nil
 	}
 	if unitsToMove > getSourceTeamQuotaResp.GetQuota() {
 		return nil, diag.NewErrorDiagnostic("Error moving Team quota", fmt.Sprintf("Desired source team quota (%f) is greater than source team quota (%f).", plan.DesiredDestinationTeamQuota.ValueFloat64(), getSourceTeamQuotaResp.GetQuota()))

@@ -34,6 +34,7 @@ type AlertServiceClient interface {
 	GetAlertEvents(ctx context.Context, in *GetAlertEventsRequest, opts ...grpc.CallOption) (*GetAlertEventsResponse, error)
 	ValidateAlert(ctx context.Context, in *ValidateAlertRequest, opts ...grpc.CallOption) (*ValidateAlertResponse, error)
 	GetAlertEventsCountBySeverity(ctx context.Context, in *GetAlertEventsCountBySeverityRequest, opts ...grpc.CallOption) (*GetAlertEventsCountBySeverityResponse, error)
+	GetCompanyAlertsLimit(ctx context.Context, in *GetCompanyAlertsLimitRequest, opts ...grpc.CallOption) (*GetCompanyAlertsLimitResponse, error)
 }
 
 type alertServiceClient struct {
@@ -152,6 +153,15 @@ func (c *alertServiceClient) GetAlertEventsCountBySeverity(ctx context.Context, 
 	return out, nil
 }
 
+func (c *alertServiceClient) GetCompanyAlertsLimit(ctx context.Context, in *GetCompanyAlertsLimitRequest, opts ...grpc.CallOption) (*GetCompanyAlertsLimitResponse, error) {
+	out := new(GetCompanyAlertsLimitResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogix.alerts.v2.AlertService/GetCompanyAlertsLimit", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AlertServiceServer is the server API for AlertService service.
 // All implementations must embed UnimplementedAlertServiceServer
 // for forward compatibility
@@ -168,6 +178,7 @@ type AlertServiceServer interface {
 	GetAlertEvents(context.Context, *GetAlertEventsRequest) (*GetAlertEventsResponse, error)
 	ValidateAlert(context.Context, *ValidateAlertRequest) (*ValidateAlertResponse, error)
 	GetAlertEventsCountBySeverity(context.Context, *GetAlertEventsCountBySeverityRequest) (*GetAlertEventsCountBySeverityResponse, error)
+	GetCompanyAlertsLimit(context.Context, *GetCompanyAlertsLimitRequest) (*GetCompanyAlertsLimitResponse, error)
 	mustEmbedUnimplementedAlertServiceServer()
 }
 
@@ -210,6 +221,9 @@ func (UnimplementedAlertServiceServer) ValidateAlert(context.Context, *ValidateA
 }
 func (UnimplementedAlertServiceServer) GetAlertEventsCountBySeverity(context.Context, *GetAlertEventsCountBySeverityRequest) (*GetAlertEventsCountBySeverityResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAlertEventsCountBySeverity not implemented")
+}
+func (UnimplementedAlertServiceServer) GetCompanyAlertsLimit(context.Context, *GetCompanyAlertsLimitRequest) (*GetCompanyAlertsLimitResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCompanyAlertsLimit not implemented")
 }
 func (UnimplementedAlertServiceServer) mustEmbedUnimplementedAlertServiceServer() {}
 
@@ -440,6 +454,24 @@ func _AlertService_GetAlertEventsCountBySeverity_Handler(srv interface{}, ctx co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AlertService_GetCompanyAlertsLimit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCompanyAlertsLimitRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AlertServiceServer).GetCompanyAlertsLimit(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogix.alerts.v2.AlertService/GetCompanyAlertsLimit",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AlertServiceServer).GetCompanyAlertsLimit(ctx, req.(*GetCompanyAlertsLimitRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AlertService_ServiceDesc is the grpc.ServiceDesc for AlertService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -494,6 +526,10 @@ var AlertService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAlertEventsCountBySeverity",
 			Handler:    _AlertService_GetAlertEventsCountBySeverity_Handler,
+		},
+		{
+			MethodName: "GetCompanyAlertsLimit",
+			Handler:    _AlertService_GetCompanyAlertsLimit_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

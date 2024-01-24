@@ -23,8 +23,8 @@ resource "coralogix_alerts_scheduler" "example" {
     operation = "mute"
     one_time  = {
       time_frame = {
-        start_time = "2021-01-01T00:00:00.000"
-        end_time   = "2021-01-01T00:00:50.000"
+        start_time = "2021-01-04T00:00:00.000"
+        end_time   = "2025-01-01T00:00:50.000"
         time_zone  = "UTC+2"
       }
     }
@@ -54,7 +54,7 @@ resource "coralogix_alerts_scheduler" "example_2" {
           }
         }
         time_frame = {
-          start_time = "2021-01-01T00:00:00.000"
+          start_time = "2021-01-04T00:00:00.000"
           duration = {
             for_over = 2
             frequency = "hours"
