@@ -13,10 +13,10 @@ provider "coralogix" {
 }
 
 resource "coralogix_webhook" "slack_webhook" {
-  name = "slack-webhook"
+  name  = "slack-webhook"
   slack = {
     notify_about = ["flow_anomalies"]
-    url = "https://join.slack.com/example"
+    url          = "https://join.slack.com/example"
   }
 }
 
@@ -25,7 +25,7 @@ data "coralogix_webhook" "imported_webhook" {
 }
 
 resource "coralogix_webhook" "custom_webhook" {
-  name = "custom-webhook"
+  name   = "custom-webhook"
   custom = {
     method  = "post"
     headers = { "Content-Type" : "application/json" }
@@ -34,22 +34,22 @@ resource "coralogix_webhook" "custom_webhook" {
 }
 
 resource "coralogix_webhook" "pager_duty_webhook" {
-  name = "pagerduty-webhook"
+  name       = "pagerduty-webhook"
   pager_duty = {
     service_key = "service-key"
   }
 }
 
 resource "coralogix_webhook" "email_group_webhook" {
-  name = "email-group-webhook"
+  name        = "email-group-webhook"
   email_group = {
     emails = ["user@example.com"]
   }
 }
 
 resource "coralogix_webhook" "microsoft_teams_webhook" {
-  name = "microsoft-teams-webhook"
-  microsoft_teams ={
+  name            = "microsoft-teams-webhook"
+  microsoft_teams = {
     url = "https://example-url.com/"
   }
 }
@@ -65,36 +65,48 @@ resource "coralogix_webhook" "jira_webhook" {
 }
 
 resource "coralogix_webhook" "opsgenie_webhook" {
-  name = "opsgenie-webhook"
+  name     = "opsgenie-webhook"
   opsgenie = {
     url = "https://example-url.com/"
   }
 }
 
 resource "coralogix_webhook" "demisto_webhook" {
-  name = "demisto-webhook"
+  name    = "demisto-webhook"
   demisto = {
     url = "https://example-url.com/"
   }
 }
 
 resource "coralogix_webhook" "sendlog_webhook" {
-  name = "sendlog-webhook"
+  name    = "sendlog-webhook"
   sendlog = {
     url = "https://example-url.com/"
   }
 }
 
+resource "coralogix_webhook" "event_bridge_webhook" {
+  name         = "event_bridge_webhook"
+  event_bridge = {
+    event_bus_arn = "arn:aws:events:us-east-1:123456789012:event-bus/default"
+    detail        = "example_detail"
+    detail_type   = "example_detail_type"
+    source        = "example_source"
+    role_name     = "example_role_name"
+  }
+}
+
 //example of how to use webhooks that was created via terraform
 resource "coralogix_alert" "standard_alert" {
-  name           = "Standard alert example"
-  description    = "Example of standard alert from terraform"
-  severity = "Critical"
+  name        = "Standard alert example"
+  description = "Example of standard alert from terraform"
+  severity    = "Critical"
 
   notifications_group {
     notification {
       integration_id              = coralogix_webhook.slack_webhook.external_id
       retriggering_period_minutes = 60
+      notify_on = "Triggered_only"
     }
   }
 

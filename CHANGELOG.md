@@ -418,3 +418,12 @@ New Features:
 Bug fixing:
 * avoiding calling moving quota endpoint when moving quota is not needed.
 * fixing `coralogix_alerts_scheduler` terraform lose track over the resource when `coralogix_alerts_scheduler` is change externally.
+
+## Release 1.11.1
+New Features:
+#### resource/coralogix_webhook
+* Adding support for `event_bridge` webhook type.
+
+Bug fixing:
+#### resource/coralogix_team
+* fixing log message when for permission denied error.

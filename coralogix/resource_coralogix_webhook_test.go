@@ -38,6 +38,11 @@ type jiraWebhookTestFields struct {
 	apiToken, email, projectKey string
 }
 
+type eventBridgeWebhookTestFields struct {
+	webhookTestFields
+	eventBusArn, detail, detailType, source, roleName string
+}
+
 func TestAccCoralogixResourceSlackWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := getRandomWebhook()
@@ -235,7 +240,7 @@ func TestAccCoralogixResourceSendLogWebhook(t *testing.T) {
 	})
 }
 
-func TestAccCoralogixResourceOpsgenieTeamsWebhook(t *testing.T) {
+func TestAccCoralogixResourceOpsgenieWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := getRandomWebhook()
 	resource.Test(t, resource.TestCase{
@@ -261,7 +266,7 @@ func TestAccCoralogixResourceOpsgenieTeamsWebhook(t *testing.T) {
 	})
 }
 
-func TestAccCoralogixResourceDemistoTeamsWebhook(t *testing.T) {
+func TestAccCoralogixResourceDemistoWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := getRandomWebhook()
 	resource.Test(t, resource.TestCase{
@@ -275,6 +280,45 @@ func TestAccCoralogixResourceDemistoTeamsWebhook(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceEventBridgeWebhook(t *testing.T) {
+	resourceName := "coralogix_webhook.test"
+	webhook := getRandomWebhook()
+	eventBridgeWebhook := &eventBridgeWebhookTestFields{
+		webhookTestFields: *webhook,
+		eventBusArn:       "arn:aws:events:us-east-1:123456789012:event-bus/default",
+		detail:            "detail",
+		detailType:        "detailType",
+		source:            "source",
+		roleName:          "roleName",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckWebhookDestroy,
+		Steps: []resource.TestStep{
+			{
+
+				Config: testAccCoralogixResourceEventBridgeWebhook(eventBridgeWebhook),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(resourceName, "id"),
+					resource.TestCheckResourceAttr(resourceName, "name", eventBridgeWebhook.name),
+					resource.TestCheckResourceAttr(resourceName, "event_bridge.event_bus_arn", eventBridgeWebhook.eventBusArn),
+					resource.TestCheckResourceAttr(resourceName, "event_bridge.detail", eventBridgeWebhook.detail),
+					resource.TestCheckResourceAttr(resourceName, "event_bridge.detail_type", eventBridgeWebhook.detailType),
+					resource.TestCheckResourceAttr(resourceName, "event_bridge.source", eventBridgeWebhook.source),
+					resource.TestCheckResourceAttr(resourceName, "event_bridge.role_name", eventBridgeWebhook.roleName),
 				),
 			},
 			{
@@ -420,4 +464,19 @@ func testAccCoralogixResourceDemistoWebhook(w *webhookTestFields) string {
 }
 `,
 		w.name, w.url)
+}
+
+func testAccCoralogixResourceEventBridgeWebhook(w *eventBridgeWebhookTestFields) string {
+	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
+  	name = "%s"
+	event_bridge = {
+		event_bus_arn = "%s"
+		detail = "%s"
+		detail_type = "%s"
+		source = "%s"
+		role_name = "%s"
+  	}
+}
+`,
+		w.name, w.eventBusArn, w.detail, w.detailType, w.source, w.roleName)
 }

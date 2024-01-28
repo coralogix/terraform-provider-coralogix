@@ -29,6 +29,7 @@ data "coralogix_webhook" "imported_webhook" {
 - `custom` (Attributes) Generic webhook. (see [below for nested schema](#nestedatt--custom))
 - `demisto` (Attributes) Demisto webhook. (see [below for nested schema](#nestedatt--demisto))
 - `email_group` (Attributes) Email group webhook. (see [below for nested schema](#nestedatt--email_group))
+- `event_bridge` (Attributes) (see [below for nested schema](#nestedatt--event_bridge))
 - `external_id` (String) Webhook external ID. Using to linq webhook to alert.
 - `jira` (Attributes) Jira webhook. (see [below for nested schema](#nestedatt--jira))
 - `microsoft_teams` (Attributes) Microsoft Teams webhook. (see [below for nested schema](#nestedatt--microsoft_teams))
@@ -66,6 +67,18 @@ Read-Only:
 Read-Only:
 
 - `emails` (List of String) Emails list.
+
+
+<a id="nestedatt--event_bridge"></a>
+### Nested Schema for `event_bridge`
+
+Read-Only:
+
+- `detail` (String)
+- `detail_type` (String) Free text to be included in the event.
+- `event_bus_arn` (String) Corresponds to the event bus, which will receive notifications. The policy attached must contain permission to publish.
+- `role_name` (String) Corresponds to the AWS IAM role that will be created in your account.
+- `source` (String) Free text is used to identify the messages Coralogix sends.
 
 
 <a id="nestedatt--jira"></a>

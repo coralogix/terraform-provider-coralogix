@@ -243,6 +243,7 @@ type WebhookResourceModel struct {
 	Jira           *JiraModel           `tfsdk:"jira"`
 	Opsgenie       *OpsgenieModel       `tfsdk:"opsgenie"`
 	Demisto        *DemistoModel        `tfsdk:"demisto"`
+	EventBridge    *EventBridgeModel    `tfsdk:"event_bridge"`
 }
 
 type CustomWebhookModel struct {
@@ -291,6 +292,14 @@ type DemistoModel struct {
 	UUID    types.String `tfsdk:"uuid"`
 	Payload types.String `tfsdk:"payload"`
 	URL     types.String `tfsdk:"url"`
+}
+
+type EventBridgeModel struct {
+	EventBusARN types.String `tfsdk:"event_bus_arn"`
+	Detail      types.String `tfsdk:"detail"`
+	DetailType  types.String `tfsdk:"detail_type"`
+	Source      types.String `tfsdk:"source"`
+	RoleName    types.String `tfsdk:"role_name"`
 }
 
 func (r *WebhookResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -380,6 +389,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
+						path.MatchRelative().AtParent().AtName("event_bridge"),
 					),
 				},
 				Optional:            true,
@@ -410,6 +420,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
+						path.MatchRelative().AtParent().AtName("event_bridge"),
 					),
 				},
 				Optional:            true,
@@ -432,6 +443,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
+						path.MatchRelative().AtParent().AtName("event_bridge"),
 					),
 				},
 				Optional:            true,
@@ -465,6 +477,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
+						path.MatchRelative().AtParent().AtName("event_bridge"),
 					),
 				},
 				Optional:            true,
@@ -488,6 +501,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
+						path.MatchRelative().AtParent().AtName("event_bridge"),
 					),
 				},
 				Optional:            true,
@@ -510,6 +524,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
+						path.MatchRelative().AtParent().AtName("event_bridge"),
 					),
 				},
 				Optional:            true,
@@ -544,6 +559,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
+						path.MatchRelative().AtParent().AtName("event_bridge"),
 					),
 				},
 				Optional:            true,
@@ -566,6 +582,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("demisto"),
+						path.MatchRelative().AtParent().AtName("event_bridge"),
 					),
 				},
 				Optional:            true,
@@ -599,10 +616,48 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
+						path.MatchRelative().AtParent().AtName("event_bridge"),
 					),
 				},
 				Optional:            true,
 				MarkdownDescription: "Demisto webhook.",
+			},
+			"event_bridge": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"event_bus_arn": schema.StringAttribute{
+						Required:            true,
+						MarkdownDescription: "Corresponds to the event bus, which will receive notifications. The policy attached must contain permission to publish.",
+					},
+					"detail": schema.StringAttribute{
+						Optional: true,
+					},
+					"detail_type": schema.StringAttribute{
+						Required:            true,
+						MarkdownDescription: "Free text to be included in the event.",
+					},
+					"source": schema.StringAttribute{
+						Required:            true,
+						MarkdownDescription: "Free text is used to identify the messages Coralogix sends.",
+					},
+					"role_name": schema.StringAttribute{
+						Required:            true,
+						MarkdownDescription: "Corresponds to the AWS IAM role that will be created in your account.",
+					},
+				},
+				Optional: true,
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(
+						path.MatchRelative().AtParent().AtName("custom"),
+						path.MatchRelative().AtParent().AtName("slack"),
+						path.MatchRelative().AtParent().AtName("pager_duty"),
+						path.MatchRelative().AtParent().AtName("sendlog"),
+						path.MatchRelative().AtParent().AtName("email_group"),
+						path.MatchRelative().AtParent().AtName("microsoft_teams"),
+						path.MatchRelative().AtParent().AtName("jira"),
+						path.MatchRelative().AtParent().AtName("opsgenie"),
+						path.MatchRelative().AtParent().AtName("demisto"),
+					),
+				},
 			},
 		},
 		MarkdownDescription: "Coralogix webhook. For more info please review - https://coralogix.com/docs/coralogix-Webhook-extension/.",
@@ -849,6 +904,12 @@ func expandWebhookType(ctx context.Context, plan *WebhookResourceModel, data *we
 	} else if plan.Demisto != nil {
 		data.Config, data.Url = expandDemisto(plan.Demisto)
 		data.Type = webhooks.WebhookType_DEMISTO
+	} else if plan.EventBridge != nil {
+		data.Config = expandEventBridge(plan.EventBridge)
+		data.Type = webhooks.WebhookType_AWS_EVENT_BRIDGE
+	} else {
+		diags.AddError("Error expanding webhook type", "Unknown webhook type")
+
 	}
 
 	if diags.HasError() {
@@ -856,6 +917,18 @@ func expandWebhookType(ctx context.Context, plan *WebhookResourceModel, data *we
 	}
 
 	return data, nil
+}
+
+func expandEventBridge(bridge *EventBridgeModel) *webhooks.OutgoingWebhookInputData_AwsEventBridge {
+	return &webhooks.OutgoingWebhookInputData_AwsEventBridge{
+		AwsEventBridge: &webhooks.AwsEventBridgeConfig{
+			EventBusArn: typeStringToWrapperspbString(bridge.EventBusARN),
+			Detail:      typeStringToWrapperspbString(bridge.Detail),
+			DetailType:  typeStringToWrapperspbString(bridge.DetailType),
+			Source:      typeStringToWrapperspbString(bridge.Source),
+			RoleName:    typeStringToWrapperspbString(bridge.RoleName),
+		},
+	}
 }
 
 func expandMicrosoftTeams(microsoftTeams *MicrosoftTeamsModel) (*webhooks.OutgoingWebhookInputData_MicrosoftTeams, *wrapperspb.StringValue) {
@@ -1018,26 +1091,31 @@ func flattenWebhook(ctx context.Context, webhook *webhooks.OutgoingWebhook) (*We
 		Name:       wrapperspbStringToTypeString(webhook.Name),
 	}
 
+	url := webhook.GetUrl()
 	var diags diag.Diagnostics
-	switch webhook.Config.(type) {
+	switch configType := webhook.Config.(type) {
 	case *webhooks.OutgoingWebhook_Slack:
-		result.Slack, diags = flattenSlack(webhook.GetSlack(), webhook.GetUrl())
+		result.Slack, diags = flattenSlack(configType.Slack, url)
 	case *webhooks.OutgoingWebhook_GenericWebhook:
-		result.CustomWebhook, diags = flattenGenericWebhook(ctx, webhook.GetGenericWebhook(), webhook.GetUrl())
+		result.CustomWebhook, diags = flattenGenericWebhook(ctx, configType.GenericWebhook, url)
 	case *webhooks.OutgoingWebhook_PagerDuty:
-		result.PagerDuty = flattenPagerDuty(webhook.GetPagerDuty())
+		result.PagerDuty = flattenPagerDuty(configType.PagerDuty)
 	case *webhooks.OutgoingWebhook_SendLog:
-		result.SendLog = flattenSendLog(webhook.GetSendLog(), webhook.GetUrl())
+		result.SendLog = flattenSendLog(configType.SendLog, url)
 	case *webhooks.OutgoingWebhook_EmailGroup:
-		result.EmailGroup = flattenEmailGroup(webhook.GetEmailGroup())
+		result.EmailGroup = flattenEmailGroup(configType.EmailGroup)
 	case *webhooks.OutgoingWebhook_MicrosoftTeams:
-		result.MicrosoftTeams = flattenMicrosoftTeams(webhook.GetMicrosoftTeams(), webhook.GetUrl())
+		result.MicrosoftTeams = flattenMicrosoftTeams(configType.MicrosoftTeams, url)
 	case *webhooks.OutgoingWebhook_Jira:
-		result.Jira = flattenJira(webhook.GetJira(), webhook.GetUrl())
+		result.Jira = flattenJira(configType.Jira, url)
 	case *webhooks.OutgoingWebhook_Opsgenie:
-		result.Opsgenie = flattenOpsgenie(webhook.GetOpsgenie(), webhook.GetUrl())
+		result.Opsgenie = flattenOpsgenie(configType.Opsgenie, url)
 	case *webhooks.OutgoingWebhook_Demisto:
-		result.Demisto = flattenDemisto(webhook.GetDemisto(), webhook.GetUrl())
+		result.Demisto = flattenDemisto(configType.Demisto, url)
+	case *webhooks.OutgoingWebhook_AwsEventBridge:
+		result.EventBridge = flattenEventBridge(configType.AwsEventBridge)
+	default:
+		diags.AddError("Error flattening webhook", fmt.Sprintf("Unknown webhook type: %T", configType))
 	}
 
 	return result, diags
@@ -1131,5 +1209,15 @@ func flattenDemisto(demisto *webhooks.DemistoConfig, url *wrapperspb.StringValue
 		UUID:    wrapperspbStringToTypeString(demisto.Uuid),
 		Payload: wrapperspbStringToTypeString(demisto.Payload),
 		URL:     wrapperspbStringToTypeString(url),
+	}
+}
+
+func flattenEventBridge(bridge *webhooks.AwsEventBridgeConfig) *EventBridgeModel {
+	return &EventBridgeModel{
+		EventBusARN: wrapperspbStringToTypeString(bridge.EventBusArn),
+		Detail:      wrapperspbStringToTypeString(bridge.Detail),
+		DetailType:  wrapperspbStringToTypeString(bridge.DetailType),
+		Source:      wrapperspbStringToTypeString(bridge.Source),
+		RoleName:    wrapperspbStringToTypeString(bridge.RoleName),
 	}
 }
