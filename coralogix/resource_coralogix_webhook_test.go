@@ -318,7 +318,7 @@ func TestAccCoralogixResourceEventBridgeWebhook(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "event_bridge.detail", eventBridgeWebhook.detail),
 					resource.TestCheckResourceAttr(resourceName, "event_bridge.detail_type", eventBridgeWebhook.detailType),
 					resource.TestCheckResourceAttr(resourceName, "event_bridge.source", eventBridgeWebhook.source),
-					resource.TestCheckResourceAttr(resourceName, "event_bridge.role_arn", eventBridgeWebhook.roleName),
+					resource.TestCheckResourceAttr(resourceName, "event_bridge.role_name", eventBridgeWebhook.roleName),
 				),
 			},
 			{
