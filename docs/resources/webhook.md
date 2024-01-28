@@ -26,9 +26,10 @@ resource "coralogix_webhook" "slack_webhook" {
 
 ### Optional
 
+- `custom` (Attributes) Generic webhook. (see [below for nested schema](#nestedatt--custom))
 - `demisto` (Attributes) Demisto webhook. (see [below for nested schema](#nestedatt--demisto))
 - `email_group` (Attributes) Email group webhook. (see [below for nested schema](#nestedatt--email_group))
-- `custom` (Attributes) Generic webhook. (see [below for nested schema](#nestedatt--generic_webhook))
+- `event_bridge` (Attributes) (see [below for nested schema](#nestedatt--event_bridge))
 - `jira` (Attributes) Jira webhook. (see [below for nested schema](#nestedatt--jira))
 - `microsoft_teams` (Attributes) Microsoft Teams webhook. (see [below for nested schema](#nestedatt--microsoft_teams))
 - `name` (String) Webhook name.
@@ -41,6 +42,18 @@ resource "coralogix_webhook" "slack_webhook" {
 
 - `external_id` (String) Webhook external ID. Using to linq webhook to alert.
 - `id` (String) Webhook ID.
+
+<a id="nestedatt--custom"></a>
+### Nested Schema for `custom`
+
+Optional:
+
+- `headers` (Map of String) Webhook headers. Map of string to string.
+- `method` (String) Webhook method. can be one of: get, post, put
+- `payload` (String) Webhook payload. JSON string.
+- `url` (String) Webhook URL.
+- `uuid` (String) Webhook UUID. Computed automatically.
+
 
 <a id="nestedatt--demisto"></a>
 ### Nested Schema for `demisto`
@@ -63,16 +76,19 @@ Optional:
 - `emails` (List of String) Emails list.
 
 
-<a id="nestedatt--custom"></a>
-### Nested Schema for `custom`
+<a id="nestedatt--event_bridge"></a>
+### Nested Schema for `event_bridge`
+
+Required:
+
+- `detail_type` (String) Free text to be included in the event.
+- `event_bus_arn` (String) Corresponds to the event bus, which will receive notifications. The policy attached must contain permission to publish.
+- `role_name` (String) Corresponds to the AWS IAM role that will be created in your account.
+- `source` (String) Free text is used to identify the messages Coralogix sends.
 
 Optional:
 
-- `headers` (Map of String) Webhook headers. Map of string to string.
-- `method` (String) Webhook method. can be one of: get, post, put
-- `payload` (String) Webhook payload. JSON string.
-- `url` (String) Webhook URL.
-- `uuid` (String) Webhook UUID. Computed automatically.
+- `detail` (String)
 
 
 <a id="nestedatt--jira"></a>
