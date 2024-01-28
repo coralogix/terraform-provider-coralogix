@@ -474,7 +474,7 @@ func testAccCoralogixResourceEventBridgeWebhook(w *eventBridgeWebhookTestFields)
 		detail = "%s"
 		detail_type = "%s"
 		source = "%s"
-		role_arn = "%s"
+		role_name = "%s"
   	}
 }
 `,
