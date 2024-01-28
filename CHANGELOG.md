@@ -423,3 +423,7 @@ Bug fixing:
 New Features:
 #### resource/coralogix_webhook
 * Adding support for `event_bridge` webhook type.
+
+Bug fixing:
+#### resource/coralogix_team
+* fixing log message when for permission denied error.

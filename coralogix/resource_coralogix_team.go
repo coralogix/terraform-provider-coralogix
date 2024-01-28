@@ -6,6 +6,8 @@ import (
 	"log"
 	"strconv"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	teams "terraform-provider-coralogix/coralogix/clientset/grpc/teams"
 
@@ -117,9 +119,15 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 	createTeamResp, err := r.client.CreateTeam(ctx, createTeamReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
+		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
+			resp.Diagnostics.AddError(
+				"Error creating Team",
+				formatRpcErrors(err, createTeamURL, protojson.Format(createTeamReq)),
+			)
+		}
 		resp.Diagnostics.AddError(
 			"Error creating Team",
-			formatRpcErrors(err, createTeamURL, protojson.Format(createTeamReq)),
+			fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", createTeamURL),
 		)
 		return
 	}
