@@ -10,7 +10,11 @@ Coralogix SLO.
 
 # coralogix_slo (Resource)
 
-Coralogix SLO.
+Use this resource to create, update, and delete Coralogix Service Level Objectives (SLOs).
+
+You need an API Key for **Alerts, Rules & Tags** to provision this resource. Use this key to set the `api_key` attribute in the `provider` block or implicitly via environment variables: `CORALOGIX_API_KEY` or `CORALOGIX_ENV`.
+
+Note: Only Administrators can manage SLOs.
 
 ## Example Usage
 
