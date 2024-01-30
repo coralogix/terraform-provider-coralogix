@@ -8,7 +8,6 @@ package __
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -30,6 +29,7 @@ type DashboardsServiceClient interface {
 	PinDashboard(ctx context.Context, in *PinDashboardRequest, opts ...grpc.CallOption) (*PinDashboardResponse, error)
 	UnpinDashboard(ctx context.Context, in *UnpinDashboardRequest, opts ...grpc.CallOption) (*UnpinDashboardResponse, error)
 	ReplaceDefaultDashboard(ctx context.Context, in *ReplaceDefaultDashboardRequest, opts ...grpc.CallOption) (*ReplaceDefaultDashboardResponse, error)
+	AssignDashboardFolder(ctx context.Context, in *AssignDashboardFolderRequest, opts ...grpc.CallOption) (*AssignDashboardFolderResponse, error)
 }
 
 type dashboardsServiceClient struct {
@@ -103,6 +103,15 @@ func (c *dashboardsServiceClient) ReplaceDefaultDashboard(ctx context.Context, i
 	return out, nil
 }
 
+func (c *dashboardsServiceClient) AssignDashboardFolder(ctx context.Context, in *AssignDashboardFolderRequest, opts ...grpc.CallOption) (*AssignDashboardFolderResponse, error) {
+	out := new(AssignDashboardFolderResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogixapis.dashboards.v1.services.DashboardsService/AssignDashboardFolder", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DashboardsServiceServer is the server API for DashboardsService service.
 // All implementations must embed UnimplementedDashboardsServiceServer
 // for forward compatibility
@@ -114,6 +123,7 @@ type DashboardsServiceServer interface {
 	PinDashboard(context.Context, *PinDashboardRequest) (*PinDashboardResponse, error)
 	UnpinDashboard(context.Context, *UnpinDashboardRequest) (*UnpinDashboardResponse, error)
 	ReplaceDefaultDashboard(context.Context, *ReplaceDefaultDashboardRequest) (*ReplaceDefaultDashboardResponse, error)
+	AssignDashboardFolder(context.Context, *AssignDashboardFolderRequest) (*AssignDashboardFolderResponse, error)
 	mustEmbedUnimplementedDashboardsServiceServer()
 }
 
@@ -141,6 +151,9 @@ func (UnimplementedDashboardsServiceServer) UnpinDashboard(context.Context, *Unp
 }
 func (UnimplementedDashboardsServiceServer) ReplaceDefaultDashboard(context.Context, *ReplaceDefaultDashboardRequest) (*ReplaceDefaultDashboardResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ReplaceDefaultDashboard not implemented")
+}
+func (UnimplementedDashboardsServiceServer) AssignDashboardFolder(context.Context, *AssignDashboardFolderRequest) (*AssignDashboardFolderResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AssignDashboardFolder not implemented")
 }
 func (UnimplementedDashboardsServiceServer) mustEmbedUnimplementedDashboardsServiceServer() {}
 
@@ -281,6 +294,24 @@ func _DashboardsService_ReplaceDefaultDashboard_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DashboardsService_AssignDashboardFolder_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AssignDashboardFolderRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DashboardsServiceServer).AssignDashboardFolder(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogixapis.dashboards.v1.services.DashboardsService/AssignDashboardFolder",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DashboardsServiceServer).AssignDashboardFolder(ctx, req.(*AssignDashboardFolderRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DashboardsService_ServiceDesc is the grpc.ServiceDesc for DashboardsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -315,6 +346,10 @@ var DashboardsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReplaceDefaultDashboard",
 			Handler:    _DashboardsService_ReplaceDefaultDashboard_Handler,
+		},
+		{
+			MethodName: "AssignDashboardFolder",
+			Handler:    _DashboardsService_AssignDashboardFolder_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

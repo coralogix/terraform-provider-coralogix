@@ -3,7 +3,7 @@ package clientset
 import (
 	"context"
 
-	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
+	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards"
 )
 
 type DashboardsClient struct {

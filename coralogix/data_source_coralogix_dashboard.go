@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
+	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
