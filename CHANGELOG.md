@@ -428,6 +428,6 @@ Bug fixing:
 #### resource/coralogix_team
 * fixing log message when for permission denied error.
 
-## Release 1.11.2
+## Release 1.11.3
 Bug fixing:
 * adding validation for `env` field.

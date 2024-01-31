@@ -159,14 +159,14 @@ func (p *coralogixProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 					stringvalidator.OneOf(validEnvs...),
 					stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("domain")),
 				},
-				MarkdownDescription: fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvs),
+				Description: fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvs),
 			},
 			"domain": schema.StringAttribute{
 				Optional: true,
 				Validators: []validator.String{
 					stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("domain")),
 				},
-				MarkdownDescription: "The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
+				Description: "The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
 			},
 			"api_key": schema.StringAttribute{
 				Optional:    true,
