@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	dashboard "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards/v1"
+	dashboard "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 

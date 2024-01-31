@@ -11,13 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64default"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
-	"golang.org/x/exp/slices"
-
-	"terraform-provider-coralogix/coralogix/clientset"
-	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards"
-
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -27,18 +20,23 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	"terraform-provider-coralogix/coralogix/clientset"
+	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards"
 )
 
 var (
@@ -209,10 +207,10 @@ var (
 	dashboardValidSpanFieldTypes           = []string{"metadata", "tag", "process_tag"}
 	dashboardValidSpanAggregationTypes     = []string{"metric", "dimension"}
 	dashboardValidColorSchemes             = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
-	createDashboardURL                     = "com.coralogixapis.dashboards.v1.services.DashboardsService/CreateDashboard"
-	getDashboardURL                        = "com.coralogixapis.dashboards.v1.services.DashboardsService/GetDashboard"
-	updateDashboardURL                     = "com.coralogixapis.dashboards.v1.services.DashboardsService/ReplaceDashboard"
-	deleteDashboardURL                     = "com.coralogixapis.dashboards.v1.services.DashboardsService/DeleteDashboard"
+	createDashboardURL                     = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/CreateDashboard"
+	getDashboardURL                        = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/GetDashboard"
+	updateDashboardURL                     = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/ReplaceDashboard"
+	deleteDashboardURL                     = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/DeleteDashboard"
 )
 
 var (
@@ -8087,16 +8085,20 @@ func flattenBarChartQuerySpans(ctx context.Context, spans *dashboards.BarChart_S
 		return nil, diag.Diagnostics{dg}
 	}
 
-	spansObject, diags := types.ObjectValueFrom(ctx, barChartSpansQueryAttr(), &BarChartQuerySpansModel{
+	flattenedSpans := &BarChartQuerySpansModel{
+		LuceneQuery:      wrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
+		Aggregation:      aggregation,
+		Filters:          filters,
+		GroupNames:       groupNames,
+		StackedGroupName: stackedGroupName,
+	}
+	spansObject, diags := types.ObjectValueFrom(ctx, barChartSpansQueryAttr(), flattenedSpans)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	return &BarChartQueryModel{
-		Spans: &BarChartQuerySpansModel{
-			LuceneQuery:      wrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
-			Aggregation:      aggregation,
-			Filters:          filters,
-			GroupNames:       groupNames,
-			StackedGroupName: stackedGroupName,
-		},
+		Spans: spansObject,
 	}, nil
 }
 
