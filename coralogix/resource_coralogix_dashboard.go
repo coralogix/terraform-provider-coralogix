@@ -498,9 +498,10 @@ type PieChartStackDefinitionModel struct {
 }
 
 type PieChartQueryModel struct {
-	Logs    *PieChartQueryLogsModel    `tfsdk:"logs"`
-	Metrics *PieChartQueryMetricsModel `tfsdk:"metrics"`
-	Spans   *PieChartQuerySpansModel   `tfsdk:"spans"`
+	Logs      *PieChartQueryLogsModel      `tfsdk:"logs"`
+	Metrics   *PieChartQueryMetricsModel   `tfsdk:"metrics"`
+	Spans     *PieChartQuerySpansModel     `tfsdk:"spans"`
+	DataPrime *BarChartQueryDataPrimeModel `tfsdk:"data_prime"`
 }
 
 type PieChartQueryLogsModel struct {
@@ -526,6 +527,13 @@ type PieChartQuerySpansModel struct {
 	Filters          types.List             `tfsdk:"filters"`     //SpansFilterModel
 	GroupNames       types.List             `tfsdk:"group_names"` //SpansFieldModel
 	StackedGroupName *SpansFieldModel       `tfsdk:"stacked_group_name"`
+}
+
+type PieChartQueryDataPrimeModel struct {
+	Query            types.String `tfsdk:"query"`
+	Filters          types.List   `tfsdk:"filters"`     //DashboardFilterSourceModel
+	GroupNames       types.List   `tfsdk:"group_names"` //types.String
+	StackedGroupName types.String `tfsdk:"stacked_group_name"`
 }
 
 type LabelDefinitionModel struct {
@@ -1448,6 +1456,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						objectvalidator.ExactlyOneOf(
 																							path.MatchRelative().AtParent().AtName("spans"),
 																							path.MatchRelative().AtParent().AtName("metrics"),
+																							path.MatchRelative().AtParent().AtName("data_prime"),
 																						),
 																					},
 																				},
@@ -1466,6 +1475,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						objectvalidator.ExactlyOneOf(
 																							path.MatchRelative().AtParent().AtName("logs"),
 																							path.MatchRelative().AtParent().AtName("metrics"),
+																							path.MatchRelative().AtParent().AtName("data_prime"),
 																						),
 																					},
 																				},
@@ -1488,6 +1498,35 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 																						objectvalidator.ExactlyOneOf(
 																							path.MatchRelative().AtParent().AtName("logs"),
 																							path.MatchRelative().AtParent().AtName("spans"),
+																							path.MatchRelative().AtParent().AtName("data_prime"),
+																						),
+																					},
+																				},
+																				"data_prime": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{
+																						"query": schema.StringAttribute{
+																							Required: true,
+																						},
+																						"filters": schema.ListNestedAttribute{
+																							NestedObject: schema.NestedAttributeObject{
+																								Attributes: filtersSourceAttribute(),
+																							},
+																							Optional: true,
+																						},
+																						"group_names": schema.ListAttribute{
+																							ElementType: types.StringType,
+																							Optional:    true,
+																						},
+																						"stacked_group_name": schema.StringAttribute{
+																							Optional: true,
+																						},
+																					},
+																					Optional: true,
+																					Validators: []validator.Object{
+																						objectvalidator.ExactlyOneOf(
+																							path.MatchRelative().AtParent().AtName("logs"),
+																							path.MatchRelative().AtParent().AtName("spans"),
+																							path.MatchRelative().AtParent().AtName("metrics"),
 																						),
 																					},
 																				},
@@ -2795,8 +2834,7 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashbo
 		return nil, diags
 	}
 
-	id := wrapperspb.String(expandDashboardUUID(plan.ID).GetValue())
-
+	id := wrapperspb.String(expand21LengthUUID(plan.ID).GetValue())
 	dashboard := &dashboards.Dashboard{
 		Id:          id,
 		Name:        typeStringToWrapperspbString(plan.Name),
@@ -3165,7 +3203,7 @@ func expandYAxisViewBy(yAxisViewBy types.String) *dashboards.HorizontalBarChart_
 func expandPieChart(ctx context.Context, pieChart *PieChartModel) (*dashboards.Widget_Definition, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	query, diags := expandDashboardQuery(ctx, pieChart.Query)
+	query, diags := expandPieChartQuery(ctx, pieChart.Query)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4899,7 +4937,7 @@ func expandLineChartSpansQuery(ctx context.Context, spans *LineChartQuerySpansMo
 	}, nil
 }
 
-func expandDashboardQuery(ctx context.Context, pieChartQuery *PieChartQueryModel) (*dashboards.PieChart_Query, diag.Diagnostics) {
+func expandPieChartQuery(ctx context.Context, pieChartQuery *PieChartQueryModel) (*dashboards.PieChart_Query, diag.Diagnostics) {
 	if pieChartQuery == nil {
 		return nil, nil
 	}
@@ -4928,6 +4966,14 @@ func expandDashboardQuery(ctx context.Context, pieChartQuery *PieChartQueryModel
 		}
 		return &dashboards.PieChart_Query{
 			Value: spans,
+		}, nil
+	case pieChartQuery.DataPrime != nil:
+		dataPrime, diags := expandPieChartDataPrimeQuery(ctx, pieChartQuery.DataPrime)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboards.PieChart_Query{
+			Value: dataPrime,
 		}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand PieChart Query", "Unknown PieChart Query type")}
@@ -5034,6 +5080,33 @@ func expandPieChartSpansQuery(ctx context.Context, pieChartQuerySpans *PieChartQ
 			Filters:          filters,
 			GroupNames:       groupNames,
 			StackedGroupName: stackedGroupName,
+		},
+	}, nil
+}
+
+func expandPieChartDataPrimeQuery(ctx context.Context, dataPrime *BarChartQueryDataPrimeModel) (*dashboards.PieChart_Query_Dataprime, diag.Diagnostics) {
+	if dataPrime == nil {
+		return nil, nil
+	}
+
+	filters, diags := expandDashboardFiltersSources(ctx, dataPrime.Filters)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	groupNames, diags := typeStringSliceToWrappedStringSlice(ctx, dataPrime.GroupNames.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.PieChart_Query_Dataprime{
+		Dataprime: &dashboards.PieChart_DataprimeQuery{
+			DataprimeQuery: &dashboards.DataprimeQuery{
+				Text: dataPrime.Query.ValueString(),
+			},
+			Filters:          filters,
+			GroupNames:       groupNames,
+			StackedGroupName: typeStringToWrapperspbString(dataPrime.StackedGroupName),
 		},
 	}, nil
 }
@@ -5413,6 +5486,13 @@ func expandRelativeDashboardTimeFrame(ctx context.Context, timeFrame types.Objec
 	return &dashboards.Dashboard_RelativeTimeFrame{
 		RelativeTimeFrame: durationpb.New(*duration),
 	}, nil
+}
+
+func expand21LengthUUID(id types.String) *dashboards.UUID {
+	if id.IsNull() || id.IsUnknown() {
+		return &dashboards.UUID{Value: RandStringBytes(21)}
+	}
+	return &dashboards.UUID{Value: id.ValueString()}
 }
 
 func expandDashboardUUID(id types.String) *dashboards.UUID {
@@ -5882,6 +5962,20 @@ func widgetModelAttr() map[string]attr.Type {
 										"stacked_group_name": types.ObjectType{
 											AttrTypes: spansFieldModelAttr(),
 										},
+									},
+								},
+								"data_prime": types.ObjectType{
+									AttrTypes: map[string]attr.Type{
+										"query": types.StringType,
+										"filters": types.ListType{
+											ElemType: types.ObjectType{
+												AttrTypes: filterSourceModelAttr(),
+											},
+										},
+										"group_names": types.ListType{
+											ElemType: types.StringType,
+										},
+										"stacked_group_name": types.StringType,
 									},
 								},
 							},
@@ -7776,6 +7870,8 @@ func flattenPieChartQueries(ctx context.Context, query *dashboards.PieChart_Quer
 		return flattenPieChartQueryLogs(ctx, query.GetLogs())
 	case *dashboards.PieChart_Query_Spans:
 		return flattenPieChartQuerySpans(ctx, query.GetSpans())
+	case *dashboards.PieChart_Query_Dataprime:
+		return flattenPieChartDataPrimeQuery(ctx, query.GetDataprime())
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Pie Chart Query", fmt.Sprintf("unknown query type %T", query))}
 	}
@@ -7895,6 +7991,26 @@ func flattenPieChartQuerySpans(ctx context.Context, spans *dashboards.PieChart_S
 			Aggregation:      aggregation,
 			GroupNames:       groupNames,
 			StackedGroupName: stackedGroupName,
+		},
+	}, nil
+}
+
+func flattenPieChartDataPrimeQuery(ctx context.Context, dataPrime *dashboards.PieChart_DataprimeQuery) (*PieChartQueryModel, diag.Diagnostics) {
+	if dataPrime == nil {
+		return nil, nil
+	}
+
+	filters, diags := flattenDashboardFiltersSources(ctx, dataPrime.GetFilters())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &PieChartQueryModel{
+		DataPrime: &BarChartQueryDataPrimeModel{
+			Query:            types.StringValue(dataPrime.GetDataprimeQuery().GetText()),
+			Filters:          filters,
+			GroupNames:       wrappedStringSliceToTypeStringList(dataPrime.GetGroupNames()),
+			StackedGroupName: wrapperspbStringToTypeString(dataPrime.GetStackedGroupName()),
 		},
 	}, nil
 }
