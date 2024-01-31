@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"golang.org/x/exp/slices"
 	"terraform-provider-coralogix/coralogix/clientset"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -39,17 +43,17 @@ func OldProvider() *oldSchema.Provider {
 				Optional: true,
 				//ForceNew: true,
 				//DefaultFunc:   oldSchema.EnvDefaultFunc("CORALOGIX_ENV", nil),
-				//ValidateFunc:  validation.StringInSlice(validEnvs, false),
-				Description: fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvs),
-				//ConflictsWith: []string{"domain"},
+				ValidateFunc:  validation.StringInSlice(validEnvs, false),
+				Description:   fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvs),
+				ConflictsWith: []string{"domain"},
 			},
 			"domain": {
 				Type:     oldSchema.TypeString,
 				Optional: true,
 				//ForceNew: true,
 				//DefaultFunc:   oldSchema.EnvDefaultFunc("CORALOGIX_DOMAIN", nil),
-				Description: "The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
-				//ConflictsWith: []string{"env"},
+				Description:   "The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
+				ConflictsWith: []string{"env"},
 			},
 			"api_key": {
 				Type:      oldSchema.TypeString,
@@ -87,11 +91,19 @@ func OldProvider() *oldSchema.Provider {
 		ConfigureContextFunc: func(context context.Context, d *oldSchema.ResourceData) (interface{}, diag.Diagnostics) {
 			var targetUrl string
 			if env, ok := d.GetOk("env"); ok && env.(string) != "" {
-				targetUrl = envToGrpcUrl[env.(string)]
+				if url, ok := envToGrpcUrl[env.(string)]; !ok {
+					return nil, diag.Errorf("The Coralogix env must be one of %q", validEnvs)
+				} else {
+					targetUrl = url
+				}
 			} else if domain, ok := d.GetOk("domain"); ok && domain.(string) != "" {
 				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
 			} else if env = os.Getenv("CORALOGIX_ENV"); env != "" {
-				targetUrl = envToGrpcUrl[env.(string)]
+				if url, ok := envToGrpcUrl[env.(string)]; !ok {
+					return nil, diag.Errorf("The Coralogix env must be one of %q", validEnvs)
+				} else {
+					targetUrl = url
+				}
 			} else if domain = os.Getenv("CORALOGIX_DOMAIN"); domain != "" {
 				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
 			} else {
@@ -142,12 +154,19 @@ func (p *coralogixProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"env": schema.StringAttribute{
-				Optional:    true,
-				Description: fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvs),
+				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(validEnvs...),
+					stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("domain")),
+				},
+				MarkdownDescription: fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvs),
 			},
 			"domain": schema.StringAttribute{
-				Optional:    true,
-				Description: "The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
+				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("domain")),
+				},
+				MarkdownDescription: "The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.",
 			},
 			"api_key": schema.StringAttribute{
 				Optional:    true,
@@ -264,6 +283,8 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 			"Only one of \"env\" need to be set."+
 				"ensure CORALOGIX_ENV and CORALOGIX_DOMAIN are not set together as well.",
 		)
+	} else if domain == "" && !slices.Contains(validEnvs, env) {
+		resp.Diagnostics.AddAttributeError(path.Root("env"), "Invalid Coralogix env", fmt.Sprintf("The Coralogix env must be one of %q", validEnvs))
 	}
 
 	if apiKey == "" && orgKey == "" {
