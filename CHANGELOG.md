@@ -439,3 +439,4 @@ New Features:
 #### resource/coralogix_dashboard
 * Adding support for `folder`, `annotations` fields.
 * Adding support for `data_prime` for `bar_chart`, `data_table` and `pie_chart` widgets.
+* adding validation for `env` field.

@@ -8,7 +8,9 @@ description: |-
 
 # coralogix_slo (Data Source)
 
-Coralogix SLO.
+Use this data source to obtain the necessary fields to set up Coralogix Service Level Objectives (SLOs). 
+Data about individual SLOs can be retrieved by providing the specific SLO `id`.
+
 ## Example Usage
 
 ```hcl

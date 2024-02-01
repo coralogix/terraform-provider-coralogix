@@ -10,35 +10,40 @@ Coralogix SLO.
 
 # coralogix_slo (Resource)
 
-Coralogix SLO.
+Use this resource to create, update, and delete Coralogix Service Level Objectives (SLOs).
+
+You need an API Key for **Alerts, Rules & Tags** to provision this resource. Use this key to set the `api_key` attribute in the `provider` block or implicitly via environment variables: `CORALOGIX_API_KEY` or `CORALOGIX_ENV`.
+
+Note: Only Administrators can manage SLOs.
 
 ## Example Usage
 
 ```hcl
 resource "coralogix_slo" "example" {
-  name                   = "example"
-  period                 = "30_days"
-  service_name           = "example"
-  target_percentage      = 99.9
-  type                   = "error"
-  description            = "example"
-  name                   = "coralogix_slo_example"
-  service_name           = "service_name"
-  description            = "description"
-  target_percentage      = 30
-  type                   = "latency"
+  name            = "coralogix_slo_example"
+  service_name    = "service_name"
+  description     = "description"
+  target_percentage = 30
+  type            = "error"
+  period          = "7_days"
+}
+
+resource "coralogix_slo" "example_2" {
+  name            = "coralogix_slo_example"
+  service_name    = "service_name"
+  description     = "description"
+  target_percentage = 30
+  type            = "latency"
   threshold_microseconds = 1000000
-  threshold_symbol_type  = "greater"
-  period                 = "7_days"
-  filters                = [
+  threshold_symbol_type = "greater"
+  period          = "7_days"
+  filters = [
     {
-      field        = "severity"
+      field = "severity"
       compare_type = "is"
       field_values = ["error", "warning"]
     },
   ]
-  threshold_microseconds = 1000000
-  threshold_symbol_type  = "greater"
 }
 ```
 
