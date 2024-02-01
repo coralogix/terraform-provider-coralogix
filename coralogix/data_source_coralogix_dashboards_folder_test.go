@@ -26,7 +26,7 @@ func TestAccCoralogixDataSourceDashboardsFolder_basic(t *testing.T) {
 
 func testAccCoralogixDataSourceDashboardsFolder_read() string {
 	return `data "coralogix_dashboards_folder" "test" {
-		id = coralogix_dashboard.test.id
+		id = coralogix_dashboards_folder.test.id
 	}
 `
 }
