@@ -9,7 +9,7 @@ terraform {
 
 provider "coralogix" {
   #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
-  env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
 resource "coralogix_alert" "standard_alert" {
@@ -43,7 +43,7 @@ resource "coralogix_alert" "standard_alert" {
   }
 
   scheduling {
-    time_zone = "UTC+4"
+    time_zone = "UTC+2"
     time_frame {
       days_enabled = ["Wednesday", "Thursday"]
       start_time   = "08:30"
@@ -194,53 +194,53 @@ resource "coralogix_alert" "time_relative_alert" {
   }
 }
 
-#resource "coralogix_alert" "metric_lucene_alert" {
-#  name        = "Metric lucene alert example"
-#  description = "Example of metric lucene alert from terraform"
-#  severity    = "Critical"
-#
-#  notifications_group {
-#    notification {
-#      integration_id              = coralogix_webhook.slack_webhook.external_id
-#    }
-#    notification {
-#      email_recipients            = ["example@coralogix.com"]
-#    }
-#  }
-#
-#  incident_settings {
-#    notify_on = "Triggered_and_resolved"
-#    retriggering_period_minutes = 60
-#  }
-#
-#  scheduling {
-#    time_zone = "UTC+2"
-#    time_frame {
-#      days_enabled = ["Wednesday", "Thursday"]
-#      start_time   = "08:30"
-#      end_time     = "20:30"
-#    }
-#  }
-#
-#  metric {
-#    lucene {
-#      search_query = "name:\"Frontend transactions\""
-#      condition {
-#        metric_field                 = "subsystem"
-#        arithmetic_operator          = "Percentile"
-#        arithmetic_operator_modifier = 20
-#        less_than                    = true
-#        group_by                     = ["coralogix.metadata.sdkId"]
-#        threshold                    = 60
-#        sample_threshold_percentage  = 50
-#        time_window                  = "30Min"
-#        manage_undetected_values {
-#          enable_triggering_on_undetected_values = false
-#        }
-#      }
-#    }
-#  }
-#}
+resource "coralogix_alert" "metric_lucene_alert" {
+  name        = "Metric lucene alert example"
+  description = "Example of metric lucene alert from terraform"
+  severity    = "Critical"
+
+  notifications_group {
+    notification {
+      integration_id              = coralogix_webhook.slack_webhook.external_id
+    }
+    notification {
+      email_recipients            = ["example@coralogix.com"]
+    }
+  }
+
+  incident_settings {
+    notify_on = "Triggered_and_resolved"
+    retriggering_period_minutes = 60
+  }
+
+  scheduling {
+    time_zone = "UTC+2"
+    time_frame {
+      days_enabled = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+  }
+
+  metric {
+    lucene {
+      search_query = "name:\"Frontend transactions\""
+      condition {
+        metric_field                 = "subsystem"
+        arithmetic_operator          = "Percentile"
+        arithmetic_operator_modifier = 20
+        less_than                    = true
+        group_by                     = ["coralogix.metadata.sdkId"]
+        threshold                    = 60
+        sample_threshold_percentage  = 50
+        time_window                  = "30Min"
+        manage_undetected_values {
+          enable_triggering_on_undetected_values = false
+        }
+      }
+    }
+  }
+}
 
 resource "coralogix_alert" "metric_promql_alert" {
   name        = "Metric promql alert example"

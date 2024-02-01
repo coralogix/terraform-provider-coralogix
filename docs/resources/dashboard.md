@@ -36,7 +36,6 @@ resource "coralogix_dashboard" dashboard {
                                 field = "meta.responseTime.numeric"
                               },
                             ]
-
                             group_by = [
                               "meta.organization.keyword"
                             ]
@@ -45,6 +44,9 @@ resource "coralogix_dashboard" dashboard {
                         scale_type         = "linear"
                         series_count_limit = 100
                         unit               = "milliseconds"
+                        resolution         = {
+                          interval = "seconds:900"
+                        }
                       },
                     ]
                     legend = {
@@ -69,8 +71,9 @@ resource "coralogix_dashboard" dashboard {
                             lucene_query = "kubernetes.namespace_name:\"portal\" AND \"Successfully executed\""
                             aggregations = [
                               {
-                                type  = "avg"
-                                field = "sfResponseTime.numeric"
+                                type    = "percentile"
+                                field   = "sfResponseTime.numeric"
+                                percent = 95.5
                               },
                             ]
                             group_by = [
@@ -94,6 +97,454 @@ resource "coralogix_dashboard" dashboard {
                   }
                 }
               },
+              {
+                title      = "Avg RDS query times"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND \"Postgres successfully\""
+                            aggregations = [
+                              {
+                                type  = "avg"
+                                field = "RDSResponseTime.numeric"
+                              },
+                            ]
+                            group_by = [
+                              "RDSDatabase.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                        unit               = "milliseconds"
+                        resolution         = {
+                          buckets_presented = 10
+                        }
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                      columns    = ["avg"]
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 10
+              },
+            ]
+          },
+          {
+            height  = 15
+            widgets = [
+              {
+                title      = "OpenAPI - Avg response times"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/openapi-deployment.*/ AND message:\"HTTP\" AND NOT \"OPTIONS\" AND NOT \"metrics\" AND NOT \"firebase\""
+                            aggregations = [
+                              {
+                                type  = "avg"
+                                field = "meta.responseTime.numeric"
+                              },
+                            ]
+                            group_by = [
+                              "meta.organization.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                        unit               = "milliseconds"
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                      columns    = ["avg", "max"]
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 10
+              },
+              {
+                title      = "gauge"
+                definition = {
+                  gauge = {
+                    unit  = "milliseconds"
+                    query = {
+                      metrics = {
+                        promql_query = "vector(1)"
+                        aggregation  = "unspecified"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            height  = 15
+            widgets = [
+              {
+                title      = "Open API Requests per organization"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND (service:\"api.eu.name.ai-production\" OR service:\"api.us.name.ai-production\")"
+                            aggregations = [
+                              {
+                                type = "count"
+                              },
+                            ]
+                            group_by = [
+                              "meta.organization.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 0
+              },
+              {
+                title      = "Last failed SF queries DBs"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND \"Failed to execute statement\""
+                            aggregations = [
+                              {
+                                type = "count"
+                              }
+                            ]
+                            group_by = [
+                              "sfDatabase.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 0
+              },
+              {
+                title      = "Avg configuration service query times"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND \"Configuration Service request\""
+                            aggregations = [
+                              {
+                                type  = "avg"
+                                field = "configResponseTime.numeric"
+                              },
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                      },
+                    ]
+                    legend = {
+                      is_visible = false
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+              },
+            ]
+            height = 15
+          },
+          {
+            height  = 19
+            widgets = [
+              {
+                title      = "Slowest API requests"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = " kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND message:\"http\""
+                            aggregations = [
+                              {
+                                type  = "max"
+                                field = "meta.responseTime.numeric"
+                              },
+                            ]
+                            group_by = [
+                              "meta.req.url.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 10
+                        unit               = "milliseconds"
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                      columns    = ["max"]
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+              },
+            ]
+          },
+          {
+            height  = 19
+            widgets = [
+              {
+                title      = "Cache warmer runs"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.container_name:\"portal-cache-warmer\" AND message:\"Finish cache warmer run successfully\""
+                            aggregations = [
+                              {
+                                type = "count"
+                              },
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 20
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+              },
+              {
+                title      = "Alerts notification eu runs"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "service:\"portal-eu-notify-alerts-production\" AND \"Finished notify new alerts\""
+                            aggregations = [
+                              {
+                                type = "count"
+                              },
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 20
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+              },
+              {
+                title      = "Alerts notification runs"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "service:\"portal-notify-alerts-production\" AND \"Finished notify new alerts\""
+                            aggregations = [
+                              {
+                                type = "count"
+                              },
+                            ]
+                          }
+                        }
+                      },
+                    ]
+                    scale_type         = "linear"
+                    series_count_limit = 20
+                  }
+                  legend = {
+                    is_visible = true
+                  }
+                  tooltip = {
+                    show_labels = false
+                    type        = "all"
+                  }
+                }
+              },
+              {
+                title      = "Alerts notification us runs"
+                definition = {
+                  pie_chart = {
+                    query = {
+                      logs = {
+                        lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
+                        aggregation  = {
+                          type = "count"
+                        }
+                        group_names = [
+                          "service.keyword"
+                        ]
+                      }
+                    }
+                    label_definition = {
+                    }
+                  }
+                }
+              },
+              {
+                title      = "Alerts notification us runs"
+                definition = {
+                  bar_chart = {
+                    query = {
+                      logs = {
+                        lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
+                        aggregation  = {
+                          type = "count"
+                        }
+                        group_names_fields = [
+                          {
+                            keypath = ["logid"]
+                            scope   = "metadata"
+                          },
+                        ]
+                        stacked_group_name_field = {
+                          keypath = ["logid"]
+                          scope   = "metadata"
+                        }
+                      }
+                    }
+                    xaxis = {
+                      time = {
+                        interval          = "1h0m5s"
+                        buckets_presented = 10
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                title      = "Horizontal Bar-Chart"
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme   = "cold"
+                    colors_by      = "aggregation"
+                    display_on_bar = true
+                    query          = {
+                      logs = {
+                        lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
+                        aggregation  = {
+                          type = "count"
+                        }
+                        group_names        = ["coralogix.logId.keyword"]
+                        stacked_group_name = "coralogix.metadata.severity"
+                      }
+                    }
+                    y_axis_view_by = "value"
+                  }
+                }
+              },
+              {
+                definition = {
+                  markdown = {
+                    markdown_text = "## Markdown\n\nThis is a markdown widget"
+                    tooltip_text  = "This is a tooltip"
+                  }
+                }
+              },
+              {
+                title      = "Data Table"
+                definition = {
+                  data_table = {
+                    results_per_page = 10
+                    row_style        = "one_line"
+                    query            = {
+                      data_prime = {
+                        query   = "xxx"
+                        filters = [
+                          {
+                            logs = {
+                              lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
+                              aggregation  = {
+                                type = "count"
+                              }
+                              group_names        = ["coralogix.logId.keyword"]
+                              stacked_group_name = "coralogix.metadata.severity"
+                              field              = "coralogix.metadata.applicationName"
+                              operator           = {
+                                type            = "equals"
+                                selected_values = ["staging"]
+                              }
+                            }
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
             ]
           },
         ]
@@ -102,13 +553,15 @@ resource "coralogix_dashboard" dashboard {
   }
   variables = [
     {
-      name       = "test_variable"
-      definition = {
+      name         = "test_variable"
+      display_name = "Test Variable"
+      definition   = {
         multi_select = {
           selected_values = ["1", "2", "3"]
           source          = {
             constant_list = ["1", "2", "3"]
           }
+          values_order_direction = "asc"
         }
       }
     },
@@ -128,6 +581,24 @@ resource "coralogix_dashboard" dashboard {
       }
     },
   ]
+  annotations = [
+    {
+      name   = "test_annotation"
+      source = {
+        metric = {
+          promql_query = "vector(1)"
+          strategy     = {
+            start_time = {}
+          }
+          message_template = "test annotation"
+          labels           = ["test"]
+        }
+      }
+    },
+  ]
+  folder = {
+    id = coralogix_dashboards_folder.example.id
+  }
 }
 ```
 
@@ -143,9 +614,11 @@ resource "coralogix_dashboard" dashboard_from_json {
 
 ### Optional
 
+- `annotations` (Attributes List) (see [below for nested schema](#nestedatt--annotations))
 - `content_json` (String) an option to set the dashboard content from a json file.
 - `description` (String) Brief description or summary of the dashboard's purpose or content.
 - `filters` (Attributes List) List of filters that can be applied to the dashboard's data. (see [below for nested schema](#nestedatt--filters))
+- `folder` (Attributes) (see [below for nested schema](#nestedatt--folder))
 - `layout` (Attributes) Layout configuration for the dashboard's visual elements. (see [below for nested schema](#nestedatt--layout))
 - `name` (String) Display name of the dashboard.
 - `time_frame` (Attributes) Specifies the time frame for the dashboard's data. Can be either absolute or relative. (see [below for nested schema](#nestedatt--time_frame))
@@ -154,6 +627,54 @@ resource "coralogix_dashboard" dashboard_from_json {
 ### Read-Only
 
 - `id` (String) Unique identifier for the dashboard.
+
+<a id="nestedatt--annotations"></a>
+### Nested Schema for `annotations`
+
+Required:
+
+- `name` (String)
+- `source` (Attributes) (see [below for nested schema](#nestedatt--annotations--source))
+
+Optional:
+
+- `enabled` (Boolean)
+- `id` (String)
+
+<a id="nestedatt--annotations--source"></a>
+### Nested Schema for `annotations.source`
+
+Required:
+
+- `metric` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metric))
+
+<a id="nestedatt--annotations--source--metric"></a>
+### Nested Schema for `annotations.source.metric`
+
+Required:
+
+- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metric--strategy))
+
+Optional:
+
+- `labels` (List of String)
+- `message_template` (String)
+- `promql_query` (String)
+
+<a id="nestedatt--annotations--source--metric--strategy"></a>
+### Nested Schema for `annotations.source.metric.promql_query`
+
+Required:
+
+- `start_time` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metric--promql_query--start_time))
+
+<a id="nestedatt--annotations--source--metric--promql_query--start_time"></a>
+### Nested Schema for `annotations.source.metric.promql_query.start_time`
+
+
+
+
+
 
 <a id="nestedatt--filters"></a>
 ### Nested Schema for `filters`
@@ -264,6 +785,15 @@ Optional:
 
 
 
+<a id="nestedatt--folder"></a>
+### Nested Schema for `folder`
+
+Optional:
+
+- `id` (String)
+- `path` (String)
+
+
 <a id="nestedatt--layout"></a>
 ### Nested Schema for `layout`
 
@@ -349,9 +879,120 @@ Optional:
 
 Optional:
 
+- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--data_prime))
 - `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--logs))
 - `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--metrics))
 - `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--data_prime"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans`
+
+Required:
+
+- `query` (String)
+
+Optional:
+
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters))
+- `group_names` (List of String)
+- `stacked_group_name` (String)
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters`
+
+Optional:
+
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--logs"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans`
+
+Required:
+
+- `field` (String) Field in the logs to apply the filter on.
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--operator))
+
+Optional:
+
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--observation_field))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans.observation_field`
+
+Required:
+
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+Optional:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--observation_field"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans.observation_field`
+
+Optional:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--metrics"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans`
+
+Required:
+
+- `label` (String)
+- `metric_name` (String)
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--operator))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans.operator`
+
+Required:
+
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+Optional:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans`
+
+Required:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--operator))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--field"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans.operator`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans.operator`
+
+Required:
+
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+Optional:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+
+
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--logs"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans`
@@ -497,8 +1138,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -918,8 +1559,8 @@ Read-Only:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -954,7 +1595,7 @@ Optional:
 Optional:
 
 - `field` (String)
-- `order_direction` (String) The order direction. Can be one of ["unspecified" "asc" "desc"].
+- `order_direction` (String) The order direction. Can be one of ["asc" "desc"].
 
 
 
@@ -1243,8 +1884,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1431,8 +2072,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1660,8 +2301,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1781,9 +2422,120 @@ Optional:
 
 Optional:
 
+- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--data_prime))
 - `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--logs))
 - `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--metrics))
 - `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--data_prime"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans`
+
+Required:
+
+- `query` (String)
+
+Optional:
+
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters))
+- `group_names` (List of String)
+- `stacked_group_name` (String)
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters`
+
+Optional:
+
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--logs"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans`
+
+Required:
+
+- `field` (String) Field in the logs to apply the filter on.
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--operator))
+
+Optional:
+
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--observation_field))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans.observation_field`
+
+Required:
+
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+Optional:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--observation_field"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans.observation_field`
+
+Optional:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--metrics"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans`
+
+Required:
+
+- `label` (String)
+- `metric_name` (String)
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--operator))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans.operator`
+
+Required:
+
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+Optional:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans`
+
+Required:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--operator))
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--field"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans.operator`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+
+
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans.operator`
+
+Required:
+
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+Optional:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+
+
+
+
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--logs"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans`
@@ -1929,8 +2681,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unspecified" "unique_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -2031,10 +2783,10 @@ Required:
 Required:
 
 - `definition` (Attributes) (see [below for nested schema](#nestedatt--variables--definition))
+- `display_name` (String)
 
 Optional:
 
-- `display_name` (String)
 - `name` (String)
 
 <a id="nestedatt--variables--definition"></a>
@@ -2048,24 +2800,27 @@ Optional:
 <a id="nestedatt--variables--definition--multi_select"></a>
 ### Nested Schema for `variables.definition.multi_select`
 
+Required:
+
+- `values_order_direction` (String) The order direction of the values. Can be one of `asc`, `desc`.
+
 Optional:
 
 - `selected_values` (List of String)
 - `source` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source))
-- `values_order_direction` (String) The order direction of the values. Can be one of `unspecified`, `asc`, `desc`.
 
 <a id="nestedatt--variables--definition--multi_select--source"></a>
-### Nested Schema for `variables.definition.multi_select.values_order_direction`
+### Nested Schema for `variables.definition.multi_select.source`
 
 Optional:
 
 - `constant_list` (List of String)
 - `logs_path` (String)
-- `metric_label` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--values_order_direction--metric_label))
-- `span_field` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--values_order_direction--span_field))
+- `metric_label` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--metric_label))
+- `span_field` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--span_field))
 
-<a id="nestedatt--variables--definition--multi_select--values_order_direction--metric_label"></a>
-### Nested Schema for `variables.definition.multi_select.values_order_direction.metric_label`
+<a id="nestedatt--variables--definition--multi_select--source--metric_label"></a>
+### Nested Schema for `variables.definition.multi_select.source.metric_label`
 
 Required:
 
@@ -2073,8 +2828,8 @@ Required:
 - `metric_name` (String)
 
 
-<a id="nestedatt--variables--definition--multi_select--values_order_direction--span_field"></a>
-### Nested Schema for `variables.definition.multi_select.values_order_direction.span_field`
+<a id="nestedatt--variables--definition--multi_select--source--span_field"></a>
+### Nested Schema for `variables.definition.multi_select.source.span_field`
 
 Required:
 

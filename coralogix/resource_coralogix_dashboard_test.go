@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	dashboard "terraform-provider-coralogix/coralogix/clientset/grpc/coralogix-dashboards/v1"
+	dashboard "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -282,13 +282,15 @@ func testAccCoralogixResourceDashboard() string {
   }
   variables = [
     {
-      name       = "test_variable"
-      definition = {
+      name         = "test_variable"
+      display_name = "Test Variable"
+      definition   = {
         multi_select = {
           selected_values = ["1", "2", "3"]
           source          = {
             constant_list = ["1", "2", "3"]
           }
+          values_order_direction = "asc"
         }
       }
     },

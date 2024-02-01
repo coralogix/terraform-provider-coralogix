@@ -354,5 +354,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewTeamResource,
 		NewMovingQuotaResource,
 		NewSLOResource,
+		NewDashboardsFolderResource,
 	}
 }

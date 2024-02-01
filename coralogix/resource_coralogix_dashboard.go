@@ -501,7 +501,7 @@ type PieChartQueryModel struct {
 	Logs      *PieChartQueryLogsModel      `tfsdk:"logs"`
 	Metrics   *PieChartQueryMetricsModel   `tfsdk:"metrics"`
 	Spans     *PieChartQuerySpansModel     `tfsdk:"spans"`
-	DataPrime *BarChartQueryDataPrimeModel `tfsdk:"data_prime"`
+	DataPrime *PieChartQueryDataPrimeModel `tfsdk:"data_prime"`
 }
 
 type PieChartQueryLogsModel struct {
@@ -639,7 +639,7 @@ type MetricMultiSelectSourceModel struct {
 }
 
 type HorizontalBarChartModel struct {
-	Query             *BarChartQueryModel           `tfsdk:"query"`
+	Query             *HorizontalBarChartQueryModel `tfsdk:"query"`
 	MaxBarsPerChart   types.Int64                   `tfsdk:"max_bars_per_chart"`
 	GroupNameTemplate types.String                  `tfsdk:"group_name_template"`
 	StackDefinition   *BarChartStackDefinitionModel `tfsdk:"stack_definition"`
@@ -651,6 +651,12 @@ type HorizontalBarChartModel struct {
 	SortBy            types.String                  `tfsdk:"sort_by"`
 	ColorScheme       types.String                  `tfsdk:"color_scheme"`
 	DataModeType      types.String                  `tfsdk:"data_mode_type"`
+}
+
+type HorizontalBarChartQueryModel struct {
+	Logs    types.Object `tfsdk:"logs"`    //BarChartQueryLogsModel
+	Metrics types.Object `tfsdk:"metrics"` //BarChartQueryMetricsModel
+	Spans   types.Object `tfsdk:"spans"`   //BarChartQuerySpansModel
 }
 
 type MarkdownModel struct {
@@ -785,7 +791,7 @@ func (i intervalValidator) ValidateString(ctx context.Context, req validator.Str
 	}
 }
 
-func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *DashboardResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 1,
 		Attributes: map[string]schema.Attribute{
@@ -2221,6 +2227,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 				Attributes: map[string]schema.Attribute{
 					"id": schema.StringAttribute{
 						Optional: true,
+						Computed: true,
 						Validators: []validator.String{
 							stringvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("path"),
@@ -2229,6 +2236,7 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 					},
 					"path": schema.StringAttribute{
 						Optional: true,
+						Computed: true,
 						Validators: []validator.String{
 							stringvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("id"),
@@ -2245,6 +2253,9 @@ func (r DashboardResource) Schema(_ context.Context, req resource.SchemaRequest,
 						"id": schema.StringAttribute{
 							Optional: true,
 							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"name": schema.StringAttribute{
 							Required: true,
@@ -2723,11 +2734,11 @@ func spansAggregationAttributes() map[string]schema.Attribute {
 		},
 		"aggregation_type": schema.StringAttribute{
 			Required:            true,
-			MarkdownDescription: fmt.Sprintf("The type of the aggregation. When the aggregation type is `metrics`, can be one of %q. When When the aggregation type is `dimension`, can be one of %q.", dashboardValidSpansAggregationMetricAggregationTypes, dashboardValidSpansAggregationDimensionAggregationTypes),
+			MarkdownDescription: fmt.Sprintf("The type of the aggregation. When the aggregation type is `metrics`, can be one of %q. When the aggregation type is `dimension`, can be one of %q.", dashboardValidSpansAggregationMetricAggregationTypes, dashboardValidSpansAggregationDimensionAggregationTypes),
 		},
 		"field": schema.StringAttribute{
 			Required:            true,
-			MarkdownDescription: fmt.Sprintf("The field to aggregate on. When the aggregation type is `metrics`, can be one of %q. When When the aggregation type is `dimension`, can be one of %q.", dashboardValidSpansAggregationMetricFields, dashboardValidSpansAggregationDimensionFields),
+			MarkdownDescription: fmt.Sprintf("The field to aggregate on. When the aggregation type is `metrics`, can be one of %q. When the aggregation type is `dimension`, can be one of %q.", dashboardValidSpansAggregationMetricFields, dashboardValidSpansAggregationDimensionFields),
 		},
 	}
 }
@@ -3952,7 +3963,7 @@ func expandBarChartQuery(ctx context.Context, query *BarChartQueryModel) (*dashb
 	}
 }
 
-func expandHorizontalBarChartQuery(ctx context.Context, query *BarChartQueryModel) (*dashboards.HorizontalBarChart_Query, diag.Diagnostics) {
+func expandHorizontalBarChartQuery(ctx context.Context, query *HorizontalBarChartQueryModel) (*dashboards.HorizontalBarChart_Query, diag.Diagnostics) {
 	if query == nil {
 		return nil, nil
 	}
@@ -5084,7 +5095,7 @@ func expandPieChartSpansQuery(ctx context.Context, pieChartQuerySpans *PieChartQ
 	}, nil
 }
 
-func expandPieChartDataPrimeQuery(ctx context.Context, dataPrime *BarChartQueryDataPrimeModel) (*dashboards.PieChart_Query_Dataprime, diag.Diagnostics) {
+func expandPieChartDataPrimeQuery(ctx context.Context, dataPrime *PieChartQueryDataPrimeModel) (*dashboards.PieChart_Query_Dataprime, diag.Diagnostics) {
 	if dataPrime == nil {
 		return nil, nil
 	}
@@ -5408,16 +5419,16 @@ func expandDashboardFolder(dashboard *dashboards.Dashboard, folder types.Object)
 		return nil, dgs
 	}
 
-	if !(folderModel.ID.IsNull() || folderModel.ID.IsUnknown()) {
-		dashboard.Folder = &dashboards.Dashboard_FolderId{
-			FolderId: expandDashboardUUID(folderModel.ID),
-		}
-	} else if !(folderModel.Path.IsNull() || folderModel.Path.IsUnknown()) {
+	if !(folderModel.Path.IsNull() || folderModel.Path.IsUnknown()) {
 		segments := strings.Split(folderModel.Path.ValueString(), "/")
 		dashboard.Folder = &dashboards.Dashboard_FolderPath{
 			FolderPath: &dashboards.FolderPath{
 				Segments: segments,
 			},
+		}
+	} else if !(folderModel.ID.IsNull() || folderModel.ID.IsUnknown()) {
+		dashboard.Folder = &dashboards.Dashboard_FolderId{
+			FolderId: expandDashboardUUID(folderModel.ID),
 		}
 	}
 
@@ -5554,7 +5565,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 		return nil, diags
 	}
 
-	folder, diags := flattenDashboardFolder(ctx, dashboard)
+	folder, diags := flattenDashboardFolder(ctx, plan.Folder, dashboard)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -6698,7 +6709,7 @@ func flattenYAxisViewBy(yAxisViewBy *dashboards.HorizontalBarChart_YAxisViewBy) 
 	}
 }
 
-func flattenHorizontalBarChartQueryDefinitions(ctx context.Context, query *dashboards.HorizontalBarChart_Query) (*BarChartQueryModel, diag.Diagnostics) {
+func flattenHorizontalBarChartQueryDefinitions(ctx context.Context, query *dashboards.HorizontalBarChart_Query) (*HorizontalBarChartQueryModel, diag.Diagnostics) {
 	if query == nil {
 		return nil, nil
 	}
@@ -6715,7 +6726,7 @@ func flattenHorizontalBarChartQueryDefinitions(ctx context.Context, query *dashb
 	}
 }
 
-func flattenHorizontalBarChartQueryLogs(ctx context.Context, logs *dashboards.HorizontalBarChart_LogsQuery) (*BarChartQueryModel, diag.Diagnostics) {
+func flattenHorizontalBarChartQueryLogs(ctx context.Context, logs *dashboards.HorizontalBarChart_LogsQuery) (*HorizontalBarChartQueryModel, diag.Diagnostics) {
 	if logs == nil {
 		return nil, nil
 	}
@@ -6755,12 +6766,14 @@ func flattenHorizontalBarChartQueryLogs(ctx context.Context, logs *dashboards.Ho
 		return nil, diags
 	}
 
-	return &BarChartQueryModel{
-		Logs: logsObject,
+	return &HorizontalBarChartQueryModel{
+		Logs:    logsObject,
+		Metrics: types.ObjectNull(barChartMetricsQueryAttr()),
+		Spans:   types.ObjectNull(barChartSpansQueryAttr()),
 	}, nil
 }
 
-func flattenHorizontalBarChartQueryMetrics(ctx context.Context, metrics *dashboards.HorizontalBarChart_MetricsQuery) (*BarChartQueryModel, diag.Diagnostics) {
+func flattenHorizontalBarChartQueryMetrics(ctx context.Context, metrics *dashboards.HorizontalBarChart_MetricsQuery) (*HorizontalBarChartQueryModel, diag.Diagnostics) {
 	if metrics == nil {
 		return nil, nil
 	}
@@ -6770,24 +6783,26 @@ func flattenHorizontalBarChartQueryMetrics(ctx context.Context, metrics *dashboa
 		return nil, diags
 	}
 
-	flattenedMetrcis := &BarChartQueryMetricsModel{
+	flattenedMetrics := &BarChartQueryMetricsModel{
 		PromqlQuery:      wrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 		Filters:          filters,
 		GroupNames:       wrappedStringSliceToTypeStringList(metrics.GetGroupNames()),
 		StackedGroupName: wrapperspbStringToTypeString(metrics.GetStackedGroupName()),
 	}
 
-	metricsObject, diags := types.ObjectValueFrom(ctx, barChartMetricsQueryAttr(), flattenedMetrcis)
+	metricsObject, diags := types.ObjectValueFrom(ctx, barChartMetricsQueryAttr(), flattenedMetrics)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &BarChartQueryModel{
+	return &HorizontalBarChartQueryModel{
 		Metrics: metricsObject,
+		Logs:    types.ObjectNull(barChartLogsQueryAttr()),
+		Spans:   types.ObjectNull(barChartSpansQueryAttr()),
 	}, nil
 }
 
-func flattenHorizontalBarChartQuerySpans(ctx context.Context, spans *dashboards.HorizontalBarChart_SpansQuery) (*BarChartQueryModel, diag.Diagnostics) {
+func flattenHorizontalBarChartQuerySpans(ctx context.Context, spans *dashboards.HorizontalBarChart_SpansQuery) (*HorizontalBarChartQueryModel, diag.Diagnostics) {
 	if spans == nil {
 		return nil, nil
 	}
@@ -6825,8 +6840,10 @@ func flattenHorizontalBarChartQuerySpans(ctx context.Context, spans *dashboards.
 		return nil, diags
 	}
 
-	return &BarChartQueryModel{
-		Spans: spansObject,
+	return &HorizontalBarChartQueryModel{
+		Spans:   spansObject,
+		Logs:    types.ObjectNull(barChartLogsQueryAttr()),
+		Metrics: types.ObjectNull(barChartMetricsQueryAttr()),
 	}, nil
 }
 
@@ -8006,7 +8023,7 @@ func flattenPieChartDataPrimeQuery(ctx context.Context, dataPrime *dashboards.Pi
 	}
 
 	return &PieChartQueryModel{
-		DataPrime: &BarChartQueryDataPrimeModel{
+		DataPrime: &PieChartQueryDataPrimeModel{
 			Query:            types.StringValue(dataPrime.GetDataprimeQuery().GetText()),
 			Filters:          filters,
 			GroupNames:       wrappedStringSliceToTypeStringList(dataPrime.GetGroupNames()),
@@ -8080,13 +8097,15 @@ func flattenBarChartQuery(ctx context.Context, query *dashboards.BarChart_Query)
 		return nil, nil
 	}
 
-	switch query.GetValue().(type) {
+	switch queryType := query.GetValue().(type) {
 	case *dashboards.BarChart_Query_Logs:
-		return flattenBarChartQueryLogs(ctx, query.GetLogs())
+		return flattenBarChartQueryLogs(ctx, queryType.Logs)
 	case *dashboards.BarChart_Query_Spans:
-		return flattenBarChartQuerySpans(ctx, query.GetSpans())
+		return flattenBarChartQuerySpans(ctx, queryType.Spans)
 	case *dashboards.BarChart_Query_Metrics:
-		return flattenBarChartQueryMetrics(ctx, query.GetMetrics())
+		return flattenBarChartQueryMetrics(ctx, queryType.Metrics)
+	case *dashboards.BarChart_Query_Dataprime:
+		return flattenBarChartQueryDataPrime(ctx, queryType.Dataprime)
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten BarChart Query", fmt.Sprintf("unknown bar chart query type: %T", query.GetValue()))}
 	}
@@ -8129,7 +8148,10 @@ func flattenBarChartQueryLogs(ctx context.Context, logs *dashboards.BarChart_Log
 
 	logsObject, diags := types.ObjectValueFrom(ctx, barChartLogsQueryAttr(), flattenedLogs)
 	return &BarChartQueryModel{
-		Logs: logsObject,
+		Logs:      logsObject,
+		Metrics:   types.ObjectNull(barChartMetricsQueryAttr()),
+		Spans:     types.ObjectNull(barChartSpansQueryAttr()),
+		DataPrime: types.ObjectNull(barChartDataPrimeQueryAttr()),
 	}, nil
 }
 
@@ -8214,7 +8236,10 @@ func flattenBarChartQuerySpans(ctx context.Context, spans *dashboards.BarChart_S
 	}
 
 	return &BarChartQueryModel{
-		Spans: spansObject,
+		Spans:     spansObject,
+		Metrics:   types.ObjectNull(barChartMetricsQueryAttr()),
+		Logs:      types.ObjectNull(barChartLogsQueryAttr()),
+		DataPrime: types.ObjectNull(barChartDataPrimeQueryAttr()),
 	}, nil
 }
 
@@ -8240,7 +8265,39 @@ func flattenBarChartQueryMetrics(ctx context.Context, metrics *dashboards.BarCha
 		return nil, diags
 	}
 	return &BarChartQueryModel{
-		Metrics: metricObject,
+		Logs:      types.ObjectNull(barChartLogsQueryAttr()),
+		Spans:     types.ObjectNull(barChartSpansQueryAttr()),
+		DataPrime: types.ObjectNull(barChartDataPrimeQueryAttr()),
+		Metrics:   metricObject,
+	}, nil
+}
+
+func flattenBarChartQueryDataPrime(ctx context.Context, dataPrime *dashboards.BarChart_DataprimeQuery) (*BarChartQueryModel, diag.Diagnostics) {
+	if dataPrime == nil {
+		return nil, nil
+	}
+
+	filters, diags := flattenDashboardFiltersSources(ctx, dataPrime.GetFilters())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	flattenedDataPrime := &BarChartQueryDataPrimeModel{
+		Query:            types.StringValue(dataPrime.GetDataprimeQuery().GetText()),
+		Filters:          filters,
+		GroupNames:       wrappedStringSliceToTypeStringList(dataPrime.GetGroupNames()),
+		StackedGroupName: wrapperspbStringToTypeString(dataPrime.GetStackedGroupName()),
+	}
+
+	dataPrimeObject, diags := types.ObjectValueFrom(ctx, barChartDataPrimeQueryAttr(), flattenedDataPrime)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &BarChartQueryModel{
+		Logs:      types.ObjectNull(barChartLogsQueryAttr()),
+		Spans:     types.ObjectNull(barChartSpansQueryAttr()),
+		Metrics:   types.ObjectNull(barChartMetricsQueryAttr()),
+		DataPrime: dataPrimeObject,
 	}, nil
 }
 
@@ -8594,15 +8651,27 @@ func flattenAbsoluteDashboardTimeFrame(ctx context.Context, timeFrame *dashboard
 	return types.ObjectValueFrom(ctx, dashboardTimeFrameModelAttr(), flattenedTimeFrame)
 }
 
-func flattenDashboardFolder(ctx context.Context, dashboard *dashboards.Dashboard) (types.Object, diag.Diagnostics) {
+func flattenDashboardFolder(ctx context.Context, planedDashboard types.Object, dashboard *dashboards.Dashboard) (types.Object, diag.Diagnostics) {
 	if dashboard.GetFolder() == nil {
 		return types.ObjectNull(dashboardFolderModelAttr()), nil
 	}
 	switch folderType := dashboard.GetFolder().(type) {
 	case *dashboards.Dashboard_FolderId:
+		path := types.StringNull()
+		if !(planedDashboard.IsNull() || planedDashboard.IsUnknown()) {
+			var folderModel DashboardFolderModel
+			dgs := planedDashboard.As(context.Background(), &folderModel, basetypes.ObjectAsOptions{})
+			if dgs.HasError() {
+				return types.ObjectNull(dashboardFolderModelAttr()), dgs
+			}
+			if !(folderModel.Path.IsUnknown() || folderModel.Path.IsNull()) {
+				path = folderModel.Path
+			}
+		}
+
 		folderObject := &DashboardFolderModel{
 			ID:   types.StringValue(folderType.FolderId.GetValue()),
-			Path: types.StringNull(),
+			Path: path,
 		}
 		return types.ObjectValueFrom(ctx, dashboardFolderModelAttr(), folderObject)
 	case *dashboards.Dashboard_FolderPath:
@@ -8828,7 +8897,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	updateDashboardRespStr := protojson.Format(getDashboardResp.GetDashboard())
-	log.Printf("[INFO] Submitted updated Dashboard: %#v", updateDashboardRespStr)
+	log.Printf("[INFO] Submitted updated Dashboard: %s", updateDashboardRespStr)
 
 	flattenedDashboard, diags := flattenDashboard(ctx, plan, getDashboardResp.GetDashboard())
 	if diags.HasError() {
