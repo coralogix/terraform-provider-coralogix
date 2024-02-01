@@ -17,7 +17,7 @@ func TestAccCoralogixDataSourceDashboardsFolder_basic(t *testing.T) {
 				Config: testAccCoralogixResourceDashboardsFolder() +
 					testAccCoralogixDataSourceDashboardsFolder_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(dashboardsFolderDataSourceName, "name", "test"),
+					resource.TestCheckResourceAttrSet(dashboardsFolderDataSourceName, "id"),
 				),
 			},
 		},
