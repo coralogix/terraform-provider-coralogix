@@ -47,11 +47,11 @@ func (d *DashboardsFolderDataSource) Configure(_ context.Context, req datasource
 }
 
 func (d *DashboardsFolderDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r ArchiveRetentionsResource
+	var r DashboardsFolderResource
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = convertSchemaWithoutID(resourceResp.Schema)
+	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *DashboardsFolderDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
