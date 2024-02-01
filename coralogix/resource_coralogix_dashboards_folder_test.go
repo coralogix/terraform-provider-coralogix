@@ -38,7 +38,8 @@ func TestAccCoralogixResourceDashboardsFolder(t *testing.T) {
 func testAccCoralogixResourceDashboardsFolder() string {
 	return `resource "coralogix_dashboards_folder" "test" {
 			name = "test"
-		}`
+		}
+`
 }
 
 func testAccCheckDashboardsFolderDestroy(s *terraform.State) error {

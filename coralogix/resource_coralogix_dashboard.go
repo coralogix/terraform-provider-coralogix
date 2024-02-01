@@ -2976,7 +2976,7 @@ func expandDashboardTimeFrame(ctx context.Context, dashboard *dashboards.Dashboa
 		return dashboard, nil
 	}
 	var timeFrameObject DashboardTimeFrameModel
-	diags := timeFrame.As(ctx, timeFrameObject, basetypes.ObjectAsOptions{})
+	diags := timeFrame.As(ctx, &timeFrameObject, basetypes.ObjectAsOptions{})
 	if diags.HasError() {
 		return nil, diags
 	}
