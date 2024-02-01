@@ -9,7 +9,7 @@ terraform {
 
 provider "coralogix" {
   #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
-  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+  #  env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
 resource "coralogix_dashboard" dashboard {
@@ -45,7 +45,7 @@ resource "coralogix_dashboard" dashboard {
                         scale_type         = "linear"
                         series_count_limit = 100
                         unit               = "milliseconds"
-                        resolution = {
+                        resolution         = {
                           interval = "seconds:900"
                         }
                       },
@@ -72,8 +72,8 @@ resource "coralogix_dashboard" dashboard {
                             lucene_query = "kubernetes.namespace_name:\"portal\" AND \"Successfully executed\""
                             aggregations = [
                               {
-                                type  = "percentile"
-                                field = "sfResponseTime.numeric"
+                                type    = "percentile"
+                                field   = "sfResponseTime.numeric"
                                 percent = 95.5
                               },
                             ]
@@ -121,7 +121,7 @@ resource "coralogix_dashboard" dashboard {
                         scale_type         = "linear"
                         series_count_limit = 100
                         unit               = "milliseconds"
-                        resolution = {
+                        resolution         = {
                           buckets_presented = 10
                         }
                       },
@@ -533,8 +533,8 @@ resource "coralogix_dashboard" dashboard {
                               }
                               group_names        = ["coralogix.logId.keyword"]
                               stacked_group_name = "coralogix.metadata.severity"
-                              field       = "coralogix.metadata.applicationName"
-                              operator = {
+                              field              = "coralogix.metadata.applicationName"
+                              operator           = {
                                 type            = "equals"
                                 selected_values = ["staging"]
                               }
@@ -554,13 +554,15 @@ resource "coralogix_dashboard" dashboard {
   }
   variables = [
     {
-      name       = "test_variable"
-      definition = {
+      name         = "test_variable"
+      display_name = "Test Variable"
+      definition   = {
         multi_select = {
           selected_values = ["1", "2", "3"]
           source          = {
             constant_list = ["1", "2", "3"]
           }
+          values_order_direction = "asc"
         }
       }
     },
@@ -580,9 +582,30 @@ resource "coralogix_dashboard" dashboard {
       }
     },
   ]
+  annotations = [
+    {
+      name   = "test_annotation"
+      source = {
+        metric = {
+          promql_query = "vector(1)"
+          strategy     = {
+            start_time = {}
+          }
+          message_template = "test annotation"
+          labels           = ["test"]
+        }
+      }
+    },
+  ]
+  folder = {
+    id = coralogix_dashboards_folder.example.id
+  }
+}
+
+resource "coralogix_dashboards_folder" "example" {
+  name     = "example_2"
 }
 
 resource "coralogix_dashboard" dashboard_from_json {
   content_json = file("./dashboard.json")
 }
-

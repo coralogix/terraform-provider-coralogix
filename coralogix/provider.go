@@ -334,6 +334,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewArchiveLogsDataSource,
 		NewAlertsSchedulerDataSource,
 		NewSLODataSource,
+		NewDashboardsFoldersDataSource,
 	}
 }
 
@@ -354,5 +355,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewTeamResource,
 		NewMovingQuotaResource,
 		NewSLOResource,
+		NewDashboardsFolderResource,
 	}
 }

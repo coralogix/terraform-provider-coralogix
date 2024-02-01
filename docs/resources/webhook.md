@@ -149,3 +149,17 @@ Optional:
 
 - `notify_on` (Set of String) Slack notifications. can be one of: error_and_critical_logs, flow_anomalies, spike_anomalies, data_usage
 - `url` (String) Slack URL.
+
+### Import
+```sh
+terraform import coralogix_webhook.example <webhook_id>
+```
+
+to get the alert id run the following command and look for the id field of the webhook you want to import:
+```sh
+grpcurl -H "Authorization: Bearer <api-key>" -d @ ng-api-grpc.<region-domain>:443 com.coralogix.outgoing_webhooks.v1.OutgoingWebhooksService/ListAllOutgoingWebhooks <<EOF
+{
+}
+EOF
+```
+[region-domain table](../index.md#region-domain-table)

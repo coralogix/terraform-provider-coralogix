@@ -7,15 +7,14 @@
 package __
 
 import (
-	reflect "reflect"
-	sync "sync"
-
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
+	reflect "reflect"
+	sync "sync"
 )
 
 const (
@@ -30,11 +29,11 @@ type SearchLogsTimeSeriesRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeFrame    *TimeFrame         `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
+	TimeFrame    *TimeFrame                `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
 	Interval     *durationpb.Duration      `protobuf:"bytes,2,opt,name=interval,proto3" json:"interval,omitempty"`
-	Filters      []*Filter_LogsFilter  `protobuf:"bytes,3,rep,name=filters,proto3" json:"filters,omitempty"`
+	Filters      []*Filter_LogsFilter      `protobuf:"bytes,3,rep,name=filters,proto3" json:"filters,omitempty"`
 	GroupBy      []*wrapperspb.StringValue `protobuf:"bytes,4,rep,name=group_by,json=groupBy,proto3" json:"group_by,omitempty"`
-	Aggregations []*LogsAggregation `protobuf:"bytes,5,rep,name=aggregations,proto3" json:"aggregations,omitempty"`
+	Aggregations []*LogsAggregation        `protobuf:"bytes,5,rep,name=aggregations,proto3" json:"aggregations,omitempty"`
 	Limit        *wrapperspb.Int32Value    `protobuf:"bytes,6,opt,name=limit,proto3" json:"limit,omitempty"`
 	LuceneQuery  *wrapperspb.StringValue   `protobuf:"bytes,7,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
 }
@@ -125,7 +124,7 @@ type SearchLogsTimeSeriesResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeSeries []*TimeSeries   `protobuf:"bytes,1,rep,name=time_series,json=timeSeries,proto3" json:"time_series,omitempty"`
+	TimeSeries []*TimeSeries          `protobuf:"bytes,1,rep,name=time_series,json=timeSeries,proto3" json:"time_series,omitempty"`
 	Total      *wrapperspb.Int64Value `protobuf:"bytes,2,opt,name=total,proto3" json:"total,omitempty"`
 }
 
@@ -180,10 +179,10 @@ type SearchLogsEventsRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeFrame   *TimeFrame                   `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
-	Filters     []*Filter_LogsFilter            `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
+	TimeFrame   *TimeFrame                          `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
+	Filters     []*Filter_LogsFilter                `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
 	LuceneQuery *wrapperspb.StringValue             `protobuf:"bytes,3,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
-	OrderBy     []*OrderingField             `protobuf:"bytes,5,rep,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
+	OrderBy     []*OrderingField                    `protobuf:"bytes,5,rep,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
 	Pagination  *SearchLogsEventsRequest_Pagination `protobuf:"bytes,6,opt,name=pagination,proto3" json:"pagination,omitempty"`
 }
 
@@ -314,13 +313,13 @@ type SearchLogsEventGroupsRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeFrame    *TimeFrame                       `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
-	Filters      []*Filter_LogsFilter                `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
+	TimeFrame    *TimeFrame                              `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
+	Filters      []*Filter_LogsFilter                    `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
 	LuceneQuery  *wrapperspb.StringValue                 `protobuf:"bytes,3,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
 	GroupBy      []*wrapperspb.StringValue               `protobuf:"bytes,4,rep,name=group_by,json=groupBy,proto3" json:"group_by,omitempty"`
-	Aggregations []*LogsAggregation               `protobuf:"bytes,5,rep,name=aggregations,proto3" json:"aggregations,omitempty"`
+	Aggregations []*LogsAggregation                      `protobuf:"bytes,5,rep,name=aggregations,proto3" json:"aggregations,omitempty"`
 	OrderBy      []*SearchLogsEventGroupsRequest_OrderBy `protobuf:"bytes,6,rep,name=order_by,json=orderBy,proto3" json:"order_by,omitempty"`
-	Pagination   *Pagination                      `protobuf:"bytes,7,opt,name=pagination,proto3" json:"pagination,omitempty"`
+	Pagination   *Pagination                             `protobuf:"bytes,7,opt,name=pagination,proto3" json:"pagination,omitempty"`
 }
 
 func (x *SearchLogsEventGroupsRequest) Reset() {
@@ -456,10 +455,10 @@ type SearchGroupedLogsSeriesRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeFrame     *TimeFrame                       `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
-	Filters       []*Filter_LogsFilter                `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
+	TimeFrame     *TimeFrame                              `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
+	Filters       []*Filter_LogsFilter                    `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
 	GroupByFields []*wrapperspb.StringValue               `protobuf:"bytes,3,rep,name=group_by_fields,json=groupByFields,proto3" json:"group_by_fields,omitempty"`
-	Aggregation   *LogsAggregation                 `protobuf:"bytes,4,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
+	Aggregation   *LogsAggregation                        `protobuf:"bytes,4,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
 	LuceneQuery   *wrapperspb.StringValue                 `protobuf:"bytes,5,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
 	Limits        []*SearchGroupedLogsSeriesRequest_Limit `protobuf:"bytes,6,rep,name=limits,proto3" json:"limits,omitempty"`
 }
@@ -590,10 +589,10 @@ type SearchLogsGroupedTimeSeriesRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeFrame   *TimeFrame                             `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
+	TimeFrame   *TimeFrame                                    `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
 	Interval    *durationpb.Duration                          `protobuf:"bytes,2,opt,name=interval,proto3" json:"interval,omitempty"`
-	Filters     []*Filter_LogsFilter                      `protobuf:"bytes,3,rep,name=filters,proto3" json:"filters,omitempty"`
-	Aggregation *LogsAggregation                       `protobuf:"bytes,4,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
+	Filters     []*Filter_LogsFilter                          `protobuf:"bytes,3,rep,name=filters,proto3" json:"filters,omitempty"`
+	Aggregation *LogsAggregation                              `protobuf:"bytes,4,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
 	LuceneQuery *wrapperspb.StringValue                       `protobuf:"bytes,5,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
 	GroupBy     []*SearchLogsGroupedTimeSeriesRequest_GroupBy `protobuf:"bytes,6,rep,name=group_by,json=groupBy,proto3" json:"group_by,omitempty"`
 }
@@ -727,8 +726,8 @@ type LogsEvent struct {
 	LogId        *wrapperspb.StringValue `protobuf:"bytes,1,opt,name=log_id,json=logId,proto3" json:"log_id,omitempty"`
 	Timestamp    *timestamppb.Timestamp  `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	Text         *wrapperspb.StringValue `protobuf:"bytes,4,opt,name=text,proto3" json:"text,omitempty"`
-	Json         *structpb.Struct `protobuf:"bytes,5,opt,name=json,proto3" json:"json,omitempty"`
-	LogsMetadata *LogsMetadata    `protobuf:"bytes,6,opt,name=logs_metadata,json=logsMetadata,proto3" json:"logs_metadata,omitempty"`
+	Json         *structpb.Struct        `protobuf:"bytes,5,opt,name=json,proto3" json:"json,omitempty"`
+	LogsMetadata *LogsMetadata           `protobuf:"bytes,6,opt,name=logs_metadata,json=logsMetadata,proto3" json:"logs_metadata,omitempty"`
 }
 
 func (x *LogsEvent) Reset() {
@@ -805,7 +804,7 @@ type LogsMetadata struct {
 
 	ApplicationName *wrapperspb.StringValue `protobuf:"bytes,1,opt,name=application_name,json=applicationName,proto3" json:"application_name,omitempty"`
 	SubsystemName   *wrapperspb.StringValue `protobuf:"bytes,2,opt,name=subsystem_name,json=subsystemName,proto3" json:"subsystem_name,omitempty"`
-	Severity        LogSeverityLevel `protobuf:"varint,3,opt,name=severity,proto3,enum=com.coralogixapis.dashboards.v1.LogSeverityLevel" json:"severity,omitempty"`
+	Severity        LogSeverityLevel        `protobuf:"varint,3,opt,name=severity,proto3,enum=com.coralogixapis.dashboards.v1.common.LogSeverityLevel" json:"severity,omitempty"`
 }
 
 func (x *LogsMetadata) Reset() {
@@ -858,7 +857,7 @@ func (x *LogsMetadata) GetSeverity() LogSeverityLevel {
 	if x != nil {
 		return x.Severity
 	}
-	return LogSeverityLevel(0)
+	return LogSeverityLevel_LOG_SEVERITY_LEVEL_UNSPECIFIED
 }
 
 type SearchLogsTimeValueRequest struct {
@@ -866,10 +865,10 @@ type SearchLogsTimeValueRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TimeFrame   *TimeFrame        `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
-	Filters     []*Filter_LogsFilter `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
-	LuceneQuery *wrapperspb.StringValue  `protobuf:"bytes,3,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
-	Aggregation *LogsAggregation  `protobuf:"bytes,4,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
+	TimeFrame   *TimeFrame              `protobuf:"bytes,1,opt,name=time_frame,json=timeFrame,proto3" json:"time_frame,omitempty"`
+	Filters     []*Filter_LogsFilter    `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
+	LuceneQuery *wrapperspb.StringValue `protobuf:"bytes,3,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
+	Aggregation *LogsAggregation        `protobuf:"bytes,4,opt,name=aggregation,proto3" json:"aggregation,omitempty"`
 }
 
 func (x *SearchLogsTimeValueRequest) Reset() {
@@ -1043,7 +1042,7 @@ type SearchLogsEventGroupsRequest_OrderBy struct {
 	//	*SearchLogsEventGroupsRequest_OrderBy_Grouping
 	//	*SearchLogsEventGroupsRequest_OrderBy_Aggregation
 	Field          isSearchLogsEventGroupsRequest_OrderBy_Field `protobuf_oneof:"field"`
-	OrderDirection OrderDirection                        `protobuf:"varint,3,opt,name=order_direction,json=orderDirection,proto3,enum=com.coralogixapis.dashboards.v1.OrderDirection" json:"order_direction,omitempty"`
+	OrderDirection OrderDirection                               `protobuf:"varint,3,opt,name=order_direction,json=orderDirection,proto3,enum=com.coralogixapis.dashboards.v1.common.OrderDirection" json:"order_direction,omitempty"`
 }
 
 func (x *SearchLogsEventGroupsRequest_OrderBy) Reset() {
@@ -1103,7 +1102,7 @@ func (x *SearchLogsEventGroupsRequest_OrderBy) GetOrderDirection() OrderDirectio
 	if x != nil {
 		return x.OrderDirection
 	}
-	return OrderDirection(0)
+	return OrderDirection_ORDER_DIRECTION_UNSPECIFIED
 }
 
 type isSearchLogsEventGroupsRequest_OrderBy_Field interface {
@@ -1701,11 +1700,8 @@ var file_com_coralogixapis_dashboards_v1_services_logs_data_source_service_proto
 	0x65, 0x61, 0x72, 0x63, 0x68, 0x4c, 0x6f, 0x67, 0x73, 0x54, 0x69, 0x6d, 0x65, 0x56, 0x61, 0x6c,
 	0x75, 0x65, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x22, 0xba, 0xb8, 0x02, 0x1e,
 	0x0a, 0x1c, 0x73, 0x65, 0x61, 0x72, 0x63, 0x68, 0x20, 0x6c, 0x6f, 0x67, 0x73, 0x20, 0x61, 0x67,
-	0x67, 0x72, 0x65, 0x67, 0x61, 0x74, 0x65, 0x64, 0x20, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x2a,
-	0x5a, 0x28, 0x63, 0x6f, 0x6d, 0x2f, 0x63, 0x6f, 0x72, 0x61, 0x6c, 0x6f, 0x67, 0x69, 0x78, 0x61,
-	0x70, 0x69, 0x73, 0x2f, 0x64, 0x61, 0x73, 0x68, 0x62, 0x6f, 0x61, 0x72, 0x64, 0x73, 0x2f, 0x76,
-	0x31, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x33,
+	0x67, 0x72, 0x65, 0x67, 0x61, 0x74, 0x65, 0x64, 0x20, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x42, 0x03,
+	0x5a, 0x01, 0x2e, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1740,63 +1736,63 @@ var file_com_coralogixapis_dashboards_v1_services_logs_data_source_service_proto
 	(*SearchLogsEventGroupsRequest_OrderBy)(nil),       // 15: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.OrderBy
 	(*SearchGroupedLogsSeriesRequest_Limit)(nil),       // 16: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesRequest.Limit
 	(*SearchLogsGroupedTimeSeriesRequest_GroupBy)(nil), // 17: com.coralogixapis.dashboards.v1.services.SearchLogsGroupedTimeSeriesRequest.GroupBy
-	(*TimeFrame)(nil),                           // 18: com.coralogixapis.dashboards.v1.TimeFrame
+	(*TimeFrame)(nil),                                  // 18: com.coralogixapis.dashboards.v1.common.TimeFrame
 	(*durationpb.Duration)(nil),                        // 19: google.protobuf.Duration
-	(*Filter_LogsFilter)(nil),                      // 20: com.coralogixapis.dashboards.v1.Filter.LogsFilter
+	(*Filter_LogsFilter)(nil),                          // 20: com.coralogixapis.dashboards.v1.ast.Filter.LogsFilter
 	(*wrapperspb.StringValue)(nil),                     // 21: google.protobuf.StringValue
-	(*LogsAggregation)(nil),                     // 22: com.coralogixapis.dashboards.v1.LogsAggregation
+	(*LogsAggregation)(nil),                            // 22: com.coralogixapis.dashboards.v1.common.LogsAggregation
 	(*wrapperspb.Int32Value)(nil),                      // 23: google.protobuf.Int32Value
-	(*TimeSeries)(nil),                          // 24: com.coralogixapis.dashboards.v1.TimeSeries
+	(*TimeSeries)(nil),                                 // 24: com.coralogixapis.dashboards.v1.common.TimeSeries
 	(*wrapperspb.Int64Value)(nil),                      // 25: google.protobuf.Int64Value
-	(*OrderingField)(nil),                       // 26: com.coralogixapis.dashboards.v1.OrderingField
-	(*Pagination)(nil),                          // 27: com.coralogixapis.dashboards.v1.Pagination
-	(*MultiGroup)(nil),                          // 28: com.coralogixapis.dashboards.v1.MultiGroup
-	(*GroupedSeries)(nil),                       // 29: com.coralogixapis.dashboards.v1.GroupedSeries
+	(*OrderingField)(nil),                              // 26: com.coralogixapis.dashboards.v1.common.OrderingField
+	(*Pagination)(nil),                                 // 27: com.coralogixapis.dashboards.v1.common.Pagination
+	(*MultiGroup)(nil),                                 // 28: com.coralogixapis.dashboards.v1.common.MultiGroup
+	(*GroupedSeries)(nil),                              // 29: com.coralogixapis.dashboards.v1.common.GroupedSeries
 	(*timestamppb.Timestamp)(nil),                      // 30: google.protobuf.Timestamp
 	(*structpb.Struct)(nil),                            // 31: google.protobuf.Struct
-	(LogSeverityLevel)(0),                       // 32: com.coralogixapis.dashboards.v1.LogSeverityLevel
+	(LogSeverityLevel)(0),                              // 32: com.coralogixapis.dashboards.v1.common.LogSeverityLevel
 	(*wrapperspb.DoubleValue)(nil),                     // 33: google.protobuf.DoubleValue
-	(OrderDirection)(0),                         // 34: com.coralogixapis.dashboards.v1.OrderDirection
+	(OrderDirection)(0),                                // 34: com.coralogixapis.dashboards.v1.common.OrderDirection
 }
 var file_com_coralogixapis_dashboards_v1_services_logs_data_source_service_proto_depIdxs = []int32{
-	18, // 0: com.coralogixapis.dashboards.v1.services.SearchLogsTimeSeriesRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.TimeFrame
+	18, // 0: com.coralogixapis.dashboards.v1.services.SearchLogsTimeSeriesRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.common.TimeFrame
 	19, // 1: com.coralogixapis.dashboards.v1.services.SearchLogsTimeSeriesRequest.interval:type_name -> google.protobuf.Duration
-	20, // 2: com.coralogixapis.dashboards.v1.services.SearchLogsTimeSeriesRequest.filters:type_name -> com.coralogixapis.dashboards.v1.Filter.LogsFilter
+	20, // 2: com.coralogixapis.dashboards.v1.services.SearchLogsTimeSeriesRequest.filters:type_name -> com.coralogixapis.dashboards.v1.ast.Filter.LogsFilter
 	21, // 3: com.coralogixapis.dashboards.v1.services.SearchLogsTimeSeriesRequest.group_by:type_name -> google.protobuf.StringValue
-	22, // 4: com.coralogixapis.dashboards.v1.services.SearchLogsTimeSeriesRequest.aggregations:type_name -> com.coralogixapis.dashboards.v1.LogsAggregation
+	22, // 4: com.coralogixapis.dashboards.v1.services.SearchLogsTimeSeriesRequest.aggregations:type_name -> com.coralogixapis.dashboards.v1.common.LogsAggregation
 	23, // 5: com.coralogixapis.dashboards.v1.services.SearchLogsTimeSeriesRequest.limit:type_name -> google.protobuf.Int32Value
 	21, // 6: com.coralogixapis.dashboards.v1.services.SearchLogsTimeSeriesRequest.lucene_query:type_name -> google.protobuf.StringValue
-	24, // 7: com.coralogixapis.dashboards.v1.services.SearchLogsTimeSeriesResponse.time_series:type_name -> com.coralogixapis.dashboards.v1.TimeSeries
+	24, // 7: com.coralogixapis.dashboards.v1.services.SearchLogsTimeSeriesResponse.time_series:type_name -> com.coralogixapis.dashboards.v1.common.TimeSeries
 	25, // 8: com.coralogixapis.dashboards.v1.services.SearchLogsTimeSeriesResponse.total:type_name -> google.protobuf.Int64Value
-	18, // 9: com.coralogixapis.dashboards.v1.services.SearchLogsEventsRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.TimeFrame
-	20, // 10: com.coralogixapis.dashboards.v1.services.SearchLogsEventsRequest.filters:type_name -> com.coralogixapis.dashboards.v1.Filter.LogsFilter
+	18, // 9: com.coralogixapis.dashboards.v1.services.SearchLogsEventsRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.common.TimeFrame
+	20, // 10: com.coralogixapis.dashboards.v1.services.SearchLogsEventsRequest.filters:type_name -> com.coralogixapis.dashboards.v1.ast.Filter.LogsFilter
 	21, // 11: com.coralogixapis.dashboards.v1.services.SearchLogsEventsRequest.lucene_query:type_name -> google.protobuf.StringValue
-	26, // 12: com.coralogixapis.dashboards.v1.services.SearchLogsEventsRequest.order_by:type_name -> com.coralogixapis.dashboards.v1.OrderingField
+	26, // 12: com.coralogixapis.dashboards.v1.services.SearchLogsEventsRequest.order_by:type_name -> com.coralogixapis.dashboards.v1.common.OrderingField
 	14, // 13: com.coralogixapis.dashboards.v1.services.SearchLogsEventsRequest.pagination:type_name -> com.coralogixapis.dashboards.v1.services.SearchLogsEventsRequest.Pagination
 	25, // 14: com.coralogixapis.dashboards.v1.services.SearchLogsEventsResponse.total:type_name -> google.protobuf.Int64Value
 	10, // 15: com.coralogixapis.dashboards.v1.services.SearchLogsEventsResponse.events:type_name -> com.coralogixapis.dashboards.v1.services.LogsEvent
-	18, // 16: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.TimeFrame
-	20, // 17: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.filters:type_name -> com.coralogixapis.dashboards.v1.Filter.LogsFilter
+	18, // 16: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.common.TimeFrame
+	20, // 17: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.filters:type_name -> com.coralogixapis.dashboards.v1.ast.Filter.LogsFilter
 	21, // 18: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.lucene_query:type_name -> google.protobuf.StringValue
 	21, // 19: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.group_by:type_name -> google.protobuf.StringValue
-	22, // 20: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.aggregations:type_name -> com.coralogixapis.dashboards.v1.LogsAggregation
+	22, // 20: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.aggregations:type_name -> com.coralogixapis.dashboards.v1.common.LogsAggregation
 	15, // 21: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.order_by:type_name -> com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.OrderBy
-	27, // 22: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.pagination:type_name -> com.coralogixapis.dashboards.v1.Pagination
-	28, // 23: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsResponse.groups:type_name -> com.coralogixapis.dashboards.v1.MultiGroup
-	18, // 24: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.TimeFrame
-	20, // 25: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesRequest.filters:type_name -> com.coralogixapis.dashboards.v1.Filter.LogsFilter
+	27, // 22: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.pagination:type_name -> com.coralogixapis.dashboards.v1.common.Pagination
+	28, // 23: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsResponse.groups:type_name -> com.coralogixapis.dashboards.v1.common.MultiGroup
+	18, // 24: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.common.TimeFrame
+	20, // 25: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesRequest.filters:type_name -> com.coralogixapis.dashboards.v1.ast.Filter.LogsFilter
 	21, // 26: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesRequest.group_by_fields:type_name -> google.protobuf.StringValue
-	22, // 27: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesRequest.aggregation:type_name -> com.coralogixapis.dashboards.v1.LogsAggregation
+	22, // 27: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesRequest.aggregation:type_name -> com.coralogixapis.dashboards.v1.common.LogsAggregation
 	21, // 28: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesRequest.lucene_query:type_name -> google.protobuf.StringValue
 	16, // 29: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesRequest.limits:type_name -> com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesRequest.Limit
-	29, // 30: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesResponse.series:type_name -> com.coralogixapis.dashboards.v1.GroupedSeries
-	18, // 31: com.coralogixapis.dashboards.v1.services.SearchLogsGroupedTimeSeriesRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.TimeFrame
+	29, // 30: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesResponse.series:type_name -> com.coralogixapis.dashboards.v1.common.GroupedSeries
+	18, // 31: com.coralogixapis.dashboards.v1.services.SearchLogsGroupedTimeSeriesRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.common.TimeFrame
 	19, // 32: com.coralogixapis.dashboards.v1.services.SearchLogsGroupedTimeSeriesRequest.interval:type_name -> google.protobuf.Duration
-	20, // 33: com.coralogixapis.dashboards.v1.services.SearchLogsGroupedTimeSeriesRequest.filters:type_name -> com.coralogixapis.dashboards.v1.Filter.LogsFilter
-	22, // 34: com.coralogixapis.dashboards.v1.services.SearchLogsGroupedTimeSeriesRequest.aggregation:type_name -> com.coralogixapis.dashboards.v1.LogsAggregation
+	20, // 33: com.coralogixapis.dashboards.v1.services.SearchLogsGroupedTimeSeriesRequest.filters:type_name -> com.coralogixapis.dashboards.v1.ast.Filter.LogsFilter
+	22, // 34: com.coralogixapis.dashboards.v1.services.SearchLogsGroupedTimeSeriesRequest.aggregation:type_name -> com.coralogixapis.dashboards.v1.common.LogsAggregation
 	21, // 35: com.coralogixapis.dashboards.v1.services.SearchLogsGroupedTimeSeriesRequest.lucene_query:type_name -> google.protobuf.StringValue
 	17, // 36: com.coralogixapis.dashboards.v1.services.SearchLogsGroupedTimeSeriesRequest.group_by:type_name -> com.coralogixapis.dashboards.v1.services.SearchLogsGroupedTimeSeriesRequest.GroupBy
-	29, // 37: com.coralogixapis.dashboards.v1.services.SearchLogsGroupedTimeSeriesResponse.series:type_name -> com.coralogixapis.dashboards.v1.GroupedSeries
+	29, // 37: com.coralogixapis.dashboards.v1.services.SearchLogsGroupedTimeSeriesResponse.series:type_name -> com.coralogixapis.dashboards.v1.common.GroupedSeries
 	21, // 38: com.coralogixapis.dashboards.v1.services.LogsEvent.log_id:type_name -> google.protobuf.StringValue
 	30, // 39: com.coralogixapis.dashboards.v1.services.LogsEvent.timestamp:type_name -> google.protobuf.Timestamp
 	21, // 40: com.coralogixapis.dashboards.v1.services.LogsEvent.text:type_name -> google.protobuf.StringValue
@@ -1804,17 +1800,17 @@ var file_com_coralogixapis_dashboards_v1_services_logs_data_source_service_proto
 	11, // 42: com.coralogixapis.dashboards.v1.services.LogsEvent.logs_metadata:type_name -> com.coralogixapis.dashboards.v1.services.LogsMetadata
 	21, // 43: com.coralogixapis.dashboards.v1.services.LogsMetadata.application_name:type_name -> google.protobuf.StringValue
 	21, // 44: com.coralogixapis.dashboards.v1.services.LogsMetadata.subsystem_name:type_name -> google.protobuf.StringValue
-	32, // 45: com.coralogixapis.dashboards.v1.services.LogsMetadata.severity:type_name -> com.coralogixapis.dashboards.v1.LogSeverityLevel
-	18, // 46: com.coralogixapis.dashboards.v1.services.SearchLogsTimeValueRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.TimeFrame
-	20, // 47: com.coralogixapis.dashboards.v1.services.SearchLogsTimeValueRequest.filters:type_name -> com.coralogixapis.dashboards.v1.Filter.LogsFilter
+	32, // 45: com.coralogixapis.dashboards.v1.services.LogsMetadata.severity:type_name -> com.coralogixapis.dashboards.v1.common.LogSeverityLevel
+	18, // 46: com.coralogixapis.dashboards.v1.services.SearchLogsTimeValueRequest.time_frame:type_name -> com.coralogixapis.dashboards.v1.common.TimeFrame
+	20, // 47: com.coralogixapis.dashboards.v1.services.SearchLogsTimeValueRequest.filters:type_name -> com.coralogixapis.dashboards.v1.ast.Filter.LogsFilter
 	21, // 48: com.coralogixapis.dashboards.v1.services.SearchLogsTimeValueRequest.lucene_query:type_name -> google.protobuf.StringValue
-	22, // 49: com.coralogixapis.dashboards.v1.services.SearchLogsTimeValueRequest.aggregation:type_name -> com.coralogixapis.dashboards.v1.LogsAggregation
+	22, // 49: com.coralogixapis.dashboards.v1.services.SearchLogsTimeValueRequest.aggregation:type_name -> com.coralogixapis.dashboards.v1.common.LogsAggregation
 	33, // 50: com.coralogixapis.dashboards.v1.services.SearchLogsTimeValueResponse.value:type_name -> google.protobuf.DoubleValue
 	23, // 51: com.coralogixapis.dashboards.v1.services.SearchLogsEventsRequest.Pagination.offset:type_name -> google.protobuf.Int32Value
 	23, // 52: com.coralogixapis.dashboards.v1.services.SearchLogsEventsRequest.Pagination.limit:type_name -> google.protobuf.Int32Value
 	21, // 53: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.OrderBy.grouping:type_name -> google.protobuf.StringValue
-	22, // 54: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.OrderBy.aggregation:type_name -> com.coralogixapis.dashboards.v1.LogsAggregation
-	34, // 55: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.OrderBy.order_direction:type_name -> com.coralogixapis.dashboards.v1.OrderDirection
+	22, // 54: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.OrderBy.aggregation:type_name -> com.coralogixapis.dashboards.v1.common.LogsAggregation
+	34, // 55: com.coralogixapis.dashboards.v1.services.SearchLogsEventGroupsRequest.OrderBy.order_direction:type_name -> com.coralogixapis.dashboards.v1.common.OrderDirection
 	21, // 56: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesRequest.Limit.group_by_fields:type_name -> google.protobuf.StringValue
 	23, // 57: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesRequest.Limit.limit:type_name -> google.protobuf.Int32Value
 	23, // 58: com.coralogixapis.dashboards.v1.services.SearchGroupedLogsSeriesRequest.Limit.min_percentage:type_name -> google.protobuf.Int32Value
@@ -1845,6 +1841,17 @@ func file_com_coralogixapis_dashboards_v1_services_logs_data_source_service_prot
 	if File_com_coralogixapis_dashboards_v1_services_logs_data_source_service_proto != nil {
 		return
 	}
+	file_com_coralogixapis_dashboards_v1_ast_filter_proto_init()
+	file_com_coralogixapis_dashboards_v1_audit_log_proto_init()
+	file_com_coralogixapis_dashboards_v1_common_group_proto_init()
+	file_com_coralogixapis_dashboards_v1_common_grouped_series_proto_init()
+	file_com_coralogixapis_dashboards_v1_common_log_severity_level_proto_init()
+	file_com_coralogixapis_dashboards_v1_common_logs_aggregation_proto_init()
+	file_com_coralogixapis_dashboards_v1_common_order_direction_proto_init()
+	file_com_coralogixapis_dashboards_v1_common_ordering_field_proto_init()
+	file_com_coralogixapis_dashboards_v1_common_pagination_proto_init()
+	file_com_coralogixapis_dashboards_v1_common_time_frame_proto_init()
+	file_com_coralogixapis_dashboards_v1_common_time_series_proto_init()
 	if !protoimpl.UnsafeEnabled {
 		file_com_coralogixapis_dashboards_v1_services_logs_data_source_service_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*SearchLogsTimeSeriesRequest); i {

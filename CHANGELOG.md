@@ -431,3 +431,12 @@ Bug fixing:
 ## Release 1.11.3
 Bug fixing:
 * adding validation for `env` field.
+
+## Release 1.11.4
+New Features:
+#### resource/coralogix_dashboards_folder
+* Adding support for `coralogix_dashboards_folder` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/dashboards_folder.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/dashboards_folder.md).
+#### resource/coralogix_dashboard
+* Adding support for `folder`, `annotations` fields.
+* Adding support for `data_prime` for `bar_chart`, `data_table` and `pie_chart` widgets.
+* adding validation for `env` field.

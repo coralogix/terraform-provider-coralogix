@@ -218,3 +218,8 @@ Required:
 
 - `for_over` (Number) The number of time units to wait before the alert is triggered. For example, if the frequency is set to `hours` and the value is set to `2`, the alert will be triggered after 2 hours.
 - `frequency` (String) The time unit to wait before the alert is triggered. Can be `minutes`, `hours` or `days`.
+
+### Import
+```sh
+terraform import coralogix_alerts_scheduler.example <alert-scheduler-unique-id>
+```
