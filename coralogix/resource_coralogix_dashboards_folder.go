@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -17,11 +18,12 @@ import (
 )
 
 var (
-	createDashboardsFolderURL                                = "com.coralogixapis.dashboards.v1.services.DashboardFoldersService/CreateDashboardFolder"
-	listDashboardsFoldersURL                                 = "com.coralogixapis.dashboards.v1.services.DashboardFoldersService/ListDashboardFolders"
-	deleteDashboardsFolderURL                                = "com.coralogixapis.dashboards.v1.services.DashboardFoldersService/DeleteDashboardFolder"
-	updateDashboardsFolderURL                                = "com.coralogixapis.dashboards.v1.services.DashboardFoldersService/ReplaceDashboardFolder"
-	_                         resource.ResourceWithConfigure = &DashboardsFolderResource{}
+	createDashboardsFolderURL                                  = "com.coralogixapis.dashboards.v1.services.DashboardFoldersService/CreateDashboardFolder"
+	listDashboardsFoldersURL                                   = "com.coralogixapis.dashboards.v1.services.DashboardFoldersService/ListDashboardFolders"
+	deleteDashboardsFolderURL                                  = "com.coralogixapis.dashboards.v1.services.DashboardFoldersService/DeleteDashboardFolder"
+	updateDashboardsFolderURL                                  = "com.coralogixapis.dashboards.v1.services.DashboardFoldersService/ReplaceDashboardFolder"
+	_                         resource.ResourceWithConfigure   = &DashboardsFolderResource{}
+	_                         resource.ResourceWithImportState = &DashboardsFolderResource{}
 )
 
 func NewDashboardsFolderResource() resource.Resource {
@@ -30,6 +32,10 @@ func NewDashboardsFolderResource() resource.Resource {
 
 type DashboardsFolderResource struct {
 	client *clientset.DashboardsFoldersClient
+}
+
+func (r *DashboardsFolderResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func (r *DashboardsFolderResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {

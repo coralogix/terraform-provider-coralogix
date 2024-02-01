@@ -2835,3 +2835,13 @@ Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+
+### Import
+
+Dashboards folders can be imported using the `id`, e.g.
+
+```shell
+$ terraform import coralogix_dashboard.example <dashboard_id>
+```
+
+the folder's id can be found in the prefix of the dashboard's url, e.g. `https://terraform.app.eu2.coralogix.com/#/dashboards/mqjmnWQNYwPLxjhYffetD` where `mqjmnWQNYwPLxjhYffetD` is the folder's id.
