@@ -278,7 +278,7 @@ func (r *SLOResource) Create(ctx context.Context, req resource.CreateRequest, re
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating SLO",
-			formatRpcErrors(err, createSloUrl, protojson.Format(createResp)),
+			formatRpcErrors(err, createSloUrl, protojson.Format(createSloReq)),
 		)
 		return
 	}
@@ -439,7 +439,8 @@ func (r *SLOResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 
 	//Get refreshed SLO value from Coralogix
 	id := state.ID.ValueString()
-	readSloResp, err := r.client.GetSLO(ctx, &slos.GetServiceSloRequest{Id: wrapperspb.String(id)})
+	readSloReq := &slos.GetServiceSloRequest{Id: wrapperspb.String(id)}
+	readSloResp, err := r.client.GetSLO(ctx, readSloReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -450,7 +451,7 @@ func (r *SLOResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",
-				formatRpcErrors(err, getSloUrl, protojson.Format(readSloResp)),
+				formatRpcErrors(err, getSloUrl, protojson.Format(readSloReq)),
 			)
 		}
 		return
@@ -510,22 +511,22 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",
-				formatRpcErrors(err, getSloUrl, protojson.Format(getSloResp)),
+				formatRpcErrors(err, getSloUrl, protojson.Format(getSloReq)),
 			)
 		}
 		return
 	}
 
+	slo = getSloResp.GetSlo()
 	log.Printf("[INFO] Received SLO: %s", protojson.Format(slo))
-
-	plan, diags = flattenSLO(ctx, slo)
+	state, diags := flattenSLO(ctx, slo)
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return
 	}
 
 	// Set state to fully populated data
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
 
