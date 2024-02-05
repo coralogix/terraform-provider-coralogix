@@ -353,6 +353,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewArchiveLogsResource,
 		NewAlertsSchedulerResource,
 		NewTeamResource,
+		NewApiKeyResource,
 		NewMovingQuotaResource,
 		NewSLOResource,
 		NewDashboardsFolderResource,
