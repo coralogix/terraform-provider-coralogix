@@ -12,7 +12,7 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_apikeys" "example" {
+resource "coralogix_api_key" "example" {
   name  = "example key 3"
   owner = {
     team_id : 123

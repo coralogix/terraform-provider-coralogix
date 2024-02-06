@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -38,7 +39,7 @@ type ApiKeyResource struct {
 }
 
 func (r *ApiKeyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_apikeys"
+	resp.TypeName = req.ProviderTypeName + "_api_key"
 
 }
 
@@ -88,7 +89,7 @@ func (r *ApiKeyResource) Schema(ctx context.Context, req resource.SchemaRequest,
 					"team_id": schema.Int64Attribute{
 						Optional: true,
 						Validators: []validator.Int64{
-							int64validator.ConflictsWith(
+							int64validator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("user_id"),
 							),
 						},
@@ -96,7 +97,7 @@ func (r *ApiKeyResource) Schema(ctx context.Context, req resource.SchemaRequest,
 					"user_id": schema.StringAttribute{
 						Optional: true,
 						Validators: []validator.String{
-							stringvalidator.ConflictsWith(
+							stringvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("team_id"),
 							),
 						},
@@ -107,20 +108,24 @@ func (r *ApiKeyResource) Schema(ctx context.Context, req resource.SchemaRequest,
 			},
 
 			"active": schema.BoolAttribute{
-				Required:            true,
+				Computed:            true,
+				Optional:            true,
+				Default:             booldefault.StaticBool(true),
 				MarkdownDescription: "Api Key Is Active.",
 			},
 			"hashed": schema.BoolAttribute{
-				Required:            true,
+				Computed:            true,
+				Optional:            true,
+				Default:             booldefault.StaticBool(false),
 				MarkdownDescription: "Api Key Is Hashed.",
 			},
-			"roles": schema.ListAttribute{
+			"roles": schema.SetAttribute{
 				Required:            true,
 				ElementType:         types.StringType,
 				MarkdownDescription: "Api Key Roles",
-				Validators: []validator.List{
-					listvalidator.UniqueValues(),
-					listvalidator.ValueStringsAre(stringvalidator.OneOf("SCIM")),
+				Validators: []validator.Set{
+					setvalidator.SizeAtLeast(1),
+					setvalidator.ValueStringsAre(stringvalidator.OneOf("SCIM")),
 				},
 			},
 		},
@@ -134,7 +139,7 @@ type ApiKeyModel struct {
 	Owner  *Owner       `tfsdk:"owner"` //Owner
 	Active types.Bool   `tfsdk:"active"`
 	Hashed types.Bool   `tfsdk:"hashed"`
-	Roles  types.List   `tfsdk:"roles"`
+	Roles  types.Set    `tfsdk:"roles"`
 	Value  types.String `tfsdk:"value"`
 }
 
@@ -172,7 +177,7 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		)
 		return
 	}
-	log.Printf("[INFO] Create api key: %s", protojson.Format(createApiKeyResp))
+	log.Printf("[INFO] Create api key with ID: %s", createApiKeyResp.KeyId)
 
 	currentKeyId := createApiKeyResp.GetKeyId()
 	getApiKeyRequest, diags := makeGetApiKeyRequest(&currentKeyId)
@@ -192,7 +197,7 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		)
 		return
 	}
-	log.Printf("[INFO] Get api key: %s", protojson.Format(getApiKeyResponse))
+	log.Printf("[INFO] Get api key: Name %s, Roles: %s, IsHashed: %s", getApiKeyResponse.KeyInfo.Name, getApiKeyResponse.GetKeyInfo().Roles, getApiKeyResponse.KeyInfo.Hashed)
 
 	newApiKeyModel, diags := flattenGetApiKeyResponse(ctx, &currentKeyId, getApiKeyResponse, &createApiKeyResp.Value)
 	if diags.HasError() {
@@ -231,7 +236,7 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		)
 		return
 	}
-	log.Printf("[INFO] Get api key: %s", protojson.Format(getApiKeyResponse))
+	log.Printf("[INFO] Get api key: Name %s, Roles: %s, IsHashed: %s", getApiKeyResponse.KeyInfo.Name, getApiKeyResponse.GetKeyInfo().Roles, getApiKeyResponse.KeyInfo.Hashed)
 
 	key, diags := flattenGetApiKeyResponse(ctx, &id, getApiKeyResponse, nil)
 	if diags.HasError() {
@@ -272,7 +277,7 @@ func makeGetApiKeyRequest(apiKeyId *string) (*apikeys.GetApiKeyRequest, diag.Dia
 func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *apikeys.GetApiKeyResponse, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	roles, diags := types.ListValueFrom(ctx, types.StringType, response.KeyInfo.Roles)
+	roles, diags := types.SetValueFrom(ctx, types.StringType, response.KeyInfo.Roles)
 	if diags.HasError() {
 		return nil, diags
 	}
