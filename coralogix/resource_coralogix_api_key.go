@@ -241,7 +241,7 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 	log.Printf("[INFO] Get api key: Name %s, Roles: %s, IsHashed: %t", getApiKeyResponse.KeyInfo.Name, getApiKeyResponse.GetKeyInfo().Roles, getApiKeyResponse.KeyInfo.Hashed)
 
-	key, diags := flattenGetApiKeyResponse(ctx, &id, getApiKeyResponse, nil)
+	key, diags := flattenGetApiKeyResponse(ctx, &id, getApiKeyResponse, plan.Value.ValueStringPointer())
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return
