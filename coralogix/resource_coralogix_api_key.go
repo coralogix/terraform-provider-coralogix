@@ -197,7 +197,7 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		)
 		return
 	}
-	log.Printf("[INFO] Get api key: Name %s, Roles: %s, IsHashed: %s", getApiKeyResponse.KeyInfo.Name, getApiKeyResponse.GetKeyInfo().Roles, getApiKeyResponse.KeyInfo.Hashed)
+	log.Printf("[INFO] Get api key: Name %s, Roles: %s, IsHashed: %t", getApiKeyResponse.KeyInfo.Name, getApiKeyResponse.GetKeyInfo().Roles, getApiKeyResponse.KeyInfo.Hashed)
 
 	newApiKeyModel, diags := flattenGetApiKeyResponse(ctx, &currentKeyId, getApiKeyResponse, &createApiKeyResp.Value)
 	if diags.HasError() {
@@ -236,7 +236,7 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		)
 		return
 	}
-	log.Printf("[INFO] Get api key: Name %s, Roles: %s, IsHashed: %s", getApiKeyResponse.KeyInfo.Name, getApiKeyResponse.GetKeyInfo().Roles, getApiKeyResponse.KeyInfo.Hashed)
+	log.Printf("[INFO] Get api key: Name %s, Roles: %s, IsHashed: %t", getApiKeyResponse.KeyInfo.Name, getApiKeyResponse.GetKeyInfo().Roles, getApiKeyResponse.KeyInfo.Hashed)
 
 	key, diags := flattenGetApiKeyResponse(ctx, &id, getApiKeyResponse, nil)
 	if diags.HasError() {
