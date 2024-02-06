@@ -167,14 +167,15 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
 			resp.Diagnostics.AddError(
-				"Error creating ApiKey",
-				formatRpcErrors(err, createApiKey, protojson.Format(createApiKeyRequest)),
+				"Error creating Api Key",
+				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", createApiKey),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error creating Api Key",
+				formatRpcErrors(err, getApiKey, protojson.Format(createApiKeyRequest)),
 			)
 		}
-		resp.Diagnostics.AddError(
-			"Error creating ApiKey",
-			fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", createApiKey),
-		)
 		return
 	}
 	log.Printf("[INFO] Create api key with ID: %s", createApiKeyResp.KeyId)
@@ -187,14 +188,15 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
 			resp.Diagnostics.AddError(
-				"Error getting apiKey",
-				formatRpcErrors(err, getApiKey, protojson.Format(createApiKeyRequest)),
+				"Error getting Api Key",
+				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", getApiKey),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error getting Api Key",
+				formatRpcErrors(err, getApiKey, protojson.Format(getApiKeyRequest)),
 			)
 		}
-		resp.Diagnostics.AddError(
-			"Error creating Team",
-			fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", createApiKey),
-		)
 		return
 	}
 	log.Printf("[INFO] Get api key: Name %s, Roles: %s, IsHashed: %t", getApiKeyResponse.KeyInfo.Name, getApiKeyResponse.GetKeyInfo().Roles, getApiKeyResponse.KeyInfo.Hashed)
@@ -226,14 +228,15 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
 			resp.Diagnostics.AddError(
-				"Error Reading Api Key",
+				"Error getting Api Key",
+				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", getApiKey),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error getting Api Key",
 				formatRpcErrors(err, getApiKey, protojson.Format(getApiKeyRequest)),
 			)
 		}
-		resp.Diagnostics.AddError(
-			"Error Reading Api Key",
-			fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", createApiKey),
-		)
 		return
 	}
 	log.Printf("[INFO] Get api key: Name %s, Roles: %s, IsHashed: %t", getApiKeyResponse.KeyInfo.Name, getApiKeyResponse.GetKeyInfo().Roles, getApiKeyResponse.KeyInfo.Hashed)
