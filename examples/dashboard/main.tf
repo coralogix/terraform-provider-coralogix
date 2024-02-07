@@ -85,6 +85,7 @@ resource "coralogix_dashboard" dashboard {
                         scale_type         = "linear"
                         series_count_limit = 100
                         unit               = "milliseconds"
+                        data_mode_type     = "archive"
                       },
                     ]
                     legend = {
@@ -124,6 +125,7 @@ resource "coralogix_dashboard" dashboard {
                         resolution         = {
                           buckets_presented = 10
                         }
+                        data_mode_type     = "archive"
                       },
                     ]
                     legend = {
@@ -601,11 +603,11 @@ resource "coralogix_dashboard" dashboard {
     id = coralogix_dashboards_folder.example.id
   }
 }
-
+#
 resource "coralogix_dashboards_folder" "example" {
-  name     = "example_2"
+  name     = "example"
 }
 
-resource "coralogix_dashboard" dashboard_from_json {
-  content_json = file("./dashboard.json")
-}
+#resource "coralogix_dashboard" dashboard_from_json {
+#  content_json = file("./dashboard.json")
+#}
