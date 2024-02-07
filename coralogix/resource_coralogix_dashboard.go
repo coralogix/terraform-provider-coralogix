@@ -603,10 +603,10 @@ type BarChartQueryDataPrimeModel struct {
 }
 
 type DataTableSpansAggregationModel struct {
-	ID          types.String           `json:"id"`
-	Name        types.String           `json:"name"`
-	IsVisible   types.Bool             `json:"is_visible"`
-	Aggregation *SpansAggregationModel `json:"aggregation"`
+	ID          types.String           `tfsdk:"id"`
+	Name        types.String           `tfsdk:"name"`
+	IsVisible   types.Bool             `tfsdk:"is_visible"`
+	Aggregation *SpansAggregationModel `tfsdk:"aggregation"`
 }
 
 type BarChartStackDefinitionModel struct {
