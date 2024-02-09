@@ -22,7 +22,7 @@ func TestAccCoralogixResourceUser(t *testing.T) {
 		CheckDestroy:             testAccCheckUserDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceUser(teamID),
+				Config: testAccCoralogixResourceUser(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(userResourceName, "id"),
 					resource.TestCheckResourceAttr(userResourceName, "user_name", "test@coralogix.com"),
@@ -60,7 +60,7 @@ func testAccCheckUserDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCoralogixResourceUser(teamID string) string {
+func testAccCoralogixResourceUser() string {
 	return fmt.Sprintf(`
 	resource "coralogix_user" "test" {
 	  team_id = "%s"

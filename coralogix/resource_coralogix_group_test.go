@@ -60,15 +60,17 @@ func testAccCheckGroupDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceGroup() string {
-	return `
+	return fmt.Sprintf(`
 	resource "coralogix_user" "test" {
+	  team_id   = "%s"
 	  user_name = "test@coralogix.com"
 	}
 
 	resource "coralogix_group" "test" {
+      team_id      = "%s"
 	  display_name = "example"
       role         = "Read Only"
       members      = [coralogix_user.test.id]
 	}
-`
+`, teamID)
 }
