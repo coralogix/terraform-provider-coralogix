@@ -110,6 +110,10 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 	createResp, err := r.client.CreateGroup(ctx, teamID, createGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
+		resp.Diagnostics.AddError(
+			"Error creating Group",
+			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, plan.ID), string(groupStr)),
+		)
 		return
 	}
 	groupStr, _ = json.Marshal(createResp)

@@ -148,6 +148,10 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	createResp, err := r.client.CreateUser(ctx, teamID, createUserRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
+		resp.Diagnostics.AddError(
+			"Error creating User",
+			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, *createUserRequest.ID), string(userStr)),
+		)
 		return
 	}
 	userStr, _ = json.Marshal(createResp)
