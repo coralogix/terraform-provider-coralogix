@@ -316,7 +316,7 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
-	log.Printf("[INFO] Dashboard %s deleted", id)
+	log.Printf("[INFO] Api Key %s deleted", id)
 }
 
 func (r *ApiKeyResource) getKeyInfo(ctx context.Context, id *string, keyValue *string, diags diag.Diagnostics) (*ApiKeyModel, diag.Diagnostics) {

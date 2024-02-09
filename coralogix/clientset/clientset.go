@@ -21,6 +21,7 @@ type ClientSet struct {
 	slos                *SLOsClient
 	dahboardsFolders    *DashboardsFoldersClient
 	apiKeys             *ApikeysClient
+	customRole          *RolesClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -95,6 +96,10 @@ func (c *ClientSet) ApiKeys() *ApikeysClient {
 	return c.apiKeys
 }
 
+func (c *ClientSet) CustomRoles() *RolesClient {
+	return c.customRole
+}
+
 func (c *ClientSet) SLOs() *SLOsClient {
 	return c.slos
 }
@@ -128,5 +133,6 @@ func NewClientSet(targetUrl, apiKey, orgKey string) *ClientSet {
 		slos:                NewSLOsClient(apikeyCPC),
 		dahboardsFolders:    NewDashboardsFoldersClient(apikeyCPC),
 		apiKeys:             NewApiKeysClient(teamsCPC),
+		customRole:          NewRolesClient(teamsCPC),
 	}
 }

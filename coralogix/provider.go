@@ -358,5 +358,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewMovingQuotaResource,
 		NewSLOResource,
 		NewDashboardsFolderResource,
+		NewCustomRoleSource,
 	}
 }
