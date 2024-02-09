@@ -24,6 +24,8 @@ const _ = grpc.SupportPackageIsVersion7
 type ApiKeysServiceClient interface {
 	CreateApiKey(ctx context.Context, in *CreateApiKeyRequest, opts ...grpc.CallOption) (*CreateApiKeyResponse, error)
 	GetApiKey(ctx context.Context, in *GetApiKeyRequest, opts ...grpc.CallOption) (*GetApiKeyResponse, error)
+	DeleteApiKey(ctx context.Context, in *DeleteApiKeyRequest, opts ...grpc.CallOption) (*DeleteApiKeyResponse, error)
+	UpdateApiKey(ctx context.Context, in *UpdateApiKeyRequest, opts ...grpc.CallOption) (*UpdateApiKeyResponse, error)
 }
 
 type apiKeysServiceClient struct {
@@ -52,12 +54,32 @@ func (c *apiKeysServiceClient) GetApiKey(ctx context.Context, in *GetApiKeyReque
 	return out, nil
 }
 
+func (c *apiKeysServiceClient) DeleteApiKey(ctx context.Context, in *DeleteApiKeyRequest, opts ...grpc.CallOption) (*DeleteApiKeyResponse, error) {
+	out := new(DeleteApiKeyResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogixapis.aaa.apikeys.v2.ApiKeysService/DeleteApiKey", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *apiKeysServiceClient) UpdateApiKey(ctx context.Context, in *UpdateApiKeyRequest, opts ...grpc.CallOption) (*UpdateApiKeyResponse, error) {
+	out := new(UpdateApiKeyResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogixapis.aaa.apikeys.v2.ApiKeysService/UpdateApiKey", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ApiKeysServiceServer is the server API for ApiKeysService service.
 // All implementations must embed UnimplementedApiKeysServiceServer
 // for forward compatibility
 type ApiKeysServiceServer interface {
 	CreateApiKey(context.Context, *CreateApiKeyRequest) (*CreateApiKeyResponse, error)
 	GetApiKey(context.Context, *GetApiKeyRequest) (*GetApiKeyResponse, error)
+	DeleteApiKey(context.Context, *DeleteApiKeyRequest) (*DeleteApiKeyResponse, error)
+	UpdateApiKey(context.Context, *UpdateApiKeyRequest) (*UpdateApiKeyResponse, error)
 	mustEmbedUnimplementedApiKeysServiceServer()
 }
 
@@ -70,6 +92,12 @@ func (UnimplementedApiKeysServiceServer) CreateApiKey(context.Context, *CreateAp
 }
 func (UnimplementedApiKeysServiceServer) GetApiKey(context.Context, *GetApiKeyRequest) (*GetApiKeyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetApiKey not implemented")
+}
+func (UnimplementedApiKeysServiceServer) DeleteApiKey(context.Context, *DeleteApiKeyRequest) (*DeleteApiKeyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteApiKey not implemented")
+}
+func (UnimplementedApiKeysServiceServer) UpdateApiKey(context.Context, *UpdateApiKeyRequest) (*UpdateApiKeyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateApiKey not implemented")
 }
 func (UnimplementedApiKeysServiceServer) mustEmbedUnimplementedApiKeysServiceServer() {}
 
@@ -120,6 +148,42 @@ func _ApiKeysService_GetApiKey_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ApiKeysService_DeleteApiKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteApiKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ApiKeysServiceServer).DeleteApiKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogixapis.aaa.apikeys.v2.ApiKeysService/DeleteApiKey",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ApiKeysServiceServer).DeleteApiKey(ctx, req.(*DeleteApiKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ApiKeysService_UpdateApiKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateApiKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ApiKeysServiceServer).UpdateApiKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogixapis.aaa.apikeys.v2.ApiKeysService/UpdateApiKey",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ApiKeysServiceServer).UpdateApiKey(ctx, req.(*UpdateApiKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ApiKeysService_ServiceDesc is the grpc.ServiceDesc for ApiKeysService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -134,6 +198,14 @@ var ApiKeysService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetApiKey",
 			Handler:    _ApiKeysService_GetApiKey_Handler,
+		},
+		{
+			MethodName: "DeleteApiKey",
+			Handler:    _ApiKeysService_DeleteApiKey_Handler,
+		},
+		{
+			MethodName: "UpdateApiKey",
+			Handler:    _ApiKeysService_UpdateApiKey_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

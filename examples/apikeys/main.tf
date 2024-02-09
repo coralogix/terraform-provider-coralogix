@@ -8,18 +8,21 @@ terraform {
 }
 
 provider "coralogix" {
-  #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
-  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+  org_key = "<ORG_KEY>"
+  domain  = "<DOMAIN>"
 }
 
 resource "coralogix_api_key" "example" {
-  name  = "example key 3"
+  name  = "My SCIM KEY"
   owner = {
-    team_id : 123
-  }
-  active = true
-  hashed = true
+    team_id : "<TEAM_ID>"
+  }   
+  active = false
+  hashed = false
   roles = ["SCIM"]
 }
 
+data "coralogix_api_key" "same_key_by_id" {
+  id = coralogix_api_key.example.id
+}
 

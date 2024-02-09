@@ -35,6 +35,32 @@ func (t ApikeysClient) GetApiKey(ctx context.Context, req *apikeys.GetApiKeyRequ
 	return client.GetApiKey(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
+func (t ApikeysClient) UpdateApiKey(ctx context.Context, req *apikeys.UpdateApiKeyRequest) (*apikeys.UpdateApiKeyResponse, error) {
+	callProperties, err := t.callPropertiesCreator.GetCallProperties(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	conn := callProperties.Connection
+	defer conn.Close()
+	client := apikeys.NewApiKeysServiceClient(conn)
+
+	return client.UpdateApiKey(callProperties.Ctx, req, callProperties.CallOptions...)
+}
+
+func (t ApikeysClient) DeleteApiKey(ctx context.Context, req *apikeys.DeleteApiKeyRequest) (*apikeys.DeleteApiKeyResponse, error) {
+	callProperties, err := t.callPropertiesCreator.GetCallProperties(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	conn := callProperties.Connection
+	defer conn.Close()
+	client := apikeys.NewApiKeysServiceClient(conn)
+
+	return client.DeleteApiKey(callProperties.Ctx, req, callProperties.CallOptions...)
+}
+
 func NewApiKeysClient(c *CallPropertiesCreator) *ApikeysClient {
 	return &ApikeysClient{callPropertiesCreator: c}
 }

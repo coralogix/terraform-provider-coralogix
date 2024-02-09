@@ -19,15 +19,16 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"log"
+	"reflect"
 	"terraform-provider-coralogix/coralogix/clientset"
 	apikeys "terraform-provider-coralogix/coralogix/clientset/grpc/apikeys"
 )
 
 var (
-	getApiKey = "com.coralogixapis.aaa.apikeys.v2.ApiKeysService/GetApiKey"
-)
-var (
-	createApiKey = "com.coralogixapis.aaa.apikeys.v2.ApiKeysService/CreateApiKey"
+	getApiKeyPath    = "com.coralogixapis.aaa.apikeys.v2.ApiKeysService/GetApiKey"
+	createApiKeyPath = "com.coralogixapis.aaa.apikeys.v2.ApiKeysService/CreateApiKey"
+	deleteApiKeyPath = "com.coralogixapis.aaa.apikeys.v2.ApiKeysService/DeleteApiKey"
+	updateApiKeyPath = "com.coralogixapis.aaa.apikeys.v2.ApiKeysService/UpdateApiKey"
 )
 
 func NewApiKeyResource() resource.Resource {
@@ -125,7 +126,6 @@ func (r *ApiKeyResource) Schema(ctx context.Context, req resource.SchemaRequest,
 				MarkdownDescription: "Api Key Roles",
 				Validators: []validator.Set{
 					setvalidator.SizeAtLeast(1),
-					setvalidator.ValueStringsAre(stringvalidator.OneOf("SCIM")),
 				},
 			},
 		},
@@ -136,7 +136,7 @@ func (r *ApiKeyResource) Schema(ctx context.Context, req resource.SchemaRequest,
 type ApiKeyModel struct {
 	ID     types.String `tfsdk:"id"`
 	Name   types.String `tfsdk:"name"`
-	Owner  *Owner       `tfsdk:"owner"` //Owner
+	Owner  *Owner       `tfsdk:"owner"`
 	Active types.Bool   `tfsdk:"active"`
 	Hashed types.Bool   `tfsdk:"hashed"`
 	Roles  types.Set    `tfsdk:"roles"`
@@ -149,14 +149,14 @@ type Owner struct {
 }
 
 func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var keyModel *ApiKeyModel
-	diags := req.Plan.Get(ctx, &keyModel)
+	var desiredState *ApiKeyModel
+	diags := req.Plan.Get(ctx, &desiredState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	createApiKeyRequest, diags := makeCreateApiKeyRequest(ctx, keyModel)
+	createApiKeyRequest, diags := makeCreateApiKeyRequest(ctx, desiredState)
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return
@@ -168,12 +168,12 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
 			resp.Diagnostics.AddError(
 				"Error creating Api Key",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", createApiKey),
+				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", createApiKeyPath),
 			)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error creating Api Key",
-				formatRpcErrors(err, getApiKey, protojson.Format(createApiKeyRequest)),
+				formatRpcErrors(err, createApiKeyPath, protojson.Format(createApiKeyRequest)),
 			)
 		}
 		return
@@ -181,69 +181,29 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 	log.Printf("[INFO] Create api key with ID: %s", createApiKeyResp.KeyId)
 
 	currentKeyId := createApiKeyResp.GetKeyId()
-	getApiKeyRequest, diags := makeGetApiKeyRequest(&currentKeyId)
-
-	getApiKeyResponse, err := r.client.GetApiKey(ctx, getApiKeyRequest)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error getting Api Key",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", getApiKey),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error getting Api Key",
-				formatRpcErrors(err, getApiKey, protojson.Format(getApiKeyRequest)),
-			)
-		}
-		return
-	}
-	log.Printf("[INFO] Get api key: Name %s, Roles: %s, IsHashed: %t", getApiKeyResponse.KeyInfo.Name, getApiKeyResponse.GetKeyInfo().Roles, getApiKeyResponse.KeyInfo.Hashed)
-
-	newApiKeyModel, diags := flattenGetApiKeyResponse(ctx, &currentKeyId, getApiKeyResponse, &createApiKeyResp.Value)
+	key, diags := r.getKeyInfo(ctx, &currentKeyId, &createApiKeyResp.Value, diags)
 	if diags.HasError() {
-		resp.Diagnostics = diags
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
 	// Set state to fully populated data
-	diags = resp.State.Set(ctx, newApiKeyModel)
+	diags = resp.State.Set(ctx, key)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var plan *ApiKeyModel
-	diags := req.State.Get(ctx, &plan)
+	var currentState *ApiKeyModel
+	diags := req.State.Get(ctx, &currentState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	id := plan.ID.ValueString()
-	getApiKeyRequest, diags := makeGetApiKeyRequest(&id)
+	key, diags := r.getKeyInfo(ctx, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer(), diags)
 
-	getApiKeyResponse, err := r.client.GetApiKey(ctx, getApiKeyRequest)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error getting Api Key",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", getApiKey),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error getting Api Key",
-				formatRpcErrors(err, getApiKey, protojson.Format(getApiKeyRequest)),
-			)
-		}
-		return
-	}
-	log.Printf("[INFO] Get api key: Name %s, Roles: %s, IsHashed: %t", getApiKeyResponse.KeyInfo.Name, getApiKeyResponse.GetKeyInfo().Roles, getApiKeyResponse.KeyInfo.Hashed)
-
-	key, diags := flattenGetApiKeyResponse(ctx, &id, getApiKeyResponse, plan.Value.ValueStringPointer())
 	if diags.HasError() {
-		resp.Diagnostics = diags
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 	// Set state to fully populated data
@@ -252,27 +212,140 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 }
 
 func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan, state *ApiKeyModel
-	diags := req.State.Get(ctx, &plan)
+	var currentState, desiredState *ApiKeyModel
+	diags := req.State.Get(ctx, &currentState)
+	resp.Diagnostics.Append(diags...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	diags = req.Plan.Get(ctx, &desiredState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	diags = req.Plan.Get(ctx, &state)
+	id := currentState.ID.ValueString()
+
+	var updateApiKeyRequest = apikeys.UpdateApiKeyRequest{
+		KeyId: id,
+	}
+	if currentState.Name.ValueString() != desiredState.Name.ValueString() {
+		updateApiKeyRequest.NewName = desiredState.Name.ValueStringPointer()
+	}
+	if !reflect.DeepEqual(currentState.Roles.Elements(), desiredState.Roles.Elements()) {
+		roles, diags := typeStringSliceToStringSlice(ctx, desiredState.Roles.Elements())
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+		updateApiKeyRequest.Roles = &apikeys.UpdateApiKeyRequest_Roles{
+			Roles: roles,
+		}
+	}
+
+	if currentState.Active.ValueBool() != desiredState.Active.ValueBool() {
+		updateApiKeyRequest.IsActive = desiredState.Active.ValueBoolPointer()
+	}
+
+	if currentState.Hashed.ValueBool() != desiredState.Hashed.ValueBool() {
+		resp.Diagnostics.AddError(
+			"Error updating ApiKey",
+			"ApiKey hashing can not be updated.",
+		)
+		return
+	}
+	log.Printf("[INFO] Updating  ApiKey %s to  %s", id, protojson.Format(&updateApiKeyRequest))
+
+	_, err := r.client.UpdateApiKey(ctx, &updateApiKeyRequest)
+	if err != nil {
+		log.Printf("[ERROR] Received error: %s", err.Error())
+		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
+			resp.Diagnostics.AddError(
+				"Error updating Api Key",
+				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", updateApiKeyPath),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error updating Api Key",
+				formatRpcErrors(err, updateApiKeyPath, protojson.Format(&updateApiKeyRequest)),
+			)
+		}
+		return
+	}
+
+	key, diags := r.getKeyInfo(ctx, &id, currentState.Value.ValueStringPointer(), diags)
+	if diags.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, key)...)
+}
+
+func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var currentState *ApiKeyModel
+	diags := req.State.Get(ctx, &currentState)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	resp.Diagnostics.AddError(
-		"Update not supported",
-		"Update is not supported for this resource.",
-	)
+	id := currentState.ID.ValueString()
+	deleteApiKeyRequest, diags := makeDeleteApi(&id)
+	_, err := r.client.DeleteApiKey(ctx, deleteApiKeyRequest)
 
+	if err != nil {
+		log.Printf("[ERROR] Received error: %s", err.Error())
+		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
+			resp.Diagnostics.AddError(
+				"Error getting Api Key",
+				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", deleteApiKeyPath),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error getting Api Key",
+				formatRpcErrors(err, deleteApiKeyPath, protojson.Format(deleteApiKeyRequest)),
+			)
+		}
+		return
+	}
+
+	log.Printf("[INFO] Dashboard %s deleted", id)
+}
+
+func (r *ApiKeyResource) getKeyInfo(ctx context.Context, id *string, keyValue *string, diags diag.Diagnostics) (*ApiKeyModel, diag.Diagnostics) {
+	getApiKeyRequest, diags := makeGetApiKeyRequest(id)
+
+	getApiKeyResponse, err := r.client.GetApiKey(ctx, getApiKeyRequest)
+	if err != nil {
+		log.Printf("[ERROR] Received error: %s", err.Error())
+		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
+			diags.AddError(
+				"Error getting Api Key",
+				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", getApiKeyPath),
+			)
+		} else {
+			diags.AddError(
+				"Error getting Api Key",
+				formatRpcErrors(err, getApiKeyPath, protojson.Format(getApiKeyRequest)),
+			)
+		}
+		return nil, diags
+	}
+	key, diags := flattenGetApiKeyResponse(ctx, id, getApiKeyResponse, keyValue)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return key, nil
 }
 
 func makeGetApiKeyRequest(apiKeyId *string) (*apikeys.GetApiKeyRequest, diag.Diagnostics) {
 	return &apikeys.GetApiKeyRequest{
+		KeyId: *apiKeyId,
+	}, nil
+}
+
+func makeDeleteApi(apiKeyId *string) (*apikeys.DeleteApiKeyRequest, diag.Diagnostics) {
+	return &apikeys.DeleteApiKeyRequest{
 		KeyId: *apiKeyId,
 	}, nil
 }
@@ -327,17 +400,17 @@ func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*ap
 	}, nil
 }
 
-func extractOwner(plan *ApiKeyModel) apikeys.Owner {
-	if plan.Owner.UserId.ValueString() != "" {
+func extractOwner(keyModel *ApiKeyModel) apikeys.Owner {
+	if keyModel.Owner.UserId.ValueString() != "" {
 		return apikeys.Owner{
 			Owner: &apikeys.Owner_UserId{
-				UserId: plan.Owner.UserId.ValueString(),
+				UserId: keyModel.Owner.UserId.ValueString(),
 			},
 		}
 	} else {
 		return apikeys.Owner{
 			Owner: &apikeys.Owner_TeamId{
-				TeamId: uint32(plan.Owner.TeamId.ValueInt64()),
+				TeamId: uint32(keyModel.Owner.TeamId.ValueInt64()),
 			},
 		}
 	}
@@ -357,11 +430,4 @@ func flattenOwner(owner *apikeys.Owner) Owner {
 		TeamId: types.Int64Value(int64(owner.GetTeamId())),
 	}
 
-}
-
-func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	resp.Diagnostics.AddError(
-		"Delete not supported",
-		"Delete is not supported for this resource.",
-	)
 }
