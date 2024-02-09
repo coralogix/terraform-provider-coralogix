@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"google.golang.org/grpc/metadata"
 	"terraform-provider-coralogix/coralogix/clientset/rest"
 )
 
@@ -25,7 +26,8 @@ type SCIMGroupMember struct {
 	Value string `json:"value"`
 }
 
-func (c GroupsClient) CreateGroup(ctx context.Context, groupReq *SCIMGroup) (*SCIMGroup, error) {
+func (c GroupsClient) CreateGroup(ctx context.Context, teamID string, groupReq *SCIMGroup) (*SCIMGroup, error) {
+	ctx = metadata.AppendToOutgoingContext(ctx, "target-team-id", teamID)
 	body, err := json.Marshal(groupReq)
 	if err != nil {
 		return nil, err
@@ -45,8 +47,9 @@ func (c GroupsClient) CreateGroup(ctx context.Context, groupReq *SCIMGroup) (*SC
 	return &groupResp, nil
 }
 
-func (c GroupsClient) GetGroup(ctx context.Context, id string) (*SCIMGroup, error) {
-	bodyResp, err := c.client.Get(ctx, fmt.Sprintf("/%s", id))
+func (c GroupsClient) GetGroup(ctx context.Context, teamID, groupID string) (*SCIMGroup, error) {
+	ctx = metadata.AppendToOutgoingContext(ctx, "target-team-id", teamID)
+	bodyResp, err := c.client.Get(ctx, fmt.Sprintf("/%s", groupID))
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +63,8 @@ func (c GroupsClient) GetGroup(ctx context.Context, id string) (*SCIMGroup, erro
 	return &groupResp, nil
 }
 
-func (c GroupsClient) UpdateGroup(ctx context.Context, groupReq *SCIMGroup) (*SCIMGroup, error) {
+func (c GroupsClient) UpdateGroup(ctx context.Context, teamID string, groupReq *SCIMGroup) (*SCIMGroup, error) {
+	ctx = metadata.AppendToOutgoingContext(ctx, "target-team-id", teamID)
 	body, err := json.Marshal(groupReq)
 	if err != nil {
 		return nil, err
@@ -80,8 +84,9 @@ func (c GroupsClient) UpdateGroup(ctx context.Context, groupReq *SCIMGroup) (*SC
 	return &groupResp, nil
 }
 
-func (c GroupsClient) DeleteGroup(ctx context.Context, id string) error {
-	_, err := c.client.Delete(ctx, fmt.Sprintf("/%s", id))
+func (c GroupsClient) DeleteGroup(ctx context.Context, teamID, groupID string) error {
+	ctx = metadata.AppendToOutgoingContext(ctx, "target-team-id", teamID)
+	_, err := c.client.Delete(ctx, fmt.Sprintf("/%s", groupID))
 	return err
 
 }

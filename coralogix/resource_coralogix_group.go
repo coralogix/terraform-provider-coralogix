@@ -62,6 +62,12 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				},
 				MarkdownDescription: "Group ID.",
 			},
+			"team_id": schema.StringAttribute{
+				Required: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+			},
 			"display_name": schema.StringAttribute{
 				Required: true,
 				Validators: []validator.String{
@@ -100,7 +106,8 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 	groupStr, _ := json.Marshal(createGroupRequest)
 	log.Printf("[INFO] Creating new group: %s", string(groupStr))
-	createResp, err := r.client.CreateGroup(ctx, createGroupRequest)
+	teamID := plan.TeamID.ValueString()
+	createResp, err := r.client.CreateGroup(ctx, teamID, createGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		return
@@ -157,7 +164,8 @@ func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	//Get refreshed Group value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading Group: %s", id)
-	getGroupResp, err := r.client.GetGroup(ctx, id)
+	teamID := state.TeamID.ValueString()
+	getGroupResp, err := r.client.GetGroup(ctx, teamID, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
@@ -205,7 +213,8 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	groupStr, _ := json.Marshal(groupUpdateReq)
 	log.Printf("[INFO] Updating Group: %s", string(groupStr))
-	groupUpdateResp, err := r.client.UpdateGroup(ctx, groupUpdateReq)
+	teamID := plan.TeamID.ValueString()
+	groupUpdateResp, err := r.client.UpdateGroup(ctx, teamID, groupUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -219,7 +228,7 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	// Get refreshed Group value from Coralogix
 	id := plan.ID.ValueString()
-	getGroupResp, err := r.client.GetGroup(ctx, id)
+	getGroupResp, err := r.client.GetGroup(ctx, teamID, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -239,8 +248,8 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	groupStr, _ = json.Marshal(getGroupResp)
 	log.Printf("[INFO] Received Group: %s", string(groupStr))
 
-	plan, diags = flattenSCIMGroup(getGroupResp)
-
+	state, diags := flattenSCIMGroup(getGroupResp)
+	state.TeamID = plan.TeamID
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -256,7 +265,8 @@ func (r *GroupResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting Group %s", id)
-	if err := r.client.DeleteGroup(ctx, id); err != nil {
+	teamID := state.TeamID.ValueString()
+	if err := r.client.DeleteGroup(ctx, teamID, id); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Group %s", id),
 			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), ""),
@@ -268,6 +278,7 @@ func (r *GroupResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 
 type GroupResourceModel struct {
 	ID          types.String `tfsdk:"id"`
+	TeamID      types.String `tfsdk:"team_id"`
 	DisplayName types.String `tfsdk:"display_name"`
 	Members     types.Set    `tfsdk:"members"` // Set of strings
 	Role        types.String `tfsdk:"role"`

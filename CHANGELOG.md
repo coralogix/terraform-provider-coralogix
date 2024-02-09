@@ -445,3 +445,14 @@ New Features:
 Bug fixing:
 #### resource/coralogix_slo
 * fixing log messages and flattening update-response into schema.
+
+## Release 1.11.6
+Bug fixing:
+#### resource/coralogix_dashboard
+* fixing DataTableSpansAggregationModel parsing bug.
+
+## Release 1.11.7
+New Features:
+#### resource/coralogix_user
+* Adding support for `coralogix_user` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/user.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/user.md).
+* Adding support for `coralogix_user_group` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/group.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/group.md).
