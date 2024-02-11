@@ -150,7 +150,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating User",
-			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, *createUserRequest.ID), string(userStr)),
+			formatRpcErrors(err, r.client.TargetUrl, string(userStr)),
 		)
 		return
 	}

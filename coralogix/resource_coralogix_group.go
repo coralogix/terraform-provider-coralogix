@@ -112,7 +112,7 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Group",
-			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, plan.ID), string(groupStr)),
+			formatRpcErrors(err, r.client.TargetUrl, string(groupStr)),
 		)
 		return
 	}
