@@ -14,4 +14,5 @@ provider "coralogix" {
 
 resource "coralogix_user" "example" {
   user_name = "example@coralogix.com"
+  team_id   = "team-id"
 }
