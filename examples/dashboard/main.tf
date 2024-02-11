@@ -85,7 +85,6 @@ resource "coralogix_dashboard" dashboard {
                         scale_type         = "linear"
                         series_count_limit = 100
                         unit               = "milliseconds"
-                        data_mode_type     = "archive"
                       },
                     ]
                     legend = {
@@ -125,7 +124,6 @@ resource "coralogix_dashboard" dashboard {
                         resolution         = {
                           buckets_presented = 10
                         }
-                        data_mode_type     = "archive"
                       },
                     ]
                     legend = {

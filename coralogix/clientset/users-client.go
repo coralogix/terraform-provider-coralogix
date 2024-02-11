@@ -41,7 +41,7 @@ type SCIMUserGroup struct {
 }
 
 func (c UsersClient) CreateUser(ctx context.Context, teamID string, userReq *SCIMUser) (*SCIMUser, error) {
-	ctx = metadata.AppendToOutgoingContext(ctx, "target-team-id", teamID)
+	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
 	body, err := json.Marshal(userReq)
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (c UsersClient) CreateUser(ctx context.Context, teamID string, userReq *SCI
 }
 
 func (c UsersClient) GetUser(ctx context.Context, teamID, userID string) (*SCIMUser, error) {
-	ctx = metadata.AppendToOutgoingContext(ctx, "target-team-id", teamID)
+	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
 	bodyResp, err := c.client.Get(ctx, fmt.Sprintf("/%s", userID))
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func (c UsersClient) GetUser(ctx context.Context, teamID, userID string) (*SCIMU
 }
 
 func (c UsersClient) UpdateUser(ctx context.Context, teamID string, userReq *SCIMUser) (*SCIMUser, error) {
-	ctx = metadata.AppendToOutgoingContext(ctx, "target-team-id", teamID)
+	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
 	body, err := json.Marshal(userReq)
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func (c UsersClient) UpdateUser(ctx context.Context, teamID string, userReq *SCI
 }
 
 func (c UsersClient) DeleteUser(ctx context.Context, teamID, userID string) error {
-	ctx = metadata.AppendToOutgoingContext(ctx, "target-team-id", teamID)
+	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
 	_, err := c.client.Delete(ctx, fmt.Sprintf("/%s", userID))
 	return err
 

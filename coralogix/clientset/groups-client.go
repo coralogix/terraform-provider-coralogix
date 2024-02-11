@@ -27,7 +27,7 @@ type SCIMGroupMember struct {
 }
 
 func (c GroupsClient) CreateGroup(ctx context.Context, teamID string, groupReq *SCIMGroup) (*SCIMGroup, error) {
-	ctx = metadata.AppendToOutgoingContext(ctx, "target-team-id", teamID)
+	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
 	body, err := json.Marshal(groupReq)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (c GroupsClient) CreateGroup(ctx context.Context, teamID string, groupReq *
 }
 
 func (c GroupsClient) GetGroup(ctx context.Context, teamID, groupID string) (*SCIMGroup, error) {
-	ctx = metadata.AppendToOutgoingContext(ctx, "target-team-id", teamID)
+	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
 	bodyResp, err := c.client.Get(ctx, fmt.Sprintf("/%s", groupID))
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func (c GroupsClient) GetGroup(ctx context.Context, teamID, groupID string) (*SC
 }
 
 func (c GroupsClient) UpdateGroup(ctx context.Context, teamID string, groupReq *SCIMGroup) (*SCIMGroup, error) {
-	ctx = metadata.AppendToOutgoingContext(ctx, "target-team-id", teamID)
+	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
 	body, err := json.Marshal(groupReq)
 	if err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func (c GroupsClient) UpdateGroup(ctx context.Context, teamID string, groupReq *
 }
 
 func (c GroupsClient) DeleteGroup(ctx context.Context, teamID, groupID string) error {
-	ctx = metadata.AppendToOutgoingContext(ctx, "target-team-id", teamID)
+	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
 	_, err := c.client.Delete(ctx, fmt.Sprintf("/%s", groupID))
 	return err
 
