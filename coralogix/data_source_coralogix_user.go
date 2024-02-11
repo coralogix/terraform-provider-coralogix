@@ -89,6 +89,7 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	data.TeamID = types.StringValue(teamId)
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &data)

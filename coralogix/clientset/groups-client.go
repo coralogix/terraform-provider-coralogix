@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"google.golang.org/grpc/metadata"
 	"terraform-provider-coralogix/coralogix/clientset/rest"
 )
 
@@ -27,13 +26,12 @@ type SCIMGroupMember struct {
 }
 
 func (c GroupsClient) CreateGroup(ctx context.Context, teamID string, groupReq *SCIMGroup) (*SCIMGroup, error) {
-	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
 	body, err := json.Marshal(groupReq)
 	if err != nil {
 		return nil, err
 	}
 
-	bodyResp, err := c.client.Post(ctx, "", "application/json", string(body))
+	bodyResp, err := c.client.Post(ctx, "", "application/json", string(body), "cgx-team-id", teamID)
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +46,7 @@ func (c GroupsClient) CreateGroup(ctx context.Context, teamID string, groupReq *
 }
 
 func (c GroupsClient) GetGroup(ctx context.Context, teamID, groupID string) (*SCIMGroup, error) {
-	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
-	bodyResp, err := c.client.Get(ctx, fmt.Sprintf("/%s", groupID))
+	bodyResp, err := c.client.Get(ctx, fmt.Sprintf("/%s", groupID), "cgx-team-id", teamID)
 	if err != nil {
 		return nil, err
 	}
@@ -63,14 +60,13 @@ func (c GroupsClient) GetGroup(ctx context.Context, teamID, groupID string) (*SC
 	return &groupResp, nil
 }
 
-func (c GroupsClient) UpdateGroup(ctx context.Context, teamID string, groupReq *SCIMGroup) (*SCIMGroup, error) {
-	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
+func (c GroupsClient) UpdateGroup(ctx context.Context, teamID, groupID string, groupReq *SCIMGroup) (*SCIMGroup, error) {
 	body, err := json.Marshal(groupReq)
 	if err != nil {
 		return nil, err
 	}
 
-	bodyResp, err := c.client.Put(ctx, fmt.Sprintf("/%s", groupReq.ID), "application/json", string(body))
+	bodyResp, err := c.client.Put(ctx, fmt.Sprintf("/%s", groupID), "application/json", string(body), "cgx-team-id", teamID)
 	if err != nil {
 		return nil, err
 	}
@@ -85,8 +81,7 @@ func (c GroupsClient) UpdateGroup(ctx context.Context, teamID string, groupReq *
 }
 
 func (c GroupsClient) DeleteGroup(ctx context.Context, teamID, groupID string) error {
-	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
-	_, err := c.client.Delete(ctx, fmt.Sprintf("/%s", groupID))
+	_, err := c.client.Delete(ctx, fmt.Sprintf("/%s", groupID), "cgx-team-id", teamID)
 	return err
 
 }

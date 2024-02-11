@@ -7,21 +7,20 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"terraform-provider-coralogix/coralogix/clientset"
-
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 func NewUserResource() resource.Resource {
@@ -145,6 +144,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	userStr, _ := json.Marshal(createUserRequest)
 	log.Printf("[INFO] Creating new User: %s", string(userStr))
 	teamID := plan.TeamID.ValueString()
+	log.Printf("[INFO] Team ID: %s", teamID)
 	createResp, err := r.client.CreateUser(ctx, teamID, createUserRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
@@ -157,14 +157,15 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	userStr, _ = json.Marshal(createResp)
 	log.Printf("[INFO] Submitted new User: %s", userStr)
 
-	plan, diags = flattenSCIMUser(ctx, createResp)
+	state, diags := flattenSCIMUser(ctx, createResp)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	state.TeamID = types.StringValue(teamID)
 
 	// Set state to fully populated data
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -250,7 +251,6 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	//Get refreshed User value from Coralogix
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Reading User: %s", id)
 	teamID := state.TeamID.ValueString()
 	getUserResp, err := r.client.GetUser(ctx, teamID, id)
 	if err != nil {
@@ -272,11 +272,13 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	respStr, _ := json.Marshal(getUserResp)
 	log.Printf("[INFO] Received User: %s", string(respStr))
 
+	teamID = state.TeamID.ValueString()
 	state, diags = flattenSCIMUser(ctx, getUserResp)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	state.TeamID = types.StringValue(teamID)
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &state)
@@ -285,10 +287,23 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
-	var plan *UserResourceModel
+	var plan, state *UserResourceModel
 	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	diags = req.State.Get(ctx, &state)
 	if resp.Diagnostics.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	if plan.UserName.ValueString() != state.UserName.ValueString() {
+		resp.Diagnostics.AddError(
+			"User name cannot be updated",
+			"User name is immutable and cannot be updated",
+		)
 		return
 	}
 
@@ -301,21 +316,21 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	userStr, _ := json.Marshal(userUpdateReq)
 	log.Printf("[INFO] Updating User: %s", string(userStr))
 	teamID := plan.TeamID.ValueString()
-	UserUpdateResp, err := r.client.UpdateUser(ctx, teamID, userUpdateReq)
+	userID := plan.ID.ValueString()
+	userUpdateResp, err := r.client.UpdateUser(ctx, teamID, userID, userUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating User",
-			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, *userUpdateReq.ID), string(userStr)),
+			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, userID), string(userStr)),
 		)
 		return
 	}
-	userStr, _ = json.Marshal(UserUpdateResp)
+	userStr, _ = json.Marshal(userUpdateResp)
 	log.Printf("[INFO] Submitted updated User: %s", string(userStr))
 
 	// Get refreshed User value from Coralogix
 	id := plan.ID.ValueString()
-	log.Printf("[INFO] Reading User: %s", id)
 	getUserResp, err := r.client.GetUser(ctx, teamID, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
@@ -336,10 +351,15 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	userStr, _ = json.Marshal(getUserResp)
 	log.Printf("[INFO] Received User: %s", string(userStr))
 
-	plan, diags = flattenSCIMUser(ctx, getUserResp)
+	state, diags = flattenSCIMUser(ctx, getUserResp)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	state.TeamID = types.StringValue(teamID)
 
 	// Set state to fully populated data
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -449,31 +469,25 @@ func extractUserSCIMName(ctx context.Context, name types.Object) (*clientset.SCI
 	}, nil
 }
 
-func extractUserEmails(ctx context.Context, members types.Set) ([]clientset.SCIMUserEmail, diag.Diagnostics) {
-	membersElements := members.Elements()
-	userEmails := make([]clientset.SCIMUserEmail, 0, len(membersElements))
+func extractUserEmails(ctx context.Context, emails types.Set) ([]clientset.SCIMUserEmail, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	for _, member := range membersElements {
-		val, err := member.ToTerraformValue(ctx)
-		if err != nil {
-			diags.AddError("Failed to convert value to Terraform", err.Error())
+	var emailsObjects []types.Object
+	var expandedEmails []clientset.SCIMUserEmail
+	emails.ElementsAs(ctx, &emailsObjects, true)
+
+	for _, eo := range emailsObjects {
+		var email UserEmailModel
+		if dg := eo.As(ctx, &email, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
 			continue
 		}
-
-		var mail UserEmailModel
-		if err = val.As(&mail); err != nil {
-			diags.AddError("Failed to convert value to UserEmailModel", err.Error())
-			continue
+		expandedEmail := clientset.SCIMUserEmail{
+			Value:   email.Value.ValueString(),
+			Primary: email.Primary.ValueBool(),
+			Type:    email.Type.ValueString(),
 		}
+		expandedEmails = append(expandedEmails, expandedEmail)
+	}
 
-		userEmails = append(userEmails, clientset.SCIMUserEmail{
-			Value:   mail.Value.ValueString(),
-			Primary: mail.Primary.ValueBool(),
-			Type:    mail.Type.ValueString(),
-		})
-	}
-	if diags.HasError() {
-		return nil, diags
-	}
-	return userEmails, nil
+	return expandedEmails, diags
 }

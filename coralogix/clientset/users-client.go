@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 
-	"google.golang.org/grpc/metadata"
 	"terraform-provider-coralogix/coralogix/clientset/rest"
 )
 
@@ -41,13 +40,12 @@ type SCIMUserGroup struct {
 }
 
 func (c UsersClient) CreateUser(ctx context.Context, teamID string, userReq *SCIMUser) (*SCIMUser, error) {
-	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
 	body, err := json.Marshal(userReq)
 	if err != nil {
 		return nil, err
 	}
 
-	bodyResp, err := c.client.Post(ctx, "", "application/json", string(body))
+	bodyResp, err := c.client.Post(ctx, "", "application/json", string(body), "cgx-team-id", teamID)
 	if err != nil {
 		return nil, err
 	}
@@ -62,8 +60,7 @@ func (c UsersClient) CreateUser(ctx context.Context, teamID string, userReq *SCI
 }
 
 func (c UsersClient) GetUser(ctx context.Context, teamID, userID string) (*SCIMUser, error) {
-	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
-	bodyResp, err := c.client.Get(ctx, fmt.Sprintf("/%s", userID))
+	bodyResp, err := c.client.Get(ctx, fmt.Sprintf("/%s", userID), "cgx-team-id", teamID)
 	if err != nil {
 		return nil, err
 	}
@@ -77,14 +74,13 @@ func (c UsersClient) GetUser(ctx context.Context, teamID, userID string) (*SCIMU
 	return &UserResp, nil
 }
 
-func (c UsersClient) UpdateUser(ctx context.Context, teamID string, userReq *SCIMUser) (*SCIMUser, error) {
-	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
+func (c UsersClient) UpdateUser(ctx context.Context, teamID, userID string, userReq *SCIMUser) (*SCIMUser, error) {
 	body, err := json.Marshal(userReq)
 	if err != nil {
 		return nil, err
 	}
 
-	bodyResp, err := c.client.Put(ctx, fmt.Sprintf("/%s", *userReq.ID), "application/json", string(body))
+	bodyResp, err := c.client.Put(ctx, fmt.Sprintf("/%s", userID), "application/json", string(body), "cgx-team-id", teamID)
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +95,7 @@ func (c UsersClient) UpdateUser(ctx context.Context, teamID string, userReq *SCI
 }
 
 func (c UsersClient) DeleteUser(ctx context.Context, teamID, userID string) error {
-	ctx = metadata.AppendToOutgoingContext(ctx, "cgx-team-id", teamID)
-	_, err := c.client.Delete(ctx, fmt.Sprintf("/%s", userID))
+	_, err := c.client.Delete(ctx, fmt.Sprintf("/%s", userID), "cgx-team-id", teamID)
 	return err
 
 }

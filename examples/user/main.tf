@@ -13,5 +13,5 @@ provider "coralogix" {
 }
 
 resource "coralogix_user" "example" {
-  user_name = "test-or@coralogix.com"
+  user_name = "example@coralogix.com"
 }

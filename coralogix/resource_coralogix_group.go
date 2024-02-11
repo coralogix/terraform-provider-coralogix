@@ -76,7 +76,7 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				MarkdownDescription: "Group display name.",
 			},
 			"members": schema.SetAttribute{
-				Required:    true,
+				Optional:    true,
 				ElementType: types.StringType,
 			},
 			"role": schema.StringAttribute{
@@ -119,14 +119,15 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 	groupStr, _ = json.Marshal(createResp)
 	log.Printf("[INFO] Submitted new group: %s", groupStr)
 
-	plan, diags = flattenSCIMGroup(createResp)
+	state, diags := flattenSCIMGroup(createResp)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	state.TeamID = types.StringValue(teamID)
 
 	// Set state to fully populated data
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -145,6 +146,9 @@ func flattenSCIMGroup(group *clientset.SCIMGroup) (*GroupResourceModel, diag.Dia
 }
 
 func flattenSCIMGroupMembers(members []clientset.SCIMGroupMember) (types.Set, diag.Diagnostics) {
+	if len(members) == 0 {
+		return types.SetNull(types.StringType), nil
+	}
 	var diags diag.Diagnostics
 	membersIDs := make([]attr.Value, 0, len(members))
 	for _, member := range members {
@@ -194,6 +198,7 @@ func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	state.TeamID = types.StringValue(teamID)
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &state)
@@ -218,7 +223,8 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	groupStr, _ := json.Marshal(groupUpdateReq)
 	log.Printf("[INFO] Updating Group: %s", string(groupStr))
 	teamID := plan.TeamID.ValueString()
-	groupUpdateResp, err := r.client.UpdateGroup(ctx, teamID, groupUpdateReq)
+	groupID := plan.ID.ValueString()
+	groupUpdateResp, err := r.client.UpdateGroup(ctx, teamID, groupID, groupUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -253,7 +259,12 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	log.Printf("[INFO] Received Group: %s", string(groupStr))
 
 	state, diags := flattenSCIMGroup(getGroupResp)
-	state.TeamID = plan.TeamID
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	state.TeamID = types.StringValue(teamID)
+
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -294,6 +305,11 @@ func extractCreateGroup(ctx context.Context, plan *GroupResourceModel) (*clients
 		return nil, diags
 	}
 
+	var id *string
+	if !plan.ID.IsNull() || plan.ID.IsUnknown() {
+		id = new(string)
+		*id = plan.ID.ValueString()
+	}
 	return &clientset.SCIMGroup{
 		DisplayName: plan.DisplayName.ValueString(),
 		Members:     members,
