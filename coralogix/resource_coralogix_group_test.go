@@ -24,7 +24,7 @@ func TestAccCoralogixResourceGroup(t *testing.T) {
 				Config: testAccCoralogixResourceGroup(userName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(groupResourceName, "id"),
-					resource.TestCheckResourceAttr(groupResourceName, "name", "example"),
+					resource.TestCheckResourceAttr(groupResourceName, "display_name", "example"),
 					resource.TestCheckResourceAttr(groupResourceName, "role", "Read Only"),
 					resource.TestCheckResourceAttr(groupResourceName, "members.#", "1"),
 					resource.TestCheckResourceAttrPair(groupResourceName, "members.0", "coralogix_user.test", "id"),
