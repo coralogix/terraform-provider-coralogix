@@ -12,6 +12,7 @@ provider "coralogix" {
   #  env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
+
 resource "coralogix_dashboard" dashboard {
   name        = "portal monitoring"
   description = "<insert description>"
@@ -603,7 +604,7 @@ resource "coralogix_dashboard" dashboard {
 }
 
 resource "coralogix_dashboards_folder" "example" {
-  name     = "example_2"
+  name     = "example"
 }
 
 resource "coralogix_dashboard" dashboard_from_json {
