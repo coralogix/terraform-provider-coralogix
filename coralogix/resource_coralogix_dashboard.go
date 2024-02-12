@@ -28,6 +28,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/nsf/jsondiff"
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -2421,7 +2422,7 @@ func (c ContentJsonValidator) ValidateString(_ context.Context, request validato
 }
 
 func JSONStringsEqualPlanModifier(_ context.Context, plan planmodifier.StringRequest, req *stringplanmodifier.RequiresReplaceIfFuncResponse) {
-	if JSONStringsEqual(plan.PlanValue.ValueString(), plan.StateValue.ValueString()) {
+	if diffType, _ := jsondiff.Compare([]byte(plan.PlanValue.ValueString()), []byte(plan.StateValue.ValueString()), &jsondiff.Options{}); !(diffType == jsondiff.FullMatch || diffType == jsondiff.SupersetMatch) {
 		req.RequiresReplace = false
 	}
 	req.RequiresReplace = true
@@ -5521,17 +5522,18 @@ func expandDashboardIDs(id types.String) *wrapperspb.StringValue {
 }
 
 func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboard *dashboards.Dashboard) (*DashboardResourceModel, diag.Diagnostics) {
-	if !plan.ContentJson.IsNull() {
+	if !(plan.ContentJson.IsNull() || plan.ContentJson.IsUnknown()) {
 		contentJson, err := protojson.Marshal(dashboard)
 		if err != nil {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard", err.Error())}
 		}
-		if JSONStringsEqual(plan.ContentJson.ValueString(), string(contentJson)) {
-			contentJson = []byte(plan.ContentJson.ValueString())
+
+		if diffType, diffString := jsondiff.Compare([]byte(plan.ContentJson.ValueString()), contentJson, &jsondiff.Options{}); !(diffType == jsondiff.FullMatch || diffType == jsondiff.SupersetMatch) {
+			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard", fmt.Sprintf("ContentJson does not match the dashboard content: %s", diffString))}
 		}
 
 		return &DashboardResourceModel{
-			ContentJson: types.StringValue(string(contentJson)),
+			ContentJson: types.StringValue(plan.ContentJson.ValueString()),
 			ID:          types.StringValue(dashboard.GetId().GetValue()),
 			Name:        types.StringNull(),
 			Description: types.StringNull(),

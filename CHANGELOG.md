@@ -451,6 +451,11 @@ Bug fixing:
 #### resource/coralogix_dashboard
 * fixing DataTableSpansAggregationModel parsing bug.
 
+## Release 1.11.7
+Bug fixing:
+#### resource/coralogix_dashboard
+* fixing flatten of `json_content` field bug.
+
 ## Release 1.11.8
 New Features:
 #### resource/coralogix_user
