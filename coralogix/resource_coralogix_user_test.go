@@ -62,7 +62,8 @@ func testAccCheckUserDestroy(s *terraform.State) error {
 }
 
 func randUserName() string {
-	return fmt.Sprintf("%s@coralogix.com", RandStringBytes(5))
+	return "test@coralogix.com"
+	//return fmt.Sprintf("%s@coralogix.com", RandStringBytes(5))
 }
 
 func testAccCoralogixResourceUser(userName string) string {
