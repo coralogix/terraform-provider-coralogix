@@ -14,13 +14,14 @@ import (
 var groupResourceName = "coralogix_group.test"
 
 func TestAccCoralogixResourceGroup(t *testing.T) {
+	userName := randUserName()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckGroupDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceGroup(),
+				Config: testAccCoralogixResourceGroup(userName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(groupResourceName, "id"),
 					resource.TestCheckResourceAttr(groupResourceName, "name", "example"),
@@ -59,11 +60,11 @@ func testAccCheckGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCoralogixResourceGroup() string {
+func testAccCoralogixResourceGroup(userName string) string {
 	return fmt.Sprintf(`
 	resource "coralogix_user" "test" {
 	  team_id   = "%[1]s"
-	  user_name = "test@coralogix.com"
+	  user_name = "%[2]s"
 	}
 
 	resource "coralogix_group" "test" {
@@ -72,5 +73,5 @@ func testAccCoralogixResourceGroup() string {
       role         = "Read Only"
       members      = [coralogix_user.test.id]
 	}
-`, teamID)
+`, teamID, userName)
 }

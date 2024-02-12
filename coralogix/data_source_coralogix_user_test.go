@@ -9,15 +9,16 @@ import (
 var userDataSourceName = "data." + userResourceName
 
 func TestAccCoralogixDataSourceUser_basic(t *testing.T) {
+	userName := randUserName()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceUser() +
+				Config: testAccCoralogixResourceUser(userName) +
 					testAccCoralogixDataSourceUser_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(userDataSourceName, "user_name", "test@coralogix.com"),
+					resource.TestCheckResourceAttr(userDataSourceName, "user_name", userName),
 				),
 			},
 		},

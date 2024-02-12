@@ -13,7 +13,7 @@ provider "coralogix" {
 }
 
 resource "coralogix_user" "example" {
-  user_name = "example@coralogix.com"
+  user_name = "example1000@coralogix.com"
   team_id   = "team_id"
   name      = {
     given_name  = "example"
@@ -27,3 +27,4 @@ resource "coralogix_group" "example" {
   role         = "Read Only"
   members      = [coralogix_user.example.id]
 }
+
