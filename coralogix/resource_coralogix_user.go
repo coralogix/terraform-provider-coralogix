@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
@@ -64,15 +65,15 @@ func (r *UserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				MarkdownDescription: "User ID.",
 			},
 			"team_id": schema.StringAttribute{
-				Required:  true,
-				Sensitive: true,
+				Required: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
+				MarkdownDescription: "The ID of team that the user will be created. If this value is changed, the user will be deleted and recreate.",
 			},
 			"user_name": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "User name. ",
+				MarkdownDescription: "User name.",
 			},
 			"name": schema.SingleNestedAttribute{
 				Optional: true,
@@ -95,19 +96,30 @@ func (r *UserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				Default:  booldefault.StaticBool(true),
 			},
 			"emails": schema.SetNestedAttribute{
-				Optional: true,
 				Computed: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"primary": schema.BoolAttribute{
-							Required: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.Bool{
+								boolplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"value": schema.StringAttribute{
-							Required: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"type": schema.StringAttribute{
-							Required: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
+					},
+					PlanModifiers: []planmodifier.Object{
+						objectplanmodifier.UseStateForUnknown(),
 					},
 				},
 				PlanModifiers: []planmodifier.Set{
@@ -115,9 +127,11 @@ func (r *UserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				},
 			},
 			"groups": schema.SetAttribute{
-				Optional:    true,
 				Computed:    true,
 				ElementType: types.StringType,
+				PlanModifiers: []planmodifier.Set{
+					setplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 		MarkdownDescription: "Coralogix User.",

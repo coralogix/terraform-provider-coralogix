@@ -451,7 +451,7 @@ Bug fixing:
 #### resource/coralogix_dashboard
 * fixing DataTableSpansAggregationModel parsing bug.
 
-## Release 1.11.7
+## Release 1.11.8
 New Features:
 #### resource/coralogix_user
 * Adding support for `coralogix_user` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/user.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/user.md).

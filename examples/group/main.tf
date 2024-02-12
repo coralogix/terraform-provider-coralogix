@@ -12,15 +12,15 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_user" "test" {
+resource "coralogix_user" "example" {
   team_id   = "team-id"
-  user_name = "test3@coralogix.com"
+  user_name = "example@coralogix.com"
   active    = true
 }
 
-resource "coralogix_group" "test" {
+resource "coralogix_group" "example" {
   team_id      = "team-id"
   display_name = "example"
   role         = "Read Only"
-  members      = [coralogix_user.test.id]
+  members      = [coralogix_user.example.id]
 }
