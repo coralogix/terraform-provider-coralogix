@@ -29,5 +29,7 @@ jobs:
         env:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
+          CORALOGIX_ORG_KEY: ${{ secrets.CORALOGIX_ORG_KEY }}
+
         run: |
           make testacc
