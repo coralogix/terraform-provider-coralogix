@@ -50,7 +50,7 @@ func (d *GroupDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchemaWithTeamID(resourceResp.Schema)
 }
 
 func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {

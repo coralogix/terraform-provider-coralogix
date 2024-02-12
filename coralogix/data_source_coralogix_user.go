@@ -50,7 +50,7 @@ func (d *UserDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest,
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchemaWithTeamID(resourceResp.Schema)
 }
 
 func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -88,7 +89,18 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 }
 
 func (r *GroupResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	ids := strings.Split(req.ID, ",")
+
+	if len(ids) != 2 || ids[0] == "" || ids[1] == "" {
+		resp.Diagnostics.AddError(
+			"Unexpected Import Identifier",
+			fmt.Sprintf("Expected import identifier with format: group-id,team-id. Got: %q", req.ID),
+		)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), ids[0])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("team_id"), ids[1])...)
 }
 
 func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

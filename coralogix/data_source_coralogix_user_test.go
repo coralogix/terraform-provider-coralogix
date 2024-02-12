@@ -1,6 +1,7 @@
 package coralogix
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -26,8 +27,9 @@ func TestAccCoralogixDataSourceUser_basic(t *testing.T) {
 }
 
 func testAccCoralogixDataSourceUser_read() string {
-	return `data "coralogix_user" "test" {
+	return fmt.Sprintf(`data "coralogix_user" "test" {
 	id = coralogix_user.test.id
+    team_id = "%s"
 }
-`
+`, teamID)
 }
