@@ -27,7 +27,7 @@ func TestAccCoralogixDataSourceGroup_basic(t *testing.T) {
 }
 
 func testAccCoralogixDataSourceGroup_read() string {
-	return fmt.Sprintf(`data "coralogix_events2metric" "test" {
+	return fmt.Sprintf(`data "coralogix_group" "test" {
 	id = coralogix_group.test.id
     team_id = "%s"
 }

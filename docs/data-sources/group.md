@@ -26,10 +26,10 @@ data "coralogix_group" "example" {
 ### Required
 
 - `id` (String) Group ID.
+- `team_id` (String)
 
 ### Read-Only
 
 - `display_name` (String) Group display name.
 - `members` (Set of String)
 - `role` (String)
-- `team_id` (String)
