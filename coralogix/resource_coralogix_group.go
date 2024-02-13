@@ -94,13 +94,13 @@ func (r *GroupResource) ImportState(ctx context.Context, req resource.ImportStat
 	if len(ids) != 2 || ids[0] == "" || ids[1] == "" {
 		resp.Diagnostics.AddError(
 			"Unexpected Import Identifier",
-			fmt.Sprintf("Expected import identifier with format: group-id,team-id. Got: %q", req.ID),
+			fmt.Sprintf("Expected import identifier with format: team-id,group-id. Got: %q", req.ID),
 		)
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), ids[0])...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("team_id"), ids[1])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("team_id"), ids[0])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), ids[1])...)
 }
 
 func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

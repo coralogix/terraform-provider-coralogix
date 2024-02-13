@@ -25,3 +25,13 @@ Coralogix group.
 ### Read-Only
 
 - `id` (String) Group ID.
+
+### Import
+```sh
+terraform import coralogix_group.example "<team-id>,<group-id>,"
+```
+**Note**: The group id and the team id are required for importing the group.
+
+For getting the group id, send a GET request to the following endpoint `https://ng-api-http.<domain>/scim/Groups` with cgx-team-id header and the org-key as the Bearer Token, and check for the id of the desired group.
+
+[region-domain table](../index.md#region-domain-table)

@@ -32,9 +32,10 @@ func TestAccCoralogixResourceUser(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      userResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:        userResourceName,
+				ImportState:         true,
+				ImportStateIdPrefix: teamID + ",", // teamID is the prefix for the user ID
+				ImportStateVerify:   true,
 			},
 		},
 	})
