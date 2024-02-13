@@ -111,6 +111,31 @@ func frameworkDatasourceSchemaFromFrameworkResourceSchema(rs resourceschema.Sche
 	}
 }
 
+func frameworkDatasourceSchemaFromFrameworkResourceSchemaWithTeamID(rs resourceschema.Schema) datasourceschema.Schema {
+	attributes := convertAttributes(rs.Attributes)
+	if idSchema, ok := rs.Attributes["id"]; ok {
+		attributes["id"] = datasourceschema.StringAttribute{
+			Required:            true,
+			Description:         idSchema.GetDescription(),
+			MarkdownDescription: idSchema.GetMarkdownDescription(),
+		}
+	}
+	teamID := rs.Attributes["team_id"]
+	attributes["team_id"] = datasourceschema.StringAttribute{
+		Required:            true,
+		Description:         teamID.GetDescription(),
+		MarkdownDescription: teamID.GetMarkdownDescription(),
+	}
+
+	return datasourceschema.Schema{
+		Attributes: attributes,
+		//Blocks: convertBlocks(rs.Blocks),
+		Description:         rs.Description,
+		MarkdownDescription: rs.MarkdownDescription,
+		DeprecationMessage:  rs.DeprecationMessage,
+	}
+}
+
 func convertAttributes(attributes map[string]resourceschema.Attribute) map[string]datasourceschema.Attribute {
 	result := make(map[string]datasourceschema.Attribute, len(attributes))
 	for k, v := range attributes {
