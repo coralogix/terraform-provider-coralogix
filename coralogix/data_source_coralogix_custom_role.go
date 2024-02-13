@@ -29,7 +29,7 @@ type CustomRoleDataSource struct {
 }
 
 func (d *CustomRoleDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_api_key"
+	resp.TypeName = req.ProviderTypeName + "_custom_role"
 }
 
 func (d *CustomRoleDataSource) Configure(ctx context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
