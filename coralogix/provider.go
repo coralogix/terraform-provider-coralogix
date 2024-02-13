@@ -336,6 +336,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewSLODataSource,
 		NewDashboardsFoldersDataSource,
 		NewApiKeyDataSource,
+		NewCustomRoleDataSource,
 	}
 }
 

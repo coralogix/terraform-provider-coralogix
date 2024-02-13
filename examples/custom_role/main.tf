@@ -13,11 +13,9 @@ provider "coralogix" {
 }
 
 resource "coralogix_custom_role" "example" {
-  name  = "My Tf Role 7"
+  name  = "Example custom role"
   description = "This role is created with terraform!"
   parent_role = "Standard User"
-  permissions = ["data-map:ReadMaps"]
+  permissions = ["spans.events2metrics:UpdateConfig"]
   team_id = 563577
 }
-
-
