@@ -440,3 +440,18 @@ New Features:
 * Adding support for `folder`, `annotations` fields.
 * Adding support for `data_prime` for `bar_chart`, `data_table` and `pie_chart` widgets.
 * adding validation for `env` field.
+
+## Release 1.11.5
+Bug fixing:
+#### resource/coralogix_slo
+* fixing log messages and flattening update-response into schema.
+
+## Release 1.11.6
+Bug fixing:
+#### resource/coralogix_dashboard
+* fixing DataTableSpansAggregationModel parsing bug.
+
+## Release 1.11.7
+Bug fixing:
+#### resource/coralogix_dashboard
+* fixing flatten of `json_content` field bug.
