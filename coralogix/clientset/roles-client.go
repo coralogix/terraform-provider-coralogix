@@ -74,32 +74,6 @@ func (t RolesClient) ListCustomRole(ctx context.Context, req *roles.ListCustomRo
 	return client.ListCustomRoles(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (t RolesClient) ListSystemRole(ctx context.Context, req *roles.ListSystemRolesRequest) (*roles.ListSystemRolesResponse, error) {
-	callProperties, err := t.callPropertiesCreator.GetCallProperties(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	conn := callProperties.Connection
-	defer conn.Close()
-	client := roles.NewRoleManagementServiceClient(conn)
-
-	return client.ListSystemRoles(callProperties.Ctx, req, callProperties.CallOptions...)
-}
-
-func (t RolesClient) ListPermissions(ctx context.Context, req *roles.ListAllPermissionsRequest) (*roles.ListAllPermissionsResponse, error) {
-	callProperties, err := t.callPropertiesCreator.GetCallProperties(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	conn := callProperties.Connection
-	defer conn.Close()
-	client := roles.NewPermissionsServiceClient(conn)
-
-	return client.ListAllPermissions(callProperties.Ctx, req, callProperties.CallOptions...)
-}
-
 func NewRolesClient(c *CallPropertiesCreator) *RolesClient {
 	return &RolesClient{callPropertiesCreator: c}
 }
