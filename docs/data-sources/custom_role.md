@@ -17,21 +17,12 @@ Coralogix Api keys.
 
 ### Required
 
-- `id` (String) ApiKey ID.
+- `id` (String) Custom Role ID.
 
 ### Read-Only
 
-- `active` (Boolean) Api Key Is Active.
-- `hashed` (Boolean) Api Key Is Hashed.
-- `name` (String) Api Key name.
-- `owner` (Attributes) Api Key Owner.It can either be a team_id or a user_id (see [below for nested schema](#nestedatt--owner))
-- `roles` (Set of String) Api Key Roles
-- `value` (String) Api Key value.
-
-<a id="nestedatt--owner"></a>
-### Nested Schema for `owner`
-
-Read-Only:
-
-- `team_id` (Number)
-- `user_id` (String)
+- `description` (String) Custom Role description.
+- `name` (String) Custom Role name.
+- `parent_role` (String) Parent role name
+- `permissions` (Set of String) Custom role permissions
+- `team_id` (Number) Custom Role teamId.
