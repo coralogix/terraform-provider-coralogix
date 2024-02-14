@@ -61,19 +61,6 @@ func (t RolesClient) GetRole(ctx context.Context, req *roles.GetCustomRoleReques
 	return client.GetCustomRole(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (t RolesClient) ListCustomRole(ctx context.Context, req *roles.ListCustomRolesRequest) (*roles.ListCustomRolesResponse, error) {
-	callProperties, err := t.callPropertiesCreator.GetCallProperties(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	conn := callProperties.Connection
-	defer conn.Close()
-	client := roles.NewRoleManagementServiceClient(conn)
-
-	return client.ListCustomRoles(callProperties.Ctx, req, callProperties.CallOptions...)
-}
-
 func NewRolesClient(c *CallPropertiesCreator) *RolesClient {
 	return &RolesClient{callPropertiesCreator: c}
 }
