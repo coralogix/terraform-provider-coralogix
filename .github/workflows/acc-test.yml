@@ -30,6 +30,6 @@ jobs:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
           CORALOGIX_ORG_KEY: ${{ secrets.CORALOGIX_ORG_KEY }}
-
+          TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}
         run: |
           make testacc

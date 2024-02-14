@@ -18,7 +18,7 @@ func TestAccCoralogixDataSourceApiKey(t *testing.T) {
 					testApiKeyResource_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(apiKeyDataSourceName, "name", "Test Key 3"),
-					resource.TestCheckResourceAttr(apiKeyDataSourceName, "owner.team_id", targetTeam),
+					resource.TestCheckResourceAttr(apiKeyDataSourceName, "owner.team_id", teamID),
 					resource.TestCheckResourceAttr(apiKeyDataSourceName, "active", "true"),
 					resource.TestCheckResourceAttr(apiKeyDataSourceName, "hashed", "false"),
 				),
