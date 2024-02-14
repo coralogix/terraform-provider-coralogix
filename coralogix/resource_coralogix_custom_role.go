@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
@@ -17,6 +17,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"log"
 	"reflect"
+	"strconv"
 	"terraform-provider-coralogix/coralogix/clientset"
 	roles "terraform-provider-coralogix/coralogix/clientset/grpc/roles"
 )
@@ -41,7 +42,7 @@ func (c *CustomRoleSource) Metadata(ctx context.Context, req resource.MetadataRe
 }
 
 type RolesModel struct {
-	ID          types.Int64  `tfsdk:"id"`
+	ID          types.String `tfsdk:"id"`
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
 	ParentRole  types.String `tfsdk:"parent_role"`
@@ -70,10 +71,10 @@ func (c *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, r
 	resp.Schema = schema.Schema{
 		Version: 0,
 		Attributes: map[string]schema.Attribute{
-			"id": schema.Int64Attribute{
+			"id": schema.StringAttribute{
 				Computed: true,
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				MarkdownDescription: "Custom Role ID.",
 			},
@@ -139,7 +140,7 @@ func (c *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 	}
 	log.Printf("[INFO] Created custom role with ID: %v", createCustomRoleResponse.Id)
 
-	desiredState.ID = types.Int64Value(int64(createCustomRoleResponse.Id))
+	desiredState.ID = types.StringValue(strconv.FormatInt(int64(createCustomRoleResponse.Id), 10))
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, desiredState)
@@ -153,8 +154,13 @@ func (c *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	roleId, err := strconv.Atoi(currentState.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Id", "Custom role id must be an int")
+		return
+	}
+	model, done := c.getRoleById(ctx, uint32(roleId))
 
-	model, done := c.getRoleById(ctx, uint32(currentState.ID.ValueInt64()))
 	if done.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -213,10 +219,13 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	id := currentState.ID.ValueInt64()
-
+	roleId, err := strconv.Atoi(currentState.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Id", "Custom role id must be an int")
+		return
+	}
 	var updateRoleRequest = roles.UpdateRoleRequest{
-		RoleId: uint32(id),
+		RoleId: uint32(roleId),
 	}
 
 	if currentState.TeamId != desiredState.TeamId {
@@ -249,7 +258,7 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		}
 	}
 
-	_, err := c.client.UpdateRole(ctx, &updateRoleRequest)
+	_, err = c.client.UpdateRole(ctx, &updateRoleRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
@@ -266,7 +275,7 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	log.Printf("[INFO] Custom Role %v updated", id)
+	log.Printf("[INFO] Custom Role %v updated", roleId)
 
 	if diags.HasError() {
 		return
@@ -288,13 +297,16 @@ func (c *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	id := currentState.ID.ValueInt64()
-
+	id, err := strconv.Atoi(currentState.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Id", "Custom role id must be an int")
+		return
+	}
 	deleteRoleRequest := roles.DeleteRoleRequest{
-		RoleId: uint32(currentState.ID.ValueInt64()),
+		RoleId: uint32(id),
 	}
 
-	_, err := c.client.DeleteRole(ctx, &deleteRoleRequest)
+	_, err = c.client.DeleteRole(ctx, &deleteRoleRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
@@ -338,7 +350,7 @@ func flatterCustomRole(ctx context.Context, customRole *roles.CustomRole) (*Role
 	}
 
 	model := RolesModel{
-		ID:          types.Int64Value(int64(customRole.RoleId)),
+		ID:          types.StringValue(strconv.Itoa(int(customRole.RoleId))),
 		TeamId:      types.Int64Value(int64(customRole.TeamId)),
 		ParentRole:  types.StringValue(customRole.ParentRoleName),
 		Permissions: permissions,

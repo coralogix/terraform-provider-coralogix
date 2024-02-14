@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	roles "terraform-provider-coralogix/coralogix/clientset/grpc/roles"
 
 	"google.golang.org/protobuf/encoding/protojson"
@@ -65,10 +66,14 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	//Get refreshed Action value from Coralogix
-	id := data.ID.ValueInt64()
-	log.Printf("[INFO] Reading Custom Role: %v", id)
+	roleId, err := strconv.Atoi(data.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError("Invalid Id", "Custom role id must be an int")
+		return
+	}
+	log.Printf("[INFO] Reading Custom Role: %v", roleId)
 	getCustomRoleReuest := &roles.GetCustomRoleRequest{
-		RoleId: uint32(id),
+		RoleId: uint32(roleId),
 	}
 
 	createCustomRoleResponse, err := d.client.GetRole(ctx, getCustomRoleReuest)
@@ -76,8 +81,8 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Custom role  %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%v will be recreated when you apply", id),
+				fmt.Sprintf("Custom role  %q is in state, but no longer exists in Coralogix backend", roleId),
+				fmt.Sprintf("%v will be recreated when you apply", roleId),
 			)
 		} else {
 			resp.Diagnostics.AddError(

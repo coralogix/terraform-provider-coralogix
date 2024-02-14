@@ -19,10 +19,10 @@ Coralogix Api keys.
 
 - `description` (String) Custom Role description.
 - `name` (String) Custom Role name.
-- `parent_role` (String) Parent roles name
+- `parent_role` (String) Parent role name
 - `permissions` (Set of String) Custom role permissions
 - `team_id` (Number) Custom Role teamId.
 
 ### Read-Only
 
-- `id` (Number) Custom Role ID.
+- `id` (String) Custom Role ID.
