@@ -49,7 +49,7 @@ func testCustomRoleResource() string {
   permissions = ["spans.events2metrics:UpdateConfig"]
   team_id =  "<TEAM_ID>"
 }
-`, "<TEAM_ID>", targetTeam, 1)
+`, "<TEAM_ID>", teamID, 1)
 }
 
 func testCustomRoleUpdateResource() string {
@@ -60,5 +60,5 @@ func testCustomRoleUpdateResource() string {
   permissions = ["spans.events2metrics:UpdateConfig", "spans.events2metrics:ReadConfig"]
   team_id =  "<TEAM_ID>"
 }
-`, "<TEAM_ID>", targetTeam, 1)
+`, "<TEAM_ID>", teamID, 1)
 }
