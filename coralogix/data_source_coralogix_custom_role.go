@@ -82,7 +82,7 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading custom role",
-				formatRpcErrors(err, getActionURL, protojson.Format(getCustomRoleReuest)),
+				formatRpcErrors(err, getRolePath, protojson.Format(getCustomRoleReuest)),
 			)
 		}
 		return

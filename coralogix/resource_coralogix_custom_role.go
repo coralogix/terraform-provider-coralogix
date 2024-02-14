@@ -131,7 +131,7 @@ func (c *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 		} else {
 			resp.Diagnostics.AddError(
 				"Error creating Custom Role",
-				formatRpcErrors(err, createApiKeyPath, protojson.Format(createCustomRoleRequest)),
+				formatRpcErrors(err, createRolePath, protojson.Format(createCustomRoleRequest)),
 			)
 		}
 		return
@@ -180,7 +180,7 @@ func (c *CustomRoleSource) getRoleById(ctx context.Context, roleId uint32) (*Rol
 		} else {
 			diags.AddError(
 				"Error getting Custom Role",
-				formatRpcErrors(err, createApiKeyPath, protojson.Format(&getCustomRoleRequest)),
+				formatRpcErrors(err, getRolePath, protojson.Format(&getCustomRoleRequest)),
 			)
 		}
 		return nil, diags
@@ -259,7 +259,7 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		} else {
 			resp.Diagnostics.AddError(
 				"Error updating custom role",
-				formatRpcErrors(err, deleteApiKeyPath, protojson.Format(&updateRoleRequest)),
+				formatRpcErrors(err, updateRolePath, protojson.Format(&updateRoleRequest)),
 			)
 		}
 		return
@@ -300,7 +300,7 @@ func (c *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteReques
 		} else {
 			resp.Diagnostics.AddError(
 				"Error deleting Custom Role",
-				formatRpcErrors(err, deleteApiKeyPath, protojson.Format(&deleteRoleRequest)),
+				formatRpcErrors(err, deleteRolePath, protojson.Format(&deleteRoleRequest)),
 			)
 		}
 		return
