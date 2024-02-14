@@ -83,7 +83,7 @@ func (d *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				formatRpcErrors(err, getActionURL, protojson.Format(getApiKey)),
+				formatRpcErrors(err, getApiKeyPath, protojson.Format(getApiKey)),
 			)
 		}
 		return

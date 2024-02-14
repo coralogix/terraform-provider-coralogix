@@ -336,6 +336,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewSLODataSource,
 		NewDashboardsFoldersDataSource,
 		NewApiKeyDataSource,
+		NewCustomRoleDataSource,
 		NewGroupDataSource,
 		NewUserDataSource,
 	}
@@ -360,6 +361,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewMovingQuotaResource,
 		NewSLOResource,
 		NewDashboardsFolderResource,
+		NewCustomRoleSource,
 		NewGroupResource,
 		NewUserResource,
 	}

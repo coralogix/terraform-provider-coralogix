@@ -23,6 +23,7 @@ type ClientSet struct {
 	apiKeys             *ApikeysClient
 	groups              *GroupsClient
 	users               *UsersClient
+	customRole          *RolesClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -97,6 +98,10 @@ func (c *ClientSet) ApiKeys() *ApikeysClient {
 	return c.apiKeys
 }
 
+func (c *ClientSet) CustomRoles() *RolesClient {
+	return c.customRole
+}
+
 func (c *ClientSet) SLOs() *SLOsClient {
 	return c.slos
 }
@@ -140,5 +145,6 @@ func NewClientSet(targetUrl, apiKey, orgKey string) *ClientSet {
 		apiKeys:             NewApiKeysClient(teamsCPC),
 		groups:              NewGroupsClient(teamsCPC),
 		users:               NewUsersClient(teamsCPC),
+		customRole:          NewRolesClient(teamsCPC),
 	}
 }
