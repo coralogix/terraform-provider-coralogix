@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -47,7 +46,7 @@ type RolesModel struct {
 	Description types.String `tfsdk:"description"`
 	ParentRole  types.String `tfsdk:"parent_role"`
 	Permissions types.Set    `tfsdk:"permissions"`
-	TeamId      types.Int64  `tfsdk:"team_id"`
+	TeamId      types.String `tfsdk:"team_id"`
 }
 
 func (c *CustomRoleSource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -86,11 +85,11 @@ func (c *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Required:            true,
 				MarkdownDescription: "Custom Role description.",
 			},
-			"team_id": schema.Int64Attribute{
+			"team_id": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "Custom Role teamId.",
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.RequiresReplace(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"parent_role": schema.StringAttribute{
@@ -329,12 +328,16 @@ func makeCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) (*r
 	if diags.HasError() {
 		return nil, diags
 	}
-
+	teamId, err := strconv.Atoi(roleModel.TeamId.ValueString())
+	if err != nil {
+		diags.AddError("Invalid teamId", "Team id should be an integer")
+		return nil, diags
+	}
 	return &roles.CreateRoleRequest{
 		Name:        roleModel.Name.ValueString(),
 		Description: roleModel.Description.ValueString(),
 		Permissions: permissions,
-		TeamId:      uint32(roleModel.TeamId.ValueInt64()),
+		TeamId:      uint32(teamId),
 		ParentRole:  &roles.CreateRoleRequest_ParentRoleName{ParentRoleName: roleModel.ParentRole.ValueString()},
 	}, nil
 }
@@ -349,7 +352,7 @@ func flatterCustomRole(ctx context.Context, customRole *roles.CustomRole) (*Role
 
 	model := RolesModel{
 		ID:          types.StringValue(strconv.Itoa(int(customRole.RoleId))),
-		TeamId:      types.Int64Value(int64(customRole.TeamId)),
+		TeamId:      types.StringValue(strconv.Itoa(int(customRole.TeamId))),
 		ParentRole:  types.StringValue(customRole.ParentRoleName),
 		Permissions: permissions,
 		Description: types.StringValue(customRole.Description),
