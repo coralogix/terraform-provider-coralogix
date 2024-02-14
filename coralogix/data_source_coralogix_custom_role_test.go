@@ -8,7 +8,7 @@ import (
 
 var customRoleSourceName = "data." + customRoleResourceName
 
-func TestAccCoralogixDataSourceCustomRoke(t *testing.T) {
+func TestAccCoralogixDataSourceCustomRole(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

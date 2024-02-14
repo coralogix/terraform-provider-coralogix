@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -16,7 +17,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"log"
-	"reflect"
 	"strconv"
 	"terraform-provider-coralogix/coralogix/clientset"
 	roles "terraform-provider-coralogix/coralogix/clientset/grpc/roles"
@@ -89,6 +89,9 @@ func (c *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"team_id": schema.Int64Attribute{
 				Required:            true,
 				MarkdownDescription: "Custom Role teamId.",
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.RequiresReplace(),
+				},
 			},
 			"parent_role": schema.StringAttribute{
 				Required:            true,
@@ -103,7 +106,7 @@ func (c *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 		},
-		MarkdownDescription: "Coralogix Api keys.",
+		MarkdownDescription: "Coralogix Custom roles.",
 	}
 }
 
@@ -198,11 +201,6 @@ func (c *CustomRoleSource) getRoleById(ctx context.Context, roleId uint32) (*Rol
 		return nil, diags
 	}
 
-	model.Permissions, diags = types.SetValueFrom(ctx, types.StringType, model.Permissions.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-
 	return model, nil
 }
 
@@ -246,7 +244,7 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		updateRoleRequest.NewDescription = desiredState.Description.ValueStringPointer()
 	}
 
-	if !reflect.DeepEqual(currentState.Permissions.Elements(), desiredState.Permissions.Elements()) {
+	if !currentState.Permissions.Equal(desiredState.Permissions) {
 		permissions, diags := typeStringSliceToStringSlice(ctx, desiredState.Permissions.Elements())
 		if diags.HasError() {
 			diags.AddError("Custom role update error", "Error extracting permissions")
