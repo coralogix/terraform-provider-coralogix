@@ -16,19 +16,15 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"log"
 	"reflect"
-	"slices"
-	"strings"
 	"terraform-provider-coralogix/coralogix/clientset"
 	roles "terraform-provider-coralogix/coralogix/clientset/grpc/roles"
 )
 
 var (
-	getRolePath          = "com.coralogixapis.aaa.rbac.v2.RoleManagementService/GetCustomRole"
-	createRolePath       = "com.coralogixapis.aaa.rbac.v2.RoleManagementService/CreateRole"
-	deleteRolePath       = "com.coralogixapis.aaa.rbac.v2.RoleManagementService/DeleteRole"
-	updateRolePath       = "com.coralogixapis.aaa.rbac.v2.RoleManagementService/UpdateRole"
-	getSystemRolesPath   = "com.coralogixapis.aaa.rbac.v2.RoleManagementService/UpdateRole"
-	getAllPermissionPath = "com.coralogixapis.aaa.rbac.v2.RoleManagementService/UpdateRole"
+	getRolePath    = "com.coralogixapis.aaa.rbac.v2.RoleManagementService/GetCustomRole"
+	createRolePath = "com.coralogixapis.aaa.rbac.v2.RoleManagementService/CreateRole"
+	deleteRolePath = "com.coralogixapis.aaa.rbac.v2.RoleManagementService/DeleteRole"
+	updateRolePath = "com.coralogixapis.aaa.rbac.v2.RoleManagementService/UpdateRole"
 )
 
 func NewCustomRoleSource() resource.Resource {
@@ -36,9 +32,7 @@ func NewCustomRoleSource() resource.Resource {
 }
 
 type CustomRoleSource struct {
-	client               *clientset.RolesClient
-	parentRolesMapping   map[string]*roles.SystemRole
-	supportedPermissions []*roles.Permission
+	client *clientset.RolesClient
 }
 
 func (c *CustomRoleSource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -69,24 +63,9 @@ func (c *CustomRoleSource) Configure(ctx context.Context, req resource.Configure
 	}
 
 	c.client = clientSet.CustomRoles()
-
-	systemRoles, diags := c.fetchAllSystemRoles(ctx)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	c.parentRolesMapping = systemRoles
-
-	allPermissions, diags := c.fetchAllPermissions(ctx)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	c.supportedPermissions = allPermissions
-
 }
 
-func (c *CustomRoleSource) Schema(ctx context.Context, request resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (c *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 0,
 		Attributes: map[string]schema.Attribute{
@@ -111,7 +90,7 @@ func (c *CustomRoleSource) Schema(ctx context.Context, request resource.SchemaRe
 			},
 			"parent_role": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "Parent roles name",
+				MarkdownDescription: "Parent role name",
 			},
 			"permissions": schema.SetAttribute{
 				Required:            true,
@@ -134,7 +113,7 @@ func (c *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	createCustomRoleRequest, diags := c.makeCreateCustomRoleRequest(ctx, desiredState)
+	createCustomRoleRequest, diags := makeCreateCustomRoleRequest(ctx, desiredState)
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return
@@ -160,6 +139,7 @@ func (c *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 	log.Printf("[INFO] Created custom role with ID: %v", createCustomRoleResponse.Id)
 
 	desiredState.ID = types.Int64Value(int64(createCustomRoleResponse.Id))
+
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, desiredState)
 	resp.Diagnostics.Append(diags...)
@@ -199,14 +179,14 @@ func (c *CustomRoleSource) getRoleById(ctx context.Context, roleId uint32) (*Rol
 			)
 		} else {
 			diags.AddError(
-				"Error creating Custom Role",
+				"Error getting Custom Role",
 				formatRpcErrors(err, createApiKeyPath, protojson.Format(&getCustomRoleRequest)),
 			)
 		}
 		return nil, diags
 	}
 
-	model, diags := c.flatterCustomRole(ctx, createCustomRoleResponse.GetRole())
+	model, diags := flatterCustomRole(ctx, createCustomRoleResponse.GetRole())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -263,19 +243,6 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 			resp.Diagnostics.Append(diags...)
 			return
 		}
-		systemRole, diags := c.getIdFromSystemRoleName(currentState.ParentRole.ValueStringPointer())
-		if diags.HasError() {
-			diags.AddError("Invalid ParentRole", "Error extracting parent role")
-			resp.Diagnostics.Append(diags...)
-			return
-		}
-
-		_, diags = c.validatePermissions(&permissions, systemRole)
-		if diags.HasError() {
-			diags.AddError("Custom role update error", "Error extracting permissions")
-			resp.Diagnostics.Append(diags...)
-			return
-		}
 		updateRoleRequest.NewPermissions = &roles.Permissions{
 			Permissions: permissions,
 		}
@@ -298,7 +265,7 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	log.Printf("[INFO] Custom Role %s updated", id)
+	log.Printf("[INFO] Custom Role %v updated", id)
 
 	if diags.HasError() {
 		return
@@ -328,159 +295,37 @@ func (c *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteReques
 		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
 			resp.Diagnostics.AddError(
 				"Error deleting Custom Role",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", deleteApiKeyPath),
+				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", deleteRolePath),
 			)
 		} else {
 			resp.Diagnostics.AddError(
-				"Error getting Custom Role",
+				"Error deleting Custom Role",
 				formatRpcErrors(err, deleteApiKeyPath, protojson.Format(&deleteRoleRequest)),
 			)
 		}
 		return
 	}
 
-	log.Printf("[INFO] Custom Role %s deleted", id)
+	log.Printf("[INFO] Custom Role %v deleted", id)
 }
 
-func (c *CustomRoleSource) fetchAllSystemRoles(ctx context.Context) (map[string]*roles.SystemRole, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	role, err := c.client.ListSystemRole(ctx, &roles.ListSystemRolesRequest{})
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			diags.AddError(
-				"Error getting System Role",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", getSystemRolesPath),
-			)
-		} else {
-			diags.AddError(
-				"Error getting System Role",
-				formatRpcErrors(err, getApiKeyPath, protojson.Format(&roles.ListSystemRolesRequest{})),
-			)
-		}
-		return nil, diags
-	}
-
-	thisMap := make(map[string]*roles.SystemRole)
-	for _, elem := range role.GetRoles() {
-		thisMap[elem.Name] = elem
-	}
-
-	return thisMap, nil
-}
-
-func (c *CustomRoleSource) makeCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) (*roles.CreateRoleRequest, diag.Diagnostics) {
+func makeCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) (*roles.CreateRoleRequest, diag.Diagnostics) {
 	permissions, diags := typeStringSliceToStringSlice(ctx, roleModel.Permissions.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-	systemRole, diags := c.getIdFromSystemRoleName(roleModel.ParentRole.ValueStringPointer())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	_, diags = c.validatePermissions(&permissions, systemRole)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &roles.CreateRoleRequest{
-		Name:         roleModel.Name.ValueString(),
-		Description:  roleModel.Description.ValueString(),
-		ParentRoleId: systemRole.RoleId,
-		Permissions:  permissions,
-		TeamId:       uint32(roleModel.TeamId.ValueInt64()),
+		Name:        roleModel.Name.ValueString(),
+		Description: roleModel.Description.ValueString(),
+		Permissions: permissions,
+		TeamId:      uint32(roleModel.TeamId.ValueInt64()),
+		ParentRole:  &roles.CreateRoleRequest_ParentRoleName{ParentRoleName: roleModel.ParentRole.ValueString()},
 	}, nil
 }
 
-func (c *CustomRoleSource) getIdFromSystemRoleName(parentRole *string) (*roles.SystemRole, diag.Diagnostics) {
+func flatterCustomRole(ctx context.Context, customRole *roles.CustomRole) (*RolesModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	roleId, ok := c.parentRolesMapping[*parentRole]
-
-	if !ok {
-		diags.AddError("Invalid parent role!", c.logAvailableParentRoles())
-		return nil, diags
-	}
-	return roleId, nil
-}
-
-func (c *CustomRoleSource) fetchAllPermissions(ctx context.Context) ([]*roles.Permission, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	existingPermissions, err := c.client.ListPermissions(ctx, &roles.ListAllPermissionsRequest{})
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			diags.AddError(
-				"Error getting All permissions",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", getAllPermissionPath),
-			)
-		} else {
-			diags.AddError(
-				"Error getting supported permissions",
-				formatRpcErrors(err, getApiKeyPath, protojson.Format(&roles.ListAllPermissionsRequest{})),
-			)
-		}
-		return nil, diags
-	}
-	return existingPermissions.GetPermissions(), nil
-}
-
-func (c *CustomRoleSource) validatePermissions(permissions *[]string, parentRole *roles.SystemRole) ([]string, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	for _, elem := range *permissions {
-		exist := slices.ContainsFunc(c.supportedPermissions, func(e *roles.Permission) bool {
-			return *e.Expression == elem
-		})
-		if !exist {
-			diags.AddError(fmt.Sprintf("Invalid permission %s", elem), c.logAvailablePermissions())
-			return nil, diags
-		}
-		exist = slices.ContainsFunc(parentRole.Permissions, func(parentRolePermissions string) bool {
-			return parentRolePermissions == elem
-		})
-		if exist {
-			diags.AddError("Permission already assigned from parent role; permission %s", elem)
-			return nil, diags
-		}
-	}
-
-	return *permissions, nil
-}
-
-func (c *CustomRoleSource) logAvailablePermissions() string {
-
-	var message []string
-	for _, p := range c.supportedPermissions {
-		message = append(message, fmt.Sprintf("%s |  %s  | %s  | %s  |", *p.Expression, *p.Description, *p.Explanation, *p.DocLink))
-	}
-
-	return strings.Join(message, "\n")
-}
-
-func (c *CustomRoleSource) logAvailableParentRoles() string {
-	var message []string
-	for _, p := range c.parentRolesMapping {
-		message = append(message, fmt.Sprintf("%s |  %s  |", p.Name, p.Description))
-	}
-
-	return strings.Join(message, "\n")
-}
-
-func (c *CustomRoleSource) flatterCustomRole(ctx context.Context, customRole *roles.CustomRole) (*RolesModel, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	conditionSatisfied := ""
-	for key, val := range c.parentRolesMapping {
-		if val.RoleId == customRole.ParentRoleId {
-			conditionSatisfied = key
-			break
-		}
-	}
-	if len(conditionSatisfied) == 0 {
-		diags.AddError("Invalid parent role id", "Parent role not found!")
-		return nil, diags
-	}
 
 	permissions, diags := types.SetValueFrom(ctx, types.StringType, customRole.Permissions)
 	if diags.HasError() {
@@ -490,7 +335,7 @@ func (c *CustomRoleSource) flatterCustomRole(ctx context.Context, customRole *ro
 	model := RolesModel{
 		ID:          types.Int64Value(int64(customRole.RoleId)),
 		TeamId:      types.Int64Value(int64(customRole.TeamId)),
-		ParentRole:  types.StringValue(conditionSatisfied),
+		ParentRole:  types.StringValue(customRole.ParentRoleName),
 		Permissions: permissions,
 		Description: types.StringValue(customRole.Description),
 		Name:        types.StringValue(customRole.Name),

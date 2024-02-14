@@ -3,8 +3,6 @@ package coralogix
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 	"log"
 	roles "terraform-provider-coralogix/coralogix/clientset/grpc/roles"
 
@@ -47,14 +45,6 @@ func (d *CustomRoleDataSource) Configure(ctx context.Context, req datasource.Con
 	}
 
 	d.client = clientSet.CustomRoles()
-
-	systemRoles, diags := d.fetchAllSystemRoles(ctx)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	d.parentRolesMapping = systemRoles
-
 }
 
 func (d *CustomRoleDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -76,30 +66,30 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	//Get refreshed Action value from Coralogix
 	id := data.ID.ValueInt64()
-	log.Printf("[INFO] Reading Custom Role: %s", id)
-	getApiKey := &roles.GetCustomRoleRequest{
+	log.Printf("[INFO] Reading Custom Role: %v", id)
+	getCustomRoleReuest := &roles.GetCustomRoleRequest{
 		RoleId: uint32(id),
 	}
 
-	createCustomRoleResponse, err := d.client.GetRole(ctx, getApiKey)
+	createCustomRoleResponse, err := d.client.GetRole(ctx, getCustomRoleReuest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %#v", err)
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Custom role  %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
+				fmt.Sprintf("%v will be recreated when you apply", id),
 			)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading custom role",
-				formatRpcErrors(err, getActionURL, protojson.Format(getApiKey)),
+				formatRpcErrors(err, getActionURL, protojson.Format(getCustomRoleReuest)),
 			)
 		}
 		return
 	}
 	log.Printf("[INFO] Received Custom Role: %s", protojson.Format(createCustomRoleResponse))
 
-	model, diags := d.flatterCustomRole(ctx, createCustomRoleResponse.GetRole())
+	model, diags := flatterCustomRole(ctx, createCustomRoleResponse.GetRole())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -107,63 +97,4 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
-}
-
-func (c *CustomRoleDataSource) fetchAllSystemRoles(ctx context.Context) (map[string]*roles.SystemRole, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	role, err := c.client.ListSystemRole(ctx, &roles.ListSystemRolesRequest{})
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			diags.AddError(
-				"Error getting Custom Role",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", getSystemRolesPath),
-			)
-		} else {
-			diags.AddError(
-				"Error getting Custom Role",
-				formatRpcErrors(err, getApiKeyPath, protojson.Format(&roles.ListSystemRolesRequest{})),
-			)
-		}
-		return nil, diags
-	}
-
-	thisMap := make(map[string]*roles.SystemRole)
-	for _, elem := range role.GetRoles() {
-		thisMap[elem.Name] = elem
-	}
-
-	return thisMap, nil
-}
-
-func (c *CustomRoleDataSource) flatterCustomRole(ctx context.Context, customRole *roles.CustomRole) (*RolesModel, diag.Diagnostics) {
-	var diags diag.Diagnostics
-
-	conditionSatisfied := ""
-	for key, val := range c.parentRolesMapping {
-		if val.RoleId == customRole.ParentRoleId {
-			conditionSatisfied = key
-			break
-		}
-	}
-	if len(conditionSatisfied) == 0 {
-		diags.AddError("Invalid parent role id", "Parent role not found!")
-		return nil, diags
-	}
-
-	permissions, diags := types.SetValueFrom(ctx, types.StringType, customRole.Permissions)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	model := RolesModel{
-		ID:          types.Int64Value(int64(customRole.RoleId)),
-		TeamId:      types.Int64Value(int64(customRole.TeamId)),
-		ParentRole:  types.StringValue(conditionSatisfied),
-		Permissions: permissions,
-		Description: types.StringValue(customRole.Description),
-		Name:        types.StringValue(customRole.Name),
-	}
-
-	return &model, nil
 }
