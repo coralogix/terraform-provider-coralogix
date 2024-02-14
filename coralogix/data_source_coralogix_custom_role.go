@@ -23,8 +23,7 @@ func NewCustomRoleDataSource() datasource.DataSource {
 }
 
 type CustomRoleDataSource struct {
-	client             *clientset.RolesClient
-	parentRolesMapping map[string]*roles.SystemRole
+	client *clientset.RolesClient
 }
 
 func (d *CustomRoleDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -49,7 +48,7 @@ func (d *CustomRoleDataSource) Configure(ctx context.Context, req datasource.Con
 }
 
 func (d *CustomRoleDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r ApiKeyResource
+	var r CustomRoleSource
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 

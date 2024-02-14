@@ -17,8 +17,8 @@ func TestAccCoralogixDataSourceCustomRoke(t *testing.T) {
 				Config: testCustomRoleResource() +
 					testCustomRoleResource_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(customRoleSourceName, "name", "Test Custom Role Renamed"),
-					resource.TestCheckResourceAttr(customRoleSourceName, "description", "This role is renamed with terraform!"),
+					resource.TestCheckResourceAttr(customRoleSourceName, "name", "Test Custom Role"),
+					resource.TestCheckResourceAttr(customRoleSourceName, "description", "This role is created with terraform!"),
 					resource.TestCheckResourceAttr(customRoleSourceName, "parent_role", "Standard User"),
 				),
 			},
