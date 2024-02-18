@@ -65,7 +65,7 @@ func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadReq
 	log.Print("[INFO] Reading archive-logs")
 	getResp, err := d.client.GetArchiveLogs(ctx)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			data.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(

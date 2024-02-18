@@ -163,8 +163,10 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 	log.Printf("[INFO] Creating new action: %s", actionStr)
 	createResp, err := r.client.CreateAction(ctx, createActionRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
-		formatRpcErrors(err, createActionURL, actionStr)
+		log.Printf("[ERROR] Received error: %s", err)
+		resp.Diagnostics.AddError("Error creating Action",
+			formatRpcErrors(err, createActionURL, actionStr),
+		)
 		return
 	}
 	action := createResp.GetAction()
@@ -205,7 +207,7 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 	getActionReq := &actions.GetActionRequest{Id: wrapperspb.String(id)}
 	getActionResp, err := r.client.GetAction(ctx, getActionReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -246,7 +248,7 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	log.Printf("[INFO] Updating Action: %s", protojson.Format(actionUpdateReq))
 	actionUpdateResp, err := r.client.UpdateAction(ctx, actionUpdateReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Action",
 			formatRpcErrors(err, updateActionURL, protojson.Format(actionUpdateReq)),
@@ -260,7 +262,7 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	getActionReq := &actions.GetActionRequest{Id: wrapperspb.String(id)}
 	getActionResp, err := r.client.GetAction(ctx, getActionReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			plan.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(

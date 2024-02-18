@@ -68,7 +68,7 @@ func (d *SLODataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 	getSLOReq := &slos.GetServiceSloRequest{Id: wrapperspb.String(id)}
 	getSLOResp, err := d.client.GetSLO(ctx, getSLOReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			data.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(

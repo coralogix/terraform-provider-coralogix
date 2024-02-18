@@ -13,14 +13,12 @@ provider "coralogix" {
 }
 
 resource "coralogix_group" "example" {
-  team_id      = "team-id"
   display_name = "example"
   role         = "Read Only"
   members      = [coralogix_user.example.id]
 }
 
 resource "coralogix_user" "example" {
-  team_id   = "team-id"
   user_name = "example@coralogix.com"
 }
 

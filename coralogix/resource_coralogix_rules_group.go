@@ -466,7 +466,7 @@ func resourceCoralogixRulesGroupCreate(ctx context.Context, d *schema.ResourceDa
 	log.Printf("[INFO] Creating new rule-group: %s", protojson.Format(createRuleGroupRequest))
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().CreateRuleGroup(ctx, createRuleGroupRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.Errorf(formatRpcErrors(err, createParsingRuleURL, protojson.Format(createRuleGroupRequest)))
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
@@ -485,7 +485,7 @@ func resourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceData
 	log.Printf("[INFO] Reading rule-group %s", id)
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().GetRuleGroup(ctx, getRuleGroupRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{
@@ -517,7 +517,7 @@ func resourceCoralogixRulesGroupUpdate(ctx context.Context, d *schema.ResourceDa
 	log.Printf("[INFO] Updating rule-group %s to %s", id, protojson.Format(updateRuleGroupRequest))
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().UpdateRuleGroup(ctx, updateRuleGroupRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.Errorf(formatRpcErrors(err, updateParsingRuleURL, protojson.Format(updateRuleGroupRequest)))
 	}
 	log.Printf("[INFO] Submitted updated rule-group: %s", protojson.Format(ruleGroupResp))
@@ -534,7 +534,7 @@ func resourceCoralogixRulesGroupDelete(ctx context.Context, d *schema.ResourceDa
 	log.Printf("[INFO] Deleting rule-group %s", id)
 	_, err := meta.(*clientset.ClientSet).RuleGroups().DeleteRuleGroup(ctx, deleteRuleGroupRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.Errorf(formatRpcErrors(err, deleteParsingRuleURL, protojson.Format(deleteRuleGroupRequest)))
 	}
 	log.Printf("[INFO] rule-group %s deleted", id)

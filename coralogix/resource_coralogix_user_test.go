@@ -3,7 +3,6 @@ package coralogix
 import (
 	"context"
 	"fmt"
-	"os"
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -13,7 +12,6 @@ import (
 )
 
 var userResourceName = "coralogix_user.test"
-var teamID = os.Getenv("TEST_TEAM_ID")
 
 func TestAccCoralogixResourceUser(t *testing.T) {
 	userName := randUserName()
@@ -32,10 +30,9 @@ func TestAccCoralogixResourceUser(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:        userResourceName,
-				ImportState:         true,
-				ImportStateIdPrefix: teamID + ",", // teamID is the prefix for the user ID
-				ImportStateVerify:   true,
+				ResourceName:      userResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -51,7 +48,7 @@ func testAccCheckUserDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.GetUser(ctx, teamID, rs.Primary.ID)
+		resp, err := client.GetUser(ctx, rs.Primary.ID)
 		if err == nil && resp != nil {
 			if *resp.ID == rs.Primary.ID && resp.Active {
 				return fmt.Errorf("user still exists and active: %s", rs.Primary.ID)
@@ -64,18 +61,16 @@ func testAccCheckUserDestroy(s *terraform.State) error {
 
 func randUserName() string {
 	return "test@coralogix.com"
-	//return fmt.Sprintf("%s@coralogix.com", RandStringBytes(5))
 }
 
 func testAccCoralogixResourceUser(userName string) string {
 	return fmt.Sprintf(`
 	resource "coralogix_user" "test" {
-	  team_id = "%s"
 	  user_name = "%s"
 	  name = {
 		given_name = "Test"
 		family_name = "User"
       }
 	}
-`, teamID, userName)
+`, userName)
 }

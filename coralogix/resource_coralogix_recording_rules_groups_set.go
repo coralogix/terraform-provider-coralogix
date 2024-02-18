@@ -366,7 +366,7 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 
 	createResp, err := r.client.CreateRecordingRuleGroupsSet(ctx, createRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating recording-rule-group-set",
 			formatRpcErrors(err, createRuleGroupURL, protojson.Format(createRequest)),
@@ -380,7 +380,7 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 	log.Printf("[INFO] Reading recording-rule-group-set id: %s", id)
 	getResp, err := r.client.GetRecordingRuleGroupsSet(ctx, &rrgs.FetchRuleGroupSet{Id: id})
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", id),
@@ -544,7 +544,7 @@ func (r *RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.R
 	getReq := &rrgs.FetchRuleGroupSet{Id: id}
 	getResp, err := r.client.GetRecordingRuleGroupsSet(ctx, getReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", id),
@@ -586,7 +586,7 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 
 	_, err := r.client.UpdateRecordingRuleGroupsSet(ctx, updateRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating recording-rule-group-set",
 			formatRpcErrors(err, updateRuleGroupURL, protojson.Format(updateRequest)),
@@ -598,7 +598,7 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 	getReq := &rrgs.FetchRuleGroupSet{Id: plan.ID.ValueString()}
 	getResp, err := r.client.GetRecordingRuleGroupsSet(ctx, getReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", plan.ID.ValueString()),
@@ -635,7 +635,7 @@ func (r *RecordingRuleGroupSetResource) Delete(ctx context.Context, req resource
 	deleteReq := &rrgs.DeleteRuleGroupSet{Id: id}
 	_, err := r.client.DeleteRecordingRuleGroupsSet(ctx, deleteReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", id),

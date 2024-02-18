@@ -2,6 +2,7 @@ package coralogix
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -42,10 +43,15 @@ func dataSourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceDa
 	}
 	if err != nil {
 		reqStr := protojson.Format(&enrichmentv1.GetEnrichmentsRequest{})
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.Errorf(formatRpcErrors(err, getEnrichmentsURL, reqStr))
 	}
-	log.Printf("[INFO] Received enrichment: %#v", enrichmentResp)
+
+	var enrichmentStr string
+	for _, enrichment := range enrichmentResp {
+		enrichmentStr += fmt.Sprintf("%s\n", protojson.Format(enrichment))
+	}
+	log.Printf("[INFO] Received enrichment: %s", enrichmentStr)
 	d.SetId(id)
 	return setEnrichment(d, enrichmentType, enrichmentResp)
 }

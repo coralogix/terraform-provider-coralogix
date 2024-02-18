@@ -295,12 +295,6 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 				"Set the api_key value in the configuration or use the CORALOGIX_API_KEY environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
-	} else if apiKey == "" {
-		resp.Diagnostics.AddAttributeWarning(
-			path.Root("api_key"),
-			"Missing Coralogix API API-Key",
-			"You won't be able to use the Coralogix API client as there is a missing or empty value for the Coralogix API-Key. ",
-		)
 	}
 
 	if resp.Diagnostics.HasError() {

@@ -840,7 +840,7 @@ func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateR
 	log.Printf("[INFO] Creating new Events2metric: %s", protojson.Format(e2mCreateReq))
 	e2mCreateResp, err := r.client.CreateEvents2Metric(ctx, e2mCreateReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Events2Metric",
 			formatRpcErrors(err, createEvents2MetricURL, protojson.Format(e2mCreateReq)),
@@ -869,7 +869,7 @@ func (r *Events2MetricResource) Read(ctx context.Context, req resource.ReadReque
 	getE2MReq := &e2m.GetE2MRequest{Id: wrapperspb.String(id)}
 	getE2MResp, err := r.client.GetEvents2Metric(ctx, getE2MReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -909,20 +909,20 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 	log.Printf("[INFO] Updating Events2metric: %s", protojson.Format(e2mUpdateReq))
 	e2mUpdateResp, err := r.client.UpdateEvents2Metric(ctx, e2mUpdateReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Events2Metric",
 			formatRpcErrors(err, updateEvents2MetricURL, protojson.Format(e2mUpdateReq)),
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted updated Events2metric: %#v", e2mUpdateResp)
+	log.Printf("[INFO] Submitted updated Events2metric: %s", protojson.Format(e2mUpdateResp))
 
 	// Get refreshed Events2Metric value from Coralogix
 	id := plan.ID.ValueString()
 	getE2MResp, err := r.client.GetEvents2Metric(ctx, &e2m.GetE2MRequest{Id: wrapperspb.String(id)})
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			plan.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(

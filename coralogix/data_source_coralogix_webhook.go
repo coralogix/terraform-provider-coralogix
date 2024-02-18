@@ -72,7 +72,7 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	getWebhookReq := &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(id)}
 	getWebhookResp, err := d.client.GetWebhook(ctx, getWebhookReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			data.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -64,13 +63,6 @@ func (r *UserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 					stringplanmodifier.UseStateForUnknown(),
 				},
 				MarkdownDescription: "User ID.",
-			},
-			"team_id": schema.StringAttribute{
-				Required: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-				MarkdownDescription: "The ID of team that the user will be created. If this value is changed, the user will be deleted and recreate.",
 			},
 			"user_name": schema.StringAttribute{
 				Required:            true,
@@ -140,18 +132,7 @@ func (r *UserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 }
 
 func (r *UserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	ids := strings.Split(req.ID, ",")
-
-	if len(ids) != 2 || ids[0] == "" || ids[1] == "" {
-		resp.Diagnostics.AddError(
-			"Unexpected Import Identifier",
-			fmt.Sprintf("Expected import identifier with format: team-id,user-id. Got: %q", req.ID),
-		)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("team_id"), ids[0])...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), ids[1])...)
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -169,9 +150,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 	userStr, _ := json.Marshal(createUserRequest)
 	log.Printf("[INFO] Creating new User: %s", string(userStr))
-	teamID := plan.TeamID.ValueString()
-	log.Printf("[INFO] Team ID: %s", teamID)
-	createResp, err := r.client.CreateUser(ctx, teamID, createUserRequest)
+	createResp, err := r.client.CreateUser(ctx, createUserRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -188,7 +167,6 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	state.TeamID = types.StringValue(teamID)
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
@@ -277,10 +255,9 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	//Get refreshed User value from Coralogix
 	id := state.ID.ValueString()
-	teamID := state.TeamID.ValueString()
-	getUserResp, err := r.client.GetUser(ctx, teamID, id)
+	getUserResp, err := r.client.GetUser(ctx, id)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -298,13 +275,11 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	respStr, _ := json.Marshal(getUserResp)
 	log.Printf("[INFO] Received User: %s", string(respStr))
 
-	teamID = state.TeamID.ValueString()
 	state, diags = flattenSCIMUser(ctx, getUserResp)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	state.TeamID = types.StringValue(teamID)
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &state)
@@ -341,9 +316,8 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	userStr, _ := json.Marshal(userUpdateReq)
 	log.Printf("[INFO] Updating User: %s", string(userStr))
-	teamID := plan.TeamID.ValueString()
 	userID := plan.ID.ValueString()
-	userUpdateResp, err := r.client.UpdateUser(ctx, teamID, userID, userUpdateReq)
+	userUpdateResp, err := r.client.UpdateUser(ctx, userID, userUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -357,7 +331,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	// Get refreshed User value from Coralogix
 	id := plan.ID.ValueString()
-	getUserResp, err := r.client.GetUser(ctx, teamID, id)
+	getUserResp, err := r.client.GetUser(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -382,7 +356,6 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	state.TeamID = types.StringValue(teamID)
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
@@ -399,8 +372,7 @@ func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting User %s", id)
-	teamID := state.TeamID.ValueString()
-	if err := r.client.DeleteUser(ctx, teamID, id); err != nil {
+	if err := r.client.DeleteUser(ctx, id); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting User %s", id),
 			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), ""),
@@ -412,7 +384,6 @@ func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 
 type UserResourceModel struct {
 	ID       types.String `tfsdk:"id"`
-	TeamID   types.String `tfsdk:"team_id"`
 	UserName types.String `tfsdk:"user_name"`
 	Name     types.Object `tfsdk:"name"` //UserNameModel
 	Active   types.Bool   `tfsdk:"active"`

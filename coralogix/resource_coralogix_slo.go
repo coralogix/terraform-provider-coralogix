@@ -442,7 +442,7 @@ func (r *SLOResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 	readSloReq := &slos.GetServiceSloRequest{Id: wrapperspb.String(id)}
 	readSloResp, err := r.client.GetSLO(ctx, readSloReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("SLO %q is in state, but no longer exists in Coralogix backend", id),
@@ -488,7 +488,7 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	log.Printf("[INFO] Updating SLO: %s", protojson.Format(updateSloReq))
 	updateSloResp, err := r.client.UpdateSLO(ctx, updateSloReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating SLO",
 			formatRpcErrors(err, updateSloUrl, protojson.Format(updateSloReq)),
@@ -502,7 +502,7 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	getSloReq := &slos.GetServiceSloRequest{Id: wrapperspb.String(id)}
 	getSloResp, err := r.client.GetSLO(ctx, getSloReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("SLO %q is in state, but no longer exists in Coralogix backend", id),

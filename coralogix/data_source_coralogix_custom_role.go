@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+
 	roles "terraform-provider-coralogix/coralogix/clientset/grpc/roles"
 
 	"google.golang.org/protobuf/encoding/protojson"
@@ -77,7 +78,7 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	createCustomRoleResponse, err := d.client.GetRole(ctx, getCustomRoleReuest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Custom role  %q is in state, but no longer exists in Coralogix backend", roleId),

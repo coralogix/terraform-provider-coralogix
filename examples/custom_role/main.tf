@@ -17,5 +17,4 @@ resource "coralogix_custom_role" "example" {
   description = "This role is created with terraform!"
   parent_role = "Standard User"
   permissions = ["spans.events2metrics:UpdateConfig"]
-  team_id = 563577
 }

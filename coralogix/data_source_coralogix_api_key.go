@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+
 	apikeys "terraform-provider-coralogix/coralogix/clientset/grpc/apikeys"
 
 	"google.golang.org/protobuf/encoding/protojson"
@@ -73,7 +74,7 @@ func (d *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 
 	getApiKeyResponse, err := d.client.GetApiKey(ctx, getApiKey)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			data.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(

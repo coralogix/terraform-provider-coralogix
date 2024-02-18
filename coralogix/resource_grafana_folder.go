@@ -115,7 +115,7 @@ func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	folder := expandGrafanaFolder(d)
 	resp, err := meta.(*clientset.ClientSet).Grafana().UpdateGrafanaFolder(ctx, folder)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.FromErr(err)
 	}
 	flattenGrafanaFolder(*resp, d, meta)
@@ -137,7 +137,7 @@ func SplitOrgResourceID(id string) (int64, string) {
 func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	folder, err := meta.(*clientset.ClientSet).Grafana().GetGrafanaFolder(ctx, d.Id())
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.FromErr(err)
 	}
 	log.Printf("[INFO] Received grafana-folder: %#v", folder)
@@ -149,7 +149,7 @@ func DeleteFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 	folder := expandGrafanaFolder(d)
 	err := meta.(*clientset.ClientSet).Grafana().DeleteGrafanaFolder(ctx, folder.UID)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{

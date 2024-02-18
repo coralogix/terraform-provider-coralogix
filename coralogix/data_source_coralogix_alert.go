@@ -38,7 +38,7 @@ func dataSourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, m
 	alertResp, err := meta.(*clientset.ClientSet).Alerts().GetAlert(ctx, getAlertRequest)
 	if err != nil {
 		reqStr := protojson.Format(getAlertRequest)
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.Errorf(formatRpcErrors(err, getAlertURL, reqStr))
 	}
 	alert := alertResp.GetAlert()

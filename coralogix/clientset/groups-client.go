@@ -25,13 +25,13 @@ type SCIMGroupMember struct {
 	Value string `json:"value"`
 }
 
-func (c GroupsClient) CreateGroup(ctx context.Context, teamID string, groupReq *SCIMGroup) (*SCIMGroup, error) {
+func (c GroupsClient) CreateGroup(ctx context.Context, groupReq *SCIMGroup) (*SCIMGroup, error) {
 	body, err := json.Marshal(groupReq)
 	if err != nil {
 		return nil, err
 	}
 
-	bodyResp, err := c.client.Post(ctx, "", "application/json", string(body), "cgx-team-id", teamID)
+	bodyResp, err := c.client.Post(ctx, "", "application/json", string(body))
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +45,8 @@ func (c GroupsClient) CreateGroup(ctx context.Context, teamID string, groupReq *
 	return &groupResp, nil
 }
 
-func (c GroupsClient) GetGroup(ctx context.Context, teamID, groupID string) (*SCIMGroup, error) {
-	bodyResp, err := c.client.Get(ctx, fmt.Sprintf("/%s", groupID), "cgx-team-id", teamID)
+func (c GroupsClient) GetGroup(ctx context.Context, groupID string) (*SCIMGroup, error) {
+	bodyResp, err := c.client.Get(ctx, fmt.Sprintf("/%s", groupID))
 	if err != nil {
 		return nil, err
 	}
@@ -60,13 +60,13 @@ func (c GroupsClient) GetGroup(ctx context.Context, teamID, groupID string) (*SC
 	return &groupResp, nil
 }
 
-func (c GroupsClient) UpdateGroup(ctx context.Context, teamID, groupID string, groupReq *SCIMGroup) (*SCIMGroup, error) {
+func (c GroupsClient) UpdateGroup(ctx context.Context, groupID string, groupReq *SCIMGroup) (*SCIMGroup, error) {
 	body, err := json.Marshal(groupReq)
 	if err != nil {
 		return nil, err
 	}
 
-	bodyResp, err := c.client.Put(ctx, fmt.Sprintf("/%s", groupID), "application/json", string(body), "cgx-team-id", teamID)
+	bodyResp, err := c.client.Put(ctx, fmt.Sprintf("/%s", groupID), "application/json", string(body))
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +80,8 @@ func (c GroupsClient) UpdateGroup(ctx context.Context, teamID, groupID string, g
 	return &groupResp, nil
 }
 
-func (c GroupsClient) DeleteGroup(ctx context.Context, teamID, groupID string) error {
-	_, err := c.client.Delete(ctx, fmt.Sprintf("/%s", groupID), "cgx-team-id", teamID)
+func (c GroupsClient) DeleteGroup(ctx context.Context, groupID string) error {
+	_, err := c.client.Delete(ctx, fmt.Sprintf("/%s", groupID))
 	return err
 
 }

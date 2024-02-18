@@ -37,11 +37,11 @@ func dataSourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceDa
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().GetRuleGroup(ctx, getRuleGroupRequest)
 	if err != nil {
 		reqStr := protojson.Format(getRuleGroupRequest)
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.Errorf(formatRpcErrors(err, getParsingRuleURL, reqStr))
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
-	log.Printf("[INFO] Received rule-group: %#v", ruleGroup)
+	log.Printf("[INFO] Received rule-group: %s", protojson.Format(ruleGroup))
 
 	d.SetId(ruleGroup.GetId().GetValue())
 

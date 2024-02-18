@@ -681,7 +681,7 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 	log.Printf("[INFO] Creating new webhook: %s", webhookStr)
 	createResp, err := r.client.CreateWebhook(ctx, createWebhookRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Webhook",
 			formatRpcErrors(err, createWebhookURL, webhookStr),
@@ -696,7 +696,7 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 	getWebhookResp, err := r.client.GetWebhook(ctx, readWebhookRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Webhook",
 			formatRpcErrors(err, getWebhookURL, protojson.Format(readWebhookRequest)),
@@ -734,7 +734,7 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 	log.Printf("[INFO] Reading Webhook: %s", id)
 	getWebhookResp, err := r.client.GetWebhook(ctx, readWebhookRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -777,24 +777,24 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Updating Webhook: %#v", webhookUpdateReq)
+	log.Printf("[INFO] Updating Webhook: %s", protojson.Format(webhookUpdateReq))
 	webhookUpdateResp, err := r.client.UpdateWebhook(ctx, webhookUpdateReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Webhook",
 			formatRpcErrors(err, updateWebhookURL, protojson.Format(webhookUpdateReq)),
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted updated Webhhok: %#v", webhookUpdateResp)
+	log.Printf("[INFO] Submitted updated Webhhok: %s", protojson.Format(webhookUpdateResp))
 
 	// Get refreshed Webhook value from Coralogix
 	id := plan.ID.ValueString()
 	getWebhookReq := &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(id)}
 	getWebhookResp, err := r.client.GetWebhook(ctx, getWebhookReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			plan.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -834,7 +834,7 @@ func (r WebhookResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	deleteReq := &webhooks.DeleteOutgoingWebhookRequest{Id: wrapperspb.String(id)}
 	_, err := r.client.DeleteWebhook(ctx, deleteReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error deleting Webhook",
 			formatRpcErrors(err, deleteWebhookURL, protojson.Format(deleteReq)),

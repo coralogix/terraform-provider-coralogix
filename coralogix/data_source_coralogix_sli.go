@@ -77,7 +77,7 @@ func (d *SLIDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 	getSLIsReq := &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)}
 	getSLIsResp, err := d.client.GetSLIs(ctx, getSLIsReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			data.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
