@@ -3,7 +3,6 @@ package coralogix
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -11,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -21,6 +19,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"log"
 	"reflect"
+	"strconv"
 	"terraform-provider-coralogix/coralogix/clientset"
 	apikeys "terraform-provider-coralogix/coralogix/clientset/grpc/apikeys"
 )
@@ -88,15 +87,15 @@ func (r *ApiKeyResource) Schema(ctx context.Context, req resource.SchemaRequest,
 			},
 			"owner": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
-					"team_id": schema.Int64Attribute{
+					"team_id": schema.StringAttribute{
 						Optional: true,
-						Validators: []validator.Int64{
-							int64validator.ExactlyOneOf(
+						Validators: []validator.String{
+							stringvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("user_id"),
 							),
 						},
-						PlanModifiers: []planmodifier.Int64{
-							int64planmodifier.RequiresReplace(),
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.RequiresReplace(),
 						},
 					},
 					"user_id": schema.StringAttribute{
@@ -152,7 +151,7 @@ type ApiKeyModel struct {
 
 type Owner struct {
 	UserId types.String `tfsdk:"user_id"`
-	TeamId types.Int64  `tfsdk:"team_id"`
+	TeamId types.String `tfsdk:"team_id"`
 }
 
 func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -394,7 +393,10 @@ func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*ap
 		return nil, diags
 	}
 
-	owner := extractOwner(apiKeyModel)
+	owner, diags := extractOwner(apiKeyModel)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	return &apikeys.CreateApiKeyRequest{
 		KeyInfo: &apikeys.KeyInfo{
@@ -407,34 +409,38 @@ func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*ap
 	}, nil
 }
 
-func extractOwner(keyModel *ApiKeyModel) apikeys.Owner {
+func extractOwner(keyModel *ApiKeyModel) (apikeys.Owner, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	if keyModel.Owner.UserId.ValueString() != "" {
 		return apikeys.Owner{
 			Owner: &apikeys.Owner_UserId{
 				UserId: keyModel.Owner.UserId.ValueString(),
 			},
-		}
+		}, diags
 	} else {
+		teamId, err := strconv.Atoi(keyModel.Owner.TeamId.ValueString())
+		if err != nil {
+			diags.AddError("Invalid team id", "Team id must be a int")
+		}
 		return apikeys.Owner{
 			Owner: &apikeys.Owner_TeamId{
-				TeamId: uint32(keyModel.Owner.TeamId.ValueInt64()),
+				TeamId: uint32(teamId),
 			},
-		}
+		}, diags
 	}
 }
 
 func flattenOwner(owner *apikeys.Owner) Owner {
-	var user types.String
-	userId := owner.GetUserId()
-	if userId == "" {
-		user = types.StringNull()
-	} else {
-		user = types.StringValue(userId)
+	switch owner.Owner.(type) {
+	case *apikeys.Owner_TeamId:
+		return Owner{
+			TeamId: types.StringValue(strconv.Itoa(int(owner.GetTeamId()))),
+		}
+	case *apikeys.Owner_UserId:
+		return Owner{
+			UserId: types.StringValue(owner.GetUserId()),
+		}
+	default:
+		return Owner{}
 	}
-
-	return Owner{
-		UserId: user,
-		TeamId: types.Int64Value(int64(owner.GetTeamId())),
-	}
-
 }
