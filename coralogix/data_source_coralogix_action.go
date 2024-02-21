@@ -71,7 +71,7 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	getActionReq := &actions.GetActionRequest{Id: wrapperspb.String(id)}
 	getActionResp, err := d.client.GetAction(ctx, getActionReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			data.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(

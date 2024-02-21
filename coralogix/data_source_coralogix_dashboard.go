@@ -70,7 +70,7 @@ func (d *DashboardDataSource) Read(ctx context.Context, req datasource.ReadReque
 	getDashboardReq := &dashboards.GetDashboardRequest{DashboardId: wrapperspb.String(id)}
 	getDashboardResp, err := d.client.GetDashboard(ctx, getDashboardReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			data.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -85,7 +85,7 @@ func (d *DashboardDataSource) Read(ctx context.Context, req datasource.ReadReque
 		}
 		return
 	}
-	log.Printf("[INFO] Received Dashboard: %#v", getDashboardResp)
+	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
 
 	dashboard, diags := flattenDashboard(ctx, DashboardResourceModel{}, getDashboardResp.GetDashboard())
 	if diags.HasError() {

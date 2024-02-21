@@ -50,7 +50,7 @@ func (d *GroupDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchemaWithTeamID(resourceResp.Schema)
+	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -63,10 +63,9 @@ func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	//Get refreshed Group value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading Group: %s", id)
-	teamID := data.TeamID.ValueString()
-	getGroupResp, err := d.client.GetGroup(ctx, teamID, id)
+	getGroupResp, err := d.client.GetGroup(ctx, id)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			data.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(

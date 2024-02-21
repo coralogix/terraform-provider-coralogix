@@ -113,9 +113,9 @@ type SamplesAggregationModel struct {
 }
 
 type HistogramAggregationModel struct {
-	Enable           types.Bool      `tfsdk:"enable"`
-	TargetMetricName types.String    `tfsdk:"target_metric_name"`
-	Buckets          []types.Float64 `tfsdk:"buckets"`
+	Enable           types.Bool   `tfsdk:"enable"`
+	TargetMetricName types.String `tfsdk:"target_metric_name"`
+	Buckets          types.List   `tfsdk:"buckets"` //types.Float64
 }
 
 type PermutationsModel struct {
@@ -840,7 +840,7 @@ func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateR
 	log.Printf("[INFO] Creating new Events2metric: %s", protojson.Format(e2mCreateReq))
 	e2mCreateResp, err := r.client.CreateEvents2Metric(ctx, e2mCreateReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Events2Metric",
 			formatRpcErrors(err, createEvents2MetricURL, protojson.Format(e2mCreateReq)),
@@ -869,7 +869,7 @@ func (r *Events2MetricResource) Read(ctx context.Context, req resource.ReadReque
 	getE2MReq := &e2m.GetE2MRequest{Id: wrapperspb.String(id)}
 	getE2MResp, err := r.client.GetEvents2Metric(ctx, getE2MReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -909,20 +909,20 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 	log.Printf("[INFO] Updating Events2metric: %s", protojson.Format(e2mUpdateReq))
 	e2mUpdateResp, err := r.client.UpdateEvents2Metric(ctx, e2mUpdateReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Events2Metric",
 			formatRpcErrors(err, updateEvents2MetricURL, protojson.Format(e2mUpdateReq)),
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted updated Events2metric: %#v", e2mUpdateResp)
+	log.Printf("[INFO] Submitted updated Events2metric: %s", protojson.Format(e2mUpdateResp))
 
 	// Get refreshed Events2Metric value from Coralogix
 	id := plan.ID.ValueString()
 	getE2MResp, err := r.client.GetEvents2Metric(ctx, &e2m.GetE2MRequest{Id: wrapperspb.String(id)})
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			plan.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -1000,7 +1000,10 @@ func extractCreateE2M(ctx context.Context, plan Events2MetricResourceModel) (*e2
 	if diags.HasError() {
 		return nil, diags
 	}
-	metricFields := expandE2MFields(ctx, plan.MetricFields)
+	metricFields, diags := expandE2MFields(ctx, plan.MetricFields)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	e2mParams := &e2m.E2MCreateParams{
 		Name:              name,
@@ -1046,7 +1049,10 @@ func extractUpdateE2M(ctx context.Context, plan Events2MetricResourceModel) (*e2
 	if diags.HasError() {
 		return nil, diags
 	}
-	metricFields := expandE2MFields(ctx, plan.MetricFields)
+	metricFields, diags := expandE2MFields(ctx, plan.MetricFields)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	e2mParams := &e2m.E2M{
 		Id:           id,
@@ -1103,32 +1109,42 @@ func expandE2MLabel(targetLabel, sourceField string) *e2m.MetricLabel {
 	}
 }
 
-func expandE2MFields(ctx context.Context, fields types.Map) []*e2m.MetricField {
+func expandE2MFields(ctx context.Context, fields types.Map) ([]*e2m.MetricField, diag.Diagnostics) {
 	var fieldsMap map[string]MetricFieldModel
+	var diags diag.Diagnostics
 	d := fields.ElementsAs(ctx, &fieldsMap, true)
 	if d != nil {
 		panic(d)
 	}
 	result := make([]*e2m.MetricField, 0, len(fieldsMap))
 	for sourceFiled, metricFieldValue := range fieldsMap {
-		field := expandE2MField(sourceFiled, metricFieldValue)
+		field, dgs := expandE2MField(ctx, sourceFiled, metricFieldValue)
+		if dgs.HasError() {
+			diags = append(diags, dgs...)
+			continue
+		}
 		result = append(result, field)
 	}
 
-	return result
+	return result, diags
 }
 
-func expandE2MField(targetField string, metricField MetricFieldModel) *e2m.MetricField {
+func expandE2MField(ctx context.Context, targetField string, metricField MetricFieldModel) (*e2m.MetricField, diag.Diagnostics) {
+	aggregations, diags := expandE2MAggregations(ctx, metricField.Aggregations)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &e2m.MetricField{
 		TargetBaseMetricName: wrapperspb.String(targetField),
 		SourceField:          wrapperspb.String(metricField.SourceField.ValueString()),
-		Aggregations:         expandE2MAggregations(metricField.Aggregations),
-	}
+		Aggregations:         aggregations,
+	}, nil
 }
 
-func expandE2MAggregations(aggregationsModel *AggregationsModel) []*e2m.Aggregation {
+func expandE2MAggregations(ctx context.Context, aggregationsModel *AggregationsModel) ([]*e2m.Aggregation, diag.Diagnostics) {
 	if aggregationsModel == nil {
-		return nil
+		return nil, nil
 	}
 
 	aggregations := make([]*e2m.Aggregation, 0)
@@ -1162,22 +1178,16 @@ func expandE2MAggregations(aggregationsModel *AggregationsModel) []*e2m.Aggregat
 		aggregations = append(aggregations, aggregation)
 	}
 	if histogram := aggregationsModel.Histogram; histogram != nil {
-		buckets := expandBuckets(histogram.Buckets)
+		buckets, diags := attrSliceToFloat32Slice(ctx, histogram.Buckets.Elements())
+		if diags.HasError() {
+			return nil, diags
+		}
 		aggregation := &e2m.Aggregation{AggType: e2m.Aggregation_AGG_TYPE_HISTOGRAM, Enabled: histogram.Enable.ValueBool(), TargetMetricName: "histogram", AggMetadata: &e2m.Aggregation_Histogram{Histogram: &e2m.E2MAggHistogram{Buckets: buckets}}}
 		aggregations = append(aggregations, aggregation)
 
 	}
 
-	return aggregations
-}
-
-func expandBuckets(buckets []types.Float64) []float32 {
-	result := make([]float32, 0, len(buckets))
-	for _, b := range buckets {
-		result = append(result, float32(b.ValueFloat64()))
-	}
-
-	return result
+	return aggregations, nil
 }
 
 func expandSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) (*e2m.E2MCreateParams_SpansQuery, diag.Diagnostics) {
@@ -1334,22 +1344,22 @@ func flattenE2MMetricFields(ctx context.Context, fields []*e2m.MetricField) type
 
 	elements := make(map[string]attr.Value)
 	for _, f := range fields {
-		target, field := flattenE2MMetricField(f)
+		target, field := flattenE2MMetricField(ctx, f)
 		element, _ := types.ObjectValueFrom(ctx, metricFieldModelAttr(), field)
 		elements[target] = element
 	}
 	return types.MapValueMust(types.ObjectType{AttrTypes: metricFieldModelAttr()}, elements)
 }
 
-func flattenE2MMetricField(field *e2m.MetricField) (string, MetricFieldModel) {
-	aggregations := flattenE2MAggregations(field.GetAggregations())
+func flattenE2MMetricField(ctx context.Context, field *e2m.MetricField) (string, MetricFieldModel) {
+	aggregations := flattenE2MAggregations(ctx, field.GetAggregations())
 	return field.GetTargetBaseMetricName().GetValue(), MetricFieldModel{
 		SourceField:  types.StringValue(field.GetSourceField().GetValue()),
 		Aggregations: aggregations,
 	}
 }
 
-func flattenE2MAggregations(aggregations []*e2m.Aggregation) *AggregationsModel {
+func flattenE2MAggregations(ctx context.Context, aggregations []*e2m.Aggregation) *AggregationsModel {
 	aggregationsSchema := AggregationsModel{}
 
 	for _, aggregation := range aggregations {
@@ -1368,7 +1378,7 @@ func flattenE2MAggregations(aggregations []*e2m.Aggregation) *AggregationsModel 
 		case "samples":
 			aggregationsSchema.Samples = flattenE2MSamplesAggregation(aggregation)
 		case "histogram":
-			aggregationsSchema.Histogram = flattenE2MHistogramAggregation(aggregation)
+			aggregationsSchema.Histogram = flattenE2MHistogramAggregation(ctx, aggregation)
 		}
 	}
 
@@ -1399,21 +1409,19 @@ func flattenE2MSamplesAggregation(aggregation *e2m.Aggregation) *SamplesAggregat
 	}
 }
 
-func flattenE2MHistogramAggregation(aggregation *e2m.Aggregation) *HistogramAggregationModel {
+func flattenE2MHistogramAggregation(ctx context.Context, aggregation *e2m.Aggregation) *HistogramAggregationModel {
 	if aggregation == nil {
 		return nil
 	}
 
-	buckets := aggregation.GetHistogram().GetBuckets()
-	bucketsModel := make([]types.Float64, 0, len(buckets))
-	for _, bucket := range buckets {
-		bucketsModel = append(bucketsModel, types.Float64Value(float64(bucket)))
+	buckets, diags := float32SliceTypeList(ctx, aggregation.GetHistogram().GetBuckets())
+	if diags.HasError() {
+		return nil
 	}
-
 	return &HistogramAggregationModel{
 		Enable:           types.BoolValue(aggregation.GetEnabled()),
 		TargetMetricName: types.StringValue(aggregation.GetTargetMetricName()),
-		Buckets:          bucketsModel,
+		Buckets:          buckets,
 	}
 }
 

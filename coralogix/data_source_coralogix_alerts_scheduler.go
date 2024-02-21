@@ -65,7 +65,7 @@ func (d *AlertsSchedulerDataSource) Read(ctx context.Context, req datasource.Rea
 	getAlertsSchedulerReq := &alertsSchedulers.GetAlertSchedulerRuleRequest{AlertSchedulerRuleId: id}
 	getAlertsSchedulerResp, err := d.client.GetAlertScheduler(ctx, getAlertsSchedulerReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading alerts-scheduler",
 			formatRpcErrors(err, getAlertsSchedulerURL, protojson.Format(getAlertsSchedulerReq)),

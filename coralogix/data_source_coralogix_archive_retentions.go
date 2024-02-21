@@ -66,7 +66,7 @@ func (d *ArchiveRetentionsDataSource) Read(ctx context.Context, req datasource.R
 	getArchiveRetentionsReq := &archiveRetention.GetRetentionsRequest{}
 	getArchiveRetentionsResp, err := d.client.GetRetentions(ctx, getArchiveRetentionsReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading archive-retentions",
 			formatRpcErrors(err, getArchiveRetentionsURL, protojson.Format(getArchiveRetentionsReq)),

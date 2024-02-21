@@ -186,7 +186,7 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 	log.Printf("[INFO] Creating new archive-metrics: %s", protojson.Format(createReq))
 	_, err := r.client.UpdateArchiveMetrics(ctx, createReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating archive-metrics",
 			formatRpcErrors(err, updateArchiveMetricsURL, protojson.Format(createReq)),
@@ -197,7 +197,7 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 
 	readResp, err := r.client.GetArchiveMetrics(ctx)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading archive-metrics",
 			formatRpcErrors(err, getArchiveMetricsURL, ""),
@@ -367,7 +367,7 @@ func (r *ArchiveMetricsResource) Read(ctx context.Context, req resource.ReadRequ
 	log.Printf("[INFO] Reading archiveMetrics: %s", id)
 	getResp, err := r.client.GetArchiveMetrics(ctx)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -411,7 +411,7 @@ func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.Update
 	log.Printf("[INFO] Updating new archiveMetrics: %s", protojson.Format(createReq))
 	_, err := r.client.UpdateArchiveMetrics(ctx, createReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating archive-metrics",
 			formatRpcErrors(err, createEvents2MetricURL, protojson.Format(createReq)),
@@ -422,7 +422,7 @@ func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.Update
 
 	readResp, err := r.client.GetArchiveMetrics(ctx)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading archive-metrics",
 			formatRpcErrors(err, getArchiveMetricsURL, ""),

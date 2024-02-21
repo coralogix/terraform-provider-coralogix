@@ -50,7 +50,7 @@ func (d *UserDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest,
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchemaWithTeamID(resourceResp.Schema)
+	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -62,11 +62,10 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	}
 	//Get refreshed User value from Coralogix
 	id := data.ID.ValueString()
-	teamId := data.TeamID.ValueString()
 	log.Printf("[INFO] Reading User: %s", id)
-	getUserResp, err := d.client.GetUser(ctx, teamId, id)
+	getUserResp, err := d.client.GetUser(ctx, id)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			data.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -89,7 +88,6 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	data.TeamID = types.StringValue(teamId)
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &data)

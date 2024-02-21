@@ -2781,7 +2781,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	log.Printf("[INFO] Creating new Dashboard: %s", dashboardStr)
 	_, err := r.client.CreateDashboard(ctx, createDashboardReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Dashboard",
 			formatRpcErrors(err, createDashboardURL, dashboardStr),
@@ -2794,7 +2794,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	}
 	getDashboardResp, err := r.client.GetDashboard(ctx, getDashboardReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		reqStr := protojson.Format(getDashboardReq)
 		resp.Diagnostics.AddError(
 			"Error getting Dashboard",
@@ -2810,6 +2810,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	log.Printf("[INFO] Flattened Dashboard: %s", flattenedDashboard)
 	plan = *flattenedDashboard
 
 	// Set state to fully populated data
@@ -8796,7 +8797,7 @@ func absoluteTimeFrameAttributes() map[string]attr.Type {
 
 func flattenRelativeDashboardTimeFrame(ctx context.Context, timeFrame *durationpb.Duration) (types.Object, diag.Diagnostics) {
 	relativeTimeFrame := &DashboardTimeFrameRelativeModel{
-		Duration: types.StringValue(timeFrame.String()),
+		Duration: flattenDuration(timeFrame),
 	}
 	timeFrameObject, dgs := types.ObjectValueFrom(ctx, relativeTimeFrameAttributes(), relativeTimeFrame)
 	if dgs.HasError() {
@@ -8807,6 +8808,16 @@ func flattenRelativeDashboardTimeFrame(ctx context.Context, timeFrame *durationp
 		Absolute: types.ObjectNull(absoluteTimeFrameAttributes()),
 	}
 	return types.ObjectValueFrom(ctx, dashboardTimeFrameModelAttr(), flattenedTimeFrame)
+}
+
+func flattenDuration(timeFrame *durationpb.Duration) basetypes.StringValue {
+	if timeFrame == nil {
+		return types.StringNull()
+	}
+	if timeFrame.Seconds == 0 && timeFrame.Nanos == 0 {
+		return types.StringValue("seconds:0")
+	}
+	return types.StringValue(timeFrame.String())
 }
 
 func relativeTimeFrameAttributes() map[string]attr.Type {
@@ -8829,7 +8840,7 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 	getDashboardReq := &dashboards.GetDashboardRequest{DashboardId: wrapperspb.String(id)}
 	getDashboardResp, err := r.client.GetDashboard(ctx, getDashboardReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -8877,7 +8888,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 	log.Printf("[INFO] Updating Dashboard: %s", reqStr)
 	_, err := r.client.UpdateDashboard(ctx, updateReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Dashboard",
 			formatRpcErrors(err, updateDashboardURL, reqStr),
@@ -8890,7 +8901,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 	getDashboardResp, err := r.client.GetDashboard(ctx, getDashboardReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error getting Dashboard",
 			formatRpcErrors(err, getDashboardURL, protojson.Format(getDashboardReq)),

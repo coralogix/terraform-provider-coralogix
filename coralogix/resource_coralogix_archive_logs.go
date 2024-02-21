@@ -129,7 +129,7 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 	log.Printf("[INFO] Creating new archive-logs: %s", protojson.Format(createReq))
 	createResp, err := r.client.UpdateArchiveLogs(ctx, createReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating archive-logs",
 			formatRpcErrors(err, updateArchiveLogsURL, protojson.Format(createReq)),
@@ -182,7 +182,7 @@ func (r *ArchiveLogsResource) Read(ctx context.Context, req resource.ReadRequest
 	log.Printf("[INFO] Reading archive-logs: %s", id)
 	getResp, err := r.client.GetArchiveLogs(ctx)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -222,7 +222,7 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 	log.Printf("[INFO] Updating archive-logs: %s", protojson.Format(updateReq))
 	updateResp, err := r.client.UpdateArchiveLogs(ctx, updateReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating archive-logs",
 			formatRpcErrors(err, createEvents2MetricURL, protojson.Format(updateReq)),
@@ -233,7 +233,7 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 
 	readResp, err := r.client.GetArchiveLogs(ctx)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading archive-logs",
 			formatRpcErrors(err, getArchiveLogsURL, ""),

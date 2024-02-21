@@ -467,3 +467,19 @@ New Features:
 * Adding `coralogix_user` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/user.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/user.md).
 #### resource/coralogix_group
 * Adding `coralogix_user_group` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/group.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/group.md).
+
+## Release 1.11.10
+New Features:
+#### resource/coralogix_custom_role
+* Adding `coralogix_custom_role` [resource](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/custom_role.md) and [data-source](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/data-sources/custom_role.md).
+
+## Release 1.11.11
+Breaking Changes:
+#### resource/coralogix_user, resource/coralogix_group and resource/coralogix_custom_role
+* `team_id` was removed. managed by (team's) api-key with the right permissions.
+
+Bug fixing:
+#### resource/coralogix_events2metric
+* fixing `buckets` type-conversion bug (from float32 to float64).
+#### resource/coralogix_dashboard
+* fixing `time_frame.relative.duration` flattening bug when set to `seconds:0`.

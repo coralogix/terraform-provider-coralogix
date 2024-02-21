@@ -143,8 +143,8 @@ func NewClientSet(targetUrl, apiKey, orgKey string) *ClientSet {
 		slos:                NewSLOsClient(apikeyCPC),
 		dahboardsFolders:    NewDashboardsFoldersClient(apikeyCPC),
 		apiKeys:             NewApiKeysClient(teamsCPC),
-		groups:              NewGroupsClient(teamsCPC),
-		users:               NewUsersClient(teamsCPC),
-		customRole:          NewRolesClient(teamsCPC),
+		groups:              NewGroupsClient(apikeyCPC),
+		users:               NewUsersClient(apikeyCPC),
+		customRole:          NewRolesClient(apikeyCPC),
 	}
 }

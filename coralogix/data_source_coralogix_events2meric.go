@@ -70,7 +70,7 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 	getE2MReq := &e2m.GetE2MRequest{Id: wrapperspb.String(id)}
 	getE2MResp, err := d.client.GetEvents2Metric(ctx, getE2MReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			data.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(

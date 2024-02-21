@@ -6,6 +6,8 @@ import (
 	"log"
 	"strconv"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"terraform-provider-coralogix/coralogix/clientset"
 	teams "terraform-provider-coralogix/coralogix/clientset/grpc/teams"
 
@@ -272,6 +274,12 @@ func (r *MovingQuotaResource) UpdateOrCreate(ctx context.Context, plan *MovingQu
 	moveQuotaResp, err := r.client.MoveQuota(ctx, moveQuotaReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
+		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
+			return nil, diag.NewErrorDiagnostic(
+				"Error moving Team quota",
+				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", movingQuotaURL),
+			)
+		}
 		return nil, diag.NewErrorDiagnostic("Error moving Team quota", formatRpcErrors(err, movingQuotaURL, protojson.Format(moveQuotaReq)))
 	}
 	log.Printf("[INFO] Moved Team quota: %s", protojson.Format(moveQuotaResp))

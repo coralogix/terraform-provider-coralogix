@@ -71,7 +71,7 @@ func (d *TCOPolicyTracesDataSource) Read(ctx context.Context, req datasource.Rea
 	getPolicyReq := &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)}
 	getPolicyResp, err := d.client.GetTCOPolicy(ctx, getPolicyReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			data.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(

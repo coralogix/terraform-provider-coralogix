@@ -122,13 +122,15 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
 			resp.Diagnostics.AddError(
 				"Error creating Team",
+				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", createTeamURL),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error creating Team",
 				formatRpcErrors(err, createTeamURL, protojson.Format(createTeamReq)),
 			)
 		}
-		resp.Diagnostics.AddError(
-			"Error creating Team",
-			fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", createTeamURL),
-		)
+
 		return
 	}
 	log.Printf("[INFO] Submitted new team: %s", protojson.Format(createTeamResp.GetTeamId()))

@@ -1457,7 +1457,7 @@ func resourceCoralogixAlertCreate(ctx context.Context, d *schema.ResourceData, m
 	AlertResp, err := meta.(*clientset.ClientSet).Alerts().CreateAlert(ctx, createAlertRequest)
 
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.Errorf(formatRpcErrors(err, createAlertURL, createAlertStr))
 	}
 
@@ -1477,7 +1477,7 @@ func resourceCoralogixAlertRead(ctx context.Context, d *schema.ResourceData, met
 	log.Printf("[INFO] Reading alert %s", id)
 	alertResp, err := meta.(*clientset.ClientSet).Alerts().GetAlert(ctx, getAlertRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{
@@ -1508,7 +1508,7 @@ func resourceCoralogixAlertUpdate(ctx context.Context, d *schema.ResourceData, m
 	log.Printf("[INFO] Updating alert %s", updateAlertStr)
 	alertResp, err := meta.(*clientset.ClientSet).Alerts().UpdateAlert(ctx, updateAlertRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.Errorf(formatRpcErrors(err, updateAlertURL, updateAlertStr))
 	}
 	updateAlertStr = protojson.Format(alertResp)
@@ -1527,7 +1527,7 @@ func resourceCoralogixAlertDelete(ctx context.Context, d *schema.ResourceData, m
 	log.Printf("[INFO] Deleting alert %s", id)
 	_, err := meta.(*clientset.ClientSet).Alerts().DeleteAlert(ctx, deleteAlertRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v\n", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.Errorf(formatRpcErrors(err, deleteAlertURL, protojson.Format(deleteAlertRequest)))
 	}
 	log.Printf("[INFO] alert %s deleted", id)

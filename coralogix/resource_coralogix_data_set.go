@@ -120,14 +120,14 @@ func fileContentNoLongerThan(i interface{}, k string) ([]string, []error) {
 func resourceCoralogixDataSetCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	req, fileModificationTime, err := expandDataSetRequest(d)
 	if err != nil {
-		log.Printf("[ERROR] Received error while expanding enrichment-data: %#v", err)
+		log.Printf("[ERROR] Received error while expanding enrichment-data: %s", err.Error())
 		return diag.FromErr(err)
 	}
 	log.Printf("[INFO] Creating new enrichment-data: %s", protojson.Format(req))
 
 	resp, err := meta.(*clientset.ClientSet).DataSet().CreatDataSet(ctx, req)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.Errorf(formatRpcErrors(err, createDataSetURL, protojson.Format(req)))
 	}
 
@@ -157,7 +157,7 @@ func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, m
 	log.Print("[INFO] Reading enrichment-data")
 	DataSetResp, err := meta.(*clientset.ClientSet).DataSet().GetDataSet(ctx, req)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{
@@ -182,7 +182,7 @@ func resourceCoralogixDataSetUpdate(ctx context.Context, d *schema.ResourceData,
 	log.Print("[INFO] Updating enrichment-data")
 	_, err = meta.(*clientset.ClientSet).DataSet().UpdateDataSet(ctx, req)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.Errorf(formatRpcErrors(err, updateDataSetURL, protojson.Format(req)))
 	}
 
@@ -202,7 +202,7 @@ func resourceCoralogixDataSetDelete(ctx context.Context, d *schema.ResourceData,
 	log.Printf("[INFO] Deleting enrichment-data %s", id)
 	_, err := meta.(*clientset.ClientSet).DataSet().DeleteDataSet(ctx, req)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.Errorf(formatRpcErrors(err, deleteDataSetURL, protojson.Format(req)))
 	}
 

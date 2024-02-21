@@ -8,18 +8,18 @@ terraform {
 }
 
 provider "coralogix" {
-  org_key = "<ORG_KEY>"
-  domain  = "<DOMAIN>"
+#  org_key = "<ORG_KEY>"
+#  domain  = "<DOMAIN>"
 }
 
 resource "coralogix_api_key" "example" {
   name  = "My SCIM KEY"
   owner = {
-    team_id : "<TEAM_ID>"
-  }   
-  active = false
+    team_id : "4013254"
+  }
+  active = true
   hashed = false
-  roles = ["SCIM"]
+  roles = ["SCIM", "Legacy Api Key", "Role Management"]
 }
 
 data "coralogix_api_key" "same_key_by_id" {

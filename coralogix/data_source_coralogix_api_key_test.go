@@ -1,11 +1,13 @@
 package coralogix
 
 import (
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
+var teamID = os.Getenv("TEST_TEAM_ID")
 var apiKeyDataSourceName = "data." + apiKeyResourceName
 
 func TestAccCoralogixDataSourceApiKey(t *testing.T) {

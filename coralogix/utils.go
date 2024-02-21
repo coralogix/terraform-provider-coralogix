@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"math/rand"
 	"net/url"
 	"reflect"
@@ -265,6 +266,37 @@ func wrappedStringSliceToStringSlice(s []*wrapperspb.StringValue) []string {
 		result = append(result, v.GetValue())
 	}
 	return result
+}
+
+func attrSliceToFloat32Slice(ctx context.Context, arr []attr.Value) ([]float32, diag2.Diagnostics) {
+	var diags diag2.Diagnostics
+	result := make([]float32, 0, len(arr))
+	for _, v := range arr {
+		val, err := v.ToTerraformValue(ctx)
+		if err != nil {
+			diags.AddError("Failed to convert value to Terraform", err.Error())
+			continue
+		}
+		var d big.Float
+		if err = val.As(&d); err != nil {
+			diags.AddError("Failed to convert value to float64", err.Error())
+			continue
+		}
+		f, _ := d.Float64()
+		result = append(result, float32(f))
+	}
+	return result, diags
+}
+
+func float32SliceTypeList(ctx context.Context, arr []float32) (types.List, diag2.Diagnostics) {
+	if len(arr) == 0 {
+		return types.ListNull(types.Float64Type), nil
+	}
+	result := make([]attr.Value, 0, len(arr))
+	for _, v := range arr {
+		result = append(result, types.Float64Value(float64(v*10000)/float64(10000)))
+	}
+	return types.ListValueFrom(ctx, types.Float64Type, result)
 }
 
 func wrappedStringSliceToTypeStringSet(s []*wrapperspb.StringValue) types.Set {

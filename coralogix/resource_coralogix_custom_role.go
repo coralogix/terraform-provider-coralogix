@@ -3,6 +3,9 @@ package coralogix
 import (
 	"context"
 	"fmt"
+	"log"
+	"strconv"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -12,11 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
-	"log"
-	"strconv"
 	"terraform-provider-coralogix/coralogix/clientset"
 	roles "terraform-provider-coralogix/coralogix/clientset/grpc/roles"
 )
@@ -46,7 +45,6 @@ type RolesModel struct {
 	Description types.String `tfsdk:"description"`
 	ParentRole  types.String `tfsdk:"parent_role"`
 	Permissions types.Set    `tfsdk:"permissions"`
-	TeamId      types.String `tfsdk:"team_id"`
 }
 
 func (c *CustomRoleSource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -85,13 +83,6 @@ func (c *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Required:            true,
 				MarkdownDescription: "Custom Role description.",
 			},
-			"team_id": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Custom Role teamId.",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
-			},
 			"parent_role": schema.StringAttribute{
 				Required:            true,
 				MarkdownDescription: "Parent role name",
@@ -127,17 +118,10 @@ func (c *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 	createCustomRoleResponse, err := c.client.CreateRole(ctx, createCustomRoleRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error creating Custom Role",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", createRolePath),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error creating Custom Role",
-				formatRpcErrors(err, createRolePath, protojson.Format(createCustomRoleRequest)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error creating Custom Role",
+			formatRpcErrors(err, createRolePath, protojson.Format(createCustomRoleRequest)),
+		)
 		return
 	}
 	log.Printf("[INFO] Created custom role with ID: %v", createCustomRoleResponse.Id)
@@ -181,17 +165,10 @@ func (c *CustomRoleSource) getRoleById(ctx context.Context, roleId uint32) (*Rol
 	createCustomRoleResponse, err := c.client.GetRole(ctx, &getCustomRoleRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			diags.AddError(
-				"Error creating Custom Role",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", getRolePath),
-			)
-		} else {
-			diags.AddError(
-				"Error getting Custom Role",
-				formatRpcErrors(err, getRolePath, protojson.Format(&getCustomRoleRequest)),
-			)
-		}
+		diags.AddError(
+			"Error getting Custom Role",
+			formatRpcErrors(err, getRolePath, protojson.Format(&getCustomRoleRequest)),
+		)
 		return nil, diags
 	}
 
@@ -225,11 +202,6 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		RoleId: uint32(roleId),
 	}
 
-	if currentState.TeamId != desiredState.TeamId {
-		diags.AddError("Custom role update error", "TeamId can not be updated!")
-		resp.Diagnostics.Append(diags...)
-		return
-	}
 	if currentState.ParentRole != desiredState.ParentRole {
 		diags.AddError("Custom role update error", "ParentRole can not be updated!")
 		resp.Diagnostics.Append(diags...)
@@ -258,17 +230,10 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 	_, err = c.client.UpdateRole(ctx, &updateRoleRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error deleting Custom Role",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", updateRolePath),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error updating custom role",
-				formatRpcErrors(err, updateRolePath, protojson.Format(&updateRoleRequest)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error updating custom role",
+			formatRpcErrors(err, updateRolePath, protojson.Format(&updateRoleRequest)),
+		)
 		return
 	}
 
@@ -306,17 +271,10 @@ func (c *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteReques
 	_, err = c.client.DeleteRole(ctx, &deleteRoleRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error deleting Custom Role",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", deleteRolePath),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error deleting Custom Role",
-				formatRpcErrors(err, deleteRolePath, protojson.Format(&deleteRoleRequest)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error deleting Custom Role",
+			formatRpcErrors(err, deleteRolePath, protojson.Format(&deleteRoleRequest)),
+		)
 		return
 	}
 
@@ -328,16 +286,11 @@ func makeCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) (*r
 	if diags.HasError() {
 		return nil, diags
 	}
-	teamId, err := strconv.Atoi(roleModel.TeamId.ValueString())
-	if err != nil {
-		diags.AddError("Invalid teamId", "Team id should be an integer")
-		return nil, diags
-	}
+
 	return &roles.CreateRoleRequest{
 		Name:        roleModel.Name.ValueString(),
 		Description: roleModel.Description.ValueString(),
 		Permissions: permissions,
-		TeamId:      uint32(teamId),
 		ParentRole:  &roles.CreateRoleRequest_ParentRoleName{ParentRoleName: roleModel.ParentRole.ValueString()},
 	}, nil
 }
@@ -352,7 +305,6 @@ func flatterCustomRole(ctx context.Context, customRole *roles.CustomRole) (*Role
 
 	model := RolesModel{
 		ID:          types.StringValue(strconv.Itoa(int(customRole.RoleId))),
-		TeamId:      types.StringValue(strconv.Itoa(int(customRole.TeamId))),
 		ParentRole:  types.StringValue(customRole.ParentRoleName),
 		Permissions: permissions,
 		Description: types.StringValue(customRole.Description),

@@ -293,7 +293,7 @@ func (r *SLIResource) Create(ctx context.Context, req resource.CreateRequest, re
 	log.Printf("[INFO] Creating new SLI: %s", protojson.Format(createSLIRequest))
 	createResp, err := r.client.CreateSLI(ctx, createSLIRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating SLI",
 			formatRpcErrors(err, createSliURL, protojson.Format(createSLIRequest)),
@@ -476,7 +476,7 @@ func (r *SLIResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 	getSliReq := &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)}
 	getSLIsResp, err := r.client.GetSLIs(ctx, getSliReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -540,7 +540,7 @@ func (r *SLIResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	log.Printf("[INFO] Updating SLI: %s", protojson.Format(updateSliReq))
 	updateSliResp, err := r.client.UpdateSLI(ctx, updateSliReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating SLI",
 			formatRpcErrors(err, updateSliURL, protojson.Format(updateSliReq)),
@@ -555,7 +555,7 @@ func (r *SLIResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	getSliReq := &sli.GetSlisRequest{ServiceName: wrapperspb.String(serviceName)}
 	getSLIsResp, err := r.client.GetSLIs(ctx, getSliReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("SLI %q is in state, but no longer exists in Coralogix backend", id),

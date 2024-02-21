@@ -300,7 +300,7 @@ func (r *TCOPolicyTracesResource) Create(ctx context.Context, req resource.Creat
 	log.Printf("[INFO] Creating new tco-policy: %s", policyStr)
 	createResp, err := r.client.CreateTCOPolicy(ctx, createPolicyRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating tco-policy",
 			formatRpcErrors(err, createTCOPolicyURL, policyStr),
@@ -315,7 +315,7 @@ func (r *TCOPolicyTracesResource) Create(ctx context.Context, req resource.Creat
 	order := int(plan.Order.ValueInt64())
 	err, reqStr := updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_SPANS)
 	for err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if retryableStatusCode(status.Code(err)) {
 			log.Print("[INFO] Retrying to reorder tco-policies")
 			err, reqStr = updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_SPANS)
@@ -352,7 +352,7 @@ func (r *TCOPolicyTracesResource) Read(ctx context.Context, req resource.ReadReq
 	getPolicyReq := &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)}
 	getPolicyResp, err := r.client.GetTCOPolicy(ctx, getPolicyReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
@@ -398,7 +398,7 @@ func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.Update
 	log.Printf("[INFO] Updating tco-policy: %s", protojson.Format(policyUpdateReq))
 	policyUpdateResp, err := r.client.UpdateTCOPolicy(ctx, policyUpdateReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating tco-policy",
 			formatRpcErrors(err, updateTCOPolicyURL, protojson.Format(policyUpdateReq)),
@@ -411,7 +411,7 @@ func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.Update
 	order := int(plan.Order.ValueInt64())
 	err, reqStr := updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_SPANS)
 	for err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err)
 		if retryableStatusCode(status.Code(err)) {
 			log.Print("[INFO] Retrying to reorder tco-policies")
 			err, reqStr = updatePoliciesOrder(ctx, r.client, id, order, tcopolicies.SourceType_SOURCE_TYPE_SPANS)
@@ -427,7 +427,7 @@ func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.Update
 	getPolicyReq := &tcopolicies.GetPolicyRequest{Id: wrapperspb.String(id)}
 	getPolicyResp, err := r.client.GetTCOPolicy(ctx, getPolicyReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			plan.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(

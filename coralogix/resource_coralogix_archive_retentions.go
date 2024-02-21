@@ -147,7 +147,7 @@ func (r *ArchiveRetentionsResource) Create(ctx context.Context, req resource.Cre
 	getArchiveRetentionsReq := &archiveRetention.GetRetentionsRequest{}
 	getArchiveRetentionsResp, err := r.client.GetRetentions(ctx, getArchiveRetentionsReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		formatRpcErrors(err, getArchiveRetentionsURL, protojson.Format(getArchiveRetentionsReq))
 		return
 	}
@@ -293,7 +293,7 @@ func (r *ArchiveRetentionsResource) Read(ctx context.Context, req resource.ReadR
 	getArchiveRetentionsReq := &archiveRetention.GetRetentionsRequest{}
 	getArchiveRetentionsResp, err := r.client.GetRetentions(ctx, getArchiveRetentionsReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		formatRpcErrors(err, getArchiveRetentionsURL, protojson.Format(getArchiveRetentionsReq))
 		return
 	}
@@ -332,7 +332,7 @@ func (r *ArchiveRetentionsResource) Update(ctx context.Context, req resource.Upd
 	log.Printf("[INFO] Updating archive-retentions: %s", protojson.Format(archiveRetentionsUpdateReq))
 	archiveRetentionsUpdateResp, err := r.client.UpdateRetentions(ctx, archiveRetentionsUpdateReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %#v", err)
+		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating archive-retentions",
 			formatRpcErrors(err, updateArchiveRetentionsURL, protojson.Format(archiveRetentionsUpdateReq)),

@@ -39,13 +39,13 @@ type SCIMUserGroup struct {
 	Value string `json:"value"`
 }
 
-func (c UsersClient) CreateUser(ctx context.Context, teamID string, userReq *SCIMUser) (*SCIMUser, error) {
+func (c UsersClient) CreateUser(ctx context.Context, userReq *SCIMUser) (*SCIMUser, error) {
 	body, err := json.Marshal(userReq)
 	if err != nil {
 		return nil, err
 	}
 
-	bodyResp, err := c.client.Post(ctx, "", "application/json", string(body), "cgx-team-id", teamID)
+	bodyResp, err := c.client.Post(ctx, "", "application/json", string(body))
 	if err != nil {
 		return nil, err
 	}
@@ -59,8 +59,8 @@ func (c UsersClient) CreateUser(ctx context.Context, teamID string, userReq *SCI
 	return &UserResp, nil
 }
 
-func (c UsersClient) GetUser(ctx context.Context, teamID, userID string) (*SCIMUser, error) {
-	bodyResp, err := c.client.Get(ctx, fmt.Sprintf("/%s", userID), "cgx-team-id", teamID)
+func (c UsersClient) GetUser(ctx context.Context, userID string) (*SCIMUser, error) {
+	bodyResp, err := c.client.Get(ctx, fmt.Sprintf("/%s", userID))
 	if err != nil {
 		return nil, err
 	}
@@ -74,13 +74,13 @@ func (c UsersClient) GetUser(ctx context.Context, teamID, userID string) (*SCIMU
 	return &UserResp, nil
 }
 
-func (c UsersClient) UpdateUser(ctx context.Context, teamID, userID string, userReq *SCIMUser) (*SCIMUser, error) {
+func (c UsersClient) UpdateUser(ctx context.Context, userID string, userReq *SCIMUser) (*SCIMUser, error) {
 	body, err := json.Marshal(userReq)
 	if err != nil {
 		return nil, err
 	}
 
-	bodyResp, err := c.client.Put(ctx, fmt.Sprintf("/%s", userID), "application/json", string(body), "cgx-team-id", teamID)
+	bodyResp, err := c.client.Put(ctx, fmt.Sprintf("/%s", userID), "application/json", string(body))
 	if err != nil {
 		return nil, err
 	}
@@ -94,8 +94,8 @@ func (c UsersClient) UpdateUser(ctx context.Context, teamID, userID string, user
 	return &UserResp, nil
 }
 
-func (c UsersClient) DeleteUser(ctx context.Context, teamID, userID string) error {
-	_, err := c.client.Delete(ctx, fmt.Sprintf("/%s", userID), "cgx-team-id", teamID)
+func (c UsersClient) DeleteUser(ctx context.Context, userID string) error {
+	_, err := c.client.Delete(ctx, fmt.Sprintf("/%s", userID))
 	return err
 
 }
