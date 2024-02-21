@@ -19,10 +19,10 @@ resource "coralogix_api_key" "example" {
   }
   active = true
   hashed = false
-  roles = ["SCIM", "Legacy Api Key"]
+  roles = ["SCIM", "Legacy Api Key", "Role Management"]
 }
 
-#data "coralogix_api_key" "same_key_by_id" {
-#  id = coralogix_api_key.example.id
-#}
+data "coralogix_api_key" "same_key_by_id" {
+  id = coralogix_api_key.example.id
+}
 
