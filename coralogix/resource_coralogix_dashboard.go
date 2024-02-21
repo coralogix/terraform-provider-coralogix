@@ -2810,6 +2810,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+	log.Printf("[INFO] Flattened Dashboard: %s", flattenedDashboard)
 	plan = *flattenedDashboard
 
 	// Set state to fully populated data
@@ -8796,7 +8797,7 @@ func absoluteTimeFrameAttributes() map[string]attr.Type {
 
 func flattenRelativeDashboardTimeFrame(ctx context.Context, timeFrame *durationpb.Duration) (types.Object, diag.Diagnostics) {
 	relativeTimeFrame := &DashboardTimeFrameRelativeModel{
-		Duration: types.StringValue(timeFrame.String()),
+		Duration: flattenDuration(timeFrame),
 	}
 	timeFrameObject, dgs := types.ObjectValueFrom(ctx, relativeTimeFrameAttributes(), relativeTimeFrame)
 	if dgs.HasError() {
@@ -8807,6 +8808,16 @@ func flattenRelativeDashboardTimeFrame(ctx context.Context, timeFrame *durationp
 		Absolute: types.ObjectNull(absoluteTimeFrameAttributes()),
 	}
 	return types.ObjectValueFrom(ctx, dashboardTimeFrameModelAttr(), flattenedTimeFrame)
+}
+
+func flattenDuration(timeFrame *durationpb.Duration) basetypes.StringValue {
+	if timeFrame == nil {
+		return types.StringNull()
+	}
+	if timeFrame.Seconds == 0 && timeFrame.Nanos == 0 {
+		return types.StringValue("seconds:0")
+	}
+	return types.StringValue(timeFrame.String())
 }
 
 func relativeTimeFrameAttributes() map[string]attr.Type {

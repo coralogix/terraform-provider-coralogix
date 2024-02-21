@@ -477,3 +477,9 @@ New Features:
 Breaking Changes:
 #### resource/coralogix_user, resource/coralogix_group and resource/coralogix_custom_role
 * `team_id` was removed. managed by (team's) api-key with the right permissions.
+
+Bug fixing:
+#### resource/coralogix_events2metric
+* fixing `buckets` type-conversion bug (from float32 to float64).
+#### resource/coralogix_dashboard
+* fixing `time_frame.relative.duration` flattening bug when set to `seconds:0`.
