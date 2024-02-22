@@ -11,8 +11,13 @@ description: |-
 ## Example Usage
 
 ```hcl
-resource "coralogix_dashboards_folder" "this" {
-  name = "My Folder"
+resource "coralogix_dashboards_folder" "example" {
+  name     = "example"
+}
+
+resource "coralogix_dashboards_folder" "example_2" {
+  name     = "example2"
+  parent_id = coralogix_dashboards_folder.example.id
 }
 ```
 
@@ -24,6 +29,7 @@ resource "coralogix_dashboards_folder" "this" {
 ### Optional
 
 - `name` (String) Display name of the folder.
+- `parent_id` (String) Parent folder id.
 
 ### Read-Only
 
