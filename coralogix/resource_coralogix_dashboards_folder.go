@@ -56,8 +56,9 @@ func (r *DashboardsFolderResource) Configure(ctx context.Context, req resource.C
 }
 
 type DashboardsFolderResourceModel struct {
-	ID   types.String `tfsdk:"id"`
-	Name types.String `tfsdk:"name"`
+	ID       types.String `tfsdk:"id"`
+	Name     types.String `tfsdk:"name"`
+	ParentId types.String `tfsdk:"parent_id"`
 }
 
 func (r *DashboardsFolderResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -78,6 +79,10 @@ func (r *DashboardsFolderResource) Schema(ctx context.Context, req resource.Sche
 			"name": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "Display name of the folder.",
+			},
+			"parent_id": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "Parent folder id.",
 			},
 		},
 	}
@@ -138,15 +143,17 @@ func (r *DashboardsFolderResource) Create(ctx context.Context, req resource.Crea
 
 func flattenDashboardsFolder(folder *dashboards.DashboardFolder) DashboardsFolderResourceModel {
 	return DashboardsFolderResourceModel{
-		ID:   wrapperspbStringToTypeString(folder.GetId()),
-		Name: wrapperspbStringToTypeString(folder.GetName()),
+		ID:       wrapperspbStringToTypeString(folder.GetId()),
+		Name:     wrapperspbStringToTypeString(folder.GetName()),
+		ParentId: wrapperspbStringToTypeString(folder.GetParentId()),
 	}
 }
 
 func extractCreateDashboardsFolder(plan DashboardsFolderResourceModel) *dashboards.DashboardFolder {
 	return &dashboards.DashboardFolder{
-		Id:   expandUuid(plan.ID),
-		Name: typeStringToWrapperspbString(plan.Name),
+		Id:       expandUuid(plan.ID),
+		Name:     typeStringToWrapperspbString(plan.Name),
+		ParentId: typeStringToWrapperspbString(plan.ParentId),
 	}
 }
 

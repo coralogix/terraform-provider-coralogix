@@ -483,3 +483,8 @@ Bug fixing:
 * fixing `buckets` type-conversion bug (from float32 to float64).
 #### resource/coralogix_dashboard
 * fixing `time_frame.relative.duration` flattening bug when set to `seconds:0`.
+
+## Release 1.11.12
+New Features:
+#### resource/coralogix_dashboards_folder
+* Adding support for `parent_id`.

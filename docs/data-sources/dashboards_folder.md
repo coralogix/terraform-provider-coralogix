@@ -22,3 +22,4 @@ description: |-
 ### Read-Only
 
 - `name` (String) Display name of the folder.
+- `parent_id` (String) Parent folder id.
