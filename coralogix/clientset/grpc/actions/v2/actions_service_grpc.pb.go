@@ -4,11 +4,10 @@
 // - protoc             v3.21.8
 // source: com/coralogixapis/actions/v2/actions_service.proto
 
-package __
+package v2
 
 import (
 	context "context"
-
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -55,6 +54,11 @@ type ActionsServiceClient interface {
 	//method: "Post"
 	//)
 	OrderActions(ctx context.Context, in *OrderActionsRequest, opts ...grpc.CallOption) (*OrderActionsResponse, error)
+	// google.protobuf.http(
+	//path: "v2/actions/actions:atomicBatchExecute"
+	//method: "Post"
+	//)
+	AtomicBatchExecuteActions(ctx context.Context, in *AtomicBatchExecuteActionsRequest, opts ...grpc.CallOption) (*AtomicBatchExecuteActionsResponse, error)
 }
 
 type actionsServiceClient struct {
@@ -119,6 +123,15 @@ func (c *actionsServiceClient) OrderActions(ctx context.Context, in *OrderAction
 	return out, nil
 }
 
+func (c *actionsServiceClient) AtomicBatchExecuteActions(ctx context.Context, in *AtomicBatchExecuteActionsRequest, opts ...grpc.CallOption) (*AtomicBatchExecuteActionsResponse, error) {
+	out := new(AtomicBatchExecuteActionsResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogixapis.actions.v2.ActionsService/AtomicBatchExecuteActions", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ActionsServiceServer is the server API for ActionsService service.
 // All implementations must embed UnimplementedActionsServiceServer
 // for forward compatibility
@@ -155,6 +168,11 @@ type ActionsServiceServer interface {
 	//method: "Post"
 	//)
 	OrderActions(context.Context, *OrderActionsRequest) (*OrderActionsResponse, error)
+	// google.protobuf.http(
+	//path: "v2/actions/actions:atomicBatchExecute"
+	//method: "Post"
+	//)
+	AtomicBatchExecuteActions(context.Context, *AtomicBatchExecuteActionsRequest) (*AtomicBatchExecuteActionsResponse, error)
 	mustEmbedUnimplementedActionsServiceServer()
 }
 
@@ -179,6 +197,9 @@ func (UnimplementedActionsServiceServer) ListActions(context.Context, *ListActio
 }
 func (UnimplementedActionsServiceServer) OrderActions(context.Context, *OrderActionsRequest) (*OrderActionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method OrderActions not implemented")
+}
+func (UnimplementedActionsServiceServer) AtomicBatchExecuteActions(context.Context, *AtomicBatchExecuteActionsRequest) (*AtomicBatchExecuteActionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AtomicBatchExecuteActions not implemented")
 }
 func (UnimplementedActionsServiceServer) mustEmbedUnimplementedActionsServiceServer() {}
 
@@ -301,6 +322,24 @@ func _ActionsService_OrderActions_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ActionsService_AtomicBatchExecuteActions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AtomicBatchExecuteActionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ActionsServiceServer).AtomicBatchExecuteActions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogixapis.actions.v2.ActionsService/AtomicBatchExecuteActions",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ActionsServiceServer).AtomicBatchExecuteActions(ctx, req.(*AtomicBatchExecuteActionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ActionsService_ServiceDesc is the grpc.ServiceDesc for ActionsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -331,6 +370,10 @@ var ActionsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "OrderActions",
 			Handler:    _ActionsService_OrderActions_Handler,
+		},
+		{
+			MethodName: "AtomicBatchExecuteActions",
+			Handler:    _ActionsService_AtomicBatchExecuteActions_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
