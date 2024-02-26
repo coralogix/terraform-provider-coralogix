@@ -31,7 +31,7 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 		sourceType:   selectRandomlyFromSlice(actionValidSourceTypes),
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
-		isPrivate:    true,
+		isPrivate:    false,
 		isHidden:     false,
 	}
 
@@ -41,7 +41,7 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 		sourceType:   selectRandomlyFromSlice(actionValidSourceTypes),
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
-		isPrivate:    true,
+		isPrivate:    false,
 		isHidden:     false,
 	}
 
