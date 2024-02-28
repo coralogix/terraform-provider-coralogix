@@ -14,18 +14,7 @@ provider "coralogix" {
 
 resource "coralogix_team" "example" {
   name                    = "example"
-  team_admins_emails      = ["example@coralogix.com"]
   retention               = 1
+  daily_quota             = 0.025
 }
 
-resource "coralogix_team" "example-2" {
-  name                    = "example-2"
-  team_admins_emails      = ["example@coralogix.com"]
-  retention               = 1
-}
-
-resource "coralogix_moving_quota" "example" {
-  source_team_id            = coralogix_team.example.id
-  destination_team_id       = coralogix_team.example-2.id
-  desired_source_team_quota = 85
-}

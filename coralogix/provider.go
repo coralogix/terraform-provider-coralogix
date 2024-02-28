@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"os"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"golang.org/x/exp/slices"
-	"terraform-provider-coralogix/coralogix/clientset"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -333,6 +334,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewCustomRoleDataSource,
 		NewGroupDataSource,
 		NewUserDataSource,
+		NewTeamDataSource,
 	}
 }
 
@@ -352,7 +354,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewAlertsSchedulerResource,
 		NewTeamResource,
 		NewApiKeyResource,
-		NewMovingQuotaResource,
 		NewSLOResource,
 		NewDashboardsFolderResource,
 		NewCustomRoleSource,
