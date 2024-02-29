@@ -25,7 +25,10 @@ type TeamServiceClient interface {
 	CreateTeamInOrg(ctx context.Context, in *CreateTeamInOrgRequest, opts ...grpc.CallOption) (*CreateTeamInOrgResponse, error)
 	MoveQuota(ctx context.Context, in *MoveQuotaRequest, opts ...grpc.CallOption) (*MoveQuotaResponse, error)
 	GetTeamQuota(ctx context.Context, in *GetTeamQuotaRequest, opts ...grpc.CallOption) (*GetTeamQuotaResponse, error)
-	InviteUsersToTeam(ctx context.Context, in *InviteUsersToTeamRequest, opts ...grpc.CallOption) (*InviteUsersToTeamResponse, error)
+	SetDailyQuota(ctx context.Context, in *SetDailyQuotaRequest, opts ...grpc.CallOption) (*SetDailyQuotaResponse, error)
+	UpdateTeam(ctx context.Context, in *UpdateTeamRequest, opts ...grpc.CallOption) (*UpdateTeamResponse, error)
+	GetTeam(ctx context.Context, in *GetTeamRequest, opts ...grpc.CallOption) (*GetTeamResponse, error)
+	DeleteTeam(ctx context.Context, in *DeleteTeamRequest, opts ...grpc.CallOption) (*DeleteTeamResponse, error)
 }
 
 type teamServiceClient struct {
@@ -63,9 +66,36 @@ func (c *teamServiceClient) GetTeamQuota(ctx context.Context, in *GetTeamQuotaRe
 	return out, nil
 }
 
-func (c *teamServiceClient) InviteUsersToTeam(ctx context.Context, in *InviteUsersToTeamRequest, opts ...grpc.CallOption) (*InviteUsersToTeamResponse, error) {
-	out := new(InviteUsersToTeamResponse)
-	err := c.cc.Invoke(ctx, "/com.coralogixapis.aaa.organisations.v2.TeamService/InviteUsersToTeam", in, out, opts...)
+func (c *teamServiceClient) SetDailyQuota(ctx context.Context, in *SetDailyQuotaRequest, opts ...grpc.CallOption) (*SetDailyQuotaResponse, error) {
+	out := new(SetDailyQuotaResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogixapis.aaa.organisations.v2.TeamService/SetDailyQuota", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *teamServiceClient) UpdateTeam(ctx context.Context, in *UpdateTeamRequest, opts ...grpc.CallOption) (*UpdateTeamResponse, error) {
+	out := new(UpdateTeamResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogixapis.aaa.organisations.v2.TeamService/UpdateTeam", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *teamServiceClient) GetTeam(ctx context.Context, in *GetTeamRequest, opts ...grpc.CallOption) (*GetTeamResponse, error) {
+	out := new(GetTeamResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogixapis.aaa.organisations.v2.TeamService/GetTeam", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *teamServiceClient) DeleteTeam(ctx context.Context, in *DeleteTeamRequest, opts ...grpc.CallOption) (*DeleteTeamResponse, error) {
+	out := new(DeleteTeamResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogixapis.aaa.organisations.v2.TeamService/DeleteTeam", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +109,10 @@ type TeamServiceServer interface {
 	CreateTeamInOrg(context.Context, *CreateTeamInOrgRequest) (*CreateTeamInOrgResponse, error)
 	MoveQuota(context.Context, *MoveQuotaRequest) (*MoveQuotaResponse, error)
 	GetTeamQuota(context.Context, *GetTeamQuotaRequest) (*GetTeamQuotaResponse, error)
-	InviteUsersToTeam(context.Context, *InviteUsersToTeamRequest) (*InviteUsersToTeamResponse, error)
+	SetDailyQuota(context.Context, *SetDailyQuotaRequest) (*SetDailyQuotaResponse, error)
+	UpdateTeam(context.Context, *UpdateTeamRequest) (*UpdateTeamResponse, error)
+	GetTeam(context.Context, *GetTeamRequest) (*GetTeamResponse, error)
+	DeleteTeam(context.Context, *DeleteTeamRequest) (*DeleteTeamResponse, error)
 	mustEmbedUnimplementedTeamServiceServer()
 }
 
@@ -96,8 +129,17 @@ func (UnimplementedTeamServiceServer) MoveQuota(context.Context, *MoveQuotaReque
 func (UnimplementedTeamServiceServer) GetTeamQuota(context.Context, *GetTeamQuotaRequest) (*GetTeamQuotaResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTeamQuota not implemented")
 }
-func (UnimplementedTeamServiceServer) InviteUsersToTeam(context.Context, *InviteUsersToTeamRequest) (*InviteUsersToTeamResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method InviteUsersToTeam not implemented")
+func (UnimplementedTeamServiceServer) SetDailyQuota(context.Context, *SetDailyQuotaRequest) (*SetDailyQuotaResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetDailyQuota not implemented")
+}
+func (UnimplementedTeamServiceServer) UpdateTeam(context.Context, *UpdateTeamRequest) (*UpdateTeamResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateTeam not implemented")
+}
+func (UnimplementedTeamServiceServer) GetTeam(context.Context, *GetTeamRequest) (*GetTeamResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTeam not implemented")
+}
+func (UnimplementedTeamServiceServer) DeleteTeam(context.Context, *DeleteTeamRequest) (*DeleteTeamResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteTeam not implemented")
 }
 func (UnimplementedTeamServiceServer) mustEmbedUnimplementedTeamServiceServer() {}
 
@@ -166,20 +208,74 @@ func _TeamService_GetTeamQuota_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
-func _TeamService_InviteUsersToTeam_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(InviteUsersToTeamRequest)
+func _TeamService_SetDailyQuota_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetDailyQuotaRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(TeamServiceServer).InviteUsersToTeam(ctx, in)
+		return srv.(TeamServiceServer).SetDailyQuota(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/com.coralogixapis.aaa.organisations.v2.TeamService/InviteUsersToTeam",
+		FullMethod: "/com.coralogixapis.aaa.organisations.v2.TeamService/SetDailyQuota",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(TeamServiceServer).InviteUsersToTeam(ctx, req.(*InviteUsersToTeamRequest))
+		return srv.(TeamServiceServer).SetDailyQuota(ctx, req.(*SetDailyQuotaRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TeamService_UpdateTeam_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateTeamRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TeamServiceServer).UpdateTeam(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogixapis.aaa.organisations.v2.TeamService/UpdateTeam",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TeamServiceServer).UpdateTeam(ctx, req.(*UpdateTeamRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TeamService_GetTeam_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTeamRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TeamServiceServer).GetTeam(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogixapis.aaa.organisations.v2.TeamService/GetTeam",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TeamServiceServer).GetTeam(ctx, req.(*GetTeamRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _TeamService_DeleteTeam_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteTeamRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TeamServiceServer).DeleteTeam(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogixapis.aaa.organisations.v2.TeamService/DeleteTeam",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TeamServiceServer).DeleteTeam(ctx, req.(*DeleteTeamRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -204,8 +300,20 @@ var TeamService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _TeamService_GetTeamQuota_Handler,
 		},
 		{
-			MethodName: "InviteUsersToTeam",
-			Handler:    _TeamService_InviteUsersToTeam_Handler,
+			MethodName: "SetDailyQuota",
+			Handler:    _TeamService_SetDailyQuota_Handler,
+		},
+		{
+			MethodName: "UpdateTeam",
+			Handler:    _TeamService_UpdateTeam_Handler,
+		},
+		{
+			MethodName: "GetTeam",
+			Handler:    _TeamService_GetTeam_Handler,
+		},
+		{
+			MethodName: "DeleteTeam",
+			Handler:    _TeamService_DeleteTeam_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

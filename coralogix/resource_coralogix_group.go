@@ -93,7 +93,7 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 
-	createGroupRequest, diags := extractCreateGroup(ctx, plan)
+	createGroupRequest, diags := extractGroup(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -204,7 +204,7 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	groupUpdateReq, diags := extractCreateGroup(ctx, plan)
+	groupUpdateReq, diags := extractGroup(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -285,17 +285,12 @@ type GroupResourceModel struct {
 	Role        types.String `tfsdk:"role"`
 }
 
-func extractCreateGroup(ctx context.Context, plan *GroupResourceModel) (*clientset.SCIMGroup, diag.Diagnostics) {
+func extractGroup(ctx context.Context, plan *GroupResourceModel) (*clientset.SCIMGroup, diag.Diagnostics) {
 	members, diags := extractGroupMembers(ctx, plan.Members)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	var id *string
-	if !plan.ID.IsNull() || plan.ID.IsUnknown() {
-		id = new(string)
-		*id = plan.ID.ValueString()
-	}
 	return &clientset.SCIMGroup{
 		DisplayName: plan.DisplayName.ValueString(),
 		Members:     members,

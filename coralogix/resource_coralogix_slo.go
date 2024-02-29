@@ -63,11 +63,10 @@ var (
 		slos.SloStatus_SLO_STATUS_OK:          "ok",
 		slos.SloStatus_SLO_STATUS_BREACHED:    "breached",
 	}
-	schemaToProtoSLOStatus = ReverseMap(protoToSchemaSLOStatus)
-	createSloUrl           = "com.coralogixapis.apm.services.v1.ServiceSloService/CreateServiceSlo"
-	getSloUrl              = "com.coralogixapis.apm.services.v1.ServiceSloService/GetServiceSlo"
-	updateSloUrl           = "com.coralogixapis.apm.services.v1.ServiceSloService/ReplaceServiceSlo"
-	deleteSloUrl           = "com.coralogixapis.apm.services.v1.ServiceSloService/DeleteServiceSlo"
+	createSloUrl = "com.coralogixapis.apm.services.v1.ServiceSloService/CreateServiceSlo"
+	getSloUrl    = "com.coralogixapis.apm.services.v1.ServiceSloService/GetServiceSlo"
+	updateSloUrl = "com.coralogixapis.apm.services.v1.ServiceSloService/ReplaceServiceSlo"
+	deleteSloUrl = "com.coralogixapis.apm.services.v1.ServiceSloService/DeleteServiceSlo"
 )
 
 func NewSLOResource() resource.Resource {

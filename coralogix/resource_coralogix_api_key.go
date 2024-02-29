@@ -3,6 +3,10 @@ package coralogix
 import (
 	"context"
 	"fmt"
+	"log"
+	"reflect"
+	"strconv"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -17,9 +21,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
-	"log"
-	"reflect"
-	"strconv"
 	"terraform-provider-coralogix/coralogix/clientset"
 	apikeys "terraform-provider-coralogix/coralogix/clientset/grpc/apikeys"
 )
@@ -187,7 +188,7 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 	log.Printf("[INFO] Create api key with ID: %s", createApiKeyResp.KeyId)
 
 	currentKeyId := createApiKeyResp.GetKeyId()
-	key, diags := r.getKeyInfo(ctx, &currentKeyId, &createApiKeyResp.Value, diags)
+	key, diags := r.getKeyInfo(ctx, &currentKeyId, &createApiKeyResp.Value)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -206,8 +207,7 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	key, diags := r.getKeyInfo(ctx, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer(), diags)
-
+	key, diags := r.getKeyInfo(ctx, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -279,7 +279,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	key, diags := r.getKeyInfo(ctx, &id, currentState.Value.ValueStringPointer(), diags)
+	key, diags := r.getKeyInfo(ctx, &id, currentState.Value.ValueStringPointer())
 	if diags.HasError() {
 		return
 	}
@@ -297,6 +297,10 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 	id := currentState.ID.ValueString()
 	deleteApiKeyRequest, diags := makeDeleteApi(&id)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 	_, err := r.client.DeleteApiKey(ctx, deleteApiKeyRequest)
 
 	if err != nil {
@@ -318,9 +322,11 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	log.Printf("[INFO] Api Key %s deleted", id)
 }
 
-func (r *ApiKeyResource) getKeyInfo(ctx context.Context, id *string, keyValue *string, diags diag.Diagnostics) (*ApiKeyModel, diag.Diagnostics) {
+func (r *ApiKeyResource) getKeyInfo(ctx context.Context, id *string, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
 	getApiKeyRequest, diags := makeGetApiKeyRequest(id)
-
+	if diags.HasError() {
+		return nil, diags
+	}
 	getApiKeyResponse, err := r.client.GetApiKey(ctx, getApiKeyRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())

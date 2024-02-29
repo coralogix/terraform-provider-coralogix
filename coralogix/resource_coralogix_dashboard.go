@@ -8150,6 +8150,9 @@ func flattenBarChartQueryLogs(ctx context.Context, logs *dashboards.BarChart_Log
 	}
 
 	logsObject, diags := types.ObjectValueFrom(ctx, barChartLogsQueryAttr(), flattenedLogs)
+	if diags.HasError() {
+		return nil, diags
+	}
 	return &BarChartQueryModel{
 		Logs:      logsObject,
 		Metrics:   types.ObjectNull(barChartMetricsQueryAttr()),

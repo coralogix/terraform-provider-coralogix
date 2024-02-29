@@ -1690,21 +1690,6 @@ func flattenMetaLabels(labels []*alerts.MetaLabel) interface{} {
 	return result
 }
 
-func flattenShowInInsight(showInInsight *alerts.ShowInInsight) interface{} {
-	if showInInsight == nil {
-		return nil
-	}
-	notifyEveryMin := int(showInInsight.GetRetriggeringPeriodSeconds().GetValue() / 60)
-	notifyOn := alertProtoNotifyOnToSchemaNotifyOn[showInInsight.GetNotifyOn()]
-	showInInsightSchema := map[string]interface{}{
-		"retriggering_period_minutes": notifyEveryMin,
-		"notify_on":                   notifyOn,
-	}
-	return []interface{}{
-		showInInsightSchema,
-	}
-}
-
 func flattenNotificationGroups(notificationGroups []*alerts.AlertNotificationGroups, incidentSettingsConfigured bool) interface{} {
 	result := make([]interface{}, 0, len(notificationGroups))
 	for _, group := range notificationGroups {

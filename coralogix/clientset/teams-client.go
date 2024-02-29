@@ -10,8 +10,8 @@ type TeamsClient struct {
 	callPropertiesCreator *CallPropertiesCreator
 }
 
-func (t TeamsClient) CreateTeam(ctx context.Context, req *teams.CreateTeamInOrgRequest) (*teams.CreateTeamInOrgResponse, error) {
-	callProperties, err := t.callPropertiesCreator.GetCallProperties(ctx)
+func (c TeamsClient) CreateTeam(ctx context.Context, req *teams.CreateTeamInOrgRequest) (*teams.CreateTeamInOrgResponse, error) {
+	callProperties, err := c.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -23,8 +23,8 @@ func (t TeamsClient) CreateTeam(ctx context.Context, req *teams.CreateTeamInOrgR
 	return client.CreateTeamInOrg(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (t TeamsClient) GetTeamQuota(ctx context.Context, req *teams.GetTeamQuotaRequest) (*teams.GetTeamQuotaResponse, error) {
-	callProperties, err := t.callPropertiesCreator.GetCallProperties(ctx)
+func (c TeamsClient) UpdateTeam(ctx context.Context, req *teams.UpdateTeamRequest) (*teams.UpdateTeamResponse, error) {
+	callProperties, err := c.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -33,11 +33,11 @@ func (t TeamsClient) GetTeamQuota(ctx context.Context, req *teams.GetTeamQuotaRe
 	defer conn.Close()
 	client := teams.NewTeamServiceClient(conn)
 
-	return client.GetTeamQuota(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.UpdateTeam(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (t TeamsClient) GetQuota(ctx context.Context, req *teams.GetTeamQuotaRequest) (*teams.GetTeamQuotaResponse, error) {
-	callProperties, err := t.callPropertiesCreator.GetCallProperties(ctx)
+func (c TeamsClient) GetTeam(ctx context.Context, req *teams.GetTeamRequest) (*teams.GetTeamResponse, error) {
+	callProperties, err := c.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -46,11 +46,11 @@ func (t TeamsClient) GetQuota(ctx context.Context, req *teams.GetTeamQuotaReques
 	defer conn.Close()
 	client := teams.NewTeamServiceClient(conn)
 
-	return client.GetTeamQuota(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.GetTeam(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (t TeamsClient) MoveQuota(ctx context.Context, req *teams.MoveQuotaRequest) (*teams.MoveQuotaResponse, error) {
-	callProperties, err := t.callPropertiesCreator.GetCallProperties(ctx)
+func (c TeamsClient) DeleteTeam(ctx context.Context, req *teams.DeleteTeamRequest) (*teams.DeleteTeamResponse, error) {
+	callProperties, err := c.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func (t TeamsClient) MoveQuota(ctx context.Context, req *teams.MoveQuotaRequest)
 	defer conn.Close()
 	client := teams.NewTeamServiceClient(conn)
 
-	return client.MoveQuota(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.DeleteTeam(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 func NewTeamsClient(c *CallPropertiesCreator) *TeamsClient {
