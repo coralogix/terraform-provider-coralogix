@@ -492,4 +492,4 @@ New Features:
 ## Release 1.11.13
 Breaking Changes:
 #### resource/coralogix_team and resource/coralogix_moving_quota
-* resource/coralogix_moving_quota was removed, and the `coralogix_team` resource was changed to support setting of daily-quota.
+* `coralogix_moving_quota` was removed, and the `coralogix_team` resource was changed to support setting of daily-quota.

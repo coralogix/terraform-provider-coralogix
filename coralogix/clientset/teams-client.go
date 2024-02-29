@@ -36,7 +36,7 @@ func (c TeamsClient) UpdateTeam(ctx context.Context, req *teams.UpdateTeamReques
 	return client.UpdateTeam(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (c TeamsClient) GetTeam(ctx context.Context, ID string) (*teams.CreateTeamInOrgRequest, error) {
+func (c TeamsClient) GetTeam(ctx context.Context, req *teams.GetTeamRequest) (*teams.GetTeamResponse, error) {
 	callProperties, err := c.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -44,9 +44,9 @@ func (c TeamsClient) GetTeam(ctx context.Context, ID string) (*teams.CreateTeamI
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	//client := teams.NewTeamServiceClient(conn)
+	client := teams.NewTeamServiceClient(conn)
 
-	return &teams.CreateTeamInOrgRequest{}, nil
+	return client.GetTeam(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 func (c TeamsClient) DeleteTeam(ctx context.Context, req *teams.DeleteTeamRequest) (*teams.DeleteTeamResponse, error) {

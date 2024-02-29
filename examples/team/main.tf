@@ -13,8 +13,7 @@ provider "coralogix" {
 }
 
 resource "coralogix_team" "example" {
-  name                    = "example"
-  retention               = 1
+  name                    = "exampleTeamName4"
   daily_quota             = 0.025
 }
 

@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"terraform-provider-coralogix/coralogix/clientset"
 	teams "terraform-provider-coralogix/coralogix/clientset/grpc/teams"
 
@@ -80,8 +82,11 @@ func (r *TeamResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 				MarkdownDescription: "Team name.",
 			},
 			"retention": schema.Int64Attribute{
-				Required:            true,
+				Computed:            true,
 				MarkdownDescription: "Team retention.",
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"daily_quota": schema.Float64Attribute{
 				Computed:            true,
@@ -135,10 +140,24 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 	log.Printf("[INFO] Submitted new team: %s", protojson.Format(createTeamResp.GetTeamId()))
-	plan = flattenTeam(createTeamReq, createTeamResp)
+
+	getTeamReq := &teams.GetTeamRequest{
+		TeamId: createTeamResp.GetTeamId(),
+	}
+	getTeamResp, err := r.client.GetTeam(ctx, getTeamReq)
+	if err != nil {
+		log.Printf("[ERROR] Received error: %s", err.Error())
+		resp.Diagnostics.AddError(
+			"Error reading Team",
+			formatRpcErrors(err, getTeamURL, protojson.Format(getTeamReq)),
+		)
+		return
+	}
+	log.Printf("[INFO] Received Team: %s", protojson.Format(getTeamResp))
+	state := flattenTeam(getTeamResp)
 
 	// Set state to fully populated data
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
 
@@ -151,17 +170,16 @@ func extractCreateTeam(plan *TeamResourceModel) (*teams.CreateTeamInOrgRequest, 
 
 	return &teams.CreateTeamInOrgRequest{
 		TeamName:   plan.Name.ValueString(),
-		Retention:  int32(plan.Retention.ValueInt64()),
 		DailyQuota: dailyQuota,
 	}, nil
 }
 
-func flattenTeam(req *teams.CreateTeamInOrgRequest, resp *teams.CreateTeamInOrgResponse) *TeamResourceModel {
+func flattenTeam(resp *teams.GetTeamResponse) *TeamResourceModel {
 	return &TeamResourceModel{
 		ID:         types.StringValue(strconv.Itoa(int(resp.GetTeamId().GetId()))),
-		Name:       types.StringValue(req.GetTeamName()),
-		Retention:  types.Int64Value(int64(req.GetRetention())),
-		DailyQuota: types.Float64Value(req.GetDailyQuota()),
+		Name:       types.StringValue(resp.GetTeamName()),
+		Retention:  types.Int64Value(int64(resp.GetRetention())),
+		DailyQuota: types.Float64Value(math.Round(resp.GetDailyQuota()*1000) / 1000),
 	}
 }
 
@@ -173,29 +191,51 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
+	intId, err := strconv.Atoi(plan.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error parsing Team ID",
+			fmt.Sprintf("Error parsing Team ID: %s", err.Error()),
+		)
+		return
+	}
+	getTeamReq := &teams.GetTeamRequest{
+		TeamId: &teams.TeamId{
+			Id: uint32(intId),
+		},
+	}
+	log.Printf("[INFO] Reading Team: %s", protojson.Format(getTeamReq))
+	getTeamResp, err := r.client.GetTeam(ctx, getTeamReq)
+	if err != nil {
+		log.Printf("[ERROR] Received error: %s", err.Error())
+		if status.Code(err) == codes.NotFound {
+			plan.ID = types.StringNull()
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("Team %q is in state, but no longer exists in Coralogix backend", intId),
+				fmt.Sprintf("%q will be recreated when you apply", intId),
+			)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error reading Team",
+				formatRpcErrors(err, getTeamURL, protojson.Format(getTeamReq)),
+			)
+		}
+		return
+	}
+	log.Printf("[INFO] Received Team: %s", protojson.Format(getTeamResp))
+
+	state := flattenTeam(getTeamResp)
 	// Set state to fully populated data
-	diags = resp.State.Set(ctx, plan)
+	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var plan, state *TeamResourceModel
-	diags := req.State.Get(ctx, &plan)
+	var plan *TeamResourceModel
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
-	}
-	diags = req.Plan.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	if plan.Retention.ValueInt64() != state.Retention.ValueInt64() {
-		resp.Diagnostics.AddError(
-			"Error updating Team",
-			"Team retention cannot be updated.",
-		)
 	}
 
 	updateReq, diags := extractUpdateTeam(plan)
@@ -225,16 +265,29 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	log.Printf("[INFO] Updated team: %s", plan.ID.ValueString())
 
+	getTeamReq := &teams.GetTeamRequest{
+		TeamId: updateReq.GetTeamId(),
+	}
+	getTeamResp, err := r.client.GetTeam(ctx, getTeamReq)
+	if err != nil {
+		log.Printf("[ERROR] Received error: %s", err.Error())
+		resp.Diagnostics.AddError(
+			"Error reading Team",
+			formatRpcErrors(err, getTeamURL, protojson.Format(getTeamReq)),
+		)
+		return
+	}
+	log.Printf("[INFO] Received Team: %s", protojson.Format(getTeamResp))
+	state := flattenTeam(getTeamResp)
+
 	// Set state to fully populated data
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 }
 
 func extractUpdateTeam(plan *TeamResourceModel) (*teams.UpdateTeamRequest, diag.Diagnostics) {
-	var dailyQuota *float64
-	if !(plan.DailyQuota.IsUnknown() || plan.DailyQuota.IsNull()) {
-		dailyQuota = new(float64)
-		*dailyQuota = plan.DailyQuota.ValueFloat64()
-	}
+	dailyQuota := new(float64)
+	*dailyQuota = plan.DailyQuota.ValueFloat64()
 
 	id, err := strconv.Atoi(plan.ID.ValueString())
 	if err != nil {

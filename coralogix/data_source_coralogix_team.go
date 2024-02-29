@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	teams "terraform-provider-coralogix/coralogix/clientset/grpc/teams"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -65,33 +67,40 @@ func (d *TeamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 	//Get refreshed Team value from Coralogix
-	id := data.ID.ValueString()
-	log.Printf("[INFO] Reading Team: %s", id)
-	getTeamResp, err := d.client.GetTeam(ctx, id)
+	intId, err := strconv.Atoi(data.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error parsing Team ID",
+			fmt.Sprintf("Error parsing Team ID: %s", err.Error()),
+		)
+		return
+	}
+	getTeamReq := &teams.GetTeamRequest{
+		TeamId: &teams.TeamId{
+			Id: uint32(intId),
+		},
+	}
+	log.Printf("[INFO] Reading Team: %s", protojson.Format(getTeamReq))
+	getTeamResp, err := d.client.GetTeam(ctx, getTeamReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			data.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Team %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
+				fmt.Sprintf("Team %q is in state, but no longer exists in Coralogix backend", intId),
+				fmt.Sprintf("%q will be recreated when you apply", intId),
 			)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Team",
-				formatRpcErrors(err, getTeamURL, id),
+				formatRpcErrors(err, getTeamURL, protojson.Format(getTeamReq)),
 			)
 		}
 		return
 	}
 	log.Printf("[INFO] Received Team: %s", protojson.Format(getTeamResp))
 
-	//data, diags = flattenTeam(getTeamResp, resp.)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
+	data = flattenTeam(getTeamResp)
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
