@@ -138,9 +138,6 @@ func flattenSCIMGroup(group *clientset.SCIMGroup) (*GroupResourceModel, diag.Dia
 }
 
 func flattenSCIMGroupMembers(members []clientset.SCIMGroupMember) (types.Set, diag.Diagnostics) {
-	if len(members) == 0 {
-		return types.SetNull(types.StringType), nil
-	}
 	var diags diag.Diagnostics
 	membersIDs := make([]attr.Value, 0, len(members))
 	for _, member := range members {
@@ -199,6 +196,7 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	// Retrieve values from plan
 	var plan *GroupResourceModel
 	diags := req.Plan.Get(ctx, &plan)
+
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -286,6 +284,7 @@ type GroupResourceModel struct {
 }
 
 func extractGroup(ctx context.Context, plan *GroupResourceModel) (*clientset.SCIMGroup, diag.Diagnostics) {
+
 	members, diags := extractGroupMembers(ctx, plan.Members)
 	if diags.HasError() {
 		return nil, diags
