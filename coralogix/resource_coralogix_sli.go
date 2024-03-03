@@ -188,7 +188,7 @@ func (r *SLIResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 			"threshold_value": schema.Int64Attribute{
 				Optional: true,
 			},
-			"filters": schema.ListNestedAttribute{
+			"filters": schema.SetNestedAttribute{
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -262,7 +262,7 @@ type SLIResourceModel struct {
 	SloPeriodType       types.String `tfsdk:"slo_period_type"`
 	ThresholdSymbolType types.String `tfsdk:"threshold_symbol_type"`
 	ThresholdValue      types.Int64  `tfsdk:"threshold_value"`
-	Filters             types.List   `tfsdk:"filters"` //SLIFilterModel
+	Filters             types.Set    `tfsdk:"filters"` //SLIFilterModel
 	SloStatusType       types.String `tfsdk:"slo_status_type"`
 	ErrorBudget         types.Int64  `tfsdk:"error_budget"`
 	LabelE2MID          types.String `tfsdk:"label_e2m_id"`
@@ -340,9 +340,9 @@ func flattenSLI(ctx context.Context, sli *sli.Sli) (SLIResourceModel, diag.Diagn
 	}, nil
 }
 
-func flattenSLIFilters(ctx context.Context, filters []*sli.SliFilter) (types.List, diag.Diagnostics) {
+func flattenSLIFilters(ctx context.Context, filters []*sli.SliFilter) (types.Set, diag.Diagnostics) {
 	if len(filters) == 0 {
-		return types.ListNull(types.ObjectType{AttrTypes: sliFilterModelAttr()}), nil
+		return types.SetNull(types.ObjectType{AttrTypes: sliFilterModelAttr()}), nil
 	}
 
 	var diagnostics diag.Diagnostics
@@ -357,7 +357,11 @@ func flattenSLIFilters(ctx context.Context, filters []*sli.SliFilter) (types.Lis
 		filtersElements = append(filtersElements, filterElement)
 	}
 
-	return types.ListValueMust(types.ObjectType{AttrTypes: sliFilterModelAttr()}, filtersElements), diagnostics
+	if diagnostics.HasError() {
+		return types.SetNull(types.ObjectType{AttrTypes: sliFilterModelAttr()}), diagnostics
+	}
+
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: sliFilterModelAttr()}, filtersElements)
 }
 
 func sliFilterModelAttr() map[string]attr.Type {
@@ -421,7 +425,7 @@ func extractSLI(ctx context.Context, plan SLIResourceModel) (*sli.Sli, diag.Diag
 	}, nil
 }
 
-func expandSLIFilters(ctx context.Context, filters types.List) ([]*sli.SliFilter, diag.Diagnostics) {
+func expandSLIFilters(ctx context.Context, filters types.Set) ([]*sli.SliFilter, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var filtersObjects []types.Object
 	var expandedFilters []*sli.SliFilter
