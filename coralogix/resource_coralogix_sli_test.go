@@ -101,5 +101,6 @@ func testAccCoralogixResourceSLI() string {
       					field_values = ["POST"]
 					},
 					]
-				}`
+				}
+`
 }
