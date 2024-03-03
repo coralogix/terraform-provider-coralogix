@@ -29,6 +29,28 @@ func TestAccCoralogixResourceSLICreate(t *testing.T) {
 					resource.TestCheckResourceAttr(sliResourceName, "slo_percentage", "80"),
 					resource.TestCheckResourceAttr(sliResourceName, "service_name", "service_name"),
 					resource.TestCheckResourceAttr(sliResourceName, "threshold_value", "3"),
+					resource.TestCheckTypeSetElemNestedAttrs(sliResourceName, "filters.*",
+						map[string]string{
+							"compare_type":   "is",
+							"field":          "tags.http.route",
+							"field_values.#": "2",
+							"field_values.0": "nidataframe/v1/tables",
+							"field_values.1": "nidataframe/v1/tables/{id}/data",
+						}),
+					resource.TestCheckTypeSetElemNestedAttrs(sliResourceName, "filters.*",
+						map[string]string{
+							"compare_type":   "is",
+							"field":          "tags.http.well_formed_request",
+							"field_values.#": "1",
+							"field_values.0": "true",
+						}),
+					resource.TestCheckTypeSetElemNestedAttrs(sliResourceName, "filters.*",
+						map[string]string{
+							"compare_type":   "is",
+							"field":          "tags.http.request.method",
+							"field_values.#": "1",
+							"field_values.0": "POST",
+						}),
 				),
 			},
 		},
@@ -62,6 +84,22 @@ func testAccCoralogixResourceSLI() string {
 					slo_percentage  = 80
   					service_name    = "service_name"
   					threshold_value = 3
-				}
-	`
+					filters = [
+					{
+    					compare_type = "is"
+    					field        = "tags.http.route"
+    					field_values = ["nidataframe/v1/tables", "nidataframe/v1/tables/{id}/data"]
+    				},
+    				{
+      					compare_type = "is"
+      					field        = "tags.http.well_formed_request"
+      					field_values = ["true"]
+    				},
+    				{
+      					compare_type = "is"
+      					field        = "tags.http.request.method"
+      					field_values = ["POST"]
+					},
+					]
+				}`
 }
