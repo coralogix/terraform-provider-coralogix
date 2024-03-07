@@ -1148,7 +1148,80 @@ terraform import coralogix_alert.example <alert-id>
 
 to get the alert id run the following command and look for the **uniqueIdentifier (and not id)** field of the alert you want to import:
 ```sh
-grpcurl -H "Authorization: Bearer <api-key>" -d @ ng-api-grpc.<region-domain>:443 com.coralogix.alerts.v2.AlertService/GetAlerts <<EOF
+grpcurl -H "Authorization: Bearer <api-key>" -d '{
+  "name":  "Unique count alert example",
+  "description":  "Example of unique count alert from terraform",
+  "isActive":  true,
+  "condition":  {
+    "uniqueCount":  {
+      "parameters":  {
+        "threshold":  2,
+        "timeframe":  "TIMEFRAME_10_MIN",
+        "groupBy":  [
+          "EventType"
+        ],
+        "cardinalityFields":  [
+          "remote_addr_geoip.country_name"
+        ],
+        "maxUniqueCountValuesForGroupByKey":  500
+      }
+    }
+  },
+  "notificationGroups":  [
+    {
+      "groupByFields":  [
+        "EventType"
+      ],
+      "notifications":  [
+        {
+          "notifyOn":  "TRIGGERED_ONLY",
+          "recipients":  {
+            "emails":  [
+              "example@coralogix.com"
+            ]
+          }
+        },
+        {
+          "notifyOn":  "TRIGGERED_ONLY",
+          "integrationId":  14396
+        }
+      ]
+    }
+  ],
+  "incidentSettings":  {
+    "retriggeringPeriodSeconds":  60,
+    "notifyOn":  "TRIGGERED_AND_RESOLVED",
+    "useAsNotificationSettings":  true
+  },
+  "filters":  {
+    "severities":  [
+      "LOG_SEVERITY_INFO"
+    ],
+    "metadata":  {},
+    "text":  "",
+    "filterType":  "FILTER_TYPE_UNIQUE_COUNT"
+  },
+  "activeWhen":  {
+    "timeframes":  [
+      {
+        "daysOfWeek":  [
+          "DAY_OF_WEEK_THURSDAY",
+          "DAY_OF_WEEK_WEDNESDAY"
+        ],
+        "range":  {
+          "start":  {
+            "hours":  6,
+            "minutes":  30
+          },
+          "end":  {
+            "hours":  18,
+            "minutes":  30
+          }
+        }
+      }
+    ]
+  }
+}' @ ng-api-grpc.<region-domain>:443 com.coralogix.alerts.v2.AlertService/CreateAlerts <<EOF
 {
 }
 EOF

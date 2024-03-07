@@ -2292,6 +2292,22 @@ func (r *DashboardResource) Schema(_ context.Context, req resource.SchemaRequest
 									},
 									Required: true,
 								},
+								"logs": schema.SingleNestedAttribute{
+									Attributes: map[string]schema.Attribute{
+										"lucene_query": schema.StringAttribute{
+
+										}
+										LuceneQuery     *LuceneQuery                    `protobuf:"bytes,1,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
+										Strategy        *Annotation_LogsSource_Strategy `protobuf:"bytes,2,opt,name=strategy,proto3" json:"strategy,omitempty"`
+										MessageTemplate *wrapperspb.StringValue         `protobuf:"bytes,3,opt,name=message_template,json=messageTemplate,proto3" json:"message_template,omitempty"`
+										LabelFields     []*ObservationField
+									},
+								},
+								"spans": schema.SingleNestedAttribute{
+									Attributes: map[string]schema.Attribute{
+
+									},
+								},
 							},
 							Required: true,
 						},
