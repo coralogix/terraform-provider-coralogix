@@ -231,7 +231,7 @@ Read-Only:
 
 - `color_scheme` (String) The color scheme. Can be one of classic, severity, cold, negative, green, red, blue.
 - `colors_by` (String)
-- `data_mode_type` (String)
+- `data_mode_type` (String) The data mode type. Can be one of ["unspecified" "archive"].
 - `group_name_template` (String)
 - `max_bars_per_chart` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
@@ -562,6 +562,7 @@ Read-Only:
 Read-Only:
 
 - `columns` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--columns))
+- `data_mode_type` (String) 
 - `order_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--order_by))
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
 - `results_per_page` (Number) The number of results to display per page.
