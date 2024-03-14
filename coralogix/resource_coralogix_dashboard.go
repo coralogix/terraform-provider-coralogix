@@ -2295,21 +2295,84 @@ func (r *DashboardResource) Schema(_ context.Context, req resource.SchemaRequest
 								"logs": schema.SingleNestedAttribute{
 									Attributes: map[string]schema.Attribute{
 										"lucene_query": schema.StringAttribute{
-
-										}
-										LuceneQuery     *LuceneQuery                    `protobuf:"bytes,1,opt,name=lucene_query,json=luceneQuery,proto3" json:"lucene_query,omitempty"`
-										Strategy        *Annotation_LogsSource_Strategy `protobuf:"bytes,2,opt,name=strategy,proto3" json:"strategy,omitempty"`
-										MessageTemplate *wrapperspb.StringValue         `protobuf:"bytes,3,opt,name=message_template,json=messageTemplate,proto3" json:"message_template,omitempty"`
-										LabelFields     []*ObservationField
+											Optional: true,
+										},
+										"strategy": schema.SingleNestedAttribute{
+											Attributes: map[string]schema.Attribute{
+												"instant": schema.SingleNestedAttribute{
+													Attributes: map[string]schema.Attribute{
+														"timestamp_field": observationFieldSingleNestedAttribute(),
+													},
+													Optional: true,
+												},
+												"range": schema.SingleNestedAttribute{
+													Attributes: map[string]schema.Attribute{
+														"start_timestamp_field": observationFieldSingleNestedAttribute(),
+														"end_timestamp_field":   observationFieldSingleNestedAttribute(),
+													},
+													Optional: true,
+												},
+												"duration": schema.SingleNestedAttribute{
+													Attributes: map[string]schema.Attribute{
+														"start_timestamp_field": observationFieldSingleNestedAttribute(),
+														"duration_field":        observationFieldSingleNestedAttribute(),
+													},
+													Optional: true,
+												},
+											},
+										},
+										"message_template": schema.StringAttribute{
+											Optional: true,
+										},
+										"label_fields": schema.ListNestedAttribute{
+											NestedObject: schema.NestedAttributeObject{
+												Attributes: observationFieldSchemaAttributes(),
+											},
+											Optional: true,
+										},
 									},
 								},
 								"spans": schema.SingleNestedAttribute{
 									Attributes: map[string]schema.Attribute{
-
+										"lucene_query": schema.StringAttribute{
+											Optional: true,
+										},
+										"strategy": schema.SingleNestedAttribute{
+											Attributes: map[string]schema.Attribute{
+												"instant": schema.SingleNestedAttribute{
+													Attributes: map[string]schema.Attribute{
+														"timestamp_field": observationFieldSingleNestedAttribute(),
+													},
+													Optional: true,
+												},
+												"range": schema.SingleNestedAttribute{
+													Attributes: map[string]schema.Attribute{
+														"start_timestamp_field": observationFieldSingleNestedAttribute(),
+														"end_timestamp_field":   observationFieldSingleNestedAttribute(),
+													},
+													Optional: true,
+												},
+												"duration": schema.SingleNestedAttribute{
+													Attributes: map[string]schema.Attribute{
+														"start_timestamp_field": observationFieldSingleNestedAttribute(),
+														"duration_field":        observationFieldSingleNestedAttribute(),
+													},
+													Optional: true,
+												},
+											},
+										},
+										"message_template": schema.StringAttribute{
+											Optional: true,
+										},
+										"label_fields": schema.ListNestedAttribute{
+											NestedObject: schema.NestedAttributeObject{
+												Attributes: observationFieldSchemaAttributes(),
+											},
+											Optional: true,
+										},
 									},
 								},
 							},
-							Required: true,
 						},
 					},
 				},
@@ -8979,4 +9042,23 @@ func (r *DashboardResource) Configure(ctx context.Context, req resource.Configur
 	}
 
 	r.client = clientSet.Dashboards()
+}
+func observationFieldSingleNestedAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Attributes: observationFieldSchema(),
+	}
+}
+
+func observationFieldSchema() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"keypath": schema.ListAttribute{
+			ElementType: types.StringType,
+		},
+		"scope": schema.StringAttribute{
+			Required: true,
+			Validators: []validator.String{
+				stringvalidator.OneOf(dashboardValidObservationFieldScope...),
+			},
+		},
+	}
 }
