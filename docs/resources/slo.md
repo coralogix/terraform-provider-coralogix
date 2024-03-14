@@ -65,8 +65,7 @@ resource "coralogix_slo" "example_2" {
 - `description` (String) Optional SLO description.
 - `filters` (Attributes Set) (see [below for nested schema](#nestedatt--filters))
 - `threshold_microseconds` (Number) Threshold in microseconds. Required when `type` is `latency`.
-- `threshold_symbol_type` (String) Threshold symbol type. Required when `type` is `latency`. Valid values
-  are: ["greater" "greater_or_equal" "less" "equal"]
+- `threshold_symbol_type` (String) Threshold symbol type. Required when `type` is `latency`. Valid values are: ["greater" "greater_or_equal" "less" "less_or_equal" "equal"]
 
 ### Read-Only
 
