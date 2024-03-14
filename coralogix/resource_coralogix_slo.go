@@ -36,7 +36,7 @@ var (
 		slos.ThresholdSymbol_THRESHOLD_SYMBOL_GREATER:          "greater",
 		slos.ThresholdSymbol_THRESHOLD_SYMBOL_GREATER_OR_EQUAL: "greater_or_equal",
 		slos.ThresholdSymbol_THRESHOLD_SYMBOL_LESS:             "less",
-		slos.ThresholdSymbol_THRESHOLD_SYMBOL_LESS_OR_EQUAL:    "greater_or_equal",
+		slos.ThresholdSymbol_THRESHOLD_SYMBOL_LESS_OR_EQUAL:    "less_or_equal",
 		slos.ThresholdSymbol_THRESHOLD_SYMBOL_EQUAL:            "equal",
 	}
 	schemaToProtoThresholdSymbolType = ReverseMap(protoToSchemaThresholdSymbolType)
