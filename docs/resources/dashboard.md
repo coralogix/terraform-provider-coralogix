@@ -1240,6 +1240,7 @@ Required:
 Optional:
 
 - `columns` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--columns))
+- `data_mode_type` (String) The data mode type. Can be one of ["unspecified" "archive"].
 - `order_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>

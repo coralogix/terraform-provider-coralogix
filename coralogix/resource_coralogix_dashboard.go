@@ -350,6 +350,7 @@ type DataTableModel struct {
 	RowStyle       types.String         `tfsdk:"row_style"`
 	Columns        types.List           `tfsdk:"columns"` //DataTableColumnModel
 	OrderBy        *OrderByModel        `tfsdk:"order_by"`
+	DataModeType   types.String         `tfsdk:"data_mode_type"`
 }
 
 type DataTableQueryLogsModel struct {
@@ -1245,6 +1246,15 @@ func (r *DashboardResource) Schema(_ context.Context, req resource.SchemaRequest
 																				},
 																			},
 																			Optional: true,
+																		},
+																		"data_mode_type": schema.StringAttribute{
+																			Optional: true,
+																			Computed: true,
+																			Validators: []validator.String{
+																				stringvalidator.OneOf(dashboardValidDataModeTypes...),
+																			},
+																			Default:             stringdefault.StaticString("unspecified"),
+																			MarkdownDescription: fmt.Sprintf("The data mode type. Can be one of %q.", dashboardValidDataModeTypes),
 																		},
 																	},
 																	Validators: []validator.Object{
@@ -4351,6 +4361,7 @@ func expandDataTable(ctx context.Context, table *DataTableModel) (*dashboards.Wi
 				RowStyle:       dashboardRowStyleSchemaToProto[table.RowStyle.ValueString()],
 				Columns:        columns,
 				OrderBy:        expandOrderBy(table.OrderBy),
+				DataModeType:   dashboardSchemaToProtoDataModeType[table.DataModeType.ValueString()],
 			},
 		},
 	}, nil
@@ -5849,6 +5860,7 @@ func widgetModelAttr() map[string]attr.Type {
 								"order_direction": types.StringType,
 							},
 						},
+						"data_mode_type": types.StringType,
 					},
 				},
 				"gauge": types.ObjectType{
@@ -6954,6 +6966,7 @@ func flattenLineChartQueryDefinition(ctx context.Context, definition *dashboards
 		ScaleType:          types.StringValue(dashboardProtoToSchemaScaleType[definition.GetScaleType()]),
 		Name:               wrapperspbStringToTypeString(definition.GetName()),
 		IsVisible:          wrapperspbBoolToTypeBool(definition.GetIsVisible()),
+		ColorScheme:        wrapperspbStringToTypeString(definition.GetColorScheme()),
 		Resolution:         resolution,
 		DataModeType:       types.StringValue(dashboardProtoToSchemaDataModeType[definition.GetDataModeType()]),
 	}, nil
@@ -7418,6 +7431,7 @@ func flattenDataTable(ctx context.Context, table *dashboards.DataTable) (*Widget
 			RowStyle:       types.StringValue(dashboardRowStyleProtoToSchema[table.GetRowStyle()]),
 			Columns:        columns,
 			OrderBy:        flattenOrderBy(table.GetOrderBy()),
+			DataModeType:   types.StringValue(dashboardProtoToSchemaDataModeType[table.GetDataModeType()]),
 		},
 	}, nil
 }
