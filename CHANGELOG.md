@@ -503,3 +503,18 @@ Breaking Changes:
 Bug fixing:
 #### resource/coralogix_slo
 * fixing `threshold_symbol_type` bug in ac ase of `greater_or_equal` and add `less_or_equal` option.
+
+## Release 1.13.0
+Breaking Changes:
+#### resource/coralogix_dashboard
+* `annotations.source.metric` was changed to `annotations.source.metrics`.
+
+Bug fixing:
+#### resource/coralogix_dashboard
+* fixing [inconsistent result for color_scheme](https://github.com/coralogix/terraform-provider-coralogix/issues/217).
+
+New Features:
+#### resource/coralogix_dashboard
+* adding `data_mode` for data_table widget.
+* adding `logs` and `spans` options for `annotations.source`.
+* adding `auto_refresh` for dashboard.

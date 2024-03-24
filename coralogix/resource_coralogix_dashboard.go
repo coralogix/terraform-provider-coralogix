@@ -224,12 +224,13 @@ type DashboardResourceModel struct {
 	ID          types.String `tfsdk:"id"`
 	Name        types.String `tfsdk:"name"`
 	Description types.String `tfsdk:"description"`
-	Layout      types.Object `tfsdk:"layout"`      //DashboardLayoutModel
-	Variables   types.List   `tfsdk:"variables"`   //DashboardVariableModel
-	Filters     types.List   `tfsdk:"filters"`     //DashboardFilterModel
-	TimeFrame   types.Object `tfsdk:"time_frame"`  //DashboardTimeFrameModel
-	Folder      types.Object `tfsdk:"folder"`      //DashboardFolderModel
-	Annotations types.List   `tfsdk:"annotations"` //DashboardAnnotationModel
+	Layout      types.Object `tfsdk:"layout"`       //DashboardLayoutModel
+	Variables   types.List   `tfsdk:"variables"`    //DashboardVariableModel
+	Filters     types.List   `tfsdk:"filters"`      //DashboardFilterModel
+	TimeFrame   types.Object `tfsdk:"time_frame"`   //DashboardTimeFrameModel
+	Folder      types.Object `tfsdk:"folder"`       //DashboardFolderModel
+	Annotations types.List   `tfsdk:"annotations"`  //DashboardAnnotationModel
+	AutoRefresh types.Object `tfsdk:"auto_refresh"` //DashboardAutoRefreshModel
 	ContentJson types.String `tfsdk:"content_json"`
 }
 
@@ -740,7 +741,9 @@ type DashboardAnnotationModel struct {
 }
 
 type DashboardAnnotationSourceModel struct {
-	Metric types.Object `tfsdk:"metric"` //DashboardAnnotationMetricSourceModel
+	Metric types.Object `tfsdk:"metrics"` //DashboardAnnotationMetricSourceModel
+	Spans  types.Object `tfsdk:"spans"`   //DashboardAnnotationSpansOrLogsSourceModel
+	Logs   types.Object `tfsdk:"logs"`    //DashboardAnnotationSpansOrLogsSourceModel
 }
 
 type DashboardAnnotationMetricSourceModel struct {
@@ -750,11 +753,42 @@ type DashboardAnnotationMetricSourceModel struct {
 	Labels          types.List   `tfsdk:"labels"` //types.String
 }
 
+type DashboardAnnotationSpansOrLogsSourceModel struct {
+	LuceneQuery     types.String `tfsdk:"lucene_query"`
+	Strategy        types.Object `tfsdk:"strategy"` //DashboardAnnotationSpanOrLogsStrategyModel
+	MessageTemplate types.String `tfsdk:"message_template"`
+	LabelFields     types.List   `tfsdk:"label_fields"` //ObservationFieldModel
+}
+
+type DashboardAnnotationSpanOrLogsStrategyModel struct {
+	Instant  types.Object `tfsdk:"instant"`  //DashboardAnnotationInstantStrategyModel
+	Range    types.Object `tfsdk:"range"`    //DashboardAnnotationRangeStrategyModel
+	Duration types.Object `tfsdk:"duration"` //DashboardAnnotationDurationStrategyModel
+}
+
+type DashboardAnnotationInstantStrategyModel struct {
+	TimestampField types.Object `tfsdk:"timestamp_field"` //ObservationFieldModel
+}
+
+type DashboardAnnotationRangeStrategyModel struct {
+	StartTimestampField types.Object `tfsdk:"start_time_timestamp_field"` //ObservationFieldModel
+	EndTimestampField   types.Object `tfsdk:"end_time_timestamp_field"`   //ObservationFieldModel
+}
+
+type DashboardAnnotationDurationStrategyModel struct {
+	StartTimestampField types.Object `tfsdk:"start_timestamp_field"` //ObservationFieldModel
+	DurationField       types.Object `tfsdk:"duration_field"`        //ObservationFieldModel
+}
+
 type DashboardAnnotationMetricStrategyModel struct {
 	StartTime types.Object `tfsdk:"start_time"` //MetricStrategyStartTimeModel
 }
 
 type MetricStrategyStartTimeModel struct {
+}
+
+type DashboardAutoRefreshModel struct {
+	Type types.String `tfsdk:"type"`
 }
 
 func NewDashboardResource() resource.Resource {
@@ -775,15 +809,15 @@ func (r DashboardResource) Metadata(_ context.Context, req resource.MetadataRequ
 
 type intervalValidator struct{}
 
-func (i intervalValidator) Description(ctx context.Context) string {
-	return ""
+func (i intervalValidator) Description(_ context.Context) string {
+	return "A duration string, such as 1s or 1m."
 }
 
-func (i intervalValidator) MarkdownDescription(ctx context.Context) string {
-	return ""
+func (i intervalValidator) MarkdownDescription(_ context.Context) string {
+	return "A duration string, such as 1s or 1m."
 }
 
-func (i intervalValidator) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+func (i intervalValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
 	if req.ConfigValue.IsNull() {
 		return
 	}
@@ -795,7 +829,7 @@ func (i intervalValidator) ValidateString(ctx context.Context, req validator.Str
 
 func (r *DashboardResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Version: 1,
+		Version: 2,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -2035,7 +2069,7 @@ func (r *DashboardResource) Schema(_ context.Context, req resource.SchemaRequest
 																	Optional: true,
 																},
 															},
-															MarkdownDescription: "The widget definition. Can contain one of `line_chart`, `bar_chart`, `pie_chart` `data_table` or `gauge`.",
+															MarkdownDescription: "The widget definition. Can contain one of 'line_chart', 'data_table', 'gauge', 'pie_chart', 'bar_chart', 'horizontal_bar_chart', 'markdown'.",
 														},
 														"width": schema.Int64Attribute{
 															Optional:            true,
@@ -2278,7 +2312,7 @@ func (r *DashboardResource) Schema(_ context.Context, req resource.SchemaRequest
 						},
 						"source": schema.SingleNestedAttribute{
 							Attributes: map[string]schema.Attribute{
-								"metric": schema.SingleNestedAttribute{
+								"metrics": schema.SingleNestedAttribute{
 									Attributes: map[string]schema.Attribute{
 										"promql_query": schema.StringAttribute{
 											Optional: true,
@@ -2300,13 +2334,53 @@ func (r *DashboardResource) Schema(_ context.Context, req resource.SchemaRequest
 											Optional:    true,
 										},
 									},
-									Required: true,
+									Optional: true,
+									Validators: []validator.Object{
+										objectvalidator.ExactlyOneOf(
+											path.MatchRelative().AtParent().AtName("logs"),
+											path.MatchRelative().AtParent().AtName("spans"),
+										),
+									},
+								},
+								"logs": schema.SingleNestedAttribute{
+									Attributes: logsAndSpansAttributes(),
+									Optional:   true,
+									Validators: []validator.Object{
+										objectvalidator.ExactlyOneOf(
+											path.MatchRelative().AtParent().AtName("metrics"),
+											path.MatchRelative().AtParent().AtName("spans"),
+										),
+									},
+								},
+								"spans": schema.SingleNestedAttribute{
+									Attributes: logsAndSpansAttributes(),
+									Optional:   true,
+									Validators: []validator.Object{
+										objectvalidator.ExactlyOneOf(
+											path.MatchRelative().AtParent().AtName("metrics"),
+											path.MatchRelative().AtParent().AtName("logs"),
+										),
+									},
 								},
 							},
 							Required: true,
 						},
 					},
 				},
+			},
+			"auto_refresh": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"type": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						Default:  stringdefault.StaticString("off"),
+						Validators: []validator.String{
+							stringvalidator.OneOf("off", "two_minutes", "five_minutes"),
+						},
+					},
+				},
+				Optional: true,
+				Computed: true,
 			},
 			"content_json": schema.StringAttribute{
 				Optional: true,
@@ -2328,6 +2402,80 @@ func (r *DashboardResource) Schema(_ context.Context, req resource.SchemaRequest
 					stringplanmodifier.RequiresReplaceIf(JSONStringsEqualPlanModifier, "", ""),
 				},
 				Description: "an option to set the dashboard content from a json file.",
+			},
+		},
+	}
+}
+
+func logsAndSpansAttributes() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"lucene_query": schema.StringAttribute{
+			Optional: true,
+		},
+		"strategy": logsAndSpansStrategy(),
+		"message_template": schema.StringAttribute{
+			Optional: true,
+		},
+		"label_fields": schema.ListNestedAttribute{
+			NestedObject: schema.NestedAttributeObject{
+				Attributes: observationFieldSchemaAttributes(),
+			},
+			Optional: true,
+		},
+	}
+}
+
+func logsAndSpansStrategy() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Attributes: map[string]schema.Attribute{
+			"instant": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"timestamp_field": observationFieldSingleNestedAttribute(),
+				},
+				Optional: true,
+			},
+			"range": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"start_timestamp_field": observationFieldSingleNestedAttribute(),
+					"end_timestamp_field":   observationFieldSingleNestedAttribute(),
+				},
+				Optional: true,
+			},
+			"duration": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"start_timestamp_field": observationFieldSingleNestedAttribute(),
+					"duration_field":        observationFieldSingleNestedAttribute(),
+				},
+				Optional: true,
+			},
+		},
+		Required: true,
+	}
+}
+
+func relativeTimeFrameAttributes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"duration": types.StringType,
+	}
+}
+
+func observationFieldSingleNestedAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Attributes: observationFieldSchema(),
+		Required:   true,
+	}
+}
+
+func observationFieldSchema() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"keypath": schema.ListAttribute{
+			ElementType: types.StringType,
+			Required:    true,
+		},
+		"scope": schema.StringAttribute{
+			Required: true,
+			Validators: []validator.String{
+				stringvalidator.OneOf(dashboardValidObservationFieldScope...),
 			},
 		},
 	}
@@ -2873,9 +3021,42 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*dashbo
 		return nil, diags
 	}
 
-	dashboard, diags = expandDashboardFolder(dashboard, plan.Folder)
+	dashboard, diags = expandDashboardFolder(ctx, dashboard, plan.Folder)
 	if diags.HasError() {
 		return nil, diags
+	}
+
+	dashboard, diags = expandDashboardAutoRefresh(ctx, dashboard, plan.AutoRefresh)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return dashboard, nil
+}
+
+func expandDashboardAutoRefresh(ctx context.Context, dashboard *dashboards.Dashboard, refresh types.Object) (*dashboards.Dashboard, diag.Diagnostics) {
+	if refresh.IsNull() || refresh.IsUnknown() {
+		return dashboard, nil
+	}
+	var refreshObject DashboardAutoRefreshModel
+	diags := refresh.As(ctx, &refreshObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	switch refreshObject.Type.ValueString() {
+	case "two_minutes":
+		dashboard.AutoRefresh = &dashboards.Dashboard_TwoMinutes{
+			TwoMinutes: &dashboards.Dashboard_AutoRefreshTwoMinutes{},
+		}
+	case "five_minutes":
+		dashboard.AutoRefresh = &dashboards.Dashboard_FiveMinutes{
+			FiveMinutes: &dashboards.Dashboard_AutoRefreshFiveMinutes{},
+		}
+	default:
+		dashboard.AutoRefresh = &dashboards.Dashboard_Off{
+			Off: &dashboards.Dashboard_AutoRefreshOff{},
+		}
 	}
 
 	return dashboard, nil
@@ -2930,12 +3111,272 @@ func expandAnnotationSource(ctx context.Context, source types.Object) (*dashboar
 	if diags.HasError() {
 		return nil, diags
 	}
-	metricSource, diags := expandMetricSource(ctx, sourceObject.Metric)
+
+	switch {
+	case !(sourceObject.Logs.IsNull() || sourceObject.Logs.IsUnknown()):
+		logsSource, diags := expandLogsSource(ctx, sourceObject.Logs)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboards.Annotation_Source{Value: logsSource}, nil
+	case !(sourceObject.Metric.IsNull() || sourceObject.Metric.IsUnknown()):
+		metricSource, diags := expandMetricSource(ctx, sourceObject.Metric)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboards.Annotation_Source{Value: metricSource}, nil
+	case !(sourceObject.Spans.IsNull() || sourceObject.Spans.IsUnknown()):
+		spansSource, diags := expandSpansSource(ctx, sourceObject.Spans)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboards.Annotation_Source{Value: spansSource}, nil
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Annotation Source", "Annotation Source must be either Logs or Metric")}
+	}
+}
+
+func expandLogsSource(ctx context.Context, logs types.Object) (*dashboards.Annotation_Source_Logs, diag.Diagnostics) {
+	if logs.IsNull() || logs.IsUnknown() {
+		return nil, nil
+	}
+	var logsObject DashboardAnnotationSpansOrLogsSourceModel
+	diags := logs.As(ctx, &logsObject, basetypes.ObjectAsOptions{})
 	if diags.HasError() {
 		return nil, diags
 	}
-	return &dashboards.Annotation_Source{
-		Value: metricSource,
+
+	strategy, diags := expandLogsSourceStrategy(ctx, logsObject.Strategy)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	labels, diags := expandObservationFields(ctx, logsObject.LabelFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.Annotation_Source_Logs{
+		Logs: &dashboards.Annotation_LogsSource{
+			LuceneQuery:     expandLuceneQuery(logsObject.LuceneQuery),
+			Strategy:        strategy,
+			MessageTemplate: typeStringToWrapperspbString(logsObject.MessageTemplate),
+			LabelFields:     labels,
+		},
+	}, nil
+}
+
+func expandLogsSourceStrategy(ctx context.Context, strategy types.Object) (*dashboards.Annotation_LogsSource_Strategy, diag.Diagnostics) {
+	var strategyObject DashboardAnnotationSpanOrLogsStrategyModel
+	diags := strategy.As(ctx, &strategyObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	switch {
+	case !(strategyObject.Instant.IsNull() || strategyObject.Instant.IsUnknown()):
+		return expandLogsSourceInstantStrategy(ctx, strategyObject.Instant)
+	case !(strategyObject.Range.IsNull() || strategyObject.Range.IsUnknown()):
+		return expandLogsSourceRangeStrategy(ctx, strategyObject.Range)
+	case !(strategyObject.Duration.IsNull() || strategyObject.Duration.IsUnknown()):
+		return expandLogsSourceDurationStrategy(ctx, strategyObject.Duration)
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Logs Source Strategy", "Logs Source Strategy must be either Instant, Range or Duration")}
+	}
+}
+
+func expandLogsSourceDurationStrategy(ctx context.Context, duration types.Object) (*dashboards.Annotation_LogsSource_Strategy, diag.Diagnostics) {
+	var durationObject DashboardAnnotationDurationStrategyModel
+	diags := duration.As(ctx, &durationObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	startTimestampField, diags := expandObservationFieldObject(ctx, durationObject.StartTimestampField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	durationField, diags := expandObservationFieldObject(ctx, durationObject.DurationField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.Annotation_LogsSource_Strategy{
+		Value: &dashboards.Annotation_LogsSource_Strategy_Duration_{
+			Duration: &dashboards.Annotation_LogsSource_Strategy_Duration{
+				StartTimestampField: startTimestampField,
+				DurationField:       durationField,
+			},
+		},
+	}, nil
+}
+
+func expandLogsSourceRangeStrategy(ctx context.Context, object types.Object) (*dashboards.Annotation_LogsSource_Strategy, diag.Diagnostics) {
+	var rangeObject DashboardAnnotationRangeStrategyModel
+	if diags := object.As(ctx, &rangeObject, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	startTimestampField, diags := expandObservationFieldObject(ctx, rangeObject.StartTimestampField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	endTimestampField, diags := expandObservationFieldObject(ctx, rangeObject.EndTimestampField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.Annotation_LogsSource_Strategy{
+		Value: &dashboards.Annotation_LogsSource_Strategy_Range_{
+			Range: &dashboards.Annotation_LogsSource_Strategy_Range{
+				StartTimestampField: startTimestampField,
+				EndTimestampField:   endTimestampField,
+			},
+		},
+	}, nil
+}
+
+func expandLogsSourceInstantStrategy(ctx context.Context, instant types.Object) (*dashboards.Annotation_LogsSource_Strategy, diag.Diagnostics) {
+	var instantObject DashboardAnnotationInstantStrategyModel
+	if diags := instant.As(ctx, &instantObject, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	timestampField, diags := expandObservationFieldObject(ctx, instantObject.TimestampField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.Annotation_LogsSource_Strategy{
+		Value: &dashboards.Annotation_LogsSource_Strategy_Instant_{
+			Instant: &dashboards.Annotation_LogsSource_Strategy_Instant{
+				TimestampField: timestampField,
+			},
+		},
+	}, nil
+}
+
+func expandSpansSourceStrategy(ctx context.Context, strategy types.Object) (*dashboards.Annotation_SpansSource_Strategy, diag.Diagnostics) {
+	var strategyObject DashboardAnnotationSpanOrLogsStrategyModel
+	diags := strategy.As(ctx, &strategyObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	switch {
+	case !(strategyObject.Instant.IsNull() || strategyObject.Instant.IsUnknown()):
+		return expandSpansSourceInstantStrategy(ctx, strategyObject.Instant)
+	case !(strategyObject.Range.IsNull() || strategyObject.Range.IsUnknown()):
+		return expandSpansSourceRangeStrategy(ctx, strategyObject.Range)
+	case !(strategyObject.Duration.IsNull() || strategyObject.Duration.IsUnknown()):
+		return expandSpansSourceDurationStrategy(ctx, strategyObject.Duration)
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Spans Source Strategy", "Spans Source Strategy must be either Instant, Range or Duration")}
+	}
+}
+
+func expandSpansSourceDurationStrategy(ctx context.Context, duration types.Object) (*dashboards.Annotation_SpansSource_Strategy, diag.Diagnostics) {
+	var durationObject DashboardAnnotationDurationStrategyModel
+	diags := duration.As(ctx, &durationObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	startTimestampField, diags := expandObservationFieldObject(ctx, durationObject.StartTimestampField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	durationField, diags := expandObservationFieldObject(ctx, durationObject.DurationField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.Annotation_SpansSource_Strategy{
+		Value: &dashboards.Annotation_SpansSource_Strategy_Duration_{
+			Duration: &dashboards.Annotation_SpansSource_Strategy_Duration{
+				StartTimestampField: startTimestampField,
+				DurationField:       durationField,
+			},
+		},
+	}, nil
+}
+
+func expandSpansSourceRangeStrategy(ctx context.Context, object types.Object) (*dashboards.Annotation_SpansSource_Strategy, diag.Diagnostics) {
+	var rangeObject DashboardAnnotationRangeStrategyModel
+	if diags := object.As(ctx, &rangeObject, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	startTimestampField, diags := expandObservationFieldObject(ctx, rangeObject.StartTimestampField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	endTimestampField, diags := expandObservationFieldObject(ctx, rangeObject.EndTimestampField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.Annotation_SpansSource_Strategy{
+		Value: &dashboards.Annotation_SpansSource_Strategy_Range_{
+			Range: &dashboards.Annotation_SpansSource_Strategy_Range{
+				StartTimestampField: startTimestampField,
+				EndTimestampField:   endTimestampField,
+			},
+		},
+	}, nil
+}
+
+func expandSpansSourceInstantStrategy(ctx context.Context, instant types.Object) (*dashboards.Annotation_SpansSource_Strategy, diag.Diagnostics) {
+	var instantObject DashboardAnnotationInstantStrategyModel
+	if diags := instant.As(ctx, &instantObject, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	timestampField, diags := expandObservationFieldObject(ctx, instantObject.TimestampField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.Annotation_SpansSource_Strategy{
+		Value: &dashboards.Annotation_SpansSource_Strategy_Instant_{
+			Instant: &dashboards.Annotation_SpansSource_Strategy_Instant{
+				TimestampField: timestampField,
+			},
+		},
+	}, nil
+}
+
+func expandSpansSource(ctx context.Context, spans types.Object) (*dashboards.Annotation_Source_Spans, diag.Diagnostics) {
+	if spans.IsNull() || spans.IsUnknown() {
+		return nil, nil
+	}
+	var spansObject DashboardAnnotationSpansOrLogsSourceModel
+	diags := spans.As(ctx, &spansObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	strategy, diags := expandSpansSourceStrategy(ctx, spansObject.Strategy)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	labels, diags := expandObservationFields(ctx, spansObject.LabelFields)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.Annotation_Source_Spans{
+		Spans: &dashboards.Annotation_SpansSource{
+			LuceneQuery:     expandLuceneQuery(spansObject.LuceneQuery),
+			Strategy:        strategy,
+			MessageTemplate: typeStringToWrapperspbString(spansObject.MessageTemplate),
+			LabelFields:     labels,
+		},
 	}, nil
 }
 
@@ -5422,12 +5863,12 @@ func expandFilterSourceSpans(ctx context.Context, spans *FilterSourceSpansModel)
 	}, nil
 }
 
-func expandDashboardFolder(dashboard *dashboards.Dashboard, folder types.Object) (*dashboards.Dashboard, diag.Diagnostics) {
+func expandDashboardFolder(ctx context.Context, dashboard *dashboards.Dashboard, folder types.Object) (*dashboards.Dashboard, diag.Diagnostics) {
 	if folder.IsNull() || folder.IsUnknown() {
 		return dashboard, nil
 	}
 	var folderModel DashboardFolderModel
-	dgs := folder.As(context.Background(), &folderModel, basetypes.ObjectAsOptions{})
+	dgs := folder.As(ctx, &folderModel, basetypes.ObjectAsOptions{})
 	if dgs.HasError() {
 		return nil, dgs
 	}
@@ -5555,6 +5996,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 			TimeFrame:   types.ObjectNull(dashboardTimeFrameModelAttr()),
 			Folder:      types.ObjectNull(dashboardFolderModelAttr()),
 			Annotations: types.ListNull(types.ObjectType{AttrTypes: dashboardsAnnotationsModelAttr()}),
+			AutoRefresh: types.ObjectNull(dashboardAutoRefreshModelAttr()),
 		}, nil
 	}
 
@@ -5589,6 +6031,11 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 		return nil, diags
 	}
 
+	autoRefresh, diags := flattenDashboardAutoRefresh(ctx, dashboard)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &DashboardResourceModel{
 		ID:          types.StringValue(dashboard.GetId().GetValue()),
 		Name:        wrapperspbStringToTypeString(dashboard.GetName()),
@@ -5599,6 +6046,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 		TimeFrame:   timeFrame,
 		Folder:      folder,
 		Annotations: annotations,
+		AutoRefresh: autoRefresh,
 		ContentJson: types.StringNull(),
 	}, nil
 }
@@ -6256,13 +6704,19 @@ func dashboardsAnnotationsModelAttr() map[string]attr.Type {
 
 func annotationSourceModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"metric": types.ObjectType{
-			AttrTypes: dashboardsAnnotationsMetricSourceModelAttr(),
+		"metrics": types.ObjectType{
+			AttrTypes: annotationsMetricsSourceModelAttr(),
+		},
+		"logs": types.ObjectType{
+			AttrTypes: annotationsLogsAndSpansSourceModelAttr(),
+		},
+		"spans": types.ObjectType{
+			AttrTypes: annotationsLogsAndSpansSourceModelAttr(),
 		},
 	}
 }
 
-func dashboardsAnnotationsMetricSourceModelAttr() map[string]attr.Type {
+func annotationsMetricsSourceModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"promql_query": types.StringType,
 		"strategy": types.ObjectType{
@@ -6272,6 +6726,59 @@ func dashboardsAnnotationsMetricSourceModelAttr() map[string]attr.Type {
 		"labels": types.ListType{
 			ElemType: types.StringType,
 		},
+	}
+}
+
+func annotationsLogsAndSpansSourceModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"lucene_query": types.StringType,
+		"strategy": types.ObjectType{
+			AttrTypes: logsAndSpansStrategyModelAttr(),
+		},
+		"message_template": types.StringType,
+		"label_fields": types.ListType{
+			ElemType: observationFieldModelAttr(),
+		},
+	}
+}
+
+func logsAndSpansStrategyModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"instant": types.ObjectType{
+			AttrTypes: instantStrategyModelAttr(),
+		},
+		"range": types.ObjectType{
+			AttrTypes: rangeStrategyModelAttr(),
+		},
+		"duration": types.ObjectType{
+			AttrTypes: durationStrategyModelAttr(),
+		},
+	}
+}
+
+func durationStrategyModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"start_timestamp_field": observationFieldModelAttr(),
+		"duration_field":        observationFieldModelAttr(),
+	}
+}
+
+func rangeStrategyModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"start_timestamp_field": observationFieldModelAttr(),
+		"end_timestamp_field":   observationFieldModelAttr(),
+	}
+}
+
+func instantStrategyModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"timestamp_field": observationFieldModelAttr(),
+	}
+}
+
+func observationFieldModelAttr() attr.Type {
+	return types.ObjectType{
+		AttrTypes: observationFieldAttributes(),
 	}
 }
 
@@ -6544,6 +7051,12 @@ func dashboardFolderModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"id":   types.StringType,
 		"path": types.StringType,
+	}
+}
+
+func dashboardAutoRefreshModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"type": types.StringType,
 	}
 }
 
@@ -8752,25 +9265,278 @@ func flattenDashboardAnnotationSource(ctx context.Context, source *dashboards.An
 		return types.ObjectNull(dashboardsAnnotationsModelAttr()), nil
 	}
 
-	metricSourceObject, diags := flattenDashboardAnnotationMetricSourceModel(ctx, source.GetMetrics())
+	var sourceObject DashboardAnnotationSourceModel
+	var diags diag.Diagnostics
+	switch source.Value.(type) {
+	case *dashboards.Annotation_Source_Metrics:
+		sourceObject.Metric, diags = flattenDashboardAnnotationMetricSourceModel(ctx, source.GetMetrics())
+		sourceObject.Logs = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
+		sourceObject.Spans = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
+	case *dashboards.Annotation_Source_Logs:
+		sourceObject.Logs, diags = flattenDashboardAnnotationLogsSourceModel(ctx, source.GetLogs())
+		sourceObject.Metric = types.ObjectNull(annotationsMetricsSourceModelAttr())
+		sourceObject.Spans = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
+	case *dashboards.Annotation_Source_Spans:
+		sourceObject.Spans, diags = flattenDashboardAnnotationSpansSourceModel(ctx, source.GetSpans())
+		sourceObject.Metric = types.ObjectNull(annotationsMetricsSourceModelAttr())
+		sourceObject.Logs = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
+	default:
+		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Annotation Source", fmt.Sprintf("unknown annotation source type %T", source.Value))}
+	}
+
 	if diags.HasError() {
 		return types.ObjectNull(annotationSourceModelAttr()), diags
-	}
-	sourceObject := &DashboardAnnotationSourceModel{
-		Metric: metricSourceObject,
 	}
 
 	return types.ObjectValueFrom(ctx, annotationSourceModelAttr(), sourceObject)
 }
 
+func flattenDashboardAnnotationSpansSourceModel(ctx context.Context, spans *dashboards.Annotation_SpansSource) (types.Object, diag.Diagnostics) {
+	if spans == nil {
+		return types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()), nil
+	}
+
+	strategy, diags := flattenAnnotationSpansStrategy(ctx, spans.GetStrategy())
+	if diags.HasError() {
+		return types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()), diags
+	}
+
+	labelFields, diags := flattenObservationFields(ctx, spans.GetLabelFields())
+	if diags.HasError() {
+		return types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()), diags
+	}
+
+	spansObject := &DashboardAnnotationSpansOrLogsSourceModel{
+		LuceneQuery:     wrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
+		Strategy:        strategy,
+		MessageTemplate: wrapperspbStringToTypeString(spans.GetMessageTemplate()),
+		LabelFields:     labelFields,
+	}
+
+	return types.ObjectValueFrom(ctx, annotationsLogsAndSpansSourceModelAttr(), spansObject)
+}
+
+func flattenAnnotationSpansStrategy(ctx context.Context, strategy *dashboards.Annotation_SpansSource_Strategy) (types.Object, diag.Diagnostics) {
+	if strategy == nil {
+		return types.ObjectNull(logsAndSpansStrategyModelAttr()), nil
+	}
+
+	var strategyModel DashboardAnnotationSpanOrLogsStrategyModel
+	var diags diag.Diagnostics
+	switch strategy.Value.(type) {
+	case *dashboards.Annotation_SpansSource_Strategy_Instant_:
+		strategyModel.Instant, diags = flattenSpansStrategyInstant(ctx, strategy.GetInstant())
+		strategyModel.Range = types.ObjectNull(rangeStrategyModelAttr())
+		strategyModel.Duration = types.ObjectNull(durationStrategyModelAttr())
+	case *dashboards.Annotation_SpansSource_Strategy_Range_:
+		strategyModel.Range, diags = flattenSpansStrategyRange(ctx, strategy.GetRange())
+		strategyModel.Instant = types.ObjectNull(instantStrategyModelAttr())
+		strategyModel.Duration = types.ObjectNull(durationStrategyModelAttr())
+	case *dashboards.Annotation_SpansSource_Strategy_Duration_:
+		strategyModel.Duration, diags = flattenSpansStrategyDuration(ctx, strategy.GetDuration())
+		strategyModel.Instant = types.ObjectNull(instantStrategyModelAttr())
+		strategyModel.Range = types.ObjectNull(rangeStrategyModelAttr())
+	default:
+		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Annotation Spans Strategy", fmt.Sprintf("unknown annotation spans strategy type %T", strategy.Value))}
+	}
+
+	if diags.HasError() {
+		return types.ObjectNull(logsAndSpansStrategyModelAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, logsAndSpansStrategyModelAttr(), strategyModel)
+}
+
+func flattenSpansStrategyDuration(ctx context.Context, duration *dashboards.Annotation_SpansSource_Strategy_Duration) (types.Object, diag.Diagnostics) {
+	if duration == nil {
+		return types.ObjectNull(durationStrategyModelAttr()), nil
+	}
+
+	startTimestampField, diags := flattenObservationField(ctx, duration.GetStartTimestampField())
+	if diags.HasError() {
+		return types.ObjectNull(durationStrategyModelAttr()), diags
+	}
+
+	endTimestampField, diags := flattenObservationField(ctx, duration.GetDurationField())
+	if diags.HasError() {
+		return types.ObjectNull(durationStrategyModelAttr()), diags
+	}
+
+	durationStrategy := &DashboardAnnotationDurationStrategyModel{
+		StartTimestampField: startTimestampField,
+		DurationField:       endTimestampField,
+	}
+
+	return types.ObjectValueFrom(ctx, durationStrategyModelAttr(), durationStrategy)
+}
+
+func flattenSpansStrategyRange(ctx context.Context, getRange *dashboards.Annotation_SpansSource_Strategy_Range) (types.Object, diag.Diagnostics) {
+	if getRange == nil {
+		return types.ObjectNull(rangeStrategyModelAttr()), nil
+	}
+
+	startTimestampField, diags := flattenObservationField(ctx, getRange.GetStartTimestampField())
+	if diags.HasError() {
+		return types.ObjectNull(rangeStrategyModelAttr()), diags
+	}
+
+	endTimestampField, diags := flattenObservationField(ctx, getRange.GetEndTimestampField())
+	if diags.HasError() {
+		return types.ObjectNull(rangeStrategyModelAttr()), diags
+	}
+
+	rangeStrategy := &DashboardAnnotationRangeStrategyModel{
+		StartTimestampField: startTimestampField,
+		EndTimestampField:   endTimestampField,
+	}
+
+	return types.ObjectValueFrom(ctx, rangeStrategyModelAttr(), rangeStrategy)
+}
+
+func flattenSpansStrategyInstant(ctx context.Context, instant *dashboards.Annotation_SpansSource_Strategy_Instant) (types.Object, diag.Diagnostics) {
+	if instant == nil {
+		return types.ObjectNull(instantStrategyModelAttr()), nil
+	}
+
+	timestampField, diags := flattenObservationField(ctx, instant.GetTimestampField())
+	if diags.HasError() {
+		return types.ObjectNull(instantStrategyModelAttr()), diags
+	}
+
+	instantStrategy := &DashboardAnnotationInstantStrategyModel{
+		TimestampField: timestampField,
+	}
+
+	return types.ObjectValueFrom(ctx, instantStrategyModelAttr(), instantStrategy)
+}
+
+func flattenLogsStrategyDuration(ctx context.Context, duration *dashboards.Annotation_LogsSource_Strategy_Duration) (types.Object, diag.Diagnostics) {
+	if duration == nil {
+		return types.ObjectNull(durationStrategyModelAttr()), nil
+	}
+
+	startTimestampField, diags := flattenObservationField(ctx, duration.GetStartTimestampField())
+	if diags.HasError() {
+		return types.ObjectNull(durationStrategyModelAttr()), diags
+	}
+
+	endTimestampField, diags := flattenObservationField(ctx, duration.GetDurationField())
+	if diags.HasError() {
+		return types.ObjectNull(durationStrategyModelAttr()), diags
+	}
+
+	durationStrategy := &DashboardAnnotationDurationStrategyModel{
+		StartTimestampField: startTimestampField,
+		DurationField:       endTimestampField,
+	}
+
+	return types.ObjectValueFrom(ctx, durationStrategyModelAttr(), durationStrategy)
+}
+
+func flattenLogsStrategyRange(ctx context.Context, getRange *dashboards.Annotation_LogsSource_Strategy_Range) (types.Object, diag.Diagnostics) {
+	if getRange == nil {
+		return types.ObjectNull(rangeStrategyModelAttr()), nil
+	}
+
+	startTimestampField, diags := flattenObservationField(ctx, getRange.GetStartTimestampField())
+	if diags.HasError() {
+		return types.ObjectNull(rangeStrategyModelAttr()), diags
+	}
+
+	endTimestampField, diags := flattenObservationField(ctx, getRange.GetEndTimestampField())
+	if diags.HasError() {
+		return types.ObjectNull(rangeStrategyModelAttr()), diags
+	}
+
+	rangeStrategy := &DashboardAnnotationRangeStrategyModel{
+		StartTimestampField: startTimestampField,
+		EndTimestampField:   endTimestampField,
+	}
+
+	return types.ObjectValueFrom(ctx, rangeStrategyModelAttr(), rangeStrategy)
+}
+
+func flattenLogsStrategyInstant(ctx context.Context, instant *dashboards.Annotation_LogsSource_Strategy_Instant) (types.Object, diag.Diagnostics) {
+	if instant == nil {
+		return types.ObjectNull(instantStrategyModelAttr()), nil
+	}
+
+	timestampField, diags := flattenObservationField(ctx, instant.GetTimestampField())
+	if diags.HasError() {
+		return types.ObjectNull(instantStrategyModelAttr()), diags
+	}
+
+	instantStrategy := &DashboardAnnotationInstantStrategyModel{
+		TimestampField: timestampField,
+	}
+
+	return types.ObjectValueFrom(ctx, instantStrategyModelAttr(), instantStrategy)
+}
+
+func flattenDashboardAnnotationLogsSourceModel(ctx context.Context, logs *dashboards.Annotation_LogsSource) (types.Object, diag.Diagnostics) {
+	if logs == nil {
+		return types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()), nil
+	}
+
+	strategy, diags := flattenAnnotationLogsStrategy(ctx, logs.GetStrategy())
+	if diags.HasError() {
+		return types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()), diags
+	}
+
+	labelFields, diags := flattenObservationFields(ctx, logs.GetLabelFields())
+	if diags.HasError() {
+		return types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()), diags
+	}
+
+	logsObject := &DashboardAnnotationSpansOrLogsSourceModel{
+		LuceneQuery:     wrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
+		Strategy:        strategy,
+		MessageTemplate: wrapperspbStringToTypeString(logs.GetMessageTemplate()),
+		LabelFields:     labelFields,
+	}
+
+	return types.ObjectValueFrom(ctx, annotationsLogsAndSpansSourceModelAttr(), logsObject)
+}
+
+func flattenAnnotationLogsStrategy(ctx context.Context, strategy *dashboards.Annotation_LogsSource_Strategy) (types.Object, diag.Diagnostics) {
+	if strategy == nil {
+		return types.ObjectNull(logsAndSpansStrategyModelAttr()), nil
+	}
+
+	var strategyModel DashboardAnnotationSpanOrLogsStrategyModel
+	var diags diag.Diagnostics
+	switch strategy.Value.(type) {
+	case *dashboards.Annotation_LogsSource_Strategy_Instant_:
+		strategyModel.Instant, diags = flattenLogsStrategyInstant(ctx, strategy.GetInstant())
+		strategyModel.Range = types.ObjectNull(rangeStrategyModelAttr())
+		strategyModel.Duration = types.ObjectNull(durationStrategyModelAttr())
+	case *dashboards.Annotation_LogsSource_Strategy_Range_:
+		strategyModel.Range, diags = flattenLogsStrategyRange(ctx, strategy.GetRange())
+		strategyModel.Instant = types.ObjectNull(instantStrategyModelAttr())
+		strategyModel.Duration = types.ObjectNull(durationStrategyModelAttr())
+	case *dashboards.Annotation_LogsSource_Strategy_Duration_:
+		strategyModel.Duration, diags = flattenLogsStrategyDuration(ctx, strategy.GetDuration())
+		strategyModel.Instant = types.ObjectNull(instantStrategyModelAttr())
+		strategyModel.Range = types.ObjectNull(rangeStrategyModelAttr())
+	default:
+		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Annotation Logs Strategy", fmt.Sprintf("unknown annotation logs strategy type %T", strategy.Value))}
+	}
+
+	if diags.HasError() {
+		return types.ObjectNull(logsAndSpansStrategyModelAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, logsAndSpansStrategyModelAttr(), strategyModel)
+}
+
 func flattenDashboardAnnotationMetricSourceModel(ctx context.Context, metricSource *dashboards.Annotation_MetricsSource) (types.Object, diag.Diagnostics) {
 	if metricSource == nil {
-		return types.ObjectNull(dashboardsAnnotationsMetricSourceModelAttr()), nil
+		return types.ObjectNull(annotationsMetricsSourceModelAttr()), nil
 	}
 
 	strategy, diags := flattenDashboardAnnotationStrategy(ctx, metricSource.GetStrategy())
 	if diags.HasError() {
-		return types.ObjectNull(dashboardsAnnotationsMetricSourceModelAttr()), diags
+		return types.ObjectNull(annotationsMetricsSourceModelAttr()), diags
 	}
 
 	metricSourceObject := &DashboardAnnotationMetricSourceModel{
@@ -8780,7 +9546,7 @@ func flattenDashboardAnnotationMetricSourceModel(ctx context.Context, metricSour
 		Labels:          wrappedStringSliceToTypeStringList(metricSource.GetLabels()),
 	}
 
-	return types.ObjectValueFrom(ctx, dashboardsAnnotationsMetricSourceModelAttr(), metricSourceObject)
+	return types.ObjectValueFrom(ctx, annotationsMetricsSourceModelAttr(), metricSourceObject)
 }
 
 func flattenDashboardAnnotationStrategy(ctx context.Context, strategy *dashboards.Annotation_MetricsSource_Strategy) (types.Object, diag.Diagnostics) {
@@ -8837,10 +9603,22 @@ func flattenDuration(timeFrame *durationpb.Duration) basetypes.StringValue {
 	return types.StringValue(timeFrame.String())
 }
 
-func relativeTimeFrameAttributes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"duration": types.StringType,
+func flattenDashboardAutoRefresh(ctx context.Context, dashboard *dashboards.Dashboard) (types.Object, diag.Diagnostics) {
+	autoRefresh := dashboard.GetAutoRefresh()
+	if autoRefresh == nil {
+		return types.ObjectNull(dashboardAutoRefreshModelAttr()), nil
 	}
+
+	var refreshType DashboardAutoRefreshModel
+	switch autoRefresh.(type) {
+	case *dashboards.Dashboard_Off:
+		refreshType.Type = types.StringValue("off")
+	case *dashboards.Dashboard_FiveMinutes:
+		refreshType.Type = types.StringValue("five_minutes")
+	case *dashboards.Dashboard_TwoMinutes:
+		refreshType.Type = types.StringValue("two_minutes")
+	}
+	return types.ObjectValueFrom(ctx, dashboardAutoRefreshModelAttr(), &refreshType)
 }
 
 func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -8962,7 +9740,7 @@ func (r *DashboardResource) Delete(ctx context.Context, req resource.DeleteReque
 	log.Printf("[INFO] Dashboard %s deleted", id)
 }
 
-func (r *DashboardResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *DashboardResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
