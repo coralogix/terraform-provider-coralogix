@@ -38,7 +38,7 @@ data "coralogix_slo" "example" {
 - `status` (String)
 - `target_percentage` (Number) Target percentage. This is the target percentage of the SLO.
 - `threshold_microseconds` (Number) Threshold in microseconds. Required when `type` is `latency`.
-- `threshold_symbol_type` (String) Threshold symbol type. Required when `type` is `latency`. Valid values are: ["greater" "greater_or_equal" "less" "equal"]
+- `threshold_symbol_type` (String) Threshold symbol type. Required when `type` is `latency`. Valid values are: ["greater" "greater_or_equal" "less" "less_or_equal" "equal"]
 - `type` (String) Type. This is the type of the SLO. Valid values are: "error", "latency".
 
 <a id="nestedatt--filters"></a>
