@@ -587,7 +587,7 @@ resource "coralogix_dashboard" dashboard {
     {
       name   = "test_annotation"
       source = {
-        metric = {
+        metrics = {
           promql_query = "vector(1)"
           strategy     = {
             start_time = {}
@@ -598,6 +598,9 @@ resource "coralogix_dashboard" dashboard {
       }
     },
   ]
+  auto_refresh = {
+    type = "two_minutes"
+  }
   folder = {
     id = coralogix_dashboards_folder.example.id
   }

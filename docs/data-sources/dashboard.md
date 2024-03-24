@@ -22,6 +22,7 @@ description: |-
 ### Read-Only
 
 - `annotations` (Attributes List) (see [below for nested schema](#nestedatt--annotations))
+- `auto_refresh` (Attributes) (see [below for nested schema](#nestedatt--auto_refresh))
 - `content_json` (String) an option to set the dashboard content from a json file.
 - `description` (String) Brief description or summary of the dashboard's purpose or content.
 - `filters` (Attributes List) List of filters that can be applied to the dashboard's data. (see [below for nested schema](#nestedatt--filters))
@@ -46,31 +47,243 @@ Read-Only:
 
 Read-Only:
 
-- `metric` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metric))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans))
 
-<a id="nestedatt--annotations--source--metric"></a>
-### Nested Schema for `annotations.source.metric`
+<a id="nestedatt--annotations--source--logs"></a>
+### Nested Schema for `annotations.source.logs`
+
+Read-Only:
+
+- `label_fields` (Attributes List) (see [below for nested schema](#nestedatt--annotations--source--logs--label_fields))
+- `lucene_query` (String)
+- `message_template` (String)
+- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy))
+
+<a id="nestedatt--annotations--source--logs--label_fields"></a>
+### Nested Schema for `annotations.source.logs.strategy`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+<a id="nestedatt--annotations--source--logs--strategy"></a>
+### Nested Schema for `annotations.source.logs.strategy`
+
+Read-Only:
+
+- `duration` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--duration))
+- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--instant))
+- `range` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--range))
+
+<a id="nestedatt--annotations--source--logs--strategy--duration"></a>
+### Nested Schema for `annotations.source.logs.strategy.duration`
+
+Read-Only:
+
+- `duration_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--duration--duration_field))
+- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--duration--start_timestamp_field))
+
+<a id="nestedatt--annotations--source--logs--strategy--duration--duration_field"></a>
+### Nested Schema for `annotations.source.logs.strategy.duration.start_timestamp_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+<a id="nestedatt--annotations--source--logs--strategy--duration--start_timestamp_field"></a>
+### Nested Schema for `annotations.source.logs.strategy.duration.start_timestamp_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+
+<a id="nestedatt--annotations--source--logs--strategy--instant"></a>
+### Nested Schema for `annotations.source.logs.strategy.instant`
+
+Read-Only:
+
+- `timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--instant--timestamp_field))
+
+<a id="nestedatt--annotations--source--logs--strategy--instant--timestamp_field"></a>
+### Nested Schema for `annotations.source.logs.strategy.instant.timestamp_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+
+<a id="nestedatt--annotations--source--logs--strategy--range"></a>
+### Nested Schema for `annotations.source.logs.strategy.range`
+
+Read-Only:
+
+- `end_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--range--end_timestamp_field))
+- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--range--start_timestamp_field))
+
+<a id="nestedatt--annotations--source--logs--strategy--range--end_timestamp_field"></a>
+### Nested Schema for `annotations.source.logs.strategy.range.start_timestamp_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+<a id="nestedatt--annotations--source--logs--strategy--range--start_timestamp_field"></a>
+### Nested Schema for `annotations.source.logs.strategy.range.start_timestamp_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+
+
+
+<a id="nestedatt--annotations--source--metrics"></a>
+### Nested Schema for `annotations.source.metrics`
 
 Read-Only:
 
 - `labels` (List of String)
 - `message_template` (String)
 - `promql_query` (String)
-- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metric--strategy))
+- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics--strategy))
 
-<a id="nestedatt--annotations--source--metric--strategy"></a>
-### Nested Schema for `annotations.source.metric.strategy`
+<a id="nestedatt--annotations--source--metrics--strategy"></a>
+### Nested Schema for `annotations.source.metrics.strategy`
 
 Read-Only:
 
-- `start_time` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metric--strategy--start_time))
+- `start_time` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics--strategy--start_time))
 
-<a id="nestedatt--annotations--source--metric--strategy--start_time"></a>
-### Nested Schema for `annotations.source.metric.strategy.start_time`
-
-
+<a id="nestedatt--annotations--source--metrics--strategy--start_time"></a>
+### Nested Schema for `annotations.source.metrics.strategy.start_time`
 
 
+
+
+<a id="nestedatt--annotations--source--spans"></a>
+### Nested Schema for `annotations.source.spans`
+
+Read-Only:
+
+- `label_fields` (Attributes List) (see [below for nested schema](#nestedatt--annotations--source--spans--label_fields))
+- `lucene_query` (String)
+- `message_template` (String)
+- `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy))
+
+<a id="nestedatt--annotations--source--spans--label_fields"></a>
+### Nested Schema for `annotations.source.spans.strategy`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+<a id="nestedatt--annotations--source--spans--strategy"></a>
+### Nested Schema for `annotations.source.spans.strategy`
+
+Read-Only:
+
+- `duration` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--duration))
+- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--instant))
+- `range` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--range))
+
+<a id="nestedatt--annotations--source--spans--strategy--duration"></a>
+### Nested Schema for `annotations.source.spans.strategy.duration`
+
+Read-Only:
+
+- `duration_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--duration--duration_field))
+- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--duration--start_timestamp_field))
+
+<a id="nestedatt--annotations--source--spans--strategy--duration--duration_field"></a>
+### Nested Schema for `annotations.source.spans.strategy.duration.start_timestamp_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+<a id="nestedatt--annotations--source--spans--strategy--duration--start_timestamp_field"></a>
+### Nested Schema for `annotations.source.spans.strategy.duration.start_timestamp_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+
+<a id="nestedatt--annotations--source--spans--strategy--instant"></a>
+### Nested Schema for `annotations.source.spans.strategy.instant`
+
+Read-Only:
+
+- `timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--instant--timestamp_field))
+
+<a id="nestedatt--annotations--source--spans--strategy--instant--timestamp_field"></a>
+### Nested Schema for `annotations.source.spans.strategy.instant.timestamp_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+
+<a id="nestedatt--annotations--source--spans--strategy--range"></a>
+### Nested Schema for `annotations.source.spans.strategy.range`
+
+Read-Only:
+
+- `end_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--range--end_timestamp_field))
+- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--range--start_timestamp_field))
+
+<a id="nestedatt--annotations--source--spans--strategy--range--end_timestamp_field"></a>
+### Nested Schema for `annotations.source.spans.strategy.range.start_timestamp_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+<a id="nestedatt--annotations--source--spans--strategy--range--start_timestamp_field"></a>
+### Nested Schema for `annotations.source.spans.strategy.range.start_timestamp_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+
+
+
+
+
+<a id="nestedatt--auto_refresh"></a>
+### Nested Schema for `auto_refresh`
+
+Read-Only:
+
+- `type` (String)
 
 
 <a id="nestedatt--filters"></a>
@@ -205,7 +418,7 @@ Read-Only:
 
 Read-Only:
 
-- `definition` (Attributes) The widget definition. Can contain one of `line_chart`, `bar_chart`, `pie_chart` `data_table` or `gauge`. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
+- `definition` (Attributes) The widget definition. Can contain one of 'line_chart', 'data_table', 'gauge', 'pie_chart', 'bar_chart', 'horizontal_bar_chart', 'markdown'. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
 - `description` (String) Widget description.
 - `id` (String)
 - `title` (String) Widget title. Required for all widgets except markdown.
@@ -236,9 +449,9 @@ Read-Only:
 - `max_bars_per_chart` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
 - `scale_type` (String)
-- `sort_by` (String) The field to sort by. Can be one of unspecified, value, name.
+- `sort_by` (String) The field to sort by. Can be one of name, unspecified, value.
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of bytes, mbytes, kibytes, mibytes, bytes_iec, gibytes, unspecified, microseconds, milliseconds, seconds, kbytes, gbytes.
+- `unit` (String) The unit of the chart. Can be one of gbytes, bytes_iec, mibytes, unspecified, microseconds, milliseconds, mbytes, kibytes, gibytes, seconds, bytes, kbytes.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
@@ -472,8 +685,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unspecified" "unique_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -562,6 +775,7 @@ Read-Only:
 Read-Only:
 
 - `columns` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--columns))
+- `data_mode_type` (String) The data mode type. Can be one of ["unspecified" "archive"].
 - `order_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--order_by))
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
 - `results_per_page` (Number) The number of results to display per page.
@@ -863,8 +1077,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unspecified" "unique_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -893,9 +1107,9 @@ Read-Only:
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
 - `show_inner_arc` (Boolean)
 - `show_outer_arc` (Boolean)
-- `threshold_by` (String) The threshold by. Can be one of ["unspecified" "value" "background"].
+- `threshold_by` (String) The threshold by. Can be one of ["value" "background" "unspecified"].
 - `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--thresholds))
-- `unit` (String) The unit of the gauge. Can be one of ["usd_cents" "none" "milliseconds" "bytes" "kbytes" "euro" "usd" "percent" "microseconds" "seconds" "mbytes" "kibytes" "mibytes" "gibytes" "gbytes" "bytes_iec" "euro_cents"].
+- `unit` (String) The unit of the gauge. Can be one of ["kbytes" "gibytes" "none" "percent" "bytes_iec" "euro_cents" "euro" "usd_cents" "bytes" "gbytes" "kibytes" "usd" "seconds" "mbytes" "mibytes" "microseconds" "milliseconds"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.unit`
@@ -1063,7 +1277,7 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["unspecified" "last" "min" "max" "avg" "sum"].
+- `aggregation` (String) The type of aggregation. Can be one of ["min" "max" "avg" "sum" "unspecified" "last"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--unit--spans--filters))
 - `promql_query` (String)
 
@@ -1128,8 +1342,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unspecified" "unique_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1160,7 +1374,7 @@ Read-Only:
 - `scale_type` (String)
 - `sort_by` (String)
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of bytes, mbytes, kibytes, mibytes, bytes_iec, gibytes, unspecified, microseconds, milliseconds, seconds, kbytes, gbytes.
+- `unit` (String) The unit of the chart. Can be one of gbytes, bytes_iec, mibytes, unspecified, microseconds, milliseconds, mbytes, kibytes, gibytes, seconds, bytes, kbytes.
 - `y_axis_view_by` (String)
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
@@ -1298,8 +1512,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unspecified" "unique_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1374,7 +1588,7 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: sum, avg, last, unspecified, min, max.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, unspecified, min, max, sum.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. False by default.
 
@@ -1391,10 +1605,10 @@ Read-Only:
 - `name` (String)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--tooltip--query))
 - `resolution` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--tooltip--resolution))
-- `scale_type` (String) The scale type. Valid values are: unspecified, linear, logarithmic.
+- `scale_type` (String) The scale type. Valid values are: logarithmic, unspecified, linear.
 - `series_count_limit` (Number)
 - `series_name_template` (String)
-- `unit` (String) The unit. Valid values are: bytes, mbytes, kibytes, mibytes, bytes_iec, gibytes, unspecified, microseconds, milliseconds, seconds, kbytes, gbytes.
+- `unit` (String) The unit. Valid values are: gbytes, bytes_iec, mibytes, unspecified, microseconds, milliseconds, mbytes, kibytes, gibytes, seconds, bytes, kbytes.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--tooltip--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.tooltip.unit`
@@ -1507,8 +1721,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unspecified" "unique_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1601,7 +1815,7 @@ Read-Only:
 Read-Only:
 
 - `is_visible` (Boolean)
-- `label_source` (String) The source of the label. Valid values are: unspecified, inner, stack
+- `label_source` (String) The source of the label. Valid values are: stack, unspecified, inner
 - `show_name` (Boolean)
 - `show_percentage` (Boolean)
 - `show_value` (Boolean)
@@ -1838,8 +2052,8 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unspecified" "unique_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
