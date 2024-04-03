@@ -518,3 +518,8 @@ New Features:
 * adding `data_mode` for data_table widget.
 * adding `logs` and `spans` options for `annotations.source`.
 * adding `auto_refresh` for dashboard.
+
+## Release 1.13.1
+Bug fixing:
+#### resource/coralogix_dashboard
+* adding schema upgrade v1 to v2 (for `annotations.source.metrics` field).

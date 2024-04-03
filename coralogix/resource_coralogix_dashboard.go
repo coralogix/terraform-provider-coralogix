@@ -217,7 +217,8 @@ var (
 var (
 	_ resource.ResourceWithConfigure = &DashboardResource{}
 	//_ resource.ResourceWithConfigValidators = &DashboardResource{}
-	_ resource.ResourceWithImportState = &DashboardResource{}
+	_ resource.ResourceWithImportState  = &DashboardResource{}
+	_ resource.ResourceWithUpgradeState = &DashboardResource{}
 )
 
 type DashboardResourceModel struct {
@@ -741,9 +742,9 @@ type DashboardAnnotationModel struct {
 }
 
 type DashboardAnnotationSourceModel struct {
-	Metric types.Object `tfsdk:"metrics"` //DashboardAnnotationMetricSourceModel
-	Spans  types.Object `tfsdk:"spans"`   //DashboardAnnotationSpansOrLogsSourceModel
-	Logs   types.Object `tfsdk:"logs"`    //DashboardAnnotationSpansOrLogsSourceModel
+	Metrics types.Object `tfsdk:"metrics"` //DashboardAnnotationMetricSourceModel
+	Spans   types.Object `tfsdk:"spans"`   //DashboardAnnotationSpansOrLogsSourceModel
+	Logs    types.Object `tfsdk:"logs"`    //DashboardAnnotationSpansOrLogsSourceModel
 }
 
 type DashboardAnnotationMetricSourceModel struct {
@@ -799,6 +800,113 @@ type DashboardResource struct {
 	client *clientset.DashboardsClient
 }
 
+func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
+	schemaV1 := dashboardV1()
+	return map[int64]resource.StateUpgrader{
+		1: {
+			PriorSchema:   &schemaV1,
+			StateUpgrader: upgradeDashboardStateV1ToV2,
+		},
+	}
+}
+
+func upgradeDashboardStateV1ToV2(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+	type DashboardResourceModelV0 struct {
+		ID          types.String `tfsdk:"id"`
+		Name        types.String `tfsdk:"name"`
+		Description types.String `tfsdk:"description"`
+		Layout      types.Object `tfsdk:"layout"`
+		Variables   types.List   `tfsdk:"variables"`
+		Filters     types.List   `tfsdk:"filters"`
+		TimeFrame   types.Object `tfsdk:"time_frame"`
+		Folder      types.Object `tfsdk:"folder"`
+		Annotations types.List   `tfsdk:"annotations"`
+		ContentJson types.String `tfsdk:"content_json"`
+	}
+
+	var priorStateData DashboardResourceModelV0
+	resp.Diagnostics.Append(req.State.Get(ctx, &priorStateData)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	annotations, diags := upgradeDashboardAnnotationsV0(ctx, priorStateData.Annotations)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	upgradedStateData := DashboardResourceModel{
+		ID:          priorStateData.ID,
+		Name:        priorStateData.Name,
+		Description: priorStateData.Description,
+		Layout:      priorStateData.Layout,
+		Variables:   priorStateData.Variables,
+		Filters:     priorStateData.Filters,
+		TimeFrame:   priorStateData.TimeFrame,
+		Folder:      priorStateData.Folder,
+		Annotations: annotations,
+		AutoRefresh: types.ObjectNull(dashboardAutoRefreshModelAttr()),
+		ContentJson: priorStateData.ContentJson,
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, upgradedStateData)...)
+}
+
+func upgradeDashboardAnnotationsV0(ctx context.Context, annotations types.List) (types.List, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	var priorAnnotationObjects []types.Object
+	var upgradedGroups []DashboardAnnotationModel
+	annotations.ElementsAs(ctx, &priorAnnotationObjects, true)
+
+	for _, annotationObject := range priorAnnotationObjects {
+		var priorAnnotation DashboardAnnotationModel
+		if dg := annotationObject.As(ctx, &priorAnnotation, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+
+		source, dg := upgradeAnnotationSourceV0(ctx, priorAnnotation.Source)
+		if dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+
+		upgradedGroup := DashboardAnnotationModel{
+			Name:    priorAnnotation.Name,
+			Enabled: priorAnnotation.Enabled,
+			Source:  source,
+			ID:      priorAnnotation.ID,
+		}
+
+		upgradedGroups = append(upgradedGroups, upgradedGroup)
+	}
+
+	if diags.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: dashboardsAnnotationsModelAttr()}), diags
+	}
+
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dashboardsAnnotationsModelAttr()}, upgradedGroups)
+}
+
+func upgradeAnnotationSourceV0(ctx context.Context, source types.Object) (types.Object, diag.Diagnostics) {
+	type DashboardAnnotationSourceModelV0 struct {
+		Metric types.Object `tfsdk:"metric"` //DashboardAnnotationMetricSourceModel
+	}
+	var priorSource DashboardAnnotationSourceModelV0
+	if dg := source.As(ctx, &priorSource, basetypes.ObjectAsOptions{}); dg.HasError() {
+		return types.ObjectNull(annotationSourceModelAttr()), dg
+	}
+
+	upgradeSource := DashboardAnnotationSourceModel{
+		Metrics: priorSource.Metric,
+		Logs:    types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
+		Spans:   types.ObjectNull(annotationsLogsAndSpansSourceModelAttr()),
+	}
+
+	return types.ObjectValueFrom(ctx, annotationSourceModelAttr(), upgradeSource)
+}
+
 func (r DashboardResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
@@ -829,1580 +937,1584 @@ func (i intervalValidator) ValidateString(_ context.Context, req validator.Strin
 
 func (r *DashboardResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Version: 2,
-		Attributes: map[string]schema.Attribute{
-			"id": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-				MarkdownDescription: "Unique identifier for the dashboard.",
+		Version:    2,
+		Attributes: dashboardSchemaAttributes(),
+	}
+}
+
+func dashboardSchemaAttributes() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"id": schema.StringAttribute{
+			Computed: true,
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.UseStateForUnknown(),
 			},
-			"name": schema.StringAttribute{
-				Optional:            true,
-				MarkdownDescription: "Display name of the dashboard.",
-			},
-			"description": schema.StringAttribute{
-				Optional:            true,
-				MarkdownDescription: "Brief description or summary of the dashboard's purpose or content.",
-			},
-			"layout": schema.SingleNestedAttribute{
-				Optional: true,
-				Attributes: map[string]schema.Attribute{
-					"sections": schema.ListNestedAttribute{
-						NestedObject: schema.NestedAttributeObject{
-							Attributes: map[string]schema.Attribute{
-								"id": schema.StringAttribute{
-									Computed: true,
-									PlanModifiers: []planmodifier.String{
-										stringplanmodifier.UseStateForUnknown(),
-									},
+			MarkdownDescription: "Unique identifier for the dashboard.",
+		},
+		"name": schema.StringAttribute{
+			Optional:            true,
+			MarkdownDescription: "Display name of the dashboard.",
+		},
+		"description": schema.StringAttribute{
+			Optional:            true,
+			MarkdownDescription: "Brief description or summary of the dashboard's purpose or content.",
+		},
+		"layout": schema.SingleNestedAttribute{
+			Optional: true,
+			Attributes: map[string]schema.Attribute{
+				"sections": schema.ListNestedAttribute{
+					NestedObject: schema.NestedAttributeObject{
+						Attributes: map[string]schema.Attribute{
+							"id": schema.StringAttribute{
+								Computed: true,
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
 								},
-								"rows": schema.ListNestedAttribute{
-									NestedObject: schema.NestedAttributeObject{
-										Attributes: map[string]schema.Attribute{
-											"id": schema.StringAttribute{
-												Computed: true,
-												PlanModifiers: []planmodifier.String{
-													stringplanmodifier.UseStateForUnknown(),
-												},
+							},
+							"rows": schema.ListNestedAttribute{
+								NestedObject: schema.NestedAttributeObject{
+									Attributes: map[string]schema.Attribute{
+										"id": schema.StringAttribute{
+											Computed: true,
+											PlanModifiers: []planmodifier.String{
+												stringplanmodifier.UseStateForUnknown(),
 											},
-											"height": schema.Int64Attribute{
-												Required: true,
-												Validators: []validator.Int64{
-													int64validator.AtLeast(1),
-												},
-												MarkdownDescription: "The height of the row.",
+										},
+										"height": schema.Int64Attribute{
+											Required: true,
+											Validators: []validator.Int64{
+												int64validator.AtLeast(1),
 											},
-											"widgets": schema.ListNestedAttribute{
-												Optional: true,
-												NestedObject: schema.NestedAttributeObject{
-													Attributes: map[string]schema.Attribute{
-														"id": schema.StringAttribute{
-															Computed: true,
-															PlanModifiers: []planmodifier.String{
-																stringplanmodifier.UseStateForUnknown(),
-															},
+											MarkdownDescription: "The height of the row.",
+										},
+										"widgets": schema.ListNestedAttribute{
+											Optional: true,
+											NestedObject: schema.NestedAttributeObject{
+												Attributes: map[string]schema.Attribute{
+													"id": schema.StringAttribute{
+														Computed: true,
+														PlanModifiers: []planmodifier.String{
+															stringplanmodifier.UseStateForUnknown(),
 														},
-														"title": schema.StringAttribute{
-															Optional:            true,
-															MarkdownDescription: "Widget title. Required for all widgets except markdown.",
-														},
-														"description": schema.StringAttribute{
-															Optional:            true,
-															MarkdownDescription: "Widget description.",
-														},
-														"definition": schema.SingleNestedAttribute{
-															Required: true,
-															Attributes: map[string]schema.Attribute{
-																"line_chart": schema.SingleNestedAttribute{
-																	Attributes: map[string]schema.Attribute{
-																		"legend": schema.SingleNestedAttribute{
-																			Attributes: map[string]schema.Attribute{
-																				"is_visible": schema.BoolAttribute{
-																					Optional:            true,
-																					Computed:            true,
-																					Default:             booldefault.StaticBool(true),
-																					MarkdownDescription: "Whether to display the legend. False by default.",
-																				},
-																				"columns": schema.ListAttribute{
-																					ElementType: types.StringType,
-																					Optional:    true,
-																					Validators: []validator.List{
-																						listvalidator.ValueStringsAre(stringvalidator.OneOf(dashboardValidLegendColumns...)),
-																						listvalidator.SizeAtLeast(1),
-																					},
-																					MarkdownDescription: fmt.Sprintf("The columns to display in the legend. Valid values are: %s.", strings.Join(dashboardValidLegendColumns, ", ")),
-																				},
-																				"group_by_query": schema.BoolAttribute{
-																					Optional: true,
-																					Computed: true,
-																					Default:  booldefault.StaticBool(false),
-																				},
+													},
+													"title": schema.StringAttribute{
+														Optional:            true,
+														MarkdownDescription: "Widget title. Required for all widgets except markdown.",
+													},
+													"description": schema.StringAttribute{
+														Optional:            true,
+														MarkdownDescription: "Widget description.",
+													},
+													"definition": schema.SingleNestedAttribute{
+														Required: true,
+														Attributes: map[string]schema.Attribute{
+															"line_chart": schema.SingleNestedAttribute{
+																Attributes: map[string]schema.Attribute{
+																	"legend": schema.SingleNestedAttribute{
+																		Attributes: map[string]schema.Attribute{
+																			"is_visible": schema.BoolAttribute{
+																				Optional:            true,
+																				Computed:            true,
+																				Default:             booldefault.StaticBool(true),
+																				MarkdownDescription: "Whether to display the legend. False by default.",
 																			},
-																			Optional: true,
-																		},
-																		"tooltip": schema.SingleNestedAttribute{
-																			Attributes: map[string]schema.Attribute{
-																				"show_labels": schema.BoolAttribute{
-																					Optional: true,
-																					Computed: true,
-																					Default:  booldefault.StaticBool(false),
+																			"columns": schema.ListAttribute{
+																				ElementType: types.StringType,
+																				Optional:    true,
+																				Validators: []validator.List{
+																					listvalidator.ValueStringsAre(stringvalidator.OneOf(dashboardValidLegendColumns...)),
+																					listvalidator.SizeAtLeast(1),
 																				},
-																				"type": schema.StringAttribute{
-																					Optional: true,
-																					Validators: []validator.String{
-																						stringvalidator.OneOf(dashboardValidTooltipTypes...),
-																					},
-																					MarkdownDescription: fmt.Sprintf("The tooltip type. Valid values are: %s.", strings.Join(dashboardValidTooltipTypes, ", ")),
-																				},
+																				MarkdownDescription: fmt.Sprintf("The columns to display in the legend. Valid values are: %s.", strings.Join(dashboardValidLegendColumns, ", ")),
 																			},
-																			Optional: true,
-																		},
-																		"query_definitions": schema.ListNestedAttribute{
-																			NestedObject: schema.NestedAttributeObject{
-																				Attributes: map[string]schema.Attribute{
-																					"id": schema.StringAttribute{
-																						Computed: true, PlanModifiers: []planmodifier.String{
-																							stringplanmodifier.UseStateForUnknown(),
-																						},
-																					},
-																					"query": schema.SingleNestedAttribute{
-																						Attributes: map[string]schema.Attribute{
-																							"logs": schema.SingleNestedAttribute{
-																								Attributes: map[string]schema.Attribute{
-																									"lucene_query": schema.StringAttribute{
-																										Optional: true,
-																									},
-																									"group_by": schema.ListAttribute{
-																										ElementType: types.StringType,
-																										Optional:    true,
-																									},
-																									"filters":      logsFiltersSchema(),
-																									"aggregations": logsAggregationsSchema(),
-																								},
-																								Optional: true,
-																								Validators: []validator.Object{
-																									objectvalidator.ExactlyOneOf(
-																										path.MatchRelative().AtParent().AtName("metrics"),
-																										path.MatchRelative().AtParent().AtName("spans"),
-																									),
-																								},
-																							},
-																							"metrics": schema.SingleNestedAttribute{
-																								Attributes: map[string]schema.Attribute{
-																									"promql_query": schema.StringAttribute{
-																										Optional: true,
-																									},
-																									"filters": metricFiltersSchema(),
-																								},
-																								Optional: true,
-																								Validators: []validator.Object{
-																									objectvalidator.ExactlyOneOf(
-																										path.MatchRelative().AtParent().AtName("logs"),
-																										path.MatchRelative().AtParent().AtName("spans"),
-																									),
-																								},
-																							},
-																							"spans": schema.SingleNestedAttribute{
-																								Attributes: map[string]schema.Attribute{
-																									"lucene_query": schema.StringAttribute{
-																										Optional: true,
-																									},
-																									"group_by":     spansFieldsSchema(),
-																									"aggregations": spansAggregationsSchema(),
-																									"filters":      spansFilterSchema(),
-																								},
-																								Optional: true,
-																								Validators: []validator.Object{
-																									objectvalidator.ExactlyOneOf(
-																										path.MatchRelative().AtParent().AtName("metrics"),
-																										path.MatchRelative().AtParent().AtName("logs"),
-																									),
-																								},
-																							},
-																						},
-																						Required: true,
-																					},
-																					"series_name_template": schema.StringAttribute{
-																						Optional: true,
-																					},
-																					"series_count_limit": schema.Int64Attribute{
-																						Optional: true,
-																					},
-																					"unit": schema.StringAttribute{
-																						Optional: true,
-																						Computed: true,
-																						Default:  stringdefault.StaticString("unspecified"),
-																						Validators: []validator.String{
-																							stringvalidator.OneOf(dashboardValidUnits...),
-																						},
-																						MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(dashboardValidUnits, ", ")),
-																					},
-																					"scale_type": schema.StringAttribute{
-																						Optional: true,
-																						Computed: true,
-																						Validators: []validator.String{
-																							stringvalidator.OneOf(dashboardValidScaleTypes...),
-																						},
-																						Default:             stringdefault.StaticString("unspecified"),
-																						MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(dashboardValidScaleTypes, ", ")),
-																					},
-																					"name": schema.StringAttribute{
-																						Optional: true,
-																					},
-																					"is_visible": schema.BoolAttribute{
-																						Optional: true,
-																						Computed: true,
-																						Default:  booldefault.StaticBool(true),
-																					},
-																					"color_scheme": schema.StringAttribute{
-																						Optional: true,
-																						Validators: []validator.String{
-																							stringvalidator.OneOf(dashboardValidColorSchemes...),
-																						},
-																					},
-																					"resolution": schema.SingleNestedAttribute{
-																						Attributes: map[string]schema.Attribute{
-																							"interval": schema.StringAttribute{
-																								Optional: true,
-																								Validators: []validator.String{
-																									stringvalidator.ExactlyOneOf(
-																										path.MatchRelative().AtParent().AtName("buckets_presented"),
-																									),
-																								},
-																							},
-																							"buckets_presented": schema.Int64Attribute{
-																								Optional: true,
-																								Validators: []validator.Int64{
-																									int64validator.ExactlyOneOf(
-																										path.MatchRelative().AtParent().AtName("interval"),
-																									),
-																								},
-																							},
-																						},
-																						Optional: true,
-																					},
-																					"data_mode_type": schema.StringAttribute{
-																						Optional: true,
-																						Computed: true,
-																						Validators: []validator.String{
-																							stringvalidator.OneOf(dashboardValidDataModeTypes...),
-																						},
-																						Default: stringdefault.StaticString("unspecified"),
-																					},
-																				},
-																			},
-																			Required: true,
-																			Validators: []validator.List{
-																				listvalidator.SizeAtLeast(1),
+																			"group_by_query": schema.BoolAttribute{
+																				Optional: true,
+																				Computed: true,
+																				Default:  booldefault.StaticBool(false),
 																			},
 																		},
+																		Optional: true,
 																	},
-																	Validators: []validator.Object{
-																		objectvalidator.ExactlyOneOf(
-																			path.MatchRelative().AtParent().AtName("data_table"),
-																			path.MatchRelative().AtParent().AtName("gauge"),
-																			path.MatchRelative().AtParent().AtName("pie_chart"),
-																			path.MatchRelative().AtParent().AtName("bar_chart"),
-																			path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
-																			path.MatchRelative().AtParent().AtName("markdown"),
-																		),
-																		objectvalidator.AlsoRequires(
-																			path.MatchRelative().AtParent().AtParent().AtName("title"),
-																		),
+																	"tooltip": schema.SingleNestedAttribute{
+																		Attributes: map[string]schema.Attribute{
+																			"show_labels": schema.BoolAttribute{
+																				Optional: true,
+																				Computed: true,
+																				Default:  booldefault.StaticBool(false),
+																			},
+																			"type": schema.StringAttribute{
+																				Optional: true,
+																				Validators: []validator.String{
+																					stringvalidator.OneOf(dashboardValidTooltipTypes...),
+																				},
+																				MarkdownDescription: fmt.Sprintf("The tooltip type. Valid values are: %s.", strings.Join(dashboardValidTooltipTypes, ", ")),
+																			},
+																		},
+																		Optional: true,
 																	},
-																	Optional: true,
-																},
-																"data_table": schema.SingleNestedAttribute{
-																	Attributes: map[string]schema.Attribute{
-																		"query": schema.SingleNestedAttribute{
+																	"query_definitions": schema.ListNestedAttribute{
+																		NestedObject: schema.NestedAttributeObject{
 																			Attributes: map[string]schema.Attribute{
-																				"logs": schema.SingleNestedAttribute{
+																				"id": schema.StringAttribute{
+																					Computed: true, PlanModifiers: []planmodifier.String{
+																						stringplanmodifier.UseStateForUnknown(),
+																					},
+																				},
+																				"query": schema.SingleNestedAttribute{
 																					Attributes: map[string]schema.Attribute{
-																						"lucene_query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"filters": logsFiltersSchema(),
-																						"grouping": schema.SingleNestedAttribute{
+																						"logs": schema.SingleNestedAttribute{
 																							Attributes: map[string]schema.Attribute{
+																								"lucene_query": schema.StringAttribute{
+																									Optional: true,
+																								},
 																								"group_by": schema.ListAttribute{
 																									ElementType: types.StringType,
 																									Optional:    true,
 																								},
-																								"aggregations": schema.ListNestedAttribute{
-																									NestedObject: schema.NestedAttributeObject{
-																										Attributes: map[string]schema.Attribute{
-																											"id": schema.StringAttribute{
-																												Computed: true,
-																												PlanModifiers: []planmodifier.String{
-																													stringplanmodifier.UseStateForUnknown(),
-																												},
-																											},
-																											"name": schema.StringAttribute{
-																												Optional: true,
-																											},
-																											"is_visible": schema.BoolAttribute{
-																												Optional: true,
-																												Computed: true,
-																												Default:  booldefault.StaticBool(true),
-																											},
-																											"aggregation": logsAggregationSchema(),
-																										},
-																									},
-																									Optional: true,
-																								},
-																								"group_bys": schema.ListNestedAttribute{
-																									NestedObject: schema.NestedAttributeObject{
-																										Attributes: observationFieldSchemaAttributes(),
-																									},
-																									Optional: true,
-																								},
+																								"filters":      logsFiltersSchema(),
+																								"aggregations": logsAggregationsSchema(),
 																							},
 																							Optional: true,
+																							Validators: []validator.Object{
+																								objectvalidator.ExactlyOneOf(
+																									path.MatchRelative().AtParent().AtName("metrics"),
+																									path.MatchRelative().AtParent().AtName("spans"),
+																								),
+																							},
 																						},
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("spans"),
-																							path.MatchRelative().AtParent().AtName("metrics"),
-																							path.MatchRelative().AtParent().AtName("data_prime"),
-																						),
-																					},
-																				},
-																				"spans": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"lucene_query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"filters": spansFilterSchema(),
-																						"grouping": schema.SingleNestedAttribute{
+																						"metrics": schema.SingleNestedAttribute{
 																							Attributes: map[string]schema.Attribute{
-																								"group_by": spansFieldsSchema(),
-																								"aggregations": schema.ListNestedAttribute{
-																									NestedObject: schema.NestedAttributeObject{
-																										Attributes: map[string]schema.Attribute{
-																											"id": schema.StringAttribute{
-																												Computed: true,
-																												PlanModifiers: []planmodifier.String{
-																													stringplanmodifier.UseStateForUnknown(),
-																												},
-																											},
-																											"name": schema.StringAttribute{
-																												Optional: true,
-																											},
-																											"is_visible": schema.BoolAttribute{
-																												Optional: true,
-																												Computed: true,
-																												Default:  booldefault.StaticBool(true),
-																											},
-																											"aggregation": spansAggregationSchema(),
-																										},
-																									},
+																								"promql_query": schema.StringAttribute{
 																									Optional: true,
 																								},
+																								"filters": metricFiltersSchema(),
 																							},
 																							Optional: true,
-																						},
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("logs"),
-																							path.MatchRelative().AtParent().AtName("metrics"),
-																							path.MatchRelative().AtParent().AtName("data_prime"),
-																						),
-																					},
-																				},
-																				"metrics": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"promql_query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"filters": metricFiltersSchema(),
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("logs"),
-																							path.MatchRelative().AtParent().AtName("spans"),
-																							path.MatchRelative().AtParent().AtName("data_prime"),
-																						),
-																					},
-																				},
-																				"data_prime": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"filters": schema.ListNestedAttribute{
-																							NestedObject: schema.NestedAttributeObject{
-																								Attributes: filtersSourceAttribute(),
-																							},
-																							Optional: true,
-																						},
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("logs"),
-																							path.MatchRelative().AtParent().AtName("spans"),
-																							path.MatchRelative().AtParent().AtName("metrics"),
-																						),
-																					},
-																				},
-																			},
-																			Required: true,
-																		},
-																		"results_per_page": schema.Int64Attribute{
-																			Required:            true,
-																			MarkdownDescription: "The number of results to display per page.",
-																		},
-																		"row_style": schema.StringAttribute{
-																			Required: true,
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidRowStyles...),
-																			},
-																			MarkdownDescription: fmt.Sprintf("The style of the rows. Can be one of %q.", dashboardValidRowStyles),
-																		},
-																		"columns": schema.ListNestedAttribute{
-																			NestedObject: schema.NestedAttributeObject{
-																				Attributes: map[string]schema.Attribute{
-																					"field": schema.StringAttribute{
-																						Required: true,
-																					},
-																					"width": schema.Int64Attribute{
-																						Optional: true,
-																						Computed: true,
-																						Default:  int64default.StaticInt64(0),
-																					},
-																				},
-																			},
-																			Validators: []validator.List{
-																				listvalidator.SizeAtLeast(1),
-																			},
-																			Optional: true,
-																		},
-																		"order_by": schema.SingleNestedAttribute{
-																			Attributes: map[string]schema.Attribute{
-																				"field": schema.StringAttribute{
-																					Optional: true,
-																				},
-																				"order_direction": schema.StringAttribute{
-																					Validators: []validator.String{
-																						stringvalidator.OneOf(dashboardValidOrderDirections...),
-																					},
-																					MarkdownDescription: fmt.Sprintf("The order direction. Can be one of %q.", dashboardValidOrderDirections),
-																					Optional:            true,
-																					Computed:            true,
-																					Default:             stringdefault.StaticString("unspecified"),
-																				},
-																			},
-																			Optional: true,
-																		},
-																		"data_mode_type": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidDataModeTypes...),
-																			},
-																			Default:             stringdefault.StaticString("unspecified"),
-																			MarkdownDescription: fmt.Sprintf("The data mode type. Can be one of %q.", dashboardValidDataModeTypes),
-																		},
-																	},
-																	Validators: []validator.Object{
-																		objectvalidator.ExactlyOneOf(
-																			path.MatchRelative().AtParent().AtName("line_chart"),
-																			path.MatchRelative().AtParent().AtName("gauge"),
-																			path.MatchRelative().AtParent().AtName("pie_chart"),
-																			path.MatchRelative().AtParent().AtName("bar_chart"),
-																			path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
-																			path.MatchRelative().AtParent().AtName("markdown"),
-																		),
-																		objectvalidator.AlsoRequires(
-																			path.MatchRelative().AtParent().AtParent().AtName("title"),
-																		),
-																	},
-																	Optional: true,
-																},
-																"gauge": schema.SingleNestedAttribute{
-																	Attributes: map[string]schema.Attribute{
-																		"query": schema.SingleNestedAttribute{
-																			Attributes: map[string]schema.Attribute{
-																				"logs": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"lucene_query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"filters":          logsFiltersSchema(),
-																						"logs_aggregation": logsAggregationSchema(),
-																					},
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("spans"),
-																							path.MatchRelative().AtParent().AtName("metrics"),
-																							path.MatchRelative().AtParent().AtName("data_prime"),
-																						),
-																					},
-																					Optional: true,
-																				},
-																				"metrics": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"promql_query": schema.StringAttribute{
-																							Required: true,
-																							Validators: []validator.String{
-																								stringvalidator.LengthAtLeast(1),
+																							Validators: []validator.Object{
+																								objectvalidator.ExactlyOneOf(
+																									path.MatchRelative().AtParent().AtName("logs"),
+																									path.MatchRelative().AtParent().AtName("spans"),
+																								),
 																							},
 																						},
-																						"aggregation": schema.StringAttribute{
-																							Validators: []validator.String{
-																								stringvalidator.OneOf(dashboardValidGaugeAggregations...),
-																							},
-																							MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardValidGaugeAggregations),
-																							Optional:            true,
-																							Computed:            true,
-																							Default:             stringdefault.StaticString("unspecified"),
-																						},
-																						"filters": metricFiltersSchema(),
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("logs"),
-																							path.MatchRelative().AtParent().AtName("spans"),
-																							path.MatchRelative().AtParent().AtName("data_prime"),
-																						),
-																					},
-																				},
-																				"spans": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"lucene_query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"spans_aggregation": spansAggregationSchema(),
-																						"filters":           spansFilterSchema(),
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("logs"),
-																							path.MatchRelative().AtParent().AtName("metrics"),
-																							path.MatchRelative().AtParent().AtName("data_prime"),
-																						),
-																					},
-																				},
-																				"data_prime": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"filters": schema.ListNestedAttribute{
-																							NestedObject: schema.NestedAttributeObject{
-																								Attributes: filtersSourceAttribute(),
+																						"spans": schema.SingleNestedAttribute{
+																							Attributes: map[string]schema.Attribute{
+																								"lucene_query": schema.StringAttribute{
+																									Optional: true,
+																								},
+																								"group_by":     spansFieldsSchema(),
+																								"aggregations": spansAggregationsSchema(),
+																								"filters":      spansFilterSchema(),
 																							},
 																							Optional: true,
-																						},
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("logs"),
-																							path.MatchRelative().AtParent().AtName("spans"),
-																							path.MatchRelative().AtParent().AtName("metrics"),
-																						),
-																					},
-																				},
-																			},
-																			Required: true,
-																		},
-																		"min": schema.Float64Attribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  float64default.StaticFloat64(0),
-																		},
-																		"max": schema.Float64Attribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  float64default.StaticFloat64(100),
-																		},
-																		"show_inner_arc": schema.BoolAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  booldefault.StaticBool(false),
-																		},
-																		"show_outer_arc": schema.BoolAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  booldefault.StaticBool(true),
-																		},
-																		"unit": schema.StringAttribute{
-																			Required: true,
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidGaugeUnits...),
-																			},
-																			MarkdownDescription: fmt.Sprintf("The unit of the gauge. Can be one of %q.", dashboardValidGaugeUnits),
-																		},
-																		"thresholds": schema.ListNestedAttribute{
-																			NestedObject: schema.NestedAttributeObject{
-																				Attributes: map[string]schema.Attribute{
-																					"color": schema.StringAttribute{
-																						Optional: true,
-																					},
-																					"from": schema.Float64Attribute{
-																						Optional: true,
-																					},
-																				},
-																			},
-																			Optional: true,
-																		},
-																		"data_mode_type": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  stringdefault.StaticString("unspecified"),
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidDataModeTypes...),
-																			},
-																			MarkdownDescription: fmt.Sprintf("The data mode type. Can be one of %q.", dashboardValidDataModeTypes),
-																		},
-																		"threshold_by": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  stringdefault.StaticString("unspecified"),
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidGaugeThresholdBy...),
-																			},
-																			MarkdownDescription: fmt.Sprintf("The threshold by. Can be one of %q.", dashboardValidGaugeThresholdBy),
-																		},
-																	},
-																	Validators: []validator.Object{
-																		objectvalidator.ExactlyOneOf(
-																			path.MatchRelative().AtParent().AtName("line_chart"),
-																			path.MatchRelative().AtParent().AtName("data_table"),
-																			path.MatchRelative().AtParent().AtName("pie_chart"),
-																			path.MatchRelative().AtParent().AtName("bar_chart"),
-																			path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
-																			path.MatchRelative().AtParent().AtName("markdown"),
-																		),
-																		objectvalidator.AlsoRequires(
-																			path.MatchRelative().AtParent().AtParent().AtName("title"),
-																		),
-																	},
-																	Optional: true,
-																},
-																"pie_chart": schema.SingleNestedAttribute{
-																	Attributes: map[string]schema.Attribute{
-																		"query": schema.SingleNestedAttribute{
-																			Attributes: map[string]schema.Attribute{
-																				"logs": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"lucene_query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"aggregation": logsAggregationSchema(),
-																						"filters":     logsFiltersSchema(),
-																						"group_names": schema.ListAttribute{
-																							ElementType: types.StringType,
-																							Required:    true,
-																							Validators: []validator.List{
-																								listvalidator.SizeAtLeast(1),
+																							Validators: []validator.Object{
+																								objectvalidator.ExactlyOneOf(
+																									path.MatchRelative().AtParent().AtName("metrics"),
+																									path.MatchRelative().AtParent().AtName("logs"),
+																								),
 																							},
 																						},
-																						"stacked_group_name": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"group_names_fields": schema.ListNestedAttribute{
-																							NestedObject: schema.NestedAttributeObject{
-																								Attributes: observationFieldSchemaAttributes(),
-																							},
-																							Optional: true,
-																						},
-																						"stacked_group_name_field": schema.SingleNestedAttribute{
-																							Attributes: observationFieldSchemaAttributes(),
-																							Optional:   true,
-																						},
 																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("spans"),
-																							path.MatchRelative().AtParent().AtName("metrics"),
-																							path.MatchRelative().AtParent().AtName("data_prime"),
-																						),
-																					},
+																					Required: true,
 																				},
-																				"spans": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"lucene_query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"aggregation":        spansAggregationSchema(),
-																						"filters":            spansFilterSchema(),
-																						"group_names":        spansFieldsSchema(),
-																						"stacked_group_name": spansFieldSchema(),
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("logs"),
-																							path.MatchRelative().AtParent().AtName("metrics"),
-																							path.MatchRelative().AtParent().AtName("data_prime"),
-																						),
-																					},
-																				},
-																				"metrics": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"promql_query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"filters": metricFiltersSchema(),
-																						"group_names": schema.ListAttribute{
-																							ElementType: types.StringType,
-																							Optional:    true,
-																						},
-																						"stacked_group_name": schema.StringAttribute{
-																							Optional: true,
-																						},
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("logs"),
-																							path.MatchRelative().AtParent().AtName("spans"),
-																							path.MatchRelative().AtParent().AtName("data_prime"),
-																						),
-																					},
-																				},
-																				"data_prime": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"query": schema.StringAttribute{
-																							Required: true,
-																						},
-																						"filters": schema.ListNestedAttribute{
-																							NestedObject: schema.NestedAttributeObject{
-																								Attributes: filtersSourceAttribute(),
-																							},
-																							Optional: true,
-																						},
-																						"group_names": schema.ListAttribute{
-																							ElementType: types.StringType,
-																							Optional:    true,
-																						},
-																						"stacked_group_name": schema.StringAttribute{
-																							Optional: true,
-																						},
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("logs"),
-																							path.MatchRelative().AtParent().AtName("spans"),
-																							path.MatchRelative().AtParent().AtName("metrics"),
-																						),
-																					},
-																				},
-																			},
-																			Required: true,
-																		},
-																		"max_slices_per_chart": schema.Int64Attribute{
-																			Optional: true,
-																		},
-																		"min_slice_percentage": schema.Int64Attribute{
-																			Optional: true,
-																		},
-																		"stack_definition": schema.SingleNestedAttribute{
-																			Attributes: map[string]schema.Attribute{
-																				"max_slices_per_stack": schema.Int64Attribute{
+																				"series_name_template": schema.StringAttribute{
 																					Optional: true,
 																				},
-																				"stack_name_template": schema.StringAttribute{
+																				"series_count_limit": schema.Int64Attribute{
 																					Optional: true,
 																				},
-																			},
-																			Optional: true,
-																		},
-																		"label_definition": schema.SingleNestedAttribute{
-																			Attributes: map[string]schema.Attribute{
-																				"label_source": schema.StringAttribute{
+																				"unit": schema.StringAttribute{
 																					Optional: true,
 																					Computed: true,
 																					Default:  stringdefault.StaticString("unspecified"),
 																					Validators: []validator.String{
-																						stringvalidator.OneOf(dashboardValidPieChartLabelSources...),
+																						stringvalidator.OneOf(dashboardValidUnits...),
 																					},
-																					MarkdownDescription: fmt.Sprintf("The source of the label. Valid values are: %s", strings.Join(dashboardValidPieChartLabelSources, ", ")),
+																					MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(dashboardValidUnits, ", ")),
+																				},
+																				"scale_type": schema.StringAttribute{
+																					Optional: true,
+																					Computed: true,
+																					Validators: []validator.String{
+																						stringvalidator.OneOf(dashboardValidScaleTypes...),
+																					},
+																					Default:             stringdefault.StaticString("unspecified"),
+																					MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(dashboardValidScaleTypes, ", ")),
+																				},
+																				"name": schema.StringAttribute{
+																					Optional: true,
 																				},
 																				"is_visible": schema.BoolAttribute{
 																					Optional: true,
 																					Computed: true,
 																					Default:  booldefault.StaticBool(true),
 																				},
-																				"show_name": schema.BoolAttribute{
+																				"color_scheme": schema.StringAttribute{
 																					Optional: true,
-																					Computed: true,
-																					Default:  booldefault.StaticBool(true),
-																				},
-																				"show_value": schema.BoolAttribute{
-																					Optional: true,
-																					Computed: true,
-																					Default:  booldefault.StaticBool(true),
-																				},
-																				"show_percentage": schema.BoolAttribute{
-																					Optional: true,
-																					Computed: true,
-																					Default:  booldefault.StaticBool(true),
-																				},
-																			},
-																			Required: true,
-																		},
-																		"show_legend": schema.BoolAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  booldefault.StaticBool(true),
-																		},
-																		"group_name_template": schema.StringAttribute{
-																			Optional: true,
-																		},
-																		"unit": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  stringdefault.StaticString("unspecified"),
-																		},
-																		"color_scheme": schema.StringAttribute{
-																			Optional: true,
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidColorSchemes...),
-																			},
-																			Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardValidColorSchemes, ", ")),
-																		},
-																		"data_mode_type": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  stringdefault.StaticString("unspecified"),
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidDataModeTypes...),
-																			},
-																		},
-																	},
-																	Validators: []validator.Object{
-																		objectvalidator.ExactlyOneOf(
-																			path.MatchRelative().AtParent().AtName("line_chart"),
-																			path.MatchRelative().AtParent().AtName("gauge"),
-																			path.MatchRelative().AtParent().AtName("data_table"),
-																			path.MatchRelative().AtParent().AtName("bar_chart"),
-																			path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
-																			path.MatchRelative().AtParent().AtName("markdown"),
-																		),
-																	},
-																	Optional: true,
-																},
-																"bar_chart": schema.SingleNestedAttribute{
-																	Attributes: map[string]schema.Attribute{
-																		"query": schema.SingleNestedAttribute{
-																			Attributes: map[string]schema.Attribute{
-																				"logs": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"lucene_query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"aggregation": logsAggregationSchema(),
-																						"filters":     logsFiltersSchema(),
-																						"group_names": schema.ListAttribute{
-																							ElementType: types.StringType,
-																							Optional:    true,
-																						},
-																						"stacked_group_name": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"group_names_fields": schema.ListNestedAttribute{
-																							NestedObject: schema.NestedAttributeObject{
-																								Attributes: observationFieldSchemaAttributes(),
-																							},
-																							Optional: true,
-																						},
-																						"stacked_group_name_field": schema.SingleNestedAttribute{
-																							Attributes: observationFieldSchemaAttributes(),
-																							Optional:   true,
-																						},
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("metrics"),
-																							path.MatchRelative().AtParent().AtName("spans"),
-																							path.MatchRelative().AtParent().AtName("data_prime"),
-																						),
+																					Validators: []validator.String{
+																						stringvalidator.OneOf(dashboardValidColorSchemes...),
 																					},
 																				},
-																				"metrics": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"promql_query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"filters": metricFiltersSchema(),
-																						"group_names": schema.ListAttribute{
-																							ElementType: types.StringType,
-																							Optional:    true,
-																						},
-																						"stacked_group_name": schema.StringAttribute{
-																							Optional: true,
-																						},
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("logs"),
-																							path.MatchRelative().AtParent().AtName("spans"),
-																							path.MatchRelative().AtParent().AtName("data_prime"),
-																						),
-																					},
-																				},
-																				"spans": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"lucene_query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"aggregation":        spansAggregationSchema(),
-																						"filters":            spansFilterSchema(),
-																						"group_names":        spansFieldsSchema(),
-																						"stacked_group_name": spansFieldSchema(),
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("logs"),
-																							path.MatchRelative().AtParent().AtName("metrics"),
-																							path.MatchRelative().AtParent().AtName("data_prime"),
-																						),
-																					},
-																				},
-																				"data_prime": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"query": schema.StringAttribute{
-																							Required: true,
-																						},
-																						"filters": schema.ListNestedAttribute{
-																							NestedObject: schema.NestedAttributeObject{
-																								Attributes: filtersSourceAttribute(),
-																							},
-																							Optional: true,
-																						},
-																						"group_names": schema.ListAttribute{
-																							ElementType: types.StringType,
-																							Optional:    true,
-																						},
-																						"stacked_group_name": schema.StringAttribute{
-																							Optional: true,
-																						},
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("logs"),
-																							path.MatchRelative().AtParent().AtName("metrics"),
-																							path.MatchRelative().AtParent().AtName("spans"),
-																						),
-																					},
-																				},
-																			},
-																			Optional: true,
-																		},
-																		"max_bars_per_chart": schema.Int64Attribute{
-																			Optional: true,
-																		},
-																		"group_name_template": schema.StringAttribute{
-																			Optional: true,
-																		},
-																		"stack_definition": schema.SingleNestedAttribute{
-																			Optional: true,
-																			Attributes: map[string]schema.Attribute{
-																				"max_slices_per_bar": schema.Int64Attribute{
-																					Optional: true,
-																				},
-																				"stack_name_template": schema.StringAttribute{
-																					Optional: true,
-																				},
-																			},
-																		},
-																		"scale_type": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  stringdefault.StaticString("unspecified"),
-																		},
-																		"colors_by": schema.StringAttribute{
-																			Optional: true,
-																		},
-																		"xaxis": schema.SingleNestedAttribute{
-																			Optional: true,
-																			Attributes: map[string]schema.Attribute{
-																				"time": schema.SingleNestedAttribute{
+																				"resolution": schema.SingleNestedAttribute{
 																					Attributes: map[string]schema.Attribute{
 																						"interval": schema.StringAttribute{
-																							Required: true,
+																							Optional: true,
 																							Validators: []validator.String{
-																								intervalValidator{},
+																								stringvalidator.ExactlyOneOf(
+																									path.MatchRelative().AtParent().AtName("buckets_presented"),
+																								),
 																							},
-																							MarkdownDescription: "The time interval to use for the x-axis. Valid values are in duration format, for example `1m0s` or `1h0m0s` (currently leading zeros should be added).",
 																						},
 																						"buckets_presented": schema.Int64Attribute{
 																							Optional: true,
-																						},
-																					},
-																					Optional: true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("value"),
-																						),
-																					},
-																				},
-																				"value": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{},
-																					Optional:   true,
-																					Validators: []validator.Object{
-																						objectvalidator.ExactlyOneOf(
-																							path.MatchRelative().AtParent().AtName("time"),
-																						),
-																					},
-																				},
-																			},
-																		},
-																		"unit": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  stringdefault.StaticString("unspecified"),
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidUnits...),
-																			},
-																			MarkdownDescription: fmt.Sprintf("The unit of the chart. Can be one of %s.", strings.Join(dashboardValidUnits, ", ")),
-																		},
-																		"sort_by": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  stringdefault.StaticString("unspecified"),
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidSortBy...),
-																			},
-																			Description: fmt.Sprintf("The field to sort by. Can be one of %s.", strings.Join(dashboardValidSortBy, ", ")),
-																		},
-																		"color_scheme": schema.StringAttribute{
-																			Optional: true,
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidColorSchemes...),
-																			},
-																			Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardValidColorSchemes, ", ")),
-																		},
-																		"data_mode_type": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  stringdefault.StaticString("unspecified"),
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidDataModeTypes...),
-																			},
-																		},
-																	},
-																	Validators: []validator.Object{
-																		objectvalidator.ExactlyOneOf(
-																			path.MatchRelative().AtParent().AtName("data_table"),
-																			path.MatchRelative().AtParent().AtName("gauge"),
-																			path.MatchRelative().AtParent().AtName("pie_chart"),
-																			path.MatchRelative().AtParent().AtName("line_chart"),
-																			path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
-																			path.MatchRelative().AtParent().AtName("markdown"),
-																		),
-																		objectvalidator.AlsoRequires(
-																			path.MatchRelative().AtParent().AtParent().AtName("title"),
-																		),
-																	},
-																	Optional: true,
-																},
-																"horizontal_bar_chart": schema.SingleNestedAttribute{
-																	Attributes: map[string]schema.Attribute{
-																		"query": schema.SingleNestedAttribute{
-																			Attributes: map[string]schema.Attribute{
-																				"logs": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"lucene_query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"aggregation": logsAggregationSchema(),
-																						"filters":     logsFiltersSchema(),
-																						"group_names": schema.ListAttribute{
-																							ElementType: types.StringType,
-																							Required:    true,
-																							Validators: []validator.List{
-																								listvalidator.SizeAtLeast(1),
+																							Validators: []validator.Int64{
+																								int64validator.ExactlyOneOf(
+																									path.MatchRelative().AtParent().AtName("interval"),
+																								),
 																							},
 																						},
-																						"stacked_group_name": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"group_names_fields": schema.ListNestedAttribute{
-																							NestedObject: schema.NestedAttributeObject{
-																								Attributes: observationFieldSchemaAttributes(),
-																							},
-																							Optional: true,
-																						},
-																						"stacked_group_name_field": schema.SingleNestedAttribute{
-																							Attributes: observationFieldSchemaAttributes(),
-																							Optional:   true,
-																						},
 																					},
 																					Optional: true,
 																				},
-																				"metrics": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"promql_query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"filters": metricFiltersSchema(),
-																						"group_names": schema.ListAttribute{
-																							ElementType: types.StringType,
-																							Optional:    true,
-																						},
-																						"stacked_group_name": schema.StringAttribute{
-																							Optional: true,
-																						},
+																				"data_mode_type": schema.StringAttribute{
+																					Optional: true,
+																					Computed: true,
+																					Validators: []validator.String{
+																						stringvalidator.OneOf(dashboardValidDataModeTypes...),
 																					},
-																					Optional: true,
-																				},
-																				"spans": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"lucene_query": schema.StringAttribute{
-																							Optional: true,
-																						},
-																						"aggregation":        spansAggregationSchema(),
-																						"filters":            spansFilterSchema(),
-																						"group_names":        spansFieldsSchema(),
-																						"stacked_group_name": spansFieldSchema(),
-																					},
-																					Optional: true,
-																				},
-																			},
-																			Optional: true,
-																		},
-																		"max_bars_per_chart": schema.Int64Attribute{
-																			Optional: true,
-																		},
-																		"group_name_template": schema.StringAttribute{
-																			Optional: true,
-																		},
-																		"stack_definition": schema.SingleNestedAttribute{
-																			Optional: true,
-																			Attributes: map[string]schema.Attribute{
-																				"max_slices_per_bar": schema.Int64Attribute{
-																					Optional: true,
-																				},
-																				"stack_name_template": schema.StringAttribute{
-																					Optional: true,
+																					Default: stringdefault.StaticString("unspecified"),
 																				},
 																			},
 																		},
-																		"scale_type": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  stringdefault.StaticString("unspecified"),
-																		},
-																		"colors_by": schema.StringAttribute{
-																			Optional: true,
-																		},
-																		"unit": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  stringdefault.StaticString("unspecified"),
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidUnits...),
-																			},
-																			MarkdownDescription: fmt.Sprintf("The unit of the chart. Can be one of %s.", strings.Join(dashboardValidUnits, ", ")),
-																		},
-																		"display_on_bar": schema.BoolAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  booldefault.StaticBool(false),
-																		},
-																		"y_axis_view_by": schema.StringAttribute{
-																			Optional: true,
-																			Validators: []validator.String{
-																				stringvalidator.OneOf("category", "value"),
-																			},
-																		},
-																		"sort_by": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  stringdefault.StaticString("unspecified"),
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidSortBy...),
-																			},
-																		},
-																		"color_scheme": schema.StringAttribute{
-																			Optional: true,
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidColorSchemes...),
-																			},
-																			Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardValidColorSchemes, ", ")),
-																		},
-																		"data_mode_type": schema.StringAttribute{
-																			Optional: true,
-																			Computed: true,
-																			Default:  stringdefault.StaticString("unspecified"),
-																			Validators: []validator.String{
-																				stringvalidator.OneOf(dashboardValidDataModeTypes...),
-																			},
+																		Required: true,
+																		Validators: []validator.List{
+																			listvalidator.SizeAtLeast(1),
 																		},
 																	},
-																	Validators: []validator.Object{
-																		objectvalidator.ExactlyOneOf(
-																			path.MatchRelative().AtParent().AtName("data_table"),
-																			path.MatchRelative().AtParent().AtName("gauge"),
-																			path.MatchRelative().AtParent().AtName("pie_chart"),
-																			path.MatchRelative().AtParent().AtName("line_chart"),
-																			path.MatchRelative().AtParent().AtName("bar_chart"),
-																			path.MatchRelative().AtParent().AtName("markdown"),
-																		),
-																		objectvalidator.AlsoRequires(
-																			path.MatchRelative().AtParent().AtParent().AtName("title"),
-																		),
-																	},
-																	Optional: true,
 																},
-																"markdown": schema.SingleNestedAttribute{
-																	Attributes: map[string]schema.Attribute{
-																		"markdown_text": schema.StringAttribute{
-																			Optional: true,
-																		},
-																		"tooltip_text": schema.StringAttribute{
-																			Optional: true,
-																		},
-																	},
-																	Validators: []validator.Object{
-																		objectvalidator.ExactlyOneOf(
-																			path.MatchRelative().AtParent().AtName("data_table"),
-																			path.MatchRelative().AtParent().AtName("gauge"),
-																			path.MatchRelative().AtParent().AtName("pie_chart"),
-																			path.MatchRelative().AtParent().AtName("line_chart"),
-																			path.MatchRelative().AtParent().AtName("bar_chart"),
-																			path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
-																		),
-																		objectvalidator.ConflictsWith(
-																			path.MatchRelative().AtParent().AtParent().AtName("title"),
-																		),
-																	},
-																	Optional: true,
+																Validators: []validator.Object{
+																	objectvalidator.ExactlyOneOf(
+																		path.MatchRelative().AtParent().AtName("data_table"),
+																		path.MatchRelative().AtParent().AtName("gauge"),
+																		path.MatchRelative().AtParent().AtName("pie_chart"),
+																		path.MatchRelative().AtParent().AtName("bar_chart"),
+																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
+																		path.MatchRelative().AtParent().AtName("markdown"),
+																	),
+																	objectvalidator.AlsoRequires(
+																		path.MatchRelative().AtParent().AtParent().AtName("title"),
+																	),
 																},
+																Optional: true,
 															},
-															MarkdownDescription: "The widget definition. Can contain one of 'line_chart', 'data_table', 'gauge', 'pie_chart', 'bar_chart', 'horizontal_bar_chart', 'markdown'.",
+															"data_table": schema.SingleNestedAttribute{
+																Attributes: map[string]schema.Attribute{
+																	"query": schema.SingleNestedAttribute{
+																		Attributes: map[string]schema.Attribute{
+																			"logs": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"lucene_query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"filters": logsFiltersSchema(),
+																					"grouping": schema.SingleNestedAttribute{
+																						Attributes: map[string]schema.Attribute{
+																							"group_by": schema.ListAttribute{
+																								ElementType: types.StringType,
+																								Optional:    true,
+																							},
+																							"aggregations": schema.ListNestedAttribute{
+																								NestedObject: schema.NestedAttributeObject{
+																									Attributes: map[string]schema.Attribute{
+																										"id": schema.StringAttribute{
+																											Computed: true,
+																											PlanModifiers: []planmodifier.String{
+																												stringplanmodifier.UseStateForUnknown(),
+																											},
+																										},
+																										"name": schema.StringAttribute{
+																											Optional: true,
+																										},
+																										"is_visible": schema.BoolAttribute{
+																											Optional: true,
+																											Computed: true,
+																											Default:  booldefault.StaticBool(true),
+																										},
+																										"aggregation": logsAggregationSchema(),
+																									},
+																								},
+																								Optional: true,
+																							},
+																							"group_bys": schema.ListNestedAttribute{
+																								NestedObject: schema.NestedAttributeObject{
+																									Attributes: observationFieldSchemaAttributes(),
+																								},
+																								Optional: true,
+																							},
+																						},
+																						Optional: true,
+																					},
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("spans"),
+																						path.MatchRelative().AtParent().AtName("metrics"),
+																						path.MatchRelative().AtParent().AtName("data_prime"),
+																					),
+																				},
+																			},
+																			"spans": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"lucene_query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"filters": spansFilterSchema(),
+																					"grouping": schema.SingleNestedAttribute{
+																						Attributes: map[string]schema.Attribute{
+																							"group_by": spansFieldsSchema(),
+																							"aggregations": schema.ListNestedAttribute{
+																								NestedObject: schema.NestedAttributeObject{
+																									Attributes: map[string]schema.Attribute{
+																										"id": schema.StringAttribute{
+																											Computed: true,
+																											PlanModifiers: []planmodifier.String{
+																												stringplanmodifier.UseStateForUnknown(),
+																											},
+																										},
+																										"name": schema.StringAttribute{
+																											Optional: true,
+																										},
+																										"is_visible": schema.BoolAttribute{
+																											Optional: true,
+																											Computed: true,
+																											Default:  booldefault.StaticBool(true),
+																										},
+																										"aggregation": spansAggregationSchema(),
+																									},
+																								},
+																								Optional: true,
+																							},
+																						},
+																						Optional: true,
+																					},
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("logs"),
+																						path.MatchRelative().AtParent().AtName("metrics"),
+																						path.MatchRelative().AtParent().AtName("data_prime"),
+																					),
+																				},
+																			},
+																			"metrics": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"promql_query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"filters": metricFiltersSchema(),
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("logs"),
+																						path.MatchRelative().AtParent().AtName("spans"),
+																						path.MatchRelative().AtParent().AtName("data_prime"),
+																					),
+																				},
+																			},
+																			"data_prime": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"filters": schema.ListNestedAttribute{
+																						NestedObject: schema.NestedAttributeObject{
+																							Attributes: filtersSourceAttribute(),
+																						},
+																						Optional: true,
+																					},
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("logs"),
+																						path.MatchRelative().AtParent().AtName("spans"),
+																						path.MatchRelative().AtParent().AtName("metrics"),
+																					),
+																				},
+																			},
+																		},
+																		Required: true,
+																	},
+																	"results_per_page": schema.Int64Attribute{
+																		Required:            true,
+																		MarkdownDescription: "The number of results to display per page.",
+																	},
+																	"row_style": schema.StringAttribute{
+																		Required: true,
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidRowStyles...),
+																		},
+																		MarkdownDescription: fmt.Sprintf("The style of the rows. Can be one of %q.", dashboardValidRowStyles),
+																	},
+																	"columns": schema.ListNestedAttribute{
+																		NestedObject: schema.NestedAttributeObject{
+																			Attributes: map[string]schema.Attribute{
+																				"field": schema.StringAttribute{
+																					Required: true,
+																				},
+																				"width": schema.Int64Attribute{
+																					Optional: true,
+																					Computed: true,
+																					Default:  int64default.StaticInt64(0),
+																				},
+																			},
+																		},
+																		Validators: []validator.List{
+																			listvalidator.SizeAtLeast(1),
+																		},
+																		Optional: true,
+																	},
+																	"order_by": schema.SingleNestedAttribute{
+																		Attributes: map[string]schema.Attribute{
+																			"field": schema.StringAttribute{
+																				Optional: true,
+																			},
+																			"order_direction": schema.StringAttribute{
+																				Validators: []validator.String{
+																					stringvalidator.OneOf(dashboardValidOrderDirections...),
+																				},
+																				MarkdownDescription: fmt.Sprintf("The order direction. Can be one of %q.", dashboardValidOrderDirections),
+																				Optional:            true,
+																				Computed:            true,
+																				Default:             stringdefault.StaticString("unspecified"),
+																			},
+																		},
+																		Optional: true,
+																	},
+																	"data_mode_type": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidDataModeTypes...),
+																		},
+																		Default:             stringdefault.StaticString("unspecified"),
+																		MarkdownDescription: fmt.Sprintf("The data mode type. Can be one of %q.", dashboardValidDataModeTypes),
+																	},
+																},
+																Validators: []validator.Object{
+																	objectvalidator.ExactlyOneOf(
+																		path.MatchRelative().AtParent().AtName("line_chart"),
+																		path.MatchRelative().AtParent().AtName("gauge"),
+																		path.MatchRelative().AtParent().AtName("pie_chart"),
+																		path.MatchRelative().AtParent().AtName("bar_chart"),
+																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
+																		path.MatchRelative().AtParent().AtName("markdown"),
+																	),
+																	objectvalidator.AlsoRequires(
+																		path.MatchRelative().AtParent().AtParent().AtName("title"),
+																	),
+																},
+																Optional: true,
+															},
+															"gauge": schema.SingleNestedAttribute{
+																Attributes: map[string]schema.Attribute{
+																	"query": schema.SingleNestedAttribute{
+																		Attributes: map[string]schema.Attribute{
+																			"logs": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"lucene_query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"filters":          logsFiltersSchema(),
+																					"logs_aggregation": logsAggregationSchema(),
+																				},
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("spans"),
+																						path.MatchRelative().AtParent().AtName("metrics"),
+																						path.MatchRelative().AtParent().AtName("data_prime"),
+																					),
+																				},
+																				Optional: true,
+																			},
+																			"metrics": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"promql_query": schema.StringAttribute{
+																						Required: true,
+																						Validators: []validator.String{
+																							stringvalidator.LengthAtLeast(1),
+																						},
+																					},
+																					"aggregation": schema.StringAttribute{
+																						Validators: []validator.String{
+																							stringvalidator.OneOf(dashboardValidGaugeAggregations...),
+																						},
+																						MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardValidGaugeAggregations),
+																						Optional:            true,
+																						Computed:            true,
+																						Default:             stringdefault.StaticString("unspecified"),
+																					},
+																					"filters": metricFiltersSchema(),
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("logs"),
+																						path.MatchRelative().AtParent().AtName("spans"),
+																						path.MatchRelative().AtParent().AtName("data_prime"),
+																					),
+																				},
+																			},
+																			"spans": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"lucene_query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"spans_aggregation": spansAggregationSchema(),
+																					"filters":           spansFilterSchema(),
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("logs"),
+																						path.MatchRelative().AtParent().AtName("metrics"),
+																						path.MatchRelative().AtParent().AtName("data_prime"),
+																					),
+																				},
+																			},
+																			"data_prime": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"filters": schema.ListNestedAttribute{
+																						NestedObject: schema.NestedAttributeObject{
+																							Attributes: filtersSourceAttribute(),
+																						},
+																						Optional: true,
+																					},
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("logs"),
+																						path.MatchRelative().AtParent().AtName("spans"),
+																						path.MatchRelative().AtParent().AtName("metrics"),
+																					),
+																				},
+																			},
+																		},
+																		Required: true,
+																	},
+																	"min": schema.Float64Attribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  float64default.StaticFloat64(0),
+																	},
+																	"max": schema.Float64Attribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  float64default.StaticFloat64(100),
+																	},
+																	"show_inner_arc": schema.BoolAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  booldefault.StaticBool(false),
+																	},
+																	"show_outer_arc": schema.BoolAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  booldefault.StaticBool(true),
+																	},
+																	"unit": schema.StringAttribute{
+																		Required: true,
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidGaugeUnits...),
+																		},
+																		MarkdownDescription: fmt.Sprintf("The unit of the gauge. Can be one of %q.", dashboardValidGaugeUnits),
+																	},
+																	"thresholds": schema.ListNestedAttribute{
+																		NestedObject: schema.NestedAttributeObject{
+																			Attributes: map[string]schema.Attribute{
+																				"color": schema.StringAttribute{
+																					Optional: true,
+																				},
+																				"from": schema.Float64Attribute{
+																					Optional: true,
+																				},
+																			},
+																		},
+																		Optional: true,
+																	},
+																	"data_mode_type": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString("unspecified"),
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidDataModeTypes...),
+																		},
+																		MarkdownDescription: fmt.Sprintf("The data mode type. Can be one of %q.", dashboardValidDataModeTypes),
+																	},
+																	"threshold_by": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString("unspecified"),
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidGaugeThresholdBy...),
+																		},
+																		MarkdownDescription: fmt.Sprintf("The threshold by. Can be one of %q.", dashboardValidGaugeThresholdBy),
+																	},
+																},
+																Validators: []validator.Object{
+																	objectvalidator.ExactlyOneOf(
+																		path.MatchRelative().AtParent().AtName("line_chart"),
+																		path.MatchRelative().AtParent().AtName("data_table"),
+																		path.MatchRelative().AtParent().AtName("pie_chart"),
+																		path.MatchRelative().AtParent().AtName("bar_chart"),
+																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
+																		path.MatchRelative().AtParent().AtName("markdown"),
+																	),
+																	objectvalidator.AlsoRequires(
+																		path.MatchRelative().AtParent().AtParent().AtName("title"),
+																	),
+																},
+																Optional: true,
+															},
+															"pie_chart": schema.SingleNestedAttribute{
+																Attributes: map[string]schema.Attribute{
+																	"query": schema.SingleNestedAttribute{
+																		Attributes: map[string]schema.Attribute{
+																			"logs": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"lucene_query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"aggregation": logsAggregationSchema(),
+																					"filters":     logsFiltersSchema(),
+																					"group_names": schema.ListAttribute{
+																						ElementType: types.StringType,
+																						Required:    true,
+																						Validators: []validator.List{
+																							listvalidator.SizeAtLeast(1),
+																						},
+																					},
+																					"stacked_group_name": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"group_names_fields": schema.ListNestedAttribute{
+																						NestedObject: schema.NestedAttributeObject{
+																							Attributes: observationFieldSchemaAttributes(),
+																						},
+																						Optional: true,
+																					},
+																					"stacked_group_name_field": schema.SingleNestedAttribute{
+																						Attributes: observationFieldSchemaAttributes(),
+																						Optional:   true,
+																					},
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("spans"),
+																						path.MatchRelative().AtParent().AtName("metrics"),
+																						path.MatchRelative().AtParent().AtName("data_prime"),
+																					),
+																				},
+																			},
+																			"spans": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"lucene_query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"aggregation":        spansAggregationSchema(),
+																					"filters":            spansFilterSchema(),
+																					"group_names":        spansFieldsSchema(),
+																					"stacked_group_name": spansFieldSchema(),
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("logs"),
+																						path.MatchRelative().AtParent().AtName("metrics"),
+																						path.MatchRelative().AtParent().AtName("data_prime"),
+																					),
+																				},
+																			},
+																			"metrics": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"promql_query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"filters": metricFiltersSchema(),
+																					"group_names": schema.ListAttribute{
+																						ElementType: types.StringType,
+																						Optional:    true,
+																					},
+																					"stacked_group_name": schema.StringAttribute{
+																						Optional: true,
+																					},
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("logs"),
+																						path.MatchRelative().AtParent().AtName("spans"),
+																						path.MatchRelative().AtParent().AtName("data_prime"),
+																					),
+																				},
+																			},
+																			"data_prime": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"query": schema.StringAttribute{
+																						Required: true,
+																					},
+																					"filters": schema.ListNestedAttribute{
+																						NestedObject: schema.NestedAttributeObject{
+																							Attributes: filtersSourceAttribute(),
+																						},
+																						Optional: true,
+																					},
+																					"group_names": schema.ListAttribute{
+																						ElementType: types.StringType,
+																						Optional:    true,
+																					},
+																					"stacked_group_name": schema.StringAttribute{
+																						Optional: true,
+																					},
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("logs"),
+																						path.MatchRelative().AtParent().AtName("spans"),
+																						path.MatchRelative().AtParent().AtName("metrics"),
+																					),
+																				},
+																			},
+																		},
+																		Required: true,
+																	},
+																	"max_slices_per_chart": schema.Int64Attribute{
+																		Optional: true,
+																	},
+																	"min_slice_percentage": schema.Int64Attribute{
+																		Optional: true,
+																	},
+																	"stack_definition": schema.SingleNestedAttribute{
+																		Attributes: map[string]schema.Attribute{
+																			"max_slices_per_stack": schema.Int64Attribute{
+																				Optional: true,
+																			},
+																			"stack_name_template": schema.StringAttribute{
+																				Optional: true,
+																			},
+																		},
+																		Optional: true,
+																	},
+																	"label_definition": schema.SingleNestedAttribute{
+																		Attributes: map[string]schema.Attribute{
+																			"label_source": schema.StringAttribute{
+																				Optional: true,
+																				Computed: true,
+																				Default:  stringdefault.StaticString("unspecified"),
+																				Validators: []validator.String{
+																					stringvalidator.OneOf(dashboardValidPieChartLabelSources...),
+																				},
+																				MarkdownDescription: fmt.Sprintf("The source of the label. Valid values are: %s", strings.Join(dashboardValidPieChartLabelSources, ", ")),
+																			},
+																			"is_visible": schema.BoolAttribute{
+																				Optional: true,
+																				Computed: true,
+																				Default:  booldefault.StaticBool(true),
+																			},
+																			"show_name": schema.BoolAttribute{
+																				Optional: true,
+																				Computed: true,
+																				Default:  booldefault.StaticBool(true),
+																			},
+																			"show_value": schema.BoolAttribute{
+																				Optional: true,
+																				Computed: true,
+																				Default:  booldefault.StaticBool(true),
+																			},
+																			"show_percentage": schema.BoolAttribute{
+																				Optional: true,
+																				Computed: true,
+																				Default:  booldefault.StaticBool(true),
+																			},
+																		},
+																		Required: true,
+																	},
+																	"show_legend": schema.BoolAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  booldefault.StaticBool(true),
+																	},
+																	"group_name_template": schema.StringAttribute{
+																		Optional: true,
+																	},
+																	"unit": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString("unspecified"),
+																	},
+																	"color_scheme": schema.StringAttribute{
+																		Optional: true,
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidColorSchemes...),
+																		},
+																		Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardValidColorSchemes, ", ")),
+																	},
+																	"data_mode_type": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString("unspecified"),
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidDataModeTypes...),
+																		},
+																	},
+																},
+																Validators: []validator.Object{
+																	objectvalidator.ExactlyOneOf(
+																		path.MatchRelative().AtParent().AtName("line_chart"),
+																		path.MatchRelative().AtParent().AtName("gauge"),
+																		path.MatchRelative().AtParent().AtName("data_table"),
+																		path.MatchRelative().AtParent().AtName("bar_chart"),
+																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
+																		path.MatchRelative().AtParent().AtName("markdown"),
+																	),
+																},
+																Optional: true,
+															},
+															"bar_chart": schema.SingleNestedAttribute{
+																Attributes: map[string]schema.Attribute{
+																	"query": schema.SingleNestedAttribute{
+																		Attributes: map[string]schema.Attribute{
+																			"logs": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"lucene_query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"aggregation": logsAggregationSchema(),
+																					"filters":     logsFiltersSchema(),
+																					"group_names": schema.ListAttribute{
+																						ElementType: types.StringType,
+																						Optional:    true,
+																					},
+																					"stacked_group_name": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"group_names_fields": schema.ListNestedAttribute{
+																						NestedObject: schema.NestedAttributeObject{
+																							Attributes: observationFieldSchemaAttributes(),
+																						},
+																						Optional: true,
+																					},
+																					"stacked_group_name_field": schema.SingleNestedAttribute{
+																						Attributes: observationFieldSchemaAttributes(),
+																						Optional:   true,
+																					},
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("metrics"),
+																						path.MatchRelative().AtParent().AtName("spans"),
+																						path.MatchRelative().AtParent().AtName("data_prime"),
+																					),
+																				},
+																			},
+																			"metrics": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"promql_query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"filters": metricFiltersSchema(),
+																					"group_names": schema.ListAttribute{
+																						ElementType: types.StringType,
+																						Optional:    true,
+																					},
+																					"stacked_group_name": schema.StringAttribute{
+																						Optional: true,
+																					},
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("logs"),
+																						path.MatchRelative().AtParent().AtName("spans"),
+																						path.MatchRelative().AtParent().AtName("data_prime"),
+																					),
+																				},
+																			},
+																			"spans": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"lucene_query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"aggregation":        spansAggregationSchema(),
+																					"filters":            spansFilterSchema(),
+																					"group_names":        spansFieldsSchema(),
+																					"stacked_group_name": spansFieldSchema(),
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("logs"),
+																						path.MatchRelative().AtParent().AtName("metrics"),
+																						path.MatchRelative().AtParent().AtName("data_prime"),
+																					),
+																				},
+																			},
+																			"data_prime": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"query": schema.StringAttribute{
+																						Required: true,
+																					},
+																					"filters": schema.ListNestedAttribute{
+																						NestedObject: schema.NestedAttributeObject{
+																							Attributes: filtersSourceAttribute(),
+																						},
+																						Optional: true,
+																					},
+																					"group_names": schema.ListAttribute{
+																						ElementType: types.StringType,
+																						Optional:    true,
+																					},
+																					"stacked_group_name": schema.StringAttribute{
+																						Optional: true,
+																					},
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("logs"),
+																						path.MatchRelative().AtParent().AtName("metrics"),
+																						path.MatchRelative().AtParent().AtName("spans"),
+																					),
+																				},
+																			},
+																		},
+																		Optional: true,
+																	},
+																	"max_bars_per_chart": schema.Int64Attribute{
+																		Optional: true,
+																	},
+																	"group_name_template": schema.StringAttribute{
+																		Optional: true,
+																	},
+																	"stack_definition": schema.SingleNestedAttribute{
+																		Optional: true,
+																		Attributes: map[string]schema.Attribute{
+																			"max_slices_per_bar": schema.Int64Attribute{
+																				Optional: true,
+																			},
+																			"stack_name_template": schema.StringAttribute{
+																				Optional: true,
+																			},
+																		},
+																	},
+																	"scale_type": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString("unspecified"),
+																	},
+																	"colors_by": schema.StringAttribute{
+																		Optional: true,
+																	},
+																	"xaxis": schema.SingleNestedAttribute{
+																		Optional: true,
+																		Attributes: map[string]schema.Attribute{
+																			"time": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"interval": schema.StringAttribute{
+																						Required: true,
+																						Validators: []validator.String{
+																							intervalValidator{},
+																						},
+																						MarkdownDescription: "The time interval to use for the x-axis. Valid values are in duration format, for example `1m0s` or `1h0m0s` (currently leading zeros should be added).",
+																					},
+																					"buckets_presented": schema.Int64Attribute{
+																						Optional: true,
+																					},
+																				},
+																				Optional: true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("value"),
+																					),
+																				},
+																			},
+																			"value": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{},
+																				Optional:   true,
+																				Validators: []validator.Object{
+																					objectvalidator.ExactlyOneOf(
+																						path.MatchRelative().AtParent().AtName("time"),
+																					),
+																				},
+																			},
+																		},
+																	},
+																	"unit": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString("unspecified"),
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidUnits...),
+																		},
+																		MarkdownDescription: fmt.Sprintf("The unit of the chart. Can be one of %s.", strings.Join(dashboardValidUnits, ", ")),
+																	},
+																	"sort_by": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString("unspecified"),
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidSortBy...),
+																		},
+																		Description: fmt.Sprintf("The field to sort by. Can be one of %s.", strings.Join(dashboardValidSortBy, ", ")),
+																	},
+																	"color_scheme": schema.StringAttribute{
+																		Optional: true,
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidColorSchemes...),
+																		},
+																		Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardValidColorSchemes, ", ")),
+																	},
+																	"data_mode_type": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString("unspecified"),
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidDataModeTypes...),
+																		},
+																	},
+																},
+																Validators: []validator.Object{
+																	objectvalidator.ExactlyOneOf(
+																		path.MatchRelative().AtParent().AtName("data_table"),
+																		path.MatchRelative().AtParent().AtName("gauge"),
+																		path.MatchRelative().AtParent().AtName("pie_chart"),
+																		path.MatchRelative().AtParent().AtName("line_chart"),
+																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
+																		path.MatchRelative().AtParent().AtName("markdown"),
+																	),
+																	objectvalidator.AlsoRequires(
+																		path.MatchRelative().AtParent().AtParent().AtName("title"),
+																	),
+																},
+																Optional: true,
+															},
+															"horizontal_bar_chart": schema.SingleNestedAttribute{
+																Attributes: map[string]schema.Attribute{
+																	"query": schema.SingleNestedAttribute{
+																		Attributes: map[string]schema.Attribute{
+																			"logs": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"lucene_query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"aggregation": logsAggregationSchema(),
+																					"filters":     logsFiltersSchema(),
+																					"group_names": schema.ListAttribute{
+																						ElementType: types.StringType,
+																						Required:    true,
+																						Validators: []validator.List{
+																							listvalidator.SizeAtLeast(1),
+																						},
+																					},
+																					"stacked_group_name": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"group_names_fields": schema.ListNestedAttribute{
+																						NestedObject: schema.NestedAttributeObject{
+																							Attributes: observationFieldSchemaAttributes(),
+																						},
+																						Optional: true,
+																					},
+																					"stacked_group_name_field": schema.SingleNestedAttribute{
+																						Attributes: observationFieldSchemaAttributes(),
+																						Optional:   true,
+																					},
+																				},
+																				Optional: true,
+																			},
+																			"metrics": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"promql_query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"filters": metricFiltersSchema(),
+																					"group_names": schema.ListAttribute{
+																						ElementType: types.StringType,
+																						Optional:    true,
+																					},
+																					"stacked_group_name": schema.StringAttribute{
+																						Optional: true,
+																					},
+																				},
+																				Optional: true,
+																			},
+																			"spans": schema.SingleNestedAttribute{
+																				Attributes: map[string]schema.Attribute{
+																					"lucene_query": schema.StringAttribute{
+																						Optional: true,
+																					},
+																					"aggregation":        spansAggregationSchema(),
+																					"filters":            spansFilterSchema(),
+																					"group_names":        spansFieldsSchema(),
+																					"stacked_group_name": spansFieldSchema(),
+																				},
+																				Optional: true,
+																			},
+																		},
+																		Optional: true,
+																	},
+																	"max_bars_per_chart": schema.Int64Attribute{
+																		Optional: true,
+																	},
+																	"group_name_template": schema.StringAttribute{
+																		Optional: true,
+																	},
+																	"stack_definition": schema.SingleNestedAttribute{
+																		Optional: true,
+																		Attributes: map[string]schema.Attribute{
+																			"max_slices_per_bar": schema.Int64Attribute{
+																				Optional: true,
+																			},
+																			"stack_name_template": schema.StringAttribute{
+																				Optional: true,
+																			},
+																		},
+																	},
+																	"scale_type": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString("unspecified"),
+																	},
+																	"colors_by": schema.StringAttribute{
+																		Optional: true,
+																	},
+																	"unit": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString("unspecified"),
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidUnits...),
+																		},
+																		MarkdownDescription: fmt.Sprintf("The unit of the chart. Can be one of %s.", strings.Join(dashboardValidUnits, ", ")),
+																	},
+																	"display_on_bar": schema.BoolAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  booldefault.StaticBool(false),
+																	},
+																	"y_axis_view_by": schema.StringAttribute{
+																		Optional: true,
+																		Validators: []validator.String{
+																			stringvalidator.OneOf("category", "value"),
+																		},
+																	},
+																	"sort_by": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString("unspecified"),
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidSortBy...),
+																		},
+																	},
+																	"color_scheme": schema.StringAttribute{
+																		Optional: true,
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidColorSchemes...),
+																		},
+																		Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardValidColorSchemes, ", ")),
+																	},
+																	"data_mode_type": schema.StringAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  stringdefault.StaticString("unspecified"),
+																		Validators: []validator.String{
+																			stringvalidator.OneOf(dashboardValidDataModeTypes...),
+																		},
+																	},
+																},
+																Validators: []validator.Object{
+																	objectvalidator.ExactlyOneOf(
+																		path.MatchRelative().AtParent().AtName("data_table"),
+																		path.MatchRelative().AtParent().AtName("gauge"),
+																		path.MatchRelative().AtParent().AtName("pie_chart"),
+																		path.MatchRelative().AtParent().AtName("line_chart"),
+																		path.MatchRelative().AtParent().AtName("bar_chart"),
+																		path.MatchRelative().AtParent().AtName("markdown"),
+																	),
+																	objectvalidator.AlsoRequires(
+																		path.MatchRelative().AtParent().AtParent().AtName("title"),
+																	),
+																},
+																Optional: true,
+															},
+															"markdown": schema.SingleNestedAttribute{
+																Attributes: map[string]schema.Attribute{
+																	"markdown_text": schema.StringAttribute{
+																		Optional: true,
+																	},
+																	"tooltip_text": schema.StringAttribute{
+																		Optional: true,
+																	},
+																},
+																Validators: []validator.Object{
+																	objectvalidator.ExactlyOneOf(
+																		path.MatchRelative().AtParent().AtName("data_table"),
+																		path.MatchRelative().AtParent().AtName("gauge"),
+																		path.MatchRelative().AtParent().AtName("pie_chart"),
+																		path.MatchRelative().AtParent().AtName("line_chart"),
+																		path.MatchRelative().AtParent().AtName("bar_chart"),
+																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
+																	),
+																	objectvalidator.ConflictsWith(
+																		path.MatchRelative().AtParent().AtParent().AtName("title"),
+																	),
+																},
+																Optional: true,
+															},
 														},
-														"width": schema.Int64Attribute{
-															Optional:            true,
-															Computed:            true,
-															Default:             int64default.StaticInt64(0),
-															MarkdownDescription: "The width of the chart.",
-														},
+														MarkdownDescription: "The widget definition. Can contain one of 'line_chart', 'data_table', 'gauge', 'pie_chart', 'bar_chart', 'horizontal_bar_chart', 'markdown'.",
+													},
+													"width": schema.Int64Attribute{
+														Optional:            true,
+														Computed:            true,
+														Default:             int64default.StaticInt64(0),
+														MarkdownDescription: "The width of the chart.",
 													},
 												},
-												Validators: []validator.List{
-													listvalidator.SizeAtLeast(1),
-												},
-												MarkdownDescription: "The list of widgets to display in the dashboard.",
 											},
+											Validators: []validator.List{
+												listvalidator.SizeAtLeast(1),
+											},
+											MarkdownDescription: "The list of widgets to display in the dashboard.",
 										},
 									},
-									Validators: []validator.List{
-										listvalidator.SizeAtLeast(1),
-									},
-									Optional: true,
 								},
+								Validators: []validator.List{
+									listvalidator.SizeAtLeast(1),
+								},
+								Optional: true,
 							},
 						},
-						Optional: true,
-						Validators: []validator.List{
-							listvalidator.SizeBetween(1, 1),
-						},
-						MarkdownDescription: "Currently only one section is supported.",
 					},
-				},
-				MarkdownDescription: "Layout configuration for the dashboard's visual elements.",
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("content_json"),
-					),
+					Optional: true,
+					Validators: []validator.List{
+						listvalidator.SizeBetween(1, 1),
+					},
+					MarkdownDescription: "Currently only one section is supported.",
 				},
 			},
-			"variables": schema.ListNestedAttribute{
-				Optional: true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"name": schema.StringAttribute{
-							Optional: true,
-						},
-						"definition": schema.SingleNestedAttribute{
-							Required: true,
-							Attributes: map[string]schema.Attribute{
-								"constant_value": schema.StringAttribute{
-									Optional: true,
-									Validators: []validator.String{
-										stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("multi_select")),
-									},
-								},
-								"multi_select": schema.SingleNestedAttribute{
-									Attributes: map[string]schema.Attribute{
-										"selected_values": schema.ListAttribute{
-											ElementType: types.StringType,
-											Optional:    true,
-										},
-										"values_order_direction": schema.StringAttribute{
-											Required: true,
-											Validators: []validator.String{
-												stringvalidator.OneOf(dashboardValidOrderDirections...),
-											},
-											MarkdownDescription: fmt.Sprintf("The order direction of the values. Can be one of `%s`.", strings.Join(dashboardValidOrderDirections, "`, `")),
-										},
-										"source": schema.SingleNestedAttribute{
-											Attributes: map[string]schema.Attribute{
-												"logs_path": schema.StringAttribute{
-													Optional: true,
-													Validators: []validator.String{
-														stringvalidator.ExactlyOneOf(
-															path.MatchRelative().AtParent().AtName("metric_label"),
-															path.MatchRelative().AtParent().AtName("constant_list"),
-															path.MatchRelative().AtParent().AtName("span_field"),
-														),
-													},
-												},
-												"metric_label": schema.SingleNestedAttribute{
-													Attributes: map[string]schema.Attribute{
-														"metric_name": schema.StringAttribute{
-															Required: true,
-														},
-														"label": schema.StringAttribute{
-															Required: true,
-														},
-													},
-													Optional: true,
-													Validators: []validator.Object{
-														objectvalidator.ExactlyOneOf(
-															path.MatchRelative().AtParent().AtName("logs_path"),
-															path.MatchRelative().AtParent().AtName("constant_list"),
-															path.MatchRelative().AtParent().AtName("span_field"),
-														),
-													},
-												},
-												"constant_list": schema.ListAttribute{
-													ElementType: types.StringType,
-													Optional:    true,
-													Validators: []validator.List{
-														listvalidator.ExactlyOneOf(
-															path.MatchRelative().AtParent().AtName("logs_path"),
-															path.MatchRelative().AtParent().AtName("metric_label"),
-															path.MatchRelative().AtParent().AtName("span_field"),
-														),
-													},
-												},
-												"span_field": schema.SingleNestedAttribute{
-													Attributes: spansFieldAttributes(),
-													Optional:   true,
-													Validators: []validator.Object{
-														spansFieldValidator{},
-														objectvalidator.ExactlyOneOf(
-															path.MatchRelative().AtParent().AtName("logs_path"),
-															path.MatchRelative().AtParent().AtName("metric_label"),
-															path.MatchRelative().AtParent().AtName("constant_list"),
-														),
-													},
-												},
-											},
-											Optional: true,
-										},
-									},
-									Optional: true,
-									Validators: []validator.Object{
-										objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("constant_value")),
-									},
-								},
-							},
-						},
-						"display_name": schema.StringAttribute{
-							Required: true,
-						},
-					},
-				},
-				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
-				},
-				MarkdownDescription: "List of variables that can be used within the dashboard for dynamic content.",
+			MarkdownDescription: "Layout configuration for the dashboard's visual elements.",
+			Validators: []validator.Object{
+				objectvalidator.ExactlyOneOf(
+					path.MatchRelative().AtParent().AtName("content_json"),
+				),
 			},
-			"filters": schema.ListNestedAttribute{
-				Optional: true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"source": schema.SingleNestedAttribute{
-							Attributes: filtersSourceAttribute(),
-							Required:   true,
-						},
-						"enabled": schema.BoolAttribute{
-							Optional: true,
-							Computed: true,
-							Default:  booldefault.StaticBool(true),
-						},
-						"collapsed": schema.BoolAttribute{
-							Optional: true,
-							Computed: true,
-							Default:  booldefault.StaticBool(false),
-						},
-					},
-				},
-				Validators: []validator.List{
-					listvalidator.SizeAtLeast(1),
-				},
-				MarkdownDescription: "List of filters that can be applied to the dashboard's data.",
-			},
-			"time_frame": schema.SingleNestedAttribute{
-				Optional: true,
+		},
+		"variables": schema.ListNestedAttribute{
+			Optional: true,
+			NestedObject: schema.NestedAttributeObject{
 				Attributes: map[string]schema.Attribute{
-					"absolute": schema.SingleNestedAttribute{
-						Attributes: map[string]schema.Attribute{
-							"start": schema.StringAttribute{
-								Required: true,
-							},
-							"end": schema.StringAttribute{
-								Required: true,
-							},
-						},
+					"name": schema.StringAttribute{
 						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("relative")),
-						},
-						MarkdownDescription: "Absolute time frame specifying a fixed start and end time.",
 					},
-					"relative": schema.SingleNestedAttribute{
+					"definition": schema.SingleNestedAttribute{
+						Required: true,
 						Attributes: map[string]schema.Attribute{
-							"duration": schema.StringAttribute{
-								Required: true,
+							"constant_value": schema.StringAttribute{
+								Optional: true,
+								Validators: []validator.String{
+									stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("multi_select")),
+								},
+							},
+							"multi_select": schema.SingleNestedAttribute{
+								Attributes: map[string]schema.Attribute{
+									"selected_values": schema.ListAttribute{
+										ElementType: types.StringType,
+										Optional:    true,
+									},
+									"values_order_direction": schema.StringAttribute{
+										Required: true,
+										Validators: []validator.String{
+											stringvalidator.OneOf(dashboardValidOrderDirections...),
+										},
+										MarkdownDescription: fmt.Sprintf("The order direction of the values. Can be one of `%s`.", strings.Join(dashboardValidOrderDirections, "`, `")),
+									},
+									"source": schema.SingleNestedAttribute{
+										Attributes: map[string]schema.Attribute{
+											"logs_path": schema.StringAttribute{
+												Optional: true,
+												Validators: []validator.String{
+													stringvalidator.ExactlyOneOf(
+														path.MatchRelative().AtParent().AtName("metric_label"),
+														path.MatchRelative().AtParent().AtName("constant_list"),
+														path.MatchRelative().AtParent().AtName("span_field"),
+													),
+												},
+											},
+											"metric_label": schema.SingleNestedAttribute{
+												Attributes: map[string]schema.Attribute{
+													"metric_name": schema.StringAttribute{
+														Required: true,
+													},
+													"label": schema.StringAttribute{
+														Required: true,
+													},
+												},
+												Optional: true,
+												Validators: []validator.Object{
+													objectvalidator.ExactlyOneOf(
+														path.MatchRelative().AtParent().AtName("logs_path"),
+														path.MatchRelative().AtParent().AtName("constant_list"),
+														path.MatchRelative().AtParent().AtName("span_field"),
+													),
+												},
+											},
+											"constant_list": schema.ListAttribute{
+												ElementType: types.StringType,
+												Optional:    true,
+												Validators: []validator.List{
+													listvalidator.ExactlyOneOf(
+														path.MatchRelative().AtParent().AtName("logs_path"),
+														path.MatchRelative().AtParent().AtName("metric_label"),
+														path.MatchRelative().AtParent().AtName("span_field"),
+													),
+												},
+											},
+											"span_field": schema.SingleNestedAttribute{
+												Attributes: spansFieldAttributes(),
+												Optional:   true,
+												Validators: []validator.Object{
+													spansFieldValidator{},
+													objectvalidator.ExactlyOneOf(
+														path.MatchRelative().AtParent().AtName("logs_path"),
+														path.MatchRelative().AtParent().AtName("metric_label"),
+														path.MatchRelative().AtParent().AtName("constant_list"),
+													),
+												},
+											},
+										},
+										Optional: true,
+									},
+								},
+								Optional: true,
+								Validators: []validator.Object{
+									objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("constant_value")),
+								},
 							},
 						},
-						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("absolute")),
-						},
-						MarkdownDescription: "Relative time frame specifying a duration from the current time.",
+					},
+					"display_name": schema.StringAttribute{
+						Required: true,
 					},
 				},
-				MarkdownDescription: "Specifies the time frame for the dashboard's data. Can be either absolute or relative.",
 			},
-			"folder": schema.SingleNestedAttribute{
+			Validators: []validator.List{
+				listvalidator.SizeAtLeast(1),
+			},
+			MarkdownDescription: "List of variables that can be used within the dashboard for dynamic content.",
+		},
+		"filters": schema.ListNestedAttribute{
+			Optional: true,
+			NestedObject: schema.NestedAttributeObject{
+				Attributes: map[string]schema.Attribute{
+					"source": schema.SingleNestedAttribute{
+						Attributes: filtersSourceAttribute(),
+						Required:   true,
+					},
+					"enabled": schema.BoolAttribute{
+						Optional: true,
+						Computed: true,
+						Default:  booldefault.StaticBool(true),
+					},
+					"collapsed": schema.BoolAttribute{
+						Optional: true,
+						Computed: true,
+						Default:  booldefault.StaticBool(false),
+					},
+				},
+			},
+			Validators: []validator.List{
+				listvalidator.SizeAtLeast(1),
+			},
+			MarkdownDescription: "List of filters that can be applied to the dashboard's data.",
+		},
+		"time_frame": schema.SingleNestedAttribute{
+			Optional: true,
+			Attributes: map[string]schema.Attribute{
+				"absolute": schema.SingleNestedAttribute{
+					Attributes: map[string]schema.Attribute{
+						"start": schema.StringAttribute{
+							Required: true,
+						},
+						"end": schema.StringAttribute{
+							Required: true,
+						},
+					},
+					Optional: true,
+					Validators: []validator.Object{
+						objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("relative")),
+					},
+					MarkdownDescription: "Absolute time frame specifying a fixed start and end time.",
+				},
+				"relative": schema.SingleNestedAttribute{
+					Attributes: map[string]schema.Attribute{
+						"duration": schema.StringAttribute{
+							Required: true,
+						},
+					},
+					Optional: true,
+					Validators: []validator.Object{
+						objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("absolute")),
+					},
+					MarkdownDescription: "Relative time frame specifying a duration from the current time.",
+				},
+			},
+			MarkdownDescription: "Specifies the time frame for the dashboard's data. Can be either absolute or relative.",
+		},
+		"folder": schema.SingleNestedAttribute{
+			Attributes: map[string]schema.Attribute{
+				"id": schema.StringAttribute{
+					Optional: true,
+					Computed: true,
+					Validators: []validator.String{
+						stringvalidator.ExactlyOneOf(
+							path.MatchRelative().AtParent().AtName("path"),
+						),
+					},
+				},
+				"path": schema.StringAttribute{
+					Optional: true,
+					Computed: true,
+					Validators: []validator.String{
+						stringvalidator.ExactlyOneOf(
+							path.MatchRelative().AtParent().AtName("id"),
+						),
+					},
+				},
+			},
+			Optional: true,
+		},
+		"annotations": schema.ListNestedAttribute{
+			Optional: true,
+			NestedObject: schema.NestedAttributeObject{
 				Attributes: map[string]schema.Attribute{
 					"id": schema.StringAttribute{
 						Optional: true,
 						Computed: true,
-						Validators: []validator.String{
-							stringvalidator.ExactlyOneOf(
-								path.MatchRelative().AtParent().AtName("path"),
-							),
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
 						},
 					},
-					"path": schema.StringAttribute{
+					"name": schema.StringAttribute{
+						Required: true,
+					},
+					"enabled": schema.BoolAttribute{
 						Optional: true,
 						Computed: true,
-						Validators: []validator.String{
-							stringvalidator.ExactlyOneOf(
-								path.MatchRelative().AtParent().AtName("id"),
-							),
-						},
+						Default:  booldefault.StaticBool(true),
 					},
-				},
-				Optional: true,
-			},
-			"annotations": schema.ListNestedAttribute{
-				Optional: true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"id": schema.StringAttribute{
-							Optional: true,
-							Computed: true,
-							PlanModifiers: []planmodifier.String{
-								stringplanmodifier.UseStateForUnknown(),
-							},
-						},
-						"name": schema.StringAttribute{
-							Required: true,
-						},
-						"enabled": schema.BoolAttribute{
-							Optional: true,
-							Computed: true,
-							Default:  booldefault.StaticBool(true),
-						},
-						"source": schema.SingleNestedAttribute{
-							Attributes: map[string]schema.Attribute{
-								"metrics": schema.SingleNestedAttribute{
-									Attributes: map[string]schema.Attribute{
-										"promql_query": schema.StringAttribute{
-											Optional: true,
-										},
-										"strategy": schema.SingleNestedAttribute{
-											Attributes: map[string]schema.Attribute{
-												"start_time": schema.SingleNestedAttribute{
-													Attributes: map[string]schema.Attribute{},
-													Required:   true,
-												},
+					"source": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"metrics": schema.SingleNestedAttribute{
+								Attributes: map[string]schema.Attribute{
+									"promql_query": schema.StringAttribute{
+										Optional: true,
+									},
+									"strategy": schema.SingleNestedAttribute{
+										Attributes: map[string]schema.Attribute{
+											"start_time": schema.SingleNestedAttribute{
+												Attributes: map[string]schema.Attribute{},
+												Required:   true,
 											},
-											Required: true,
 										},
-										"message_template": schema.StringAttribute{
-											Optional: true,
-										},
-										"labels": schema.ListAttribute{
-											ElementType: types.StringType,
-											Optional:    true,
-										},
+										Required: true,
 									},
-									Optional: true,
-									Validators: []validator.Object{
-										objectvalidator.ExactlyOneOf(
-											path.MatchRelative().AtParent().AtName("logs"),
-											path.MatchRelative().AtParent().AtName("spans"),
-										),
+									"message_template": schema.StringAttribute{
+										Optional: true,
+									},
+									"labels": schema.ListAttribute{
+										ElementType: types.StringType,
+										Optional:    true,
 									},
 								},
-								"logs": schema.SingleNestedAttribute{
-									Attributes: logsAndSpansAttributes(),
-									Optional:   true,
-									Validators: []validator.Object{
-										objectvalidator.ExactlyOneOf(
-											path.MatchRelative().AtParent().AtName("metrics"),
-											path.MatchRelative().AtParent().AtName("spans"),
-										),
-									},
-								},
-								"spans": schema.SingleNestedAttribute{
-									Attributes: logsAndSpansAttributes(),
-									Optional:   true,
-									Validators: []validator.Object{
-										objectvalidator.ExactlyOneOf(
-											path.MatchRelative().AtParent().AtName("metrics"),
-											path.MatchRelative().AtParent().AtName("logs"),
-										),
-									},
+								Optional: true,
+								Validators: []validator.Object{
+									objectvalidator.ExactlyOneOf(
+										path.MatchRelative().AtParent().AtName("logs"),
+										path.MatchRelative().AtParent().AtName("spans"),
+									),
 								},
 							},
-							Required: true,
+							"logs": schema.SingleNestedAttribute{
+								Attributes: logsAndSpansAttributes(),
+								Optional:   true,
+								Validators: []validator.Object{
+									objectvalidator.ExactlyOneOf(
+										path.MatchRelative().AtParent().AtName("metrics"),
+										path.MatchRelative().AtParent().AtName("spans"),
+									),
+								},
+							},
+							"spans": schema.SingleNestedAttribute{
+								Attributes: logsAndSpansAttributes(),
+								Optional:   true,
+								Validators: []validator.Object{
+									objectvalidator.ExactlyOneOf(
+										path.MatchRelative().AtParent().AtName("metrics"),
+										path.MatchRelative().AtParent().AtName("logs"),
+									),
+								},
+							},
 						},
+						Required: true,
 					},
 				},
 			},
-			"auto_refresh": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"type": schema.StringAttribute{
-						Optional: true,
-						Computed: true,
-						Default:  stringdefault.StaticString("off"),
-						Validators: []validator.String{
-							stringvalidator.OneOf("off", "two_minutes", "five_minutes"),
-						},
+		},
+		"auto_refresh": schema.SingleNestedAttribute{
+			Attributes: map[string]schema.Attribute{
+				"type": schema.StringAttribute{
+					Optional: true,
+					Computed: true,
+					Default:  stringdefault.StaticString("off"),
+					Validators: []validator.String{
+						stringvalidator.OneOf("off", "two_minutes", "five_minutes"),
 					},
 				},
-				Optional: true,
-				Computed: true,
 			},
-			"content_json": schema.StringAttribute{
-				Optional: true,
-				Validators: []validator.String{
-					stringvalidator.ConflictsWith(
-						path.MatchRelative().AtParent().AtName("id"),
-						path.MatchRelative().AtParent().AtName("name"),
-						path.MatchRelative().AtParent().AtName("description"),
-						path.MatchRelative().AtParent().AtName("layout"),
-						path.MatchRelative().AtParent().AtName("variables"),
-						path.MatchRelative().AtParent().AtName("filters"),
-						path.MatchRelative().AtParent().AtName("time_frame"),
-						path.MatchRelative().AtParent().AtName("folder"),
-						path.MatchRelative().AtParent().AtName("annotations"),
-					),
-					ContentJsonValidator{},
-				},
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplaceIf(JSONStringsEqualPlanModifier, "", ""),
-				},
-				Description: "an option to set the dashboard content from a json file.",
+			Optional: true,
+			Computed: true,
+		},
+		"content_json": schema.StringAttribute{
+			Optional: true,
+			Validators: []validator.String{
+				stringvalidator.ConflictsWith(
+					path.MatchRelative().AtParent().AtName("id"),
+					path.MatchRelative().AtParent().AtName("name"),
+					path.MatchRelative().AtParent().AtName("description"),
+					path.MatchRelative().AtParent().AtName("layout"),
+					path.MatchRelative().AtParent().AtName("variables"),
+					path.MatchRelative().AtParent().AtName("filters"),
+					path.MatchRelative().AtParent().AtName("time_frame"),
+					path.MatchRelative().AtParent().AtName("folder"),
+					path.MatchRelative().AtParent().AtName("annotations"),
+				),
+				ContentJsonValidator{},
 			},
+			PlanModifiers: []planmodifier.String{
+				stringplanmodifier.RequiresReplaceIf(JSONStringsEqualPlanModifier, "", ""),
+			},
+			Description: "an option to set the dashboard content from a json file.",
 		},
 	}
 }
@@ -3119,8 +3231,8 @@ func expandAnnotationSource(ctx context.Context, source types.Object) (*dashboar
 			return nil, diags
 		}
 		return &dashboards.Annotation_Source{Value: logsSource}, nil
-	case !(sourceObject.Metric.IsNull() || sourceObject.Metric.IsUnknown()):
-		metricSource, diags := expandMetricSource(ctx, sourceObject.Metric)
+	case !(sourceObject.Metrics.IsNull() || sourceObject.Metrics.IsUnknown()):
+		metricSource, diags := expandMetricSource(ctx, sourceObject.Metrics)
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -9269,16 +9381,16 @@ func flattenDashboardAnnotationSource(ctx context.Context, source *dashboards.An
 	var diags diag.Diagnostics
 	switch source.Value.(type) {
 	case *dashboards.Annotation_Source_Metrics:
-		sourceObject.Metric, diags = flattenDashboardAnnotationMetricSourceModel(ctx, source.GetMetrics())
+		sourceObject.Metrics, diags = flattenDashboardAnnotationMetricSourceModel(ctx, source.GetMetrics())
 		sourceObject.Logs = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
 		sourceObject.Spans = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
 	case *dashboards.Annotation_Source_Logs:
 		sourceObject.Logs, diags = flattenDashboardAnnotationLogsSourceModel(ctx, source.GetLogs())
-		sourceObject.Metric = types.ObjectNull(annotationsMetricsSourceModelAttr())
+		sourceObject.Metrics = types.ObjectNull(annotationsMetricsSourceModelAttr())
 		sourceObject.Spans = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
 	case *dashboards.Annotation_Source_Spans:
 		sourceObject.Spans, diags = flattenDashboardAnnotationSpansSourceModel(ctx, source.GetSpans())
-		sourceObject.Metric = types.ObjectNull(annotationsMetricsSourceModelAttr())
+		sourceObject.Metrics = types.ObjectNull(annotationsMetricsSourceModelAttr())
 		sourceObject.Logs = types.ObjectNull(annotationsLogsAndSpansSourceModelAttr())
 	default:
 		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Annotation Source", fmt.Sprintf("unknown annotation source type %T", source.Value))}
@@ -9755,4 +9867,70 @@ func (r *DashboardResource) Configure(_ context.Context, req resource.ConfigureR
 	}
 
 	r.client = clientSet.Dashboards()
+}
+
+func dashboardV1() schema.Schema {
+	attributes := dashboardSchemaAttributes()
+	delete(attributes, "auto_refresh")
+	attributes["annotations"] = schema.ListNestedAttribute{
+		Optional: true,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"id": schema.StringAttribute{
+					Optional: true,
+					Computed: true,
+					PlanModifiers: []planmodifier.String{
+						stringplanmodifier.UseStateForUnknown(),
+					},
+				},
+				"name": schema.StringAttribute{
+					Required: true,
+				},
+				"enabled": schema.BoolAttribute{
+					Optional: true,
+					Computed: true,
+					Default:  booldefault.StaticBool(true),
+				},
+				"source": schema.SingleNestedAttribute{
+					Attributes: map[string]schema.Attribute{
+						"metric": schema.SingleNestedAttribute{
+							Attributes: map[string]schema.Attribute{
+								"promql_query": schema.StringAttribute{
+									Optional: true,
+								},
+								"strategy": schema.SingleNestedAttribute{
+									Attributes: map[string]schema.Attribute{
+										"start_time": schema.SingleNestedAttribute{
+											Attributes: map[string]schema.Attribute{},
+											Required:   true,
+										},
+									},
+									Required: true,
+								},
+								"message_template": schema.StringAttribute{
+									Optional: true,
+								},
+								"labels": schema.ListAttribute{
+									ElementType: types.StringType,
+									Optional:    true,
+								},
+							},
+							Optional: true,
+							Validators: []validator.Object{
+								objectvalidator.ExactlyOneOf(
+									path.MatchRelative().AtParent().AtName("logs"),
+									path.MatchRelative().AtParent().AtName("spans"),
+								),
+							},
+						},
+					},
+					Required: true,
+				},
+			},
+		},
+	}
+	return schema.Schema{
+		Version:    1,
+		Attributes: attributes,
+	}
 }
