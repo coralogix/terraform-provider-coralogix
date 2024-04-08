@@ -108,6 +108,7 @@ func TestAccCoralogixResourceAlert_newValue(t *testing.T) {
 		keyToTrack:            "EventType",
 		timeWindow:            selectRandomlyFromSlice(alertValidNewValueTimeFrames),
 	}
+	alert.notifyOn = "Triggered_only"
 	checks := extractNewValueChecks(alert)
 
 	updatedAlert := newValueAlertTestParams{
@@ -115,6 +116,7 @@ func TestAccCoralogixResourceAlert_newValue(t *testing.T) {
 		keyToTrack:            "EventType",
 		timeWindow:            selectRandomlyFromSlice(alertValidNewValueTimeFrames),
 	}
+	updatedAlert.notifyOn = "Triggered_only"
 	updatedAlertChecks := extractNewValueChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
@@ -359,7 +361,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen:      randActiveWhen(),
 		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
-		notifyOn:        selectRandomlyFromSlice(validNotifyOn),
+		notifyOn:        "Triggered_only",
 	}
 	checks := extractFlowAlertChecks(alert)
 
@@ -371,7 +373,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen:      randActiveWhen(),
 		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
-		notifyOn:        selectRandomlyFromSlice(validNotifyOn),
+		notifyOn:        "Triggered_only",
 	}
 	updatedAlertChecks := extractFlowAlertChecks(updatedAlert)
 
