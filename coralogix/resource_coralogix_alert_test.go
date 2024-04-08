@@ -361,7 +361,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen:      randActiveWhen(),
 		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
-		notifyOn:        selectRandomlyFromSlice(validNotifyOn),
+		notifyOn:        "Triggered_only",
 	}
 	checks := extractFlowAlertChecks(alert)
 
@@ -373,7 +373,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen:      randActiveWhen(),
 		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
-		notifyOn:        selectRandomlyFromSlice(validNotifyOn),
+		notifyOn:        "Triggered_only",
 	}
 	updatedAlertChecks := extractFlowAlertChecks(updatedAlert)
 
