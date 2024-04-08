@@ -523,3 +523,8 @@ New Features:
 Bug fixing:
 #### resource/coralogix_dashboard
 * adding schema upgrade v1 to v2 (for `annotations.source.metrics` field).
+
+## Release 1.13.2
+Bug fixing:
+#### resource/coralogix_alert
+* fixing [runtime error: invalid memory address or nil pointer dereference](https://github.com/coralogix/terraform-provider-coralogix/issues/212).

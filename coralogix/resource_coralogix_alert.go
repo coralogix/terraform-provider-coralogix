@@ -1547,10 +1547,16 @@ func extractCreateAlertRequest(d *schema.ResourceData) (*alerts.CreateAlertReque
 	incidentSettings := expandIncidentSettings(d.Get("incident_settings"))
 	notificationGroups, dgs := expandNotificationGroups(d.Get("notifications_group"))
 	diags = append(diags, dgs...)
+	if len(diags) != 0 {
+		return nil, diags
+	}
 	payloadFilters := expandPayloadFilters(d.Get("payload_filters"))
 	scheduling := expandActiveWhen(d.Get("scheduling"))
 	alertTypeParams, tracingAlert, dgs := expandAlertType(d)
 	diags = append(diags, dgs...)
+	if len(diags) != 0 {
+		return nil, diags
+	}
 
 	return &alerts.CreateAlertRequest{
 		Name:                       name,
