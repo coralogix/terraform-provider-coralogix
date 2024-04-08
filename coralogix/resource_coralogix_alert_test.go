@@ -108,6 +108,7 @@ func TestAccCoralogixResourceAlert_newValue(t *testing.T) {
 		keyToTrack:            "EventType",
 		timeWindow:            selectRandomlyFromSlice(alertValidNewValueTimeFrames),
 	}
+	alert.notifyOn = "Triggered_only"
 	checks := extractNewValueChecks(alert)
 
 	updatedAlert := newValueAlertTestParams{
@@ -115,6 +116,7 @@ func TestAccCoralogixResourceAlert_newValue(t *testing.T) {
 		keyToTrack:            "EventType",
 		timeWindow:            selectRandomlyFromSlice(alertValidNewValueTimeFrames),
 	}
+	updatedAlert.notifyOn = "Triggered_only"
 	updatedAlertChecks := extractNewValueChecks(updatedAlert)
 
 	resource.Test(t, resource.TestCase{
