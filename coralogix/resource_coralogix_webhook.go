@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"terraform-provider-coralogix/coralogix/clientset"
 	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
 
@@ -40,15 +42,22 @@ var (
 	}
 	webhooksProtoToSchemaMethod                = ReverseMap(webhooksSchemaToProtoMethod)
 	webhooksValidMethods                       = GetKeys(webhooksSchemaToProtoMethod)
-	webhooksProtoToSchemaSlackConfigDigestType = map[string]webhooks.SlackConfig_DigestType{
+	webhooksSchemaToProtoSlackConfigDigestType = map[string]webhooks.SlackConfig_DigestType{
 		"error_and_critical_logs": webhooks.SlackConfig_ERROR_AND_CRITICAL_LOGS,
 		"flow_anomalies":          webhooks.SlackConfig_FLOW_ANOMALIES,
 		"spike_anomalies":         webhooks.SlackConfig_SPIKE_ANOMALIES,
 		"data_usage":              webhooks.SlackConfig_DATA_USAGE,
 	}
-	webhooksSchemaToProtoSlackConfigDigestType = ReverseMap(webhooksProtoToSchemaSlackConfigDigestType)
-	webhooksValidSlackConfigDigestTypes        = GetKeys(webhooksProtoToSchemaSlackConfigDigestType)
-	customDefaultPayload                       = `{
+	webhooksProtoToSchemaSlackConfigDigestType = ReverseMap(webhooksSchemaToProtoSlackConfigDigestType)
+	webhooksValidSlackConfigDigestTypes        = GetKeys(webhooksSchemaToProtoSlackConfigDigestType)
+	webhooksProtoToSchemaSlackAttachmentType   = map[string]webhooks.SlackConfig_AttachmentType{
+		"empty":           webhooks.SlackConfig_EMPTY,
+		"metric_snapshot": webhooks.SlackConfig_METRIC_SNAPSHOT,
+		"logs":            webhooks.SlackConfig_LOGS,
+	}
+	webhooksSchemaToProtoSlackAttachmentType = ReverseMap(webhooksProtoToSchemaSlackAttachmentType)
+	webhooksValidSlackAttachmentTypes        = GetKeys(webhooksProtoToSchemaSlackAttachmentType)
+	customDefaultPayload                     = `{
     "uuid": "",
     "alert_id": "$ALERT_ID",
     "name": "$ALERT_NAME",
@@ -257,6 +266,12 @@ type CustomWebhookModel struct {
 type SlackModel struct {
 	NotifyAbout types.Set    `tfsdk:"notify_on"` //types.String
 	URL         types.String `tfsdk:"url"`
+	Attachments types.List   `tfsdk:"attachments"` //SlackAttachmentModel
+}
+
+type SlackAttachmentModel struct {
+	Type   types.String `tfsdk:"type"`
+	Active types.Bool   `tfsdk:"active"`
 }
 
 type PagerDutyModel struct {
@@ -408,6 +423,27 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					"url": schema.StringAttribute{
 						Optional:            true,
 						MarkdownDescription: "Slack URL.",
+					},
+					"attachments": schema.ListNestedAttribute{
+						Optional: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"type": schema.StringAttribute{
+									Required: true,
+									Validators: []validator.String{
+										stringvalidator.OneOf(webhooksValidSlackAttachmentTypes...),
+									},
+									MarkdownDescription: fmt.Sprintf("Slack attachment type. can be one of: %s", strings.Join(webhooksValidSlackAttachmentTypes, ", ")),
+								},
+								"active": schema.BoolAttribute{
+									Optional:            true,
+									Computed:            true,
+									Default:             booldefault.StaticBool(true),
+									MarkdownDescription: "Determines if the attachment is active. Default is true.",
+								},
+							},
+						},
+						MarkdownDescription: "Slack attachments.",
 					},
 				},
 				Validators: []validator.Object{
@@ -948,6 +984,11 @@ func expandSlack(ctx context.Context, slack *SlackModel) (*webhooks.OutgoingWebh
 		return nil, nil, diags
 	}
 
+	attachments, diags := expandSlackAttachments(ctx, slack.Attachments)
+	if diags.HasError() {
+		return nil, nil, diags
+	}
+
 	var url *wrapperspb.StringValue
 	if planUrl := slack.URL; !(planUrl.IsNull() || planUrl.IsUnknown()) {
 		url = wrapperspb.String(planUrl.ValueString())
@@ -955,9 +996,33 @@ func expandSlack(ctx context.Context, slack *SlackModel) (*webhooks.OutgoingWebh
 
 	return &webhooks.OutgoingWebhookInputData_Slack{
 		Slack: &webhooks.SlackConfig{
-			Digests: digests,
+			Digests:     digests,
+			Attachments: attachments,
 		},
 	}, url, nil
+}
+
+func expandSlackAttachments(ctx context.Context, attachmentsList types.List) ([]*webhooks.SlackConfig_Attachment, diag.Diagnostics) {
+	var attachmentsObjects []types.Object
+	var expandedAttachments []*webhooks.SlackConfig_Attachment
+	diags := attachmentsList.ElementsAs(ctx, &attachmentsObjects, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	for _, attachmentObject := range attachmentsObjects {
+		var attachmentModel SlackAttachmentModel
+		if dg := attachmentObject.As(ctx, &attachmentModel, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		expandedAttachment := &webhooks.SlackConfig_Attachment{
+			Type:     webhooksProtoToSchemaSlackAttachmentType[attachmentModel.Type.ValueString()],
+			IsActive: typeBoolToWrapperspbBool(attachmentModel.Active),
+		}
+		expandedAttachments = append(expandedAttachments, expandedAttachment)
+	}
+	return expandedAttachments, diags
 }
 
 func expandDigests(ctx context.Context, digestsSet types.Set) ([]*webhooks.SlackConfig_Digest, diag.Diagnostics) {
@@ -975,7 +1040,7 @@ func expandDigests(ctx context.Context, digestsSet types.Set) ([]*webhooks.Slack
 			diags.AddError("Error expanding digest", err.Error())
 			continue
 		}
-		digestType := webhooksProtoToSchemaSlackConfigDigestType[str]
+		digestType := webhooksSchemaToProtoSlackConfigDigestType[str]
 		expandedDigests = append(expandedDigests, expandDigest(digestType))
 	}
 	return expandedDigests, diags
@@ -1095,7 +1160,7 @@ func flattenWebhook(ctx context.Context, webhook *webhooks.OutgoingWebhook) (*We
 	var diags diag.Diagnostics
 	switch configType := webhook.Config.(type) {
 	case *webhooks.OutgoingWebhook_Slack:
-		result.Slack, diags = flattenSlack(configType.Slack, url)
+		result.Slack, diags = flattenSlack(ctx, configType.Slack, url)
 	case *webhooks.OutgoingWebhook_GenericWebhook:
 		result.CustomWebhook, diags = flattenGenericWebhook(ctx, configType.GenericWebhook, url)
 	case *webhooks.OutgoingWebhook_PagerDuty:
@@ -1132,8 +1197,13 @@ func flattenGenericWebhook(ctx context.Context, genericWebhook *webhooks.Generic
 	}, diags
 }
 
-func flattenSlack(slack *webhooks.SlackConfig, url *wrapperspb.StringValue) (*SlackModel, diag.Diagnostics) {
-	digests, diags := flattenDigests(slack.GetDigests())
+func flattenSlack(ctx context.Context, slack *webhooks.SlackConfig, url *wrapperspb.StringValue) (*SlackModel, diag.Diagnostics) {
+	digests, diags := flattenDigests(ctx, slack.GetDigests())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	attachments, diags := flattenSlackAttachments(ctx, slack.GetAttachments())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1141,26 +1211,50 @@ func flattenSlack(slack *webhooks.SlackConfig, url *wrapperspb.StringValue) (*Sl
 	return &SlackModel{
 		NotifyAbout: digests,
 		URL:         wrapperspbStringToTypeString(url),
+		Attachments: attachments,
 	}, nil
 }
 
-func flattenDigests(digests []*webhooks.SlackConfig_Digest) (types.Set, diag.Diagnostics) {
+func flattenSlackAttachments(ctx context.Context, attachments []*webhooks.SlackConfig_Attachment) (types.List, diag.Diagnostics) {
+	if len(attachments) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: slackAttachmentsAttr()}), nil
+	}
+
+	attachmentsElements := make([]SlackAttachmentModel, 0, len(attachments))
+	for _, attachment := range attachments {
+		flattenedAttachment := SlackAttachmentModel{
+			Type:   types.StringValue(webhooksSchemaToProtoSlackAttachmentType[attachment.GetType()]),
+			Active: types.BoolValue(attachment.GetIsActive().GetValue()),
+		}
+		attachmentsElements = append(attachmentsElements, flattenedAttachment)
+	}
+
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: slackAttachmentsAttr()}, attachmentsElements)
+}
+
+func slackAttachmentsAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"type":   types.StringType,
+		"active": types.BoolType,
+	}
+}
+
+func flattenDigests(ctx context.Context, digests []*webhooks.SlackConfig_Digest) (types.Set, diag.Diagnostics) {
 	if len(digests) == 0 {
 		return types.SetNull(types.StringType), nil
 	}
 
-	var diagnostics diag.Diagnostics
 	digestsElements := make([]attr.Value, 0, len(digests))
 	for _, digest := range digests {
 		flattenedDigest := flattenDigest(digest)
 		digestsElements = append(digestsElements, flattenedDigest)
 	}
 
-	return types.SetValueMust(types.StringType, digestsElements), diagnostics
+	return types.SetValueFrom(ctx, types.StringType, digestsElements)
 }
 
 func flattenDigest(digest *webhooks.SlackConfig_Digest) types.String {
-	return types.StringValue(webhooksSchemaToProtoSlackConfigDigestType[digest.GetType()])
+	return types.StringValue(webhooksProtoToSchemaSlackConfigDigestType[digest.GetType()])
 }
 
 func flattenPagerDuty(pagerDuty *webhooks.PagerDutyConfig) *PagerDutyModel {

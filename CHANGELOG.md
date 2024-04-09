@@ -528,3 +528,8 @@ Bug fixing:
 Bug fixing:
 #### resource/coralogix_alert
 * fixing [runtime error: invalid memory address or nil pointer dereference](https://github.com/coralogix/terraform-provider-coralogix/issues/212).
+
+## Release 1.13.3
+New Features:
+#### resource/coralogix_webhook
+* adding `attachments` to `slack` webhook type [attachments](docs/resources/webhook.md#nested-schema-for-slackattachments). fixing [issue](https://github.com/coralogix/terraform-provider-coralogix/issues/219).

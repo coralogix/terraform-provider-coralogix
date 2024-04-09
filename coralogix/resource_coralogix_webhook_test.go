@@ -20,7 +20,13 @@ type webhookTestFields struct {
 
 type customWebhookTestFields struct {
 	webhookTestFields
-	method string
+	method      string
+	attachments []attachmentTestFields
+}
+
+type attachmentTestFields struct {
+	attachmentType string
+	active         bool
 }
 
 type pagerDutyWebhookTestFields struct {
@@ -74,6 +80,12 @@ func TestAccCoralogixResourceCustomWebhook(t *testing.T) {
 	webhook := &customWebhookTestFields{
 		webhookTestFields: *getRandomWebhook(),
 		method:            selectRandomlyFromSlice(webhooksValidMethods),
+		attachments: []attachmentTestFields{
+			{
+				attachmentType: selectRandomlyFromSlice(webhooksValidSlackAttachmentTypes),
+				active:         true,
+			},
+		},
 	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -88,6 +100,8 @@ func TestAccCoralogixResourceCustomWebhook(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
 					resource.TestCheckResourceAttr(resourceName, "custom.url", webhook.url),
 					resource.TestCheckResourceAttr(resourceName, "custom.method", webhook.method),
+					resource.TestCheckResourceAttr(resourceName, "custom.attachments.0.type", webhook.attachments[0].attachmentType),
+					resource.TestCheckResourceAttr(resourceName, "custom.attachments.0.active", fmt.Sprintf("%t", webhook.attachments[0].active)),
 				),
 			},
 			{
