@@ -15,8 +15,13 @@ provider "coralogix" {
 resource "coralogix_webhook" "slack_webhook" {
   name  = "slack-webhook"
   slack = {
-    notify_about = ["flow_anomalies"]
+    notify_on = ["flow_anomalies"]
     url          = "https://join.slack.com/example"
+    attachments  = [
+      {
+        type  = "metric_snapshot"
+        active = true
+      }]
   }
 }
 

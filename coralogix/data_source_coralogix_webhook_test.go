@@ -7,7 +7,9 @@ import (
 )
 
 func TestAccCoralogixDataSourceWebhook_basic(t *testing.T) {
-	w := getRandomWebhook()
+	w := &slackWebhookTestFields{
+		webhookTestFields: *getRandomWebhook(),
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

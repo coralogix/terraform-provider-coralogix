@@ -31,6 +31,8 @@ type OutgoingWebhooksServiceClient interface {
 	UpdateOutgoingWebhook(ctx context.Context, in *UpdateOutgoingWebhookRequest, opts ...grpc.CallOption) (*UpdateOutgoingWebhookResponse, error)
 	DeleteOutgoingWebhook(ctx context.Context, in *DeleteOutgoingWebhookRequest, opts ...grpc.CallOption) (*DeleteOutgoingWebhookResponse, error)
 	TestOutgoingWebhook(ctx context.Context, in *TestOutgoingWebhookRequest, opts ...grpc.CallOption) (*TestOutgoingWebhookResponse, error)
+	TestExistingOutgoingWebhook(ctx context.Context, in *TestExistingOutgoingWebhookRequest, opts ...grpc.CallOption) (*TestOutgoingWebhookResponse, error)
+	ListIbmEventNotificationsInstances(ctx context.Context, in *ListIbmEventNotificationsInstancesRequest, opts ...grpc.CallOption) (*ListIbmEventNotificationsInstancesResponse, error)
 }
 
 type outgoingWebhooksServiceClient struct {
@@ -122,6 +124,24 @@ func (c *outgoingWebhooksServiceClient) TestOutgoingWebhook(ctx context.Context,
 	return out, nil
 }
 
+func (c *outgoingWebhooksServiceClient) TestExistingOutgoingWebhook(ctx context.Context, in *TestExistingOutgoingWebhookRequest, opts ...grpc.CallOption) (*TestOutgoingWebhookResponse, error) {
+	out := new(TestOutgoingWebhookResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogix.outgoing_webhooks.v1.OutgoingWebhooksService/TestExistingOutgoingWebhook", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *outgoingWebhooksServiceClient) ListIbmEventNotificationsInstances(ctx context.Context, in *ListIbmEventNotificationsInstancesRequest, opts ...grpc.CallOption) (*ListIbmEventNotificationsInstancesResponse, error) {
+	out := new(ListIbmEventNotificationsInstancesResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogix.outgoing_webhooks.v1.OutgoingWebhooksService/ListIbmEventNotificationsInstances", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OutgoingWebhooksServiceServer is the server API for OutgoingWebhooksService service.
 // All implementations must embed UnimplementedOutgoingWebhooksServiceServer
 // for forward compatibility
@@ -135,6 +155,8 @@ type OutgoingWebhooksServiceServer interface {
 	UpdateOutgoingWebhook(context.Context, *UpdateOutgoingWebhookRequest) (*UpdateOutgoingWebhookResponse, error)
 	DeleteOutgoingWebhook(context.Context, *DeleteOutgoingWebhookRequest) (*DeleteOutgoingWebhookResponse, error)
 	TestOutgoingWebhook(context.Context, *TestOutgoingWebhookRequest) (*TestOutgoingWebhookResponse, error)
+	TestExistingOutgoingWebhook(context.Context, *TestExistingOutgoingWebhookRequest) (*TestOutgoingWebhookResponse, error)
+	ListIbmEventNotificationsInstances(context.Context, *ListIbmEventNotificationsInstancesRequest) (*ListIbmEventNotificationsInstancesResponse, error)
 	mustEmbedUnimplementedOutgoingWebhooksServiceServer()
 }
 
@@ -168,6 +190,12 @@ func (UnimplementedOutgoingWebhooksServiceServer) DeleteOutgoingWebhook(context.
 }
 func (UnimplementedOutgoingWebhooksServiceServer) TestOutgoingWebhook(context.Context, *TestOutgoingWebhookRequest) (*TestOutgoingWebhookResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TestOutgoingWebhook not implemented")
+}
+func (UnimplementedOutgoingWebhooksServiceServer) TestExistingOutgoingWebhook(context.Context, *TestExistingOutgoingWebhookRequest) (*TestOutgoingWebhookResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TestExistingOutgoingWebhook not implemented")
+}
+func (UnimplementedOutgoingWebhooksServiceServer) ListIbmEventNotificationsInstances(context.Context, *ListIbmEventNotificationsInstancesRequest) (*ListIbmEventNotificationsInstancesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListIbmEventNotificationsInstances not implemented")
 }
 func (UnimplementedOutgoingWebhooksServiceServer) mustEmbedUnimplementedOutgoingWebhooksServiceServer() {
 }
@@ -345,6 +373,42 @@ func _OutgoingWebhooksService_TestOutgoingWebhook_Handler(srv interface{}, ctx c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _OutgoingWebhooksService_TestExistingOutgoingWebhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TestExistingOutgoingWebhookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OutgoingWebhooksServiceServer).TestExistingOutgoingWebhook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogix.outgoing_webhooks.v1.OutgoingWebhooksService/TestExistingOutgoingWebhook",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OutgoingWebhooksServiceServer).TestExistingOutgoingWebhook(ctx, req.(*TestExistingOutgoingWebhookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _OutgoingWebhooksService_ListIbmEventNotificationsInstances_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListIbmEventNotificationsInstancesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OutgoingWebhooksServiceServer).ListIbmEventNotificationsInstances(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogix.outgoing_webhooks.v1.OutgoingWebhooksService/ListIbmEventNotificationsInstances",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OutgoingWebhooksServiceServer).ListIbmEventNotificationsInstances(ctx, req.(*ListIbmEventNotificationsInstancesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // OutgoingWebhooksService_ServiceDesc is the grpc.ServiceDesc for OutgoingWebhooksService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -387,6 +451,14 @@ var OutgoingWebhooksService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TestOutgoingWebhook",
 			Handler:    _OutgoingWebhooksService_TestOutgoingWebhook_Handler,
+		},
+		{
+			MethodName: "TestExistingOutgoingWebhook",
+			Handler:    _OutgoingWebhooksService_TestExistingOutgoingWebhook_Handler,
+		},
+		{
+			MethodName: "ListIbmEventNotificationsInstances",
+			Handler:    _OutgoingWebhooksService_ListIbmEventNotificationsInstances_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
