@@ -20,7 +20,12 @@ type webhookTestFields struct {
 
 type customWebhookTestFields struct {
 	webhookTestFields
-	method      string
+	method string
+}
+
+type slackWebhookTestFields struct {
+	webhookTestFields
+	notifyAbout []string
 	attachments []attachmentTestFields
 }
 
@@ -51,7 +56,16 @@ type eventBridgeWebhookTestFields struct {
 
 func TestAccCoralogixResourceSlackWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
-	webhook := getRandomWebhook()
+	webhook := &slackWebhookTestFields{
+		webhookTestFields: *getRandomWebhook(),
+		notifyAbout:       []string{"flow_anomalies"},
+		attachments: []attachmentTestFields{
+			{
+				attachmentType: selectRandomlyFromSlice(webhooksValidSlackAttachmentTypes),
+				active:         true,
+			},
+		},
+	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -64,6 +78,9 @@ func TestAccCoralogixResourceSlackWebhook(t *testing.T) {
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
 					resource.TestCheckResourceAttr(resourceName, "slack.url", webhook.url),
+					resource.TestCheckResourceAttr(resourceName, "slack.notify_about.#", "1"),
+					resource.TestCheckResourceAttr(resourceName, "slack.attachments.0.type", webhook.attachments[0].attachmentType),
+					resource.TestCheckResourceAttr(resourceName, "slack.attachments.0.active", fmt.Sprintf("%t", webhook.attachments[0].active)),
 				),
 			},
 			{
@@ -80,12 +97,6 @@ func TestAccCoralogixResourceCustomWebhook(t *testing.T) {
 	webhook := &customWebhookTestFields{
 		webhookTestFields: *getRandomWebhook(),
 		method:            selectRandomlyFromSlice(webhooksValidMethods),
-		attachments: []attachmentTestFields{
-			{
-				attachmentType: selectRandomlyFromSlice(webhooksValidSlackAttachmentTypes),
-				active:         true,
-			},
-		},
 	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -100,8 +111,6 @@ func TestAccCoralogixResourceCustomWebhook(t *testing.T) {
 					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
 					resource.TestCheckResourceAttr(resourceName, "custom.url", webhook.url),
 					resource.TestCheckResourceAttr(resourceName, "custom.method", webhook.method),
-					resource.TestCheckResourceAttr(resourceName, "custom.attachments.0.type", webhook.attachments[0].attachmentType),
-					resource.TestCheckResourceAttr(resourceName, "custom.attachments.0.active", fmt.Sprintf("%t", webhook.attachments[0].active)),
 				),
 			},
 			{
@@ -370,14 +379,19 @@ func getRandomWebhook() *webhookTestFields {
 		name: acctest.RandomWithPrefix("tf-acc-test"),
 		url:  fmt.Sprintf("https://%s/", acctest.RandomWithPrefix("tf-acc-test")),
 	}
-
 }
 
-func testAccCoralogixResourceSlackWebhook(w *webhookTestFields) string {
+func testAccCoralogixResourceSlackWebhook(w *slackWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
   	name    = "%s"
 	slack = {
         url  = "%s"
+		notify_about = ["flow_anomalies"]
+    	attachments  = [
+      	{
+        	type  = "metric_snapshot"
+        	active = true
+      	}]
   	}
 }
 `,
