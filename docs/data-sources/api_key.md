@@ -33,5 +33,5 @@ Coralogix Api keys.
 
 Read-Only:
 
-- `team_id` (Number)
+- `team_id` (String)
 - `user_id` (String)

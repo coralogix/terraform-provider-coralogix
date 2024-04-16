@@ -3,12 +3,12 @@
 page_title: "coralogix_custom_role Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Api keys.
+  Coralogix Custom roles.
 ---
 
 # coralogix_custom_role (Data Source)
 
-Coralogix Api keys.
+Coralogix Custom roles.
 
 
 
@@ -25,4 +25,3 @@ Coralogix Api keys.
 - `name` (String) Custom Role name.
 - `parent_role` (String) Parent role name
 - `permissions` (Set of String) Custom role permissions
-- `team_id` (Number) Custom Role teamId.

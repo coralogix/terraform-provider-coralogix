@@ -50,8 +50,4 @@ func testAccPreCheck(t *testing.T) {
 	if os.Getenv("CORALOGIX_ORG_KEY") == "" {
 		t.Fatalf("CORALOGIX_ORG_KEY must be set for acceptance tests")
 	}
-	//diags := testAccProvider.Configure(ctx, terraform.NewResourceConfigRaw(nil))
-	//if diags.HasError() {
-	//	t.Fatal(diags[0].Summary)
-	//}
 }

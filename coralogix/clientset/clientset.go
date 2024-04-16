@@ -118,9 +118,8 @@ func (c *ClientSet) Users() *UsersClient {
 	return c.users
 }
 
-func NewClientSet(targetUrl, apiKey, orgKey string) *ClientSet {
+func NewClientSet(targetUrl, apiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
-	teamsCPC := NewCallPropertiesCreator(targetUrl, orgKey)
 
 	return &ClientSet{
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
@@ -139,10 +138,10 @@ func NewClientSet(targetUrl, apiKey, orgKey string) *ClientSet {
 		archiveMetrics:      NewArchiveMetricsClient(apikeyCPC),
 		archiveLogs:         NewArchiveLogsClient(apikeyCPC),
 		alertsSchedulers:    NewAlertsSchedulersClient(apikeyCPC),
-		teams:               NewTeamsClient(teamsCPC),
+		teams:               NewTeamsClient(apikeyCPC),
 		slos:                NewSLOsClient(apikeyCPC),
 		dahboardsFolders:    NewDashboardsFoldersClient(apikeyCPC),
-		apiKeys:             NewApiKeysClient(teamsCPC),
+		apiKeys:             NewApiKeysClient(apikeyCPC),
 		groups:              NewGroupsClient(apikeyCPC),
 		users:               NewUsersClient(apikeyCPC),
 		customRole:          NewRolesClient(apikeyCPC),
