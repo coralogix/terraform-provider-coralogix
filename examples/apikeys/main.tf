@@ -8,7 +8,7 @@ terraform {
 }
 
 provider "coralogix" {
-#  org_key = "<ORG_KEY>"
+#  api_key = "<API_KEY>"
 #  domain  = "<DOMAIN>"
 }
 

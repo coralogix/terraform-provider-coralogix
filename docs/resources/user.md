@@ -57,3 +57,18 @@ Read-Only:
 - `primary` (Boolean)
 - `type` (String)
 - `value` (String)
+
+### Import
+
+```sh
+terraform import coralogix_user.example <user-id>
+```
+
+to get the user id you can use the following command:
+```sh
+curl --location --request GET 'https://ng-api-http.<region-domain>/scim/Users' \
+--header 'Authorization: Bearer <api-key>' \'  
+```
+[region-domain table](../index.md#region-domain-table)
+
+

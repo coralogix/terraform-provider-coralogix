@@ -13,14 +13,25 @@ Coralogix group.
 ## Example Usage
 
 ```hcl
-resource "coralogix_group" "example" {
-  display_name = "example"
-  role         = "Read Only"
-  members      = [coralogix_user.example.id]
+resource "coralogix_custom_role" "example" {
+  name  = "Example custom role"
+  description = "This role is created with terraform!"
+  parent_role = "Standard User"
+  permissions = ["spans.events2metrics:UpdateConfig"]
 }
 
 resource "coralogix_user" "example" {
   user_name = "example@coralogix.com"
+  name      = {
+    given_name  = "example"
+    family_name = "example"
+  }
+}
+
+resource "coralogix_group" "example" {
+  display_name = "example"
+  role         = coralogix_custom_role.example.name
+  members      = [coralogix_user.example.id]
 }
 ```
 
@@ -40,3 +51,17 @@ resource "coralogix_user" "example" {
 ### Read-Only
 
 - `id` (String) Group ID.
+
+### Import
+
+```sh
+terraform import coralogix_group.example <group-id>
+```
+
+to get the group id you can use the following command:
+```sh
+curl --location --request GET 'https://ng-api-http.<region-domain>/scim/Groups' \
+--header 'Authorization: Bearer <api-key>' \'  
+```
+[region-domain table](../index.md#region-domain-table)
+

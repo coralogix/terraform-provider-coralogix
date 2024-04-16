@@ -48,5 +48,11 @@ resource "coralogix_api_key" "example" {
 
 Optional:
 
-- `team_id` (Number)
+- `team_id` (String)
 - `user_id` (String)
+
+### Import
+
+```sh
+terraform import coralogix_api_key.example <api_key-id>
+```

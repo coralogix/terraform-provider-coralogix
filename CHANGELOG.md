@@ -533,3 +533,7 @@ Bug fixing:
 New Features:
 #### resource/coralogix_webhook
 * adding `attachments` to `slack` webhook type [attachments](docs/resources/webhook.md#nested-schema-for-slackattachments). fixing [issue](https://github.com/coralogix/terraform-provider-coralogix/issues/219).
+
+## Release 1.13.4
+Breaking Changes:
+* `org_key` and `CORALOGIX_ORG_KEY` were removed from the provider configuration. use `api_key` and `CORALOGIX_API_KEY` instead.

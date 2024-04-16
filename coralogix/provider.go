@@ -64,12 +64,6 @@ func OldProvider() *oldSchema.Provider {
 				//ValidateFunc: validation.IsUUID,
 				Description: "A key for using coralogix APIs (Auto Generated), appropriate for the defined environment. environment variable 'CORALOGIX_API_KEY' can be defined instead.",
 			},
-			"org_key": {
-				Type:        oldSchema.TypeString,
-				Optional:    true,
-				Sensitive:   true,
-				Description: "A key for using coralogix APIs in the organisation level, appropriate for the defined environment. environment variable 'CORALOGIX_ORG_KEY' can be defined instead.",
-			},
 		},
 
 		DataSourcesMap: map[string]*oldSchema.Resource{
@@ -116,16 +110,11 @@ func OldProvider() *oldSchema.Provider {
 				apiKey = d.Get("api_key").(string)
 			}
 
-			orgKey := os.Getenv("CORALOGIX_ORG_KEY")
-			if orgKey == "" {
-				orgKey = d.Get("org_key").(string)
+			if apiKey == "" {
+				return nil, diag.Errorf("At least one of the field 'api_key' or environment variable 'CORALOGIX_API_KEY' should be define")
 			}
 
-			if apiKey == "" && orgKey == "" {
-				return nil, diag.Errorf("At least one of the fields 'api_key' or 'org_key', or one of the environment variables 'CORALOGIX_API_KEY' or 'CORALOGIX_ORG_KEY' have to be define")
-			}
-
-			return clientset.NewClientSet(targetUrl, apiKey, orgKey), nil
+			return clientset.NewClientSet(targetUrl, apiKey), nil
 		},
 	}
 }
@@ -134,7 +123,6 @@ type coralogixProviderModel struct {
 	Env    types.String `tfsdk:"env"`
 	Domain types.String `tfsdk:"domain"`
 	ApiKey types.String `tfsdk:"api_key"`
-	OrgKey types.String `tfsdk:"org_key"`
 }
 
 var (
@@ -173,11 +161,6 @@ func (p *coralogixProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 				Optional:    true,
 				Sensitive:   true,
 				Description: "A key for using coralogix APIs (Auto Generated), appropriate for the defined environment. environment variable 'CORALOGIX_API_KEY' can be defined instead.",
-			},
-			"org_key": schema.StringAttribute{
-				Optional:    true,
-				Sensitive:   true,
-				Description: "A key for using coralogix APIs in the organisation level, appropriate for the defined environment. environment variable 'CORALOGIX_ORG_KEY' can be defined instead.",
 			},
 		},
 	}
@@ -221,15 +204,6 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 		)
 	}
 
-	if config.OrgKey.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("org_key"),
-			"Unknown Coralogix API Org-Key",
-			"The provider cannot create the Coralogix API client as there is an unknown configuration value for the Coralogix Org-Key. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the CORALOGIX_ORG_KEY environment variable.",
-		)
-	}
-
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -240,7 +214,6 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	domain := os.Getenv("CORALOGIX_DOMAIN")
 	env := os.Getenv("CORALOGIX_ENV")
 	apiKey := os.Getenv("CORALOGIX_API_KEY")
-	orgKey := os.Getenv("CORALOGIX_ORG_KEY")
 
 	if !config.Domain.IsNull() {
 		domain = config.Domain.ValueString()
@@ -254,9 +227,6 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 		apiKey = config.ApiKey.ValueString()
 	}
 
-	if !config.OrgKey.IsNull() {
-		orgKey = config.OrgKey.ValueString()
-	}
 	// If any of the expected configurations are missing, return
 	// errors with provider-specific guidance.
 
@@ -288,7 +258,7 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 		resp.Diagnostics.AddAttributeError(path.Root("env"), "Invalid Coralogix env", fmt.Sprintf("The Coralogix env must be one of %q", validEnvs))
 	}
 
-	if apiKey == "" && orgKey == "" {
+	if apiKey == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("api_key"),
 			"Missing Coralogix API API-Key",
@@ -309,7 +279,7 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 		targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
 	}
 
-	clientSet := clientset.NewClientSet(targetUrl, apiKey, orgKey)
+	clientSet := clientset.NewClientSet(targetUrl, apiKey)
 	resp.DataSourceData = clientSet
 	resp.ResourceData = clientSet
 }
