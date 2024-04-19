@@ -91,3 +91,17 @@ Required:
 Optional:
 
 - `labels` (Map of String) Labels to add or overwrite before storing the result.
+
+## Import
+
+```sh
+terraform import coralogix_recording_rules_groups_set.example <recording-rules-groups-set-id>
+```
+
+To get the recording-rules-groups-set id run the following command and look for the id field of the recording-rules-groups-set you want to import:
+```sh
+grpcurl -H "Authorization: Bearer <api-key>" -d @ ng-api-grpc.<region-domain>:443 rule_manager.groups.RuleGroupSets/List <<EOF
+{
+}
+EOF
+```
