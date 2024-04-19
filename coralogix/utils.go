@@ -269,7 +269,11 @@ func float32SliceTypeList(ctx context.Context, arr []float32) (types.List, diag2
 	}
 	result := make([]attr.Value, 0, len(arr))
 	for _, v := range arr {
-		result = append(result, types.Float64Value(float64(v*10000)/float64(10000)))
+		if float32(int(v)) != v {
+			result = append(result, types.Float64Value(float64(v*10000)/float64(10000)))
+		} else {
+			result = append(result, types.Float64Value(float64(v)))
+		}
 	}
 	return types.ListValueFrom(ctx, types.Float64Type, result)
 }
