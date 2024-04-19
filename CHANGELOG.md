@@ -537,3 +537,8 @@ New Features:
 ## Release 1.13.4
 Breaking Changes:
 * `org_key` and `CORALOGIX_ORG_KEY` were removed from the provider configuration. use `api_key` and `CORALOGIX_API_KEY` instead.
+
+## Release 1.13.5
+Bug fixing:
+#### resource/coralogix_events2metric
+* fixing conversion of `buckets` from `float32` to `float64`.
