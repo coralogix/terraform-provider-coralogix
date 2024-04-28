@@ -758,23 +758,23 @@ Optional:
 
 Required:
 
+- `promql_query` (String)
 - `strategy` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics--strategy))
 
 Optional:
 
 - `labels` (List of String)
 - `message_template` (String)
-- `promql_query` (String)
 
 <a id="nestedatt--annotations--source--metrics--strategy"></a>
-### Nested Schema for `annotations.source.metrics.promql_query`
+### Nested Schema for `annotations.source.metrics.message_template`
 
 Required:
 
-- `start_time` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics--promql_query--start_time))
+- `start_time` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics--message_template--start_time))
 
-<a id="nestedatt--annotations--source--metrics--promql_query--start_time"></a>
-### Nested Schema for `annotations.source.metrics.promql_query.start_time`
+<a id="nestedatt--annotations--source--metrics--message_template--start_time"></a>
+### Nested Schema for `annotations.source.metrics.message_template.start_time`
 
 
 
@@ -1306,11 +1306,14 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--metrics"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans`
 
+Required:
+
+- `promql_query` (String)
+
 Optional:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters))
 - `group_names` (List of String)
-- `promql_query` (String)
 - `stacked_group_name` (String)
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters"></a>
@@ -1681,10 +1684,13 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--metrics"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans`
 
+Required:
+
+- `promql_query` (String)
+
 Optional:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters))
-- `promql_query` (String)
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters`
@@ -2241,11 +2247,14 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--metrics"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans`
 
+Required:
+
+- `promql_query` (String)
+
 Optional:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters))
 - `group_names` (List of String)
-- `promql_query` (String)
 - `stacked_group_name` (String)
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters"></a>
@@ -2473,13 +2482,16 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.metrics`
 
+Required:
+
+- `promql_query` (String)
+
 Optional:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics--filters))
-- `promql_query` (String)
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.metrics.promql_query`
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.metrics.filters`
 
 Required:
 
@@ -2490,8 +2502,8 @@ Optional:
 
 - `label` (String) Label associated with the metric.
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics--promql_query--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.metrics.promql_query.label`
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.metrics.filters.label`
 
 Required:
 
@@ -2850,11 +2862,14 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--metrics"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans`
 
+Required:
+
+- `promql_query` (String)
+
 Optional:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters))
 - `group_names` (List of String)
-- `promql_query` (String)
 - `stacked_group_name` (String)
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters"></a>
