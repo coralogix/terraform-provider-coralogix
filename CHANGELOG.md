@@ -542,3 +542,9 @@ Breaking Changes:
 Bug fixing:
 #### resource/coralogix_events2metric
 * fixing conversion of `buckets` from `float32` to `float64`.
+
+## Release 1.13.6
+Bug fixing:
+#### resource/coralogix_dashboard
+* replace in a case of not_found error in `coralogix_dashboard` resource.
+* adding validations.
