@@ -68,9 +68,8 @@ func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadReq
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			data.ID = types.StringNull()
-			resp.Diagnostics.AddWarning(
+			resp.Diagnostics.AddWarning(err.Error(),
 				fmt.Sprintf("archive-Logs %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
 			resp.Diagnostics.AddError(

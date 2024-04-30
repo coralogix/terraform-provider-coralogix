@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -70,10 +69,9 @@ func (d *SLODataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
-			data.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
+				err.Error(),
 				fmt.Sprintf("SLO %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 		} else {
 			resp.Diagnostics.AddError(

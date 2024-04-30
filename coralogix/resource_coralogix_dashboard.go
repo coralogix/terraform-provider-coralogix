@@ -945,6 +945,7 @@ func (r *DashboardResource) Schema(_ context.Context, req resource.SchemaRequest
 func dashboardSchemaAttributes() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"id": schema.StringAttribute{
+			Optional: true,
 			Computed: true,
 			PlanModifiers: []planmodifier.String{
 				stringplanmodifier.UseStateForUnknown(),

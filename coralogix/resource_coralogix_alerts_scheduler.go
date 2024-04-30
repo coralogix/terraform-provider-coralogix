@@ -1093,11 +1093,11 @@ func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadReq
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
-			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("alerts-scheduler %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading alerts-scheduler",
@@ -1158,11 +1158,11 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
-			plan.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("alerts-scheduler %s is in state, but no longer exists in Coralogix backend", *id),
 				fmt.Sprintf("%s will be recreated when you apply", *id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading alerts-scheduler",

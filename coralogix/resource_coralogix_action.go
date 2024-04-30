@@ -209,11 +209,11 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
-			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Action %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",
@@ -264,11 +264,11 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
-			plan.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Action %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",

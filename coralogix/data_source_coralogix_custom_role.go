@@ -81,8 +81,8 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
+				err.Error(),
 				fmt.Sprintf("Custom role  %q is in state, but no longer exists in Coralogix backend", roleId),
-				fmt.Sprintf("%v will be recreated when you apply", roleId),
 			)
 		} else {
 			resp.Diagnostics.AddError(
