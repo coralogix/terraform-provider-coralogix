@@ -335,6 +335,11 @@ func (r *ApiKeyResource) getKeyInfo(ctx context.Context, id *string, keyValue *s
 				"Error getting Api Key",
 				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", getApiKeyPath),
 			)
+		} else if status.Code(err) == codes.NotFound {
+			diags.AddError(
+				"Error getting Api Key",
+				fmt.Sprintf("Api Key with id %s not found", *id),
+			)
 		} else {
 			diags.AddError(
 				"Error getting Api Key",

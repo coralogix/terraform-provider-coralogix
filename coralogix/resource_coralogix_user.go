@@ -259,11 +259,11 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
-			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("User %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading User",
@@ -335,11 +335,11 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
-			plan.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("User %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading User",

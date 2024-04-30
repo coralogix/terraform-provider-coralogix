@@ -447,6 +447,7 @@ func (r *SLOResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 				fmt.Sprintf("SLO %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",
@@ -507,6 +508,7 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 				fmt.Sprintf("SLO %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",

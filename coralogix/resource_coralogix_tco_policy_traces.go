@@ -354,11 +354,11 @@ func (r *TCOPolicyTracesResource) Read(ctx context.Context, req resource.ReadReq
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
-			state.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("tco-policy %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
 			reqStr := protojson.Format(getPolicyReq)
 			resp.Diagnostics.AddError(
@@ -429,11 +429,11 @@ func (r TCOPolicyTracesResource) Update(ctx context.Context, req resource.Update
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
-			plan.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("tco-policy %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading tco-policy",

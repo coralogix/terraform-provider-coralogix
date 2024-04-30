@@ -15,6 +15,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"terraform-provider-coralogix/coralogix/clientset"
 	roles "terraform-provider-coralogix/coralogix/clientset/grpc/roles"
@@ -135,8 +137,7 @@ func (c *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 
 func (c *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var currentState *RolesModel
-	diags := req.State.Get(ctx, &currentState)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &currentState)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -145,54 +146,46 @@ func (c *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 		resp.Diagnostics.AddError("Invalid Id", "Custom role id must be an int")
 		return
 	}
-	model, done := c.getRoleById(ctx, uint32(roleId))
 
-	if done.HasError() {
+	readReq := &roles.GetCustomRoleRequest{RoleId: uint32(roleId)}
+	log.Printf("[INFO] Reading Custom Role: %s", protojson.Format(readReq))
+	role, err := c.client.GetRole(ctx, readReq)
+	if err != nil {
+		log.Printf("[ERROR] Received error: %s", err.Error())
+		if status.Code(err) == codes.NotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("Custom Role %q is in state, but no longer exists in Coralogix backend", roleId),
+				fmt.Sprintf("%d will be recreated when you apply", roleId),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error reading Custom Role",
+				formatRpcErrors(err, getRolePath, protojson.Format(readReq)),
+			)
+		}
+		return
+	}
+	flattenedRule, diags := flatterCustomRole(ctx, role.GetRole())
+	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-
-	diags = resp.State.Set(ctx, model)
-	resp.Diagnostics.Append(diags...)
-}
-
-func (c *CustomRoleSource) getRoleById(ctx context.Context, roleId uint32) (*RolesModel, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	getCustomRoleRequest := roles.GetCustomRoleRequest{
-		RoleId: roleId,
-	}
-
-	createCustomRoleResponse, err := c.client.GetRole(ctx, &getCustomRoleRequest)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		diags.AddError(
-			"Error getting Custom Role",
-			formatRpcErrors(err, getRolePath, protojson.Format(&getCustomRoleRequest)),
-		)
-		return nil, diags
-	}
-
-	model, diags := flatterCustomRole(ctx, createCustomRoleResponse.GetRole())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return model, nil
+	resp.Diagnostics.Append(resp.State.Set(ctx, flattenedRule)...)
 }
 
 func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var currentState, desiredState *RolesModel
-	diags := req.State.Get(ctx, &currentState)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &currentState)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &desiredState)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	diags = req.Plan.Get(ctx, &desiredState)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+
 	roleId, err := strconv.Atoi(currentState.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Invalid Id", "Custom role id must be an int")
@@ -203,8 +196,7 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	if currentState.ParentRole != desiredState.ParentRole {
-		diags.AddError("Custom role update error", "ParentRole can not be updated!")
-		resp.Diagnostics.Append(diags...)
+		resp.Diagnostics.AddError("Custom role update error", "ParentRole can not be updated!")
 		return
 	}
 
@@ -238,10 +230,6 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	log.Printf("[INFO] Custom Role %v updated", roleId)
-
-	if diags.HasError() {
-		return
-	}
 
 	// Set state to fully populated data
 	resp.Diagnostics.Append(resp.State.Set(ctx, desiredState)...)

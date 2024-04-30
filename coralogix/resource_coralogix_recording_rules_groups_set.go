@@ -386,6 +386,7 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
@@ -550,6 +551,7 @@ func (r *RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.R
 				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
@@ -604,6 +606,7 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", plan.ID.ValueString()),
 				fmt.Sprintf("%s will be recreated when you apply", plan.ID.ValueString()),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
@@ -639,8 +642,9 @@ func (r *RecordingRuleGroupSetResource) Delete(ctx context.Context, req resource
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", id),
-				"",
+				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error deleting recording-rule-group-set",
