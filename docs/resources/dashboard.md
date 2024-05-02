@@ -1639,15 +1639,12 @@ Required:
 
 Optional:
 
+- `id` (String)
 - `is_visible` (Boolean)
 - `name` (String)
 
-Read-Only:
-
-- `id` (String)
-
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_bys--aggregation"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping.group_bys.id`
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping.group_bys.name`
 
 Required:
 

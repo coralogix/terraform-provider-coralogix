@@ -115,8 +115,7 @@ func testAccTCOPoliciesTracesCheckDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceTCOPoliciesTraces() string {
-	return `resource "coralogix_tco_policy_traces" "test" 
-			{
+	return `resource "coralogix_tco_policy_traces" "test"{
 				policies = [
 				{
 				  name       = "Example tco_policy from terraform 1"
@@ -165,7 +164,7 @@ func testAccCoralogixResourceTCOPoliciesTraces() string {
 					"tags.http.method" = {
 				    	rule_type = "includes"
 				        names = ["GET", "POST"]
-				    }
+				    	}
 				  }
 				},
 				{
@@ -194,5 +193,5 @@ func testAccCoralogixResourceTCOPoliciesTraces() string {
 				}
 				]
 			}
-`
+	`
 }
