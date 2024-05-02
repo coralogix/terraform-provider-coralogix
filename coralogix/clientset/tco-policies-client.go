@@ -10,6 +10,45 @@ type TCOPoliciesClient struct {
 	callPropertiesCreator *CallPropertiesCreator
 }
 
+func (t TCOPoliciesClient) OverwriteTCOLogsPolicies(ctx context.Context, req *tcopolicies.AtomicOverwriteLogPoliciesRequest) (*tcopolicies.AtomicOverwriteLogPoliciesResponse, error) {
+	callProperties, err := t.callPropertiesCreator.GetCallProperties(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	conn := callProperties.Connection
+	defer conn.Close()
+	client := tcopolicies.NewPoliciesServiceClient(conn)
+
+	return client.AtomicOverwriteLogPolicies(callProperties.Ctx, req, callProperties.CallOptions...)
+}
+
+func (t TCOPoliciesClient) GetTCOPolicies(ctx context.Context, req *tcopolicies.GetCompanyPoliciesRequest) (*tcopolicies.GetCompanyPoliciesResponse, error) {
+	callProperties, err := t.callPropertiesCreator.GetCallProperties(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	conn := callProperties.Connection
+	defer conn.Close()
+	client := tcopolicies.NewPoliciesServiceClient(conn)
+
+	return client.GetCompanyPolicies(callProperties.Ctx, req, callProperties.CallOptions...)
+}
+
+func (t TCOPoliciesClient) OverwriteTCOTracesPolicies(ctx context.Context, req *tcopolicies.AtomicOverwriteSpanPoliciesRequest) (*tcopolicies.AtomicOverwriteSpanPoliciesResponse, error) {
+	callProperties, err := t.callPropertiesCreator.GetCallProperties(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	conn := callProperties.Connection
+	defer conn.Close()
+	client := tcopolicies.NewPoliciesServiceClient(conn)
+
+	return client.AtomicOverwriteSpanPolicies(callProperties.Ctx, req, callProperties.CallOptions...)
+}
+
 func (t TCOPoliciesClient) CreateTCOPolicy(ctx context.Context, req *tcopolicies.CreatePolicyRequest) (*tcopolicies.CreatePolicyResponse, error) {
 	callProperties, err := t.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
@@ -60,19 +99,6 @@ func (t TCOPoliciesClient) DeleteTCOPolicy(ctx context.Context, req *tcopolicies
 	client := tcopolicies.NewPoliciesServiceClient(conn)
 
 	return client.DeletePolicy(callProperties.Ctx, req, callProperties.CallOptions...)
-}
-
-func (t TCOPoliciesClient) GetTCOPolicies(ctx context.Context, req *tcopolicies.GetCompanyPoliciesRequest) (*tcopolicies.GetCompanyPoliciesResponse, error) {
-	callProperties, err := t.callPropertiesCreator.GetCallProperties(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	conn := callProperties.Connection
-	defer conn.Close()
-	client := tcopolicies.NewPoliciesServiceClient(conn)
-
-	return client.GetCompanyPolicies(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 func (t TCOPoliciesClient) ReorderTCOPolicies(ctx context.Context, req *tcopolicies.ReorderPoliciesRequest) (*tcopolicies.ReorderPoliciesResponse, error) {
