@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-var tcoPolicyTracesDataSourceName = "data." + tcoPolicyTracesResourceName1
+var tcoPoliciesTracesDataSourceName = "data." + tcoPoliciesTracesResourceName
 
 func TestAccCoralogixDataSourceTCOPolicyTraces_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -14,10 +14,10 @@ func TestAccCoralogixDataSourceTCOPolicyTraces_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceTCOPolicyTraces() +
+				Config: testAccCoralogixResourceTCOPoliciesTraces() +
 					testAccCoralogixResourceTCOPolicyTraces_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(tcoPolicyTracesDataSourceName, "id"),
+					resource.TestCheckResourceAttr(tcoPoliciesTracesDataSourceName, "policies.#", "3"),
 				),
 			},
 		},

@@ -19,10 +19,10 @@ func TestAccCoralogixResourceTCOPolicyTracesCreate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccTCOPolicyTracesCheckDestroy,
+		CheckDestroy:             testAccTCOPoliciesTracesCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:  testAccCoralogixResourceTCOPolicyTraces(),
+				Config:  testAccCoralogixResourceTCOPoliciesTraces(),
 				Destroy: false,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesTracesResourceName, "policies.0.name", "Example tco_policy from terraform 1"),
@@ -96,7 +96,7 @@ func TestAccCoralogixResourceTCOPolicyTracesCreate(t *testing.T) {
 	})
 }
 
-func testAccTCOPolicyTracesCheckDestroy(s *terraform.State) error {
+func testAccTCOPoliciesTracesCheckDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*clientset.ClientSet).TCOPolicies()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {
@@ -114,7 +114,7 @@ func testAccTCOPolicyTracesCheckDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCoralogixResourceTCOPolicyTraces() string {
+func testAccCoralogixResourceTCOPoliciesTraces() string {
 	return `resource "coralogix_tco_policy_traces" "test" 
 			{
 				policies = [

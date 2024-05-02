@@ -15,11 +15,11 @@ import (
 
 var tcoPoliciesResourceName = "coralogix_tco_policies_logs.test"
 
-func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
+func TestAccCoralogixResourceTCOPoliciesLogsCreate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccTCOPolicyCheckDestroy,
+		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config:  testAccCoralogixResourceTCOPolicy(),
@@ -73,7 +73,7 @@ func TestAccCoralogixResourceTCOPolicyCreate(t *testing.T) {
 	})
 }
 
-func testAccTCOPolicyCheckDestroy(s *terraform.State) error {
+func testAccTCOPoliciesLogsCheckDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*clientset.ClientSet).TCOPolicies()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {
@@ -93,7 +93,7 @@ func testAccTCOPolicyCheckDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCoralogixResourceTCOPolicy() string {
+func testAccCoralogixResourceTCOPoliciesLogs() string {
 	return `resource "coralogix_tco_policies_logs" test {
 					policies = [
 					{
@@ -139,7 +139,7 @@ func testAccCoralogixResourceTCOPolicy() string {
     						names = ["mobile", "web"]
 						}
 					}
-					]
+			]
 	}
 	`
 }
