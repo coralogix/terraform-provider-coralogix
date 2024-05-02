@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"terraform-provider-coralogix/coralogix/clientset"
 	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
@@ -30,6 +31,7 @@ import (
 var (
 	_                            resource.ResourceWithConfigure      = &TCOPoliciesTracesResource{}
 	_                            resource.ResourceWithValidateConfig = &TCOPoliciesTracesResource{}
+	_                            resource.ResourceWithImportState    = &TCOPoliciesTracesResource{}
 	tracesSource                                                     = tcopolicies.SourceType_SOURCE_TYPE_SPANS
 	overrideTCOPoliciesTracesURL                                     = "com.coralogix.quota.v1.PoliciesService/AtomicOverwriteSpanPolicies"
 )
@@ -40,6 +42,10 @@ func NewTCOPoliciesTracesResource() resource.Resource {
 
 type TCOPoliciesTracesResource struct {
 	client *clientset.TCOPoliciesClient
+}
+
+func (r *TCOPoliciesTracesResource) ImportState(ctx context.Context, request resource.ImportStateRequest, response *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), request, response)
 }
 
 type TCOPolicyTracesModel struct {
@@ -81,6 +87,10 @@ func (r *TCOPoliciesTracesResource) Configure(_ context.Context, req resource.Co
 func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "This field can be ignored",
+			},
 			"policies": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{

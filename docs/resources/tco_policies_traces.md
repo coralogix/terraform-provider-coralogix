@@ -161,3 +161,10 @@ Required:
 Optional:
 
 - `rule_type` (String)
+
+## Import
+```sh
+terraform import coralogix_tco_policies_traces.example ""
+```
+
+terraform will import all the policies from the Coralogix TCO-Policies-List.

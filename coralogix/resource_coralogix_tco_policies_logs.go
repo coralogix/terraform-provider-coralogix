@@ -29,8 +29,9 @@ import (
 )
 
 var (
-	_                                resource.ResourceWithConfigure = &TCOPoliciesLogsResource{}
-	tcoPoliciesPrioritySchemaToProto                                = map[string]tcopolicies.Priority{
+	_                                resource.ResourceWithConfigure   = &TCOPoliciesLogsResource{}
+	_                                resource.ResourceWithImportState = &TCOPoliciesLogsResource{}
+	tcoPoliciesPrioritySchemaToProto                                  = map[string]tcopolicies.Priority{
 		"block":  tcopolicies.Priority_PRIORITY_TYPE_BLOCK,
 		"high":   tcopolicies.Priority_PRIORITY_TYPE_HIGH,
 		"low":    tcopolicies.Priority_PRIORITY_TYPE_LOW,
@@ -69,8 +70,13 @@ type TCOPoliciesLogsResource struct {
 	client *clientset.TCOPoliciesClient
 }
 
+func (r *TCOPoliciesLogsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
 type TCOPoliciesListModel struct {
-	Policies types.List `tfsdk:"policies"` // TCOPolicyLogsModel
+	ID       types.String `tfsdk:"id"`
+	Policies types.List   `tfsdk:"policies"` // TCOPolicyLogsModel
 }
 
 type TCOPolicyLogsModel struct {
@@ -115,6 +121,10 @@ func (r *TCOPoliciesLogsResource) Configure(_ context.Context, req resource.Conf
 func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed:            true,
+				MarkdownDescription: "This field can be ignored",
+			},
 			"policies": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
