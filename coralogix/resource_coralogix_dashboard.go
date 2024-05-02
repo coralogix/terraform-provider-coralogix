@@ -1228,6 +1228,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																									Attributes: map[string]schema.Attribute{
 																										"id": schema.StringAttribute{
 																											Computed: true,
+																											Optional: true,
 																											PlanModifiers: []planmodifier.String{
 																												stringplanmodifier.UseStateForUnknown(),
 																											},

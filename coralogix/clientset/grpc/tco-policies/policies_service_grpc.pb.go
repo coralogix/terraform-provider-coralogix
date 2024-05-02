@@ -30,6 +30,9 @@ type PoliciesServiceClient interface {
 	ReorderPolicies(ctx context.Context, in *ReorderPoliciesRequest, opts ...grpc.CallOption) (*ReorderPoliciesResponse, error)
 	BulkTestLogPolicies(ctx context.Context, in *BulkTestLogPoliciesRequest, opts ...grpc.CallOption) (*BulkTestLogPoliciesResponse, error)
 	TogglePolicy(ctx context.Context, in *TogglePolicyRequest, opts ...grpc.CallOption) (*TogglePolicyResponse, error)
+	AtomicBatchCreatePolicy(ctx context.Context, in *AtomicBatchCreatePolicyRequest, opts ...grpc.CallOption) (*AtomicBatchCreatePolicyResponse, error)
+	AtomicOverwriteLogPolicies(ctx context.Context, in *AtomicOverwriteLogPoliciesRequest, opts ...grpc.CallOption) (*AtomicOverwriteLogPoliciesResponse, error)
+	AtomicOverwriteSpanPolicies(ctx context.Context, in *AtomicOverwriteSpanPoliciesRequest, opts ...grpc.CallOption) (*AtomicOverwriteSpanPoliciesResponse, error)
 }
 
 type policiesServiceClient struct {
@@ -112,6 +115,33 @@ func (c *policiesServiceClient) TogglePolicy(ctx context.Context, in *TogglePoli
 	return out, nil
 }
 
+func (c *policiesServiceClient) AtomicBatchCreatePolicy(ctx context.Context, in *AtomicBatchCreatePolicyRequest, opts ...grpc.CallOption) (*AtomicBatchCreatePolicyResponse, error) {
+	out := new(AtomicBatchCreatePolicyResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogix.quota.v1.PoliciesService/AtomicBatchCreatePolicy", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *policiesServiceClient) AtomicOverwriteLogPolicies(ctx context.Context, in *AtomicOverwriteLogPoliciesRequest, opts ...grpc.CallOption) (*AtomicOverwriteLogPoliciesResponse, error) {
+	out := new(AtomicOverwriteLogPoliciesResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *policiesServiceClient) AtomicOverwriteSpanPolicies(ctx context.Context, in *AtomicOverwriteSpanPoliciesRequest, opts ...grpc.CallOption) (*AtomicOverwriteSpanPoliciesResponse, error) {
+	out := new(AtomicOverwriteSpanPoliciesResponse)
+	err := c.cc.Invoke(ctx, "/com.coralogix.quota.v1.PoliciesService/AtomicOverwriteSpanPolicies", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PoliciesServiceServer is the server API for PoliciesService service.
 // All implementations must embed UnimplementedPoliciesServiceServer
 // for forward compatibility
@@ -124,6 +154,9 @@ type PoliciesServiceServer interface {
 	ReorderPolicies(context.Context, *ReorderPoliciesRequest) (*ReorderPoliciesResponse, error)
 	BulkTestLogPolicies(context.Context, *BulkTestLogPoliciesRequest) (*BulkTestLogPoliciesResponse, error)
 	TogglePolicy(context.Context, *TogglePolicyRequest) (*TogglePolicyResponse, error)
+	AtomicBatchCreatePolicy(context.Context, *AtomicBatchCreatePolicyRequest) (*AtomicBatchCreatePolicyResponse, error)
+	AtomicOverwriteLogPolicies(context.Context, *AtomicOverwriteLogPoliciesRequest) (*AtomicOverwriteLogPoliciesResponse, error)
+	AtomicOverwriteSpanPolicies(context.Context, *AtomicOverwriteSpanPoliciesRequest) (*AtomicOverwriteSpanPoliciesResponse, error)
 	mustEmbedUnimplementedPoliciesServiceServer()
 }
 
@@ -154,6 +187,15 @@ func (UnimplementedPoliciesServiceServer) BulkTestLogPolicies(context.Context, *
 }
 func (UnimplementedPoliciesServiceServer) TogglePolicy(context.Context, *TogglePolicyRequest) (*TogglePolicyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TogglePolicy not implemented")
+}
+func (UnimplementedPoliciesServiceServer) AtomicBatchCreatePolicy(context.Context, *AtomicBatchCreatePolicyRequest) (*AtomicBatchCreatePolicyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AtomicBatchCreatePolicy not implemented")
+}
+func (UnimplementedPoliciesServiceServer) AtomicOverwriteLogPolicies(context.Context, *AtomicOverwriteLogPoliciesRequest) (*AtomicOverwriteLogPoliciesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AtomicOverwriteLogPolicies not implemented")
+}
+func (UnimplementedPoliciesServiceServer) AtomicOverwriteSpanPolicies(context.Context, *AtomicOverwriteSpanPoliciesRequest) (*AtomicOverwriteSpanPoliciesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AtomicOverwriteSpanPolicies not implemented")
 }
 func (UnimplementedPoliciesServiceServer) mustEmbedUnimplementedPoliciesServiceServer() {}
 
@@ -312,6 +354,60 @@ func _PoliciesService_TogglePolicy_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PoliciesService_AtomicBatchCreatePolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AtomicBatchCreatePolicyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PoliciesServiceServer).AtomicBatchCreatePolicy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogix.quota.v1.PoliciesService/AtomicBatchCreatePolicy",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PoliciesServiceServer).AtomicBatchCreatePolicy(ctx, req.(*AtomicBatchCreatePolicyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PoliciesService_AtomicOverwriteLogPolicies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AtomicOverwriteLogPoliciesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PoliciesServiceServer).AtomicOverwriteLogPolicies(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PoliciesServiceServer).AtomicOverwriteLogPolicies(ctx, req.(*AtomicOverwriteLogPoliciesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PoliciesService_AtomicOverwriteSpanPolicies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AtomicOverwriteSpanPoliciesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PoliciesServiceServer).AtomicOverwriteSpanPolicies(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/com.coralogix.quota.v1.PoliciesService/AtomicOverwriteSpanPolicies",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PoliciesServiceServer).AtomicOverwriteSpanPolicies(ctx, req.(*AtomicOverwriteSpanPoliciesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PoliciesService_ServiceDesc is the grpc.ServiceDesc for PoliciesService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -350,6 +446,18 @@ var PoliciesService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TogglePolicy",
 			Handler:    _PoliciesService_TogglePolicy_Handler,
+		},
+		{
+			MethodName: "AtomicBatchCreatePolicy",
+			Handler:    _PoliciesService_AtomicBatchCreatePolicy_Handler,
+		},
+		{
+			MethodName: "AtomicOverwriteLogPolicies",
+			Handler:    _PoliciesService_AtomicOverwriteLogPolicies_Handler,
+		},
+		{
+			MethodName: "AtomicOverwriteSpanPolicies",
+			Handler:    _PoliciesService_AtomicOverwriteSpanPolicies_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

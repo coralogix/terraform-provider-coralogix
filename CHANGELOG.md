@@ -548,3 +548,12 @@ Bug fixing:
 #### resource/coralogix_dashboard
 * replace in a case of not_found error in `coralogix_dashboard` resource.
 * adding validations.
+
+## Release 1.14.0
+Breaking Changes:
+#### coralogix_tco_policy_logs and coralogix_tco_policy_traces 
+* Resources and Data Sources were deprecated. Use [coralogix_tco_policies_logs](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/tco_policies_logs.md) and [coralogix_tco_policies_traces](https://github.com/coralogix/terraform-provider-coralogix/tree/master/docs/resources/tco_policies_traces.md) instead.
+
+Bug fixing:
+#### resource/coralogix_dashboard
+* fixing [issue](https://github.com/coralogix/terraform-provider-coralogix/issues/224).

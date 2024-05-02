@@ -3,12 +3,12 @@
 page_title: "coralogix_tco_policy_logs Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api .
+  Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api .Please note that this resource is deprecated. Please use coralogix_tco_policies_logs instead.
 ---
 
 # coralogix_tco_policy_logs (Data Source)
 
-Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api .
+Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api .Please note that this resource is deprecated. Please use `coralogix_tco_policies_logs` instead.
 
 ## Example Usage
 
@@ -53,5 +53,3 @@ Read-Only:
 
 - `names` (Set of String)
 - `rule_type` (String)
-
-

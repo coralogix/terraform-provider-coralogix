@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -33,40 +32,14 @@ import (
 )
 
 var (
-	_                                resource.ResourceWithConfigure    = &TCOPolicyResource{}
-	_                                resource.ResourceWithImportState  = &TCOPolicyResource{}
-	_                                resource.ResourceWithUpgradeState = &TCOPolicyResource{}
-	tcoPoliciesPrioritySchemaToProto                                   = map[string]tcopolicies.Priority{
-		"block":  tcopolicies.Priority_PRIORITY_TYPE_BLOCK,
-		"high":   tcopolicies.Priority_PRIORITY_TYPE_HIGH,
-		"low":    tcopolicies.Priority_PRIORITY_TYPE_LOW,
-		"medium": tcopolicies.Priority_PRIORITY_TYPE_MEDIUM,
-	}
-	tcoPoliciesPriorityProtoToSchema = ReverseMap(tcoPoliciesPrioritySchemaToProto)
-	tcoPoliciesValidPriorities       = GetKeys(tcoPoliciesPrioritySchemaToProto)
-	tcoPoliciesRuleTypeSchemaToProto = map[string]tcopolicies.RuleTypeId{
-		"is":          tcopolicies.RuleTypeId_RULE_TYPE_ID_IS,
-		"is_not":      tcopolicies.RuleTypeId_RULE_TYPE_ID_IS_NOT,
-		"starts_with": tcopolicies.RuleTypeId_RULE_TYPE_ID_START_WITH,
-		"includes":    tcopolicies.RuleTypeId_RULE_TYPE_ID_INCLUDES,
-	}
-	tcoPoliciesRuleTypeProtoToSchema = ReverseMap(tcoPoliciesRuleTypeSchemaToProto)
-	tcoPoliciesValidRuleTypes        = GetKeys(tcoPoliciesRuleTypeSchemaToProto)
-	tcoPolicySeveritySchemaToProto   = map[string]tcopolicies.Severity{
-		"debug":    tcopolicies.Severity_SEVERITY_DEBUG,
-		"verbose":  tcopolicies.Severity_SEVERITY_VERBOSE,
-		"info":     tcopolicies.Severity_SEVERITY_INFO,
-		"warning":  tcopolicies.Severity_SEVERITY_WARNING,
-		"error":    tcopolicies.Severity_SEVERITY_ERROR,
-		"critical": tcopolicies.Severity_SEVERITY_CRITICAL,
-	}
-	tcoPolicySeverityProtoToSchema = ReverseMap(tcoPolicySeveritySchemaToProto)
-	validPolicySeverities          = GetKeys(tcoPolicySeveritySchemaToProto)
-	createTCOPolicyURL             = "com.coralogix.quota.v1.PoliciesService/CreatePolicy"
-	getTCOPolicyURL                = "com.coralogix.quota.v1.PoliciesService/GetPolicy"
-	updateTCOPolicyURL             = "com.coralogix.quota.v1.PoliciesService/UpdatePolicy"
-	deleteTCOPolicyURL             = "com.coralogix.quota.v1.PoliciesService/DeletePolicy"
-	updateTCOPoliciesOrderURL      = "com.coralogix.quota.v1.PoliciesService/ReorderPolicies"
+	_                         resource.ResourceWithConfigure    = &TCOPolicyResource{}
+	_                         resource.ResourceWithImportState  = &TCOPolicyResource{}
+	_                         resource.ResourceWithUpgradeState = &TCOPolicyResource{}
+	createTCOPolicyURL                                          = "com.coralogix.quota.v1.PoliciesService/CreatePolicy"
+	getTCOPolicyURL                                             = "com.coralogix.quota.v1.PoliciesService/GetPolicy"
+	updateTCOPolicyURL                                          = "com.coralogix.quota.v1.PoliciesService/UpdatePolicy"
+	deleteTCOPolicyURL                                          = "com.coralogix.quota.v1.PoliciesService/DeletePolicy"
+	updateTCOPoliciesOrderURL                                   = "com.coralogix.quota.v1.PoliciesService/ReorderPolicies"
 )
 
 func NewTCOPolicyResource() resource.Resource {
@@ -88,11 +61,6 @@ type TCOPolicyResourceModel struct {
 	Subsystems         types.Object `tfsdk:"subsystems"`
 	Severities         types.Set    `tfsdk:"severities"`
 	ArchiveRetentionID types.String `tfsdk:"archive_retention_id"`
-}
-
-type TCORuleModel struct {
-	RuleType types.String `tfsdk:"rule_type"`
-	Names    types.Set    `tfsdk:"names"`
 }
 
 func (r *TCOPolicyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -220,7 +188,9 @@ func (r *TCOPolicyResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
 			},
 		},
-		MarkdownDescription: "Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api .",
+		MarkdownDescription: "Coralogix TCO-Policy. For more information - https://coralogix.com/docs/tco-optimizer-api ." +
+			"Please note that this resource is deprecated. Please use `coralogix_tco_policies_logs` instead.",
+		DeprecationMessage: "This resource is deprecated. Please use `coralogix_tco_policies_logs` instead.",
 	}
 }
 
@@ -344,13 +314,6 @@ func upgradeTCOPolicyRuleV0ToV1(ctx context.Context, tCOPolicyRule types.List) t
 	obj, _ := types.ObjectValueFrom(ctx, tcoPolicyRuleAttributes(), tCORuleModelObjectV1)
 
 	return obj
-}
-
-func tcoPolicyRuleAttributes() map[string]attr.Type {
-	return map[string]attr.Type{
-		"rule_type": types.StringType,
-		"names":     types.SetType{ElemType: types.StringType},
-	}
 }
 
 type TCORuleModelV0 struct {
@@ -711,22 +674,6 @@ func flattenTCOPolicy(ctx context.Context, policy *tcopolicies.Policy) (*TCOPoli
 	return tcoPolicy, nil
 }
 
-func flattenTCOPolicyRule(ctx context.Context, rule *tcopolicies.Rule) (types.Object, diag.Diagnostics) {
-	if rule == nil {
-		return types.ObjectNull(tcoPolicyRuleAttributes()), nil
-	}
-
-	ruleType := types.StringValue(tcoPoliciesRuleTypeProtoToSchema[rule.GetRuleTypeId()])
-	names := strings.Split(rule.GetName().GetValue(), ",")
-	namesSet := stringSliceToTypeStringSet(names)
-	tcoModel := &TCORuleModel{
-		RuleType: ruleType,
-		Names:    namesSet,
-	}
-
-	return types.ObjectValueFrom(ctx, tcoPolicyRuleAttributes(), tcoModel)
-}
-
 func extractUpdateTCOPolicy(ctx context.Context, plan TCOPolicyResourceModel) (*tcopolicies.UpdatePolicyRequest, diag.Diagnostics) {
 	id := typeStringToWrapperspbString(plan.ID)
 	name := typeStringToWrapperspbString(plan.Name)
@@ -813,30 +760,6 @@ func expandLogsSourceTypeUpdate(ctx context.Context, plan TCOPolicyResourceModel
 	}, nil
 }
 
-func expandTCOPolicyRule(ctx context.Context, rule types.Object) (*tcopolicies.Rule, diag.Diagnostics) {
-	if rule.IsNull() || rule.IsUnknown() {
-		return nil, nil
-	}
-
-	tcoRuleModel := &TCORuleModel{}
-	diags := rule.As(ctx, tcoRuleModel, basetypes.ObjectAsOptions{})
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	ruleType := tcoPoliciesRuleTypeSchemaToProto[tcoRuleModel.RuleType.ValueString()]
-	names, diags := typeStringSliceToStringSlice(ctx, tcoRuleModel.Names.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-	nameStr := wrapperspb.String(strings.Join(names, ","))
-
-	return &tcopolicies.Rule{
-		RuleTypeId: ruleType,
-		Name:       nameStr,
-	}, nil
-}
-
 func updatePoliciesOrder(ctx context.Context, client *clientset.TCOPoliciesClient, policyID string, policyOrder int, sourceType tcopolicies.SourceType) (error, string) {
 	getPoliciesReq := &tcopolicies.GetCompanyPoliciesRequest{
 		EnabledOnly: wrapperspb.Bool(false),
@@ -904,54 +827,4 @@ func getPolicyDesireIndex(order int, policies []*tcopolicies.Policy) int {
 		desiredPolicyIndex = len(policies) - 1
 	}
 	return desiredPolicyIndex
-}
-
-func expandActiveRetention(archiveRetention types.String) *tcopolicies.ArchiveRetention {
-	if archiveRetention.IsNull() {
-		return nil
-	}
-
-	return &tcopolicies.ArchiveRetention{
-		Id: wrapperspb.String(archiveRetention.ValueString()),
-	}
-}
-
-func expandTCOPolicySeverities(ctx context.Context, severities []attr.Value) ([]tcopolicies.Severity, diag.Diagnostics) {
-	result := make([]tcopolicies.Severity, 0, len(severities))
-	var diags diag.Diagnostics
-	for _, severity := range severities {
-		val, err := severity.ToTerraformValue(ctx)
-		if err != nil {
-			diags.AddError("Error expanding tco-policy severities", err.Error())
-			continue
-		}
-		var str string
-		if err = val.As(&str); err != nil {
-			diags.AddError("Error expanding tco-policy severities", err.Error())
-			continue
-		}
-		s := tcoPolicySeveritySchemaToProto[str]
-		result = append(result, s)
-	}
-	return result, diags
-}
-
-func flattenArchiveRetention(archiveRetention *tcopolicies.ArchiveRetention) types.String {
-	if archiveRetention == nil || archiveRetention.Id == nil {
-		return types.StringNull()
-	}
-
-	return types.StringValue(archiveRetention.GetId().GetValue())
-}
-
-func flattenTCOPolicySeverities(severities []tcopolicies.Severity) types.Set {
-	if len(severities) == 0 {
-		return types.SetNull(types.StringType)
-	}
-
-	elements := make([]attr.Value, 0, len(severities))
-	for _, severity := range severities {
-		elements = append(elements, types.StringValue(tcoPolicySeverityProtoToSchema[severity]))
-	}
-	return types.SetValueMust(types.StringType, elements)
 }
