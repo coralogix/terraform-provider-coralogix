@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"terraform-provider-coralogix/coralogix/clientset"
 	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 
@@ -52,7 +53,14 @@ func (d *TCOPoliciesTracesDataSource) Schema(ctx context.Context, _ datasource.S
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	attributes := convertAttributes(resourceResp.Schema.Attributes)
+
+	resp.Schema = datasourceschema.Schema{
+		Attributes:          attributes,
+		Description:         resourceResp.Schema.Description,
+		MarkdownDescription: resourceResp.Schema.MarkdownDescription,
+		DeprecationMessage:  resourceResp.Schema.DeprecationMessage,
+	}
 }
 
 func (d *TCOPoliciesTracesDataSource) Read(ctx context.Context, _ datasource.ReadRequest, resp *datasource.ReadResponse) {
