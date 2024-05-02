@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-var tcoPoliciesTracesResourceName = "coralogix_tco_policy_traces.test"
+var tcoPoliciesTracesResourceName = "coralogix_tco_policies_traces.test"
 
 func TestAccCoralogixResourceTCOPoliciesTracesCreate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
