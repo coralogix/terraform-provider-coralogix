@@ -15,7 +15,7 @@ import (
 
 var tcoPoliciesTracesResourceName = "coralogix_tco_policy_traces.test"
 
-func TestAccCoralogixResourceTCOPolicyTracesCreate(t *testing.T) {
+func TestAccCoralogixResourceTCOPoliciesTracesCreate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -115,7 +115,7 @@ func testAccTCOPoliciesTracesCheckDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceTCOPoliciesTraces() string {
-	return `resource "coralogix_tco_policy_traces" "test"{
+	return `resource "coralogix_tco_policies_traces" "test"{
 				policies = [
 				{
 				  name       = "Example tco_policy from terraform 1"
