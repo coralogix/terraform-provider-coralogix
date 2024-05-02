@@ -1,6 +1,7 @@
 package coralogix
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -25,7 +26,8 @@ func TestAccCoralogixDataSourceTCOPoliciesTraces_basic(t *testing.T) {
 }
 
 func testAccCoralogixResourceTCOPoliciesTraces_read() string {
-	return `data "coralogix_tco_policies_traces" "test" {
+	return fmt.Sprintf(`data "coralogix_tco_policies_traces" "test" {
+		depends_on = [%s]
 }
-`
+`, tcoPoliciesTracesResourceName)
 }
