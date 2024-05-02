@@ -22,7 +22,7 @@ func TestAccCoralogixResourceTCOPoliciesLogsCreate(t *testing.T) {
 		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config:  testAccCoralogixResourceTCOPolicy(),
+				Config:  testAccCoralogixResourceTCOPoliciesLogs(),
 				Destroy: false,
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(tcoPoliciesResourceName, "policies.0.name", "Example tco_policy from terraform 1"),
@@ -99,7 +99,6 @@ func testAccCoralogixResourceTCOPoliciesLogs() string {
 					{
  						name       = "Example tco_policy from terraform 1"
   						priority   = "low"
-						order      = 1
 						severities = ["debug", "verbose", "info"]
  						applications = {
  					  		rule_type = "starts_with"
@@ -114,7 +113,6 @@ func testAccCoralogixResourceTCOPoliciesLogs() string {
 					{
 						name     = "Example tco_policy from terraform 2"
 						priority = "medium"
-					  	order = coralogix_tco_policy_logs.test_1.order + 1
                       	severities = ["error", "warning", "critical"]
   					 	applications = {
    						 	rule_type = "starts_with"
@@ -127,7 +125,6 @@ func testAccCoralogixResourceTCOPoliciesLogs() string {
 					},
 					{
  						name     = "Example tco_policy from terraform 3"
-						order    = coralogix_tco_policy_logs.test_2.order + 1
   						priority = "high"
   						severities = ["debug", "verbose", "info"]
   						applications = {

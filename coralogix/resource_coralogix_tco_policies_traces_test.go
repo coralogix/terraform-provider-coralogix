@@ -180,16 +180,17 @@ func testAccCoralogixResourceTCOPoliciesTraces() string {
 				    names = ["mobile", "web"]
 				  }
 				  actions = {
-				        names = ["action-name", "action-name2"]
+				  	names = ["action-name", "action-name2"]
 				  }
 				  services = {
-				      names = ["service-name", "service-name2"]
+				  	names = ["service-name", "service-name2"]
 				  }
-				   tags = {
+                  tags = {
 					"tags.http.method" = {
 				    	rule_type = "includes"
 				        names = ["GET", "POST"]
 				    }
+				  }
 				}
 				]
 			}
