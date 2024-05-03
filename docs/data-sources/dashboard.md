@@ -451,7 +451,7 @@ Read-Only:
 - `scale_type` (String)
 - `sort_by` (String) The field to sort by. Can be one of name, unspecified, value.
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of gbytes, bytes_iec, mibytes, unspecified, microseconds, milliseconds, mbytes, kibytes, gibytes, seconds, bytes, kbytes.
+- `unit` (String) The unit of the chart. Can be one of unspecified, microseconds, seconds, bytes_iec, kibytes, milliseconds, gbytes, euro_cents, usd_cents, kbytes, mbytes, mibytes, gibytes, bytes, euro, usd.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
@@ -1109,7 +1109,7 @@ Read-Only:
 - `show_outer_arc` (Boolean)
 - `threshold_by` (String) The threshold by. Can be one of ["value" "background" "unspecified"].
 - `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--thresholds))
-- `unit` (String) The unit of the gauge. Can be one of ["kbytes" "gibytes" "none" "percent" "bytes_iec" "euro_cents" "euro" "usd_cents" "bytes" "gbytes" "kibytes" "usd" "seconds" "mbytes" "mibytes" "microseconds" "milliseconds"].
+- `unit` (String) The unit of the gauge. Can be one of ["milliseconds" "bytes" "mbytes" "mibytes" "euro" "percent" "kbytes" "gibytes" "euro_cents" "usd" "microseconds" "seconds" "gbytes" "bytes_iec" "kibytes" "none" "usd_cents"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.unit`
@@ -1374,7 +1374,7 @@ Read-Only:
 - `scale_type` (String)
 - `sort_by` (String)
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of gbytes, bytes_iec, mibytes, unspecified, microseconds, milliseconds, mbytes, kibytes, gibytes, seconds, bytes, kbytes.
+- `unit` (String) The unit of the chart. Can be one of unspecified, microseconds, seconds, bytes_iec, kibytes, milliseconds, gbytes, euro_cents, usd_cents, kbytes, mbytes, mibytes, gibytes, bytes, euro, usd.
 - `y_axis_view_by` (String)
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
@@ -1608,7 +1608,7 @@ Read-Only:
 - `scale_type` (String) The scale type. Valid values are: logarithmic, unspecified, linear.
 - `series_count_limit` (Number)
 - `series_name_template` (String)
-- `unit` (String) The unit. Valid values are: gbytes, bytes_iec, mibytes, unspecified, microseconds, milliseconds, mbytes, kibytes, gibytes, seconds, bytes, kbytes.
+- `unit` (String) The unit. Valid values are: unspecified, microseconds, seconds, bytes_iec, kibytes, milliseconds, gbytes, euro_cents, usd_cents, kbytes, mbytes, mibytes, gibytes, bytes, euro, usd.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--tooltip--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.tooltip.unit`
