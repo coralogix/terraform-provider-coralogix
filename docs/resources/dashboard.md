@@ -1088,7 +1088,7 @@ Optional:
 - `scale_type` (String)
 - `sort_by` (String) The field to sort by. Can be one of name, unspecified, value.
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of gbytes, bytes_iec, mibytes, unspecified, microseconds, milliseconds, mbytes, kibytes, gibytes, seconds, bytes, kbytes.
+- `unit` (String) The unit of the chart. Can be one of unspecified, microseconds, seconds, bytes_iec, kibytes, milliseconds, gbytes, euro_cents, usd_cents, kbytes, mbytes, mibytes, gibytes, bytes, euro, usd.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
@@ -1653,11 +1653,11 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_bys--id--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_bys--name--observation_field))
 - `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_bys--id--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping.group_bys.id.percent`
+<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_bys--name--observation_field"></a>
+### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping.group_bys.name.percent`
 
 Optional:
 
@@ -2137,7 +2137,7 @@ Optional:
 - `scale_type` (String)
 - `sort_by` (String)
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of gbytes, bytes_iec, mibytes, unspecified, microseconds, milliseconds, mbytes, kibytes, gibytes, seconds, bytes, kbytes.
+- `unit` (String) The unit of the chart. Can be one of unspecified, microseconds, seconds, bytes_iec, kibytes, milliseconds, gbytes, euro_cents, usd_cents, kbytes, mbytes, mibytes, gibytes, bytes, euro, usd.
 - `y_axis_view_by` (String)
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
@@ -2390,7 +2390,7 @@ Optional:
 - `scale_type` (String) The scale type. Valid values are: logarithmic, unspecified, linear.
 - `series_count_limit` (Number)
 - `series_name_template` (String)
-- `unit` (String) The unit. Valid values are: gbytes, bytes_iec, mibytes, unspecified, microseconds, milliseconds, mbytes, kibytes, gibytes, seconds, bytes, kbytes.
+- `unit` (String) The unit. Valid values are: unspecified, microseconds, seconds, bytes_iec, kibytes, milliseconds, gbytes, euro_cents, usd_cents, kbytes, mbytes, mibytes, gibytes, bytes, euro, usd.
 
 Read-Only:
 
@@ -2493,7 +2493,7 @@ Optional:
 Required:
 
 - `metric` (String) Metric name to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics--promql_query--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics--filters--operator))
 
 Optional:
 

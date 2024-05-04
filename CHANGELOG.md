@@ -557,3 +557,8 @@ Breaking Changes:
 Bug fixing:
 #### resource/coralogix_dashboard
 * fixing [issue](https://github.com/coralogix/terraform-provider-coralogix/issues/224).
+
+## Release 1.14.1
+New Features:
+#### resource/coralogix_dashboard
+* adding units for `line_chart` query_definitions.

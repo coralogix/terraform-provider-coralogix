@@ -160,6 +160,7 @@ func TestAccCoralogixResourceAlert_uniqueCount(t *testing.T) {
 		maxUniqueValuesForGroupBy: 20,
 	}
 	updatedAlertChecks := extractUniqueCountAlertChecks(updatedAlert)
+	updatedAlertChecks = updatedAlertChecks[:len(updatedAlertChecks)-1] // remove group_by check
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },

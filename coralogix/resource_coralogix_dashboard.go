@@ -94,6 +94,10 @@ var (
 		"kibytes":      dashboards.Unit_UNIT_KIBYTES,
 		"mibytes":      dashboards.Unit_UNIT_MIBYTES,
 		"gibytes":      dashboards.Unit_UNIT_GIBYTES,
+		"euro_cents":   dashboards.Unit_UNIT_EUR_CENTS,
+		"euro":         dashboards.Unit_UNIT_EUR,
+		"usd_cents":    dashboards.Unit_UNIT_USD_CENTS,
+		"usd":          dashboards.Unit_UNIT_USD,
 	}
 	dashboardProtoToSchemaUnit      = ReverseMap(dashboardSchemaToProtoUnit)
 	dashboardValidUnits             = GetKeys(dashboardSchemaToProtoUnit)
