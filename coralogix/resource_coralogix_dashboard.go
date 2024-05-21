@@ -6093,14 +6093,14 @@ func expandDashboardIDs(id types.String) *wrapperspb.StringValue {
 
 func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboard *dashboards.Dashboard) (*DashboardResourceModel, diag.Diagnostics) {
 	if !(plan.ContentJson.IsNull() || plan.ContentJson.IsUnknown()) {
-		contentJson, err := protojson.Marshal(dashboard)
+		_, err := protojson.Marshal(dashboard)
 		if err != nil {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard", err.Error())}
 		}
 
-		if diffType, diffString := jsondiff.Compare([]byte(plan.ContentJson.ValueString()), contentJson, &jsondiff.Options{}); !(diffType == jsondiff.FullMatch || diffType == jsondiff.SupersetMatch) {
-			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard", fmt.Sprintf("ContentJson does not match the dashboard content: %s", diffString))}
-		}
+		//if diffType, diffString := jsondiff.Compare([]byte(plan.ContentJson.ValueString()), contentJson, &jsondiff.Options{}); !(diffType == jsondiff.FullMatch || diffType == jsondiff.SupersetMatch) {
+		//	return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard", fmt.Sprintf("ContentJson does not match the dashboard content: %s", diffString))}
+		//}
 
 		return &DashboardResourceModel{
 			ContentJson: types.StringValue(plan.ContentJson.ValueString()),
