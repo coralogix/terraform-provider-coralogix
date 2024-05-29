@@ -562,3 +562,9 @@ Bug fixing:
 New Features:
 #### resource/coralogix_dashboard
 * adding units for `line_chart` query_definitions.
+
+## Release 1.15.0
+Breaking Changes:
+#### resource/coralogix_alert
+* `group_by` needs to be set instead of `group_by_keys` in case of `more_than_usual` condition.
+* `time_window` was added for `more_than_usual` condition.
