@@ -653,12 +653,11 @@ func standardSchema() map[string]*schema.Schema {
 					Description:   "The number of log occurrences that is needed to trigger the alert.",
 				},
 				"time_window": {
-					Type:         schema.TypeString,
-					Optional:     true,
-					ValidateFunc: validation.StringInSlice(alertValidTimeFrames, false),
-					ConflictsWith: []string{"standard.0.condition.0.immediately",
-						"standard.0.condition.0.more_than_usual"},
-					Description: fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidTimeFrames),
+					Type:          schema.TypeString,
+					Optional:      true,
+					ValidateFunc:  validation.StringInSlice(alertValidTimeFrames, false),
+					ConflictsWith: []string{"standard.0.condition.0.immediately"},
+					Description:   fmt.Sprintf("The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of %q", alertValidTimeFrames),
 				},
 				"group_by": {
 					Type:     schema.TypeList,
@@ -666,16 +665,14 @@ func standardSchema() map[string]*schema.Schema {
 					Elem: &schema.Schema{
 						Type: schema.TypeString,
 					},
-					ConflictsWith: []string{"standard.0.condition.0.immediately",
-						"standard.0.condition.0.more_than_usual"},
-					Description: "The fields to 'group by' on. In case of immediately = true switch to group_by_key.",
+					ConflictsWith: []string{"standard.0.condition.0.immediately"},
+					Description:   "The fields to 'group by' on. In case of immediately = true switch to group_by_key.",
 				},
 				"group_by_key": {
-					Type:     schema.TypeString,
-					Optional: true,
-					ConflictsWith: []string{"standard.0.condition.0.immediately",
-						"standard.0.condition.0.more_than", "standard.0.condition.0.less_than"},
-					Description: "The key to 'group by' on. When more_than_usual = true, 'group_by_key' (single string) can be set instead of 'group_by'.",
+					Type:          schema.TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"standard.0.condition.0.more_than", "standard.0.condition.0.less_than", "standard.0.condition.0.more_than_usual"},
+					Description:   "The key to 'group by' on. When immediately = true, 'group_by_key' (single string) can be set instead of 'group_by'.",
 				},
 				"manage_undetected_values": {
 					Type:     schema.TypeList,
@@ -1913,9 +1910,8 @@ func flattenStandardCondition(condition interface{}) (conditionSchema interface{
 		conditionMap := map[string]interface{}{
 			"more_than_usual": true,
 			"threshold":       int(conditionParams.GetThreshold().GetValue()),
-		}
-		if groupBy := conditionParams.GetGroupBy(); len(groupBy) > 0 {
-			conditionMap["group_by_key"] = groupBy[0].Value
+			"time_window":     alertProtoTimeFrameToSchemaTimeFrame[conditionParams.GetTimeframe().String()],
+			"group_by":        wrappedStringSliceToStringSlice(conditionParams.GroupBy),
 		}
 		conditionSchema = []interface{}{
 			conditionMap,
@@ -2659,10 +2655,11 @@ func expandStandardCondition(m map[string]interface{}) (*alerts.AlertCondition, 
 		}, nil
 	} else if moreThenUsual := m["more_than_usual"]; moreThenUsual != nil && moreThenUsual.(bool) {
 		threshold := wrapperspb.Double(float64(m["threshold"].(int)))
-		groupBy := []*wrapperspb.StringValue{wrapperspb.String(m["group_by_key"].(string))}
+		groupBy := interfaceSliceToWrappedStringSlice(m["group_by"].([]interface{}))
 		parameters := &alerts.ConditionParameters{
 			Threshold: threshold,
 			GroupBy:   groupBy,
+			Timeframe: expandTimeFrame(m["time_window"].(string)),
 		}
 		return &alerts.AlertCondition{
 			Condition: &alerts.AlertCondition_MoreThanUsual{

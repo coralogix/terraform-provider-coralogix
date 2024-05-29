@@ -941,7 +941,6 @@ Optional:
   filter:contains:xxx
 
 <a id="nestedblock--standard--condition"></a>
-
 ### Nested Schema for `standard.condition`
 
 Optional:
@@ -949,22 +948,14 @@ Optional:
 - `evaluation_window` (String) Defines the evaluation-window logic to determine if the threshold has been crossed.
   Relevant only for more_than condition. Can be one of ["Rolling" "Dynamic"].
 - `group_by` (List of String) The fields to 'group by' on. In case of immediately = true switch to group_by_key.
-- `group_by_key` (String) The key to 'group by' on. When more_than_usual = true, 'group_by_key' (single string) can be
-  set instead of 'group_by'.
-- `immediately` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
-  more_than_usual.
-- `less_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
-  more_than_usual.
-- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable
-  triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled
-  with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--standard--condition--manage_undetected_values))
-- `more_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
-  more_than_usual.
-- `more_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or
-  more_than_usual.
+- `group_by_key` (String) The key to 'group by' on. When immediately = true, 'group_by_key' (single string) can be set instead of 'group_by'.
+- `immediately` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
+- `less_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
+- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--standard--condition--manage_undetected_values))
+- `more_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
+- `more_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
 - `threshold` (Number) The number of log occurrences that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be
-  one of ["10Min" "1H" "2H" "6H" "24H" "5Min" "15Min" "20Min" "30Min" "4H" "12H" "36H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["6H" "12H" "24H" "15Min" "20Min" "30Min" "2H" "4H" "36H" "5Min" "10Min" "1H"]
 
 <a id="nestedblock--standard--condition--manage_undetected_values"></a>
 
