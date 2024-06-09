@@ -44,7 +44,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser # or 'goreleaser-pro'
-          version: "~> v2" # or 'latest', 'nightly', semver
+          version: 2 # or 'latest', 'nightly', semver
           args: release --clean
 
         env:
