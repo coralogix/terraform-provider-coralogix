@@ -41,10 +41,10 @@ jobs:
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
       -
         name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v3
         with:
           distribution: goreleaser # or 'goreleaser-pro'
-          version: 2 # or 'latest', 'nightly', semver
+          version: "~> v2" # or 'latest', 'nightly', semver
           args: release --clean
 
         env:
