@@ -74,6 +74,7 @@ var (
 	alertValidTimeFrames                            = getKeysStrings(alertSchemaTimeFrameToProtoTimeFrame)
 	alertSchemaUniqueCountTimeFrameToProtoTimeFrame = map[string]string{
 		"1Min":  "TIMEFRAME_1_MIN",
+		"5Min":  "TIMEFRAME_5_MIN_OR_UNSPECIFIED",
 		"10Min": "TIMEFRAME_10_MIN",
 		"15Min": "TIMEFRAME_15_MIN",
 		"20Min": "TIMEFRAME_20_MIN",

@@ -1123,8 +1123,7 @@ Optional:
 Required:
 
 - `max_unique_values` (Number)
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be
-  one of ["4H" "1Min" "10Min" "15Min" "20Min" "30Min" "1H" "2H" "24H" "6H" "12H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["15Min" "20Min" "30Min" "1H" "6H" "12H" "1Min" "5Min" "4H" "24H" "10Min" "2H"]
 - `unique_count_key` (String) Defines the key to match to track its unique count.
 
 Optional:
