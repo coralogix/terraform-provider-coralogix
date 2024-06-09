@@ -568,3 +568,8 @@ Breaking Changes:
 #### resource/coralogix_alert
 * `group_by` needs to be set instead of `group_by_keys` in case of `more_than_usual` condition.
 * `time_window` was added for `more_than_usual` condition.
+
+## Release 1.15.1
+New Features:
+#### resource/coralogix_alert
+* adding `5Min` to `time_window` options for `unique_count` condition.
