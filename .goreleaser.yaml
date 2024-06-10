@@ -43,4 +43,4 @@ release:
   #disable: true
   draft: false
 changelog:
-  skip: true
+  disable: true
