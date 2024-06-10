@@ -41,10 +41,9 @@ jobs:
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
       -
         name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v2
         with:
-          distribution: goreleaser # or 'goreleaser-pro'
-          version: "~> v2" # or 'latest', 'nightly', semver
+          version: latest
           args: release --clean
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
