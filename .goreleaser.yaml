@@ -42,5 +42,5 @@ signs:
 release:
   #disable: true
   draft: false
-changelog:
-  disable: true
+#changelog:
+#  disable: true
