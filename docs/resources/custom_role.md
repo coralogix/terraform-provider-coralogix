@@ -3,7 +3,7 @@
 page_title: "coralogix_custom_role Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-Coralogix Custom roles.
+  Coralogix Custom roles.
 ---
 
 # coralogix_custom_role (Resource)
@@ -36,7 +36,6 @@ resource "coralogix_group" "example" {
 - `name` (String) Custom Role name.
 - `parent_role` (String) Parent role name
 - `permissions` (Set of String) Custom role permissions
-- `team_id` (Number) Custom Role teamId.
 
 ### Read-Only
 
