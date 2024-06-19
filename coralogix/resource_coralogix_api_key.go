@@ -6,6 +6,7 @@ import (
 	"log"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"terraform-provider-coralogix/coralogix/clientset"
 	apikeys "terraform-provider-coralogix/coralogix/clientset/grpc/apikeys"
@@ -580,7 +581,7 @@ func (r *ApiKeyResource) UpgradeState(context.Context) map[int64]resource.StateU
 					Active types.Bool   `tfsdk:"active"`
 					Hashed types.Bool   `tfsdk:"hashed"`
 					Value  types.String `tfsdk:"value"`
-					Roles  types.Set    `tfsdk:"roles"` // Legacy field
+					Roles  types.Set    `tfsdk:"roles"`
 				}
 
 				var dataV0 ApiKeyModelV0
@@ -621,11 +622,32 @@ func mapRolesToPermissions(ctx context.Context, roles types.Set) (types.Set, dia
 		if diags.HasError() {
 			return types.Set{}, diags
 		}
-		permissions = append(permissions, permission)
+		permissions = append(permissions, permission...)
 	}
 	return types.SetValueFrom(ctx, types.StringType, permissions)
 }
 
-func mapRoleToPermission(role types.String) (string, diag.Diagnostics) {
-	return ("role_" + role.ValueString()), nil // TODO get role map
+func mapRoleToPermission(role types.String) ([]string, diag.Diagnostics) {
+	diags := diag.Diagnostics{}
+	switch r := strings.ToLower(role.ValueString()); r {
+	case "rum ingress":
+		return []string{"rum-ingress:SendData"}, diags
+	case "send data":
+		return []string{
+			"cloud-metadata-ingress:SendData", "logs.data-ingress:SendData", "metrics.data-ingress:SendData", "spans.data-ingress:SendData"}, diags
+	case "coralogix cli":
+		return []string{"data-usage:Read", "org-quota:Manage", "org-quota:Read", "org-teams:Manage", "org-teams:ReadConfig", "team-members:Manage", "team-members:ReadConfig", "team-scim:Manage", "team-scim:ReadConfig", "team-sso:Manage", "team-sso:ReadConfig", "team-quota:Manage", "team-quota:Read"}, diags
+	case "scim":
+		return []string{"team-groups:Manage", "team-groups:ReadConfig", "team-members:Manage", "team-members:ReadConfig", "team-roles:ReadConfig"}, diags
+	case "role management":
+		return []string{"team-roles:Manage", "team-roles:ReadConfig"}, diags
+	case "trigger webhook":
+		return []string{"contextual-data:SendData"}, diags
+	case "legacy api key":
+		return []string{"alerts:ReadConfig", "alerts:UpdateConfig", "cloud-metadata-enrichment:ReadConfig", "cloud-metadata-enrichment:UpdateConfig", "data-usage:Read", "geo-enrichment:ReadConfig", "geo-enrichment:UpdateConfig", "grafana:Read", "grafana:Update", "logs.data-setup#low:ReadConfig", "logs.data-setup#low:UpdateConfig", "logs.events2metrics:ReadConfig", "logs.events2metrics:UpdateConfig", "logs.tco:ReadPolicies", "logs.tco:UpdatePolicies", "metrics.data-analytics#high:Read", "metrics.data-analytics#low:Read", "metrics.data-setup#high:ReadConfig", "metrics.data-setup#high:UpdateConfig", "metrics.data-setup#low:ReadConfig", "metrics.data-setup#low:UpdateConfig", "metrics.recording-rules:ReadConfig", "metrics.recording-rules:UpdateConfig", "metrics.tco:ReadPolicies", "metrics.tco:UpdatePolicies", "outbound-webhooks:ReadConfig", "outbound-webhooks:UpdateConfig", "parsing-rules:ReadConfig", "parsing-rules:UpdateConfig", "security-enrichment:ReadConfig", "security-enrichment:UpdateConfig", "serverless:Read", "service-catalog:ReadDimensionsConfig", "service-catalog:ReadSLIConfig", "service-catalog:UpdateDimensionsConfig", "service-catalog:UpdateSLIConfig", "service-map:Read", "source-mapping:UploadMapping", "spans.data-api#high:ReadData", "spans.data-api#low:ReadData", "spans.data-setup#low:ReadConfig", "spans.data-setup#low:UpdateConfig", "spans.events2metrics:ReadConfig", "spans.events2metrics:UpdateConfig", "spans.tco:ReadPolicies", "spans.tco:UpdatePolicies", "team-actions:ReadConfig", "team-actions:UpdateConfig", "team-api-keys-security-settings:Manage", "team-api-keys-security-settings:ReadConfig", "team-api-keys:Manage", "team-api-keys:ReadConfig", "team-custom-enrichment:ReadConfig", "team-custom-enrichment:ReadData", "team-custom-enrichment:UpdateConfig", "team-custom-enrichment:UpdateData", "team-dashboards:Read", "team-dashboards:Update", "user-actions:ReadConfig", "user-actions:UpdateConfig", "user-dashboards:Read", "user-dashboards:Update", "version-benchmark-tags:Read", "logs.alerts:ReadConfig", "logs.alerts:UpdateConfig", "spans.alerts:ReadConfig", "spans.alerts:UpdateConfig", "metrics.alerts:ReadConfig", "metrics.alerts:UpdateConfig", "livetail:Read", "service-catalog:Read", "version-benchmark-tags:Update", "service-catalog:ReadApdexConfig", "service-catalog:UpdateApdexConfig", "service-catalog:Update", "team-quota:Manage", "team-quota:Read"}, diags
+	case "query data legacy":
+		return []string{"logs.data-api#high:ReadData", "logs.data-api#low:ReadData", "metrics.data-api#high:ReadData", "metrics.data-api#low:ReadData", "opensearch-dashboards:Read", "opensearch-dashboards:Update", "snowbit.cspm:Read", "snowbit.sspm:Read", "spans.data-api#high:ReadData", "spans.data-api#low:ReadData", "livetail:Read"}, diags
+	}
+	diags.AddError("Invalid role", fmt.Sprintf("Unable to translate role '%v' into permissions", role))
+	return []string{}, diags
 }
