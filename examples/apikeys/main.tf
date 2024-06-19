@@ -19,7 +19,8 @@ resource "coralogix_api_key" "example" {
   }
   active = true
   hashed = false
-  roles = ["SCIM", "Legacy Api Key", "Role Management", "Send Data"]
+  presets = ["admin", "some-other-preset"]
+  permissions = ["Alerts/Write"]
 }
 
 data "coralogix_api_key" "same_key_by_id" {

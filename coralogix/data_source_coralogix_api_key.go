@@ -9,11 +9,12 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 var _ datasource.DataSourceWithConfigure = &ApiKeyDataSource{}
@@ -95,7 +96,7 @@ func (d *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		)
 		return
 	}
-	response, diags := flattenGetApiKeyResponse(ctx, &id, getApiKeyResponse, getApiKeyResponse.Value)
+	response, diags := flattenGetApiKeyResponse(ctx, &id, getApiKeyResponse, getApiKeyResponse.KeyInfo.Value)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
