@@ -61,8 +61,26 @@ var (
 		alerts.DayOfWeek_DAY_OF_WEEK_SATURDAY:              "Saturday",
 		alerts.DayOfWeek_DAY_OF_WEEK_SUNDAY:                "Sunday",
 	}
-	daysOfWeekSchemaToProtoMap = ReverseMap(daysOfWeekProtoToSchemaMap)
-	validDaysOfWeek            = GetKeys(daysOfWeekSchemaToProtoMap)
+	daysOfWeekSchemaToProtoMap             = ReverseMap(daysOfWeekProtoToSchemaMap)
+	validDaysOfWeek                        = GetKeys(daysOfWeekSchemaToProtoMap)
+	logFilterOperationTypeProtoToSchemaMap = map[alerts.LogFilterOperationType]string{
+		alerts.LogFilterOperationType_LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED: "OR",
+		alerts.LogFilterOperationType_LOG_FILTER_OPERATION_TYPE_INCLUDES:          "NOT",
+		alerts.LogFilterOperationType_LOG_FILTER_OPERATION_TYPE_ENDS_WITH:         "ENDS_WITH",
+		alerts.LogFilterOperationType_LOG_FILTER_OPERATION_TYPE_STARTS_WITH:       "STARTS_WITH",
+	}
+	logFilterOperationTypeSchemaToProtoMap = ReverseMap(logFilterOperationTypeProtoToSchemaMap)
+	validLogFilterOperationType            = GetKeys(logFilterOperationTypeSchemaToProtoMap)
+	logSeverityProtoToSchemaMap            = map[alerts.LogSeverity]string{
+		alerts.LogSeverity_LOG_SEVERITY_VERBOSE_UNSPECIFIED: "Unspecified",
+		alerts.LogSeverity_LOG_SEVERITY_DEBUG:               "Debug",
+		alerts.LogSeverity_LOG_SEVERITY_INFO:                "Info",
+		alerts.LogSeverity_LOG_SEVERITY_WARNING:             "Warning",
+		alerts.LogSeverity_LOG_SEVERITY_ERROR:               "Error",
+		alerts.LogSeverity_LOG_SEVERITY_CRITICAL:            "Critical",
+	}
+	logSeveritySchemaToProtoMap = ReverseMap(logSeverityProtoToSchemaMap)
+	validLogSeverities          = GetKeys(logSeveritySchemaToProtoMap)
 )
 
 func NewAlertResource() resource.Resource {
@@ -132,7 +150,19 @@ type AlertsLogsFilterModel struct {
 }
 
 type LuceneFilterModel struct {
-	LuceneQuery types.String `tfsdk:"lucene_query"`
+	LuceneQuery  types.String `tfsdk:"lucene_query"`
+	LabelFilters types.Object `tfsdk:"label_filters"` // LabelFiltersModel
+}
+
+type LabelFiltersModel struct {
+	ApplicationName types.List `tfsdk:"application_name"` // []LabelFilterTypeModel
+	SubsystemName   types.List `tfsdk:"subsystem_name"`   // []LabelFilterTypeModel
+	Severities      types.Set  `tfsdk:"severities"`       // []types.String
+}
+
+type LabelFilterTypeModel struct {
+	Value     types.String `tfsdk:"value"`
+	Operation types.String `tfsdk:"operation"`
 }
 
 type NotificationPayloadFilterModel struct {
@@ -202,7 +232,7 @@ type AlertNotificationModel struct {
 	RetriggeringPeriod types.Object `tfsdk:"retriggering_period"` // RetriggeringPeriodModel
 	NotifyOn           types.String `tfsdk:"notify_on"`
 	IntegrationID      types.String `tfsdk:"integration_id"`
-	Emails             types.Set    `tfsdk:"recipients"` //[]types.String
+	Recipients         types.Set    `tfsdk:"recipients"` //[]types.String
 }
 
 func (r *AlertResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -292,12 +322,24 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 											"lucene_query": schema.StringAttribute{
 												Optional: true,
 											},
+											"label_filters": schema.SingleNestedAttribute{
+												Required: true,
+												Attributes: map[string]schema.Attribute{
+													"application_name": logsFilterSchema(),
+													"subsystem_name":   logsFilterSchema(),
+													"severities": schema.SetAttribute{
+														Optional:    true,
+														ElementType: types.StringType,
+													},
+												},
+											},
 										},
 									},
 								},
 							},
 							"notification_payload_filter": schema.ListAttribute{
-								Optional: true,
+								Optional:    true,
+								ElementType: types.StringType,
 							},
 						},
 						Validators: []validator.Object{
@@ -428,13 +470,24 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"notify_on": schema.StringAttribute{
-									Required: true,
+									Optional: true,
+									Computed: true,
 									Validators: []validator.String{
 										stringvalidator.OneOf(validNotifyOn...),
+										stringvalidator.AtLeastOneOf(path.Root("incidents_settings").AtName("notify_on").Expression()),
 									},
 								},
 								"retriggering_period": schema.SingleNestedAttribute{
 									Optional: true,
+									Computed: true,
+									Attributes: map[string]schema.Attribute{
+										"minutes": schema.Int64Attribute{
+											Required: true,
+										},
+									},
+									Validators: []validator.Object{
+										objectvalidator.AtLeastOneOf(path.Root("incidents_settings").AtName("retriggering_period").Expression()),
+									},
 								},
 								"integration_id": schema.StringAttribute{
 									Optional: true,
@@ -465,6 +518,25 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			},
 		},
 		MarkdownDescription: "Coralogix Alert. For more info please review - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.",
+	}
+}
+
+func logsFilterSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		Optional: true,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"value": schema.StringAttribute{
+					Required: true,
+				},
+				"operation": schema.StringAttribute{
+					Required: true,
+					Validators: []validator.String{
+						stringvalidator.OneOf(validLogFilterOperationType...),
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -509,7 +581,7 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 	createResp, err := r.client.CreateAlert(ctx, createAlertRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err)
-		resp.Diagnostics.AddError("Error creating Action",
+		resp.Diagnostics.AddError("Error creating Alert",
 			formatRpcErrors(err, createAlertURL, protojson.Format(createAlertRequest)),
 		)
 		return
@@ -683,8 +755,8 @@ func extractAlertNotification(ctx context.Context, variable AlertNotificationMod
 		alertNotification.IntegrationType = &alerts.AlertNotification_IntegrationId{
 			IntegrationId: integrationId,
 		}
-	} else if !variable.Emails.IsNull() && !variable.Emails.IsUnknown() {
-		emails, diags := typeStringSliceToWrappedStringSlice(ctx, variable.Emails.Elements())
+	} else if !variable.Recipients.IsNull() && !variable.Recipients.IsUnknown() {
+		emails, diags := typeStringSliceToWrappedStringSlice(ctx, variable.Recipients.Elements())
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -771,28 +843,24 @@ func extractTimeOfDay(ctx context.Context, timeObject types.Object) (*alerts.Tim
 }
 
 func extractDaysOfWeek(ctx context.Context, daysOfWeek types.List) ([]alerts.DayOfWeek, diag.Diagnostics) {
-	var daysOfWeekObjects []types.Object
-	diags := daysOfWeek.ElementsAs(ctx, &daysOfWeekObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	var expandedDaysOfWeek []alerts.DayOfWeek
-	for _, dow := range daysOfWeekObjects {
-		var variable types.String
-		if dg := dow.As(ctx, &variable, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
+	var diags diag.Diagnostics
+	daysOfWeekElements := daysOfWeek.Elements()
+	result := make([]alerts.DayOfWeek, 0, len(daysOfWeekElements))
+	for _, v := range daysOfWeekElements {
+		val, err := v.ToTerraformValue(ctx)
+		if err != nil {
+			diags.AddError("Failed to convert value to Terraform", err.Error())
 			continue
 		}
-		expandedDaysOfWeek = append(expandedDaysOfWeek, daysOfWeekSchemaToProtoMap[variable.ValueString()])
+		var str string
+
+		if err = val.As(&str); err != nil {
+			diags.AddError("Failed to convert value to string", err.Error())
+			continue
+		}
+		result = append(result, daysOfWeekSchemaToProtoMap[str])
 	}
-
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return expandedDaysOfWeek, nil
-
+	return result, diags
 }
 
 func expandAlertsTypeDefinition(ctx context.Context, alertProperties *alerts.AlertProperties, alertDefinition types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
@@ -892,20 +960,19 @@ func extractLogsFilter(ctx context.Context, filter types.Object) (*alerts.LogsFi
 	}
 
 	logsFilter := &alerts.LogsFilter{}
+	var diags diag.Diagnostics
 	if !(filterModel.LuceneFilter.IsNull() || filterModel.LuceneFilter.IsUnknown()) {
-		luceneFilter, diags := extractLuceneFilter(ctx, filterModel.LuceneFilter)
-		if diags.HasError() {
-			return nil, diags
-		}
-		logsFilter.FilterType = &alerts.LogsFilter_LuceneFilter{
-			LuceneFilter: luceneFilter,
-		}
+		logsFilter.FilterType, diags = extractLuceneFilter(ctx, filterModel.LuceneFilter)
+	}
+
+	if diags.HasError() {
+		return nil, diags
 	}
 
 	return logsFilter, nil
 }
 
-func extractLuceneFilter(ctx context.Context, luceneFilter types.Object) (*alerts.LuceneFilter, diag.Diagnostics) {
+func extractLuceneFilter(ctx context.Context, luceneFilter types.Object) (*alerts.LogsFilter_LuceneFilter, diag.Diagnostics) {
 	if luceneFilter.IsNull() || luceneFilter.IsUnknown() {
 		return nil, nil
 	}
@@ -915,10 +982,96 @@ func extractLuceneFilter(ctx context.Context, luceneFilter types.Object) (*alert
 		return nil, diags
 	}
 
-	return &alerts.LuceneFilter{
-		LuceneQuery: typeStringToWrapperspbString(luceneFilterModel.LuceneQuery),
-	}, nil
+	labelFilters, diags := extractLabelFilters(ctx, luceneFilterModel.LabelFilters)
+	if diags.HasError() {
+		return nil, diags
+	}
 
+	return &alerts.LogsFilter_LuceneFilter{
+		LuceneFilter: &alerts.LuceneFilter{
+			LuceneQuery:  typeStringToWrapperspbString(luceneFilterModel.LuceneQuery),
+			LabelFilters: labelFilters,
+		},
+	}, nil
+}
+
+func extractLabelFilters(ctx context.Context, filters types.Object) (*alerts.LabelFilters, diag.Diagnostics) {
+	if filters.IsNull() || filters.IsUnknown() {
+		return nil, nil
+	}
+
+	var filtersModel LabelFiltersModel
+	if diags := filters.As(ctx, &filtersModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	applicationName, diags := extractLabelFilterTypes(ctx, filtersModel.ApplicationName)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	subsystemName, diags := extractLabelFilterTypes(ctx, filtersModel.SubsystemName)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	severities, diags := extractLogSeverities(ctx, filtersModel.Severities.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &alerts.LabelFilters{
+		ApplicationName: applicationName,
+		SubsystemName:   subsystemName,
+		Severities:      severities,
+	}, nil
+}
+
+func extractLabelFilterTypes(ctx context.Context, labelFilterTypes types.List) ([]*alerts.LabelFilterType, diag.Diagnostics) {
+	var labelFilterTypesObjects []types.Object
+	diags := labelFilterTypes.ElementsAs(ctx, &labelFilterTypesObjects, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+	var expandedLabelFilterTypes []*alerts.LabelFilterType
+	for _, lft := range labelFilterTypesObjects {
+		var labelFilterTypeModel LabelFilterTypeModel
+		if dg := lft.As(ctx, &labelFilterTypeModel, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		expandedLabelFilterType := &alerts.LabelFilterType{
+			Value:     typeStringToWrapperspbString(labelFilterTypeModel.Value),
+			Operation: logFilterOperationTypeSchemaToProtoMap[labelFilterTypeModel.Operation.ValueString()],
+		}
+		expandedLabelFilterTypes = append(expandedLabelFilterTypes, expandedLabelFilterType)
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return expandedLabelFilterTypes, nil
+}
+
+func extractLogSeverities(ctx context.Context, elements []attr.Value) ([]alerts.LogSeverity, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	result := make([]alerts.LogSeverity, 0, len(elements))
+	for _, v := range elements {
+		val, err := v.ToTerraformValue(ctx)
+		if err != nil {
+			diags.AddError("Failed to convert value to Terraform", err.Error())
+			continue
+		}
+		var str string
+
+		if err = val.As(&str); err != nil {
+			diags.AddError("Failed to convert value to string", err.Error())
+			continue
+		}
+		result = append(result, logSeveritySchemaToProtoMap[str])
+	}
+	return result, diags
 }
 
 func expandLogsMoreThanAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties, than types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
@@ -1094,7 +1247,7 @@ func flattenAlertNotifications(ctx context.Context, notifications []*alerts.Aler
 		notificationModel := AlertNotificationModel{
 			NotifyOn:           types.StringValue(notifyOnProtoToSchemaMap[notification.GetNotifyOn()]),
 			IntegrationID:      WrapperspbUint32ToString(notification.GetIntegrationId()),
-			Emails:             wrappedStringSliceToTypeStringSet(notification.GetRecipients().GetEmails()),
+			Recipients:         wrappedStringSliceToTypeStringSet(notification.GetRecipients().GetEmails()),
 			RetriggeringPeriod: retriggeringPeriod,
 		}
 		notificationsModel = append(notificationsModel, notificationModel)
@@ -1135,8 +1288,8 @@ func alertNotificationAttr() map[string]attr.Type {
 		"retriggering_period": types.ObjectType{
 			AttrTypes: retriggeringPeriodAttr(),
 		},
-		"integration_id": types.Int64Type,
-		"emails":         types.ListType{ElemType: types.StringType},
+		"integration_id": types.StringType,
+		"recipients":     types.SetType{ElemType: types.StringType},
 	}
 }
 
@@ -1373,9 +1526,74 @@ func flattenLuceneFilter(ctx context.Context, filter *alerts.LuceneFilter) (type
 		return types.ObjectNull(luceneFilterAttr()), nil
 	}
 
+	labelFilters, diags := flattenLabelFilters(ctx, filter.GetLabelFilters())
+	if diags.HasError() {
+		return types.ObjectNull(luceneFilterAttr()), diags
+	}
+
 	return types.ObjectValueFrom(ctx, luceneFilterAttr(), LuceneFilterModel{
-		LuceneQuery: wrapperspbStringToTypeString(filter.GetLuceneQuery()),
+		LuceneQuery:  wrapperspbStringToTypeString(filter.GetLuceneQuery()),
+		LabelFilters: labelFilters,
 	})
+}
+
+func flattenLabelFilters(ctx context.Context, filters *alerts.LabelFilters) (types.Object, diag.Diagnostics) {
+	if filters == nil {
+		return types.ObjectNull(labelFiltersAttr()), nil
+	}
+
+	applicationName, diags := flattenLabelFilterTypes(ctx, filters.GetApplicationName())
+	if diags.HasError() {
+		return types.ObjectNull(labelFiltersAttr()), diags
+	}
+
+	subsystemName, diags := flattenLabelFilterTypes(ctx, filters.GetSubsystemName())
+	if diags.HasError() {
+		return types.ObjectNull(labelFiltersAttr()), diags
+	}
+
+	severities, diags := flattenLogSeverities(ctx, filters.GetSeverities())
+	if diags.HasError() {
+		return types.ObjectNull(labelFiltersAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, labelFiltersAttr(), LabelFiltersModel{
+		ApplicationName: applicationName,
+		SubsystemName:   subsystemName,
+		Severities:      severities,
+	})
+}
+
+func flattenLabelFilterTypes(ctx context.Context, name []*alerts.LabelFilterType) (types.List, diag.Diagnostics) {
+	var labelFilterTypes []LabelFilterTypeModel
+	var diags diag.Diagnostics
+	for _, lft := range name {
+		labelFilterType := LabelFilterTypeModel{
+			Value:     wrapperspbStringToTypeString(lft.GetValue()),
+			Operation: types.StringValue(logFilterOperationTypeProtoToSchemaMap[lft.GetOperation()]),
+		}
+		labelFilterTypes = append(labelFilterTypes, labelFilterType)
+	}
+	if diags.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: labelFilterTypesAttr()}), diags
+	}
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: labelFilterTypesAttr()}, labelFilterTypes)
+
+}
+
+func flattenLogSeverities(ctx context.Context, severities []alerts.LogSeverity) (types.Set, diag.Diagnostics) {
+	var result []attr.Value
+	for _, severity := range severities {
+		result = append(result, types.StringValue(logSeverityProtoToSchemaMap[severity]))
+	}
+	return types.SetValueFrom(ctx, types.StringType, result)
+}
+
+func labelFilterTypesAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"value":     types.StringType,
+		"operation": types.StringType,
+	}
 }
 
 func alertTypeDefinitionAttr() map[string]attr.Type {
@@ -1439,6 +1657,9 @@ func logsImmediateAttr() map[string]attr.Type {
 		"logs_filter": types.ObjectType{
 			AttrTypes: logsFilterAttr(),
 		},
+		"notification_payload_filter": types.ListType{
+			ElemType: types.StringType,
+		},
 	}
 }
 
@@ -1452,7 +1673,28 @@ func logsFilterAttr() map[string]attr.Type {
 
 func luceneFilterAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"query": types.StringType,
+		"lucene_query": types.StringType,
+		"label_filters": types.ObjectType{
+			AttrTypes: labelFiltersAttr(),
+		},
+	}
+}
+
+func labelFiltersAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"application_name": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: labelFilterTypesAttr(),
+			},
+		},
+		"subsystem_name": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: labelFilterTypesAttr(),
+			},
+		},
+		"severities": types.SetType{
+			ElemType: types.StringType,
+		},
 	}
 }
 
@@ -1557,20 +1799,24 @@ func flattenTimeOfDay(ctx context.Context, time *alerts.TimeOfDay) (types.Object
 	})
 }
 
-func timeOfDayAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"hours":   types.Int64Type,
-		"minutes": types.Int64Type,
-	}
-}
-
 func alertScheduleAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"days_of_week": types.ListType{
 			ElemType: types.StringType,
 		},
-		"start_time": types.StringType,
-		"end_time":   types.StringType,
+		"start_time": types.ObjectType{
+			AttrTypes: timeOfDayAttr(),
+		},
+		"end_time": types.ObjectType{
+			AttrTypes: timeOfDayAttr(),
+		},
+	}
+}
+
+func timeOfDayAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"hours":   types.Int64Type,
+		"minutes": types.Int64Type,
 	}
 }
 

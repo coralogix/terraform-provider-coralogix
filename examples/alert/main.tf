@@ -22,20 +22,23 @@ resource "coralogix_alert" "standard_alert" {
     security_severity = "high"
   }
 
-  notifications_group = {
-    group_by_fields = ["coralogix.metadata.sdkId", "EventType"]
+  notification_group = {
     notifications   = [
       {
         integration_id = coralogix_webhook.slack_webhook.external_id
       },
       {
-        email_recipients = ["example@coralogix.com"]
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on = "Triggered and Resolved"
+        recipients = ["example@coralogix.com"]
       }
     ]
   }
 
-  incident_settings = {
-    notify_on                   = "Triggered_and_resolved"
+  incidents_settings = {
+    notify_on                   = "Triggered and Resolved"
     retriggering_period = {
       minutes = 1
     }
@@ -56,16 +59,12 @@ resource "coralogix_alert" "standard_alert" {
   alert_type_definition = {
     logs_immediate = {
       logs_filter = {
-        applications = ["filter:contains:nginx"] //change here for existing applications from your account
-        subsystems   = ["filter:startsWith:subsystem-name"] //change here for existing subsystems from your account
-        severities   = ["Warning", "Info"]
-        search_query = "remote_addr_enriched:/.*/"
-        notification_payload_filter = ["coralogix.metadata.sdkId", "EventType"]
+        lucene_filter = {
+          lucene_query = "message:\"error\""
+          label_filters = {
+          }
+        }
       }
-      applications = ["filter:contains:nginx"] //change here for existing applications from your account
-      subsystems   = ["filter:startsWith:subsystem-name"] //change here for existing subsystems from your account
-      severities   = ["Warning", "Info"]
-      search_query = "remote_addr_enriched:/.*/"
     }
   }
 }
