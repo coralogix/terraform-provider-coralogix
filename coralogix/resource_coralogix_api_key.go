@@ -468,11 +468,14 @@ func makeDeleteApi(apiKeyId *string) (*apikeys.DeleteApiKeyRequest, diag.Diagnos
 func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *apikeys.GetApiKeyResponse, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	permissions, diags := types.SetValueFrom(ctx, types.StringType, response.KeyInfo.KeyPermissions.Permissions)
-	if diags.HasError() {
-		return nil, diags
+	permissions := stringSliceToTypeStringSet(response.KeyInfo.KeyPermissions.Permissions)
+
+	presetNames := make([]attr.Value, len(response.KeyInfo.KeyPermissions.Presets))
+	for i, p := range response.KeyInfo.KeyPermissions.Presets {
+		presetNames[i] = types.StringValue(p.Name)
 	}
-	presets, diags := types.SetValueFrom(ctx, types.StringType, response.KeyInfo.KeyPermissions.Presets)
+
+	presets, diags := types.SetValueFrom(ctx, types.StringType, presetNames)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -586,7 +589,7 @@ func (r *ApiKeyResource) UpgradeState(context.Context) map[int64]resource.StateU
 				if resp.Diagnostics.HasError() {
 					return
 				}
-				permissions, diags := mapRolesToPermissions(ctx, dataV0.Roles)
+				permissions, diags := mapRolesToPermissions(dataV0.Roles)
 
 				if diags.HasError() {
 					resp.Diagnostics.Append(diags...)
@@ -601,7 +604,7 @@ func (r *ApiKeyResource) UpgradeState(context.Context) map[int64]resource.StateU
 					Hashed:      dataV0.Hashed,
 					Value:       dataV0.Value,
 					Permissions: permissions,
-					Presets:     types.Set{},
+					Presets:     types.SetNull(types.StringType),
 				}
 
 				diags = resp.State.Set(ctx, dataV1)
@@ -611,25 +614,20 @@ func (r *ApiKeyResource) UpgradeState(context.Context) map[int64]resource.StateU
 	}
 }
 
-func mapRolesToPermissions(ctx context.Context, roles types.Set) (types.Set, diag.Diagnostics) {
+func mapRolesToPermissions(roles types.Set) (types.Set, diag.Diagnostics) {
 	permissions := []string{}
 	for _, role := range roles.Elements() {
 		mappedPermissions, diags := mapRoleToPermission(role.(types.String))
 		if diags.HasError() {
-			return types.Set{}, diags
+			return types.SetNull(types.StringType), diags
 		}
-		diags.AddWarning("Role mapping", fmt.Sprintf("Role %s mapped to permissions %v", role, mappedPermissions))
 		for _, m := range mappedPermissions {
 			if !slices.Contains(permissions, m) {
 				permissions = append(permissions, m)
 			}
 		}
 	}
-	finalPermissions := []attr.Value{}
-	for _, p := range permissions {
-		finalPermissions = append(finalPermissions, types.StringValue(p))
-	}
-	return types.SetValueFrom(ctx, types.StringType, finalPermissions)
+	return stringSliceToTypeStringSet(permissions), diag.Diagnostics{}
 }
 
 func mapRoleToPermission(role types.String) ([]string, diag.Diagnostics) {
