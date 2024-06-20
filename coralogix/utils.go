@@ -759,3 +759,11 @@ func typeStringToWrapperspbUint32(str types.String) (*wrapperspb.UInt32Value, di
 	}
 	return wrapperspb.UInt32(uint32(parsed)), nil
 }
+
+func WrapperspbUint32ToString(num *wrapperspb.UInt32Value) types.String {
+	if num == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(strconv.FormatUint(uint64(num.GetValue()), 10))
+
+}

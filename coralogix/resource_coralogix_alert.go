@@ -4,22 +4,23 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
-	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"terraform-provider-coralogix/coralogix/clientset"
 	alerts "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v3"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -44,13 +45,13 @@ var (
 		alerts.AlertPriority_ALERT_PRIORITY_P1:                "P1",
 	}
 	alertPrioritySchemaToProtoMap = ReverseMap(alertPriorityProtoToSchemaMap)
-	validAlertPriorities          = GetKeys(alertPriorityProtoToSchemaMap)
+	validAlertPriorities          = GetKeys(alertPrioritySchemaToProtoMap)
 	notifyOnProtoToSchemaMap      = map[alerts.NotifyOn]string{
 		alerts.NotifyOn_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED: "Triggered Only",
 		alerts.NotifyOn_NOTIFY_ON_TRIGGERED_AND_RESOLVED:     "Triggered and Resolved",
 	}
 	notifyOnSchemaToProtoMap   = ReverseMap(notifyOnProtoToSchemaMap)
-	validNotifyOn              = GetKeys(notifyOnProtoToSchemaMap)
+	validNotifyOn              = GetKeys(notifyOnSchemaToProtoMap)
 	daysOfWeekProtoToSchemaMap = map[alerts.DayOfWeek]string{
 		alerts.DayOfWeek_DAY_OF_WEEK_MONDAY_OR_UNSPECIFIED: "Monday",
 		alerts.DayOfWeek_DAY_OF_WEEK_TUESDAY:               "Tuesday",
@@ -61,7 +62,7 @@ var (
 		alerts.DayOfWeek_DAY_OF_WEEK_SUNDAY:                "Sunday",
 	}
 	daysOfWeekSchemaToProtoMap = ReverseMap(daysOfWeekProtoToSchemaMap)
-	validDaysOfWeek            = GetKeys(daysOfWeekProtoToSchemaMap)
+	validDaysOfWeek            = GetKeys(daysOfWeekSchemaToProtoMap)
 )
 
 func NewAlertResource() resource.Resource {
@@ -88,30 +89,17 @@ type AlertResourceModel struct {
 
 type AlertScheduleModel struct {
 	DaysOfWeek types.List   `tfsdk:"days_of_week"` // []types.String
-	StartTime  types.String `tfsdk:"start_time"`
-	EndTime    types.String `tfsdk:"end_time"`
+	StartTime  types.Object `tfsdk:"start_time"`   // TimeOfDayModel
+	EndTime    types.Object `tfsdk:"end_time"`     // TimeOfDayModel
 }
 
-type IncidentsSettingsModel struct {
-	NotifyOn                  types.String `tfsdk:"notify_on"`
-	UseAsNotificationSettings types.Bool   `tfsdk:"use_as_notification_settings"`
-	RetriggeringPeriod        types.Object `tfsdk:"retriggering_period"` // RetriggeringPeriodModel
+type TimeOfDayModel struct {
+	Hours   types.Int64 `tfsdk:"hours"`
+	Minutes types.Int64 `tfsdk:"minutes"`
 }
 
 type RetriggeringPeriodModel struct {
 	Minutes types.Int64 `tfsdk:"minutes"`
-}
-
-type NotificationGroupModel struct {
-	GroupByFields types.List `tfsdk:"group_by_fields"` // []types.String
-	Notifications types.List `tfsdk:"notifications"`   // []AlertNotificationModel
-}
-
-type AlertNotificationModel struct {
-	RetriggeringPeriod types.Object `tfsdk:"retriggering_period"` // RetriggeringPeriodModel
-	NotifyOn           types.String `tfsdk:"notify_on"`
-	IntegrationID      types.String `tfsdk:"integration_id"`
-	Emails             types.Set    `tfsdk:"recipients"` //[]types.String
 }
 
 type AlertTypeDefinitionModel struct {
@@ -130,8 +118,8 @@ type AlertTypeDefinitionModel struct {
 	MetricMoreThanUsual      types.Object `tfsdk:"metric_more_than_usual"`       // MetricMoreThanUsualModel
 	TracingImmediate         types.Object `tfsdk:"tracing_immediate"`            // TracingImmediateModel
 	TracingMoreThan          types.Object `tfsdk:"tracing_more_than"`            // TracingMoreThanModel
-	Flow                     types.Object `tfsdk:"flow"`                         // FlowModel
 	MetricLessThanUsual      types.Object `tfsdk:"metric_less_than_usual"`       // MetricLessThanUsualModel
+	Flow                     types.Object `tfsdk:"flow"`                         // FlowModel
 }
 
 type LogsImmediateModel struct {
@@ -144,6 +132,7 @@ type AlertsLogsFilterModel struct {
 }
 
 type LuceneFilterModel struct {
+	LuceneQuery types.String `tfsdk:"lucene_query"`
 }
 
 type NotificationPayloadFilterModel struct {
@@ -198,6 +187,24 @@ type FlowModel struct {
 type MetricLessThanUsualModel struct {
 }
 
+type IncidentsSettingsModel struct {
+	NotifyOn                  types.String `tfsdk:"notify_on"`
+	UseAsNotificationSettings types.Bool   `tfsdk:"use_as_notification_settings"`
+	RetriggeringPeriod        types.Object `tfsdk:"retriggering_period"` // RetriggeringPeriodModel
+}
+
+type NotificationGroupModel struct {
+	GroupByFields types.List `tfsdk:"group_by_fields"` // []types.String
+	Notifications types.List `tfsdk:"notifications"`   // AlertNotificationModel
+}
+
+type AlertNotificationModel struct {
+	RetriggeringPeriod types.Object `tfsdk:"retriggering_period"` // RetriggeringPeriodModel
+	NotifyOn           types.String `tfsdk:"notify_on"`
+	IntegrationID      types.String `tfsdk:"integration_id"`
+	Emails             types.Set    `tfsdk:"recipients"` //[]types.String
+}
+
 func (r *AlertResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_alert"
 }
@@ -221,73 +228,263 @@ func (r *AlertResource) Configure(_ context.Context, req resource.ConfigureReque
 
 func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Version: 0,
+		Version: 1,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "Action ID.",
+				MarkdownDescription: "Alert ID.",
 			},
 			"name": schema.StringAttribute{
 				Required: true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
 				},
-				MarkdownDescription: "Action name.",
+				MarkdownDescription: "Alert name.",
 			},
-			"url": schema.StringAttribute{
-				Required: true,
-				Validators: []validator.String{
-					urlValidationFuncFramework{},
-				},
-				MarkdownDescription: "URL for the external tool.",
+			"description": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "Alert description.",
 			},
-			"is_private": schema.BoolAttribute{
+			"enabled": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(true),
-				MarkdownDescription: "Determines weather the action will be shared with the entire team. Can be set to false only by admin.",
+				MarkdownDescription: "Alert enabled status.",
 			},
-			"is_hidden": schema.BoolAttribute{
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(false),
-				MarkdownDescription: "Determines weather the action will be shown at the action menu.",
-			},
-			"source_type": schema.StringAttribute{
+			"alert_priority": schema.StringAttribute{
 				Required: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf(actionValidSourceTypes...),
+					stringvalidator.OneOf(validAlertPriorities...),
 				},
-				MarkdownDescription: fmt.Sprintf("By selecting the data type, you can make sure that the action will be displayed only in the relevant context. Can be one of %q", actionValidSourceTypes),
+				MarkdownDescription: fmt.Sprintf("Alert priority. Valid values: %q.", validAlertPriorities),
 			},
-			"applications": schema.SetAttribute{
-				ElementType: types.StringType,
+			"alert_schedule": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"days_of_week": schema.ListAttribute{
+						Required:    true,
+						ElementType: types.StringType,
+						Validators: []validator.List{
+							listvalidator.ValueStringsAre(
+								stringvalidator.OneOf(validDaysOfWeek...),
+							),
+						},
+					},
+					"start_time": timeOfDaySchema(),
+					"end_time":   timeOfDaySchema(),
+				},
+			},
+			"alert_type_definition": schema.SingleNestedAttribute{
+				Required: true,
+				Attributes: map[string]schema.Attribute{
+					"logs_immediate": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"logs_filter": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"lucene_filter": schema.SingleNestedAttribute{
+										Optional: true,
+										Attributes: map[string]schema.Attribute{
+											"lucene_query": schema.StringAttribute{
+												Optional: true,
+											},
+										},
+									},
+								},
+							},
+							"notification_payload_filter": schema.ListAttribute{
+								Optional: true,
+							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs_more_than"),
+								path.MatchRelative().AtParent().AtName("logs_less_than"),
+								path.MatchRelative().AtParent().AtName("logs_more_than_usual"),
+								path.MatchRelative().AtParent().AtName("logs_ratio_more_than"),
+								path.MatchRelative().AtParent().AtName("logs_ratio_less_than"),
+								path.MatchRelative().AtParent().AtName("logs_new_value"),
+								path.MatchRelative().AtParent().AtName("logs_unique_count"),
+								path.MatchRelative().AtParent().AtName("logs_time_relative_more_than"),
+								path.MatchRelative().AtParent().AtName("logs_time_relative_less_than"),
+								path.MatchRelative().AtParent().AtName("metric_more_than"),
+								path.MatchRelative().AtParent().AtName("metric_less_than"),
+								path.MatchRelative().AtParent().AtName("metric_more_than_usual"),
+								path.MatchRelative().AtParent().AtName("tracing_immediate"),
+								path.MatchRelative().AtParent().AtName("tracing_more_than"),
+								path.MatchRelative().AtParent().AtName("metric_less_than_usual"),
+								path.MatchRelative().AtParent().AtName("flow"),
+							),
+						},
+					},
+					"logs_more_than": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"logs_less_than": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"logs_more_than_usual": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"logs_ratio_more_than": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"logs_ratio_less_than": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"logs_new_value": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"logs_unique_count": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"logs_time_relative_more_than": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"logs_time_relative_less_than": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"metric_more_than": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"metric_less_than": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"metric_more_than_usual": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"tracing_immediate": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"tracing_more_than": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"metric_less_than_usual": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+					"flow": schema.SingleNestedAttribute{
+						Optional:   true,
+						Attributes: map[string]schema.Attribute{},
+					},
+				},
+			},
+			"alert_group_bys": schema.ListAttribute{
 				Optional:    true,
-				Validators: []validator.Set{
-					setvalidator.SizeAtLeast(1),
-				},
-				MarkdownDescription: "Applies the action for specific applications.",
-			},
-			"subsystems": schema.SetAttribute{
 				ElementType: types.StringType,
-				Optional:    true,
-				Validators: []validator.Set{
-					setvalidator.SizeAtLeast(1),
-				},
-				MarkdownDescription: "Applies the action for specific subsystems.",
 			},
-			"created_by": schema.StringAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+			"incidents_settings": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"notify_on": schema.StringAttribute{
+						Required: true,
+						Validators: []validator.String{
+							stringvalidator.OneOf(validNotifyOn...),
+						},
+						MarkdownDescription: fmt.Sprintf("Notify on. Valid values: %q.", validNotifyOn),
+					},
+					"use_as_notification_settings": schema.BoolAttribute{
+						Optional: true,
+						Computed: true,
+						Default:  booldefault.StaticBool(true),
+					},
+					"retriggering_period": schema.SingleNestedAttribute{
+						Required: true,
+						Attributes: map[string]schema.Attribute{
+							"minutes": schema.Int64Attribute{
+								Required: true,
+							},
+						},
+					},
 				},
-				MarkdownDescription: "The user who created the action.",
+			},
+			"notification_group": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"group_by_fields": schema.ListAttribute{
+						Optional:    true,
+						ElementType: types.StringType,
+					},
+					"notifications": schema.ListNestedAttribute{
+						Optional: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"notify_on": schema.StringAttribute{
+									Required: true,
+									Validators: []validator.String{
+										stringvalidator.OneOf(validNotifyOn...),
+									},
+								},
+								"retriggering_period": schema.SingleNestedAttribute{
+									Optional: true,
+								},
+								"integration_id": schema.StringAttribute{
+									Optional: true,
+									Validators: []validator.String{
+										stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("recipients")),
+									},
+									MarkdownDescription: "Integration ID.\n" +
+										"Exactly one of integration_id or recipients must be set.\n" +
+										"Can be linked to an integration by integration_id = coralogix_webhook.<webhook-resource-name>.external_id or setting it explicitly.",
+								},
+								"recipients": schema.SetAttribute{
+									Optional:    true,
+									ElementType: types.StringType,
+									Validators: []validator.Set{
+										setvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("integration_id")),
+									},
+									MarkdownDescription: "Email recipients.\n" +
+										"Exactly one of integration_id or recipients must be set.",
+								},
+							},
+						},
+					},
+				},
+			},
+			"labels": schema.MapAttribute{
+				Optional:    true,
+				ElementType: types.StringType,
 			},
 		},
-		MarkdownDescription: "Coralogix action. For more info please review - https://coralogix.com/docs/coralogix-action-extension/.",
+		MarkdownDescription: "Coralogix Alert. For more info please review - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.",
+	}
+}
+
+func timeOfDaySchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Required: true,
+		Attributes: map[string]schema.Attribute{
+			"hours": schema.Int64Attribute{
+				Required: true,
+				Validators: []validator.Int64{
+					int64validator.Between(0, 23),
+				},
+			},
+			"minutes": schema.Int64Attribute{
+				Required: true,
+				Validators: []validator.Int64{
+					int64validator.Between(0, 59),
+				},
+			},
+		},
 	}
 }
 
@@ -297,9 +494,8 @@ func (r *AlertResource) ImportState(ctx context.Context, req resource.ImportStat
 
 func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan *AlertResourceModel
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
+	if diags := req.Plan.Get(ctx, &plan); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
 
@@ -322,10 +518,12 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 	log.Printf("[INFO] Submitted new alert: %s", protojson.Format(alert))
 
 	plan, diags = flattenAlert(ctx, alert)
-
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 	// Set state to fully populated data
-	diags = resp.State.Set(ctx, plan)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
 func extractAlertProperties(ctx context.Context, plan *AlertResourceModel) (*alerts.AlertProperties, diag.Diagnostics) {
@@ -534,15 +732,13 @@ func expandAlertsSchedule(ctx context.Context, alertProperties *alerts.AlertProp
 		return nil, diags
 	}
 
-	startTime, dg := stringToTimeOfDay(scheduleModel.StartTime.ValueString())
-	if dg != nil {
-		diags.Append(dg)
+	startTime, diags := extractTimeOfDay(ctx, scheduleModel.StartTime)
+	if diags.HasError() {
 		return nil, diags
 	}
 
-	endTime, dg := stringToTimeOfDay(scheduleModel.EndTime.ValueString())
+	endTime, diags := extractTimeOfDay(ctx, scheduleModel.EndTime)
 	if diags.HasError() {
-		diags.Append(dg)
 		return nil, diags
 	}
 
@@ -557,23 +753,21 @@ func expandAlertsSchedule(ctx context.Context, alertProperties *alerts.AlertProp
 	return alertProperties, nil
 }
 
-func stringToTimeOfDay(str string) (*alerts.TimeOfDay, diag.Diagnostic) {
-	timeArr := strings.Split(str, ":")
-	if len(timeArr) != 2 {
-		return nil, diag.NewErrorDiagnostic("Invalid time format", "Time should be in HH:MM format")
+func extractTimeOfDay(ctx context.Context, timeObject types.Object) (*alerts.TimeOfDay, diag.Diagnostics) {
+	if timeObject.IsNull() || timeObject.IsUnknown() {
+		return nil, nil
 	}
-	hours, err := strconv.Atoi(timeArr[0])
-	if err != nil {
-		return nil, diag.NewErrorDiagnostic("Invalid time format", "Hours should be a number")
+
+	var timeOfDayModel TimeOfDayModel
+	if diags := timeObject.As(ctx, &timeOfDayModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
 	}
-	minutes, err := strconv.Atoi(timeArr[1])
-	if err != nil {
-		return nil, diag.NewErrorDiagnostic("Invalid time format", "Minutes should be a number")
-	}
+
 	return &alerts.TimeOfDay{
-		Hours:   int32(hours),
-		Minutes: int32(minutes),
+		Hours:   int32(timeOfDayModel.Hours.ValueInt64()),
+		Minutes: int32(timeOfDayModel.Minutes.ValueInt64()),
 	}, nil
+
 }
 
 func extractDaysOfWeek(ctx context.Context, daysOfWeek types.List) ([]alerts.DayOfWeek, diag.Diagnostics) {
@@ -683,6 +877,7 @@ func expandLogsImmediateAlertTypeDefinition(ctx context.Context, properties *ale
 			NotificationPayloadFilter: notificationPayloadFilter,
 		},
 	}
+	properties.AlertType = alerts.AlertType_ALERT_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED
 	return properties, nil
 }
 
@@ -720,7 +915,9 @@ func extractLuceneFilter(ctx context.Context, luceneFilter types.Object) (*alert
 		return nil, diags
 	}
 
-	return &alerts.LuceneFilter{}, nil
+	return &alerts.LuceneFilter{
+		LuceneQuery: typeStringToWrapperspbString(luceneFilterModel.LuceneQuery),
+	}, nil
 
 }
 
@@ -836,10 +1033,22 @@ func flattenAlert(ctx context.Context, alert *alerts.Alert) (*AlertResourceModel
 		return nil, diags
 	}
 
-	alertTypeDefinition, diags := flattenAlertTypeDefinition(alertProperties)
+	alertTypeDefinition, diags := flattenAlertTypeDefinition(ctx, alertProperties)
 	if diags.HasError() {
 		return nil, diags
 	}
+
+	incidentsSettings, diags := flattenIncidentsSettings(ctx, alertProperties.GetIncidentsSettings())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	notificationGroup, diags := flattenNotificationGroup(ctx, alertProperties.GetNotificationGroup())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	labels, diags := types.MapValueFrom(ctx, types.StringType, alertProperties.GetLabels())
 
 	return &AlertResourceModel{
 		ID:                  wrapperspbStringToTypeString(alert.GetId()),
@@ -850,44 +1059,518 @@ func flattenAlert(ctx context.Context, alert *alerts.Alert) (*AlertResourceModel
 		AlertSchedule:       alertSchedule,
 		AlertTypeDefinition: alertTypeDefinition,
 		AlertGroupBys:       wrappedStringSliceToTypeStringList(alertProperties.GetAlertGroupBys()),
-		IncidentsSettings:   flattenIncidentsSettings(alert.GetIncidentsSettings()),
-		NotificationGroup:   flattenNotificationGroup(alert.GetNotificationGroup()),
-		Labels:              types.Map(labels),
+		IncidentsSettings:   incidentsSettings,
+		NotificationGroup:   notificationGroup,
+		Labels:              labels,
 	}, nil
 }
 
-func flattenAlertTypeDefinition(properties *alerts.AlertProperties) (types.Object, diag.Diagnostics) {
-	if properties.AlertTypeDefinition == nil {
-		return types.ObjectNull(alertTypeDefinitionAttr()), nil
+func flattenNotificationGroup(ctx context.Context, notificationGroup *alerts.AlertNotificationGroup) (types.Object, diag.Diagnostics) {
+	if notificationGroup == nil {
+		return types.ObjectNull(notificationGroupAttr()), nil
+	}
+
+	notifications, diags := flattenAlertNotifications(ctx, notificationGroup.GetNotifications())
+	if diags.HasError() {
+		return types.ObjectNull(notificationGroupAttr()), diags
+	}
+
+	notificationGroupModel := NotificationGroupModel{
+		GroupByFields: wrappedStringSliceToTypeStringList(notificationGroup.GetGroupByFields()),
+		Notifications: notifications,
+	}
+	return types.ObjectValueFrom(ctx, notificationGroupAttr(), notificationGroupModel)
+}
+
+func flattenAlertNotifications(ctx context.Context, notifications []*alerts.AlertNotification) (types.List, diag.Diagnostics) {
+	var notificationsModel []AlertNotificationModel
+	var diags diag.Diagnostics
+	for _, notification := range notifications {
+		retriggeringPeriod, dgs := flattenRetriggeringPeriod(ctx, notification)
+		if dgs.HasError() {
+			diags.Append(dgs...)
+			continue
+		}
+		notificationModel := AlertNotificationModel{
+			NotifyOn:           types.StringValue(notifyOnProtoToSchemaMap[notification.GetNotifyOn()]),
+			IntegrationID:      WrapperspbUint32ToString(notification.GetIntegrationId()),
+			Emails:             wrappedStringSliceToTypeStringSet(notification.GetRecipients().GetEmails()),
+			RetriggeringPeriod: retriggeringPeriod,
+		}
+		notificationsModel = append(notificationsModel, notificationModel)
+	}
+	if diags.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: alertNotificationAttr()}), diags
+	}
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: alertNotificationAttr()}, notificationsModel)
+}
+
+func flattenRetriggeringPeriod(ctx context.Context, notifications *alerts.AlertNotification) (types.Object, diag.Diagnostics) {
+	switch notificationPeriodType := notifications.RetriggeringPeriod.(type) {
+	case *alerts.AlertNotification_Minutes:
+		return types.ObjectValueFrom(ctx, retriggeringPeriodAttr(), RetriggeringPeriodModel{
+			Minutes: wrapperspbUint32ToTypeInt64(notificationPeriodType.Minutes),
+		})
+	default:
+		return types.ObjectNull(retriggeringPeriodAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Retriggering Period", fmt.Sprintf("Retriggering Period %v is not valid", notificationPeriodType))}
 	}
 }
 
-func alertTypeDefinitionAttr() map[string]attr.Type {
+func notificationGroupAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"group_by_fields": types.ListType{
+			ElemType: types.StringType,
+		},
+		"notifications": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: alertNotificationAttr(),
+			},
+		},
+	}
+}
+
+func alertNotificationAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"notify_on": types.StringType,
+		"retriggering_period": types.ObjectType{
+			AttrTypes: retriggeringPeriodAttr(),
+		},
+		"integration_id": types.Int64Type,
+		"emails":         types.ListType{ElemType: types.StringType},
+	}
+}
+
+func flattenIncidentsSettings(ctx context.Context, incidentsSettings *alerts.AlertIncidentSettings) (types.Object, diag.Diagnostics) {
+	if incidentsSettings == nil {
+		return types.ObjectNull(incidentsSettingsAttr()), nil
+	}
+
+	retriggeringPeriod, diags := flattenIncidentsSettingsByRetriggeringPeriod(ctx, incidentsSettings)
+	if diags.HasError() {
+		return types.ObjectNull(incidentsSettingsAttr()), diags
+	}
+
+	incidentsSettingsModel := IncidentsSettingsModel{
+		NotifyOn:                  types.StringValue(notifyOnProtoToSchemaMap[incidentsSettings.GetNotifyOn()]),
+		UseAsNotificationSettings: wrapperspbBoolToTypeBool(incidentsSettings.GetUseAsNotificationSettings()),
+		RetriggeringPeriod:        retriggeringPeriod,
+	}
+	return types.ObjectValueFrom(ctx, incidentsSettingsAttr(), incidentsSettingsModel)
+}
+
+func flattenIncidentsSettingsByRetriggeringPeriod(ctx context.Context, settings *alerts.AlertIncidentSettings) (types.Object, diag.Diagnostics) {
+	if settings.RetriggeringPeriod == nil {
+		return types.ObjectNull(retriggeringPeriodAttr()), nil
+	}
+
+	var periodModel RetriggeringPeriodModel
+	switch period := settings.RetriggeringPeriod.(type) {
+	case *alerts.AlertIncidentSettings_Minutes:
+		periodModel.Minutes = wrapperspbUint32ToTypeInt64(period.Minutes)
+	default:
+		return types.ObjectNull(retriggeringPeriodAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Retriggering Period", fmt.Sprintf("Retriggering Period %v is not valid", period))}
+	}
+
+	return types.ObjectValueFrom(ctx, retriggeringPeriodAttr(), periodModel)
+}
+
+func retriggeringPeriodAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"minutes": types.Int64Type,
+	}
+}
+
+func incidentsSettingsAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"notify_on":                    types.StringType,
+		"use_as_notification_settings": types.BoolType,
+		"retriggering_period": types.ObjectType{
+			AttrTypes: retriggeringPeriodAttr(),
+		},
+	}
+}
+
+func flattenAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties) (types.Object, diag.Diagnostics) {
+	if properties.AlertTypeDefinition == nil {
+		return types.ObjectNull(alertTypeDefinitionAttr()), nil
+	}
+
+	alertTypeDefinitionModel := AlertTypeDefinitionModel{
+		LogsImmediate:            types.ObjectNull(logsImmediateAttr()),
+		LogsMoreThan:             types.ObjectNull(logsMoreThanAttr()),
+		LogsLessThan:             types.ObjectNull(logsLessThanAttr()),
+		LogsMoreThanUsual:        types.ObjectNull(logsMoreThanUsualAttr()),
+		LogsRatioMoreThan:        types.ObjectNull(logsRatioMoreThanAttr()),
+		LogsRatioLessThan:        types.ObjectNull(logsRatioLessThanAttr()),
+		LogsNewValue:             types.ObjectNull(logsNewValueAttr()),
+		LogsUniqueCount:          types.ObjectNull(logsUniqueCountAttr()),
+		LogsTimeRelativeMoreThan: types.ObjectNull(logsTimeRelativeMoreThanAttr()),
+		LogsTimeRelativeLessThan: types.ObjectNull(logsTimeRelativeLessThanAttr()),
+		MetricMoreThan:           types.ObjectNull(metricMoreThanAttr()),
+		MetricLessThan:           types.ObjectNull(metricLessThanAttr()),
+		MetricMoreThanUsual:      types.ObjectNull(metricMoreThanUsualAttr()),
+		TracingImmediate:         types.ObjectNull(tracingImmediateAttr()),
+		TracingMoreThan:          types.ObjectNull(tracingMoreThanAttr()),
+		Flow:                     types.ObjectNull(flowAttr()),
+		MetricLessThanUsual:      types.ObjectNull(MetricLessThanUsualAttr()),
+	}
+	var diags diag.Diagnostics
+	switch alertTypeDefinition := properties.AlertTypeDefinition.(type) {
+	case *alerts.AlertProperties_LogsImmediate:
+		alertTypeDefinitionModel.LogsImmediate, diags = flattenLogsImmediate(ctx, alertTypeDefinition.LogsImmediate)
+	case *alerts.AlertProperties_LogsMoreThan:
+		alertTypeDefinitionModel.LogsMoreThan, diags = flattenLogsMoreThan(ctx, alertTypeDefinition.LogsMoreThan)
+	case *alerts.AlertProperties_LogsLessThan:
+		alertTypeDefinitionModel.LogsLessThan, diags = flattenLogsLessThan(ctx, alertTypeDefinition.LogsLessThan)
+	case *alerts.AlertProperties_LogsMoreThanUsual:
+		alertTypeDefinitionModel.LogsMoreThanUsual, diags = flattenLogsMoreThanUsual(ctx, alertTypeDefinition.LogsMoreThanUsual)
+	case *alerts.AlertProperties_LogsRatioMoreThan:
+		alertTypeDefinitionModel.LogsRatioMoreThan, diags = flattenLogsRatioMoreThan(ctx, alertTypeDefinition.LogsRatioMoreThan)
+	case *alerts.AlertProperties_LogsRatioLessThan:
+		alertTypeDefinitionModel.LogsRatioLessThan, diags = flattenLogsRatioLessThan(ctx, alertTypeDefinition.LogsRatioLessThan)
+	case *alerts.AlertProperties_LogsNewValue:
+		alertTypeDefinitionModel.LogsNewValue, diags = flattenLogsNewValue(ctx, alertTypeDefinition.LogsNewValue)
+	case *alerts.AlertProperties_LogsUniqueCount:
+		alertTypeDefinitionModel.LogsUniqueCount, diags = flattenLogsUniqueCount(ctx, alertTypeDefinition.LogsUniqueCount)
+	case *alerts.AlertProperties_LogsTimeRelativeMoreThan:
+		alertTypeDefinitionModel.LogsTimeRelativeMoreThan, diags = flattenLogsTimeRelativeMoreThan(ctx, alertTypeDefinition.LogsTimeRelativeMoreThan)
+	case *alerts.AlertProperties_LogsTimeRelativeLessThan:
+		alertTypeDefinitionModel.LogsTimeRelativeLessThan, diags = flattenLogsTimeRelativeLessThan(ctx, alertTypeDefinition.LogsTimeRelativeLessThan)
+	case *alerts.AlertProperties_MetricMoreThan:
+		alertTypeDefinitionModel.MetricMoreThan, diags = flattenMetricMoreThan(ctx, alertTypeDefinition.MetricMoreThan)
+	case *alerts.AlertProperties_MetricLessThan:
+		alertTypeDefinitionModel.MetricLessThan, diags = flattenMetricLessThan(ctx, alertTypeDefinition.MetricLessThan)
+	case *alerts.AlertProperties_MetricMoreThanUsual:
+		alertTypeDefinitionModel.MetricMoreThanUsual, diags = flattenMetricMoreThanUsual(ctx, alertTypeDefinition.MetricMoreThanUsual)
+	case *alerts.AlertProperties_TracingImmediate:
+		alertTypeDefinitionModel.TracingImmediate, diags = flattenTracingImmediate(alertTypeDefinition.TracingImmediate)
+	case *alerts.AlertProperties_TracingMoreThan:
+		alertTypeDefinitionModel.TracingMoreThan, diags = flattenTracingMoreThan(ctx, alertTypeDefinition.TracingMoreThan)
+	case *alerts.AlertProperties_Flow:
+		alertTypeDefinitionModel.Flow, diags = flattenFlow(ctx, alertTypeDefinition.Flow)
+	case *alerts.AlertProperties_MetricLessThanUsual:
+		alertTypeDefinitionModel.MetricLessThanUsual, diags = flattenMetricLessThanUsual(ctx, alertTypeDefinition.MetricLessThanUsual)
+	default:
+		return types.ObjectNull(alertTypeDefinitionAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Alert Type Definition", fmt.Sprintf("Alert Type %v Definition is not valid", alertTypeDefinition))}
+	}
+
+	if diags.HasError() {
+		return types.ObjectNull(alertTypeDefinitionAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, alertTypeDefinitionAttr(), alertTypeDefinitionModel)
+}
+
+func flattenMetricLessThanUsual(ctx context.Context, usual *alerts.MetricLessThanUsualAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(MetricLessThanUsualAttr()), nil
+}
+
+func flattenFlow(ctx context.Context, flow *alerts.FlowAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(flowAttr()), nil
+}
+
+func flattenTracingMoreThan(ctx context.Context, than *alerts.TracingMoreThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(tracingMoreThanAttr()), nil
+}
+
+func flattenTracingImmediate(immediate *alerts.TracingImmediateAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(tracingImmediateAttr()), nil
+}
+
+func flattenMetricMoreThanUsual(ctx context.Context, usual *alerts.MetricMoreThanUsualAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(metricMoreThanUsualAttr()), nil
+}
+
+func flattenMetricLessThan(ctx context.Context, than *alerts.MetricLessThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(metricLessThanAttr()), nil
+}
+
+func flattenMetricMoreThan(ctx context.Context, than *alerts.MetricMoreThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(metricMoreThanAttr()), nil
+}
+
+func flattenLogsTimeRelativeLessThan(ctx context.Context, than *alerts.LogsTimeRelativeLessThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(logsTimeRelativeLessThanAttr()), nil
+}
+
+func flattenLogsTimeRelativeMoreThan(ctx context.Context, than *alerts.LogsTimeRelativeMoreThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(logsTimeRelativeMoreThanAttr()), nil
+}
+
+func flattenLogsUniqueCount(ctx context.Context, count *alerts.LogsUniqueCountAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(logsUniqueCountAttr()), nil
+}
+
+func flattenLogsNewValue(ctx context.Context, value *alerts.LogsNewValueAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(logsNewValueAttr()), nil
 
 }
 
+func flattenLogsRatioLessThan(ctx context.Context, than *alerts.LogsRatioLessThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(logsRatioLessThanAttr()), nil
+
+}
+
+func flattenLogsRatioMoreThan(ctx context.Context, than *alerts.LogsRatioMoreThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(logsRatioMoreThanAttr()), nil
+
+}
+
+func flattenLogsMoreThanUsual(ctx context.Context, usual *alerts.LogsMoreThanUsualAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(logsMoreThanUsualAttr()), nil
+
+}
+
+func flattenLogsLessThan(ctx context.Context, than *alerts.LogsLessThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(logsLessThanAttr()), nil
+}
+
+func flattenLogsMoreThan(ctx context.Context, than *alerts.LogsMoreThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	return types.ObjectNull(logsMoreThanAttr()), nil
+
+}
+
+func flattenLogsImmediate(ctx context.Context, immediate *alerts.LogsImmediateAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	if immediate == nil {
+		return types.ObjectNull(logsImmediateAttr()), nil
+	}
+
+	logsFilter, diags := flattenAlertsLogsFilter(ctx, immediate.GetLogsFilter())
+	if diags.HasError() {
+		return types.ObjectNull(logsImmediateAttr()), diags
+	}
+
+	logsImmediateModel := LogsImmediateModel{
+		LogsFilter:                logsFilter,
+		NotificationPayloadFilter: wrappedStringSliceToTypeStringList(immediate.GetNotificationPayloadFilter()),
+	}
+	return types.ObjectValueFrom(ctx, logsImmediateAttr(), logsImmediateModel)
+}
+
+func flattenAlertsLogsFilter(ctx context.Context, filter *alerts.LogsFilter) (types.Object, diag.Diagnostics) {
+	if filter == nil {
+		return types.ObjectNull(logsFilterAttr()), nil
+	}
+
+	var diags diag.Diagnostics
+	var logsFilterModer AlertsLogsFilterModel
+	switch filterType := filter.FilterType.(type) {
+	case *alerts.LogsFilter_LuceneFilter:
+		logsFilterModer.LuceneFilter, diags = flattenLuceneFilter(ctx, filterType.LuceneFilter)
+	default:
+		return types.ObjectNull(logsFilterAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Logs Filter", fmt.Sprintf("Logs Filter %v is not valid", filterType))}
+	}
+
+	if diags.HasError() {
+		return types.ObjectNull(logsFilterAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, logsFilterAttr(), logsFilterModer)
+}
+
+func flattenLuceneFilter(ctx context.Context, filter *alerts.LuceneFilter) (types.Object, diag.Diagnostics) {
+	if filter == nil {
+		return types.ObjectNull(luceneFilterAttr()), nil
+	}
+
+	return types.ObjectValueFrom(ctx, luceneFilterAttr(), LuceneFilterModel{
+		LuceneQuery: wrapperspbStringToTypeString(filter.GetLuceneQuery()),
+	})
+}
+
+func alertTypeDefinitionAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"logs_immediate": types.ObjectType{
+			AttrTypes: logsImmediateAttr(),
+		},
+		"logs_more_than": types.ObjectType{
+			AttrTypes: logsMoreThanAttr(),
+		},
+		"logs_less_than": types.ObjectType{
+			AttrTypes: logsLessThanAttr(),
+		},
+		"logs_more_than_usual": types.ObjectType{
+			AttrTypes: logsMoreThanUsualAttr(),
+		},
+		"logs_ratio_more_than": types.ObjectType{
+			AttrTypes: logsRatioMoreThanAttr(),
+		},
+		"logs_ratio_less_than": types.ObjectType{
+			AttrTypes: logsRatioLessThanAttr(),
+		},
+		"logs_new_value": types.ObjectType{
+			AttrTypes: logsNewValueAttr(),
+		},
+		"logs_unique_count": types.ObjectType{
+			AttrTypes: logsUniqueCountAttr(),
+		},
+		"logs_time_relative_more_than": types.ObjectType{
+			AttrTypes: logsTimeRelativeMoreThanAttr(),
+		},
+		"logs_time_relative_less_than": types.ObjectType{
+			AttrTypes: logsTimeRelativeLessThanAttr(),
+		},
+		"metric_more_than": types.ObjectType{
+			AttrTypes: metricMoreThanAttr(),
+		},
+		"metric_less_than": types.ObjectType{
+			AttrTypes: metricLessThanAttr(),
+		},
+		"metric_more_than_usual": types.ObjectType{
+			AttrTypes: metricMoreThanUsualAttr(),
+		},
+		"tracing_immediate": types.ObjectType{
+			AttrTypes: tracingImmediateAttr(),
+		},
+		"tracing_more_than": types.ObjectType{
+			AttrTypes: tracingMoreThanAttr(),
+		},
+		"flow": types.ObjectType{
+			AttrTypes: flowAttr(),
+		},
+		"metric_less_than_usual": types.ObjectType{
+			AttrTypes: MetricLessThanUsualAttr(),
+		},
+	}
+}
+
+func logsImmediateAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"logs_filter": types.ObjectType{
+			AttrTypes: logsFilterAttr(),
+		},
+	}
+}
+
+func logsFilterAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"lucene_filter": types.ObjectType{
+			AttrTypes: luceneFilterAttr(),
+		},
+	}
+}
+
+func luceneFilterAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"query": types.StringType,
+	}
+}
+
+func MetricLessThanUsualAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func flowAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func tracingMoreThanAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func tracingImmediateAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func metricMoreThanUsualAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func metricLessThanAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func metricMoreThanAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func logsTimeRelativeLessThanAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func logsTimeRelativeMoreThanAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func logsUniqueCountAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func logsNewValueAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func logsRatioLessThanAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func logsRatioMoreThanAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func logsMoreThanUsualAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func logsLessThanAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
+func logsMoreThanAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+
 func flattenAlertSchedule(ctx context.Context, alertProperties *alerts.AlertProperties) (types.Object, diag.Diagnostics) {
-	switch alertProperties.AlertSchedule.(type) {
+	switch alertScheduleType := alertProperties.AlertSchedule.(type) {
 	case *alerts.AlertProperties_ActiveOn:
 		activeOn := alertProperties.GetActiveOn()
 		daysOfWeek, diags := flattenDaysOfWeek(ctx, activeOn.GetDayOfWeek())
 		if diags.HasError() {
 			return types.ObjectNull(alertScheduleAttr()), diags
 		}
+		startTime, diags := flattenTimeOfDay(ctx, activeOn.GetStartTime())
+		if diags.HasError() {
+			return types.ObjectNull(alertScheduleAttr()), diags
+		}
+		endTime, diags := flattenTimeOfDay(ctx, activeOn.GetEndTime())
+		if diags.HasError() {
+			return types.ObjectNull(alertScheduleAttr()), diags
+		}
 		alertScheduleModel := AlertScheduleModel{
 			DaysOfWeek: daysOfWeek,
-			StartTime:  wrapperspbStringToTypeString(activeOn.GetStartTime()),
-			EndTime:    wrapperspbStringToTypeString(activeOn.GetEndTime()),
+			StartTime:  startTime,
+			EndTime:    endTime,
 		}
-		return types.ObjectValueFrom(alertScheduleModel)
+		return types.ObjectValueFrom(ctx, alertScheduleAttr(), alertScheduleModel)
+	default:
+		return types.ObjectNull(alertScheduleAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Alert Schedule", fmt.Sprintf("Alert Schedule %v is not supported", alertScheduleType))}
+	}
+}
+
+func flattenTimeOfDay(ctx context.Context, time *alerts.TimeOfDay) (types.Object, diag.Diagnostics) {
+	if time == nil {
+		return types.ObjectNull(timeOfDayAttr()), nil
+	}
+	return types.ObjectValueFrom(ctx, timeOfDayAttr(), TimeOfDayModel{
+		Hours:   types.Int64Value(int64(time.GetHours())),
+		Minutes: types.Int64Value(int64(time.GetMinutes())),
+	})
+}
+
+func timeOfDayAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"hours":   types.Int64Type,
+		"minutes": types.Int64Type,
 	}
 }
 
 func alertScheduleAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"days_of_week": types.ListType(types.StringType),
-		"start_time":   types.StringType,
-		"end_time":     types.StringType,
+		"days_of_week": types.ListType{
+			ElemType: types.StringType,
+		},
+		"start_time": types.StringType,
+		"end_time":   types.StringType,
 	}
 }
 
