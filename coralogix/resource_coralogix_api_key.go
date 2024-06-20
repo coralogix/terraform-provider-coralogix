@@ -469,7 +469,9 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 	var diags diag.Diagnostics
 
 	permissions := stringSliceToTypeStringSet(response.KeyInfo.KeyPermissions.Permissions)
-
+	if permissions.IsNull() {
+		permissions = types.SetValueMust(types.StringType, []attr.Value{})
+	}
 	presetNames := make([]attr.Value, len(response.KeyInfo.KeyPermissions.Presets))
 	for i, p := range response.KeyInfo.KeyPermissions.Presets {
 		presetNames[i] = types.StringValue(p.Name)
