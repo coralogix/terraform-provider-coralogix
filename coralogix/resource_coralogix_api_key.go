@@ -133,17 +133,11 @@ func resourceSchemaV1() schema.Schema {
 				Required:            true,
 				ElementType:         types.StringType,
 				MarkdownDescription: "Api Key Presets",
-				Validators: []validator.Set{
-					setvalidator.SizeAtLeast(1),
-				},
 			},
 			"permissions": schema.SetAttribute{
 				Required:            true,
 				ElementType:         types.StringType,
 				MarkdownDescription: "Api Key Permissions",
-				Validators: []validator.Set{
-					setvalidator.SizeAtLeast(1),
-				},
 			},
 		},
 		MarkdownDescription: "Coralogix Api keys.",
