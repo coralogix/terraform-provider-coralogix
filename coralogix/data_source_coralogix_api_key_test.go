@@ -23,6 +23,8 @@ func TestAccCoralogixDataSourceApiKey(t *testing.T) {
 					resource.TestCheckResourceAttr(apiKeyDataSourceName, "owner.team_id", teamID),
 					resource.TestCheckResourceAttr(apiKeyDataSourceName, "active", "true"),
 					resource.TestCheckResourceAttr(apiKeyDataSourceName, "hashed", "false"),
+					resource.TestCheckResourceAttr(apiKeyDataSourceName, "permissions", "[]"),
+					resource.TestCheckResourceAttr(apiKeyDataSourceName, "presets", "[]"),
 				),
 			},
 		},

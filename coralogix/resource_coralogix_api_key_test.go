@@ -51,7 +51,8 @@ func testApiKeyResource() string {
   }
   active = true
   hashed = false
-  roles = ["SCIM"]
+  permissions = []
+  presets = ["Alerts", "APM"]
 }
 `, "<TEAM_ID>", teamID, 1)
 }
@@ -64,7 +65,8 @@ func updateApiKeyResource() string {
   }
   active = false
   hashed = false
-  roles = ["SCIM"]
+  permissions = []
+  presets = ["Alerts", "APM"]
 }
 `, "<TEAM_ID>", teamID, 1)
 }

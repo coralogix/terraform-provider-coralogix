@@ -25,7 +25,8 @@ Coralogix Api keys.
 - `hashed` (Boolean) Api Key Is Hashed.
 - `name` (String) Api Key name.
 - `owner` (Attributes) Api Key Owner.It can either be a team_id or a user_id (see [below for nested schema](#nestedatt--owner))
-- `roles` (Set of String) Api Key Roles
+- `permissions` (Set of String) Api Key Permissions
+- `presets` (Set of String) Api Key Presets
 - `value` (String) Api Key value.
 
 <a id="nestedatt--owner"></a>
