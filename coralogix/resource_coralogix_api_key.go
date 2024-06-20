@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -22,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -612,13 +614,22 @@ func (r *ApiKeyResource) UpgradeState(context.Context) map[int64]resource.StateU
 func mapRolesToPermissions(ctx context.Context, roles types.Set) (types.Set, diag.Diagnostics) {
 	permissions := []string{}
 	for _, role := range roles.Elements() {
-		permission, diags := mapRoleToPermission(role.(types.String))
+		mappedPermissions, diags := mapRoleToPermission(role.(types.String))
 		if diags.HasError() {
 			return types.Set{}, diags
 		}
-		permissions = append(permissions, permission...)
+		diags.AddWarning("Role mapping", fmt.Sprintf("Role %s mapped to permissions %v", role, mappedPermissions))
+		for _, m := range mappedPermissions {
+			if !slices.Contains(permissions, m) {
+				permissions = append(permissions, m)
+			}
+		}
 	}
-	return types.SetValueFrom(ctx, types.StringType, permissions)
+	finalPermissions := []attr.Value{}
+	for _, p := range permissions {
+		finalPermissions = append(finalPermissions, types.StringValue(p))
+	}
+	return types.SetValueFrom(ctx, types.StringType, finalPermissions)
 }
 
 func mapRoleToPermission(role types.String) ([]string, diag.Diagnostics) {
