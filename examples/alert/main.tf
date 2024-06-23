@@ -12,7 +12,7 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_alert" "standard_alert" {
+resource "coralogix_alert" "logs_immediate_alert" {
   name           = "Standard alert example"
   description    = "Example of standard alert from terraform"
   alert_priority = "P3"
@@ -68,6 +68,8 @@ resource "coralogix_alert" "standard_alert" {
     }
   }
 }
+
+
 #
 #data "coralogix_alert" "imported_standard_alert" {
 #  id = coralogix_alert.standard_alert.id
