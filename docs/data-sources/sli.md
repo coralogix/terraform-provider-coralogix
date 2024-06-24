@@ -24,10 +24,10 @@ Coralogix SLI. For more information - https://coralogix.com/docs/service-catalog
 
 - `description` (String) Optional SLI description.
 - `error_budget` (Number)
-- `filters` (Attributes Set) (see [below for nested schema](#nestedatt--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--filters))
 - `label_e2m_id` (String)
 - `metric_name` (String) Metric name. This is the name of the metric that the SLI is associated with.
-- `metric_type` (String) Metric type. This is the type of the metric that the SLI is associated with. Valid values are: ["latency" "custom" "unspecified" "error"].
+- `metric_type` (String) Metric type. This is the type of the metric that the SLI is associated with. Valid values are: ["unspecified" "error" "latency" "custom"].
 - `name` (String) SLI name.
 - `service_names_group` (List of String)
 - `slo_percentage` (Number)
@@ -35,7 +35,7 @@ Coralogix SLI. For more information - https://coralogix.com/docs/service-catalog
 - `slo_status_type` (String) SLO status type. This is the status of the SLI. Valid values are: `ok` and `breached`.
 - `threshold_symbol_type` (String)
 - `threshold_value` (Number)
-- `time_unit_type` (String) Time unit type. This is the time unit type of the metric that the SLI is associated with. Valid values are: ["microsecond" "millisecond" "second" "minute" "unspecified"].
+- `time_unit_type` (String) Time unit type. This is the time unit type of the metric that the SLI is associated with. Valid values are: ["millisecond" "second" "minute" "unspecified" "microsecond"].
 - `total_e2m_id` (String)
 
 <a id="nestedatt--filters"></a>

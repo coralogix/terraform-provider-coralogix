@@ -449,9 +449,9 @@ Read-Only:
 - `max_bars_per_chart` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
 - `scale_type` (String)
-- `sort_by` (String) The field to sort by. Can be one of unspecified, value, name.
+- `sort_by` (String) The field to sort by. Can be one of name, unspecified, value.
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of gbytes, kibytes, unspecified, kbytes, mbytes, usd_cents, usd, microseconds, seconds, euro, euro_cents, milliseconds, bytes, bytes_iec, mibytes, gibytes.
+- `unit` (String) The unit of the chart. Can be one of unspecified, microseconds, seconds, bytes_iec, kibytes, milliseconds, gbytes, euro_cents, usd_cents, kbytes, mbytes, mibytes, gibytes, bytes, euro, usd.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--xaxis))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
@@ -685,7 +685,7 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
@@ -1077,7 +1077,7 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
@@ -1107,9 +1107,9 @@ Read-Only:
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
 - `show_inner_arc` (Boolean)
 - `show_outer_arc` (Boolean)
-- `threshold_by` (String) The threshold by. Can be one of ["unspecified" "value" "background"].
+- `threshold_by` (String) The threshold by. Can be one of ["value" "background" "unspecified"].
 - `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--thresholds))
-- `unit` (String) The unit of the gauge. Can be one of ["usd" "bytes" "kbytes" "gbytes" "euro_cents" "euro" "percent" "seconds" "mbytes" "gibytes" "milliseconds" "bytes_iec" "kibytes" "mibytes" "none" "microseconds" "usd_cents"].
+- `unit` (String) The unit of the gauge. Can be one of ["milliseconds" "bytes" "mbytes" "mibytes" "euro" "percent" "kbytes" "gibytes" "euro_cents" "usd" "microseconds" "seconds" "gbytes" "bytes_iec" "kibytes" "none" "usd_cents"].
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.unit`
@@ -1342,7 +1342,7 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
@@ -1374,7 +1374,7 @@ Read-Only:
 - `scale_type` (String)
 - `sort_by` (String)
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of gbytes, kibytes, unspecified, kbytes, mbytes, usd_cents, usd, microseconds, seconds, euro, euro_cents, milliseconds, bytes, bytes_iec, mibytes, gibytes.
+- `unit` (String) The unit of the chart. Can be one of unspecified, microseconds, seconds, bytes_iec, kibytes, milliseconds, gbytes, euro_cents, usd_cents, kbytes, mbytes, mibytes, gibytes, bytes, euro, usd.
 - `y_axis_view_by` (String)
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
@@ -1512,7 +1512,7 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
@@ -1588,7 +1588,7 @@ Read-Only:
 
 Read-Only:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: min, max, sum, avg, last, unspecified.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, unspecified, min, max, sum.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. False by default.
 
@@ -1605,10 +1605,10 @@ Read-Only:
 - `name` (String)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--tooltip--query))
 - `resolution` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--tooltip--resolution))
-- `scale_type` (String) The scale type. Valid values are: unspecified, linear, logarithmic.
+- `scale_type` (String) The scale type. Valid values are: logarithmic, unspecified, linear.
 - `series_count_limit` (Number)
 - `series_name_template` (String)
-- `unit` (String) The unit. Valid values are: gbytes, kibytes, unspecified, kbytes, mbytes, usd_cents, usd, microseconds, seconds, euro, euro_cents, milliseconds, bytes, bytes_iec, mibytes, gibytes.
+- `unit` (String) The unit. Valid values are: unspecified, microseconds, seconds, bytes_iec, kibytes, milliseconds, gbytes, euro_cents, usd_cents, kbytes, mbytes, mibytes, gibytes, bytes, euro, usd.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--tooltip--query"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.tooltip.unit`
@@ -1721,7 +1721,7 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
@@ -1815,7 +1815,7 @@ Read-Only:
 Read-Only:
 
 - `is_visible` (Boolean)
-- `label_source` (String) The source of the label. Valid values are: unspecified, inner, stack
+- `label_source` (String) The source of the label. Valid values are: stack, unspecified, inner
 - `show_name` (Boolean)
 - `show_percentage` (Boolean)
 - `show_value` (Boolean)
@@ -2052,7 +2052,7 @@ Read-Only:
 
 Read-Only:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
