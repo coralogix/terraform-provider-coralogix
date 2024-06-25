@@ -13,7 +13,7 @@ provider "coralogix" {
 }
 
 resource "coralogix_api_key" "example" {
-  name  = "My SCIM KEY"
+  name  = "My APM KEY"
   owner = {
     team_id : "4013254"
   }
