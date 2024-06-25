@@ -32,13 +32,14 @@ import (
 )
 
 var (
-	_                             resource.ResourceWithConfigure   = &AlertResource{}
-	_                             resource.ResourceWithImportState = &AlertResource{}
-	createAlertURL                                                 = "com.coralogixapis.alerts.v3.AlertsService/CreateAlert"
-	updateAlertURL                                                 = "com.coralogixapis.alerts.v3.AlertsService/ReplaceAlert"
-	getAlertURL                                                    = "com.coralogixapis.alerts.v3.AlertsService/GetAlert"
-	deleteAlertURL                                                 = "com.coralogixapis.alerts.v3.AlertsService/DeleteAlert"
-	alertPriorityProtoToSchemaMap                                  = map[alerts.AlertPriority]string{
+	_              resource.ResourceWithConfigure   = &AlertResource{}
+	_              resource.ResourceWithImportState = &AlertResource{}
+	createAlertURL                                  = "com.coralogixapis.alerts.v3.AlertsService/CreateAlert"
+	updateAlertURL                                  = "com.coralogixapis.alerts.v3.AlertsService/ReplaceAlert"
+	getAlertURL                                     = "com.coralogixapis.alerts.v3.AlertsService/GetAlert"
+	deleteAlertURL                                  = "com.coralogixapis.alerts.v3.AlertsService/DeleteAlert"
+
+	alertPriorityProtoToSchemaMap = map[alerts.AlertPriority]string{
 		alerts.AlertPriority_ALERT_PRIORITY_P5_OR_UNSPECIFIED: "P5",
 		alerts.AlertPriority_ALERT_PRIORITY_P4:                "P4",
 		alerts.AlertPriority_ALERT_PRIORITY_P3:                "P3",
@@ -47,12 +48,14 @@ var (
 	}
 	alertPrioritySchemaToProtoMap = ReverseMap(alertPriorityProtoToSchemaMap)
 	validAlertPriorities          = GetKeys(alertPrioritySchemaToProtoMap)
-	notifyOnProtoToSchemaMap      = map[alerts.NotifyOn]string{
+
+	notifyOnProtoToSchemaMap = map[alerts.NotifyOn]string{
 		alerts.NotifyOn_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED: "Triggered Only",
 		alerts.NotifyOn_NOTIFY_ON_TRIGGERED_AND_RESOLVED:     "Triggered and Resolved",
 	}
-	notifyOnSchemaToProtoMap   = ReverseMap(notifyOnProtoToSchemaMap)
-	validNotifyOn              = GetKeys(notifyOnSchemaToProtoMap)
+	notifyOnSchemaToProtoMap = ReverseMap(notifyOnProtoToSchemaMap)
+	validNotifyOn            = GetKeys(notifyOnSchemaToProtoMap)
+
 	daysOfWeekProtoToSchemaMap = map[alerts.DayOfWeek]string{
 		alerts.DayOfWeek_DAY_OF_WEEK_MONDAY_OR_UNSPECIFIED: "Monday",
 		alerts.DayOfWeek_DAY_OF_WEEK_TUESDAY:               "Tuesday",
@@ -62,8 +65,9 @@ var (
 		alerts.DayOfWeek_DAY_OF_WEEK_SATURDAY:              "Saturday",
 		alerts.DayOfWeek_DAY_OF_WEEK_SUNDAY:                "Sunday",
 	}
-	daysOfWeekSchemaToProtoMap             = ReverseMap(daysOfWeekProtoToSchemaMap)
-	validDaysOfWeek                        = GetKeys(daysOfWeekSchemaToProtoMap)
+	daysOfWeekSchemaToProtoMap = ReverseMap(daysOfWeekProtoToSchemaMap)
+	validDaysOfWeek            = GetKeys(daysOfWeekSchemaToProtoMap)
+
 	logFilterOperationTypeProtoToSchemaMap = map[alerts.LogFilterOperationType]string{
 		alerts.LogFilterOperationType_LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED: "OR",
 		alerts.LogFilterOperationType_LOG_FILTER_OPERATION_TYPE_INCLUDES:          "NOT",
@@ -72,7 +76,8 @@ var (
 	}
 	logFilterOperationTypeSchemaToProtoMap = ReverseMap(logFilterOperationTypeProtoToSchemaMap)
 	validLogFilterOperationType            = GetKeys(logFilterOperationTypeSchemaToProtoMap)
-	logSeverityProtoToSchemaMap            = map[alerts.LogSeverity]string{
+
+	logSeverityProtoToSchemaMap = map[alerts.LogSeverity]string{
 		alerts.LogSeverity_LOG_SEVERITY_VERBOSE_UNSPECIFIED: "Unspecified",
 		alerts.LogSeverity_LOG_SEVERITY_DEBUG:               "Debug",
 		alerts.LogSeverity_LOG_SEVERITY_INFO:                "Info",
@@ -80,15 +85,17 @@ var (
 		alerts.LogSeverity_LOG_SEVERITY_ERROR:               "Error",
 		alerts.LogSeverity_LOG_SEVERITY_CRITICAL:            "Critical",
 	}
-	logSeveritySchemaToProtoMap          = ReverseMap(logSeverityProtoToSchemaMap)
-	validLogSeverities                   = GetKeys(logSeveritySchemaToProtoMap)
+	logSeveritySchemaToProtoMap = ReverseMap(logSeverityProtoToSchemaMap)
+	validLogSeverities          = GetKeys(logSeveritySchemaToProtoMap)
+
 	evaluationWindowTypeProtoToSchemaMap = map[alerts.EvaluationWindow]string{
 		alerts.EvaluationWindow_EVALUATION_WINDOW_ROLLING_OR_UNSPECIFIED: "Rolling",
 		alerts.EvaluationWindow_EVALUATION_WINDOW_DYNAMIC:                "Dynamic",
 	}
 	evaluationWindowTypeSchemaToProtoMap = ReverseMap(evaluationWindowTypeProtoToSchemaMap)
 	validEvaluationWindowTypes           = GetKeys(evaluationWindowTypeSchemaToProtoMap)
-	logsTimeWindowValueProtoToSchemaMap  = map[alerts.LogsTimeWindowValue]string{
+
+	logsTimeWindowValueProtoToSchemaMap = map[alerts.LogsTimeWindowValue]string{
 		alerts.LogsTimeWindowValue_LOGS_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED: "5_MINUTES",
 		alerts.LogsTimeWindowValue_LOGS_TIME_WINDOW_VALUE_MINUTES_10:               "10_MINUTES",
 		alerts.LogsTimeWindowValue_LOGS_TIME_WINDOW_VALUE_MINUTES_15:               "15_MINUTES",
@@ -103,6 +110,71 @@ var (
 	}
 	logsTimeWindowValueSchemaToProtoMap = ReverseMap(logsTimeWindowValueProtoToSchemaMap)
 	validLogsTimeWindowValues           = GetKeys(logsTimeWindowValueSchemaToProtoMap)
+
+	autoRetireTimeframeProtoToSchemaMap = map[alerts.AutoRetireTimeframe]string{
+		alerts.AutoRetireTimeframe_AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED: "Never",
+		alerts.AutoRetireTimeframe_AUTO_RETIRE_TIMEFRAME_MINUTES_5:            "5_Minutes",
+		alerts.AutoRetireTimeframe_AUTO_RETIRE_TIMEFRAME_MINUTES_10:           "10_Minutes",
+		alerts.AutoRetireTimeframe_AUTO_RETIRE_TIMEFRAME_HOUR_1:               "1_Hour",
+		alerts.AutoRetireTimeframe_AUTO_RETIRE_TIMEFRAME_HOURS_2:              "2_Hours",
+		alerts.AutoRetireTimeframe_AUTO_RETIRE_TIMEFRAME_HOURS_6:              "6_Hours",
+		alerts.AutoRetireTimeframe_AUTO_RETIRE_TIMEFRAME_HOURS_12:             "12_Hours",
+		alerts.AutoRetireTimeframe_AUTO_RETIRE_TIMEFRAME_HOURS_24:             "24_Hours",
+	}
+	autoRetireTimeframeSchemaToProtoMap = ReverseMap(autoRetireTimeframeProtoToSchemaMap)
+	validAutoRetireTimeframes           = GetKeys(autoRetireTimeframeSchemaToProtoMap)
+
+	logsRatioTimeWindowValueProtoToSchemaMap = map[alerts.LogsRatioTimeWindowValue]string{
+		alerts.LogsRatioTimeWindowValue_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED: "5_MINUTES",
+		alerts.LogsRatioTimeWindowValue_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10:               "10_MINUTES",
+		alerts.LogsRatioTimeWindowValue_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_15:               "15_MINUTES",
+		alerts.LogsRatioTimeWindowValue_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_30:               "30_MINUTES",
+		alerts.LogsRatioTimeWindowValue_LOGS_RATIO_TIME_WINDOW_VALUE_HOUR_1:                   "1_HOUR",
+		alerts.LogsRatioTimeWindowValue_LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_2:                  "2_HOURS",
+		alerts.LogsRatioTimeWindowValue_LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_4:                  "4_HOURS",
+		alerts.LogsRatioTimeWindowValue_LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_6:                  "6_HOURS",
+		alerts.LogsRatioTimeWindowValue_LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_12:                 "12_HOURS",
+		alerts.LogsRatioTimeWindowValue_LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_24:                 "24_HOURS",
+		alerts.LogsRatioTimeWindowValue_LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_36:                 "36_HOURS",
+	}
+	logsRatioTimeWindowValueSchemaToProtoMap = ReverseMap(logsRatioTimeWindowValueProtoToSchemaMap)
+	validLogsRatioTimeWindowValues           = GetKeys(logsRatioTimeWindowValueSchemaToProtoMap)
+
+	logsRatioGroupByForProtoToSchemaMap = map[alerts.LogsRatioGroupByFor]string{
+		alerts.LogsRatioGroupByFor_LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED: "Both or Unspecified",
+		alerts.LogsRatioGroupByFor_LOGS_RATIO_GROUP_BY_FOR_NUMERATOR_ONLY:      "Numerator Only",
+		alerts.LogsRatioGroupByFor_LOGS_RATIO_GROUP_BY_FOR_DENUMERATOR_ONLY:    "Denominator Only",
+	}
+	logsRatioGroupByForSchemaToProtoMap = ReverseMap(logsRatioGroupByForProtoToSchemaMap)
+	validLogsRatioGroupByFor            = GetKeys(logsRatioGroupByForSchemaToProtoMap)
+
+	logsNewValueTimeWindowValueProtoToSchemaMap = map[alerts.LogsNewValueTimeWindowValue]string{
+		alerts.LogsNewValueTimeWindowValue_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_12_OR_UNSPECIFIED: "12_HOURS",
+		alerts.LogsNewValueTimeWindowValue_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_24:                "24_HOURS",
+		alerts.LogsNewValueTimeWindowValue_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_48:                "48_HOURS",
+		alerts.LogsNewValueTimeWindowValue_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_72:                "72_HOURS",
+		alerts.LogsNewValueTimeWindowValue_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_WEEK_1:                  "1_WEEK",
+		alerts.LogsNewValueTimeWindowValue_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTH_1:                 "1_MONTH",
+		alerts.LogsNewValueTimeWindowValue_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTHS_2:                "2_MONTHS",
+		alerts.LogsNewValueTimeWindowValue_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTHS_3:                "3_MONTHS",
+	}
+	logsNewValueTimeWindowValueSchemaToProtoMap = ReverseMap(logsNewValueTimeWindowValueProtoToSchemaMap)
+	validLogsNewValueTimeWindowValues           = GetKeys(logsNewValueTimeWindowValueSchemaToProtoMap)
+
+	logsUniqueCountTimeWindowValueProtoToSchemaMap = map[alerts.LogsUniqueValueTimeWindowValue]string{
+		alerts.LogsUniqueValueTimeWindowValue_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTE_1_OR_UNSPECIFIED: "1_MINUTE",
+		alerts.LogsUniqueValueTimeWindowValue_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_15:              "5_MINUTES",
+		alerts.LogsUniqueValueTimeWindowValue_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_20:              "20_MINUTES",
+		alerts.LogsUniqueValueTimeWindowValue_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_30:              "30_MINUTES",
+		alerts.LogsUniqueValueTimeWindowValue_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_1:                 "1_HOUR",
+		alerts.LogsUniqueValueTimeWindowValue_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_2:                 "2_HOURS",
+		alerts.LogsUniqueValueTimeWindowValue_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_4:                 "4_HOURS",
+		alerts.LogsUniqueValueTimeWindowValue_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_6:                 "6_HOURS",
+		alerts.LogsUniqueValueTimeWindowValue_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_12:                "12_HOURS",
+		alerts.LogsUniqueValueTimeWindowValue_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_24:                "24_HOURS",
+	}
+	logsUniqueCountTimeWindowValueSchemaToProtoMap = ReverseMap(logsUniqueCountTimeWindowValueProtoToSchemaMap)
+	validLogsUniqueCountTimeWindowValues           = GetKeys(logsUniqueCountTimeWindowValueSchemaToProtoMap)
 )
 
 func NewAlertResource() resource.Resource {
@@ -121,7 +193,7 @@ type AlertResourceModel struct {
 	AlertPriority       types.String `tfsdk:"alert_priority"`
 	AlertSchedule       types.Object `tfsdk:"alert_schedule"`        // AlertScheduleModel
 	AlertTypeDefinition types.Object `tfsdk:"alert_type_definition"` // AlertTypeDefinitionModel
-	AlertGroupBys       types.List   `tfsdk:"alert_group_bys"`       // []types.String
+	AlertGroupBys       types.Set    `tfsdk:"alert_group_bys"`       // []types.String
 	IncidentsSettings   types.Object `tfsdk:"incidents_settings"`    // IncidentsSettingsModel
 	NotificationGroup   types.Object `tfsdk:"notification_group"`    // NotificationGroupModel
 	Labels              types.Map    `tfsdk:"labels"`                // map[string]string
@@ -164,7 +236,7 @@ type AlertTypeDefinitionModel struct {
 
 type LogsImmediateModel struct {
 	LogsFilter                types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
-	NotificationPayloadFilter types.List   `tfsdk:"notification_payload_filter"` // []types.String
+	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
 }
 
 type AlertsLogsFilterModel struct {
@@ -177,8 +249,8 @@ type LuceneFilterModel struct {
 }
 
 type LabelFiltersModel struct {
-	ApplicationName types.List `tfsdk:"application_name"` // []LabelFilterTypeModel
-	SubsystemName   types.List `tfsdk:"subsystem_name"`   // []LabelFilterTypeModel
+	ApplicationName types.List `tfsdk:"application_name"` // LabelFilterTypeModel
+	SubsystemName   types.List `tfsdk:"subsystem_name"`   // LabelFilterTypeModel
 	Severities      types.Set  `tfsdk:"severities"`       // []types.String
 }
 
@@ -196,7 +268,7 @@ type LogsMoreThanModel struct {
 	TimeWindow                types.Object `tfsdk:"time_window"` // LogsTimeWindowModel
 	EvaluationWindow          types.String `tfsdk:"evaluation_window"`
 	LogsFilter                types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
-	NotificationPayloadFilter types.List   `tfsdk:"notification_payload_filter"` // []types.String
+	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
 }
 
 type LogsTimeWindowModel struct {
@@ -204,21 +276,75 @@ type LogsTimeWindowModel struct {
 }
 
 type LogsLessThanModel struct {
+	LogsFilter                 types.Object `tfsdk:"logs_filter"`                  // AlertsLogsFilterModel
+	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
+	TimeWindow                 types.Object `tfsdk:"time_window"`                  // LogsTimeWindowModel
+	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
+	Threshold                  types.Int64  `tfsdk:"threshold"`
+}
+
+type UndetectedValuesManagementModel struct {
+	TriggerUndetectedValues types.Bool   `tfsdk:"trigger_undetected_values"`
+	AutoRetireTimeframe     types.String `tfsdk:"auto_retire_timeframe"`
 }
 
 type LogsMoreThanUsualModel struct {
+	MinimumThreshold          types.Int64  `tfsdk:"minimum_threshold"`
+	TimeWindow                types.Object `tfsdk:"time_window"`                 // LogsTimeWindowModel
+	LogsFilter                types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
+	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
 }
 
 type LogsRatioMoreThanModel struct {
+	NumeratorLogsFilter       types.Object `tfsdk:"numerator_logs_filter"` // AlertsLogsFilterModel
+	NumeratorAlias            types.String `tfsdk:"numerator_alias"`
+	DenominatorLogsFilter     types.Object `tfsdk:"denominator_logs_filter"` // AlertsLogsFilterModel
+	DenominatorAlias          types.String `tfsdk:"denominator_alias"`
+	Threshold                 types.Int64  `tfsdk:"threshold"`
+	TimeWindow                types.Object `tfsdk:"time_window"` // LogsRatioTimeWindowModel
+	IgnoreInfinity            types.Bool   `tfsdk:"ignore_infinity"`
+	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
+	GroupByFor                types.String `tfsdk:"group_by_for"`
+}
+
+type LogsRatioTimeWindowModel struct {
+	SpecificValue types.String `tfsdk:"specific_value"`
 }
 
 type LogsRatioLessThanModel struct {
+	NumeratorLogsFilter       types.Object `tfsdk:"numerator_logs_filter"` // AlertsLogsFilterModel
+	NumeratorAlias            types.String `tfsdk:"numerator_alias"`
+	DenominatorLogsFilter     types.Object `tfsdk:"denominator_logs_filter"` // AlertsLogsFilterModel
+	DenominatorAlias          types.String `tfsdk:"denominator_alias"`
+	Threshold                 types.Int64  `tfsdk:"threshold"`
+	TimeWindow                types.Object `tfsdk:"time_window"` // LogsRatioTimeWindowModel
+	IgnoreInfinity            types.Bool   `tfsdk:"ignore_infinity"`
+	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
+	GroupByFor                types.String `tfsdk:"group_by_for"`
 }
 
 type LogsNewValueModel struct {
+	LogsFilter                types.Object `tfsdk:"logs_filter"` // AlertsLogsFilterModel
+	KeypathToTrack            types.String `tfsdk:"keypath_to_track"`
+	TimeWindow                types.Object `tfsdk:"time_window"`                 // LogsNewValueTimeWindowModel
+	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
+}
+
+type LogsNewValueTimeWindowModel struct {
+	SpecificValue types.String `tfsdk:"specific_value"`
 }
 
 type LogsUniqueCountModel struct {
+	LogsFilter                  types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
+	NotificationPayloadFilter   types.Set    `tfsdk:"notification_payload_filter"` // []types.String
+	TimeWindow                  types.Object `tfsdk:"time_window"`                 // LogsUniqueCountTimeWindowModel
+	UniqueCountKeypath          types.String `tfsdk:"unique_count_keypath"`
+	MaxUniqueCount              types.Int64  `tfsdk:"max_unique_count"`
+	MaxUniqueCountPerGroupByKey types.Int64  `tfsdk:"max_unique_count_per_group_by_key"`
+}
+
+type LogsUniqueCountTimeWindowModel struct {
+	SpecificValue types.String `tfsdk:"specific_value"`
 }
 
 type LogsTimeRelativeMoreThanModel struct {
@@ -256,7 +382,7 @@ type IncidentsSettingsModel struct {
 
 type NotificationGroupModel struct {
 	GroupByFields types.List `tfsdk:"group_by_fields"` // []types.String
-	Notifications types.List `tfsdk:"notifications"`   // AlertNotificationModel
+	Notifications types.Set  `tfsdk:"notifications"`   // AlertNotificationModel
 }
 
 type AlertNotificationModel struct {
@@ -344,11 +470,8 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					"logs_immediate": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"logs_filter": logsFilterSchema(),
-							"notification_payload_filter": schema.ListAttribute{
-								Optional:    true,
-								ElementType: types.StringType,
-							},
+							"logs_filter":                 logsFilterSchema(),
+							"notification_payload_filter": notificationPayloadFilterSchema(),
 						},
 						Validators: []validator.Object{
 							objectvalidator.ExactlyOneOf(
@@ -374,20 +497,11 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					"logs_more_than": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
+							"logs_filter":                 logsFilterSchema(),
+							"notification_payload_filter": notificationPayloadFilterSchema(),
+							"time_window":                 logsTimeWindowSchema(),
 							"threshold": schema.Int64Attribute{
 								Required: true,
-							},
-							"time_window": schema.SingleNestedAttribute{
-								Required: true,
-								Attributes: map[string]schema.Attribute{
-									"specific_value": schema.StringAttribute{
-										Required: true,
-										Validators: []validator.String{
-											stringvalidator.OneOf(validLogsTimeWindowValues...),
-										},
-										MarkdownDescription: fmt.Sprintf("Time window value. Valid values: %q.", validLogsTimeWindowValues),
-									},
-								},
 							},
 							"evaluation_window": schema.StringAttribute{
 								Optional: true,
@@ -398,32 +512,68 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								},
 								MarkdownDescription: fmt.Sprintf("Evaluation window type. Valid values: %q.", validEvaluationWindowTypes),
 							},
-							"logs_filter": logsFilterSchema(),
 						},
 					},
 					"logs_less_than": schema.SingleNestedAttribute{
-						Optional:   true,
-						Attributes: map[string]schema.Attribute{},
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"logs_filter":                 logsFilterSchema(),
+							"notification_payload_filter": notificationPayloadFilterSchema(),
+							"time_window":                 logsTimeWindowSchema(),
+							"threshold": schema.Int64Attribute{
+								Required: true,
+							},
+							"undetected_values_management": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"trigger_undetected_values": schema.BoolAttribute{
+										Optional: true,
+										Computed: true,
+										Default:  booldefault.StaticBool(true),
+									},
+									"auto_retire_timeframe": schema.StringAttribute{
+										Optional: true,
+										Validators: []validator.String{
+											stringvalidator.OneOf(validAutoRetireTimeframes...),
+										},
+										MarkdownDescription: fmt.Sprintf("Auto retire timeframe. Valid values: %q.", validAutoRetireTimeframes),
+									},
+								},
+							},
+						},
 					},
 					"logs_more_than_usual": schema.SingleNestedAttribute{
-						Optional:   true,
-						Attributes: map[string]schema.Attribute{},
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"minimum_threshold": schema.Int64Attribute{
+								Required: true,
+							},
+							"time_window":                 logsTimeWindowSchema(),
+							"logs_filter":                 logsFilterSchema(),
+							"notification_payload_filter": notificationPayloadFilterSchema(),
+						},
 					},
-					"logs_ratio_more_than": schema.SingleNestedAttribute{
-						Optional:   true,
-						Attributes: map[string]schema.Attribute{},
-					},
-					"logs_ratio_less_than": schema.SingleNestedAttribute{
-						Optional:   true,
-						Attributes: map[string]schema.Attribute{},
-					},
+					"logs_ratio_more_than": logsRationSchema(),
+					"logs_ratio_less_than": logsRationSchema(),
 					"logs_new_value": schema.SingleNestedAttribute{
-						Optional:   true,
-						Attributes: map[string]schema.Attribute{},
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"logs_filter":                 logsFilterSchema(),
+							"keypath_to_track":            schema.StringAttribute{Required: true},
+							"time_window":                 logsNewValueTimeWindowSchema(),
+							"notification_payload_filter": notificationPayloadFilterSchema(),
+						},
 					},
 					"logs_unique_count": schema.SingleNestedAttribute{
-						Optional:   true,
-						Attributes: map[string]schema.Attribute{},
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"logs_filter":                       logsFilterSchema(),
+							"notification_payload_filter":       notificationPayloadFilterSchema(),
+							"time_window":                       logsUniqueCountTimeWindowSchema(),
+							"unique_count_keypath":              schema.StringAttribute{Required: true},
+							"max_unique_count":                  schema.Int64Attribute{Required: true},
+							"max_unique_count_per_group_by_key": schema.Int64Attribute{Required: true},
+						},
 					},
 					"logs_time_relative_more_than": schema.SingleNestedAttribute{
 						Optional:   true,
@@ -463,7 +613,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					},
 				},
 			},
-			"alert_group_bys": schema.ListAttribute{
+			"alert_group_bys": schema.SetAttribute{
 				Optional:    true,
 				ElementType: types.StringType,
 			},
@@ -499,7 +649,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						Optional:    true,
 						ElementType: types.StringType,
 					},
-					"notifications": schema.ListNestedAttribute{
+					"notifications": schema.SetNestedAttribute{
 						Optional: true,
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
@@ -555,6 +705,41 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 	}
 }
 
+func logsRationSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"numerator_logs_filter": logsFilterSchema(),
+			"numerator_alias": schema.StringAttribute{
+				Required: true,
+			},
+			"denominator_logs_filter": logsFilterSchema(),
+			"denominator_alias": schema.StringAttribute{
+				Required: true,
+			},
+			"threshold": schema.Int64Attribute{
+				Required: true,
+			},
+			"time_window": logsRatioTimeWindowSchema(),
+			"ignore_infinity": schema.BoolAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
+			},
+			"notification_payload_filter": notificationPayloadFilterSchema(),
+			"group_by_for": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString("Both or Unspecified"),
+				Validators: []validator.String{
+					stringvalidator.OneOf(validLogsRatioGroupByFor...),
+				},
+				MarkdownDescription: fmt.Sprintf("Group by for. Valid values: %q.", validLogsRatioGroupByFor),
+			},
+		},
+	}
+}
+
 func logsFilterSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
@@ -573,6 +758,12 @@ func logsFilterSchema() schema.SingleNestedAttribute {
 							"severities": schema.SetAttribute{
 								Optional:    true,
 								ElementType: types.StringType,
+								Validators: []validator.Set{
+									setvalidator.ValueStringsAre(
+										stringvalidator.OneOf(validLogSeverities...),
+									),
+								},
+								MarkdownDescription: fmt.Sprintf("Severities. Valid values: %q.", validLogSeverities),
 							},
 						},
 					},
@@ -601,6 +792,13 @@ func logsAttributeFilterSchema() schema.ListNestedAttribute {
 	}
 }
 
+func notificationPayloadFilterSchema() schema.SetAttribute {
+	return schema.SetAttribute{
+		Optional:    true,
+		ElementType: types.StringType,
+	}
+}
+
 func timeOfDaySchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Required: true,
@@ -616,6 +814,66 @@ func timeOfDaySchema() schema.SingleNestedAttribute {
 				Validators: []validator.Int64{
 					int64validator.Between(0, 59),
 				},
+			},
+		},
+	}
+}
+
+func logsTimeWindowSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Required: true,
+		Attributes: map[string]schema.Attribute{
+			"specific_value": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(validLogsTimeWindowValues...),
+				},
+				MarkdownDescription: fmt.Sprintf("Time window value. Valid values: %q.", validLogsTimeWindowValues),
+			},
+		},
+	}
+}
+
+func logsRatioTimeWindowSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Required: true,
+		Attributes: map[string]schema.Attribute{
+			"specific_value": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(validLogsRatioTimeWindowValues...),
+				},
+				MarkdownDescription: fmt.Sprintf("Time window value. Valid values: %q.", validLogsRatioTimeWindowValues),
+			},
+		},
+	}
+}
+
+func logsNewValueTimeWindowSchema() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Required: true,
+		Attributes: map[string]schema.Attribute{
+			"specific_value": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(validLogsNewValueTimeWindowValues...),
+				},
+				MarkdownDescription: fmt.Sprintf("Time window value. Valid values: %q.", validLogsNewValueTimeWindowValues),
+			},
+		},
+	}
+}
+
+func logsUniqueCountTimeWindowSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Required: true,
+		Attributes: map[string]schema.Attribute{
+			"specific_value": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(validLogsUniqueCountTimeWindowValues...),
+				},
+				MarkdownDescription: fmt.Sprintf("Time window value. Valid values: %q.", validLogsUniqueCountTimeWindowValues),
 			},
 		},
 	}
@@ -770,7 +1028,7 @@ func extractNotificationGroup(ctx context.Context, notificationGroupObject types
 
 }
 
-func extractAlertNotifications(ctx context.Context, notifications types.List) ([]*alerts.AlertNotification, diag.Diagnostics) {
+func extractAlertNotifications(ctx context.Context, notifications types.Set) ([]*alerts.AlertNotification, diag.Diagnostics) {
 	var notificationsObjects []types.Object
 	diags := notifications.ElementsAs(ctx, &notificationsObjects, true)
 	if diags.HasError() {
@@ -1183,7 +1441,7 @@ func extractLogsTimeWindow(ctx context.Context, timeWindow types.Object) (*alert
 		return nil, diags
 	}
 
-	if specificValue := timeWindowModel.SpecificValue; specificValue.IsNull() || specificValue.IsUnknown() {
+	if specificValue := timeWindowModel.SpecificValue; !(specificValue.IsNull() || specificValue.IsUnknown()) {
 		return &alerts.LogsTimeWindow{
 			Type: &alerts.LogsTimeWindow_LogsTimeWindowSpecificValue{
 				LogsTimeWindowSpecificValue: logsTimeWindowValueSchemaToProtoMap[specificValue.ValueString()],
@@ -1194,28 +1452,341 @@ func extractLogsTimeWindow(ctx context.Context, timeWindow types.Object) (*alert
 	return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Time Window", "Time Window is not valid")}
 }
 
-func expandLogsLessThanAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties, than types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
-	return nil, nil
+func expandLogsLessThanAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties, lessThan types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
+	if lessThan.IsNull() || lessThan.IsUnknown() {
+		return properties, nil
+	}
+
+	var lessThanModel LogsLessThanModel
+	if diags := lessThan.As(ctx, &lessThanModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	logsFilter, diags := extractLogsFilter(ctx, lessThanModel.LogsFilter)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	notificationPayloadFilter, diags := typeStringSliceToWrappedStringSlice(ctx, lessThanModel.NotificationPayloadFilter.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	timeWindow, diags := extractLogsTimeWindow(ctx, lessThanModel.TimeWindow)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	undetectedValuesManagement, diags := extractUndetectedValuesManagement(ctx, lessThanModel.UndetectedValuesManagement)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	properties.AlertTypeDefinition = &alerts.AlertProperties_LogsLessThan{
+		LogsLessThan: &alerts.LogsLessThanAlertTypeDefinition{
+			LogsFilter:                 logsFilter,
+			Threshold:                  typeInt64ToWrappedUint32(lessThanModel.Threshold),
+			TimeWindow:                 timeWindow,
+			UndetectedValuesManagement: undetectedValuesManagement,
+			NotificationPayloadFilter:  notificationPayloadFilter,
+		},
+	}
+	properties.AlertType = alerts.AlertType_ALERT_TYPE_LOGS_LESS_THAN
+	return properties, nil
 }
 
-func expandLogsMoreThanUsualAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties, usual types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
-	return nil, nil
+func extractUndetectedValuesManagement(ctx context.Context, management types.Object) (*alerts.UndetectedValuesManagement, diag.Diagnostics) {
+	if management.IsNull() || management.IsUnknown() {
+		return nil, nil
+	}
+
+	var managementModel UndetectedValuesManagementModel
+	if diags := management.As(ctx, &managementModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	var autoRetireTimeframe *alerts.AutoRetireTimeframe
+	if !(managementModel.AutoRetireTimeframe.IsNull() || managementModel.AutoRetireTimeframe.IsUnknown()) {
+		autoRetireTimeframe = new(alerts.AutoRetireTimeframe)
+		*autoRetireTimeframe = autoRetireTimeframeSchemaToProtoMap[managementModel.AutoRetireTimeframe.ValueString()]
+	}
+
+	return &alerts.UndetectedValuesManagement{
+		TriggerUndetectedValues: typeBoolToWrapperspbBool(managementModel.TriggerUndetectedValues),
+		AutoRetireTimeframe:     autoRetireTimeframe,
+	}, nil
 }
 
-func expandLogsRatioMoreThanAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties, than types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
-	return nil, nil
+func expandLogsMoreThanUsualAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties, moreThanUsual types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
+	if moreThanUsual.IsNull() || moreThanUsual.IsUnknown() {
+		return properties, nil
+	}
+
+	var moreThanUsualModel LogsMoreThanUsualModel
+	if diags := moreThanUsual.As(ctx, &moreThanUsualModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	logsFilter, diags := extractLogsFilter(ctx, moreThanUsualModel.LogsFilter)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	notificationPayloadFilter, diags := typeStringSliceToWrappedStringSlice(ctx, moreThanUsualModel.NotificationPayloadFilter.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	timeWindow, diags := extractLogsTimeWindow(ctx, moreThanUsualModel.TimeWindow)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	properties.AlertTypeDefinition = &alerts.AlertProperties_LogsMoreThanUsual{
+		LogsMoreThanUsual: &alerts.LogsMoreThanUsualAlertTypeDefinition{
+			LogsFilter:                logsFilter,
+			MinimumThreshold:          typeInt64ToWrappedUint32(moreThanUsualModel.MinimumThreshold),
+			TimeWindow:                timeWindow,
+			NotificationPayloadFilter: notificationPayloadFilter,
+		},
+	}
+	properties.AlertType = alerts.AlertType_ALERT_TYPE_LOGS_MORE_THAN_USUAL
+	return properties, nil
 }
 
-func expandLogsRatioLessThanAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties, than types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
-	return nil, nil
+func expandLogsRatioMoreThanAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties, moreThan types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
+	if moreThan.IsNull() || moreThan.IsUnknown() {
+		return properties, nil
+	}
+
+	var moreThanModel LogsRatioMoreThanModel
+	if diags := moreThan.As(ctx, &moreThanModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	numeratorLogsFilter, diags := extractLogsFilter(ctx, moreThanModel.NumeratorLogsFilter)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	denominatorLogsFilter, diags := extractLogsFilter(ctx, moreThanModel.DenominatorLogsFilter)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	timeWindow, diags := extractLogsRatioTimeWindow(ctx, moreThanModel.TimeWindow)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	notificationPayloadFilter, diags := typeStringSliceToWrappedStringSlice(ctx, moreThanModel.NotificationPayloadFilter.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	properties.AlertTypeDefinition = &alerts.AlertProperties_LogsRatioMoreThan{
+		LogsRatioMoreThan: &alerts.LogsRatioMoreThanAlertTypeDefinition{
+			NumeratorLogsFilter:       numeratorLogsFilter,
+			NumeratorAlias:            typeStringToWrapperspbString(moreThanModel.NumeratorAlias),
+			DenominatorLogsFilter:     denominatorLogsFilter,
+			DenominatorAlias:          typeStringToWrapperspbString(moreThanModel.DenominatorAlias),
+			Threshold:                 typeInt64ToWrappedUint32(moreThanModel.Threshold),
+			TimeWindow:                timeWindow,
+			IgnoreInfinity:            typeBoolToWrapperspbBool(moreThanModel.IgnoreInfinity),
+			NotificationPayloadFilter: notificationPayloadFilter,
+			GroupByFor:                logsRatioGroupByForSchemaToProtoMap[moreThanModel.GroupByFor.ValueString()],
+		},
+	}
+	properties.AlertType = alerts.AlertType_ALERT_TYPE_LOGS_RATIO_MORE_THAN
+	return properties, nil
 }
 
-func expandLogsNewValueAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties, value types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
-	return nil, nil
+func extractLogsRatioTimeWindow(ctx context.Context, window types.Object) (*alerts.LogsRatioTimeWindow, diag.Diagnostics) {
+	if window.IsNull() || window.IsUnknown() {
+		return nil, nil
+	}
+
+	var windowModel LogsRatioTimeWindowModel
+	if diags := window.As(ctx, &windowModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	if specificValue := windowModel.SpecificValue; !(specificValue.IsNull() || specificValue.IsUnknown()) {
+		return &alerts.LogsRatioTimeWindow{
+			Type: &alerts.LogsRatioTimeWindow_LogsRatioTimeWindowSpecificValue{
+				LogsRatioTimeWindowSpecificValue: logsRatioTimeWindowValueSchemaToProtoMap[specificValue.ValueString()],
+			},
+		}, nil
+	}
+
+	return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Time Window", "Time Window is not valid")}
 }
 
-func expandLogsUniqueCountAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties, count types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
-	return nil, nil
+func expandLogsRatioLessThanAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties, ratioLessThan types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
+	if ratioLessThan.IsNull() || ratioLessThan.IsUnknown() {
+		return properties, nil
+	}
+
+	var ratioLessThanModel LogsRatioLessThanModel
+	if diags := ratioLessThan.As(ctx, &ratioLessThanModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	numeratorLogsFilter, diags := extractLogsFilter(ctx, ratioLessThanModel.NumeratorLogsFilter)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	denominatorLogsFilter, diags := extractLogsFilter(ctx, ratioLessThanModel.DenominatorLogsFilter)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	timeWindow, diags := extractLogsRatioTimeWindow(ctx, ratioLessThanModel.TimeWindow)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	notificationPayloadFilter, diags := typeStringSliceToWrappedStringSlice(ctx, ratioLessThanModel.NotificationPayloadFilter.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	properties.AlertTypeDefinition = &alerts.AlertProperties_LogsRatioLessThan{
+		LogsRatioLessThan: &alerts.LogsRatioLessThanAlertTypeDefinition{
+			NumeratorLogsFilter:       numeratorLogsFilter,
+			NumeratorAlias:            typeStringToWrapperspbString(ratioLessThanModel.NumeratorAlias),
+			DenominatorLogsFilter:     denominatorLogsFilter,
+			DenominatorAlias:          typeStringToWrapperspbString(ratioLessThanModel.DenominatorAlias),
+			Threshold:                 typeInt64ToWrappedUint32(ratioLessThanModel.Threshold),
+			TimeWindow:                timeWindow,
+			IgnoreInfinity:            typeBoolToWrapperspbBool(ratioLessThanModel.IgnoreInfinity),
+			NotificationPayloadFilter: notificationPayloadFilter,
+			GroupByFor:                logsRatioGroupByForSchemaToProtoMap[ratioLessThanModel.GroupByFor.ValueString()],
+		},
+	}
+	properties.AlertType = alerts.AlertType_ALERT_TYPE_LOGS_RATIO_LESS_THAN
+	return properties, nil
+}
+
+func expandLogsNewValueAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties, newValue types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
+	if newValue.IsNull() || newValue.IsUnknown() {
+		return properties, nil
+	}
+
+	var newValueModel LogsNewValueModel
+	if diags := newValue.As(ctx, &newValueModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	logsFilter, diags := extractLogsFilter(ctx, newValueModel.LogsFilter)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	notificationPayloadFilter, diags := typeStringSliceToWrappedStringSlice(ctx, newValueModel.NotificationPayloadFilter.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	timeWindow, diags := extractLogsNewValueTimeWindow(ctx, newValueModel.TimeWindow)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	properties.AlertTypeDefinition = &alerts.AlertProperties_LogsNewValue{
+		LogsNewValue: &alerts.LogsNewValueAlertTypeDefinition{
+			LogsFilter:                logsFilter,
+			KeypathToTrack:            typeStringToWrapperspbString(newValueModel.KeypathToTrack),
+			TimeWindow:                timeWindow,
+			NotificationPayloadFilter: notificationPayloadFilter,
+		},
+	}
+	properties.AlertType = alerts.AlertType_ALERT_TYPE_LOGS_NEW_VALUE
+	return properties, nil
+}
+
+func extractLogsNewValueTimeWindow(ctx context.Context, window types.Object) (*alerts.LogsNewValueTimeWindow, diag.Diagnostics) {
+	if window.IsNull() || window.IsUnknown() {
+		return nil, nil
+	}
+
+	var windowModel LogsNewValueTimeWindowModel
+	if diags := window.As(ctx, &windowModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	if specificValue := windowModel.SpecificValue; !(specificValue.IsNull() || specificValue.IsUnknown()) {
+		return &alerts.LogsNewValueTimeWindow{
+			Type: &alerts.LogsNewValueTimeWindow_LogsNewValueTimeWindowSpecificValue{
+				LogsNewValueTimeWindowSpecificValue: logsNewValueTimeWindowValueSchemaToProtoMap[specificValue.ValueString()],
+			},
+		}, nil
+	}
+
+	return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Time Window", "Time Window is not valid")}
+
+}
+
+func expandLogsUniqueCountAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties, uniqueCount types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
+	if uniqueCount.IsNull() || uniqueCount.IsUnknown() {
+		return properties, nil
+	}
+
+	var uniqueCountModel LogsUniqueCountModel
+	if diags := uniqueCount.As(ctx, &uniqueCountModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	logsFilter, diags := extractLogsFilter(ctx, uniqueCountModel.LogsFilter)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	notificationPayloadFilter, diags := typeStringSliceToWrappedStringSlice(ctx, uniqueCountModel.NotificationPayloadFilter.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	timeWindow, diags := extractLogsUniqueCountTimeWindow(ctx, uniqueCountModel.TimeWindow)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	properties.AlertTypeDefinition = &alerts.AlertProperties_LogsUniqueCount{
+		LogsUniqueCount: &alerts.LogsUniqueCountAlertTypeDefinition{
+			LogsFilter:                  logsFilter,
+			UniqueCountKeypath:          typeStringToWrapperspbString(uniqueCountModel.UniqueCountKeypath),
+			MaxUniqueCount:              typeInt64ToWrappedInt64(uniqueCountModel.MaxUniqueCount),
+			TimeWindow:                  timeWindow,
+			NotificationPayloadFilter:   notificationPayloadFilter,
+			MaxUniqueCountPerGroupByKey: typeInt64ToWrappedInt64(uniqueCountModel.MaxUniqueCountPerGroupByKey),
+		},
+	}
+	properties.AlertType = alerts.AlertType_ALERT_TYPE_LOGS_UNIQUE_COUNT
+	return properties, nil
+}
+
+func extractLogsUniqueCountTimeWindow(ctx context.Context, window types.Object) (*alerts.LogsUniqueValueTimeWindow, diag.Diagnostics) {
+	if window.IsNull() || window.IsUnknown() {
+		return nil, nil
+	}
+
+	var windowModel LogsUniqueCountTimeWindowModel
+	if diags := window.As(ctx, &windowModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	if specificValue := windowModel.SpecificValue; !(specificValue.IsNull() || specificValue.IsUnknown()) {
+		return &alerts.LogsUniqueValueTimeWindow{
+			Type: &alerts.LogsUniqueValueTimeWindow_LogsUniqueValueTimeWindowSpecificValue{
+				LogsUniqueValueTimeWindowSpecificValue: logsUniqueCountTimeWindowValueSchemaToProtoMap[specificValue.ValueString()],
+			},
+		}, nil
+	}
+
+	return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Time Window", "Time Window is not valid")}
+
 }
 
 func expandLogsTimeRelativeMoreThanAlertTypeDefinition(ctx context.Context, properties *alerts.AlertProperties, than types.Object) (*alerts.AlertProperties, diag.Diagnostics) {
@@ -1327,7 +1898,7 @@ func flattenAlert(ctx context.Context, alert *alerts.Alert) (*AlertResourceModel
 		AlertPriority:       types.StringValue(alertPriorityProtoToSchemaMap[alertProperties.GetAlertPriority()]),
 		AlertSchedule:       alertSchedule,
 		AlertTypeDefinition: alertTypeDefinition,
-		AlertGroupBys:       wrappedStringSliceToTypeStringList(alertProperties.GetAlertGroupBys()),
+		AlertGroupBys:       wrappedStringSliceToTypeStringSet(alertProperties.GetAlertGroupBys()),
 		IncidentsSettings:   incidentsSettings,
 		NotificationGroup:   notificationGroup,
 		Labels:              labels,
@@ -1351,7 +1922,7 @@ func flattenNotificationGroup(ctx context.Context, notificationGroup *alerts.Ale
 	return types.ObjectValueFrom(ctx, notificationGroupAttr(), notificationGroupModel)
 }
 
-func flattenAlertNotifications(ctx context.Context, notifications []*alerts.AlertNotification) (types.List, diag.Diagnostics) {
+func flattenAlertNotifications(ctx context.Context, notifications []*alerts.AlertNotification) (types.Set, diag.Diagnostics) {
 	var notificationsModel []AlertNotificationModel
 	var diags diag.Diagnostics
 	for _, notification := range notifications {
@@ -1369,9 +1940,9 @@ func flattenAlertNotifications(ctx context.Context, notifications []*alerts.Aler
 		notificationsModel = append(notificationsModel, notificationModel)
 	}
 	if diags.HasError() {
-		return types.ListNull(types.ObjectType{AttrTypes: alertNotificationAttr()}), diags
+		return types.SetNull(types.ObjectType{AttrTypes: alertNotificationAttr()}), diags
 	}
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: alertNotificationAttr()}, notificationsModel)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: alertNotificationAttr()}, notificationsModel)
 }
 
 func flattenRetriggeringPeriod(ctx context.Context, notifications *alerts.AlertNotification) (types.Object, diag.Diagnostics) {
@@ -1381,7 +1952,7 @@ func flattenRetriggeringPeriod(ctx context.Context, notifications *alerts.AlertN
 			Minutes: wrapperspbUint32ToTypeInt64(notificationPeriodType.Minutes),
 		})
 	default:
-		return types.ObjectNull(retriggeringPeriodAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Retriggering Period", fmt.Sprintf("Retriggering Period %v is not valid", notificationPeriodType))}
+		return types.ObjectNull(retriggeringPeriodAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Retriggering Period", fmt.Sprintf("Retriggering Period %v is not supported", notificationPeriodType))}
 	}
 }
 
@@ -1413,7 +1984,7 @@ func flattenIncidentsSettingsByRetriggeringPeriod(ctx context.Context, settings 
 	case *alerts.AlertIncidentSettings_Minutes:
 		periodModel.Minutes = wrapperspbUint32ToTypeInt64(period.Minutes)
 	default:
-		return types.ObjectNull(retriggeringPeriodAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Retriggering Period", fmt.Sprintf("Retriggering Period %v is not valid", period))}
+		return types.ObjectNull(retriggeringPeriodAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Retriggering Period", fmt.Sprintf("Retriggering Period %v is not supported", period))}
 	}
 
 	return types.ObjectValueFrom(ctx, retriggeringPeriodAttr(), periodModel)
@@ -1429,8 +2000,8 @@ func flattenAlertTypeDefinition(ctx context.Context, properties *alerts.AlertPro
 		LogsMoreThan:             types.ObjectNull(logsMoreThanAttr()),
 		LogsLessThan:             types.ObjectNull(logsLessThanAttr()),
 		LogsMoreThanUsual:        types.ObjectNull(logsMoreThanUsualAttr()),
-		LogsRatioMoreThan:        types.ObjectNull(logsRatioMoreThanAttr()),
-		LogsRatioLessThan:        types.ObjectNull(logsRatioLessThanAttr()),
+		LogsRatioMoreThan:        types.ObjectNull(logsRatioAttr()),
+		LogsRatioLessThan:        types.ObjectNull(logsRatioAttr()),
 		LogsNewValue:             types.ObjectNull(logsNewValueAttr()),
 		LogsUniqueCount:          types.ObjectNull(logsUniqueCountAttr()),
 		LogsTimeRelativeMoreThan: types.ObjectNull(logsTimeRelativeMoreThanAttr()),
@@ -1502,7 +2073,7 @@ func flattenLogsImmediate(ctx context.Context, immediate *alerts.LogsImmediateAl
 
 	logsImmediateModel := LogsImmediateModel{
 		LogsFilter:                logsFilter,
-		NotificationPayloadFilter: wrappedStringSliceToTypeStringList(immediate.GetNotificationPayloadFilter()),
+		NotificationPayloadFilter: wrappedStringSliceToTypeStringSet(immediate.GetNotificationPayloadFilter()),
 	}
 	return types.ObjectValueFrom(ctx, logsImmediateAttr(), logsImmediateModel)
 }
@@ -1518,7 +2089,7 @@ func flattenAlertsLogsFilter(ctx context.Context, filter *alerts.LogsFilter) (ty
 	case *alerts.LogsFilter_LuceneFilter:
 		logsFilterModer.LuceneFilter, diags = flattenLuceneFilter(ctx, filterType.LuceneFilter)
 	default:
-		return types.ObjectNull(logsFilterAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Logs Filter", fmt.Sprintf("Logs Filter %v is not valid", filterType))}
+		return types.ObjectNull(logsFilterAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Logs Filter", fmt.Sprintf("Logs Filter %v is not supported", filterType))}
 	}
 
 	if diags.HasError() {
@@ -1616,7 +2187,7 @@ func flattenLogsMoreThan(ctx context.Context, moreThan *alerts.LogsMoreThanAlert
 		Threshold:                 wrapperspbUint32ToTypeInt64(moreThan.GetThreshold()),
 		TimeWindow:                timeWindow,
 		EvaluationWindow:          types.StringValue(evaluationWindowTypeProtoToSchemaMap[moreThan.GetEvaluationWindow()]),
-		NotificationPayloadFilter: wrappedStringSliceToTypeStringList(moreThan.GetNotificationPayloadFilter()),
+		NotificationPayloadFilter: wrappedStringSliceToTypeStringSet(moreThan.GetNotificationPayloadFilter()),
 	}
 	return types.ObjectValueFrom(ctx, logsMoreThanAttr(), logsMoreThanModel)
 }
@@ -1632,7 +2203,199 @@ func flattenLogsTimeWindow(ctx context.Context, timeWindow *alerts.LogsTimeWindo
 			SpecificValue: types.StringValue(logsTimeWindowValueProtoToSchemaMap[timeWindowType.LogsTimeWindowSpecificValue]),
 		})
 	default:
-		return types.ObjectNull(logsTimeWindowAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Time Window", fmt.Sprintf("Time Window %v is not valid", timeWindowType))}
+		return types.ObjectNull(logsTimeWindowAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Time Window", fmt.Sprintf("Time Window %v is not supported", timeWindowType))}
+	}
+
+}
+
+func flattenLogsLessThan(ctx context.Context, lessThan *alerts.LogsLessThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	if lessThan == nil {
+		return types.ObjectNull(logsLessThanAttr()), nil
+	}
+
+	logsFilter, diags := flattenAlertsLogsFilter(ctx, lessThan.GetLogsFilter())
+	if diags.HasError() {
+		return types.ObjectNull(logsLessThanAttr()), diags
+	}
+
+	timeWindow, diags := flattenLogsTimeWindow(ctx, lessThan.GetTimeWindow())
+	if diags.HasError() {
+		return types.ObjectNull(logsLessThanAttr()), diags
+	}
+
+	undetectedValuesManagement, diags := flattenUndetectedValuesManagement(ctx, lessThan.GetUndetectedValuesManagement())
+	if diags.HasError() {
+		return types.ObjectNull(logsLessThanAttr()), diags
+	}
+
+	logsLessThanModel := LogsLessThanModel{
+		LogsFilter:                 logsFilter,
+		Threshold:                  wrapperspbUint32ToTypeInt64(lessThan.GetThreshold()),
+		TimeWindow:                 timeWindow,
+		UndetectedValuesManagement: undetectedValuesManagement,
+		NotificationPayloadFilter:  wrappedStringSliceToTypeStringSet(lessThan.GetNotificationPayloadFilter()),
+	}
+	return types.ObjectValueFrom(ctx, logsLessThanAttr(), logsLessThanModel)
+}
+
+func flattenUndetectedValuesManagement(ctx context.Context, undetectedValuesManagement *alerts.UndetectedValuesManagement) (types.Object, diag.Diagnostics) {
+	if undetectedValuesManagement == nil {
+		return types.ObjectNull(undetectedValuesManagementAttr()), nil
+	}
+
+	undetectedValuesManagementModel := UndetectedValuesManagementModel{
+		TriggerUndetectedValues: wrapperspbBoolToTypeBool(undetectedValuesManagement.GetTriggerUndetectedValues()),
+		AutoRetireTimeframe:     types.StringValue(autoRetireTimeframeProtoToSchemaMap[undetectedValuesManagement.GetAutoRetireTimeframe()]),
+	}
+
+	return types.ObjectValueFrom(ctx, undetectedValuesManagementAttr(), undetectedValuesManagementModel)
+}
+
+func flattenLogsMoreThanUsual(ctx context.Context, moreThanUsual *alerts.LogsMoreThanUsualAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	if moreThanUsual == nil {
+		return types.ObjectNull(logsMoreThanUsualAttr()), nil
+	}
+
+	logsFilter, diags := flattenAlertsLogsFilter(ctx, moreThanUsual.GetLogsFilter())
+	if diags.HasError() {
+		return types.ObjectNull(logsMoreThanUsualAttr()), diags
+	}
+
+	timeWindow, diags := flattenLogsTimeWindow(ctx, moreThanUsual.GetTimeWindow())
+	if diags.HasError() {
+		return types.ObjectNull(logsMoreThanUsualAttr()), diags
+	}
+
+	logsMoreThanUsualModel := LogsMoreThanUsualModel{
+		LogsFilter:                logsFilter,
+		MinimumThreshold:          wrapperspbUint32ToTypeInt64(moreThanUsual.GetMinimumThreshold()),
+		TimeWindow:                timeWindow,
+		NotificationPayloadFilter: wrappedStringSliceToTypeStringSet(moreThanUsual.GetNotificationPayloadFilter()),
+	}
+	return types.ObjectValueFrom(ctx, logsMoreThanUsualAttr(), logsMoreThanUsualModel)
+}
+
+func flattenLogsRatioMoreThan(ctx context.Context, ratioMoreThan *alerts.LogsRatioMoreThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	if ratioMoreThan == nil {
+		return types.ObjectNull(logsRatioAttr()), nil
+	}
+
+	numeratorLogsFilter, diags := flattenAlertsLogsFilter(ctx, ratioMoreThan.GetNumeratorLogsFilter())
+	if diags.HasError() {
+		return types.ObjectNull(logsRatioAttr()), diags
+	}
+
+	denominatorLogsFilter, diags := flattenAlertsLogsFilter(ctx, ratioMoreThan.GetDenominatorLogsFilter())
+	if diags.HasError() {
+		return types.ObjectNull(logsRatioAttr()), diags
+	}
+
+	timeWindow, diags := flattenLogsRatioTimeWindow(ctx, ratioMoreThan.GetTimeWindow())
+	if diags.HasError() {
+		return types.ObjectNull(logsRatioAttr()), diags
+	}
+
+	logsRatioMoreThanModel := LogsRatioMoreThanModel{
+		NumeratorLogsFilter:       numeratorLogsFilter,
+		NumeratorAlias:            wrapperspbStringToTypeString(ratioMoreThan.GetNumeratorAlias()),
+		DenominatorLogsFilter:     denominatorLogsFilter,
+		DenominatorAlias:          wrapperspbStringToTypeString(ratioMoreThan.GetDenominatorAlias()),
+		Threshold:                 wrapperspbUint32ToTypeInt64(ratioMoreThan.GetThreshold()),
+		TimeWindow:                timeWindow,
+		IgnoreInfinity:            wrapperspbBoolToTypeBool(ratioMoreThan.GetIgnoreInfinity()),
+		NotificationPayloadFilter: wrappedStringSliceToTypeStringSet(ratioMoreThan.GetNotificationPayloadFilter()),
+		GroupByFor:                types.StringValue(logsRatioGroupByForProtoToSchemaMap[ratioMoreThan.GetGroupByFor()]),
+	}
+	return types.ObjectValueFrom(ctx, logsRatioAttr(), logsRatioMoreThanModel)
+}
+
+func flattenLogsRatioTimeWindow(ctx context.Context, window *alerts.LogsRatioTimeWindow) (types.Object, diag.Diagnostics) {
+	if window == nil {
+		return types.ObjectNull(logsTimeWindowAttr()), nil
+	}
+
+	switch timeWindowType := window.Type.(type) {
+	case *alerts.LogsRatioTimeWindow_LogsRatioTimeWindowSpecificValue:
+		return types.ObjectValueFrom(ctx, logsTimeWindowAttr(), LogsRatioTimeWindowModel{
+			SpecificValue: types.StringValue(logsRatioTimeWindowValueProtoToSchemaMap[timeWindowType.LogsRatioTimeWindowSpecificValue]),
+		})
+	default:
+		return types.ObjectNull(logsTimeWindowAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Time Window", fmt.Sprintf("Time Window %v is not supported", timeWindowType))}
+	}
+}
+
+func flattenLogsRatioLessThan(ctx context.Context, ratioLessThan *alerts.LogsRatioLessThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	if ratioLessThan == nil {
+		return types.ObjectNull(logsRatioAttr()), nil
+	}
+
+	numeratorLogsFilter, diags := flattenAlertsLogsFilter(ctx, ratioLessThan.GetNumeratorLogsFilter())
+	if diags.HasError() {
+		return types.ObjectNull(logsRatioAttr()), diags
+	}
+
+	denominatorLogsFilter, diags := flattenAlertsLogsFilter(ctx, ratioLessThan.GetDenominatorLogsFilter())
+	if diags.HasError() {
+		return types.ObjectNull(logsRatioAttr()), diags
+	}
+
+	timeWindow, diags := flattenLogsRatioTimeWindow(ctx, ratioLessThan.GetTimeWindow())
+	if diags.HasError() {
+		return types.ObjectNull(logsRatioAttr()), diags
+	}
+
+	logsRatioLessThanModel := LogsRatioLessThanModel{
+		NumeratorLogsFilter:       numeratorLogsFilter,
+		NumeratorAlias:            wrapperspbStringToTypeString(ratioLessThan.GetNumeratorAlias()),
+		DenominatorLogsFilter:     denominatorLogsFilter,
+		DenominatorAlias:          wrapperspbStringToTypeString(ratioLessThan.GetDenominatorAlias()),
+		Threshold:                 wrapperspbUint32ToTypeInt64(ratioLessThan.GetThreshold()),
+		TimeWindow:                timeWindow,
+		IgnoreInfinity:            wrapperspbBoolToTypeBool(ratioLessThan.GetIgnoreInfinity()),
+		NotificationPayloadFilter: wrappedStringSliceToTypeStringSet(ratioLessThan.GetNotificationPayloadFilter()),
+		GroupByFor:                types.StringValue(logsRatioGroupByForProtoToSchemaMap[ratioLessThan.GetGroupByFor()]),
+	}
+	return types.ObjectValueFrom(ctx, logsRatioAttr(), logsRatioLessThanModel)
+}
+
+func flattenLogsUniqueCount(ctx context.Context, uniqueCount *alerts.LogsUniqueCountAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	if uniqueCount == nil {
+		return types.ObjectNull(logsUniqueCountAttr()), nil
+	}
+
+	logsFilter, diags := flattenAlertsLogsFilter(ctx, uniqueCount.GetLogsFilter())
+	if diags.HasError() {
+		return types.ObjectNull(logsUniqueCountAttr()), diags
+	}
+
+	timeWindow, diags := flattenLogsUniqueCountTimeWindow(ctx, uniqueCount.GetTimeWindow())
+	if diags.HasError() {
+		return types.ObjectNull(logsUniqueCountAttr()), diags
+	}
+
+	logsUniqueCountModel := LogsUniqueCountModel{
+		LogsFilter:                  logsFilter,
+		UniqueCountKeypath:          wrapperspbStringToTypeString(uniqueCount.GetUniqueCountKeypath()),
+		MaxUniqueCount:              wrapperspbInt64ToTypeInt64(uniqueCount.GetMaxUniqueCount()),
+		TimeWindow:                  timeWindow,
+		NotificationPayloadFilter:   wrappedStringSliceToTypeStringSet(uniqueCount.GetNotificationPayloadFilter()),
+		MaxUniqueCountPerGroupByKey: wrapperspbInt64ToTypeInt64(uniqueCount.GetMaxUniqueCountPerGroupByKey()),
+	}
+	return types.ObjectValueFrom(ctx, logsUniqueCountAttr(), logsUniqueCountModel)
+}
+
+func flattenLogsUniqueCountTimeWindow(ctx context.Context, timeWindow *alerts.LogsUniqueValueTimeWindow) (types.Object, diag.Diagnostics) {
+	if timeWindow == nil {
+		return types.ObjectNull(logsTimeWindowAttr()), nil
+	}
+
+	switch timeWindowType := timeWindow.Type.(type) {
+	case *alerts.LogsUniqueValueTimeWindow_LogsUniqueValueTimeWindowSpecificValue:
+		return types.ObjectValueFrom(ctx, logsTimeWindowAttr(), LogsUniqueCountTimeWindowModel{
+			SpecificValue: types.StringValue(logsUniqueCountTimeWindowValueProtoToSchemaMap[timeWindowType.LogsUniqueValueTimeWindowSpecificValue]),
+		})
+	default:
+		return types.ObjectNull(logsTimeWindowAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Time Window", fmt.Sprintf("Time Window %v is not supported", timeWindowType))}
 	}
 
 }
@@ -1673,35 +2436,49 @@ func flattenLogsTimeRelativeMoreThan(ctx context.Context, than *alerts.LogsTimeR
 	return types.ObjectNull(logsTimeRelativeMoreThanAttr()), nil
 }
 
-func flattenLogsUniqueCount(ctx context.Context, count *alerts.LogsUniqueCountAlertTypeDefinition) (types.Object, diag.Diagnostics) {
-	return types.ObjectNull(logsUniqueCountAttr()), nil
+func flattenLogsNewValue(ctx context.Context, newValue *alerts.LogsNewValueAlertTypeDefinition) (types.Object, diag.Diagnostics) {
+	if newValue == nil {
+		return types.ObjectNull(logsNewValueAttr()), nil
+	}
+
+	logsFilter, diags := flattenAlertsLogsFilter(ctx, newValue.GetLogsFilter())
+	if diags.HasError() {
+		return types.ObjectNull(logsNewValueAttr()), diags
+	}
+
+	timeWindow, diags := flattenLogsNewValueTimeWindow(ctx, newValue.GetTimeWindow())
+	if diags.HasError() {
+		return types.ObjectNull(logsNewValueAttr()), diags
+	}
+
+	logsNewValueModel := LogsNewValueModel{
+		LogsFilter:                logsFilter,
+		KeypathToTrack:            wrapperspbStringToTypeString(newValue.GetKeypathToTrack()),
+		TimeWindow:                timeWindow,
+		NotificationPayloadFilter: wrappedStringSliceToTypeStringSet(newValue.GetNotificationPayloadFilter()),
+	}
+	return types.ObjectValueFrom(ctx, logsNewValueAttr(), logsNewValueModel)
 }
 
-func flattenLogsNewValue(ctx context.Context, value *alerts.LogsNewValueAlertTypeDefinition) (types.Object, diag.Diagnostics) {
-	return types.ObjectNull(logsNewValueAttr()), nil
+func flattenLogsNewValueTimeWindow(ctx context.Context, window *alerts.LogsNewValueTimeWindow) (types.Object, diag.Diagnostics) {
+	if window == nil {
+		return types.ObjectNull(logsTimeWindowAttr()), nil
+	}
 
-}
-
-func flattenLogsRatioLessThan(ctx context.Context, than *alerts.LogsRatioLessThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
-	return types.ObjectNull(logsRatioLessThanAttr()), nil
-
-}
-
-func flattenLogsRatioMoreThan(ctx context.Context, than *alerts.LogsRatioMoreThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
-	return types.ObjectNull(logsRatioMoreThanAttr()), nil
-
-}
-
-func flattenLogsMoreThanUsual(ctx context.Context, usual *alerts.LogsMoreThanUsualAlertTypeDefinition) (types.Object, diag.Diagnostics) {
-	return types.ObjectNull(logsMoreThanUsualAttr()), nil
-
-}
-
-func flattenLogsLessThan(ctx context.Context, than *alerts.LogsLessThanAlertTypeDefinition) (types.Object, diag.Diagnostics) {
-	return types.ObjectNull(logsLessThanAttr()), nil
+	switch timeWindowType := window.Type.(type) {
+	case *alerts.LogsNewValueTimeWindow_LogsNewValueTimeWindowSpecificValue:
+		return types.ObjectValueFrom(ctx, logsTimeWindowAttr(), LogsNewValueTimeWindowModel{
+			SpecificValue: types.StringValue(logsNewValueTimeWindowValueProtoToSchemaMap[timeWindowType.LogsNewValueTimeWindowSpecificValue]),
+		})
+	default:
+		return types.ObjectNull(logsTimeWindowAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Time Window", fmt.Sprintf("Time Window %v is not supported", timeWindowType))}
+	}
 }
 
 func flattenAlertSchedule(ctx context.Context, alertProperties *alerts.AlertProperties) (types.Object, diag.Diagnostics) {
+	if alertProperties.AlertSchedule == nil {
+		return types.ObjectNull(alertScheduleAttr()), nil
+	}
 	switch alertScheduleType := alertProperties.AlertSchedule.(type) {
 	case *alerts.AlertProperties_ActiveOn:
 		activeOn := alertProperties.GetActiveOn()
@@ -1767,7 +2544,7 @@ func notificationGroupAttr() map[string]attr.Type {
 		"group_by_fields": types.ListType{
 			ElemType: types.StringType,
 		},
-		"notifications": types.ListType{
+		"notifications": types.SetType{
 			ElemType: types.ObjectType{
 				AttrTypes: alertNotificationAttr(),
 			},
@@ -1808,10 +2585,10 @@ func alertTypeDefinitionAttr() map[string]attr.Type {
 			AttrTypes: logsMoreThanUsualAttr(),
 		},
 		"logs_ratio_more_than": types.ObjectType{
-			AttrTypes: logsRatioMoreThanAttr(),
+			AttrTypes: logsRatioAttr(),
 		},
 		"logs_ratio_less_than": types.ObjectType{
-			AttrTypes: logsRatioLessThanAttr(),
+			AttrTypes: logsRatioAttr(),
 		},
 		"logs_new_value": types.ObjectType{
 			AttrTypes: logsNewValueAttr(),
@@ -1854,7 +2631,7 @@ func logsImmediateAttr() map[string]attr.Type {
 		"logs_filter": types.ObjectType{
 			AttrTypes: logsFilterAttr(),
 		},
-		"notification_payload_filter": types.ListType{
+		"notification_payload_filter": types.SetType{
 			ElemType: types.StringType,
 		},
 	}
@@ -1901,13 +2678,85 @@ func logsMoreThanAttr() map[string]attr.Type {
 		"threshold":                   types.Int64Type,
 		"time_window":                 types.ObjectType{AttrTypes: logsTimeWindowAttr()},
 		"evaluation_window":           types.StringType,
-		"notification_payload_filter": types.ListType{ElemType: types.StringType},
+		"notification_payload_filter": types.SetType{ElemType: types.StringType},
 	}
 }
 
 func logsTimeWindowAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"specific_value": types.StringType,
+	}
+}
+
+func logsRatioAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"numerator_logs_filter":   types.ObjectType{AttrTypes: logsFilterAttr()},
+		"numerator_alias":         types.StringType,
+		"denominator_logs_filter": types.ObjectType{AttrTypes: logsFilterAttr()},
+		"denominator_alias":       types.StringType,
+		"threshold":               types.Int64Type,
+		"time_window":             types.ObjectType{AttrTypes: logsTimeWindowAttr()},
+		"ignore_infinity":         types.BoolType,
+		"notification_payload_filter": types.SetType{
+			ElemType: types.StringType,
+		},
+		"group_by_for": types.StringType,
+	}
+}
+
+func logsMoreThanUsualAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"logs_filter":                 types.ObjectType{AttrTypes: logsFilterAttr()},
+		"minimum_threshold":           types.Int64Type,
+		"time_window":                 types.ObjectType{AttrTypes: logsTimeWindowAttr()},
+		"notification_payload_filter": types.SetType{ElemType: types.StringType},
+	}
+}
+
+func logsLessThanAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"logs_filter":                  types.ObjectType{AttrTypes: logsFilterAttr()},
+		"threshold":                    types.Int64Type,
+		"time_window":                  types.ObjectType{AttrTypes: logsTimeWindowAttr()},
+		"undetected_values_management": types.ObjectType{AttrTypes: undetectedValuesManagementAttr()},
+		"notification_payload_filter":  types.SetType{ElemType: types.StringType},
+	}
+}
+
+func undetectedValuesManagementAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"trigger_undetected_values": types.BoolType,
+		"auto_retire_timeframe":     types.StringType,
+	}
+}
+
+func alertScheduleAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"days_of_week": types.ListType{
+			ElemType: types.StringType,
+		},
+		"start_time": types.ObjectType{
+			AttrTypes: timeOfDayAttr(),
+		},
+		"end_time": types.ObjectType{
+			AttrTypes: timeOfDayAttr(),
+		},
+	}
+}
+
+func timeOfDayAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"hours":   types.Int64Type,
+		"minutes": types.Int64Type,
+	}
+}
+
+func logsNewValueAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"logs_filter":                 types.ObjectType{AttrTypes: logsFilterAttr()},
+		"keypath_to_track":            types.StringType,
+		"time_window":                 types.ObjectType{AttrTypes: logsTimeWindowAttr()},
+		"notification_payload_filter": types.SetType{ElemType: types.StringType},
 	}
 }
 
@@ -1948,47 +2797,13 @@ func logsTimeRelativeMoreThanAttr() map[string]attr.Type {
 }
 
 func logsUniqueCountAttr() map[string]attr.Type {
-	return map[string]attr.Type{}
-}
-
-func logsNewValueAttr() map[string]attr.Type {
-	return map[string]attr.Type{}
-}
-
-func logsRatioLessThanAttr() map[string]attr.Type {
-	return map[string]attr.Type{}
-}
-
-func logsRatioMoreThanAttr() map[string]attr.Type {
-	return map[string]attr.Type{}
-}
-
-func logsMoreThanUsualAttr() map[string]attr.Type {
-	return map[string]attr.Type{}
-}
-
-func logsLessThanAttr() map[string]attr.Type {
-	return map[string]attr.Type{}
-}
-
-func alertScheduleAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"days_of_week": types.ListType{
-			ElemType: types.StringType,
-		},
-		"start_time": types.ObjectType{
-			AttrTypes: timeOfDayAttr(),
-		},
-		"end_time": types.ObjectType{
-			AttrTypes: timeOfDayAttr(),
-		},
-	}
-}
-
-func timeOfDayAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"hours":   types.Int64Type,
-		"minutes": types.Int64Type,
+		"logs_filter":                       types.ObjectType{AttrTypes: logsFilterAttr()},
+		"unique_count_keypath":              types.StringType,
+		"max_unique_count":                  types.Int64Type,
+		"time_window":                       types.ObjectType{AttrTypes: logsTimeWindowAttr()},
+		"notification_payload_filter":       types.SetType{ElemType: types.StringType},
+		"max_unique_count_per_group_by_key": types.Int64Type,
 	}
 }
 
