@@ -56,7 +56,6 @@ func testApiKeyResource() string {
     team_id : "<TEAM_ID>"
   }
   active = true
-  hashed = false
   permissions = []
   presets = ["Alerts", "APM"]
 }
@@ -70,7 +69,6 @@ func updateApiKeyResource() string {
     team_id : "<TEAM_ID>"
   }
   active = false
-  hashed = false
   permissions = []
   presets = ["Alerts", "APM"]
 }

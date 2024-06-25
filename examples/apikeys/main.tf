@@ -18,7 +18,6 @@ resource "coralogix_api_key" "example" {
     team_id : "4013254"
   }
   active = true
-  hashed = false
   presets = ["APM"]
   permissions = ["livetail:Read"]
 }
