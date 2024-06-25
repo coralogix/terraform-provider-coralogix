@@ -127,8 +127,6 @@ func resourceSchemaV1() schema.Schema {
 			},
 			"hashed": schema.BoolAttribute{
 				Computed:            true,
-				Optional:            true,
-				Default:             booldefault.StaticBool(false),
 				MarkdownDescription: "Api Key Is Hashed.",
 			},
 			"presets": schema.SetAttribute{
@@ -425,7 +423,9 @@ func (r *ApiKeyResource) getKeyInfo(ctx context.Context, id *string, keyValue *s
 	if diags.HasError() {
 		return nil, diags
 	}
+	log.Printf("[INFO] Get api key with ID: %s", getApiKeyRequest)
 	getApiKeyResponse, err := r.client.GetApiKey(ctx, getApiKeyRequest)
+
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
@@ -446,6 +446,7 @@ func (r *ApiKeyResource) getKeyInfo(ctx context.Context, id *string, keyValue *s
 		}
 		return nil, diags
 	}
+	log.Printf("[INFO] Got api key info: %s", protojson.Format(getApiKeyResponse))
 	key, diags := flattenGetApiKeyResponse(ctx, id, getApiKeyResponse, keyValue)
 	if diags.HasError() {
 		return nil, diags
