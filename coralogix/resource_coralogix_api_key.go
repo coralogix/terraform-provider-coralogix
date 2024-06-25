@@ -30,10 +30,10 @@ import (
 )
 
 var (
-	getApiKeyPath    = "com.coralogixapis.aaa.apikeys.v2.ApiKeysService/GetApiKey"
-	createApiKeyPath = "com.coralogixapis.aaa.apikeys.v2.ApiKeysService/CreateApiKey"
-	deleteApiKeyPath = "com.coralogixapis.aaa.apikeys.v2.ApiKeysService/DeleteApiKey"
-	updateApiKeyPath = "com.coralogixapis.aaa.apikeys.v2.ApiKeysService/UpdateApiKey"
+	getApiKeyPath    = apikeys.ApiKeysService_GetApiKey_FullMethodName
+	createApiKeyPath = apikeys.ApiKeysService_CreateApiKey_FullMethodName
+	deleteApiKeyPath = apikeys.ApiKeysService_DeleteApiKey_FullMethodName
+	updateApiKeyPath = apikeys.ApiKeysService_UpdateApiKey_FullMethodName
 )
 
 func NewApiKeyResource() resource.Resource {
