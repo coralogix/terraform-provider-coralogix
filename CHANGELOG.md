@@ -578,3 +578,5 @@ New Features:
 Breaking Changes:
 #### resource/coralogix_api_key
 * Roles are replaced by "Presets" and "Permission" keys. Read more [here](https://coralogix.com/docs/api-keys/).
+
+Various documentation upgrades
