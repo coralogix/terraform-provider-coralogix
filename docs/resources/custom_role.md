@@ -3,7 +3,7 @@
 page_title: "coralogix_custom_role Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Custom roles.
+Coralogix Custom roles.
 ---
 
 # coralogix_custom_role (Resource)

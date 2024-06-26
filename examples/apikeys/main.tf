@@ -13,13 +13,13 @@ provider "coralogix" {
 }
 
 resource "coralogix_api_key" "example" {
-  name  = "My SCIM KEY"
+  name  = "My APM KEY"
   owner = {
     team_id : "4013254"
   }
   active = true
-  hashed = false
-  roles = ["SCIM", "Legacy Api Key", "Role Management", "Send Data"]
+  presets = ["APM"]
+  permissions = ["livetail:Read"]
 }
 
 data "coralogix_api_key" "same_key_by_id" {
