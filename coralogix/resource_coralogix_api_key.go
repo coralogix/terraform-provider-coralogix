@@ -529,6 +529,7 @@ func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*ap
 			Presets:     presets,
 			Permissions: permissions,
 		},
+		Hashed: false, // this has to be false or the GetApiKey will fail (encrypted keys are not readable)
 	}, nil
 }
 
