@@ -10,7 +10,7 @@ type AlertsClient struct {
 	callPropertiesCreator *CallPropertiesCreator
 }
 
-func (a AlertsClient) CreateAlert(ctx context.Context, req *alerts.CreateAlertRequest) (*alerts.CreateAlertResponse, error) {
+func (a AlertsClient) CreateAlert(ctx context.Context, req *alerts.CreateAlertDefRequest) (*alerts.CreateAlertDefResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -18,12 +18,12 @@ func (a AlertsClient) CreateAlert(ctx context.Context, req *alerts.CreateAlertRe
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := alerts.NewAlertsServiceClient(conn)
+	client := alerts.NewAlertDefsServiceClient(conn)
 
-	return client.CreateAlert(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.CreateAlertDef(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (a AlertsClient) GetAlert(ctx context.Context, req *alerts.GetAlertRequest) (*alerts.GetAlertResponse, error) {
+func (a AlertsClient) GetAlert(ctx context.Context, req *alerts.GetAlertDefRequest) (*alerts.GetAlertDefResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -31,12 +31,12 @@ func (a AlertsClient) GetAlert(ctx context.Context, req *alerts.GetAlertRequest)
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := alerts.NewAlertsServiceClient(conn)
+	client := alerts.NewAlertDefsServiceClient(conn)
 
-	return client.GetAlert(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.GetAlertDef(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (a AlertsClient) UpdateAlert(ctx context.Context, req *alerts.ReplaceAlertRequest) (*alerts.ReplaceAlertResponse, error) {
+func (a AlertsClient) UpdateAlert(ctx context.Context, req *alerts.ReplaceAlertDefRequest) (*alerts.ReplaceAlertDefResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -44,12 +44,12 @@ func (a AlertsClient) UpdateAlert(ctx context.Context, req *alerts.ReplaceAlertR
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := alerts.NewAlertsServiceClient(conn)
+	client := alerts.NewAlertDefsServiceClient(conn)
 
-	return client.ReplaceAlert(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.ReplaceAlertDef(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (a AlertsClient) DeleteAlert(ctx context.Context, req *alerts.DeleteAlertRequest) (*alerts.DeleteAlertResponse, error) {
+func (a AlertsClient) DeleteAlert(ctx context.Context, req *alerts.DeleteAlertDefRequest) (*alerts.DeleteAlertDefResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -57,9 +57,9 @@ func (a AlertsClient) DeleteAlert(ctx context.Context, req *alerts.DeleteAlertRe
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := alerts.NewAlertsServiceClient(conn)
+	client := alerts.NewAlertDefsServiceClient(conn)
 
-	return client.DeleteAlert(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.DeleteAlertDef(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 func NewAlertsClient(c *CallPropertiesCreator) *AlertsClient {

@@ -624,6 +624,14 @@ func typeStringToWrapperspbString(str types.String) *wrapperspb.StringValue {
 	return wrapperspb.String(str.ValueString())
 }
 
+func wrapperspbFloat64ToTypeFloat64(num *wrapperspb.FloatValue) types.Float64 {
+	if num == nil {
+		return types.Float64Null()
+	}
+
+	return types.Float64Value(float64(num.GetValue()))
+}
+
 func typeStringToStringPointer(str types.String) *string {
 	if str.IsNull() || str.IsUnknown() {
 		return nil
@@ -646,6 +654,14 @@ func typeFloat64ToWrapperspbDouble(num types.Float64) *wrapperspb.DoubleValue {
 	}
 
 	return wrapperspb.Double(num.ValueFloat64())
+}
+
+func typeFloat64ToWrapperspbFloat(num types.Float64) *wrapperspb.FloatValue {
+	if num.IsNull() {
+		return nil
+	}
+
+	return wrapperspb.Float(float32(num.ValueFloat64()))
 }
 
 func wrapperspbStringToTypeString(str *wrapperspb.StringValue) types.String {

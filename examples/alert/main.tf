@@ -12,476 +12,440 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-#resource "coralogix_alert" "logs_immediate_alert" {
-#  name           = "logs immediate alert"
-#  description    = "Example of logs immediate alert from terraform"
-#  alert_priority = "P3"
-#
-#  labels = {
-#    alert_type        = "security"
-#    security_severity = "high"
-#  }
-#
-#  notification_group = {
-#    notifications   = [
-#      {
-#        integration_id = coralogix_webhook.slack_webhook.external_id
-#      },
-#      {
-#        retriggering_period = {
-#          minutes = 1
-#        }
-#        notify_on = "Triggered and Resolved"
-#        recipients = ["example@coralogix.com"]
-#      }
-#    ]
-#  }
-#
-#  incidents_settings = {
-#    notify_on                   = "Triggered and Resolved"
-#    retriggering_period = {
-#      minutes = 1
-#    }
-#  }
-#
-#  alert_schedule = {
-#    days_of_week = ["Wednesday", "Thursday"]
-#    start_time   = {
-#      hours   = 8
-#      minutes = 30
-#    }
-#    end_time = {
-#      hours   = 20
-#      minutes = 30
-#    }
-#  }
-#
-#  alert_type_definition = {
-#    logs_immediate = {
-#      logs_filter = {
-#        lucene_filter = {
-#          lucene_query = "message:\"error\""
-#          label_filters = {
-#          }
-#        }
-#      }
-#    }
-#  }
-#}
+resource "coralogix_alert" "logs_immediate_alert" {
+  name        = "logs immediate alert"
+  description = "Example of logs immediate alert from terraform"
+  priority    = "P3"
 
-#resource "coralogix_alert" "logs_more_than_alert" {
-#  name           = "logs-more_-than alert example"
-#  description    = "Example of standard alert from terraform"
-#  alert_priority = "P3"
-#
-#  labels = {
-#    alert_type        = "security"
-#    security_severity = "high"
-#  }
-#
-#  notification_group = {
-#    notifications   = [
-#      {
-#        integration_id = coralogix_webhook.slack_webhook.external_id
-#      },
-#      {
-#        retriggering_period = {
-#          minutes = 1
-#        }
-#        notify_on = "Triggered and Resolved"
-#        recipients = ["example@coralogix.com"]
-#      }
-#    ]
-#  }
-#
-#  incidents_settings = {
-#    notify_on                   = "Triggered and Resolved"
-#    retriggering_period = {
-#      minutes = 1
-#    }
-#  }
-#
-#  alert_schedule = {
-#    days_of_week = ["Wednesday", "Thursday"]
-#    start_time   = {
-#      hours   = 8
-#      minutes = 30
-#    }
-#    end_time = {
-#      hours   = 20
-#      minutes = 30
-#    }
-#  }
-#
-#  alert_type_definition = {
-#    logs_more_than = {
-#      threshold = 2
-#      time_window = {
-#        specific_value = "10_MINUTES"
-#      }
-#      evaluation_window = "Dynamic"
-#      logs_filter = {
-#        lucene_filter = {
-#          lucene_query = "message:\"error\""
-#          label_filters = {
-#            application_name = [
-#              {
-#                operation = "OR"
-#                value    = "nginx"
-#              }
-#              ]
-#            subsystem_name   = [
-#              {
-#                operation = "OR"
-#                value    = "subsystem-name"
-#              }
-#              ]
-#            severity         = ["Warning"]
-#          }
-#        }
-#      }
-#    }
-#  }
-#}
-
-#resource "coralogix_alert" "logs_less_than_alert" {
-#  name           = "logs-less-than alert example"
-#  description    = "Example of logs-less-than alert from terraform"
-#  alert_priority = "P3"
-#
-##  labels = {
-##    alert_type        = "security"
-##    security_severity = "high"
-##  }
-#
-#  notification_group = {
-#    notifications   = [
-#      {
-#        integration_id = coralogix_webhook.slack_webhook.external_id
-#        notify_on = "Triggered and Resolved"
-#      },
-#      {
-#        retriggering_period = {
-#          minutes = 1
-#        }
-#        notify_on = "Triggered and Resolved"
-#        recipients = ["example@coralogix.com"]
-#      }
-#    ]
-#  }
-#
-#  incidents_settings = {
-#    notify_on                   = "Triggered and Resolved"
-#    retriggering_period = {
-#      minutes = 1
-#    }
-#  }
-#
-##  alert_schedule = {
-##    days_of_week = ["Wednesday", "Thursday"]
-##    start_time   = {
-##      hours   = 8
-##      minutes = 30
-##    }
-##    end_time = {
-##      hours   = 20
-##      minutes = 30
-##    }
-##  }
-#
-#  alert_type_definition = {
-#    logs_less_than = {
-#      logs_filter = {
-#        lucene_filter = {
-#          lucene_query = "message:\"error\""
-#          label_filters = {
-#            application_name = [
-#              {
-#                operation = "OR"
-#                value    = "nginx"
-#              }
-#            ]
-#            subsystem_name   = [
-#              {
-#                operation = "OR"
-#                value    = "subsystem-name"
-#              }
-#            ]
-#            severity         = ["Warning"]
-#          }
-#        }
-#      }
-#      notification_payload_filter = ["coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"]
-#      time_window = {
-#        specific_value = "10_MINUTES"
-#      }
-#      threshold = 2
-#      undetected_values_management = {
-#        trigger_undetected_values = true
-#        auto_retire_timeframe                      = "5_Minutes"
-#      }
-#    }
-#  }
-#}
-
-#resource "coralogix_alert" "logs_less_more_than_usual_alert" {
-#  name           = "logs-less-than alert example"
-#  description    = "Example of logs-less-than alert from terraform"
-#  alert_priority = "P4"
-#
-#  #  labels = {
-#  #    alert_type        = "security"
-#  #    security_severity = "high"
-#  #  }
-#
-#  notification_group = {
-#    notifications   = [
-#      {
-#        integration_id = coralogix_webhook.slack_webhook.external_id
-#        notify_on = "Triggered and Resolved"
-#      },
-#      {
-#        retriggering_period = {
-#          minutes = 1
-#        }
-#        notify_on = "Triggered and Resolved"
-#        recipients = ["example@coralogix.com"]
-#      }
-#    ]
-#  }
-#
-#  incidents_settings = {
-#    notify_on                   = "Triggered and Resolved"
-#    retriggering_period = {
-#      minutes = 1
-#    }
-#  }
-#
-#  #  alert_schedule = {
-#  #    days_of_week = ["Wednesday", "Thursday"]
-#  #    start_time   = {
-#  #      hours   = 8
-#  #      minutes = 30
-#  #    }
-#  #    end_time = {
-#  #      hours   = 20
-#  #      minutes = 30
-#  #    }
-#  #  }
-#
-#  alert_type_definition = {
-#    logs_more_than_usual = {
-#      logs_filter = {
-#        lucene_filter = {
-#          lucene_query = "message:\"error\""
-#          label_filters = {
-#            application_name = [
-#              {
-#                operation = "OR"
-#                value    = "nginx"
-#              }
-#            ]
-#            subsystem_name   = [
-#              {
-#                operation = "OR"
-#                value    = "subsystem-name"
-#              }
-#            ]
-#            severity         = ["Warning"]
-#          }
-#        }
-#      }
-#      notification_payload_filter = ["coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"]
-#      time_window = {
-#        specific_value = "10_MINUTES"
-#      }
-#      minimum_threshold = 2
-#    }
-#  }
-#}
-
-#resource "coralogix_alert" "logs_less_more_than_usual_alert" {
-#  name           = "logs-less-than alert example"
-#  description    = "Example of logs-less-than alert from terraform"
-#  alert_priority = "P3"
-#
-#  notification_group = {
-#    notifications   = [
-#      {
-#        retriggering_period = {
-#          minutes = 1
-#        }
-#        notify_on = "Triggered and Resolved"
-#        recipients = ["example@coralogix.com"]
-#      }
-#    ]
-#  }
-#
-#  incidents_settings = {
-#    notify_on                   = "Triggered and Resolved"
-#    retriggering_period = {
-#      minutes = 1
-#    }
-#  }
-#
-#  alert_type_definition = {
-#    logs_ratio_more_than = {
-#      logs_filter = {
-#        lucene_filter = {
-#          lucene_query = "message:\"error\""
-#          label_filters = {
-#            application_name = [
-#              {
-#                operation = "OR"
-#                value    = "nginx"
-#              }
-#            ]
-#            subsystem_name   = [
-#              {
-#                operation = "OR"
-#                value    = "subsystem-name"
-#              }
-#            ]
-#            severity         = ["Warning"]
-#          }
-#        }
-#      }
-#      time_window = {
-#        specific_value = "10_MINUTES"
-#      }
-#      threshold = 2
-#      denominator_alias = "denominator"
-#        numerator_alias = "numerator"
-#    }
-#  }
-#}
-
-#resource "coralogix_alert" "logs_ratio_less_than_alert" {
-#  name           = "logs-less-than alert example"
-#  description    = "Example of logs-less-than alert from terraform"
-#  alert_priority = "P3"
-#
-#  notification_group = {
-#    notifications   = [
-#      {
-#        retriggering_period = {
-#          minutes = 1
-#        }
-#        notify_on = "Triggered and Resolved"
-#        recipients = ["example@coralogix.com"]
-#      }
-#    ]
-#  }
-#
-#  incidents_settings = {
-#    notify_on                   = "Triggered and Resolved"
-#    retriggering_period = {
-#      minutes = 1
-#    }
-#  }
-#
-#  alert_type_definition = {
-#    logs_ratio_less_than = {
-#      numerator_logs_filter = {
-#        lucene_filter = {
-#          lucene_query = "message:\"error\""
-#          label_filters = {
-#            application_name = [
-#              {
-#                operation = "OR"
-#                value    = "nginx"
-#              }
-#            ]
-#            subsystem_name   = [
-#              {
-#                operation = "OR"
-#                value    = "subsystem-name"
-#              }
-#            ]
-#            severity         = ["Warning"]
-#          }
-#        }
-#      }
-#      numerator_alias = "numerator"
-#      denominator_logs_filter = {
-#        lucene_filter = {
-#          lucene_query = "message:\"error\""
-#          label_filters = {
-#            application_name = [
-#              {
-#                operation = "OR"
-#                value    = "nginx"
-#              }
-#            ]
-#            subsystem_name   = [
-#              {
-#                operation = "OR"
-#                value    = "subsystem-name"
-#              }
-#            ]
-#            severity         = ["Warning"]
-#          }
-#        }
-#      }
-#      denominator_alias = "denominator"
-#      threshold = 2
-#      time_window = {
-#        specific_value = "10_MINUTES"
-#      }
-#      notification_payload_filter = ["coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"]
-#      group_by_for = "Numerator Only"
-#    }
-#  }
-#}
-
-resource "coralogix_alert" "logs_new_value_alert" {
-  name           = "logs-new-value alert example"
-  description    = "Example of logs-new-value alert from terraform"
-  alert_priority = "P2"
+  labels = {
+    alert_type        = "security"
+    security_severity = "high"
+  }
 
   notification_group = {
-    notifications   = [
+    simple_target_settings = [
+      {
+        integration_id = coralogix_webhook.slack_webhook.external_id
+      },
       {
         retriggering_period = {
           minutes = 1
         }
-        notify_on = "Triggered and Resolved"
+        notify_on  = "Triggered and Resolved"
         recipients = ["example@coralogix.com"]
       }
     ]
   }
 
   incidents_settings = {
-    notify_on                   = "Triggered and Resolved"
+    notify_on           = "Triggered and Resolved"
     retriggering_period = {
       minutes = 1
     }
   }
 
-  alert_group_bys = ["remote_addr_geoip.country_name"]
-  alert_type_definition = {
-    logs_new_value = {
+  schedule = {
+    active_on = {
+      days_of_week = ["Wednesday", "Thursday"]
+      start_time   = {
+        hours   = 8
+        minutes = 30
+      }
+      end_time = {
+        hours   = 20
+        minutes = 30
+      }
+    }
+  }
+
+  type_definition = {
+    logs_immediate = {
       logs_filter = {
         lucene_filter = {
-          lucene_query = "message:\"error\""
+          lucene_query  = "message:\"error\""
+          label_filters = {
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "coralogix_alert" "logs_more_than_alert" {
+  name        = "logs-more_-than alert example"
+  description = "Example of standard alert from terraform"
+  priority    = "P3"
+
+  labels = {
+    alert_type        = "security"
+    security_severity = "high"
+  }
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        integration_id = coralogix_webhook.slack_webhook.external_id
+      },
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on  = "Triggered and Resolved"
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  schedule = {
+    active_on = {
+      days_of_week = ["Wednesday", "Thursday"]
+      start_time   = {
+        hours   = 8
+        minutes = 30
+      }
+      end_time = {
+        hours   = 20
+        minutes = 30
+      }
+    }
+  }
+
+  type_definition = {
+    logs_more_than = {
+      threshold   = 2
+      time_window = {
+        specific_value = "10_MINUTES"
+      }
+      evaluation_window = "Dynamic"
+      logs_filter       = {
+        lucene_filter = {
+          lucene_query  = "message:\"error\""
           label_filters = {
             application_name = [
               {
                 operation = "OR"
-                value    = "nginx"
+                value     = "nginx"
               }
             ]
-            subsystem_name   = [
+            subsystem_name = [
               {
                 operation = "OR"
-                value    = "subsystem-name"
+                value     = "subsystem-name"
               }
             ]
-            severity         = ["Warning"]
+            severity = ["Warning"]
           }
         }
       }
-      notification_payload_filter = ["coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"]
+    }
+  }
+}
+
+resource "coralogix_alert" "logs_less_than_alert" {
+  name        = "logs-less-than alert example"
+  description = "Example of logs-less-than alert from terraform"
+  priority    = "P3"
+
+  #  labels = {
+  #    alert_type        = "security"
+  #    security_severity = "high"
+  #  }
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        integration_id = coralogix_webhook.slack_webhook.external_id
+        notify_on      = "Triggered and Resolved"
+      },
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on  = "Triggered and Resolved"
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  schedule = {
+    active_on = {
+      days_of_week = ["Wednesday", "Thursday"]
+      start_time   = {
+        hours   = 8
+        minutes = 30
+      }
+      end_time = {
+        hours   = 20
+        minutes = 30
+      }
+    }
+  }
+
+  type_definition = {
+    logs_less_than = {
+      logs_filter = {
+        lucene_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [
+              {
+                operation = "OR"
+                value     = "nginx"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "OR"
+                value     = "subsystem-name"
+              }
+            ]
+            severity = ["Warning"]
+          }
+        }
+      }
+      notification_payload_filter = [
+        "coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"
+      ]
+      time_window = {
+        specific_value = "10_MINUTES"
+      }
+      threshold                    = 2
+      undetected_values_management = {
+        trigger_undetected_values = true
+        auto_retire_timeframe     = "5_Minutes"
+      }
+    }
+  }
+}
+
+resource "coralogix_alert" "logs_more_than_usual_alert" {
+  name        = "logs-more-than-usual alert example"
+  description = "Example of logs-more-than-usual alert from terraform"
+  priority    = "P4"
+
+  labels = {
+    alert_type        = "security"
+    security_severity = "high"
+  }
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        integration_id = coralogix_webhook.slack_webhook.external_id
+        notify_on      = "Triggered and Resolved"
+      },
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on  = "Triggered and Resolved"
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  schedule = {
+    active_on = {
+      days_of_week = ["Wednesday", "Thursday"]
+      start_time   = {
+        hours   = 8
+        minutes = 30
+      }
+      end_time = {
+        hours   = 20
+        minutes = 30
+      }
+    }
+  }
+
+  type_definition = {
+    logs_more_than_usual = {
+      logs_filter = {
+        lucene_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [
+              {
+                operation = "OR"
+                value     = "nginx"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "OR"
+                value     = "subsystem-name"
+              }
+            ]
+            severity = ["Warning"]
+          }
+        }
+      }
+      notification_payload_filter = [
+        "coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"
+      ]
+      time_window = {
+        specific_value = "10_MINUTES"
+      }
+      minimum_threshold = 2
+    }
+  }
+}
+
+resource "coralogix_alert" "logs_ratio_more_than_alert" {
+  name        = "logs-ratio-more-than alert example"
+  description = "Example of logs-ratio-more-than alert from terraform"
+  priority    = "P3"
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on  = "Triggered and Resolved"
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  type_definition = {
+    logs_ratio_more_than = {
+      logs_filter = {
+        lucene_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [
+              {
+                operation = "OR"
+                value     = "nginx"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "OR"
+                value     = "subsystem-name"
+              }
+            ]
+            severity = ["Warning"]
+          }
+        }
+      }
+      time_window = {
+        specific_value = "10_MINUTES"
+      }
+      threshold         = 2
+      denominator_alias = "denominator"
+      numerator_alias   = "numerator"
+    }
+  }
+}
+
+resource "coralogix_alert" "logs_ratio_less_than_alert" {
+  name        = "logs-less-than alert example"
+  description = "Example of logs-less-than alert from terraform"
+  priority    = "P3"
+
+  notification_group = {
+    advanced_target_settings = [
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on  = "Triggered and Resolved"
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  type_definition = {
+    logs_ratio_less_than = {
+      numerator_alias   = "numerator"
+      denominator_alias = "denominator"
+      threshold         = 2
+      time_window       = {
+        specific_value = "10_MINUTES"
+      }
+    }
+  }
+}
+
+resource "coralogix_alert" "logs_new_value_alert" {
+  name        = "logs-new-value alert example"
+  description = "Example of logs-new-value alert from terraform"
+  priority    = "P2"
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on  = "Triggered and Resolved"
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  type_definition = {
+    logs_new_value = {
+      logs_filter = {
+        lucene_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [
+              {
+                operation = "OR"
+                value     = "nginx"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "OR"
+                value     = "subsystem-name"
+              }
+            ]
+            severity = ["Warning"]
+          }
+        }
+      }
+      notification_payload_filter = [
+        "coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"
+      ]
       time_window = {
         specific_value = "24_HOURS"
       }
@@ -491,452 +455,435 @@ resource "coralogix_alert" "logs_new_value_alert" {
 }
 
 resource "coralogix_alert" "logs_unique_count_alert" {
-  name           = "logs-unique-count alert example"
-  description    = "Example of logs-unique-count alert from terraform"
-  alert_priority = "P2"
+  name        = "logs-unique-count alert example"
+  description = "Example of logs-unique-count alert from terraform"
+  priority    = "P2"
 
   notification_group = {
-    notifications   = [
+    simple_target_settings = [
       {
         retriggering_period = {
           minutes = 1
         }
-        notify_on = "Triggered and Resolved"
+        notify_on  = "Triggered and Resolved"
         recipients = ["example@coralogix.com"]
       }
     ]
   }
 
   incidents_settings = {
-    notify_on                   = "Triggered and Resolved"
+    notify_on           = "Triggered and Resolved"
     retriggering_period = {
       minutes = 1
     }
   }
 
-  alert_group_bys = ["remote_addr_geoip.country_name"]
-  alert_type_definition = {
+  group_by        = ["remote_addr_geoip.country_name"]
+  type_definition = {
     logs_unique_count = {
       logs_filter = {
         lucene_filter = {
-          lucene_query = "message:\"error\""
+          lucene_query  = "message:\"error\""
           label_filters = {
             application_name = [
               {
                 operation = "OR"
-                value    = "nginx"
+                value     = "nginx"
               }
             ]
-            subsystem_name   = [
+            subsystem_name = [
               {
                 operation = "OR"
-                value    = "subsystem-name"
+                value     = "subsystem-name"
               }
             ]
-            severity         = ["Warning"]
+            severity = ["Warning"]
           }
         }
       }
       unique_count_keypath = "remote_addr_geoip.country_name"
-        max_unique_count = 2
-        time_window = {
-          specific_value = "5_MINUTES"
-        }
-        notification_payload_filter = ["coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"]
-       max_unique_count_per_group_by_key = 500
+      max_unique_count     = 2
+      time_window          = {
+        specific_value = "5_MINUTES"
+      }
+      notification_payload_filter = [
+        "coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"
+      ]
+      max_unique_count_per_group_by_key = 500
     }
   }
 }
 
-#data "coralogix_alert" "imported_standard_alert" {
-#  id = coralogix_alert.standard_alert.id
-#}
-#
-#resource "coralogix_alert" "ratio_alert" {
-#  name        = "Ratio alert example"
-#  description = "Example of ratio alert from terraform"
-#  severity    = "Critical"
-#
-#  notifications_group {
-#    notification {
-#      integration_id              = coralogix_webhook.slack_webhook.external_id
-#      retriggering_period_minutes = 1
-#      notify_on                   = "Triggered_only"
-#    }
-#    notification {
-#      email_recipients            = ["example@coralogix.com"]
-#      retriggering_period_minutes = 1
-#      notify_on                   = "Triggered_and_resolved"
-#    }
-#  }
-#
-#  scheduling {
-#    time_zone = "UTC+2"
-#    time_frame {
-#      days_enabled = ["Wednesday", "Thursday"]
-#      start_time   = "08:30"
-#      end_time     = "20:30"
-#    }
-#  }
-#
-#  ratio {
-#    query_1 {
-#
-#    }
-#    query_2 {
-#      applications = ["nginx"] //change here for existing applications from your account
-#      subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
-#      severities   = ["Warning"]
-#    }
-#    condition {
-#      less_than       = true
-#      ratio_threshold = 2
-#      time_window     = "10Min"
-#      group_by        = ["coralogix.metadata.sdkId"]
-#      group_by_q1     = true
-#      manage_undetected_values {
-#        enable_triggering_on_undetected_values = true
-#        auto_retire_ratio                      = "5Min"
-#      }
-#    }
-#  }
-#}
-#
-#resource "coralogix_alert" "new_value_alert" {
-#  name        = "New value alert example"
-#  description = "Example of new value alert from terraform"
-#  severity    = "Info"
-#
-#  notifications_group {
-#    notification {
-#      integration_id              = coralogix_webhook.slack_webhook.external_id
-#      retriggering_period_minutes = 1
-#      notify_on                   = "Triggered_only"
-#    }
-#    notification {
-#      email_recipients            = ["example@coralogix.com"]
-#      retriggering_period_minutes = 1
-#      notify_on                   = "Triggered_and_resolved"
-#    }
-#  }
-#
-#  scheduling {
-#    time_zone = "UTC+2"
-#    time_frame {
-#      days_enabled = ["Wednesday", "Thursday"]
-#      start_time   = "08:30"
-#      end_time     = "20:30"
-#    }
-#  }
-#
-#  new_value {
-#    severities = ["Info"]
-#    condition {
-#      key_to_track = "remote_addr_geoip.country_name"
-#      time_window  = "12H"
-#    }
-#  }
-#}
-#
-#resource "coralogix_alert" "time_relative_alert" {
-#  name        = "Time relative alert example"
-#  description = "Example of time relative alert from terraform"
-#  severity    = "Critical"
-#
-#  notifications_group {
-#    notification {
-#      integration_id              = coralogix_webhook.slack_webhook.external_id
-#    }
-#    notification {
-#      email_recipients            = ["example@coralogix.com"]
-#    }
-#  }
-#
-#  incident_settings {
-#    notify_on = "Triggered_and_resolved"
-#    retriggering_period_minutes = 1
-#  }
-#
-#  scheduling {
-#    time_zone = "UTC+2"
-#    time_frame {
-#      days_enabled = ["Wednesday", "Thursday"]
-#      start_time   = "08:30"
-#      end_time     = "20:30"
-#    }
-#  }
-#
-#  time_relative {
-#    severities = ["Error"]
-#    condition {
-#      more_than            = true
-#      ratio_threshold      = 2
-#      relative_time_window = "Same_hour_last_week"
-#    }
-#  }
-#}
-#
-#resource "coralogix_alert" "metric_lucene_alert" {
-#  name        = "Metric lucene alert example"
-#  description = "Example of metric lucene alert from terraform"
-#  severity    = "Critical"
-#
-#  notifications_group {
-#    notification {
-#      integration_id              = coralogix_webhook.slack_webhook.external_id
-#    }
-#    notification {
-#      email_recipients            = ["example@coralogix.com"]
-#    }
-#  }
-#
-#  incident_settings {
-#    notify_on = "Triggered_and_resolved"
-#    retriggering_period_minutes = 60
-#  }
-#
-#  scheduling {
-#    time_zone = "UTC+2"
-#    time_frame {
-#      days_enabled = ["Wednesday", "Thursday"]
-#      start_time   = "08:30"
-#      end_time     = "20:30"
-#    }
-#  }
-#
-#  metric {
-#    lucene {
-#      search_query = "name:\"Frontend transactions\""
-#      condition {
-#        metric_field                 = "subsystem"
-#        arithmetic_operator          = "Percentile"
-#        arithmetic_operator_modifier = 20
-#        less_than                    = true
-#        group_by                     = ["coralogix.metadata.sdkId"]
-#        threshold                    = 60
-#        sample_threshold_percentage  = 50
-#        time_window                  = "30Min"
-#        manage_undetected_values {
-#          enable_triggering_on_undetected_values = false
-#        }
-#      }
-#    }
-#  }
-#}
-#
-#resource "coralogix_alert" "metric_promql_alert" {
-#  name        = "Metric promql alert example"
-#  description = "Example of metric promql alert from terraform"
-#  severity    = "Critical"
-#
-#  notifications_group {
-#    notification {
-#      notify_on                   = "Triggered_and_resolved"
-#      integration_id              = coralogix_webhook.slack_webhook.external_id
-#      retriggering_period_minutes = 1
-#    }
-#    notification {
-#      notify_on                   = "Triggered_and_resolved"
-#      email_recipients            = ["example@coralogix.com"]
-#      retriggering_period_minutes = 24*60
-#    }
-#  }
-#
-#  scheduling {
-#    time_zone = "UTC-8"
-#    time_frame {
-#      days_enabled = ["Wednesday", "Thursday"]
-#      start_time   = "08:30"
-#      end_time     = "20:30"
-#    }
-#  }
-#
-#  metric {
-#    promql {
-#      search_query = "http_requests_total{status!~\"4..\"}"
-#      condition {
-#        less_than_usual                 = true
-#        threshold                       = 3
-#        sample_threshold_percentage     = 50
-#        time_window                     = "12H"
-#        replace_missing_value_with_zero = true
-#      }
-#    }
-#  }
-#}
-#
-#resource "coralogix_alert" "unique_count_alert" {
-#  name        = "Unique count alert example"
-#  description = "Example of unique count alert from terraform"
-#  severity    = "Info"
-#
-#  notifications_group {
-#    group_by_fields = ["coralogix.metadata.sdkId"]
-#    notification {
-#      integration_id              = coralogix_webhook.slack_webhook.external_id
-#      retriggering_period_minutes = 1
-#      notify_on                   = "Triggered_and_resolved"
-#    }
-#    notification {
-#      email_recipients            = ["example@coralogix.com"]
-#      retriggering_period_minutes = 1
-#      notify_on                   = "Triggered_and_resolved"
-#    }
-#  }
-#
-#  scheduling {
-#    time_zone = "UTC+2"
-#    time_frame {
-#      days_enabled = ["Wednesday", "Thursday"]
-#      start_time   = "08:30"
-#      end_time     = "20:30"
-#    }
-#  }
-#
-#  unique_count {
-#    severities = ["Info"]
-#    condition {
-#      unique_count_key               = "remote_addr_geoip.country_name"
-#      max_unique_values              = 2
-#      time_window                    = "10Min"
-#      group_by_key                   = "coralogix.metadata.sdkId"
-#      max_unique_values_for_group_by = 500
-#    }
-#  }
-#}
-#
-#resource "coralogix_alert" "tracing_alert" {
-#  name        = "Tracing alert example"
-#  description = "Example of tracing alert from terraform"
-#  severity    = "Info"
-#
-#  notifications_group {
-#    notification {
-#      notify_on                   = "Triggered_and_resolved"
-#      email_recipients            = ["user@example.com"]
-#      retriggering_period_minutes = 1
-#    }
-#    notification {
-#      notify_on                   = "Triggered_and_resolved"
-#      integration_id              = coralogix_webhook.slack_webhook.external_id
-#      retriggering_period_minutes = 1
-#    }
-#  }
-#
-#  scheduling {
-#    time_zone = "UTC+2"
-#    time_frame {
-#      days_enabled = ["Wednesday", "Thursday"]
-#      start_time   = "08:30"
-#      end_time     = "20:30"
-#    }
-#  }
-#
-#  tracing {
-#    latency_threshold_milliseconds = 20.5
-#    applications                   = [
-#      "application_name", "filter:contains:application-name2", "filter:endsWith:application-name3",
-#      "filter:startsWith:application-name4"
-#    ]
-#    subsystems = [
-#      "subsystemName", "filter:notEquals:subsystemName2", "filter:contains:subsystemName",
-#      "filter:endsWith:subsystemName",
-#      "filter:startsWith:subsystemName"
-#    ]
-#    services = [
-#      "serviceName", "filter:contains:serviceName", "filter:endsWith:serviceName", "filter:startsWith:serviceName"
-#    ]
-#    tag_filter {
-#      field  = "status"
-#      values = ["filter:contains:400", "500"]
-#    }
-#    tag_filter {
-#      field  = "key"
-#      values = ["value"]
-#    }
-#    condition {
-#      more_than   = true
-#      time_window = "5Min"
-#      threshold   = 2
-#    }
-#  }
-#}
-#
-#resource "coralogix_alert" "flow_alert" {
-#  name        = "Flow alert example"
-#  description = "Example of flow alert from terraform"
-#  severity    = "Info"
-#
-#  notifications_group {
-#    notification {
-#      notify_on                   = "Triggered_and_resolved"
-#      email_recipients            = ["user@example.com"]
-#      retriggering_period_minutes = 1
-#    }
-#    notification {
-#      notify_on                   = "Triggered_and_resolved"
-#      integration_id              = coralogix_webhook.slack_webhook.external_id
-#      retriggering_period_minutes = 1
-#    }
-#  }
-#
-#  scheduling {
-#    time_zone = "UTC+2"
-#    time_frame {
-#      days_enabled = ["Wednesday", "Thursday"]
-#      start_time   = "08:30"
-#      end_time     = "20:30"
-#    }
-#  }
-#
-#  flow {
-#    stage {
-#      group {
-#        sub_alerts {
-#          operator = "OR"
-#          flow_alert {
-#            user_alert_id = coralogix_alert.standard_alert.id
-#          }
-#        }
-#        next_operator = "OR"
-#      }
-#      group {
-#        sub_alerts {
-#          operator = "AND"
-#          flow_alert {
-#            not           = true
-#            user_alert_id = coralogix_alert.unique_count_alert.id
-#          }
-#        }
-#        next_operator = "AND"
-#      }
-#      time_window {
-#        minutes = 20
-#      }
-#    }
-#    stage {
-#      group {
-#        sub_alerts {
-#          operator = "AND"
-#          flow_alert {
-#            user_alert_id = coralogix_alert.standard_alert.id
-#          }
-#          flow_alert {
-#            not           = true
-#            user_alert_id = coralogix_alert.unique_count_alert.id
-#          }
-#        }
-#        next_operator = "OR"
-#      }
-#    }
-#    group_by = ["coralogix.metadata.sdkId"]
-#  }
-#}
-#
-#resource "coralogix_webhook" "slack_webhook" {
-#  name  = "slack-webhook"
-#  slack = {
-#    notify_on = ["flow_anomalies"]
-#    url       = "https://join.slack.com/example"
-#  }
-#}
+resource "coralogix_alert" "logs_time_relative_more_than_alert" {
+  name        = "logs-time-relative-more-than alert example"
+  description = "Example of logs-time-relative-more-than alert from terraform"
+  priority    = "P2"
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on  = "Triggered and Resolved"
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  type_definition = {
+    logs_time_relative_more_than = {
+      logs_filter = {
+        lucene_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [
+              {
+                operation = "OR"
+                value     = "nginx"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "OR"
+                value     = "subsystem-name"
+              }
+            ]
+            severity = ["Warning"]
+          }
+        }
+      }
+      threshold                   = 2
+      compared_to                 = "Same Hour Yesterday"
+      notification_payload_filter = [
+        "coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"
+      ]
+    }
+  }
+}
+
+resource "coralogix_alert" "logs_time_relative_less_than_alert" {
+  name        = "logs-time-relative-less-than alert example"
+  description = "Example of logs-time-relative-less-than alert from terraform"
+  priority    = "P2"
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on      = "Triggered and Resolved"
+        integration_id = coralogix_webhook.slack_webhook.external_id
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  type_definition = {
+    logs_time_relative_less_than = {
+      logs_filter = {
+        lucene_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [
+              {
+                operation = "OR"
+                value     = "nginx"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "OR"
+                value     = "subsystem-name"
+              }
+            ]
+            severity = ["Warning"]
+          }
+        }
+      }
+      threshold                   = 2
+      compared_to                 = "Same Hour Yesterday"
+      notification_payload_filter = [
+        "coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"
+      ]
+    }
+  }
+}
+
+resource "coralogix_alert" "metric_more_than_alert" {
+  name        = "logs-time-relative-ratio-more-than alert example"
+  description = "Example of logs-time-relative-ratio-more-than alert from terraform"
+  priority    = "P2"
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on      = "Triggered and Resolved"
+        integration_id = coralogix_webhook.slack_webhook.external_id
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  type_definition = {
+    metric_more_than = {
+      metric_filter = {
+        promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+      }
+      threshold    = 2
+      for_over_pct = 10
+      of_the_last  = {
+        specific_value = "10_MINUTES"
+      }
+    }
+  }
+}
+
+resource "coralogix_alert" "metric_less_than_alert" {
+  name        = "logs-time-relative-ratio-less-than alert example"
+  description = "Example of logs-time-relative-ratio-less-than alert from terraform"
+  priority    = "P2"
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on      = "Triggered and Resolved"
+        integration_id = coralogix_webhook.slack_webhook.external_id
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  type_definition = {
+    metric_less_than = {
+      metric_filter = {
+        promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+      }
+      threshold    = 2
+      for_over_pct = 10
+      of_the_last  = {
+        specific_value = "10_MINUTES"
+      }
+    }
+  }
+}
+
+resource "coralogix_alert" "metric_less_than_usual_alert" {
+  name        = "metric_less_than_usual alert example"
+  description = "Example of metric_less_than_usual alert from terraform"
+  priority    = "P2"
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on      = "Triggered and Resolved"
+        integration_id = coralogix_webhook.slack_webhook.external_id
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  type_definition = {
+    metric_less_than_usual = {
+      metric_filter = {
+        promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+      }
+      threshold    = 2
+      for_over_pct = 10
+      of_the_last  = {
+        specific_value = "10_MINUTES"
+      }
+      minimum_threshold = 2
+      min_non_null_values_pct = 10
+    }
+  }
+}
+
+resource "coralogix_alert" "metric_more_than_usual_alert" {
+  name        = "metric_more_than_usual alert example"
+  description = "Example of metric_more_than_usual alert from terraform"
+  priority    = "P2"
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on      = "Triggered and Resolved"
+        integration_id = coralogix_webhook.slack_webhook.external_id
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  type_definition = {
+    metric_more_than_usual = {
+      metric_filter = {
+        promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+      }
+      threshold    = 2
+      for_over_pct = 10
+      of_the_last  = {
+        specific_value = "10_MINUTES"
+      }
+      minimum_threshold = 2
+      min_non_null_values_pct = 10
+    }
+  }
+}
+
+resource "coralogix_alert" "tracing_immediate_alert" {
+  name        = "tracing_immediate alert example"
+  description = "Example of tracing_immediate alert from terraform"
+  priority    = "P2"
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on      = "Triggered and Resolved"
+        integration_id = coralogix_webhook.slack_webhook.external_id
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  type_definition = {
+    tracing_immediate = {
+      tracing_query = {
+        latency_threshold_ms = 100
+        tracing_label_filters = {
+          application_name = [
+            {
+              operation = "OR"
+              values     = ["nginx"]
+            }
+          ]
+          subsystem_name = [
+            {
+              operation = "OR"
+              values     = ["subsystem-name"]
+            }
+          ]
+          severity = ["Warning"]
+        }
+      }
+    }
+  }
+}
+
+resource "coralogix_alert" "tracing_more_than_alert" {
+  name        = "tracing_more_than alert example"
+  description = "Example of tracing_more_than alert from terraform"
+  priority    = "P2"
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on      = "Triggered and Resolved"
+        integration_id = coralogix_webhook.slack_webhook.external_id
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  type_definition = {
+    tracing_more_than = {
+      tracing_query = {
+        latency_threshold_ms = 100
+        tracing_label_filters = {
+          application_name = [
+            {
+              operation = "OR"
+              values     = ["nginx"]
+            }
+          ]
+          subsystem_name = [
+            {
+              operation = "OR"
+              values     = ["subsystem-name"]
+            }
+          ]
+          severity = ["Warning"]
+        }
+      }
+      span_amount    = 2
+        time_window    = {
+            specific_value = "10_MINUTES"
+        }
+    }
+  }
+}
+
+resource "coralogix_webhook" "slack_webhook" {
+  name  = "slack-webhook"
+  slack = {
+    notify_on = ["flow_anomalies"]
+    url       = "https://join.slack.com/example"
+  }
+}
