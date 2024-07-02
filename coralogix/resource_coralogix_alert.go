@@ -230,6 +230,26 @@ var (
 	}
 	tracingFilterOperationSchemaToProtoMap = ReverseMap(tracingFilterOperationProtoToSchemaMap)
 	validTracingFilterOperations           = GetKeys(tracingFilterOperationSchemaToProtoMap)
+	flowStageTimeFrameTypeProtoToSchemaMap = map[alerts.TimeframeType]string{
+		alerts.TimeframeType_TIMEFRAME_TYPE_UNSPECIFIED: "Unspecified",
+		alerts.TimeframeType_TIMEFRAME_TYPE_UP_TO:       "Up To",
+	}
+	flowStageTimeFrameTypeSchemaToProtoMap = ReverseMap(flowStageTimeFrameTypeProtoToSchemaMap)
+	validFlowStageTimeFrameTypes           = GetKeys(flowStageTimeFrameTypeSchemaToProtoMap)
+
+	flowStagesGroupNextOpProtoToSchemaMap = map[alerts.NextOp]string{
+		alerts.NextOp_NEXT_OP_AND_OR_UNSPECIFIED: "AND",
+		alerts.NextOp_NEXT_OP_OR:                 "OR",
+	}
+	flowStagesGroupNextOpSchemaToProtoMap = ReverseMap(flowStagesGroupNextOpProtoToSchemaMap)
+	validFlowStagesGroupNextOps           = GetKeys(flowStagesGroupNextOpSchemaToProtoMap)
+
+	flowStagesGroupAlertsOpProtoToSchemaMap = map[alerts.AlertsOp]string{
+		alerts.AlertsOp_ALERTS_OP_AND_OR_UNSPECIFIED: "AND",
+		alerts.AlertsOp_ALERTS_OP_OR:                 "OR",
+	}
+	flowStagesGroupAlertsOpSchemaToProtoMap = ReverseMap(flowStagesGroupAlertsOpProtoToSchemaMap)
+	validFlowStagesGroupAlertsOps           = GetKeys(flowStagesGroupAlertsOpSchemaToProtoMap)
 )
 
 func NewAlertResource() resource.Resource {
@@ -272,9 +292,11 @@ type AlertTypeDefinitionModel struct {
 	MetricMoreThan           types.Object `tfsdk:"metric_more_than"`             // MetricMoreThanModel
 	MetricLessThan           types.Object `tfsdk:"metric_less_than"`             // MetricLessThanModel
 	MetricMoreThanUsual      types.Object `tfsdk:"metric_more_than_usual"`       // MetricMoreThanUsualModel
+	MetricLessThanUsual      types.Object `tfsdk:"metric_less_than_usual"`       // MetricLessThanUsualModel
+	MetricMoreThanOrEquals   types.Object `tfsdk:"metric_more_than_or_equals"`   // MetricMoreThanOrEqualsModel
+	MetricLessThanOrEquals   types.Object `tfsdk:"metric_less_than_or_equals"`   // MetricLessThanOrEqualsModel
 	TracingImmediate         types.Object `tfsdk:"tracing_immediate"`            // TracingImmediateModel
 	TracingMoreThan          types.Object `tfsdk:"tracing_more_than"`            // TracingMoreThanModel
-	MetricLessThanUsual      types.Object `tfsdk:"metric_less_than_usual"`       // MetricLessThanUsualModel
 	Flow                     types.Object `tfsdk:"flow"`                         // FlowModel
 }
 
@@ -440,6 +462,25 @@ type TracingMoreThanModel struct {
 }
 
 type FlowModel struct {
+	Stages             types.List `tfsdk:"stages"` // FlowStageModel
+	EnforceSuppression types.Bool `tfsdk:"enforce_suppression"`
+}
+
+type FlowStageModel struct {
+	FlowStagesGroups types.List   `tfsdk:"flow_stages_groups"` // FlowStagesGroupModel
+	TimeframeMs      types.Int64  `tfsdk:"timeframe_ms"`
+	TimeframeType    types.String `tfsdk:"timeframe_type"`
+}
+
+type FlowStagesGroupModel struct {
+	AlertDefs types.List   `tfsdk:"alert_defs"` // FlowStagesGroupsAlertDefsModel
+	NextOp    types.String `tfsdk:"next_op"`
+	AlertsOp  types.String `tfsdk:"alerts_op"`
+}
+
+type FlowStagesGroupsAlertDefsModel struct {
+	Id  types.String `tfsdk:"id"`
+	Not types.Bool   `tfsdk:"not"`
 }
 
 type MetricLessThanUsualModel struct {
@@ -448,6 +489,23 @@ type MetricLessThanUsualModel struct {
 	Threshold           types.Int64  `tfsdk:"threshold"`
 	ForOverPct          types.Int64  `tfsdk:"for_over_pct"`
 	MinNonNullValuesPct types.Int64  `tfsdk:"min_non_null_values_pct"`
+}
+
+type MetricMoreThanOrEqualsModel struct {
+	MetricFilter  types.Object  `tfsdk:"metric_filter"` // MetricFilterModel
+	Threshold     types.Float64 `tfsdk:"threshold"`
+	ForOverPct    types.Int64   `tfsdk:"for_over_pct"`
+	OfTheLast     types.Object  `tfsdk:"of_the_last"`    // MetricTimeWindowModel
+	MissingValues types.Object  `tfsdk:"missing_values"` // MetricMissingValuesModel
+}
+
+type MetricLessThanOrEqualsModel struct {
+	MetricFilter               types.Object  `tfsdk:"metric_filter"`  // MetricFilterModel
+	OfTheLast                  types.Object  `tfsdk:"of_the_last"`    // MetricTimeWindowModel
+	MissingValues              types.Object  `tfsdk:"missing_values"` // MetricMissingValuesModel
+	Threshold                  types.Float64 `tfsdk:"threshold"`
+	ForOverPct                 types.Int64   `tfsdk:"for_over_pct"`                 // MetricMissingValuesModel
+	UndetectedValuesManagement types.Object  `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
 }
 
 type AlertsLogsFilterModel struct {
@@ -635,9 +693,11 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								path.MatchRelative().AtParent().AtName("metric_more_than"),
 								path.MatchRelative().AtParent().AtName("metric_less_than"),
 								path.MatchRelative().AtParent().AtName("metric_more_than_usual"),
+								path.MatchRelative().AtParent().AtName("metric_less_than_usual"),
+								path.MatchRelative().AtParent().AtName("metric_less_than_or_equals"),
+								path.MatchRelative().AtParent().AtName("metric_more_than_or_equals"),
 								path.MatchRelative().AtParent().AtName("tracing_immediate"),
 								path.MatchRelative().AtParent().AtName("tracing_more_than"),
-								path.MatchRelative().AtParent().AtName("metric_less_than_usual"),
 								path.MatchRelative().AtParent().AtName("flow"),
 							),
 						},
@@ -685,8 +745,73 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"notification_payload_filter": notificationPayloadFilterSchema(),
 						},
 					},
-					"logs_ratio_more_than": logsRationMoreThanSchema(),
-					"logs_ratio_less_than": logsRationLessThanSchema(),
+					"logs_ratio_more_than": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"numerator_logs_filter": logsFilterSchema(),
+							"numerator_alias": schema.StringAttribute{
+								Required: true,
+							},
+							"denominator_logs_filter": logsFilterSchema(),
+							"denominator_alias": schema.StringAttribute{
+								Required: true,
+							},
+							"threshold": schema.Int64Attribute{
+								Required: true,
+							},
+							"time_window": logsRatioTimeWindowSchema(),
+							"ignore_infinity": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  booldefault.StaticBool(false),
+							},
+							"notification_payload_filter": notificationPayloadFilterSchema(),
+							"group_by_for": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  stringdefault.StaticString("Both or Unspecified"),
+								Validators: []validator.String{
+									stringvalidator.OneOf(validLogsRatioGroupByFor...),
+									stringvalidator.AlsoRequires(path.MatchRoot("group_by")),
+								},
+								MarkdownDescription: fmt.Sprintf("Group by for. Valid values: %q.", validLogsRatioGroupByFor),
+							},
+						},
+					},
+					"logs_ratio_less_than": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"numerator_logs_filter": logsFilterSchema(),
+							"numerator_alias": schema.StringAttribute{
+								Required: true,
+							},
+							"denominator_logs_filter": logsFilterSchema(),
+							"denominator_alias": schema.StringAttribute{
+								Required: true,
+							},
+							"threshold": schema.Int64Attribute{
+								Required: true,
+							},
+							"time_window": logsRatioTimeWindowSchema(),
+							"ignore_infinity": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  booldefault.StaticBool(false),
+							},
+							"notification_payload_filter": notificationPayloadFilterSchema(),
+							"group_by_for": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  stringdefault.StaticString("Both or Unspecified"),
+								Validators: []validator.String{
+									stringvalidator.OneOf(validLogsRatioGroupByFor...),
+									stringvalidator.AlsoRequires(path.MatchRoot("group_by")),
+								},
+								MarkdownDescription: fmt.Sprintf("Group by for. Valid values: %q.", validLogsRatioGroupByFor),
+							},
+							"undetected_values_management": undetectedValuesManagementSchema(),
+						},
+					},
 					"logs_new_value": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
@@ -769,21 +894,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 									},
 								},
 							},
-							"missing_values": schema.SingleNestedAttribute{
-								Optional: true,
-								Computed: true,
-								Attributes: map[string]schema.Attribute{
-									"replace_with_zero": schema.BoolAttribute{
-										Optional: true,
-										Validators: []validator.Bool{
-											boolvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("min_non_null_values_pct")),
-										},
-									},
-									"min_non_null_values_pct": schema.Int64Attribute{
-										Optional: true,
-									},
-								},
-							},
+							"missing_values": missingValuesSchema(),
 						},
 					},
 					"metric_less_than": schema.SingleNestedAttribute{
@@ -804,21 +915,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 									},
 								},
 							},
-							"missing_values": schema.SingleNestedAttribute{
-								Optional: true,
-								Computed: true,
-								Attributes: map[string]schema.Attribute{
-									"replace_with_zero": schema.BoolAttribute{
-										Optional: true,
-										Validators: []validator.Bool{
-											boolvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("min_non_null_values_pct")),
-										},
-									},
-									"min_non_null_values_pct": schema.Int64Attribute{
-										Optional: true,
-									},
-								},
-							},
+							"missing_values":               missingValuesSchema(),
 							"undetected_values_management": undetectedValuesManagementSchema(),
 						},
 					},
@@ -854,6 +951,35 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 						},
 					},
+					"metric_more_than_or_equals": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"metric_filter": metricFilterSchema(),
+							"threshold": schema.Float64Attribute{
+								Required: true,
+							},
+							"for_over_pct": schema.Int64Attribute{
+								Required: true,
+							},
+							"of_the_last":    metricTimeWindowSchema(),
+							"missing_values": missingValuesSchema(),
+						},
+					},
+					"metric_less_than_or_equals": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"metric_filter": metricFilterSchema(),
+							"threshold": schema.Float64Attribute{
+								Required: true,
+							},
+							"for_over_pct": schema.Int64Attribute{
+								Required: true,
+							},
+							"of_the_last":                  metricTimeWindowSchema(),
+							"missing_values":               missingValuesSchema(),
+							"undetected_values_management": undetectedValuesManagementSchema(),
+						},
+					},
 					"tracing_immediate": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
@@ -873,8 +999,55 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						},
 					},
 					"flow": schema.SingleNestedAttribute{
-						Optional:   true,
-						Attributes: map[string]schema.Attribute{},
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"stages": schema.ListNestedAttribute{
+								Required: true,
+								NestedObject: schema.NestedAttributeObject{
+									Attributes: map[string]schema.Attribute{
+										"flow_stages_groups": schema.ListNestedAttribute{
+											Required: true,
+											NestedObject: schema.NestedAttributeObject{
+												Attributes: map[string]schema.Attribute{
+													"alert_defs": schema.ListNestedAttribute{
+														Required: true,
+														NestedObject: schema.NestedAttributeObject{
+															Attributes: map[string]schema.Attribute{
+																"id": schema.StringAttribute{
+																	Required: true,
+																},
+																"not": schema.BoolAttribute{
+																	Optional: true,
+																	Computed: true,
+																	Default:  booldefault.StaticBool(false),
+																},
+															},
+														},
+													},
+													"next_op": schema.StringAttribute{
+														Required: true,
+													},
+													"alerts_op": schema.StringAttribute{
+														Required: true,
+													},
+												},
+											},
+										},
+										"timeframe_ms": schema.Int64Attribute{
+											Optional: true,
+										},
+										"timeframe_type": schema.StringAttribute{
+											Optional: true,
+										},
+									},
+								},
+							},
+							"enforce_suppression": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  booldefault.StaticBool(false),
+							},
+						},
 					},
 				},
 			},
@@ -974,6 +1147,24 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			},
 		},
 		MarkdownDescription: "Coralogix Alert. For more info please review - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.",
+	}
+}
+
+func missingValuesSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Computed: true,
+		Attributes: map[string]schema.Attribute{
+			"replace_with_zero": schema.BoolAttribute{
+				Optional: true,
+				Validators: []validator.Bool{
+					boolvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("min_non_null_values_pct")),
+				},
+			},
+			"min_non_null_values_pct": schema.Int64Attribute{
+				Optional: true,
+			},
+		},
 	}
 }
 
@@ -1083,79 +1274,6 @@ func metricTimeWindowSchema() schema.SingleNestedAttribute {
 				},
 				MarkdownDescription: fmt.Sprintf("Specific value. Valid values: %q.", validMetricTimeWindowValues),
 			},
-		},
-	}
-}
-
-func logsRationMoreThanSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Optional: true,
-		Attributes: map[string]schema.Attribute{
-			"numerator_logs_filter": logsFilterSchema(),
-			"numerator_alias": schema.StringAttribute{
-				Required: true,
-			},
-			"denominator_logs_filter": logsFilterSchema(),
-			"denominator_alias": schema.StringAttribute{
-				Required: true,
-			},
-			"threshold": schema.Int64Attribute{
-				Required: true,
-			},
-			"time_window": logsRatioTimeWindowSchema(),
-			"ignore_infinity": schema.BoolAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  booldefault.StaticBool(false),
-			},
-			"notification_payload_filter": notificationPayloadFilterSchema(),
-			"group_by_for": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString("Both or Unspecified"),
-				Validators: []validator.String{
-					stringvalidator.OneOf(validLogsRatioGroupByFor...),
-					stringvalidator.AlsoRequires(path.MatchRoot("group_by")),
-				},
-				MarkdownDescription: fmt.Sprintf("Group by for. Valid values: %q.", validLogsRatioGroupByFor),
-			},
-		},
-	}
-}
-
-func logsRationLessThanSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Optional: true,
-		Attributes: map[string]schema.Attribute{
-			"numerator_logs_filter": logsFilterSchema(),
-			"numerator_alias": schema.StringAttribute{
-				Required: true,
-			},
-			"denominator_logs_filter": logsFilterSchema(),
-			"denominator_alias": schema.StringAttribute{
-				Required: true,
-			},
-			"threshold": schema.Int64Attribute{
-				Required: true,
-			},
-			"time_window": logsRatioTimeWindowSchema(),
-			"ignore_infinity": schema.BoolAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  booldefault.StaticBool(false),
-			},
-			"notification_payload_filter": notificationPayloadFilterSchema(),
-			"group_by_for": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString("Both or Unspecified"),
-				Validators: []validator.String{
-					stringvalidator.OneOf(validLogsRatioGroupByFor...),
-					stringvalidator.AlsoRequires(path.MatchRoot("group_by")),
-				},
-				MarkdownDescription: fmt.Sprintf("Group by for. Valid values: %q.", validLogsRatioGroupByFor),
-			},
-			"undetected_values_management": undetectedValuesManagementSchema(),
 		},
 	}
 }
@@ -1780,14 +1898,18 @@ func expandAlertsTypeDefinition(ctx context.Context, alertProperties *alerts.Ale
 		alertProperties, diags = expandMetricLessThanAlertTypeDefinition(ctx, alertProperties, metricLessThan)
 	} else if metricMoreThanUsual := alertDefinitionModel.MetricMoreThanUsual; !(metricMoreThanUsual.IsNull() || metricMoreThanUsual.IsUnknown()) {
 		alertProperties, diags = expandMetricMoreThanUsualAlertTypeDefinition(ctx, alertProperties, metricMoreThanUsual)
+	} else if metricLessThanUsual := alertDefinitionModel.MetricLessThanUsual; !(metricLessThanUsual.IsNull() || metricLessThanUsual.IsUnknown()) {
+		alertProperties, diags = expandMetricLessThanUsualAlertTypeDefinition(ctx, alertProperties, metricLessThanUsual)
+	} else if metricMoreThanOrEquals := alertDefinitionModel.MetricMoreThanOrEquals; !(metricMoreThanOrEquals.IsNull() || metricMoreThanOrEquals.IsUnknown()) {
+		alertProperties, diags = expandMetricMoreThanOrEqualsAlertTypeDefinition(ctx, alertProperties, metricMoreThanOrEquals)
+	} else if metricLessThanOrEquals := alertDefinitionModel.MetricLessThanOrEquals; !(metricLessThanOrEquals.IsNull() || metricLessThanOrEquals.IsUnknown()) {
+		alertProperties, diags = expandMetricLessThanOrEqualsAlertTypeDefinition(ctx, alertProperties, metricLessThanOrEquals)
 	} else if tracingImmediate := alertDefinitionModel.TracingImmediate; !(tracingImmediate.IsNull() || tracingImmediate.IsUnknown()) {
 		alertProperties, diags = expandTracingImmediateAlertTypeDefinition(ctx, alertProperties, tracingImmediate)
 	} else if tracingMoreThan := alertDefinitionModel.TracingMoreThan; !(tracingMoreThan.IsNull() || tracingMoreThan.IsUnknown()) {
 		alertProperties, diags = expandTracingMoreThanAlertTypeDefinition(ctx, alertProperties, tracingMoreThan)
 	} else if flow := alertDefinitionModel.Flow; !(flow.IsNull() || flow.IsUnknown()) {
 		alertProperties, diags = expandFlowAlertTypeDefinition(ctx, alertProperties, flow)
-	} else if metricLessThanUsual := alertDefinitionModel.MetricLessThanUsual; !(metricLessThanUsual.IsNull() || metricLessThanUsual.IsUnknown()) {
-		alertProperties, diags = expandMetricLessThanUsualAlertTypeDefinition(ctx, alertProperties, metricLessThanUsual)
 	} else {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Alert Type Definition", "Alert Type Definition is not valid")}
 	}
@@ -2816,37 +2938,6 @@ func expandMetricMoreThanUsualAlertTypeDefinition(ctx context.Context, propertie
 	return properties, nil
 }
 
-func expandTracingImmediateAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDefProperties, tracingImmediate types.Object) (*alerts.AlertDefProperties, diag.Diagnostics) {
-	if tracingImmediate.IsNull() || tracingImmediate.IsUnknown() {
-		return properties, nil
-	}
-
-	var tracingImmediateModel TracingImmediateModel
-	if diags := tracingImmediate.As(ctx, &tracingImmediateModel, basetypes.ObjectAsOptions{}); diags.HasError() {
-		return nil, diags
-	}
-
-	tracingQuery, diags := extractTracingQuery(ctx, tracingImmediateModel.TracingQuery)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	notificationPayloadFilter, diags := typeStringSliceToWrappedStringSlice(ctx, tracingImmediateModel.NotificationPayloadFilter.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	properties.TypeDefinition = &alerts.AlertDefProperties_TracingImmediate{
-		TracingImmediate: &alerts.TracingImmediateTypeDefinition{
-			TracingQuery:              tracingQuery,
-			NotificationPayloadFilter: notificationPayloadFilter,
-		},
-	}
-	properties.AlertDefType = alerts.AlertDefType_ALERT_DEF_TYPE_TRACING_IMMEDIATE
-
-	return properties, nil
-}
-
 func expandMetricLessThanUsualAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDefProperties, metricLessThanUsual types.Object) (*alerts.AlertDefProperties, diag.Diagnostics) {
 	if metricLessThanUsual.IsNull() || metricLessThanUsual.IsUnknown() {
 		return properties, nil
@@ -2881,8 +2972,269 @@ func expandMetricLessThanUsualAlertTypeDefinition(ctx context.Context, propertie
 	return properties, nil
 }
 
+func expandMetricMoreThanOrEqualsAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDefProperties, metricMoreThanOrEquals types.Object) (*alerts.AlertDefProperties, diag.Diagnostics) {
+	if metricMoreThanOrEquals.IsNull() || metricMoreThanOrEquals.IsUnknown() {
+		return properties, nil
+	}
+
+	var metricMoreThanOrEqualsModel MetricMoreThanOrEqualsModel
+	if diags := metricMoreThanOrEquals.As(ctx, &metricMoreThanOrEqualsModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	metricFilter, diags := extractMetricFilter(ctx, metricMoreThanOrEqualsModel.MetricFilter)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	ofTheLast, diags := extractMetricTimeWindow(ctx, metricMoreThanOrEqualsModel.OfTheLast)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	missingValues, diags := extractMissingValues(ctx, metricMoreThanOrEqualsModel.MissingValues)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	properties.TypeDefinition = &alerts.AlertDefProperties_MetricMoreThanOrEquals{
+		MetricMoreThanOrEquals: &alerts.MetricMoreThanOrEqualsTypeDefinition{
+			MetricFilter:  metricFilter,
+			Threshold:     typeFloat64ToWrapperspbFloat(metricMoreThanOrEqualsModel.Threshold),
+			ForOverPct:    typeInt64ToWrappedUint32(metricMoreThanOrEqualsModel.ForOverPct),
+			OfTheLast:     ofTheLast,
+			MissingValues: missingValues,
+		},
+	}
+	properties.AlertDefType = alerts.AlertDefType_ALERT_DEF_TYPE_METRIC_MORE_THAN_OR_EQUALS
+	return properties, nil
+}
+
+func expandMetricLessThanOrEqualsAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDefProperties, equals types.Object) (*alerts.AlertDefProperties, diag.Diagnostics) {
+	if equals.IsNull() || equals.IsUnknown() {
+		return properties, nil
+	}
+
+	var equalsModel MetricLessThanOrEqualsModel
+	if diags := equals.As(ctx, &equalsModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	metricFilter, diags := extractMetricFilter(ctx, equalsModel.MetricFilter)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	ofTheLast, diags := extractMetricTimeWindow(ctx, equalsModel.OfTheLast)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	missingValues, diags := extractMissingValues(ctx, equalsModel.MissingValues)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	undetectedValuesManagement, diags := extractUndetectedValuesManagement(ctx, equalsModel.UndetectedValuesManagement)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	properties.TypeDefinition = &alerts.AlertDefProperties_MetricLessThanOrEquals{
+		MetricLessThanOrEquals: &alerts.MetricLessThanOrEqualsTypeDefinition{
+			MetricFilter:               metricFilter,
+			Threshold:                  typeFloat64ToWrapperspbFloat(equalsModel.Threshold),
+			ForOverPct:                 typeInt64ToWrappedUint32(equalsModel.ForOverPct),
+			OfTheLast:                  ofTheLast,
+			MissingValues:              missingValues,
+			UndetectedValuesManagement: undetectedValuesManagement,
+		},
+	}
+	properties.AlertDefType = alerts.AlertDefType_ALERT_DEF_TYPE_METRIC_LESS_THAN_OR_EQUALS
+	return properties, nil
+}
+
+func expandTracingImmediateAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDefProperties, tracingImmediate types.Object) (*alerts.AlertDefProperties, diag.Diagnostics) {
+	if tracingImmediate.IsNull() || tracingImmediate.IsUnknown() {
+		return properties, nil
+	}
+
+	var tracingImmediateModel TracingImmediateModel
+	if diags := tracingImmediate.As(ctx, &tracingImmediateModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	tracingQuery, diags := extractTracingQuery(ctx, tracingImmediateModel.TracingQuery)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	notificationPayloadFilter, diags := typeStringSliceToWrappedStringSlice(ctx, tracingImmediateModel.NotificationPayloadFilter.Elements())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	properties.TypeDefinition = &alerts.AlertDefProperties_TracingImmediate{
+		TracingImmediate: &alerts.TracingImmediateTypeDefinition{
+			TracingQuery:              tracingQuery,
+			NotificationPayloadFilter: notificationPayloadFilter,
+		},
+	}
+	properties.AlertDefType = alerts.AlertDefType_ALERT_DEF_TYPE_TRACING_IMMEDIATE
+
+	return properties, nil
+}
+
 func expandFlowAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDefProperties, flow types.Object) (*alerts.AlertDefProperties, diag.Diagnostics) {
-	return nil, nil
+	if flow.IsNull() || flow.IsUnknown() {
+		return properties, nil
+	}
+
+	var flowModel FlowModel
+	if diags := flow.As(ctx, &flowModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	stages, diags := extractFlowStages(ctx, flowModel.Stages)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	properties.TypeDefinition = &alerts.AlertDefProperties_Flow{
+		Flow: &alerts.FlowTypeDefinition{
+			Stages:             stages,
+			EnforceSuppression: typeBoolToWrapperspbBool(flowModel.EnforceSuppression),
+		},
+	}
+	properties.AlertDefType = alerts.AlertDefType_ALERT_DEF_TYPE_FLOW
+	return properties, nil
+}
+
+func extractFlowStages(ctx context.Context, stages types.List) ([]*alerts.FlowStages, diag.Diagnostics) {
+	if stages.IsNull() || stages.IsUnknown() {
+		return nil, nil
+	}
+
+	var stagesObjects []types.Object
+	diags := stages.ElementsAs(ctx, &stagesObjects, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	var flowStages []*alerts.FlowStages
+	for _, stageObject := range stagesObjects {
+		stage, diags := extractFlowStage(ctx, stageObject)
+		if diags.HasError() {
+			return nil, diags
+		}
+		flowStages = append(flowStages, stage)
+	}
+
+	return flowStages, nil
+}
+
+func extractFlowStage(ctx context.Context, object types.Object) (*alerts.FlowStages, diag.Diagnostics) {
+	var stageModel FlowStageModel
+	if diags := object.As(ctx, &stageModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	flowStage := &alerts.FlowStages{
+		TimeframeMs:   typeInt64ToWrappedInt64(stageModel.TimeframeMs),
+		TimeframeType: flowStageTimeFrameTypeSchemaToProtoMap[stageModel.TimeframeType.ValueString()],
+	}
+
+	if flowStagesGroups := stageModel.FlowStagesGroups; !(flowStagesGroups.IsNull() || flowStagesGroups.IsUnknown()) {
+		flowStages, diags := extractFlowStagesGroups(ctx, flowStagesGroups)
+		if diags.HasError() {
+			return nil, diags
+		}
+		flowStage.FlowStages = flowStages
+	}
+
+	return flowStage, nil
+}
+
+func extractFlowStagesGroups(ctx context.Context, groups types.List) (*alerts.FlowStages_FlowStagesGroups, diag.Diagnostics) {
+	if groups.IsNull() || groups.IsUnknown() {
+		return nil, nil
+	}
+
+	var groupsObjects []types.Object
+	diags := groups.ElementsAs(ctx, &groupsObjects, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	var flowStagesGroups []*alerts.FlowStagesGroup
+	for _, groupObject := range groupsObjects {
+		group, diags := extractFlowStagesGroup(ctx, groupObject)
+		if diags.HasError() {
+			return nil, diags
+		}
+		flowStagesGroups = append(flowStagesGroups, group)
+	}
+
+	return &alerts.FlowStages_FlowStagesGroups{FlowStagesGroups: &alerts.FlowStagesGroups{
+		Groups: flowStagesGroups,
+	}}, nil
+
+}
+
+func extractFlowStagesGroup(ctx context.Context, object types.Object) (*alerts.FlowStagesGroup, diag.Diagnostics) {
+	var groupModel FlowStagesGroupModel
+	if diags := object.As(ctx, &groupModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	alertDefs, diags := extractAlertDefs(ctx, groupModel.AlertDefs)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &alerts.FlowStagesGroup{
+		AlertDefs: alertDefs,
+		NextOp:    flowStagesGroupNextOpSchemaToProtoMap[groupModel.NextOp.ValueString()],
+		AlertsOp:  flowStagesGroupAlertsOpSchemaToProtoMap[groupModel.AlertsOp.ValueString()],
+	}, nil
+
+}
+
+func extractAlertDefs(ctx context.Context, defs types.List) ([]*alerts.FlowStagesGroupsAlertDefs, diag.Diagnostics) {
+	if defs.IsNull() || defs.IsUnknown() {
+		return nil, nil
+	}
+
+	var defsObjects []types.Object
+	diags := defs.ElementsAs(ctx, &defsObjects, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	var alertDefs []*alerts.FlowStagesGroupsAlertDefs
+	for _, defObject := range defsObjects {
+		def, diags := extractAlertDef(ctx, defObject)
+		if diags.HasError() {
+			return nil, diags
+		}
+		alertDefs = append(alertDefs, def)
+	}
+
+	return alertDefs, nil
+
+}
+
+func extractAlertDef(ctx context.Context, def types.Object) (*alerts.FlowStagesGroupsAlertDefs, diag.Diagnostics) {
+	var defModel FlowStagesGroupsAlertDefsModel
+	if diags := def.As(ctx, &defModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	return &alerts.FlowStagesGroupsAlertDefs{
+		Id:  typeStringToWrapperspbString(defModel.Id),
+		Not: typeBoolToWrapperspbBool(defModel.Not),
+	}, nil
+
 }
 
 func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -3111,10 +3463,12 @@ func flattenAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDef
 		MetricMoreThan:           types.ObjectNull(metricMoreThanAttr()),
 		MetricLessThan:           types.ObjectNull(metricLessThanAttr()),
 		MetricMoreThanUsual:      types.ObjectNull(metricMoreThanUsualAttr()),
+		MetricLessThanUsual:      types.ObjectNull(metricLessThanUsualAttr()),
+		MetricLessThanOrEquals:   types.ObjectNull(metricLessThanOrEqualsAttr()),
+		MetricMoreThanOrEquals:   types.ObjectNull(metricMoreThanOrEqualsAttr()),
 		TracingImmediate:         types.ObjectNull(tracingImmediateAttr()),
 		TracingMoreThan:          types.ObjectNull(tracingMoreThanAttr()),
 		Flow:                     types.ObjectNull(flowAttr()),
-		MetricLessThanUsual:      types.ObjectNull(metricLessThanUsualAttr()),
 	}
 	var diags diag.Diagnostics
 	switch alertTypeDefinition := properties.TypeDefinition.(type) {
@@ -3144,14 +3498,18 @@ func flattenAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDef
 		alertTypeDefinitionModel.MetricLessThan, diags = flattenMetricLessThan(ctx, alertTypeDefinition.MetricLessThan)
 	case *alerts.AlertDefProperties_MetricMoreThanUsual:
 		alertTypeDefinitionModel.MetricMoreThanUsual, diags = flattenMetricMoreThanUsual(ctx, alertTypeDefinition.MetricMoreThanUsual)
+	case *alerts.AlertDefProperties_MetricLessThanUsual:
+		alertTypeDefinitionModel.MetricLessThanUsual, diags = flattenMetricLessThanUsual(ctx, alertTypeDefinition.MetricLessThanUsual)
+	case *alerts.AlertDefProperties_MetricLessThanOrEquals:
+		alertTypeDefinitionModel.MetricLessThanOrEquals, diags = flattenMetricLessThanOrEquals(ctx, alertTypeDefinition.MetricLessThanOrEquals)
+	case *alerts.AlertDefProperties_MetricMoreThanOrEquals:
+		alertTypeDefinitionModel.MetricMoreThanOrEquals, diags = flattenMetricMoreThanOrEquals(ctx, alertTypeDefinition.MetricMoreThanOrEquals)
 	case *alerts.AlertDefProperties_TracingImmediate:
 		alertTypeDefinitionModel.TracingImmediate, diags = flattenTracingImmediate(ctx, alertTypeDefinition.TracingImmediate)
 	case *alerts.AlertDefProperties_TracingMoreThan:
 		alertTypeDefinitionModel.TracingMoreThan, diags = flattenTracingMoreThan(ctx, alertTypeDefinition.TracingMoreThan)
 	case *alerts.AlertDefProperties_Flow:
 		alertTypeDefinitionModel.Flow, diags = flattenFlow(ctx, alertTypeDefinition.Flow)
-	case *alerts.AlertDefProperties_MetricLessThanUsual:
-		alertTypeDefinitionModel.MetricLessThanUsual, diags = flattenMetricLessThanUsual(ctx, alertTypeDefinition.MetricLessThanUsual)
 	default:
 		return types.ObjectNull(alertTypeDefinitionAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Alert Type Definition", fmt.Sprintf("Alert Type %v Definition is not valid", alertTypeDefinition))}
 	}
@@ -3934,6 +4292,7 @@ func flattenTracingMoreThan(ctx context.Context, tracingMoreThan *alerts.Tracing
 		TracingQuery:              tracingQuery,
 		NotificationPayloadFilter: wrappedStringSliceToTypeStringSet(tracingMoreThan.GetNotificationPayloadFilter()),
 		TimeWindow:                timeWindow,
+		SpanAmount:                wrapperspbUint32ToTypeInt64(tracingMoreThan.GetSpanAmount()),
 	}
 	return types.ObjectValueFrom(ctx, tracingMoreThanAttr(), tracingMoreThanModel)
 }
@@ -4004,8 +4363,162 @@ func flattenMetricLessThanUsual(ctx context.Context, metricLessThanUsual *alerts
 	return types.ObjectValueFrom(ctx, metricLessThanUsualAttr(), metricLessThanUsualModel)
 }
 
+func flattenMetricMoreThanOrEquals(ctx context.Context, equals *alerts.MetricMoreThanOrEqualsTypeDefinition) (types.Object, diag.Diagnostics) {
+	if equals == nil {
+		return types.ObjectNull(metricMoreThanOrEqualsAttr()), nil
+	}
+
+	metricFilter, diags := flattenMetricFilter(ctx, equals.GetMetricFilter())
+	if diags.HasError() {
+		return types.ObjectNull(metricMoreThanOrEqualsAttr()), diags
+	}
+
+	ofTheLast, diags := flattenMetricTimeWindow(ctx, equals.GetOfTheLast())
+	if diags.HasError() {
+		return types.ObjectNull(metricMoreThanOrEqualsAttr()), diags
+	}
+
+	missingValues, diags := flattenMissingValues(ctx, equals.GetMissingValues())
+	if diags.HasError() {
+		return types.ObjectNull(metricMoreThanOrEqualsAttr()), diags
+	}
+
+	metricMoreThanOrEqualsModel := MetricMoreThanOrEqualsModel{
+		MetricFilter:  metricFilter,
+		Threshold:     wrapperspbFloat64ToTypeFloat64(equals.GetThreshold()),
+		ForOverPct:    wrapperspbUint32ToTypeInt64(equals.GetForOverPct()),
+		OfTheLast:     ofTheLast,
+		MissingValues: missingValues,
+	}
+	return types.ObjectValueFrom(ctx, metricMoreThanOrEqualsAttr(), metricMoreThanOrEqualsModel)
+}
+
+func flattenMetricLessThanOrEquals(ctx context.Context, equals *alerts.MetricLessThanOrEqualsTypeDefinition) (types.Object, diag.Diagnostics) {
+	if equals == nil {
+		return types.ObjectNull(metricLessThanOrEqualsAttr()), nil
+	}
+
+	metricFilter, diags := flattenMetricFilter(ctx, equals.GetMetricFilter())
+	if diags.HasError() {
+		return types.ObjectNull(metricLessThanOrEqualsAttr()), diags
+	}
+
+	ofTheLast, diags := flattenMetricTimeWindow(ctx, equals.GetOfTheLast())
+	if diags.HasError() {
+		return types.ObjectNull(metricLessThanOrEqualsAttr()), diags
+	}
+
+	missingValues, diags := flattenMissingValues(ctx, equals.GetMissingValues())
+	if diags.HasError() {
+		return types.ObjectNull(metricLessThanOrEqualsAttr()), diags
+	}
+
+	undetectedValuesManagement, diags := flattenUndetectedValuesManagement(ctx, equals.GetUndetectedValuesManagement())
+	if diags.HasError() {
+		return types.ObjectNull(metricLessThanOrEqualsAttr()), diags
+	}
+
+	metricLessThanOrEqualsModel := MetricLessThanOrEqualsModel{
+		MetricFilter:               metricFilter,
+		Threshold:                  wrapperspbFloat64ToTypeFloat64(equals.GetThreshold()),
+		ForOverPct:                 wrapperspbUint32ToTypeInt64(equals.GetForOverPct()),
+		OfTheLast:                  ofTheLast,
+		MissingValues:              missingValues,
+		UndetectedValuesManagement: undetectedValuesManagement,
+	}
+	return types.ObjectValueFrom(ctx, metricLessThanOrEqualsAttr(), metricLessThanOrEqualsModel)
+}
+
 func flattenFlow(ctx context.Context, flow *alerts.FlowTypeDefinition) (types.Object, diag.Diagnostics) {
-	return types.ObjectNull(flowAttr()), nil
+	if flow == nil {
+		return types.ObjectNull(flowAttr()), nil
+	}
+
+	stages, diags := flattenFlowStages(ctx, flow.GetStages())
+	if diags.HasError() {
+		return types.ObjectNull(flowAttr()), diags
+	}
+
+	flowModel := FlowModel{
+		Stages:             stages,
+		EnforceSuppression: wrapperspbBoolToTypeBool(flow.GetEnforceSuppression()),
+	}
+	return types.ObjectValueFrom(ctx, flowAttr(), flowModel)
+}
+
+func flattenFlowStages(ctx context.Context, stages []*alerts.FlowStages) (types.List, diag.Diagnostics) {
+	var flowStages []*FlowStageModel
+	for _, stage := range stages {
+		flowStage, diags := flattenFlowStage(ctx, stage)
+		if diags.HasError() {
+			return types.ListNull(types.ObjectType{AttrTypes: flowStageAttr()}), diags
+		}
+		flowStages = append(flowStages, flowStage)
+	}
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: flowStageAttr()}, flowStages)
+
+}
+
+func flattenFlowStage(ctx context.Context, stage *alerts.FlowStages) (*FlowStageModel, diag.Diagnostics) {
+	if stage == nil {
+		return nil, nil
+	}
+
+	flowStagesGroups, diags := flattenFlowStagesGroups(ctx, stage)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	flowStageModel := &FlowStageModel{
+		FlowStagesGroups: flowStagesGroups,
+		TimeframeMs:      wrapperspbInt64ToTypeInt64(stage.GetTimeframeMs()),
+		TimeframeType:    types.StringValue(flowStageTimeFrameTypeProtoToSchemaMap[stage.GetTimeframeType()]),
+	}
+	return flowStageModel, nil
+
+}
+
+func flattenFlowStagesGroups(ctx context.Context, stage *alerts.FlowStages) (types.List, diag.Diagnostics) {
+	var flowStagesGroups []*FlowStagesGroupModel
+	for _, group := range stage.GetFlowStagesGroups().GetGroups() {
+		flowStageGroup, diags := flattenFlowStageGroup(ctx, group)
+		if diags.HasError() {
+			return types.ListNull(types.ObjectType{AttrTypes: flowStageGroupAttr()}), diags
+		}
+		flowStagesGroups = append(flowStagesGroups, flowStageGroup)
+	}
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: flowStageGroupAttr()}, flowStagesGroups)
+
+}
+
+func flattenFlowStageGroup(ctx context.Context, group *alerts.FlowStagesGroup) (*FlowStagesGroupModel, diag.Diagnostics) {
+	if group == nil {
+		return nil, nil
+	}
+
+	alertDefs, diags := flattenAlertDefs(ctx, group.GetAlertDefs())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	flowStageGroupModel := &FlowStagesGroupModel{
+		AlertDefs: alertDefs,
+		NextOp:    types.StringValue(flowStagesGroupNextOpProtoToSchemaMap[group.GetNextOp()]),
+		AlertsOp:  types.StringValue(flowStagesGroupAlertsOpProtoToSchemaMap[group.GetAlertsOp()]),
+	}
+	return flowStageGroupModel, nil
+}
+
+func flattenAlertDefs(ctx context.Context, defs []*alerts.FlowStagesGroupsAlertDefs) (types.List, diag.Diagnostics) {
+	var alertDefs []*FlowStagesGroupsAlertDefsModel
+	for _, def := range defs {
+		alertDef := &FlowStagesGroupsAlertDefsModel{
+			Id:  wrapperspbStringToTypeString(def.GetId()),
+			Not: wrapperspbBoolToTypeBool(def.GetNot()),
+		}
+		alertDefs = append(alertDefs, alertDef)
+	}
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: alertDefsAttr()}, alertDefs)
 }
 
 func retriggeringPeriodAttr() map[string]attr.Type {
@@ -4100,6 +4613,15 @@ func alertTypeDefinitionAttr() map[string]attr.Type {
 		"metric_more_than_usual": types.ObjectType{
 			AttrTypes: metricMoreThanUsualAttr(),
 		},
+		"metric_less_than_usual": types.ObjectType{
+			AttrTypes: metricLessThanUsualAttr(),
+		},
+		"metric_more_than_or_equals": types.ObjectType{
+			AttrTypes: metricMoreThanOrEqualsAttr(),
+		},
+		"metric_less_than_or_equals": types.ObjectType{
+			AttrTypes: metricLessThanOrEqualsAttr(),
+		},
 		"tracing_immediate": types.ObjectType{
 			AttrTypes: tracingImmediateAttr(),
 		},
@@ -4109,8 +4631,40 @@ func alertTypeDefinitionAttr() map[string]attr.Type {
 		"flow": types.ObjectType{
 			AttrTypes: flowAttr(),
 		},
-		"metric_less_than_usual": types.ObjectType{
-			AttrTypes: metricLessThanUsualAttr(),
+	}
+}
+
+func metricLessThanOrEqualsAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"metric_filter": types.ObjectType{
+			AttrTypes: metricFilterAttr(),
+		},
+		"threshold":    types.Int64Type,
+		"for_over_pct": types.Int64Type,
+		"of_the_last": types.ObjectType{
+			AttrTypes: metricTimeWindowAttr(),
+		},
+		"missing_values": types.ObjectType{
+			AttrTypes: metricMissingValuesAttr(),
+		},
+		"undetected_values_management": types.ObjectType{
+			AttrTypes: undetectedValuesManagementAttr(),
+		},
+	}
+}
+
+func metricMoreThanOrEqualsAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"metric_filter": types.ObjectType{
+			AttrTypes: metricFilterAttr(),
+		},
+		"threshold":    types.Int64Type,
+		"for_over_pct": types.Int64Type,
+		"of_the_last": types.ObjectType{
+			AttrTypes: metricTimeWindowAttr(),
+		},
+		"missing_values": types.ObjectType{
+			AttrTypes: metricMissingValuesAttr(),
 		},
 	}
 }
@@ -4325,7 +4879,45 @@ func metricLessThanUsualAttr() map[string]attr.Type {
 }
 
 func flowAttr() map[string]attr.Type {
-	return map[string]attr.Type{}
+	return map[string]attr.Type{
+		"stages": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: flowStageAttr(),
+			},
+		},
+		"enforce_suppression": types.BoolType,
+	}
+}
+
+func flowStageAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"flow_stages_groups": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: flowStageGroupAttr(),
+			},
+		},
+		"timeframe_ms":   types.Int64Type,
+		"timeframe_type": types.StringType,
+	}
+}
+
+func flowStageGroupAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"alert_defs": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: alertDefsAttr(),
+			},
+		},
+		"next_op":   types.StringType,
+		"alerts_op": types.StringType,
+	}
+}
+
+func alertDefsAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id":  types.StringType,
+		"not": types.BoolType,
+	}
 }
 
 func tracingMoreThanAttr() map[string]attr.Type {
@@ -4494,7 +5086,7 @@ func (r *AlertResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting Alert %s", id)
+	log.Printf("[INFO] Delxeting Alert %s", id)
 	deleteReq := &alerts.DeleteAlertDefRequest{Id: wrapperspb.String(id)}
 	log.Printf("[INFO] Deleting Alert: %s", protojson.Format(deleteReq))
 	if _, err := r.client.DeleteAlert(ctx, deleteReq); err != nil {
