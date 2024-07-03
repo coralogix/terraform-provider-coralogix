@@ -1163,42 +1163,45 @@ func metricSchema() map[string]*schema.Schema {
 								"less_than": {
 									Type:     schema.TypeBool,
 									Optional: true,
-									ExactlyOneOf: []string{"metric.0.promql.0.condition.0.more_than",
-										"metric.0.promql.0.condition.0.less_than",
+									ExactlyOneOf: []string{
+										"metric.0.promql.0.condition.0.more_than",
 										"metric.0.promql.0.condition.0.more_than_usual",
-										"metric.0.promql.0.condition.0.less_than_usual"},
+										"metric.0.promql.0.condition.0.less_than_usual",
+										"metric.0.promql.0.condition.0.more_than_or_equal",
+										"metric.0.promql.0.condition.0.less_than_or_equal",
+									},
 									Description: "Determines the condition operator." +
-										" Must be one of - less_than or more_than.",
+										" Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.",
 								},
 								"more_than": {
 									Type:     schema.TypeBool,
 									Optional: true,
-									ExactlyOneOf: []string{"metric.0.promql.0.condition.0.more_than",
-										"metric.0.promql.0.condition.0.less_than",
-										"metric.0.promql.0.condition.0.more_than_usual",
-										"metric.0.promql.0.condition.0.less_than_usual"},
 									Description: "Determines the condition operator." +
-										" Must be one of - less_than or more_than.",
+										" Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.",
 								},
 								"more_than_usual": {
 									Type:     schema.TypeBool,
 									Optional: true,
-									ExactlyOneOf: []string{"metric.0.promql.0.condition.0.more_than",
-										"metric.0.promql.0.condition.0.less_than",
-										"metric.0.promql.0.condition.0.more_than_usual",
-										"metric.0.promql.0.condition.0.less_than_usual"},
 									Description: "Determines the condition operator." +
-										" Must be one of - immediately, less_than, more_than or more_than_usual.",
+										" Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.",
 								},
 								"less_than_usual": {
 									Type:     schema.TypeBool,
 									Optional: true,
-									ExactlyOneOf: []string{"metric.0.promql.0.condition.0.more_than",
-										"metric.0.promql.0.condition.0.less_than",
-										"metric.0.promql.0.condition.0.more_than_usual",
-										"metric.0.promql.0.condition.0.less_than_usual"},
 									Description: "Determines the condition operator." +
-										" Must be one of - immediately, less_than, more_than or more_than_usual.",
+										" Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.",
+								},
+								"more_than_or_equal": {
+									Type:     schema.TypeBool,
+									Optional: true,
+									Description: "Determines the condition operator." +
+										" Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.",
+								},
+								"less_than_or_equal": {
+									Type:     schema.TypeBool,
+									Optional: true,
+									Description: "Determines the condition operator." +
+										" Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.",
 								},
 								"threshold": {
 									Type:        schema.TypeFloat,
@@ -1248,8 +1251,8 @@ func metricSchema() map[string]*schema.Schema {
 											},
 										},
 									},
-									RequiredWith: []string{"metric.0.promql.0.condition.0.less_than"},
-									Description:  "Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER.",
+									ConflictsWith: []string{"metric.0.promql.0.condition.0.more_than", "metric.0.promql.0.condition.0.more_than_or_equal", "metric.0.promql.0.condition.0.more_than_usual", "metric.0.promql.0.condition.0.less_than_usual"},
+									Description:   "Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER.",
 								},
 							},
 						},
@@ -2100,6 +2103,12 @@ func flattenMetricAlert(filters *alerts.AlertFilters, condition interface{}) int
 	case *alerts.AlertCondition_LessThanUsual:
 		conditionParams = condition.LessThanUsual.GetParameters()
 		conditionStr = "less_than_usual"
+	case *alerts.AlertCondition_MoreThanOrEqual:
+		conditionParams = condition.MoreThanOrEqual.GetParameters()
+		conditionStr = "more_than_or_equal"
+	case *alerts.AlertCondition_LessThanOrEqual:
+		conditionParams = condition.LessThanOrEqual.GetParameters()
+		conditionStr = "less_than_or_equal"
 	default:
 		return nil
 	}
@@ -2118,7 +2127,7 @@ func flattenMetricAlert(filters *alerts.AlertFilters, condition interface{}) int
 		conditionMap = flattenLuceneCondition(conditionParams)
 	}
 	conditionMap[conditionStr] = true
-	if conditionStr == "less_than" {
+	if conditionStr == "less_than" || conditionStr == "less_than_or_equal" {
 		conditionMap["manage_undetected_values"] = flattenManageUndetectedValues(conditionParams.GetRelatedExtendedData())
 	}
 
@@ -3038,9 +3047,21 @@ func expandPromqlCondition(m map[string]interface{}, parameters *alerts.Conditio
 				LessThanUsual: &alerts.LessThanUsualCondition{Parameters: parameters},
 			},
 		}, nil
+	case "less_than_or_equal":
+		return &alerts.AlertCondition{
+			Condition: &alerts.AlertCondition_LessThanOrEqual{
+				LessThanOrEqual: &alerts.LessThanOrEqualCondition{Parameters: parameters},
+			},
+		}, nil
+	case "more_than_or_equal":
+		return &alerts.AlertCondition{
+			Condition: &alerts.AlertCondition_MoreThanOrEqual{
+				MoreThanOrEqual: &alerts.MoreThanOrEqualCondition{Parameters: parameters},
+			},
+		}, nil
 	}
 
-	return nil, fmt.Errorf("less_than, more_than, more_than_usual, or less_than_usual must be set to true")
+	return nil, fmt.Errorf("less_than, more_than, more_than_usual, less_than_usual, less_than_or_equal, or more_than_or_equal must be set to true")
 }
 
 func returnAlertConditionString(m map[string]interface{}) (string, error) {
@@ -3052,9 +3073,13 @@ func returnAlertConditionString(m map[string]interface{}) (string, error) {
 		return "more_than_usual", nil
 	} else if lessThanUsual := m["less_than_usual"]; lessThanUsual != nil && lessThanUsual.(bool) {
 		return "less_than_usual", nil
+	} else if lessThanOrEqual := m["less_than_or_equal"]; lessThanOrEqual != nil && lessThanOrEqual.(bool) {
+		return "less_than_or_equal", nil
+	} else if moreThanOrEqual := m["more_than_or_equal"]; moreThanOrEqual != nil && moreThanOrEqual.(bool) {
+		return "more_than_or_equal", nil
 	}
 
-	return "", fmt.Errorf("less_than, more_than, more_than_usual, or less_than_usual must be set to true")
+	return "", fmt.Errorf("less_than, more_than, more_than_usual, less_than_usual, less_than_or_equal, or more_than_or_equal must be set to true")
 }
 
 func expandTimeRelativeConditionParameters(m map[string]interface{}) (*alerts.ConditionParameters, error) {
