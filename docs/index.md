@@ -79,7 +79,7 @@ $ export CORALOGIX_DOMAIN="<add the environment you want to work at>"
 
 | Region  | Domain              |
 |---------|---------------------|
-| APAC1   | app.coralogix.in    |
+| APAC1   | coralogix.in        |
 | APAC2   | coralogixsg.com     |
 | EUROPE1 | coralogix.com       |
 | EUROPE2 | eu2.coralogix.com   |

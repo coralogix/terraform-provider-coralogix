@@ -573,3 +573,15 @@ Breaking Changes:
 New Features:
 #### resource/coralogix_alert
 * adding `5Min` to `time_window` options for `unique_count` condition.
+
+## Release 1.16.0
+Breaking Changes:
+#### resource/coralogix_api_key
+* Roles are replaced by "Presets" and "Permission" keys. Read more [here](https://coralogix.com/docs/api-keys/).
+
+Various documentation upgrades
+
+## Release 1.16.1
+New Features:
+#### resource/coralogix_alert
+* adding `more_than_or_equal_usual` and `less_than_or_equal_usual` conditions to `metric.promql` alert.

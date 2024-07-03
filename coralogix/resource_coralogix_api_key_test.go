@@ -22,7 +22,9 @@ func TestApiKeyResource(t *testing.T) {
 					resource.TestCheckResourceAttr(apiKeyResourceName, "name", "Test Key 3"),
 					resource.TestCheckResourceAttr(apiKeyResourceName, "owner.team_id", teamID),
 					resource.TestCheckResourceAttr(apiKeyResourceName, "active", "true"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "hashed", "false"),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "permissions.#", "0"),
+					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "Alerts"),
+					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "APM"),
 				),
 			},
 			{
@@ -36,8 +38,9 @@ func TestApiKeyResource(t *testing.T) {
 					resource.TestCheckResourceAttr(apiKeyResourceName, "name", "Test Key 5"),
 					resource.TestCheckResourceAttr(apiKeyResourceName, "owner.team_id", teamID),
 					resource.TestCheckResourceAttr(apiKeyResourceName, "active", "false"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "hashed", "false"),
-				),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "permissions.#", "0"),
+					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "Alerts"),
+					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "APM")),
 			},
 		},
 	})
@@ -50,8 +53,8 @@ func testApiKeyResource() string {
     team_id : "<TEAM_ID>"
   }
   active = true
-  hashed = false
-  roles = ["SCIM"]
+  permissions = []
+  presets = ["Alerts", "APM"]
 }
 `, "<TEAM_ID>", teamID, 1)
 }
@@ -63,8 +66,8 @@ func updateApiKeyResource() string {
     team_id : "<TEAM_ID>"
   }
   active = false
-  hashed = false
-  roles = ["SCIM"]
+  permissions = []
+  presets = ["Alerts", "APM"]
 }
 `, "<TEAM_ID>", teamID, 1)
 }
