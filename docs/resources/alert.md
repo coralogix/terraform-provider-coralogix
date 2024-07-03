@@ -710,14 +710,14 @@ Required:
 
 Optional:
 
-- `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `less_than_or_equal` (Boolean)
-- `less_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
+- `less_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.
+- `less_than_or_equal` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.
+- `less_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.
 - `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--metric--promql--condition--manage_undetected_values))
 - `min_non_null_values_percentage` (Number)
-- `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `more_than_or_equal` (Boolean)
-- `more_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
+- `more_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.
+- `more_than_or_equal` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.
+- `more_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.
 - `replace_missing_value_with_zero` (Boolean) If set to true, missing data will be considered as 0, otherwise, it will not be considered at all.
 
 <a id="nestedblock--metric--promql--condition--manage_undetected_values"></a>

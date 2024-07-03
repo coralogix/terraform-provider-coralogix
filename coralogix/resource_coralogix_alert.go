@@ -1171,33 +1171,37 @@ func metricSchema() map[string]*schema.Schema {
 										"metric.0.promql.0.condition.0.less_than_or_equal",
 									},
 									Description: "Determines the condition operator." +
-										" Must be one of - less_than or more_than.",
+										" Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.",
 								},
 								"more_than": {
 									Type:     schema.TypeBool,
 									Optional: true,
 									Description: "Determines the condition operator." +
-										" Must be one of - less_than or more_than.",
+										" Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.",
 								},
 								"more_than_usual": {
 									Type:     schema.TypeBool,
 									Optional: true,
 									Description: "Determines the condition operator." +
-										" Must be one of - immediately, less_than, more_than or more_than_usual.",
+										" Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.",
 								},
 								"less_than_usual": {
 									Type:     schema.TypeBool,
 									Optional: true,
 									Description: "Determines the condition operator." +
-										" Must be one of - immediately, less_than, more_than or more_than_usual.",
+										" Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.",
 								},
 								"more_than_or_equal": {
 									Type:     schema.TypeBool,
 									Optional: true,
+									Description: "Determines the condition operator." +
+										" Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.",
 								},
 								"less_than_or_equal": {
 									Type:     schema.TypeBool,
 									Optional: true,
+									Description: "Determines the condition operator." +
+										" Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.",
 								},
 								"threshold": {
 									Type:        schema.TypeFloat,
