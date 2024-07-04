@@ -175,10 +175,12 @@ Read-Only:
 Read-Only:
 
 - `less_than` (Boolean)
+- `less_than_or_equal` (Boolean)
 - `less_than_usual` (Boolean)
 - `manage_undetected_values` (List of Object) (see [below for nested schema](#nestedobjatt--metric--promql--condition--manage_undetected_values))
 - `min_non_null_values_percentage` (Number)
 - `more_than` (Boolean)
+- `more_than_or_equal` (Boolean)
 - `more_than_usual` (Boolean)
 - `replace_missing_value_with_zero` (Boolean)
 - `sample_threshold_percentage` (Number)

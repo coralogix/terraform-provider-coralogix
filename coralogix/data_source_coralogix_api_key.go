@@ -9,11 +9,12 @@ import (
 
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 var _ datasource.DataSourceWithConfigure = &ApiKeyDataSource{}
@@ -64,7 +65,7 @@ func (d *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	//Get refreshed Action value from Coralogix
+	//Get refreshed API Keys value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading ApiKey: %s", id)
 	getApiKey := &apikeys.GetApiKeyRequest{
@@ -76,26 +77,26 @@ func (d *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(err.Error(),
-				fmt.Sprintf("Action %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("API Keys %q is in state, but no longer exists in Coralogix backend", id),
 			)
 		} else {
 			resp.Diagnostics.AddError(
-				"Error reading Action",
+				"Error reading API Keys",
 				formatRpcErrors(err, getApiKeyPath, protojson.Format(getApiKey)),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Action: %s", protojson.Format(getApiKeyResponse))
+	log.Printf("[INFO] Received API Keys: %s", protojson.Format(getApiKeyResponse))
 
 	if getApiKeyResponse.KeyInfo.Hashed {
 		resp.Diagnostics.AddError(
-			"Error reading Action",
+			"Error reading API Keys",
 			"Reading an hashed key is impossible",
 		)
 		return
 	}
-	response, diags := flattenGetApiKeyResponse(ctx, &id, getApiKeyResponse, getApiKeyResponse.Value)
+	response, diags := flattenGetApiKeyResponse(ctx, &id, getApiKeyResponse, getApiKeyResponse.KeyInfo.Value)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

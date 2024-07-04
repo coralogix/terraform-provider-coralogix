@@ -46,8 +46,4 @@ func testAccPreCheck(t *testing.T) {
 	if os.Getenv("CORALOGIX_ENV") == "" {
 		t.Fatalf("CORALOGIX_ENV must be set for acceptance tests")
 	}
-
-	if os.Getenv("CORALOGIX_ORG_KEY") == "" {
-		t.Fatalf("CORALOGIX_ORG_KEY must be set for acceptance tests")
-	}
 }
