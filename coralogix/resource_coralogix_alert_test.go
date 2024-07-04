@@ -30,10 +30,8 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "high"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
 						map[string]string{
-							"retriggering_period.minutes": "1",
-							"notify_on":                   "Triggered and Resolved",
-							"recipients.#":                "1",
-							"recipients.*":                "example@coralogix.com",
+							"recipients.#": "1",
+							"recipients.*": "example@coralogix.com",
 						}),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "1"),
@@ -57,9 +55,9 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs immediate alert updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs immediate alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.advanced_target_settings.*",
 						map[string]string{
-							"retriggering_period.minutes": "1",
+							"retriggering_period.minutes": "10",
 							"notify_on":                   "Triggered Only",
 							"recipients.#":                "1",
 							"recipients.*":                "example@coralogix.com",
@@ -584,10 +582,6 @@ func testAccCoralogixResourceAlertLogsImmediate() string {
   notification_group = {
     simple_target_settings = [
       {
-        retriggering_period = {
-          minutes = 1
-        }
-        notify_on  = "Triggered and Resolved"
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -636,22 +630,22 @@ func testAccCoralogixResourceAlertLogsImmediateUpdated() string {
   priority    = "P2"
 
   notification_group = {
-    simple_target_settings = [
+    advanced_target_settings = [
       {
         retriggering_period = {
-          minutes = 1
+          minutes = 10
         }
         notify_on  = "Triggered Only"
         recipients = ["example@coralogix.com"]
       }
     ]
   }
-
+	
   incidents_settings = {
-    notify_on           = "Triggered and Resolved"
-    retriggering_period = {
-      minutes = 10
-    }
+	notify_on           = "Triggered and Resolved"
+	retriggering_period = {
+		minutes = 10
+	}
   }
 
   schedule = {
