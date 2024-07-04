@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -766,16 +767,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								Default:  booldefault.StaticBool(false),
 							},
 							"notification_payload_filter": notificationPayloadFilterSchema(),
-							"group_by_for": schema.StringAttribute{
-								Optional: true,
-								Computed: true,
-								Default:  stringdefault.StaticString("Both or Unspecified"),
-								Validators: []validator.String{
-									stringvalidator.OneOf(validLogsRatioGroupByFor...),
-									stringvalidator.AlsoRequires(path.MatchRoot("group_by")),
-								},
-								MarkdownDescription: fmt.Sprintf("Group by for. Valid values: %q.", validLogsRatioGroupByFor),
-							},
+							"group_by_for":                logsRatioGroupByForSchema(),
 						},
 					},
 					"logs_ratio_less_than": schema.SingleNestedAttribute{
@@ -798,17 +790,8 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								Computed: true,
 								Default:  booldefault.StaticBool(false),
 							},
-							"notification_payload_filter": notificationPayloadFilterSchema(),
-							"group_by_for": schema.StringAttribute{
-								Optional: true,
-								Computed: true,
-								Default:  stringdefault.StaticString("Both or Unspecified"),
-								Validators: []validator.String{
-									stringvalidator.OneOf(validLogsRatioGroupByFor...),
-									stringvalidator.AlsoRequires(path.MatchRoot("group_by")),
-								},
-								MarkdownDescription: fmt.Sprintf("Group by for. Valid values: %q.", validLogsRatioGroupByFor),
-							},
+							"notification_payload_filter":  notificationPayloadFilterSchema(),
+							"group_by_for":                 logsRatioGroupByForSchema(),
 							"undetected_values_management": undetectedValuesManagementSchema(),
 						},
 					},
@@ -841,13 +824,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"logs_filter":                 logsFilterSchema(),
 							"notification_payload_filter": notificationPayloadFilterSchema(),
 							"threshold":                   schema.Int64Attribute{Required: true},
-							"compared_to": schema.StringAttribute{
-								Required: true,
-								Validators: []validator.String{
-									stringvalidator.OneOf(validLogsTimeRelativeComparedTo...),
-								},
-								MarkdownDescription: fmt.Sprintf("Compared to. Valid values: %q.", validLogsTimeRelativeComparedTo),
-							},
+							"compared_to":                 timeRelativeCompareTo(),
 							"ignore_infinity": schema.BoolAttribute{
 								Optional: true,
 								Computed: true,
@@ -1026,18 +1003,31 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 													},
 													"next_op": schema.StringAttribute{
 														Required: true,
+														Validators: []validator.String{
+															stringvalidator.OneOf(validFlowStagesGroupNextOps...),
+														},
+														MarkdownDescription: fmt.Sprintf("Next operation. Valid values: %q.", validFlowStagesGroupNextOps),
 													},
 													"alerts_op": schema.StringAttribute{
 														Required: true,
+														Validators: []validator.String{
+															stringvalidator.OneOf(validFlowStagesGroupAlertsOps...),
+														},
+														MarkdownDescription: fmt.Sprintf("Alerts operation. Valid values: %q.", validFlowStagesGroupAlertsOps),
 													},
 												},
 											},
 										},
 										"timeframe_ms": schema.Int64Attribute{
 											Optional: true,
+											Computed: true,
+											Default:  int64default.StaticInt64(0),
 										},
 										"timeframe_type": schema.StringAttribute{
-											Optional: true,
+											Required: true,
+											Validators: []validator.String{
+												stringvalidator.OneOf(validFlowStageTimeFrameTypes...),
+											},
 										},
 									},
 								},
@@ -1058,6 +1048,9 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			"incidents_settings": schema.SingleNestedAttribute{
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
 				Attributes: map[string]schema.Attribute{
 					"notify_on": schema.StringAttribute{
 						Required: true,
@@ -1150,10 +1143,36 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 	}
 }
 
+func timeRelativeCompareTo() schema.StringAttribute {
+	return schema.StringAttribute{
+		Required: true,
+		Validators: []validator.String{
+			stringvalidator.OneOf(validLogsTimeRelativeComparedTo...),
+		},
+		MarkdownDescription: fmt.Sprintf("Compared to. Valid values: %q.", validLogsTimeRelativeComparedTo),
+	}
+}
+
+func logsRatioGroupByForSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		Default:  stringdefault.StaticString("Both or Unspecified"),
+		Validators: []validator.String{
+			stringvalidator.OneOf(validLogsRatioGroupByFor...),
+			stringvalidator.AlsoRequires(path.MatchRoot("group_by")),
+		},
+		MarkdownDescription: fmt.Sprintf("Group by for. Valid values: %q.", validLogsRatioGroupByFor),
+	}
+}
+
 func missingValuesSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
 		Computed: true,
+		PlanModifiers: []planmodifier.Object{
+			objectplanmodifier.UseStateForUnknown(),
+		},
 		Attributes: map[string]schema.Attribute{
 			"replace_with_zero": schema.BoolAttribute{
 				Optional: true,
@@ -1282,6 +1301,9 @@ func logsFilterSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
 		Computed: true,
+		PlanModifiers: []planmodifier.Object{
+			objectplanmodifier.UseStateForUnknown(),
+		},
 		Attributes: map[string]schema.Attribute{
 			"lucene_filter": schema.SingleNestedAttribute{
 				Optional: true,
@@ -1426,6 +1448,9 @@ func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
 		Computed: true,
+		PlanModifiers: []planmodifier.Object{
+			objectplanmodifier.UseStateForUnknown(),
+		},
 		Attributes: map[string]schema.Attribute{
 			"trigger_undetected_values": schema.BoolAttribute{
 				Optional: true,

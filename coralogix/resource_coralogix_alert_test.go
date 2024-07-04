@@ -3,40 +3,18 @@ package coralogix
 import (
 	"context"
 	"fmt"
-	"math"
-	"strconv"
 	"testing"
-
-	"terraform-provider-coralogix/coralogix/clientset"
-	alertsv1 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v2"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 var alertResourceName = "coralogix_alert.test"
 
-func TestAccCoralogixResourceAlert_standard(t *testing.T) {
-	alert := standardAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		groupBy:               []string{"EventType"},
-		occurrencesThreshold:  acctest.RandIntRange(1, 1000),
-		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
-		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
-	}
-	checks := extractStandardAlertChecks(alert)
-
-	updatedAlert := standardAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		groupBy:               []string{"EventType"},
-		occurrencesThreshold:  acctest.RandIntRange(1, 1000),
-		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
-		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
-	}
-	updatedAlertChecks := extractStandardAlertChecks(updatedAlert)
-
+func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
@@ -58,36 +36,14 @@ func TestAccCoralogixResourceAlert_standard(t *testing.T) {
 	})
 }
 
-func TestAccCoralogixResourceAlert_ratio(t *testing.T) {
-	alert := ratioAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		q2Severities:          selectManyRandomlyFromSlice(alertValidLogSeverities),
-		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
-		ratio:                 randFloat(),
-		groupBy:               []string{"EventType"},
-		q2SearchQuery:         "remote_addr_enriched:/.*/",
-		ignoreInfinity:        randBool(),
-	}
-	checks := extractRatioAlertChecks(alert)
-
-	updatedAlert := ratioAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		q2Severities:          selectManyRandomlyFromSlice(alertValidLogSeverities),
-		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
-		ratio:                 randFloat(),
-		groupBy:               []string{"EventType"},
-		q2SearchQuery:         "remote_addr_enriched:/.*/",
-		ignoreInfinity:        randBool(),
-	}
-	updatedAlertChecks := extractRatioAlertChecks(updatedAlert)
-
+func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertRatio(&alert),
+				Config: testAccCoralogixResourceAlertStandard(&alert),
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
@@ -95,37 +51,21 @@ func TestAccCoralogixResourceAlert_ratio(t *testing.T) {
 				ImportState:  true,
 			},
 			{
-				Config: testAccCoralogixResourceAlertRatio(&updatedAlert),
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
 				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
 	})
 }
 
-func TestAccCoralogixResourceAlert_newValue(t *testing.T) {
-	alert := newValueAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		keyToTrack:            "EventType",
-		timeWindow:            selectRandomlyFromSlice(alertValidNewValueTimeFrames),
-	}
-	alert.notifyOn = "Triggered_only"
-	checks := extractNewValueChecks(alert)
-
-	updatedAlert := newValueAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		keyToTrack:            "EventType",
-		timeWindow:            selectRandomlyFromSlice(alertValidNewValueTimeFrames),
-	}
-	updatedAlert.notifyOn = "Triggered_only"
-	updatedAlertChecks := extractNewValueChecks(updatedAlert)
-
+func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertNewValue(&alert),
+				Config: testAccCoralogixResourceAlertStandard(&alert),
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
@@ -133,42 +73,21 @@ func TestAccCoralogixResourceAlert_newValue(t *testing.T) {
 				ImportState:  true,
 			},
 			{
-				Config: testAccCoralogixResourceAlertNewValue(&updatedAlert),
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
 				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
 	})
 }
 
-func TestAccCoralogixResourceAlert_uniqueCount(t *testing.T) {
-	alert := uniqueCountAlertTestParams{
-		alertCommonTestParams:     *getRandomAlert(),
-		uniqueCountKey:            "EventType",
-		timeWindow:                selectRandomlyFromSlice(alertValidUniqueCountTimeFrames),
-		groupByKey:                "metadata.name",
-		maxUniqueValues:           2,
-		maxUniqueValuesForGroupBy: 20,
-	}
-	checks := extractUniqueCountAlertChecks(alert)
-
-	updatedAlert := uniqueCountAlertTestParams{
-		alertCommonTestParams:     *getRandomAlert(),
-		uniqueCountKey:            "EventType",
-		timeWindow:                selectRandomlyFromSlice(alertValidUniqueCountTimeFrames),
-		groupByKey:                "metadata.name",
-		maxUniqueValues:           2,
-		maxUniqueValuesForGroupBy: 20,
-	}
-	updatedAlertChecks := extractUniqueCountAlertChecks(updatedAlert)
-	updatedAlertChecks = updatedAlertChecks[:len(updatedAlertChecks)-1] // remove group_by check
-
+func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertUniqueCount(&alert),
+				Config: testAccCoralogixResourceAlertStandard(&alert),
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
@@ -176,39 +95,21 @@ func TestAccCoralogixResourceAlert_uniqueCount(t *testing.T) {
 				ImportState:  true,
 			},
 			{
-				Config: testAccCoralogixResourceAlertUniqueCount(&updatedAlert),
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
 				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
 	})
 }
 
-func TestAccCoralogixResourceAlert_timeRelative(t *testing.T) {
-	alert := timeRelativeAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		ratioThreshold:        acctest.RandIntRange(0, 1000),
-		relativeTimeWindow:    selectRandomlyFromSlice(alertValidRelativeTimeFrames),
-		groupBy:               []string{"EventType"},
-		ignoreInfinity:        randBool(),
-	}
-	checks := extractTimeRelativeChecks(alert)
-
-	updatedAlert := timeRelativeAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		ratioThreshold:        acctest.RandIntRange(0, 1000),
-		relativeTimeWindow:    selectRandomlyFromSlice(alertValidRelativeTimeFrames),
-		groupBy:               []string{"EventType"},
-		ignoreInfinity:        randBool(),
-	}
-	updatedAlertChecks := extractTimeRelativeChecks(updatedAlert)
-
+func TestAccCoralogixResourceAlert_logs_ratio_more_than(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertTimeRelative(&alert),
+				Config: testAccCoralogixResourceAlertStandard(&alert),
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
@@ -216,47 +117,21 @@ func TestAccCoralogixResourceAlert_timeRelative(t *testing.T) {
 				ImportState:  true,
 			},
 			{
-				Config: testAccCoralogixResourceAlertTimeRelative(&updatedAlert),
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
 				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
 	})
 }
 
-func TestAccCoralogixResourceAlert_metricLucene(t *testing.T) {
-	alert := metricLuceneAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		groupBy:               []string{"EventType"},
-		metricField:           "subsystem",
-		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
-		threshold:             acctest.RandIntRange(0, 1000),
-		arithmeticOperator:    selectRandomlyFromSlice(alertValidArithmeticOperators),
-	}
-	if alert.arithmeticOperator == "Percentile" {
-		alert.arithmeticOperatorModifier = acctest.RandIntRange(0, 100)
-	}
-	checks := extractLuceneMetricChecks(alert)
-
-	updatedAlert := metricLuceneAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		groupBy:               []string{"EventType"},
-		metricField:           "subsystem",
-		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
-		threshold:             acctest.RandIntRange(0, 1000),
-		arithmeticOperator:    selectRandomlyFromSlice(alertValidArithmeticOperators),
-	}
-	if updatedAlert.arithmeticOperator == "Percentile" {
-		updatedAlert.arithmeticOperatorModifier = acctest.RandIntRange(0, 100)
-	}
-	updatedAlertChecks := extractLuceneMetricChecks(updatedAlert)
-
+func TestAccCoralogixResourceAlert_logs_ratio_less_than(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertMetricLucene(&alert),
+				Config: testAccCoralogixResourceAlertStandard(&alert),
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
@@ -264,39 +139,21 @@ func TestAccCoralogixResourceAlert_metricLucene(t *testing.T) {
 				ImportState:  true,
 			},
 			{
-				Config: testAccCoralogixResourceAlertMetricLucene(&updatedAlert),
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
 				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
 	})
 }
 
-func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
-	alert := metricPromqlAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		threshold:             acctest.RandIntRange(0, 1000),
-		nonNullPercentage:     10 * acctest.RandIntRange(0, 10),
-		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
-		condition:             "less_than",
-	}
-	checks := extractMetricPromqlAlertChecks(alert)
-
-	updatedAlert := metricPromqlAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		threshold:             acctest.RandIntRange(0, 1000),
-		nonNullPercentage:     10 * acctest.RandIntRange(0, 10),
-		timeWindow:            selectRandomlyFromSlice(alertValidMetricTimeFrames),
-		condition:             "more_than",
-	}
-	updatedAlertChecks := extractMetricPromqlAlertChecks(updatedAlert)
-
+func TestAccCoralogixResourceAlert_logs_new_value(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertMetricPromql(&alert),
+				Config: testAccCoralogixResourceAlertStandard(&alert),
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
@@ -304,39 +161,21 @@ func TestAccCoralogixResourceAlert_metricPromql(t *testing.T) {
 				ImportState:  true,
 			},
 			{
-				Config: testAccCoralogixResourceAlertMetricPromql(&updatedAlert),
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
 				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
 	})
 }
 
-func TestAccCoralogixResourceAlert_tracing(t *testing.T) {
-	alert := tracingAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		conditionLatencyMs:    math.Round(randFloat()*1000) / 1000,
-		occurrencesThreshold:  acctest.RandIntRange(1, 10000),
-		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
-		groupBy:               []string{"EventType"},
-	}
-	checks := extractTracingAlertChecks(alert)
-
-	updatedAlert := tracingAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		conditionLatencyMs:    math.Round(randFloat()*1000) / 1000,
-		occurrencesThreshold:  acctest.RandIntRange(1, 10000),
-		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
-		groupBy:               []string{"EventType"},
-	}
-	updatedAlertChecks := extractTracingAlertChecks(updatedAlert)
-
+func TestAccCoralogixResourceAlert_logs_unique_count(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertTracing(&alert),
+				Config: testAccCoralogixResourceAlertStandard(&alert),
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
@@ -344,7 +183,227 @@ func TestAccCoralogixResourceAlert_tracing(t *testing.T) {
 				ImportState:  true,
 			},
 			{
-				Config: testAccCoralogixResourceAlertTracing(&updatedAlert),
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceAlert_logs_time_relative_more_than(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertStandard(&alert),
+				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceAlert_logs_time_relative_less_than(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertStandard(&alert),
+				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceAlert_metric_more_than(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertStandard(&alert),
+				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceAlert_metric_less_than(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertStandard(&alert),
+				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertStandard(&alert),
+				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceAlert_metric_more_than_usual(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertStandard(&alert),
+				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceAlert_metric_more_than_or_equals(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertStandard(&alert),
+				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceAlert_metric_less_than_or_equals(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertStandard(&alert),
+				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceAlert_tracing_immediate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertStandard(&alert),
+				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
+				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceAlert_tracing_more_than(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertStandard(&alert),
+				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
 				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
@@ -352,300 +411,25 @@ func TestAccCoralogixResourceAlert_tracing(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_flow(t *testing.T) {
-	resourceName := "coralogix_alert.test"
-
-	alert := flowAlertTestParams{
-		name:            acctest.RandomWithPrefix("tf-acc-test"),
-		description:     acctest.RandomWithPrefix("tf-acc-test"),
-		emailRecipients: []string{"user@example.com"},
-		webhookID:       "10761",
-		severity:        selectRandomlyFromSlice(alertValidSeverities),
-		activeWhen:      randActiveWhen(),
-		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
-		notifyOn:        "Triggered_only",
-	}
-	checks := extractFlowAlertChecks(alert)
-
-	updatedAlert := flowAlertTestParams{
-		name:            acctest.RandomWithPrefix("tf-acc-test"),
-		description:     acctest.RandomWithPrefix("tf-acc-test"),
-		emailRecipients: []string{"user@example.com"},
-		webhookID:       "10761",
-		severity:        selectRandomlyFromSlice(alertValidSeverities),
-		activeWhen:      randActiveWhen(),
-		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
-		notifyOn:        "Triggered_only",
-	}
-	updatedAlertChecks := extractFlowAlertChecks(updatedAlert)
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertFLow(&alert),
+				Config: testAccCoralogixResourceAlertStandard(&alert),
 				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 			},
 			{
-				ResourceName: resourceName,
+				ResourceName: alertResourceName,
 				ImportState:  true,
 			},
 			{
-				Config: testAccCoralogixResourceAlertFLow(&updatedAlert),
+				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
 				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
 			},
 		},
 	})
-}
-
-func getRandomAlert() *alertCommonTestParams {
-	return &alertCommonTestParams{
-		name:            acctest.RandomWithPrefix("tf-acc-test"),
-		description:     acctest.RandomWithPrefix("tf-acc-test"),
-		webhookID:       "10761",
-		emailRecipients: []string{"user@example.com"},
-		searchQuery:     "remote_addr_enriched:/.*/",
-		severity:        selectRandomlyFromSlice(alertValidSeverities),
-		activeWhen:      randActiveWhen(),
-		notifyEveryMin:  acctest.RandIntRange(2160 /*to avoid notify_every < condition.0.time_window*/, 3600),
-		notifyOn:        selectRandomlyFromSlice(validNotifyOn),
-		alertFilters: alertFilters{
-			severities: selectManyRandomlyFromSlice(alertValidLogSeverities),
-		},
-	}
-}
-
-func extractStandardAlertChecks(alert standardAlertTestParams) []resource.TestCheckFunc {
-	checks := extractCommonChecks(&alert.alertCommonTestParams, "standard")
-	checks = append(checks,
-		resource.TestCheckResourceAttr(alertResourceName, "meta_labels.alert_type", "security"),
-		resource.TestCheckResourceAttr(alertResourceName, "meta_labels.security_severity", "high"),
-		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.threshold", strconv.Itoa(alert.occurrencesThreshold)),
-		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.time_window", alert.timeWindow),
-		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.group_by.0", alert.groupBy[0]),
-		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.less_than", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "standard.0.condition.0.manage_undetected_values.0.auto_retire_ratio", alert.deadmanRatio),
-	)
-	return checks
-}
-
-func extractRatioAlertChecks(alert ratioAlertTestParams) []resource.TestCheckFunc {
-	checks := extractCommonChecks(&alert.alertCommonTestParams, "ratio.0.query_1")
-	checks = append(checks,
-		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.query_2.0.search_query", alert.q2SearchQuery),
-		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.more_than", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.ratio_threshold", fmt.Sprintf("%f", alert.ratio)),
-		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.time_window", alert.timeWindow),
-		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.group_by.0", alert.groupBy[0]),
-		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.group_by_q1", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "ratio.0.condition.0.ignore_infinity", fmt.Sprintf("%t", alert.ignoreInfinity)),
-	)
-	checks = appendSeveritiesCheck(checks, alert.alertFilters.severities, "ratio.0.query_2")
-
-	return checks
-}
-
-func extractNewValueChecks(alert newValueAlertTestParams) []resource.TestCheckFunc {
-	checks := extractCommonChecks(&alert.alertCommonTestParams, "new_value")
-	checks = append(checks,
-		resource.TestCheckResourceAttr(alertResourceName, "new_value.0.condition.0.key_to_track", alert.keyToTrack),
-		resource.TestCheckResourceAttr(alertResourceName, "new_value.0.condition.0.time_window", alert.timeWindow),
-	)
-	return checks
-}
-
-func extractUniqueCountAlertChecks(alert uniqueCountAlertTestParams) []resource.TestCheckFunc {
-	checks := extractCommonChecks(&alert.alertCommonTestParams, "unique_count")
-	checks = append(checks,
-		resource.TestCheckResourceAttr(alertResourceName, "unique_count.0.condition.0.unique_count_key", alert.uniqueCountKey),
-		resource.TestCheckResourceAttr(alertResourceName, "unique_count.0.condition.0.unique_count_key", alert.uniqueCountKey),
-		resource.TestCheckResourceAttr(alertResourceName, "unique_count.0.condition.0.time_window", alert.timeWindow),
-		resource.TestCheckResourceAttr(alertResourceName, "unique_count.0.condition.0.max_unique_values", strconv.Itoa(alert.maxUniqueValues)),
-		resource.TestCheckResourceAttr(alertResourceName, "unique_count.0.condition.0.max_unique_values_for_group_by", strconv.Itoa(alert.maxUniqueValuesForGroupBy)),
-	)
-	return checks
-}
-
-func extractTimeRelativeChecks(alert timeRelativeAlertTestParams) []resource.TestCheckFunc {
-	checks := extractCommonChecks(&alert.alertCommonTestParams, "time_relative")
-	checks = append(checks,
-		resource.TestCheckResourceAttr(alertResourceName, "time_relative.0.condition.0.ratio_threshold", strconv.Itoa(alert.ratioThreshold)),
-		resource.TestCheckResourceAttr(alertResourceName, "time_relative.0.condition.0.relative_time_window", alert.relativeTimeWindow),
-		resource.TestCheckResourceAttr(alertResourceName, "time_relative.0.condition.0.group_by.0", alert.groupBy[0]),
-		resource.TestCheckResourceAttr(alertResourceName, "time_relative.0.condition.0.ignore_infinity", fmt.Sprintf("%t", alert.ignoreInfinity)),
-	)
-
-	return checks
-}
-
-func extractLuceneMetricChecks(alert metricLuceneAlertTestParams) []resource.TestCheckFunc {
-	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttrSet(alertResourceName, "id"),
-		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
-		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
-		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
-		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
-			map[string]string{
-				"integration_id": alert.webhookID,
-			}),
-		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
-			map[string]string{
-				"email_recipients.0": alert.emailRecipients[0],
-			}),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.search_query", alert.searchQuery),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.metric_field", alert.metricField),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.arithmetic_operator", alert.arithmeticOperator),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.less_than", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.threshold", strconv.Itoa(alert.threshold)),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.arithmetic_operator_modifier", strconv.Itoa(alert.arithmeticOperatorModifier)),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.sample_threshold_percentage", strconv.Itoa(alert.sampleThresholdPercentage)),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.time_window", alert.timeWindow),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.group_by.0", alert.groupBy[0]),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.lucene.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "false"),
-	}
-	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
-	return checks
-}
-
-func extractMetricPromqlAlertChecks(alert metricPromqlAlertTestParams) []resource.TestCheckFunc {
-	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttrSet(alertResourceName, "id"),
-		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
-		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
-		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
-		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
-			map[string]string{
-				"integration_id": alert.webhookID,
-			}),
-		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
-			map[string]string{
-				"email_recipients.0": alert.emailRecipients[0],
-			}),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.search_query", "http_requests_total{status!~\"4..\"}"),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.threshold", strconv.Itoa(alert.threshold)),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.sample_threshold_percentage", strconv.Itoa(alert.sampleThresholdPercentage)),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.min_non_null_values_percentage", strconv.Itoa(alert.nonNullPercentage)),
-		resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.time_window", alert.timeWindow),
-	}
-	if alert.condition == "less_than" {
-		checks = append(checks,
-			resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.less_than", "true"),
-			resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.manage_undetected_values.0.enable_triggering_on_undetected_values", "true"),
-			resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.manage_undetected_values.0.auto_retire_ratio", "Never"),
-		)
-	} else {
-		checks = append(checks,
-			resource.TestCheckResourceAttr(alertResourceName, "metric.0.promql.0.condition.0.more_than", "true"),
-		)
-	}
-	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
-	return checks
-}
-
-func extractTracingAlertChecks(alert tracingAlertTestParams) []resource.TestCheckFunc {
-	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttrSet(alertResourceName, "id"),
-		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
-		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
-		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
-		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
-			map[string]string{
-				"integration_id": alert.webhookID,
-			}),
-		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
-			map[string]string{
-				"email_recipients.0": alert.emailRecipients[0],
-			}),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.latency_threshold_milliseconds", fmt.Sprintf("%.3f", alert.conditionLatencyMs)),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.more_than", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.time_window", alert.timeWindow),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.condition.0.threshold", strconv.Itoa(alert.occurrencesThreshold)),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.applications.0", "nginx"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.subsystems.0", "subsystem-name"),
-		resource.TestCheckResourceAttr(alertResourceName, "tracing.0.tag_filter.0.field", "Status"),
-		resource.TestCheckTypeSetElemAttr(alertResourceName, "tracing.0.tag_filter.0.values.*", "filter:contains:400"),
-		resource.TestCheckTypeSetElemAttr(alertResourceName, "tracing.0.tag_filter.0.values.*", "500"),
-	}
-	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
-	return checks
-}
-
-func extractFlowAlertChecks(alert flowAlertTestParams) []resource.TestCheckFunc {
-	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttrSet(alertResourceName, "id"),
-		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
-		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
-		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
-		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
-			map[string]string{
-				"integration_id": alert.webhookID,
-			}),
-		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
-			map[string]string{
-				"email_recipients.0": alert.emailRecipients[0],
-			}),
-		resource.TestCheckResourceAttr(alertResourceName, "incident_settings.0.notify_on", alert.notifyOn),
-		resource.TestCheckResourceAttr(alertResourceName, "incident_settings.0.retriggering_period_minutes", strconv.Itoa(alert.notifyEveryMin)),
-		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.group.0.sub_alerts.0.operator", "OR"),
-		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.group.0.next_operator", "OR"),
-		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.group.1.sub_alerts.0.operator", "AND"),
-		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.group.1.sub_alerts.0.flow_alert.0.not", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.group.1.next_operator", "AND"),
-		resource.TestCheckResourceAttr(alertResourceName, "flow.0.stage.0.time_window.0.minutes", "20"),
-		resource.TestCheckResourceAttr(alertResourceName, "flow.0.group_by.0", "coralogix.metadata.sdkId"),
-	}
-	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
-	return checks
-}
-
-func extractCommonChecks(alert *alertCommonTestParams, alertType string) []resource.TestCheckFunc {
-	checks := []resource.TestCheckFunc{
-		resource.TestCheckResourceAttrSet(alertResourceName, "id"),
-		resource.TestCheckResourceAttr(alertResourceName, "enabled", "true"),
-		resource.TestCheckResourceAttr(alertResourceName, "name", alert.name),
-		resource.TestCheckResourceAttr(alertResourceName, "description", alert.description),
-		resource.TestCheckResourceAttr(alertResourceName, "severity", alert.severity),
-		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
-			map[string]string{
-				"integration_id": alert.webhookID,
-			}),
-		resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notifications_group.0.notification.*",
-			map[string]string{
-				"email_recipients.0": alert.emailRecipients[0],
-			}),
-		resource.TestCheckResourceAttr(alertResourceName, "incident_settings.0.notify_on", alert.notifyOn),
-		resource.TestCheckResourceAttr(alertResourceName, "incident_settings.0.retriggering_period_minutes", strconv.Itoa(alert.notifyEveryMin)),
-		resource.TestCheckResourceAttr(alertResourceName, fmt.Sprintf("%s.0.search_query", alertType), alert.searchQuery),
-	}
-
-	checks = appendSchedulingChecks(checks, alert.daysOfWeek, alert.activityStarts, alert.activityEnds)
-
-	checks = appendSeveritiesCheck(checks, alert.alertFilters.severities, alertType)
-
-	return checks
-}
-
-func appendSeveritiesCheck(checks []resource.TestCheckFunc, severities []string, alertType string) []resource.TestCheckFunc {
-	for _, s := range severities {
-		checks = append(checks,
-			resource.TestCheckTypeSetElemAttr(alertResourceName, fmt.Sprintf("%s.0.severities.*", alertType), s))
-	}
-	return checks
-}
-
-func appendSchedulingChecks(checks []resource.TestCheckFunc, daysOfWeek []string, startTime, endTime string) []resource.TestCheckFunc {
-	for _, d := range daysOfWeek {
-		checks = append(checks, resource.TestCheckTypeSetElemAttr(alertResourceName, "scheduling.0.time_frame.0.days_enabled.*", d))
-	}
-	checks = append(checks, resource.TestCheckResourceAttr(alertResourceName, "scheduling.0.time_frame.0.start_time", startTime))
-	checks = append(checks, resource.TestCheckResourceAttr(alertResourceName, "scheduling.0.time_frame.0.end_time", endTime))
-	return checks
 }
 
 func testAccCheckAlertDestroy(s *terraform.State) error {
@@ -658,7 +442,7 @@ func testAccCheckAlertDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &alertsv1.GetAlertByUniqueIdRequest{
+		req := &alertsv3.GetAlertByUniqueIdRequest{
 			Id: wrapperspb.String(rs.Primary.ID),
 		}
 
