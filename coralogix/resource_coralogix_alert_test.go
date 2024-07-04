@@ -16,9 +16,9 @@ var alertResourceName = "coralogix_alert.test"
 
 func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckAlertDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsImmediate(),
@@ -76,9 +76,9 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 
 func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckAlertDestroy,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceAlertLogsMoreThan(),
