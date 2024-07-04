@@ -74,27 +74,85 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 	})
 }
 
-//func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
+func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertLogsMoreThan(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-more-than alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-more-than alert example from terraform"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
+					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "high"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.0.simple_target_settings.0.integration_id", "17730"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.1.simple_target_settings.0.retriggering_period.minutes", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.1.simple_target_settings.0.notify_on", "Triggered and Resolved"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.1.simple_target_settings.0.recipients.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.1.simple_target_settings.0.recipients.*", "example@coralogix.com"),
+					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
+					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.0", "Wednesday"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.1", "Thursday"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.hours", "8"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.minutes", "30"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.hours", "20"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.minutes", "30"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.threshold", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.time_window.specific_value", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.evaluation_window", "Dynamic"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.lucene_query", "message:\"error\""),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.0.operation", "OR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.0.value", "nginx"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.subsystem_name.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.subsystem_name.0.operation", "OR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.subsystem_name.0.value", "subsystem-name"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.severity.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.severity.0", "Warning"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertLogsMoreThanUpdated(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-more_-than alert example updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of standard alert from terraform updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
+					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
+					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "low"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.0.simple_target_settings.0.integration_id", "17730"),
+					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered Only"),
+					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.0", "Monday"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.1", "Thursday"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.hours", "8"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.minutes", "30"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.hours", "20"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.minutes", "30"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.threshold", "20"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.time_window.specific_value", "2_HOURS"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.evaluation_window", "Rolling"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.lucene_query", "message:\"error\""),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.0.operation", "OR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.0.value", "nginx"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.1.operation", "NOT"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.1.value", "application_namee"),
+				),
+			},
+		},
+	})
+}
+
 //
 //func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 //	resource.Test(t, resource.TestCase{
@@ -599,6 +657,156 @@ func testAccCoralogixResourceAlertLogsImmediateUpdated() string {
         lucene_filter = {
           lucene_query  = "message:\"error\""
           label_filters = {
+          }
+        }
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsMoreThan() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "logs-more-than alert example"
+  description = "Example of logs-more-than alert example from terraform"
+  priority    = "P2"
+
+  labels = {
+    alert_type        = "security"
+    security_severity = "high"
+  }
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        integration_id = "17730"
+      },
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on  = "Triggered and Resolved"
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  schedule = {
+    active_on = {
+      days_of_week = ["Wednesday", "Thursday"]
+      start_time   = {
+        hours   = 8
+        minutes = 30
+      }
+      end_time = {
+        hours   = 20
+        minutes = 30
+      }
+    }
+  }
+
+  type_definition = {
+    logs_more_than = {
+      threshold   = 2
+      time_window = {
+        specific_value = "10_MINUTES"
+      }
+      evaluation_window = "Dynamic"
+      logs_filter       = {
+        lucene_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [
+              {
+                operation = "OR"
+                value     = "nginx"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "OR"
+                value     = "subsystem-name"
+              }
+            ]
+            severity = ["Warning"]
+          }
+        }
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "logs-more_-than alert example updated"
+  description = "Example of standard alert from terraform updated"
+  priority    = "P3"
+
+  labels = {
+    alert_type        = "security"
+    security_severity = "low"
+  }
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        integration_id = "17730"
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered Only"
+    retriggering_period = {
+      minutes = 10
+    }
+  }
+
+  schedule = {
+    active_on = {
+      days_of_week = ["Monday", "Thursday"]
+      start_time   = {
+        hours   = 8
+        minutes = 30
+      }
+      end_time = {
+        hours   = 20
+        minutes = 30
+      }
+    }
+  }
+
+  type_definition = {
+    logs_more_than = {
+      threshold   = 20
+      time_window = {
+        specific_value = "2_HOURS"
+      }
+      evaluation_window = "Rolling"
+      logs_filter       = {
+        lucene_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [
+              {
+                operation = "OR"
+                value     = "nginx"
+              },
+		      { 
+                operation = "NOT"
+                value     = "application_namee"
+              }
+            ]
           }
         }
       }

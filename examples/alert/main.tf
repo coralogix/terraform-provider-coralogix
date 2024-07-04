@@ -72,8 +72,8 @@ resource "coralogix_alert" "logs_immediate_alert" {
 }
 
 resource "coralogix_alert" "logs_more_than_alert" {
-  name        = "logs-more_-than alert example"
-  description = "Example of standard alert from terraform"
+  name        = "logs-more-than alert example"
+  description = "Example of logs-more-than alert from terraform"
   priority    = "P2"
 
   labels = {
