@@ -235,8 +235,9 @@ type ApiKeyModel struct {
 }
 
 type Owner struct {
-	UserId types.String `tfsdk:"user_id"`
-	TeamId types.String `tfsdk:"team_id"`
+	UserId         types.String `tfsdk:"user_id"`
+	TeamId         types.String `tfsdk:"team_id"`
+	OrganisationId types.String `tfsdk:"organization_id"`
 }
 
 func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -542,15 +543,24 @@ func extractOwner(keyModel *ApiKeyModel) (apikeys.Owner, diag.Diagnostics) {
 			},
 		}, diags
 	} else {
-		teamId, err := strconv.Atoi(keyModel.Owner.TeamId.ValueString())
-		if err != nil {
-			diags.AddError("Invalid team id", "Team id must be a int")
+		if keyModel.Owner.OrganisationId.ValueString() != "" {
+			return apikeys.Owner{
+				Owner: &apikeys.Owner_OrganisationId{
+					OrganisationId: keyModel.Owner.OrganisationId.ValueString(),
+				},
+			}, diags
+		} else {
+
+			teamId, err := strconv.Atoi(keyModel.Owner.TeamId.ValueString())
+			if err != nil {
+				diags.AddError("Invalid team id", "Team id must be a int")
+			}
+			return apikeys.Owner{
+				Owner: &apikeys.Owner_TeamId{
+					TeamId: uint32(teamId),
+				},
+			}, diags
 		}
-		return apikeys.Owner{
-			Owner: &apikeys.Owner_TeamId{
-				TeamId: uint32(teamId),
-			},
-		}, diags
 	}
 }
 
@@ -563,6 +573,10 @@ func flattenOwner(owner *apikeys.Owner) Owner {
 	case *apikeys.Owner_UserId:
 		return Owner{
 			UserId: types.StringValue(owner.GetUserId()),
+		}
+	case *apikeys.Owner_OrganisationId:
+		return Owner{
+			OrganisationId: types.StringValue(owner.GetOrganisationId()),
 		}
 	default:
 		return Owner{}
