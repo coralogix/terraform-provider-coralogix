@@ -7,15 +7,8 @@ description: |-
 ---
 
 # coralogix_rules_group (Data Source)
-Rule-group is list of rule-subgroups with 'and' (&&) operation between. More info: https://coralogix.com/docs/rules-api/.
 
-## Example Usage
 
-```hcl
-data "coralogix_rules_group" "imported_rules_group_example" {
-  id = coralogix_rules_group.rules_group_example.id
-}
-```
 
 
 
@@ -31,9 +24,9 @@ data "coralogix_rules_group" "imported_rules_group_example" {
 - `hidden` (Boolean)
 - `id` (String) The ID of this resource.
 - `name` (String) Rule-group name
-- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default will be added last.
+- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing).
 - `rule_subgroups` (List of Object) List of rule-subgroups. Every rule-subgroup is list of rules with 'or' (||) operation between. (see [below for nested schema](#nestedatt--rule_subgroups))
-- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["Warning" "Error" "Critical" "Debug" "Verbose" "Info"]
+- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["Error" "Critical" "Debug" "Verbose" "Info" "Warning"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.
 
 <a id="nestedatt--rule_subgroups"></a>
@@ -193,5 +186,3 @@ Read-Only:
 - `regular_expression` (String)
 - `replacement_string` (String)
 - `source_field` (String)
-
-

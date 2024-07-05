@@ -433,7 +433,7 @@ func appendSourceFieldSchema(m map[string]*schema.Schema) map[string]*schema.Sch
 	m["source_field"] = &schema.Schema{
 		Type:        schema.TypeString,
 		Required:    true,
-		Description: "The field on which the Regex will operate on.",
+		Description: "The field on which the Regex will operate on. Accepts lowercase only.",
 	}
 	return m
 }
