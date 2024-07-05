@@ -10,6 +10,7 @@ description: |-
 
 Coralogix Api keys.
 
+
 ## Example Usage
 
 ```hcl
@@ -39,10 +40,10 @@ resource "coralogix_api_key" "example" {
 ### Optional
 
 - `active` (Boolean) Api Key Is Active.
-- `hashed` (Boolean) Api Key Is Hashed.
 
 ### Read-Only
 
+- `hashed` (Boolean) Api Key Is Hashed.
 - `id` (String) ApiKey ID.
 - `value` (String, Sensitive) Api Key value.
 
@@ -51,5 +52,6 @@ resource "coralogix_api_key" "example" {
 
 Optional:
 
+- `organisation_id` (String)
 - `team_id` (String)
 - `user_id` (String)
