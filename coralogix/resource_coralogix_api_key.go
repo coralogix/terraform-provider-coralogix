@@ -237,7 +237,7 @@ type ApiKeyModel struct {
 type Owner struct {
 	UserId         types.String `tfsdk:"user_id"`
 	TeamId         types.String `tfsdk:"team_id"`
-	OrganisationId types.String `tfsdk:"organization_id"`
+	OrganisationId types.String `tfsdk:"organisation_id"`
 }
 
 func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
