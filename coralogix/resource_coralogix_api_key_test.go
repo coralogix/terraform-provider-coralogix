@@ -101,5 +101,5 @@ func testOrgApiKeyResource() string {
   permissions = []
   presets = ["Alerts", "APM"]
 }
-`, "<ORG_ID>", orgID, "1")
+`, "<ORG_ID>", orgID, 1)
 }
