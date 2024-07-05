@@ -81,7 +81,7 @@ func TestOrgApiKeyResource(t *testing.T) {
 				Config: testOrgApiKeyResource(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(apiKeyResourceName, "name", "Test Key 4"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "owner.organization_id", orgID),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "owner.organisation_id", orgID),
 					resource.TestCheckResourceAttr(apiKeyResourceName, "active", "true"),
 					resource.TestCheckResourceAttr(apiKeyResourceName, "permissions.#", "0"),
 					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "Alerts"),
@@ -95,7 +95,7 @@ func testOrgApiKeyResource() string {
 	return strings.Replace(`resource "coralogix_api_key" "test" {
   name  = "Test Key 4"
   owner = {
-    organization_id : "<ORG_ID>"
+    organisation_id : "<ORG_ID>"
   }
   active = true
   permissions = []
