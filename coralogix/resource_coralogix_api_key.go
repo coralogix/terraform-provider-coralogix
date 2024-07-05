@@ -172,6 +172,7 @@ func resourceSchemaV0() schema.Schema {
 						Validators: []validator.String{
 							stringvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("user_id"),
+								path.MatchRelative().AtParent().AtName("organisation_id"),
 							),
 						},
 						PlanModifiers: []planmodifier.String{
@@ -183,7 +184,19 @@ func resourceSchemaV0() schema.Schema {
 						Validators: []validator.String{
 							stringvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("team_id"),
+								path.MatchRelative().AtParent().AtName("organisation_id"),
 							),
+						},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.RequiresReplace(),
+						},
+					},
+					"organisation_id": schema.StringAttribute{
+						Optional: true,
+						Validators: []validator.String{
+							stringvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("team_id"),
+								path.MatchRelative().AtParent().AtName("user_id")),
 						},
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.RequiresReplace(),
