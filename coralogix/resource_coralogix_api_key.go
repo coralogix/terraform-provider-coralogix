@@ -537,7 +537,6 @@ func extractOwner(keyModel *ApiKeyModel) (apikeys.Owner, diag.Diagnostics) {
 				},
 			}, diags
 		} else {
-
 			teamId, err := strconv.Atoi(keyModel.Owner.TeamId.ValueString())
 			if err != nil {
 				diags.AddError("Invalid team id", "Team id must be a int")

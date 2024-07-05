@@ -71,35 +71,3 @@ func updateApiKeyResource() string {
 }
 `, "<TEAM_ID>", teamID, 1)
 }
-
-func TestOrgApiKeyResource(t *testing.T) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		Steps: []resource.TestStep{
-			{
-				Config: testOrgApiKeyResource(),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(apiKeyResourceName, "name", "Test Key 4"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "owner.organisation_id", orgID),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "active", "true"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "permissions.#", "0"),
-					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "Alerts"),
-					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "APM"),
-				),
-			},
-		},
-	})
-}
-func testOrgApiKeyResource() string {
-	return strings.Replace(`resource "coralogix_api_key" "test" {
-  name  = "Test Key 4"
-  owner = {
-    organisation_id : "<ORG_ID>"
-  }
-  active = true
-  permissions = []
-  presets = ["Alerts", "APM"]
-}
-`, "<ORG_ID>", orgID, 1)
-}

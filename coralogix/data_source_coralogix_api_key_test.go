@@ -8,7 +8,6 @@ import (
 )
 
 var teamID = os.Getenv("TEST_TEAM_ID")
-var orgID = os.Getenv("TEST_ORG_ID")
 var apiKeyDataSourceName = "data." + apiKeyResourceName
 
 func TestAccCoralogixDataSourceApiKey(t *testing.T) {
