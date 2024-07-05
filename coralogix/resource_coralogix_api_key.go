@@ -257,17 +257,10 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 	createApiKeyResp, err := r.client.CreateApiKey(ctx, createApiKeyRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error creating Api Key",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", createApiKeyPath),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error creating Api Key",
-				formatRpcErrors(err, createApiKeyPath, protojson.Format(createApiKeyRequest)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error creating Api Key",
+			formatRpcErrors(err, createApiKeyPath, protojson.Format(createApiKeyRequest)),
+		)
 		return
 	}
 	log.Printf("[INFO] Create api key with ID: %s", createApiKeyResp.KeyId)
@@ -362,17 +355,10 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 	_, err := r.client.UpdateApiKey(ctx, &updateApiKeyRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error updating Api Key",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", updateApiKeyPath),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error updating Api Key",
-				formatRpcErrors(err, updateApiKeyPath, protojson.Format(&updateApiKeyRequest)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error updating Api Key",
+			formatRpcErrors(err, updateApiKeyPath, protojson.Format(&updateApiKeyRequest)),
+		)
 		return
 	}
 
@@ -402,17 +388,10 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error getting Api Key",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", deleteApiKeyPath),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error getting Api Key",
-				formatRpcErrors(err, deleteApiKeyPath, protojson.Format(deleteApiKeyRequest)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error getting Api Key",
+			formatRpcErrors(err, deleteApiKeyPath, protojson.Format(deleteApiKeyRequest)),
+		)
 		return
 	}
 
@@ -429,12 +408,7 @@ func (r *ApiKeyResource) getKeyInfo(ctx context.Context, id *string, keyValue *s
 
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			diags.AddError(
-				"Error getting Api Key",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", getApiKeyPath),
-			)
-		} else if status.Code(err) == codes.NotFound {
+		if status.Code(err) == codes.NotFound {
 			diags.AddError(
 				"Error getting Api Key",
 				fmt.Sprintf("Api Key with id %s not found", *id),

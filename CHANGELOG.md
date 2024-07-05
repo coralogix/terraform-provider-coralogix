@@ -587,6 +587,13 @@ New Features:
 * adding `more_than_or_equal_usual` and `less_than_or_equal_usual` conditions to `metric.promql` alert.
 
 ## Release 1.16.2
+
 New Features:
 #### resource/coralogix_api_key
 * added support for `Organisation_Id` owners.
+
+Bug fixing:
+#### resource/coralogix_api_key
+* HTTP 403 responses will now be displaying the actual error message
+
+Various documentation fixes
