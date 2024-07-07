@@ -100,8 +100,8 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
 						map[string]string{
-							"retriggering_period.minutes": "1",
-							"notify_on":                   "Triggered and Resolved",
+							"recipients.#": "1",
+							"recipients.0": "example@coralogix.com",
 						},
 					),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
@@ -129,12 +129,7 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 							"value":     "subsystem-name",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.severities.*",
-						map[string]string{
-							"operation": "OR",
-							"value":     "Warning",
-						},
-					),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.severities.*", "Warning"),
 				),
 			},
 			{
@@ -218,12 +213,7 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 							"value":     "subsystem-name",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.severities.*",
-						map[string]string{
-							"operation": "OR",
-							"value":     "Warning",
-						},
-					),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.severities.*", "Warning"),
 				),
 			},
 			{
@@ -415,7 +405,6 @@ func testAccCoralogixResourceAlertLogsMoreThan() string {
         integration_id = "17730"
       },
       {
-        notify_on  = "Triggered and Resolved"
         recipients = ["example@coralogix.com"]
       }
     ]
