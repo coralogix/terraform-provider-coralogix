@@ -28,11 +28,11 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "high"),
-					//resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
-					//	map[string]string{
-					//		"recipients.#": "1",
-					//		"recipients.*": "example@coralogix.com",
-					//	}),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
+						map[string]string{
+							"recipients.#": "1",
+							"recipients.0": "example@coralogix.com",
+						}),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
@@ -55,14 +55,14 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs immediate alert updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs immediate alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
-					//resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.advanced_target_settings.*",
-					//	map[string]string{
-					//		"retriggering_period.minutes": "10",
-					//		"notify_on":                   "Triggered Only",
-					//		"recipients.#":                "1",
-					//		"recipients.*":                "example@coralogix.com",
-					//	},
-					//),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.advanced_target_settings.*",
+						map[string]string{
+							"retriggering_period.minutes": "10",
+							"notify_on":                   "Triggered Only",
+							"recipients.#":                "1",
+							"recipients.0":                "example@coralogix.com",
+						},
+					),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
@@ -257,381 +257,6 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 	},
 	)
 }
-
-//
-//func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_logs_ratio_more_than(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_logs_ratio_less_than(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_logs_new_value(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_logs_unique_count(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_logs_time_relative_more_than(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_logs_time_relative_less_than(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_metric_more_than(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_metric_less_than(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_metric_more_than_usual(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_metric_more_than_or_equals(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_metric_less_than_or_equals(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_tracing_immediate(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_tracing_more_than(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
-//
-//func TestAccCoralogixResourceAlert_flow(t *testing.T) {
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
-//		CheckDestroy:      testAccCheckAlertDestroy,
-//		Steps: []resource.TestStep{
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&alert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(checks...),
-//			},
-//			{
-//				ResourceName: alertResourceName,
-//				ImportState:  true,
-//			},
-//			{
-//				Config: testAccCoralogixResourceAlertStandard(&updatedAlert),
-//				Check:  resource.ComposeAggregateTestCheckFunc(updatedAlertChecks...),
-//			},
-//		},
-//	})
-//}
 
 func testAccCheckAlertDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*clientset.ClientSet).Alerts()
@@ -837,7 +462,7 @@ func testAccCoralogixResourceAlertLogsMoreThan() string {
                 value     = "subsystem-name"
               }
             ]
-            severity = ["Warning"]
+            severities = ["Warning"]
           }
         }
       }
@@ -987,7 +612,7 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
 					value     = "subsystem-name"
 				  }
 				]
-				severity = ["Warning"]
+				severities= ["Warning"]
 			  }
 			}
 		  }
