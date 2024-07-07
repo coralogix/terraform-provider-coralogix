@@ -93,16 +93,22 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "high"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.0.simple_target_settings.0.integration_id", "17730"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.1.simple_target_settings.0.retriggering_period.minutes", "1"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.1.simple_target_settings.0.notify_on", "Triggered and Resolved"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.1.simple_target_settings.0.recipients.#", "1"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.1.simple_target_settings.0.recipients.*", "example@coralogix.com"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
+						map[string]string{
+							"integration_id": "17730",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
+						map[string]string{
+							"retriggering_period.minutes": "1",
+							"notify_on":                   "Triggered and Resolved",
+						},
+					),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.0", "Wednesday"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.1", "Thursday"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Wednesday"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.hours", "8"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.minutes", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.hours", "20"),
@@ -123,7 +129,7 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 							"value":     "subsystem-name",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.severity.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.severities.*",
 						map[string]string{
 							"operation": "OR",
 							"value":     "Warning",
@@ -212,7 +218,7 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 							"value":     "subsystem-name",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.severity.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.severities.*",
 						map[string]string{
 							"operation": "OR",
 							"value":     "Warning",
@@ -409,9 +415,6 @@ func testAccCoralogixResourceAlertLogsMoreThan() string {
         integration_id = "17730"
       },
       {
-        retriggering_period = {
-          minutes = 1
-        }
         notify_on  = "Triggered and Resolved"
         recipients = ["example@coralogix.com"]
       }
