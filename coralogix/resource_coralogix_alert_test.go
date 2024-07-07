@@ -158,11 +158,19 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.time_window.specific_value", "2_HOURS"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.evaluation_window", "Rolling"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.lucene_query", "message:\"error\""),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.#", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.0.operation", "OR"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.0.value", "nginx"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.1.operation", "NOT"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.1.value", "application_namee"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.*",
+						map[string]string{
+							"operation": "OR",
+							"value":     "nginx",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.*",
+						map[string]string{
+							"operation": "NOT",
+							"value":     "application_name",
+						},
+					),
+
 				),
 			},
 		},
@@ -246,7 +254,7 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.application_name.0.operation", "OR"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.application_name.0.value", "nginx"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.application_name.1.operation", "NOT"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.application_name.1.value", "application_namee"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.application_name.1.value", "application_name"),
 				),
 			},
 		},
@@ -522,7 +530,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
               },
 		      { 
                 operation = "NOT"
-                value     = "application_namee"
+                value     = "application_name"
               }
             ]
           }
@@ -672,7 +680,7 @@ func testAccCoralogixResourceAlertLogsLessThanUpdated() string {
 			  },
 			  {
 				operation = "NOT"
-				value     = "application_namee"
+				value     = "application_name"
 			  }
 			]
 		  }
