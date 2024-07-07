@@ -403,7 +403,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual_alert(t *testing.T) {
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.subsystem_name.*",
 						map[string]string{
-							"operation": "AND",
+							"operation": "STARTS_WITH",
 							"value":     "subsystem-name",
 						},
 					),
@@ -521,7 +521,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 						]	
 						subsystem_name = [			
 							{
-								operation = "AND"
+								operation = "STARTS_WITH"
 								value     = "subsystem-name"		
 							}
 						]
@@ -1044,7 +1044,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUsual() string {
   notification_group = {
     advanced_target_settings = [
       {
-        integration_id = coralogix_webhook.slack_webhook.external_id
+        integration_id = "17730"
         notify_on      = "Triggered and Resolved"
       },
       {
