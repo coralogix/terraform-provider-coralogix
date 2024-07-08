@@ -210,15 +210,14 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Wednesday"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Wednesday"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.hours", "8"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.minutes", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.hours", "20"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.minutes", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.threshold", "2"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.time_window.specific_value", "10_MINUTES"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.evaluation_window", "Dynamic"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
@@ -256,15 +255,14 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered Only"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Monday"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Monday"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.hours", "8"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.minutes", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.hours", "20"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.minutes", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.threshold", "20"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.time_window.specific_value", "2_HOURS"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.evaluation_window", "Rolling"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
@@ -313,8 +311,8 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual_alert(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Wednesday"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Wednesday"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.hours", "8"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.minutes", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.hours", "20"),
@@ -417,7 +415,6 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual_alert(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.minutes", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.threshold", "2"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.time_window.specific_value", "10_MINUTES"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.evaluation_window", "Dynamic"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
@@ -953,7 +950,6 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
 		  time_window = {
 			specific_value = "10_MINUTES"
 		  }
-		  evaluation_window = "Dynamic"
 		  logs_filter       = {
 			lucene_filter = {
 			  lucene_query  = "message:\"error\""
