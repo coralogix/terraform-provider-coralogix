@@ -97,6 +97,7 @@ func resourceSchemaV1() schema.Schema {
 						Validators: []validator.String{
 							stringvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("user_id"),
+								path.MatchRelative().AtParent().AtName("organisation_id"),
 							),
 						},
 						PlanModifiers: []planmodifier.String{
@@ -108,7 +109,19 @@ func resourceSchemaV1() schema.Schema {
 						Validators: []validator.String{
 							stringvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("team_id"),
+								path.MatchRelative().AtParent().AtName("organisation_id"),
 							),
+						},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.RequiresReplace(),
+						},
+					},
+					"organisation_id": schema.StringAttribute{
+						Optional: true,
+						Validators: []validator.String{
+							stringvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("team_id"),
+								path.MatchRelative().AtParent().AtName("user_id")),
 						},
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.RequiresReplace(),
@@ -235,8 +248,9 @@ type ApiKeyModel struct {
 }
 
 type Owner struct {
-	UserId types.String `tfsdk:"user_id"`
-	TeamId types.String `tfsdk:"team_id"`
+	UserId         types.String `tfsdk:"user_id"`
+	TeamId         types.String `tfsdk:"team_id"`
+	OrganisationId types.String `tfsdk:"organisation_id"`
 }
 
 func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -256,17 +270,10 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 	createApiKeyResp, err := r.client.CreateApiKey(ctx, createApiKeyRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error creating Api Key",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", createApiKeyPath),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error creating Api Key",
-				formatRpcErrors(err, createApiKeyPath, protojson.Format(createApiKeyRequest)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error creating Api Key",
+			formatRpcErrors(err, createApiKeyPath, protojson.Format(createApiKeyRequest)),
+		)
 		return
 	}
 	log.Printf("[INFO] Create api key with ID: %s", createApiKeyResp.KeyId)
@@ -361,17 +368,10 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 	_, err := r.client.UpdateApiKey(ctx, &updateApiKeyRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error updating Api Key",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", updateApiKeyPath),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error updating Api Key",
-				formatRpcErrors(err, updateApiKeyPath, protojson.Format(&updateApiKeyRequest)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error updating Api Key",
+			formatRpcErrors(err, updateApiKeyPath, protojson.Format(&updateApiKeyRequest)),
+		)
 		return
 	}
 
@@ -401,17 +401,10 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error getting Api Key",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", deleteApiKeyPath),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error getting Api Key",
-				formatRpcErrors(err, deleteApiKeyPath, protojson.Format(deleteApiKeyRequest)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error getting Api Key",
+			formatRpcErrors(err, deleteApiKeyPath, protojson.Format(deleteApiKeyRequest)),
+		)
 		return
 	}
 
@@ -428,12 +421,7 @@ func (r *ApiKeyResource) getKeyInfo(ctx context.Context, id *string, keyValue *s
 
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			diags.AddError(
-				"Error getting Api Key",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", getApiKeyPath),
-			)
-		} else if status.Code(err) == codes.NotFound {
+		if status.Code(err) == codes.NotFound {
 			diags.AddError(
 				"Error getting Api Key",
 				fmt.Sprintf("Api Key with id %s not found", *id),
@@ -542,15 +530,23 @@ func extractOwner(keyModel *ApiKeyModel) (apikeys.Owner, diag.Diagnostics) {
 			},
 		}, diags
 	} else {
-		teamId, err := strconv.Atoi(keyModel.Owner.TeamId.ValueString())
-		if err != nil {
-			diags.AddError("Invalid team id", "Team id must be a int")
+		if keyModel.Owner.OrganisationId.ValueString() != "" {
+			return apikeys.Owner{
+				Owner: &apikeys.Owner_OrganisationId{
+					OrganisationId: keyModel.Owner.OrganisationId.ValueString(),
+				},
+			}, diags
+		} else {
+			teamId, err := strconv.Atoi(keyModel.Owner.TeamId.ValueString())
+			if err != nil {
+				diags.AddError("Invalid team id", "Team id must be a int")
+			}
+			return apikeys.Owner{
+				Owner: &apikeys.Owner_TeamId{
+					TeamId: uint32(teamId),
+				},
+			}, diags
 		}
-		return apikeys.Owner{
-			Owner: &apikeys.Owner_TeamId{
-				TeamId: uint32(teamId),
-			},
-		}, diags
 	}
 }
 
@@ -563,6 +559,10 @@ func flattenOwner(owner *apikeys.Owner) Owner {
 	case *apikeys.Owner_UserId:
 		return Owner{
 			UserId: types.StringValue(owner.GetUserId()),
+		}
+	case *apikeys.Owner_OrganisationId:
+		return Owner{
+			OrganisationId: types.StringValue(owner.GetOrganisationId()),
 		}
 	default:
 		return Owner{}

@@ -1,10 +1,9 @@
 We deeply appreciate any effort to discover and disclose security vulnerabilities responsibly.
 
-If you would like to report a vulnerability in one of our products, or have security concerns regarding HashiCorp software, please email security@hashicorp.com.
+If you would like to report a vulnerability in one of our products, or have security concerns regarding Coralogix software, please email security@coralogix.com.
 
 In order for us to best respond to your report, please include any of the following:
 
-Steps to reproduce or proof-of-concept
-Any relevant tools, including versions used
-Tool output
-For additional information about HashiCorp security, please see https://hashicorp.com/security.
+1. Steps to reproduce or proof-of-concept
+2. Any relevant tools, including versions used
+3. Tool output
