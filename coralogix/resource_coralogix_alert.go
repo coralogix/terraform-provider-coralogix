@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -145,7 +146,7 @@ var (
 	validLogsRatioTimeWindowValues           = GetKeys(logsRatioTimeWindowValueSchemaToProtoMap)
 
 	logsRatioGroupByForProtoToSchemaMap = map[alerts.LogsRatioGroupByFor]string{
-		alerts.LogsRatioGroupByFor_LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED: "Both or Unspecified",
+		alerts.LogsRatioGroupByFor_LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED: "Both",
 		alerts.LogsRatioGroupByFor_LOGS_RATIO_GROUP_BY_FOR_NUMERATOR_ONLY:      "Numerator Only",
 		alerts.LogsRatioGroupByFor_LOGS_RATIO_GROUP_BY_FOR_DENUMERATOR_ONLY:    "Denominator Only",
 	}
@@ -613,6 +614,24 @@ func (r *AlertResource) Configure(_ context.Context, req resource.ConfigureReque
 	}
 
 	r.client = clientSet.Alerts()
+}
+
+type advancedTargetSettingsPlanModifier struct{}
+
+func (a advancedTargetSettingsPlanModifier) Description(ctx context.Context) string {
+	return "Advanced target settings."
+}
+
+func (a advancedTargetSettingsPlanModifier) MarkdownDescription(ctx context.Context) string {
+	return "Advanced target settings."
+}
+
+func (a advancedTargetSettingsPlanModifier) PlanModifyObject(ctx context.Context, request planmodifier.ObjectRequest, response *planmodifier.ObjectResponse) {
+	if !request.ConfigValue.IsUnknown() {
+		return
+	}
+
+	response.PlanValue = request.StateValue
 }
 
 func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -1083,11 +1102,15 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								"retriggering_period": schema.SingleNestedAttribute{
 									Optional: true,
 									Computed: true,
+									Default: objectdefault.StaticValue(types.ObjectValueMust(retriggeringPeriodAttr(), map[string]attr.Value{
+										"minutes": types.Int64Value(10),
+									})),
 									Attributes: map[string]schema.Attribute{
 										"minutes": schema.Int64Attribute{
 											Required: true,
 										},
 									},
+									MarkdownDescription: "Retriggering period in minutes. 10 minutes by default.",
 								},
 								"notify_on": schema.StringAttribute{
 									Optional: true,
@@ -1096,6 +1119,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 									Validators: []validator.String{
 										stringvalidator.OneOf(validNotifyOn...),
 									},
+									MarkdownDescription: fmt.Sprintf("Notify on. Valid values: %q. Triggered Only by default.", validNotifyOn),
 								},
 								"integration_id": schema.StringAttribute{
 									Optional: true,
@@ -1107,6 +1131,9 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 									Optional:    true,
 									ElementType: types.StringType,
 								},
+							},
+							PlanModifiers: []planmodifier.Object{
+								objectplanmodifier.UseStateForUnknown(),
 							},
 						},
 						Validators: []validator.Set{
@@ -1157,12 +1184,12 @@ func logsRatioGroupByForSchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
-		Default:  stringdefault.StaticString("Both or Unspecified"),
+		Default:  stringdefault.StaticString("Both"),
 		Validators: []validator.String{
 			stringvalidator.OneOf(validLogsRatioGroupByFor...),
 			stringvalidator.AlsoRequires(path.MatchRoot("group_by")),
 		},
-		MarkdownDescription: fmt.Sprintf("Group by for. Valid values: %q.", validLogsRatioGroupByFor),
+		MarkdownDescription: fmt.Sprintf("Group by for. Valid values: %q. 'Both' by default.", validLogsRatioGroupByFor),
 	}
 }
 

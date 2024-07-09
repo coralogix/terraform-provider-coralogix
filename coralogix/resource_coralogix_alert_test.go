@@ -487,7 +487,124 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_logs_ratio_more_than(t *testing.T) {
-
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertLogsRatioMoreThan(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-ratio-more-than alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-ratio-more-than alert from terraform"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "notification_group.group_by.*", "coralogix.metadata.alert_id"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "notification_group.group_by.*", "coralogix.metadata.alert_name"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
+						map[string]string{
+							"recipients.#": "1",
+							"recipients.0": "example@coralogix.com",
+						},
+					),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.denominator_alias", "denominator"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_alias", "numerator"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.time_window.specific_value", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.threshold", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.lucene_query", "mod_date:[20020101 TO 20030101]"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.label_filters.application_name.*",
+						map[string]string{
+							"operation": "OR",
+							"value":     "nginx",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.label_filters.subsystem_name.*",
+						map[string]string{
+							"operation": "OR",
+							"value":     "subsystem-name",
+						},
+					),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.label_filters.severities.*", "Warning"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.lucene_query", "mod_date:[20030101 TO 20040101]"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.application_name.*",
+						map[string]string{
+							"operation": "OR",
+							"value":     "nginx",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.subsystem_name.*",
+						map[string]string{
+							"operation": "OR",
+							"value":     "subsystem-name",
+						},
+					),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.severities.*", "Error"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.group_by_for", "Both"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertLogsRatioMoreThanUpdated(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-ratio-more-than alert example updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-ratio-more-than alert from terraform updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "3"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_id"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_name"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_description"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
+						map[string]string{
+							"integration_id": "17730",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
+						map[string]string{
+							"recipients.#": "1",
+							"recipients.0": "example@coralogix.com",
+						},
+					),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.denominator_alias", "updated-denominator"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_alias", "updated-numerator"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.time_window.specific_value", "1_HOUR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.threshold", "120"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.group_by_for", "Numerator Only"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.lucene_query", "mod_date:[20030101 TO 20040101]"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.label_filters.application_name.*",
+						map[string]string{
+							"operation": "OR",
+							"value":     "nginx",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.label_filters.subsystem_name.*",
+						map[string]string{
+							"operation": "OR",
+							"value":     "subsystem-name",
+						},
+					),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.label_filters.severities.*", "Warning"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.lucene_query", "mod_date:[20040101 TO 20050101]"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.application_name.*",
+						map[string]string{
+							"operation": "ENDS_WITH",
+							"value":     "updated-subsystem-name",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.application_name.*",
+						map[string]string{
+							"operation": "NOT",
+							"value":     "subsystem-name",
+						},
+					),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.severities.#", "0"),
+				),
+			},
+		},
+	},
+	)
 }
 
 func testAccCoralogixResourceAlertLogsLessThanUsual() string {
@@ -495,7 +612,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 	  name        = "logs-less-than alert example"
 	  description = "Example of logs-less-than alert example from terraform"
 	  priority    = "P2"
-      
+
 	  labels = {
 		alert_type        = "security"
 		security_severity = "high"
@@ -511,7 +628,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 		}
 		]
 	 }
-		
+
 	  incidents_settings = {
 		notify_on           = "Triggered and Resolved"
 		retriggering_period = {
@@ -526,7 +643,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 				hours   = 10
 				minutes = 30
 			}
-			end_time = {	
+			end_time = {
 				hours   = 20
 				minutes = 30
 			}
@@ -537,7 +654,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 		logs_less_than = {
 			threshold   = 2
 			time_window = {
-				specific_value = "10_MINUTES"	
+				specific_value = "10_MINUTES"
 			}
 			evaluation_window = "Dynamic"
 			logs_filter       = {
@@ -548,12 +665,12 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 							{
 								operation = "NOT"
 								value     = "application_name"
-							}	
-						]	
-						subsystem_name = [			
+							}
+						]
+						subsystem_name = [
 							{
 								operation = "STARTS_WITH"
-								value     = "subsystem-name"		
+								value     = "subsystem-name"
 							}
 						]
 						severities = ["Warning", "Error"]
@@ -728,7 +845,7 @@ func testAccCoralogixResourceAlertLogsImmediateUpdated() string {
       }
     ]
   }
-	
+
   incidents_settings = {
 	notify_on           = "Triggered and Resolved"
 	retriggering_period = {
@@ -897,7 +1014,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
                 operation = "OR"
                 value     = "nginx"
               },
-		      { 
+		      {
                 operation = "NOT"
                 value     = "application_name"
               }
@@ -963,11 +1080,11 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
 		  logs_filter       = {
 			lucene_filter = {
 			  lucene_query  = "message:\"error\""
-			  label_filters = {	
+			  label_filters = {
 				application_name = [
 				  {
 					operation = "OR"
-					value     = "nginx"				
+					value     = "nginx"
 				  }
 				]
 				subsystem_name = [
@@ -1036,11 +1153,11 @@ func testAccCoralogixResourceAlertLogsLessThanUpdated() string {
 	  logs_filter       = {
 		lucene_filter = {
 		  lucene_query  = "message:\"error\""
-		  label_filters = {	
+		  label_filters = {
 			application_name = [
 			  {
 				operation = "OR"
-				value     = "nginx"				
+				value     = "nginx"
 			  },
 			  {
 				operation = "NOT"
@@ -1180,6 +1297,145 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
         specific_value = "1_HOUR"
       }
       minimum_threshold = 20
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "logs-ratio-more-than alert example"
+  description = "Example of logs-ratio-more-than alert from terraform"
+  priority    = "P1"
+  group_by        = ["coralogix.metadata.alert_id", "coralogix.metadata.alert_name"]
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  type_definition = {
+    logs_ratio_more_than = {
+      denominator_alias = "denominator"
+      denominator_logs_filter = {
+        lucene_filter = {
+          lucene_query  = "mod_date:[20020101 TO 20030101]"
+          label_filters = {
+            application_name = [
+              {
+                operation = "OR"
+                value     = "nginx"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "OR"
+                value     = "subsystem-name"
+              }
+            ]
+            severities = ["Warning"]
+          }
+        }
+      }
+      numerator_alias   = "numerator"
+      numerator_logs_filter = {
+            lucene_filter = {
+            lucene_query  = "mod_date:[20030101 TO 20040101]"
+            label_filters = {
+                application_name = [
+                {
+                    operation = "OR"
+                    value     = "nginx"
+                }
+                ]
+                subsystem_name = [
+                {
+                    operation = "OR"
+                    value     = "subsystem-name"
+                }
+                ]
+                severities = ["Error"]
+            }
+            }
+        }
+      time_window = {
+        specific_value = "10_MINUTES"
+      }
+      threshold         = 2
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "logs-ratio-more-than alert example updated"
+  description = "Example of logs-ratio-more-than alert from terraform updated"
+  priority    = "P2"
+  group_by    = ["coralogix.metadata.alert_id", "coralogix.metadata.alert_name", "coralogix.metadata.alert_description"]
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        recipients = ["example@coralogix.com"]
+      },
+        {
+            integration_id = "17730"
+        }
+    ]
+  }
+
+  type_definition = {
+    logs_ratio_more_than = {
+      denominator_alias       = "updated-denominator"
+      denominator_logs_filter = {
+        lucene_filter = {
+          lucene_query  = "mod_date:[20030101 TO 20040101]"
+          label_filters = {
+            application_name = [
+              {
+                operation = "OR"
+                value     = "nginx"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "OR"
+                value     = "subsystem-name"
+              }
+            ]
+            severities = ["Warning"]
+          }
+        }
+      }
+      numerator_alias       = "updated-numerator"
+      numerator_logs_filter = {
+        lucene_filter = {
+          lucene_query  = "mod_date:[20040101 TO 20050101]"
+          label_filters = {
+            subsystem_name = [
+              {
+                operation = "ENDS_WITH"
+                value     = "updated-subsystem-name"
+              },
+              {
+                operation = "NOT"
+                value     = "subsystem-name"
+              }
+            ]
+          }
+        }
+      }
+      time_window = {
+        specific_value = "1_HOUR"
+      }
+      threshold = 120
+      group_by_for = "Numerator Only"
     }
   }
 }
