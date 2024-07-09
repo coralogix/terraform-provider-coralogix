@@ -8,6 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards"
+
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
@@ -36,8 +39,6 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards"
 )
 
 var (
@@ -244,8 +245,16 @@ type DashboardLayoutModel struct {
 }
 
 type SectionModel struct {
-	ID   types.String `tfsdk:"id"`
-	Rows types.List   `tfsdk:"rows"` //RowModel
+	ID      types.String         `tfsdk:"id"`
+	Rows    types.List           `tfsdk:"rows"` //RowModel
+	Options *SectionOptionsModel `tfsdk:"options"`
+}
+
+type SectionOptionsModel struct {
+	Name        types.String `tfsdk:"name"`
+	Description types.String `tfsdk:"description"`
+	Collapsed   types.Bool   `tfsdk:"collapsed"`
+	Color       types.String `tfsdk:"color"`
 }
 
 type RowModel struct {
@@ -2206,6 +2215,19 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 								},
 								Optional: true,
 							},
+							"options": schema.SingleNestedAttribute{
+								Attributes: map[string]schema.Attribute{
+									"name": schema.StringAttribute{
+										Required: true,
+									},
+									"description": schema.StringAttribute{
+										Optional: true,
+									},
+									"color": schema.StringAttribute{
+										Optional: true,
+									},
+								}, Optional: true,
+							},
 						},
 					},
 					Optional: true,
@@ -3609,9 +3631,41 @@ func expandSection(ctx context.Context, section SectionModel) (*dashboards.Secti
 		return nil, diags
 	}
 
-	return &dashboards.Section{
-		Id:   id,
-		Rows: rows,
+	if section.Options != nil {
+		options, diags := expandSectionOptions(ctx, *section.Options)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboards.Section{
+			Id:      id,
+			Rows:    rows,
+			Options: options,
+		}, nil
+	} else {
+		return &dashboards.Section{
+			Id:      id,
+			Rows:    rows,
+			Options: nil,
+		}, nil
+	}
+}
+
+func expandSectionOptions(_ context.Context, option SectionOptionsModel) (*dashboards.SectionOptions, diag.Diagnostics) {
+	mappedColor := dashboards.SectionPredefinedColor_value[fmt.Sprintf("SECTION_PREDEFINED_COLOR_%s", strings.ToUpper(option.Color.String()))]
+
+	return &dashboards.SectionOptions{
+		Value: &dashboards.SectionOptions_Custom{
+			Custom: &dashboards.CustomSectionOptions{
+				Name:        wrapperspb.String(option.Name.String()),
+				Description: wrapperspb.String(option.Description.String()),
+				Collapsed:   wrapperspb.Bool(option.Collapsed.ValueBool()),
+				Color: &dashboards.SectionColor{
+					Value: &dashboards.SectionColor_Predefined{
+						Predefined: dashboards.SectionPredefinedColor(mappedColor),
+					},
+				},
+			},
+		},
 	}, nil
 }
 
