@@ -364,8 +364,8 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered Only"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than_usual.lucene_filter.label_filters.lucene_query", "message:\"updated_error\""),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than_usual.logs_filter.lucene_filter.label_filters..application_name.*",
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than_usual.logs_filter.lucene_filter.lucene_query", "message:\"updated_error\""),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than_usual.logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
 							"operation": "OR",
 							"value":     "nginx",
@@ -379,7 +379,7 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_more_than_usual.logs_filter.lucene_filter.label_filters.severities.*", "Warning"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_more_than_usual.logs_filter.lucene_filter.label_filters.severities.*", "Error"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than_usual.time_window.specific_value", "1_HOURS"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than_usual.time_window.specific_value", "1_HOUR"),
 				),
 			},
 		},
@@ -589,21 +589,22 @@ func TestAccCoralogixResourceAlert_logs_ratio_more_than(t *testing.T) {
 							"value":     "subsystem-name",
 						},
 					),
-					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.label_filters.severities.*", "Warning"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.lucene_query", "mod_date:[20040101 TO 20050101]"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.application_name.*",
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.application_name.#", "0"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.severities.#", "0"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.subsystem_name.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.subsystem_name.*",
 						map[string]string{
 							"operation": "ENDS_WITH",
 							"value":     "updated-subsystem-name",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.application_name.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.subsystem_name.*",
 						map[string]string{
 							"operation": "NOT",
 							"value":     "subsystem-name",
 						},
 					),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.severities.#", "0"),
 				),
 			},
 		},
@@ -1388,9 +1389,9 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
       {
         recipients = ["example@coralogix.com"]
       },
-        {
+      {
             integration_id = "17730"
-        }
+      }
     ]
   }
 
