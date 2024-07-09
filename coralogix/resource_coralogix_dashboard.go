@@ -2225,6 +2225,11 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 									},
 									"color": schema.StringAttribute{
 										Optional: true,
+										Default:  stringdefault.StaticString("unspecified"),
+									},
+									"collapsed": schema.BoolAttribute{
+										Optional: true,
+										Default:  booldefault.StaticBool(false),
 									},
 								}, Optional: true,
 							},
