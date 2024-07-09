@@ -246,10 +246,12 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "low"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.advanced_target_settings.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.advanced_target_settings.*",
 						map[string]string{
-							"integration_id": "17730",
+							"integration_id":              "17730",
+							"notify_on":                   "Triggered Only",
+							"retriggering_period.minutes": "10",
 						},
 					),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered Only"),
@@ -355,12 +357,13 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.advanced_target_settings.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.advanced_target_settings.*",
 						map[string]string{
-							"integration_id": "17730",
+							"integration_id":              "17730",
+							"notify_on":                   "Triggered and Resolved",
+							"retriggering_period.minutes": "10",
 						},
 					),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered Only"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on", "null"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than_usual.lucene_filter.label_filters.lucene_query", "message:\"updated_error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than_usual.logs_filter.lucene_filter.label_filters..application_name.*",
 						map[string]string{
@@ -498,8 +501,9 @@ func TestAccCoralogixResourceAlert_logs_ratio_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-ratio-more-than alert example"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-ratio-more-than alert from terraform"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
-					resource.TestCheckTypeSetElemAttr(alertResourceName, "notification_group.group_by.*", "coralogix.metadata.alert_id"),
-					resource.TestCheckTypeSetElemAttr(alertResourceName, "notification_group.group_by.*", "coralogix.metadata.alert_name"),
+					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "2"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_id"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_name"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
 						map[string]string{
 							"recipients.#": "1",
@@ -1266,7 +1270,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
     advanced_target_settings = [
       {
         integration_id = "17730"
-        notify_on      = "Triggered Only"
+        notify_on      = "Triggered and Resolved"
       }
     ]
   }

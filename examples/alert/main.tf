@@ -11,78 +11,78 @@ provider "coralogix" {
   #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
-#resource "coralogix_alert" "test" {
-#  name        = "logs-less-than alert example"
-#  description = "Example of logs-less-than alert example from terraform"
-#  priority    = "P2"
-#
-#  labels = {
-#    alert_type        = "security"
-#    security_severity = "high"
-#  }
-#
-#  notification_group = {
-#    simple_target_settings = [
-#      {
-#        recipients = ["example@coralogix.com", "example2@coralogix.com"]
-#      },
-#      {
-#        integration_id = "17730"
-#      }
-#    ]
-#  }
-#
-#  incidents_settings = {
-#    notify_on           = "Triggered and Resolved"
-#    retriggering_period = {
-#      minutes = 1
-#    }
-#  }
-#
-#  schedule = {
-#    active_on = {
-#      days_of_week = ["Wednesday", "Thursday"]
-#      start_time   = {
-#        hours   = 10
-#        minutes = 30
-#      }
-#      end_time = {
-#        hours   = 20
-#        minutes = 30
-#      }
-#    }
-#  }
-#
-#  type_definition = {
-#    logs_less_than = {
-#      threshold   = 2
-#      time_window = {
-#        specific_value = "10_MINUTES"
-#      }
-#      evaluation_window = "Dynamic"
-#      logs_filter       = {
-#        lucene_filter = {
-#          lucene_query  = "message:\"error\""
-#          label_filters = {
-#            application_name = [
-#              {
-#                operation = "NOT"
-#                value     = "application_name"
-#              }
-#            ]
-#            subsystem_name = [
-#              {
-#                operation = "STARTS_WITH"
-#                value     = "subsystem-name"
-#              }
-#            ]
-#            severities = ["Warning", "Error"]
-#          }
-#        }
-#      }
-#    }
-#  }
-#}
+resource "coralogix_alert" "test" {
+  name        = "logs-less-than alert example"
+  description = "Example of logs-less-than alert example from terraform"
+  priority    = "P2"
+
+  labels = {
+    alert_type        = "security"
+    security_severity = "high"
+  }
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        recipients = ["example@coralogix.com", "example2@coralogix.com"]
+      },
+      {
+        integration_id = "17730"
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  schedule = {
+    active_on = {
+      days_of_week = ["Wednesday", "Thursday"]
+      start_time   = {
+        hours   = 10
+        minutes = 30
+      }
+      end_time = {
+        hours   = 20
+        minutes = 30
+      }
+    }
+  }
+
+  type_definition = {
+    logs_less_than = {
+      threshold   = 2
+      time_window = {
+        specific_value = "10_MINUTES"
+      }
+      evaluation_window = "Dynamic"
+      logs_filter       = {
+        lucene_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [
+              {
+                operation = "NOT"
+                value     = "application_name"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "STARTS_WITH"
+                value     = "subsystem-name"
+              }
+            ]
+            severities = ["Warning", "Error"]
+          }
+        }
+      }
+    }
+  }
+}
 
 #resource "coralogix_alert" "test" {
 #  name        = "logs-less-than alert example updated"
