@@ -9,9 +9,11 @@
           "value": "jyFMEvjUGSuzXlqewnZyJ"
         },
         "options": {
-          "value": {
+          "custom": {
             "name": "Status",
-            "color": "blue"
+            "color": {
+              "predefined": "SECTION_PREDEFINED_COLOR_BLUE"
+            }
           }
         },
         "rows": [
