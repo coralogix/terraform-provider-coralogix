@@ -362,8 +362,8 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 							"retriggering_period.minutes": "10",
 						},
 					),
-					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered Only"),
-					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
+					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than_usual.logs_filter.lucene_filter.lucene_query", "message:\"updated_error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than_usual.logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
@@ -610,6 +610,54 @@ func TestAccCoralogixResourceAlert_logs_ratio_more_than(t *testing.T) {
 		},
 	},
 	)
+}
+
+func TestAccCoralogixResourceAlert_logs_ratio_less_than(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertLogsRatioLessThan(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-ratio-less-than alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-ratio-less-than alert from terraform"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
+					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "2"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_id"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_name"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.denominator_alias", "denominator"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.numerator_alias", "numerator"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.time_window.specific_value", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.threshold", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.group_by_for", "Denominator Only"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.undetected_values_management.trigger_undetected_values", "false"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.undetected_values_management.auto_retire_timeframe", "Never"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertLogsRatioLessThanUpdated(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-ratio-less-than alert example updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-ratio-less-than alert from terraform updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "0"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.denominator_alias", "updated-denominator"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.numerator_alias", "updated-numerator"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.time_window.specific_value", "2_HOURS"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.threshold", "20"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.group_by_for", ""),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.undetected_values_management.trigger_undetected_values", "true"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.undetected_values_management.auto_retire_timeframe", "6_Hours"),
+				),
+			},
+		},
+	})
 }
 
 func testAccCoralogixResourceAlertLogsLessThanUsual() string {
@@ -1446,3 +1494,50 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
 }
 `
 }
+
+func testAccCoralogixResourceAlertLogsRatioLessThan() string {
+	return `resource "coralogix_alert" "test" {
+	name        = "logs-ratio-less-than alert example"
+  	description = "Example of logs-ratio-less-than alert from terraform"
+  	priority    = "P3"
+
+  	group_by        = ["coralogix.metadata.alert_id", "coralogix.metadata.alert_name"]
+  	type_definition = {
+    	logs_ratio_less_than = {
+      		numerator_alias   = "numerator"
+      		denominator_alias = "denominator"
+      		threshold         = 2
+      		time_window       = {
+        		specific_value = "10_MINUTES"
+      		}
+      		group_by_for = "Denominator Only"
+    	}
+  	}
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsRatioLessThanUpdated() string {
+	return `resource "coralogix_alert" "test" {
+	name        = "logs-ratio-less-than alert example updated"
+  	description = "Example of logs-ratio-less-than alert from terraform updated"
+  	priority    = "P2"
+
+  	type_definition = {
+		logs_ratio_less_than = {
+	  		numerator_alias   = "updated-numerator"
+	  		denominator_alias = "updated-denominator"
+	  		threshold         = 20
+	  		time_window       = {
+				specific_value = "2_HOURS"
+	  		}
+			undetected_values_management  = {
+				trigger_undetected_values = true
+				auto_retire_timeframe = "6_Hours"
+			}
+		}
+  	}
+}
+`
+}
+

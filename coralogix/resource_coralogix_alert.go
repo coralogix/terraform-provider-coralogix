@@ -1090,6 +1090,16 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			},
 			"notification_group": schema.SingleNestedAttribute{
 				Optional: true,
+				Computed: true,
+				Default: objectdefault.StaticValue(types.ObjectValueMust(notificationGroupAttr(), map[string]attr.Value{
+					"group_by_fields": types.ListNull(types.StringType),
+					"advanced_target_settings": types.SetNull(types.ObjectType{
+						AttrTypes: advancedTargetSettingsAttr(),
+					}),
+					"simple_target_settings": types.SetNull(types.ObjectType{
+						AttrTypes: simpleTargetSettingsAttr(),
+					}),
+				})),
 				Attributes: map[string]schema.Attribute{
 					"group_by_fields": schema.ListAttribute{
 						Optional:    true,
