@@ -689,8 +689,50 @@ func TestAccCoralogixResourceAlert_logs_new_value(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-new-value alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_new_value.notification_payload_filter.#", "0"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_new_value.time_window.specific_value", "1_HOUR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_new_value.time_window.specific_value", "12_HOURS"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_new_value.keypath_to_track", "remote_addr_geoip.city_name"),
+				),
+			},
+		},
+	},
+	)
+}
+
+func TestAccCoralogixResourceAlert_logs_unique_count(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertLogsUniqueCount(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-unique-count alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-unique-count alert from terraform"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "1"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "remote_addr_geoip.city_name"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.unique_count_keypath", "remote_addr_geoip.country_name"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.max_unique_count", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.time_window.specific_value", "5_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.max_unique_count_per_group_by_key", "500"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertLogsUniqueCountUpdated(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-unique-count alert example updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-unique-count alert from terraform updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "0"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.unique_count_keypath", "remote_addr_geoip.city_name"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.max_unique_count", "5"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.time_window.specific_value", "20_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.max_unique_count_per_group_by_key", "500"),
 				),
 			},
 		},
@@ -1604,10 +1646,51 @@ func testAccCoralogixResourceAlertLogsNewValueUpdated() string {
   type_definition = {
 	logs_new_value = {
 	  time_window = {
-		specific_value = "1_HOUR"
+		specific_value = "12_HOURS"
 	  }
 	  keypath_to_track = "remote_addr_geoip.city_name"
 	}
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsUniqueCount() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "logs-unique-count alert example"
+  description = "Example of logs-unique-count alert from terraform"
+  priority    = "P2"
+
+  group_by        = ["remote_addr_geoip.city_name"]
+  type_definition = {
+    logs_unique_count = {
+      unique_count_keypath = "remote_addr_geoip.country_name"
+      max_unique_count     = 2
+      time_window          = {
+        specific_value = "5_MINUTES"
+      }
+      max_unique_count_per_group_by_key = 500
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsUniqueCountUpdated() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "logs-unique-count alert example"
+  description = "Example of logs-unique-count alert from terraform"
+  priority    = "P2"
+
+  type_definition = {
+    logs_unique_count = {
+      unique_count_keypath = "remote_addr_geoip.city_name"
+      max_unique_count     = 5
+      time_window          = {
+        specific_value = "20_MINUTES"
+      }
+      max_unique_count_per_group_by_key = 500
+    }
   }
 }
 `
