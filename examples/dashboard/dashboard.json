@@ -8,6 +8,10 @@
         "id": {
           "value": "jyFMEvjUGSuzXlqewnZyJ"
         },
+        "options": {
+          "name":"Status",
+          "color":"blue"
+        },
         "rows": [
           {
             "id": {
