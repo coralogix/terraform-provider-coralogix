@@ -468,7 +468,6 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.minutes", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.threshold", "20"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.time_window.specific_value", "2_HOURS"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.evaluation_window", "Rolling"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
@@ -651,7 +650,6 @@ func TestAccCoralogixResourceAlert_logs_ratio_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.numerator_alias", "updated-numerator"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.time_window.specific_value", "2_HOURS"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.threshold", "20"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.group_by_for", ""),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.undetected_values_management.trigger_undetected_values", "true"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_less_than.undetected_values_management.auto_retire_timeframe", "6_Hours"),
 				),
@@ -709,7 +707,6 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 			time_window = {
 				specific_value = "10_MINUTES"
 			}
-			evaluation_window = "Dynamic"
 			logs_filter       = {
 				lucene_filter = {
 					lucene_query  = "message:\"error\""
@@ -777,7 +774,6 @@ func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
 			time_window = {
 				specific_value = "2_HOURS"
 			}
-			evaluation_window = "Rolling"
 			logs_filter       = {
 				lucene_filter = {
 					lucene_query  = "message:\"error\""
@@ -1202,7 +1198,6 @@ func testAccCoralogixResourceAlertLogsLessThanUpdated() string {
 	  time_window = {
 		specific_value = "2_HOURS"
 	  }
-	  evaluation_window = "Rolling"
 	  logs_filter       = {
 		lucene_filter = {
 		  lucene_query  = "message:\"error\""
@@ -1540,4 +1535,3 @@ func testAccCoralogixResourceAlertLogsRatioLessThanUpdated() string {
 }
 `
 }
-
