@@ -2225,6 +2225,10 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 									},
 									"color": schema.StringAttribute{
 										Optional: true,
+										Validators: []validator.String{
+											stringvalidator.OneOf("unspecified", "cyan", "green", "blue", "purple", "magenta", "pink", "orange"),
+										},
+										MarkdownDescription: "Section color",
 									},
 									"collapsed": schema.BoolAttribute{
 										Optional: true,
@@ -6266,6 +6270,14 @@ func sectionModelAttr() map[string]attr.Type {
 		"rows": types.ListType{
 			ElemType: types.ObjectType{
 				AttrTypes: rowModelAttr(),
+			},
+		},
+		"options": types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"name":        types.StringType,
+				"description": types.StringType,
+				"color":       types.StringType,
+				"collapsed":   types.BoolType,
 			},
 		},
 	}
