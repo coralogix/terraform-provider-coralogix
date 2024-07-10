@@ -3662,6 +3662,7 @@ func expandSectionOptions(_ context.Context, option SectionOptionsModel) (*dashb
 	var color *dashboards.SectionColor
 	if !option.Color.IsNull() {
 		mappedColor := dashboards.SectionPredefinedColor_value[fmt.Sprintf("SECTION_PREDEFINED_COLOR_%s", strings.ToUpper(option.Color.ValueString()))]
+		// this means the color field somehow wasn't validated
 		if mappedColor == 0 && option.Color.String() != "unspecified" {
 			return nil, diag.Diagnostics{
 				diag.NewErrorDiagnostic(
@@ -3675,21 +3676,15 @@ func expandSectionOptions(_ context.Context, option SectionOptionsModel) (*dashb
 				Predefined: dashboards.SectionPredefinedColor(mappedColor),
 			},
 		}
-	} else {
-		color = nil
 	}
 
 	var description *wrapperspb.StringValue
-	if option.Description.IsNull() {
-		description = nil
-	} else {
+	if !option.Description.IsNull() {
 		description = wrapperspb.String(option.Description.ValueString())
 	}
 
 	var collapsed *wrapperspb.BoolValue
-	if option.Collapsed.IsNull() {
-		collapsed = nil
-	} else {
+	if !option.Collapsed.IsNull() {
 		collapsed = wrapperspb.Bool(option.Collapsed.ValueBool())
 	}
 
