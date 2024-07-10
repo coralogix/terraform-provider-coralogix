@@ -9,8 +9,10 @@
           "value": "jyFMEvjUGSuzXlqewnZyJ"
         },
         "options": {
-          "name": "Status",
-          "color": "blue"
+          "value": {
+            "name": "Status",
+            "color": "blue"
+          }
         },
         "rows": [
           {
