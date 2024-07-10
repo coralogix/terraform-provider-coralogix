@@ -450,117 +450,76 @@ provider "coralogix" {
 #  }
 #}
 
-resource "coralogix_alert" "logs_unique_count_alert" {
-  name        = "logs-unique-count alert example"
-  description = "Example of logs-unique-count alert from terraform"
-  priority    = "P2"
-
-#  notification_group = {
-#    simple_target_settings = [
-#      {
-#        retriggering_period = {
-#          minutes = 1
-#        }
-#        notify_on  = "Triggered and Resolved"
-#        recipients = ["example@coralogix.com"]
-#      }
-#    ]
-#  }
-#
-#  incidents_settings = {
-#    notify_on           = "Triggered and Resolved"
-#    retriggering_period = {
-#      minutes = 1
-#    }
-#  }
-
-  group_by        = ["remote_addr_geoip.city_name"]
-  type_definition = {
-    logs_unique_count = {
-#      logs_filter = {
-#        lucene_filter = {
-#          lucene_query  = "message:\"error\""
-#          label_filters = {
-#            application_name = [
-#              {
-#                operation = "OR"
-#                value     = "nginx"
-#              }
-#            ]
-#            subsystem_name = [
-#              {
-#                operation = "OR"
-#                value     = "subsystem-name"
-#              }
-#            ]
-#            severities = ["Warning"]
-#          }
-#        }
-#      }
-      unique_count_keypath = "remote_addr_geoip.country_name"
-      max_unique_count     = 2
-      time_window          = {
-        specific_value = "5_MINUTES"
-      }
-      max_unique_count_per_group_by_key = 500
-    }
-  }
-}
-
-#resource "coralogix_alert" "logs_time_relative_more_than_alert" {
-#  name        = "logs-time-relative-more-than alert example"
-#  description = "Example of logs-time-relative-more-than alert from terraform"
+#resource "coralogix_alert" "logs_unique_count_alert" {
+#  name        = "logs-unique-count alert example"
+#  description = "Example of logs-unique-count alert from terraform"
 #  priority    = "P2"
 #
-#  notification_group = {
-#    simple_target_settings = [
-#      {
-#        retriggering_period = {
-#          minutes = 1
-#        }
-#        notify_on  = "Triggered and Resolved"
-#        recipients = ["example@coralogix.com"]
-#      }
-#    ]
-#  }
+##  notification_group = {
+##    simple_target_settings = [
+##      {
+##        retriggering_period = {
+##          minutes = 1
+##        }
+##        notify_on  = "Triggered and Resolved"
+##        recipients = ["example@coralogix.com"]
+##      }
+##    ]
+##  }
+##
+##  incidents_settings = {
+##    notify_on           = "Triggered and Resolved"
+##    retriggering_period = {
+##      minutes = 1
+##    }
+##  }
 #
-#  incidents_settings = {
-#    notify_on           = "Triggered and Resolved"
-#    retriggering_period = {
-#      minutes = 1
-#    }
-#  }
-#
+#  group_by        = ["remote_addr_geoip.city_name"]
 #  type_definition = {
-#    logs_time_relative_more_than = {
-#      logs_filter = {
-#        lucene_filter = {
-#          lucene_query  = "message:\"error\""
-#          label_filters = {
-#            application_name = [
-#              {
-#                operation = "OR"
-#                value     = "nginx"
-#              }
-#            ]
-#            subsystem_name = [
-#              {
-#                operation = "OR"
-#                value     = "subsystem-name"
-#              }
-#            ]
-#            severities = ["Warning"]
-#          }
-#        }
+#    logs_unique_count = {
+##      logs_filter = {
+##        lucene_filter = {
+##          lucene_query  = "message:\"error\""
+##          label_filters = {
+##            application_name = [
+##              {
+##                operation = "OR"
+##                value     = "nginx"
+##              }
+##            ]
+##            subsystem_name = [
+##              {
+##                operation = "OR"
+##                value     = "subsystem-name"
+##              }
+##            ]
+##            severities = ["Warning"]
+##          }
+##        }
+##      }
+#      unique_count_keypath = "remote_addr_geoip.country_name"
+#      max_unique_count     = 2
+#      time_window          = {
+#        specific_value = "5_MINUTES"
 #      }
-#      threshold                   = 2
-#      compared_to                 = "Same Hour Yesterday"
-#      notification_payload_filter = [
-#        "coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"
-#      ]
+#      max_unique_count_per_group_by_key = 500
 #    }
 #  }
 #}
+
+resource "coralogix_alert" "logs_time_relative_more_than_alert" {
+  name        = "logs-time-relative-more-than alert example"
+  description = "Example of logs-time-relative-more-than alert from terraform"
+  priority    = "P4"
+
+  type_definition = {
+    logs_time_relative_more_than = {
+      threshold                   = 10
+      compared_to                 = "Same Hour Yesterday"
+      ignore_infinity             = false
+    }
+  }
+}
 #
 #resource "coralogix_alert" "logs_time_relative_less_than_alert" {
 #  name        = "logs-time-relative-less-than alert example"

@@ -740,6 +740,43 @@ func TestAccCoralogixResourceAlert_logs_unique_count(t *testing.T) {
 	)
 }
 
+func TestAccCoralogixResourceAlert_logs_time_relative_more_than(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertLogsTimeRelativeMoreThan(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-time-relative-more-than alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-time-relative-more-than alert from terraform"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P4"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.threshold", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.compared_to", "Same Hour Yesterday"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.ignore_infinity", "true"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertLogsTimeRelativeMoreThanUpdated(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-time-relative-more-than alert example updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-time-relative-more-than alert from terraform updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.threshold", "50"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.compared_to", "Same Day Last Week"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.ignore_infinity", "false"),
+				),
+			},
+		},
+	},
+	)
+}
+
 func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 	return `resource "coralogix_alert" "test" {
 	  name        = "logs-less-than alert example"
@@ -1691,6 +1728,39 @@ func testAccCoralogixResourceAlertLogsUniqueCountUpdated() string {
       }
       max_unique_count_per_group_by_key = 500
     }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsTimeRelativeMoreThan() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "logs-time-relative-more-than alert example"
+  description = "Example of logs-time-relative-more-than alert from terraform"
+  priority    = "P4"
+
+  type_definition = {
+    logs_time_relative_more_than = {
+      threshold                   = 10
+      compared_to                 = "Same Hour Yesterday"
+	  ignore_infinity             = true
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsTimeRelativeMoreThanUpdated() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "logs-time-relative-more-than alert example updated"
+  description = "Example of logs-time-relative-more-than alert from terraform updated"
+  priority    = "P3"
+
+  type_definition = {
+	logs_time_relative_more_than = {
+	  threshold                   = 50
+	  compared_to                 = "Same Day Last Week"
+	}
   }
 }
 `
