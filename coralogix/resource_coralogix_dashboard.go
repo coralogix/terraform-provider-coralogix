@@ -3658,19 +3658,48 @@ func expandSection(ctx context.Context, section SectionModel) (*dashboards.Secti
 }
 
 func expandSectionOptions(_ context.Context, option SectionOptionsModel) (*dashboards.SectionOptions, diag.Diagnostics) {
-	mappedColor := dashboards.SectionPredefinedColor_value[fmt.Sprintf("SECTION_PREDEFINED_COLOR_%s", strings.ToUpper(option.Color.String()))]
+
+	var color *dashboards.SectionColor
+	if !option.Color.IsNull() {
+		mappedColor := dashboards.SectionPredefinedColor_value[fmt.Sprintf("SECTION_PREDEFINED_COLOR_%s", strings.ToUpper(option.Color.ValueString()))]
+		if mappedColor == 0 && option.Color.String() != "unspecified" {
+			return nil, diag.Diagnostics{
+				diag.NewErrorDiagnostic(
+					"Extract Dashboard Section Options Error",
+					fmt.Sprintf("Unknown color: %s", option.Color.ValueString()),
+				),
+			}
+		}
+		color = &dashboards.SectionColor{
+			Value: &dashboards.SectionColor_Predefined{
+				Predefined: dashboards.SectionPredefinedColor(mappedColor),
+			},
+		}
+	} else {
+		color = nil
+	}
+
+	var description *wrapperspb.StringValue
+	if option.Description.IsNull() {
+		description = nil
+	} else {
+		description = wrapperspb.String(option.Description.ValueString())
+	}
+
+	var collapsed *wrapperspb.BoolValue
+	if option.Collapsed.IsNull() {
+		collapsed = nil
+	} else {
+		collapsed = wrapperspb.Bool(option.Collapsed.ValueBool())
+	}
 
 	return &dashboards.SectionOptions{
 		Value: &dashboards.SectionOptions_Custom{
 			Custom: &dashboards.CustomSectionOptions{
-				Name:        wrapperspb.String(option.Name.String()),
-				Description: wrapperspb.String(option.Description.String()),
-				Collapsed:   wrapperspb.Bool(option.Collapsed.ValueBool()),
-				Color: &dashboards.SectionColor{
-					Value: &dashboards.SectionColor_Predefined{
-						Predefined: dashboards.SectionPredefinedColor(mappedColor),
-					},
-				},
+				Name:        wrapperspb.String(option.Name.ValueString()),
+				Description: description,
+				Collapsed:   collapsed,
+				Color:       color,
 			},
 		},
 	}, nil
@@ -7256,9 +7285,50 @@ func flattenDashboardSection(ctx context.Context, section *dashboards.Section) (
 		return nil, diags
 	}
 
+	options, diags := flattenDashboardOptions(ctx, section.GetOptions())
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &SectionModel{
-		ID:   types.StringValue(section.GetId().GetValue()),
-		Rows: rows,
+		ID:      types.StringValue(section.GetId().GetValue()),
+		Rows:    rows,
+		Options: options,
+	}, nil
+}
+
+func flattenDashboardOptions(_ context.Context, opts *dashboards.SectionOptions) (*SectionOptionsModel, diag.Diagnostics) {
+	if opts == nil {
+		return nil, nil
+	}
+	var description basetypes.StringValue
+	if opts.GetCustom().Description != nil {
+		description = types.StringValue(opts.GetCustom().Description.GetValue())
+	} else {
+		description = types.StringNull()
+	}
+
+	var collapsed basetypes.BoolValue
+	if opts.GetCustom().Description != nil {
+		collapsed = types.BoolValue(opts.GetCustom().Collapsed.GetValue())
+	} else {
+		collapsed = types.BoolNull()
+	}
+
+	var color basetypes.StringValue
+	if opts.GetCustom().Color != nil {
+		colorString := opts.GetCustom().Color.GetPredefined().String()
+		colors := strings.Split(colorString, "_")
+		color = types.StringValue(strings.ToLower(colors[len(colors)-1]))
+	} else {
+		color = types.StringNull()
+	}
+
+	return &SectionOptionsModel{
+		Name:        types.StringValue(opts.GetCustom().Name.GetValue()),
+		Description: description,
+		Collapsed:   collapsed,
+		Color:       color,
 	}, nil
 }
 
