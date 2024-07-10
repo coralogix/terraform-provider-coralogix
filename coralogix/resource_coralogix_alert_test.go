@@ -1577,7 +1577,7 @@ func testAccCoralogixResourceAlertLogsRatioLessThanUpdated() string {
 }
 
 func testAccCoralogixResourceAlertLogsNewValue() string {
-	return `resource "coralogix_alert" "logs_new_value_alert" {
+	return `resource "coralogix_alert" "test" {
   name        = "logs-new-value alert example"
   description = "Example of logs-new-value alert from terraform"
   priority    = "P2"
@@ -1596,7 +1596,7 @@ func testAccCoralogixResourceAlertLogsNewValue() string {
 }
 
 func testAccCoralogixResourceAlertLogsNewValueUpdated() string {
-	return `resource "coralogix_alert" "logs_new_value_alert" {
+	return `resource "coralogix_alert" "test" {
   name        = "logs-new-value alert example updated"
   description = "Example of logs-new-value alert from terraform updated"
   priority    = "P3"
