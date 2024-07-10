@@ -21,6 +21,8 @@ resource "coralogix_dashboard" dashboard {
       {
         options = {
           name = "Status"
+          description = "abc"
+          collapsed = false
           color = "blue"
         }
         rows = [

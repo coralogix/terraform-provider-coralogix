@@ -33,6 +33,8 @@ func TestAccCoralogixResourceDashboard(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "description", "dashboards team is messing with this 🗿"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.name", "Status"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.color", "blue"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.description", "abc"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.collapsed", "false"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.height", "19"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "status 4XX"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.metrics.promql_query", "http_requests_total{status!~\"4..\"}"),
@@ -149,6 +151,8 @@ func testAccCoralogixResourceDashboard() string {
       {
         options = {
           name = "Status"
+          description = "abc"
+          collapsed = false
           color = "blue"
         }
         rows = [
