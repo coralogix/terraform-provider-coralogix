@@ -658,6 +658,46 @@ func TestAccCoralogixResourceAlert_logs_ratio_less_than(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceAlert_logs_new_value(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertLogsNewValue(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-new-value alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-new-value alert from terraform"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_new_value.notification_payload_filter.#", "3"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_new_value.notification_payload_filter.*", "coralogix.metadata.sdkId"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_new_value.notification_payload_filter.*", "coralogix.metadata.sdkName"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_new_value.notification_payload_filter.*", "coralogix.metadata.sdkVersion"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_new_value.time_window.specific_value", "24_HOURS"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_new_value.keypath_to_track", "remote_addr_geoip.country_name"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertLogsNewValueUpdated(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-new-value alert example updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-new-value alert from terraform updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_new_value.notification_payload_filter.#", "0"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_new_value.time_window.specific_value", "1_HOUR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_new_value.keypath_to_track", "remote_addr_geoip.city_name"),
+				),
+			},
+		},
+	},
+	)
+}
+
 func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 	return `resource "coralogix_alert" "test" {
 	  name        = "logs-less-than alert example"
@@ -1532,6 +1572,43 @@ func testAccCoralogixResourceAlertLogsRatioLessThanUpdated() string {
 			}
 		}
   	}
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsNewValue() string {
+	return `resource "coralogix_alert" "logs_new_value_alert" {
+  name        = "logs-new-value alert example"
+  description = "Example of logs-new-value alert from terraform"
+  priority    = "P2"
+
+  type_definition = {
+    logs_new_value = {
+      notification_payload_filter = ["coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"]
+      time_window = {
+        specific_value = "24_HOURS"
+      }
+      keypath_to_track = "remote_addr_geoip.country_name"
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsNewValueUpdated() string {
+	return `resource "coralogix_alert" "logs_new_value_alert" {
+  name        = "logs-new-value alert example updated"
+  description = "Example of logs-new-value alert from terraform updated"
+  priority    = "P3"
+
+  type_definition = {
+	logs_new_value = {
+	  time_window = {
+		specific_value = "1_HOUR"
+	  }
+	  keypath_to_track = "remote_addr_geoip.city_name"
+	}
+  }
 }
 `
 }

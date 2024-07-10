@@ -374,30 +374,30 @@ provider "coralogix" {
 #  }
 #}
 
-resource "coralogix_alert" "logs_ratio_less_than_alert" {
-  name        = "logs-ratio-less-than alert example"
-  description = "Example of logs-ratio-less-than alert from terraform"
-  priority    = "P3"
-
-  group_by        = ["coralogix.metadata.alert_id", "coralogix.metadata.alert_name"]
-  type_definition = {
-    logs_ratio_less_than = {
-      numerator_alias   = "numerator"
-      denominator_alias = "denominator"
-      threshold         = 2
-      time_window       = {
-        specific_value = "10_MINUTES"
-      }
-      group_by_for = "Denominator Only"
-    }
-  }
-}
-
-#resource "coralogix_alert" "logs_new_value_alert" {
-#  name        = "logs-new-value alert example"
-#  description = "Example of logs-new-value alert from terraform"
-#  priority    = "P2"
+#resource "coralogix_alert" "logs_ratio_less_than_alert" {
+#  name        = "logs-ratio-less-than alert example"
+#  description = "Example of logs-ratio-less-than alert from terraform"
+#  priority    = "P3"
 #
+#  group_by        = ["coralogix.metadata.alert_id", "coralogix.metadata.alert_name"]
+#  type_definition = {
+#    logs_ratio_less_than = {
+#      numerator_alias   = "numerator"
+#      denominator_alias = "denominator"
+#      threshold         = 2
+#      time_window       = {
+#        specific_value = "10_MINUTES"
+#      }
+#      group_by_for = "Denominator Only"
+#    }
+#  }
+#}
+
+resource "coralogix_alert" "logs_new_value_alert" {
+  name        = "logs-new-value alert example"
+  description = "Example of logs-new-value alert from terraform"
+  priority    = "P2"
+
 #  notification_group = {
 #    simple_target_settings = [
 #      {
@@ -409,16 +409,16 @@ resource "coralogix_alert" "logs_ratio_less_than_alert" {
 #      }
 #    ]
 #  }
-#
+
 #  incidents_settings = {
 #    notify_on           = "Triggered and Resolved"
 #    retriggering_period = {
 #      minutes = 1
 #    }
 #  }
-#
-#  type_definition = {
-#    logs_new_value = {
+
+  type_definition = {
+    logs_new_value = {
 #      logs_filter = {
 #        lucene_filter = {
 #          lucene_query  = "message:\"error\""
@@ -439,16 +439,16 @@ resource "coralogix_alert" "logs_ratio_less_than_alert" {
 #          }
 #        }
 #      }
-#      notification_payload_filter = [
-#        "coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"
-#      ]
-#      time_window = {
-#        specific_value = "24_HOURS"
-#      }
-#      keypath_to_track = "remote_addr_geoip.country_name"
-#    }
-#  }
-#}
+      notification_payload_filter = [
+        "coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"
+      ]
+      time_window = {
+        specific_value = "24_HOURS"
+      }
+      keypath_to_track = "remote_addr_geoip.country_name"
+    }
+  }
+}
 #
 #resource "coralogix_alert" "logs_unique_count_alert" {
 #  name        = "logs-unique-count alert example"
