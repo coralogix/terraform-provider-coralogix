@@ -19,6 +19,10 @@ resource "coralogix_dashboard" dashboard {
   layout      = {
     sections = [
       {
+        options = {
+          name = "Status"
+          color = "blue"
+        }
         rows = [
           {
             height  = 15
