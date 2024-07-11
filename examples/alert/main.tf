@@ -332,8 +332,8 @@ resource "coralogix_alert" "logs_time_relative_less_than_alert" {
 }
 
 resource "coralogix_alert" "metric_more_than_alert" {
-  name        = "logs-time-relative-ratio-more-than alert example"
-  description = "Example of logs-time-relative-ratio-more-than alert from terraform"
+  name        = "metric-more-than alert example"
+  description = "Example of metric-more-than alert from terraform"
   priority    = "P3"
 
   type_definition = {
@@ -354,8 +354,8 @@ resource "coralogix_alert" "metric_more_than_alert" {
 }
 
 resource "coralogix_alert" "metric_less_than_alert" {
-  name        = "logs-time-relative-ratio-less-than alert example"
-  description = "Example of logs-time-relative-ratio-less-than alert from terraform"
+  name        = "metric-less-than alert example"
+  description = "Example of metric-less-than alert from terraform"
   priority    = "P4"
 
   type_definition = {

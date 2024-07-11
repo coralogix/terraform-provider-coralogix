@@ -920,14 +920,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"for_over_pct": schema.Int64Attribute{
 								Required: true,
 							},
-							"of_the_last": schema.SingleNestedAttribute{
-								Required: true,
-								Attributes: map[string]schema.Attribute{
-									"specific_value": schema.StringAttribute{
-										Required: true,
-									},
-								},
-							},
+							"of_the_last":    metricTimeWindowSchema(),
 							"missing_values": missingValuesSchema(),
 						},
 					},
@@ -941,14 +934,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"for_over_pct": schema.Int64Attribute{
 								Required: true,
 							},
-							"of_the_last": schema.SingleNestedAttribute{
-								Required: true,
-								Attributes: map[string]schema.Attribute{
-									"specific_value": schema.StringAttribute{
-										Required: true,
-									},
-								},
-							},
+							"of_the_last":                  metricTimeWindowSchema(),
 							"missing_values":               missingValuesSchema(),
 							"undetected_values_management": undetectedValuesManagementSchema(),
 						},
