@@ -843,7 +843,12 @@ func TestAccCoralogixResourceAlert_metric_more_than(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "name", "metric-more-than alert example updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of metric-more-than alert from terraform updated"),
-					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P4"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than.threshold", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than.for_over_pct", "15"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than.of_the_last.specific_value", "1_HOUR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than.missing_values.replace_with_zero", "true"),
 				),
 			},
 		},
@@ -889,6 +894,47 @@ func TestAccCoralogixResourceAlert_metric_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than.missing_values.min_non_null_values_pct", "50"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than.undetected_values_management.trigger_undetected_values", "true"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than.undetected_values_management.auto_retire_timeframe", "5_Minutes"),
+				),
+			},
+		},
+	},
+	)
+}
+
+func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertMetricsLessThanUsual(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "metric-less-than-usual alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of metric-less-than-usual alert from terraform"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than_usual.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than_usual.threshold", "20"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than_usual.for_over_pct", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than_usual.of_the_last.specific_value", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than_usual.min_non_null_values_pct", "10"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertMetricsLessThanUsualUpdated(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "metric-less-than-usual alert example updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of metric-less-than-usual alert from terraform updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than_usual.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than_usual.threshold", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than_usual.for_over_pct", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than_usual.of_the_last.specific_value", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than_usual.min_non_null_values_pct", "10"),
 				),
 			},
 		},
@@ -1924,8 +1970,8 @@ func testAccCoralogixResourceAlertLogsTimeRelativeLessThanUpdated() string {
 
 func testAccCoralogixResourceAlertMetricMoreThan() string {
 	return `resource "coralogix_alert" "test" {
-  name        = "logs-time-relative-ratio-more-than alert example"
-  description = "Example of logs-time-relative-ratio-more-than alert from terraform"
+  name        = "metric-more-than alert example"
+  description = "Example of metric-more-than alert from terraform"
   priority    = "P3"
 
   type_definition = {
@@ -1949,8 +1995,8 @@ func testAccCoralogixResourceAlertMetricMoreThan() string {
 
 func testAccCoralogixResourceAlertMetricMoreThanUpdated() string {
 	return `resource "coralogix_alert" "test" {
-  name        = "logs-time-relative-ratio-more-than alert example updated"
-  description = "Example of logs-time-relative-ratio-more-than alert from terraform updated"
+  name        = "metric-more-than alert example updated"
+  description = "Example of metric-more-than alert from terraform updated"
   priority    = "P4"
 
   type_definition = {
@@ -1964,7 +2010,7 @@ func testAccCoralogixResourceAlertMetricMoreThanUpdated() string {
         specific_value = "1_HOUR"
       }
       missing_values = {
-        min_non_null_values_pct = 50
+        replace_with_zero = true
       }
     }
   }
@@ -2025,6 +2071,53 @@ func testAccCoralogixResourceAlertMetricLessThanUpdated() string {
         auto_retire_timeframe     = "5_Minutes"
       }
     }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertMetricsLessThanUsual() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "metric_less_than_usual alert example"
+  description = "Example of metric_less_than_usual alert from terraform"
+  priority    = "P1"
+
+  type_definition = {
+    metric_less_than_usual = {
+      metric_filter = {
+        promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+      }
+      threshold    = 2
+      for_over_pct = 10
+      of_the_last  = {
+        specific_value = "12_HOURS"
+      }
+      threshold       = 20
+      min_non_null_values_pct = 15
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertMetricsLessThanUsualUpdated() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "metric_less_than_usual alert example updated"
+  description = "Example of metric_less_than_usual alert from terraform updated"
+  priority    = "P1"
+
+  type_definition = {
+	metric_less_than_usual = {
+	  metric_filter = {
+		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+	  }
+	  for_over_pct = 10
+	  of_the_last  = {
+		specific_value = "10_MINUTES"
+	  }
+	  threshold       = 2
+	  min_non_null_values_pct = 10
+	}
   }
 }
 `

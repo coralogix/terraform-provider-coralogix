@@ -394,7 +394,6 @@ resource "coralogix_alert" "metric_less_than_usual_alert" {
       of_the_last  = {
         specific_value = "10_MINUTES"
       }
-      minimum_threshold       = 2
       min_non_null_values_pct = 10
     }
   }
@@ -415,7 +414,6 @@ resource "coralogix_alert" "metric_more_than_usual_alert" {
       of_the_last  = {
         specific_value = "10_MINUTES"
       }
-      minimum_threshold       = 2
       min_non_null_values_pct = 10
     }
   }
