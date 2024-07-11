@@ -1,0 +1,16 @@
+{
+    "licenser.author": "Coralogix Ltd.",
+    "licenser.license": "AL2",
+    "licenser.projectName": "Terraform Provider Coralogix",
+    "licenser.excludeFileExtensions": [
+        "toml",
+        "proto",
+        "yml",
+        "yaml",
+        "md",
+        "lock",
+        "pb.go", 
+        "tf",
+        "json",
+    ],
+}
