@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/helpers/validatordiag"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
@@ -634,6 +635,37 @@ func (a advancedTargetSettingsPlanModifier) PlanModifyObject(ctx context.Context
 	response.PlanValue = request.StateValue
 }
 
+type requiredWhenGroupBySet struct {
+}
+
+func (r requiredWhenGroupBySet) Description(ctx context.Context) string {
+	return "Required when group_by is set."
+}
+
+func (r requiredWhenGroupBySet) MarkdownDescription(ctx context.Context) string {
+	return "Required when group_by is set."
+}
+
+func (r requiredWhenGroupBySet) ValidateInt64(ctx context.Context, req validator.Int64Request, resp *validator.Int64Response) {
+	if !req.ConfigValue.IsNull() {
+		return
+	}
+
+	var groupBy types.Set
+	diags := req.Config.GetAttribute(ctx, path.Root("group_by"), &groupBy)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	if !(groupBy.IsNull() || groupBy.IsUnknown()) {
+		resp.Diagnostics.Append(validatordiag.InvalidAttributeCombinationDiagnostic(
+			req.Path,
+			fmt.Sprintf("Attribute %q must be specified when %q is specified", req.Path, "group_by"),
+		))
+	}
+}
+
 func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 1,
@@ -829,12 +861,18 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					"logs_unique_count": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"logs_filter":                       logsFilterSchema(),
-							"notification_payload_filter":       notificationPayloadFilterSchema(),
-							"time_window":                       logsUniqueCountTimeWindowSchema(),
-							"unique_count_keypath":              schema.StringAttribute{Required: true},
-							"max_unique_count":                  schema.Int64Attribute{Required: true},
-							"max_unique_count_per_group_by_key": schema.Int64Attribute{Required: true},
+							"logs_filter":                 logsFilterSchema(),
+							"notification_payload_filter": notificationPayloadFilterSchema(),
+							"time_window":                 logsUniqueCountTimeWindowSchema(),
+							"unique_count_keypath":        schema.StringAttribute{Required: true},
+							"max_unique_count":            schema.Int64Attribute{Required: true},
+							"max_unique_count_per_group_by_key": schema.Int64Attribute{
+								Optional: true,
+								Validators: []validator.Int64{
+									int64validator.AlsoRequires(path.MatchRoot("group_by")),
+									requiredWhenGroupBySet{},
+								},
+							},
 						},
 					},
 					"logs_time_relative_more_than": schema.SingleNestedAttribute{
@@ -1353,7 +1391,13 @@ func logsFilterSchema() schema.SingleNestedAttribute {
 						Optional: true,
 					},
 					"label_filters": schema.SingleNestedAttribute{
-						Required: true,
+						Optional: true,
+						Computed: true,
+						Default: objectdefault.StaticValue(types.ObjectValueMust(labelFiltersAttr(), map[string]attr.Value{
+							"application_name": types.SetNull(types.ObjectType{AttrTypes: labelFilterTypesAttr()}),
+							"subsystem_name":   types.SetNull(types.ObjectType{AttrTypes: labelFilterTypesAttr()}),
+							"severities":       types.SetNull(types.StringType),
+						})),
 						Attributes: map[string]schema.Attribute{
 							"application_name": logsAttributeFilterSchema(),
 							"subsystem_name":   logsAttributeFilterSchema(),
