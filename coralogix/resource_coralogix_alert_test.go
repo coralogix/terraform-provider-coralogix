@@ -732,7 +732,6 @@ func TestAccCoralogixResourceAlert_logs_unique_count(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.unique_count_keypath", "remote_addr_geoip.city_name"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.max_unique_count", "5"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.time_window.specific_value", "20_MINUTES"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.max_unique_count_per_group_by_key", "500"),
 				),
 			},
 		},
@@ -770,6 +769,45 @@ func TestAccCoralogixResourceAlert_logs_time_relative_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.threshold", "50"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.compared_to", "Same Day Last Week"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.ignore_infinity", "false"),
+				),
+			},
+		},
+	},
+	)
+}
+
+func TestAccCoralogixResourceAlert_logs_time_relative_less_than(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertLogsTimeRelativeLessThan(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-time-relative-more-than alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-time-relative-more-than alert from terraform"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P4"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.threshold", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.compared_to", "Same Hour Yesterday"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.ignore_infinity", "true"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertLogsTimeRelativeLessThanUpdated(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-time-relative-more-than alert example updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-time-relative-more-than alert from terraform updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.threshold", "50"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.compared_to", "Same Day Last Week"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.ignore_infinity", "false"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.undetected_values_management.trigger_undetected_values", "true"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.undetected_values_management.auto_retire_timeframe", "6_Hours"),
 				),
 			},
 		},
@@ -1726,7 +1764,6 @@ func testAccCoralogixResourceAlertLogsUniqueCountUpdated() string {
       time_window          = {
         specific_value = "20_MINUTES"
       }
-      max_unique_count_per_group_by_key = 500
     }
   }
 }
@@ -1761,6 +1798,44 @@ func testAccCoralogixResourceAlertLogsTimeRelativeMoreThanUpdated() string {
 	  threshold                   = 50
 	  compared_to                 = "Same Day Last Week"
 	}
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsTimeRelativeLessThan() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "logs-time-relative-more-than alert example"
+  description = "Example of logs-time-relative-more-than alert from terraform"
+  priority    = "P4"
+
+  type_definition = {
+	logs_time_relative_less_than = {
+	  threshold                   = 10
+	  compared_to                 = "Same Hour Yesterday"
+	  ignore_infinity             = true
+	}
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsTimeRelativeLessThanUpdated() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "logs-time-relative-more-than alert example updated"
+  description = "Example of logs-time-relative-more-than alert from terraform updated"
+  priority    = "P3"
+
+  type_definition = {
+	logs_time_relative_less_than = {
+	  threshold                   = 50
+	  compared_to                 = "Same Day Last Week"
+	  ignore_infinity             = false
+	}
+	undetected_values_management = {
+        trigger_undetected_values = true
+        auto_retire_timeframe     = "6_Hours"
+      }
   }
 }
 `
