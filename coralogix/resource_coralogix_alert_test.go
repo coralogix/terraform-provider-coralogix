@@ -1083,13 +1083,38 @@ func TestAccCoralogixResourceAlert_tracing_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.latency_threshold_ms", "100"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.#", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.0.operation", "IS"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.0.values.#", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.1.operation", "STARTS_WITH"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.1.values.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.*",
+						map[string]string{
+							"operation": "IS",
+							"values.#":  "2",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.*",
+						map[string]string{
+							"operation": "STARTS_WITH",
+							"values.#":  "1",
+						},
+					),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.subsystem_name.#", "1"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.severities.#", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.span_fields.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.subsystem_name.*",
+						map[string]string{
+							"operation": "IS",
+							"values.#":  "1",
+						},
+					),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.operation_name.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.operation_name.*",
+						map[string]string{
+							"operation": "IS",
+							"values.#":  "2",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.operation_name.*",
+						map[string]string{
+							"operation": "STARTS_WITH",
+							"values.#":  "1",
+						},
+					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.span_fields.*",
 						map[string]string{
 							"key":                   "status",
@@ -1117,13 +1142,27 @@ func TestAccCoralogixResourceAlert_tracing_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of tracing_immediate alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.latency_threshold_ms", "200"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.#", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.0.operation", "IS"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.0.values.#", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.1.operation", "STARTS_WITH"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.1.values.#", "1"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.subsystem_name.#", "1"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.severities.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.*",
+						map[string]string{
+							"operation": "IS",
+							"values.#":  "1",
+						},
+					),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.subsystem_name.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.subsystem_name.*",
+						map[string]string{
+							"operation": "IS",
+							"values.#":  "2",
+						},
+					),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.operation_name.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.operation_name.*",
+						map[string]string{
+							"operation": "IS",
+							"values.#":  "1",
+						},
+					),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.span_fields.#", "3"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.span_fields.*",
 						map[string]string{
@@ -1144,6 +1183,82 @@ func TestAccCoralogixResourceAlert_tracing_immediate(t *testing.T) {
 							"key":                   "status",
 							"filter_type.operation": "IS",
 							"filter_type.values.#":  "2",
+						},
+					),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceAlert_tracing_more_than(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertTracingMoreThan(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "tracing-more-than alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of tracing-more-than alert from terraform"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.tracing_query.latency_threshold_ms", "100"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.threshold", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.for_over_pct", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.of_the_last.specific_value", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.missing_values.min_non_null_values_pct", "50"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.undetected_values_management.trigger_undetected_values", "true"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.undetected_values_management.auto_retire_timeframe", "5_Minutes"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.tracing_label_filters.application_name.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_more_than.tracing_label_filters.application_name.*",
+						map[string]string{
+							"operation": "IS",
+							"values.#":  "2",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_more_than.tracing_label_filters.application_name.*",
+						map[string]string{
+							"operation": "STARTS_WITH",
+							"values.#":  "1",
+						},
+					),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertTracingMoreThanUpdated(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "tracing-more-than alert example updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of tracing-more-than alert from terraform updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.tracing_query.latency_threshold_ms", "200"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.threshold", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.for_over_pct", "15"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.of_the_last.specific_value", "1_HOUR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.missing_values.replace_with_zero", "true"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.tracing_label_filters.application_name.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_more_than.tracing_label_filters.application_name.*",
+						map[string]string{
+							"operation": "IS",
+							"values.#":  "1",
+						},
+					),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.tracing_label_filters.subsystem_name.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_more_than.tracing_label_filters.subsystem_name.*",
+						map[string]string{
+							"operation": "IS",
+							"values.#":  "2",
+						},
+					),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.tracing_label_filters.operation_name.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_more_than.tracing_label_filters.operation_name.*",
+						map[string]string{
+							"operation": "IS",
+							"values.#":  "1",
 						},
 					),
 				),
@@ -2514,7 +2629,12 @@ func testAccCoralogixResourceAlertTracingImmediate() string {
               values    = ["subsystem-name"]
             }
           ]
-          severities = ["Warning", "Error"]
+          operation_name        = [
+            {
+              operation = "IS"
+              values    = ["operation-name"]
+            }
+          ]
           span_fields = [
             {
               key         = "status"
@@ -2565,7 +2685,12 @@ func testAccCoralogixResourceAlertTracingImmediateUpdated() string {
 			  values    = ["subsystem-name"]
 			}
 		  ]
-		  severities = ["Warning", "Error"]
+		  operation_name        = [
+            {
+              operation = "IS"
+              values    = ["operation-name"]
+            }
+          ]
 		  span_fields = [
 			{
 			  key         = "status"
@@ -2587,6 +2712,125 @@ func testAccCoralogixResourceAlertTracingImmediateUpdated() string {
                 values    = ["500", "404"]
               }
             },
+		  ]
+		}
+	  }
+	}
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertTracingMoreThan() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "tracing_more_than alert example"
+  description = "Example of tracing_more_than alert from terraform"
+  priority    = "P2"
+
+  type_definition = {
+	tracing_more_than = {
+	  tracing_query = {
+		latency_threshold_ms  = 100
+		tracing_label_filters = {
+		  application_name = [
+			{
+			  operation = "IS"
+			  values    = ["nginx", "apache"]
+			},
+			{
+				operation = "STARTS_WITH"
+				values    = ["application-name:"]
+			}
+		  ]
+		  subsystem_name = [
+			{
+			  operation = "IS"
+			  values    = ["subsystem-name"]
+			}
+		  ]
+		  operation_name        = [
+			{
+			  operation = "IS"
+			  values    = ["operation-name"]
+			}
+		  ]
+		  span_fields = [
+			{
+			  key         = "status"
+			  filter_type = {
+				values    = ["200"]
+			  }
+			},
+			{
+			  key         = "status"
+			  filter_type = {
+				operation = "STARTS_WITH"
+				values    = ["40", "50"]
+			  }
+			},
+		  ]
+		}
+	  }
+	}
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertTracingMoreThanUpdated() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "tracing_more_than alert example updated"
+  description = "Example of tracing_more_than alert from terraform updated"
+  priority    = "P3"
+
+  type_definition = {
+	tracing_more_than = {
+	  tracing_query = {
+		latency_threshold_ms  = 200
+		tracing_label_filters = {
+		  application_name = [
+			{
+			  operation = "IS"
+			  values    = ["nginx", "apache"]
+			},
+			{
+				operation = "STARTS_WITH"
+				values    = ["application-name:"]
+			}
+		  ]
+		  subsystem_name = [
+			{
+			  operation = "IS"
+			  values    = ["subsystem-name"]
+			}
+		  ]
+		  operation_name        = [
+			{
+			  operation = "IS"
+			  values    = ["operation-name"]
+			}
+		  ]
+		  span_fields = [
+			{
+			  key         = "status"
+			  filter_type = {
+				values    = ["200"]
+			  }
+			},
+			{
+			  key         = "status"
+			  filter_type = {
+				operation = "STARTS_WITH"
+				values    = ["40", "50"]
+			  }
+			},
+			{
+			  key         = "status"
+			  filter_type = {
+				operation = "ENDS_WITH"
+				values    = ["500", "404"]
+			  }
+			},
 		  ]
 		}
 	  }

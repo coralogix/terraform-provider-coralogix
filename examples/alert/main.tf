@@ -495,7 +495,12 @@ resource "coralogix_alert" "tracing_immediate_alert" {
               values    = ["subsystem-name"]
             }
           ]
-          severities = ["Warning", "Error"]
+          operation_name        = [
+            {
+              operation = "IS"
+              values    = ["operation-name"]
+            }
+          ]
           span_fields = [
             {
               key         = "status"
@@ -517,27 +522,36 @@ resource "coralogix_alert" "tracing_immediate_alert" {
   }
 }
 
-#resource "coralogix_alert" "tracing_more_than_alert" {
-#  name        = "tracing_more_than alert example"
-#  description = "Example of tracing_more_than alert from terraform"
-#  priority    = "P2"
-#
-#  type_definition = {
-#    tracing_more_than = {
-#      tracing_query = {
-#        latency_threshold_ms  = 100
-#        tracing_label_filters = {
-#          severities = ["Warning"]
-#        }
-#      }
-#      span_amount = 2
-#      time_window = {
-#        specific_value = "10_MINUTES"
-#      }
-#    }
-#  }
-#}
-#
+resource "coralogix_alert" "tracing_more_than_alert" {
+  name        = "tracing_more_than alert example"
+  description = "Example of tracing_more_than alert from terraform"
+  priority    = "P2"
+
+  type_definition = {
+    tracing_more_than = {
+      tracing_query = {
+        latency_threshold_ms  = 100
+        tracing_label_filters = {
+          application_name = [
+            {
+              operation = "IS"
+              values    = ["nginx", "apache"]
+            },
+            {
+              operation = "STARTS_WITH"
+              values    = ["application-name:"]
+            }
+          ]
+        }
+      }
+      span_amount = 2
+      time_window = {
+        specific_value = "10_MINUTES"
+      }
+    }
+  }
+}
+
 #resource "coralogix_alert" "flow_alert" {
 #  name        = "flow alert example"
 #  description = "Example of flow alert from terraform"
