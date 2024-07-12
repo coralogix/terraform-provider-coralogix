@@ -1238,7 +1238,7 @@ func TestAccCoralogixResourceAlert_tracing_more_than(t *testing.T) {
 							"values.#":  "2",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_more_than.tracing_label_filters.application_name.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_more_than.tracing_query.tracing_label_filters.application_name.*",
 						map[string]string{
 							"operation": "STARTS_WITH",
 							"values.#":  "1",
@@ -1284,17 +1284,17 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of flow alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.#", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.#", "1"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.0.alerts_op", "AND"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.0.next_op", "OR"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.alert_defs.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.0.alerts_op", "OR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.0.next_op", "AND"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.0.alert_defs.#", "2"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.timeframe_ms", "10"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.timeframe_type", "Up To"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.flow_stages_groups.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.flow_stages_groups.0.alerts_op", "OR"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.flow_stages_groups.0.next_op", "AND"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.alert_defs.#", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.timeframe_ms", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.flow_stages_groups.0.alert_defs.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.timeframe_ms", "20"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.timeframe_type", "Up To"),
 				),
 			},
@@ -2920,8 +2920,8 @@ resource "coralogix_alert" "test_3"{
 }
 
 resource "coralogix_alert" "test" {
-  name        = "flow alert example"
-  description = "Example of flow alert from terraform"
+  name        = "flow alert example updated"
+  description = "Example of flow alert from terraform updated"
   priority    = "P3"
   type_definition = {
     flow = {
