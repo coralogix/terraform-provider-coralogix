@@ -12,10 +12,10 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-#resource "coralogix_alert" "logs_immediate_alert" {
-#  name        = "logs immediate alert"
-#  description = "Example of logs immediate alert from terraform"
-#  priority    = "P1"
+resource "coralogix_alert" "logs_immediate_alert" {
+  name        = "logs immediate alert"
+  //description = "Example of logs immediate alert from terraform"
+  priority    = "P1"
 #
 #  labels = {
 #    alert_type        = "security"
@@ -39,7 +39,7 @@ provider "coralogix" {
 #      minutes = 1
 #    }
 #  }
-#
+
 #  schedule = {
 #    active_on = {
 #      days_of_week = ["Wednesday", "Thursday"]
@@ -53,18 +53,18 @@ provider "coralogix" {
 #      }
 #    }
 #  }
-#
-#  type_definition = {
-#    logs_immediate = {
+
+  type_definition = {
+    logs_immediate = {
 #      logs_filter = {
 #        lucene_filter = {
 #          lucene_query = "message:\"error\""
 #        }
 #      }
-#    }
-#  }
-#}
-#
+    }
+  }
+}
+
 #resource "coralogix_alert" "logs_more_than_alert" {
 #  name        = "logs-more-than alert example"
 #  description = "Example of logs-more-than alert from terraform"
@@ -552,61 +552,67 @@ resource "coralogix_alert" "tracing_more_than_alert" {
   }
 }
 
-#resource "coralogix_alert" "flow_alert" {
-#  name        = "flow alert example"
-#  description = "Example of flow alert from terraform"
-#  priority    = "P3"
-#
-#  notification_group = {
-#    simple_target_settings = [
-#      {
-#        retriggering_period = {
-#          minutes = 1
-#        }
-#        notify_on      = "Triggered and Resolved"
-#        integration_id = coralogix_webhook.slack_webhook.external_id
-#      }
-#    ]
-#  }
-#
-#  incidents_settings = {
-#    notify_on           = "Triggered and Resolved"
-#    retriggering_period = {
-#      minutes = 1
-#    }
-#  }
-#
-#  type_definition = {
-#    flow = {
-#      stages = [
-#        {
-#          flow_stages_groups = [
-#            {
-#              alert_defs = [
-#                {
-#                  id = coralogix_alert.logs_immediate_alert.id
-#                },
-#                {
-#                  id = coralogix_alert.logs_more_than_alert.id
-#                },
-#                {
-#                  id = coralogix_alert.logs_less_than_alert.id
-#                },
-#                {
-#                  id = coralogix_alert.logs_more_than_usual_alert.id
-#                }
-#              ]
-#              next_op   = "AND"
-#              alerts_op = "OR"
-#            }
-#          ]
-#          timeframe_ms   = 0
-#          timeframe_type = "Up To"
-#        }
-#      ]
-#    }
-#  }
-#}
+resource "coralogix_alert" "flow_alert" {
+  name        = "flow alert example"
+  description = "Example of flow alert from terraform"
+  priority    = "P3"
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on      = "Triggered and Resolved"
+        integration_id = coralogix_webhook.slack_webhook.external_id
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on           = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  type_definition = {
+    flow = {
+      stages = [
+        {
+          flow_stages_groups = [
+            {
+              alert_defs = [
+                {
+                  id = coralogix_alert.logs_immediate_alert.id
+                },
+                {
+                  id = coralogix_alert.tracing_more_than_alert.id
+                },
+              ]
+              next_op   = "AND"
+              alerts_op = "OR"
+            },
+            {
+              alert_defs = [
+                {
+                  id = coralogix_alert.tracing_more_than_alert.id
+                },
+                {
+                  id = coralogix_alert.tracing_immediate_alert.id
+                },
+              ]
+              next_op   = "AND"
+              alerts_op = "OR"
+            },
+          ]
+          timeframe_ms   = 10
+          timeframe_type = "Up To"
+        }
+      ]
+    }
+  }
+}
 
 resource "coralogix_webhook" "slack_webhook" {
   name  = "slack-webhook"

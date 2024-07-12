@@ -1246,6 +1246,62 @@ func TestAccCoralogixResourceAlert_tracing_more_than(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceAlert_flow(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertFlow(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "flow alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of flow alert from terraform"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.0.alerts_op", "OR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.0.next_op", "AND"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.0.alert_defs.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.timeframe_ms", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.timeframe_type", "Up To"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.flow_stages_groups.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.flow_stages_groups.0.alerts_op", "AND"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.flow_stages_groups.0.next_op", "OR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.flow_stages_groups.0.alert_defs.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.timeframe_ms", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.timeframe_type", "Up To"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertFlowUpdated(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "flow alert example updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of flow alert from terraform updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.0.alerts_op", "AND"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.0.next_op", "OR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.alert_defs.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.timeframe_ms", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.timeframe_type", "Up To"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.flow_stages_groups.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.flow_stages_groups.0.alerts_op", "OR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.flow_stages_groups.0.next_op", "AND"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.alert_defs.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.timeframe_ms", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.1.timeframe_type", "Up To"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAlertDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*clientset.ClientSet).Alerts()
 
@@ -2760,6 +2816,150 @@ func testAccCoralogixResourceAlertTracingMoreThanUpdated() string {
 		specific_value = "1_HOUR"
 	  }
 	}
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertFlow() string {
+	return `resource "coralogix_alert" "test_1"{
+  name        = "logs immediate alert 1"
+  priority    = "P1"
+  type_definition = {
+    logs_immediate = {
+    }
+  }
+}
+
+resource "coralogix_alert" "test_2"{
+  name        = "logs immediate alert 2"
+  priority    = "P2"
+  type_definition = {
+    logs_immediate = {
+    }
+  }
+}
+
+resource "coralogix_alert" "test_3"{
+  name        = "logs immediate alert 3"
+  priority    = "P3"
+  type_definition = {
+    logs_immediate = {
+    }
+  }
+}
+
+resource "coralogix_alert" "test" {
+  name        = "flow alert example"
+  description = "Example of flow alert from terraform"
+  priority    = "P3"
+  type_definition = {
+    flow = {
+      stages = [
+        {
+          flow_stages_groups = [
+            {
+              alert_defs = [
+                {
+                  id = coralogix_alert.test_1.id
+                },
+                {
+                  id = coralogix_alert.test_2.id
+                },
+              ]
+              next_op   = "AND"
+              alerts_op = "OR"
+            },
+            {
+              alert_defs = [
+                {
+                  id = coralogix_alert.test_3.id
+                },
+                {
+                  id = coralogix_alert.test_2.id
+                },
+              ]
+              next_op   = "OR"
+              alerts_op = "AND"
+            },
+          ]
+          timeframe_ms   = 10
+          timeframe_type = "Up To"
+        }
+      ]
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertFlowUpdated() string {
+	return `resource "coralogix_alert" "test_1"{
+  name        = "logs immediate alert 1"
+  priority    = "P1"
+  type_definition = {
+    logs_immediate = {
+    }
+  }
+}
+
+resource "coralogix_alert" "test_2"{
+  name        = "logs immediate alert 2"
+  priority    = "P2"
+  type_definition = {
+    logs_immediate = {
+    }
+  }
+}
+
+resource "coralogix_alert" "test_3"{
+  name        = "logs immediate alert 3"
+  priority    = "P3"
+  type_definition = {
+    logs_immediate = {
+    }
+  }
+}
+
+resource "coralogix_alert" "test" {
+  name        = "flow alert example"
+  description = "Example of flow alert from terraform"
+  priority    = "P3"
+  type_definition = {
+    flow = {
+      stages = [
+        {
+          flow_stages_groups = [
+            {
+              alert_defs = [
+                {
+                  id = coralogix_alert.test_2.id
+                },
+                {
+                  id = coralogix_alert.test_1.id
+                },
+              ]
+              next_op   = "OR"
+              alerts_op = "AND"
+            },
+            {
+              alert_defs = [
+                {
+                  id = coralogix_alert.test_2.id
+                },
+                {
+                  id = coralogix_alert.test_3.id
+                },
+              ]
+              next_op   = "AND"
+              alerts_op = "OR"
+            },
+          ]
+          timeframe_ms   = 10
+          timeframe_type = "Up To"
+        }
+      ]
+    }
   }
 }
 `
