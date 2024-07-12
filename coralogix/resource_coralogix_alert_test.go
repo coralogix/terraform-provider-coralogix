@@ -1106,7 +1106,7 @@ func TestAccCoralogixResourceAlert_tracing_immediate(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.operation_name.*",
 						map[string]string{
 							"operation": "IS",
-							"values.#":  "2",
+							"values.#":  "1",
 						},
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.span_fields.*",
@@ -1119,7 +1119,7 @@ func TestAccCoralogixResourceAlert_tracing_immediate(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.span_fields.*",
 						map[string]string{
 							"key":                   "status",
-							"filter_type.operation": "ENDS_WITH",
+							"filter_type.operation": "STARTS_WITH",
 							"filter_type.values.#":  "2",
 						},
 					),
@@ -1136,18 +1136,24 @@ func TestAccCoralogixResourceAlert_tracing_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of tracing_immediate alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.latency_threshold_ms", "200"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.*",
 						map[string]string{
 							"operation": "IS",
+							"values.#":  "2",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.*",
+						map[string]string{
+							"operation": "STARTS_WITH",
 							"values.#":  "1",
 						},
 					),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.subsystem_name.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.subsystem_name.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.subsystem_name.*",
 						map[string]string{
 							"operation": "IS",
-							"values.#":  "2",
+							"values.#":  "1",
 						},
 					),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.operation_name.#", "1"),
@@ -1176,7 +1182,7 @@ func TestAccCoralogixResourceAlert_tracing_immediate(t *testing.T) {
 						map[string]string{
 							"key":                   "status",
 							"filter_type.operation": "IS",
-							"filter_type.values.#":  "2",
+							"filter_type.values.#":  "1",
 						},
 					),
 				),
@@ -1195,8 +1201,8 @@ func TestAccCoralogixResourceAlert_tracing_more_than(t *testing.T) {
 				Config: testAccCoralogixResourceAlertTracingMoreThan(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "name", "tracing-more-than alert example"),
-					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of tracing-more-than alert from terraform"),
-					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of tracing_more_than alert from terraform"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.tracing_query.latency_threshold_ms", "100"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.tracing_query.tracing_label_filters.application_name.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_more_than.tracing_query.tracing_label_filters.application_name.*",
@@ -1212,7 +1218,7 @@ func TestAccCoralogixResourceAlert_tracing_more_than(t *testing.T) {
 						},
 					),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.span_amount", "5"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.time_window.specific_value", "1_HOUR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.time_window.specific_value", "10_MINUTES"),
 				),
 			},
 			{
@@ -1259,7 +1265,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of flow alert from terraform"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.#", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.#", "2"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.0.alerts_op", "OR"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.0.next_op", "AND"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.flow.stages.0.flow_stages_groups.0.alert_defs.#", "2"),
@@ -2660,13 +2666,11 @@ func testAccCoralogixResourceAlertTracingImmediate() string {
           ]
           subsystem_name = [
             {
-              operation = "IS"
               values    = ["subsystem-name"]
             }
           ]
           operation_name        = [
             {
-              operation = "IS"
               values    = ["operation-name"]
             }
           ]
@@ -2779,7 +2783,7 @@ func testAccCoralogixResourceAlertTracingMoreThan() string {
           ]
         }
       }
-      span_amount = 2
+      span_amount = 5
       time_window = {
         specific_value = "10_MINUTES"
       }
@@ -2956,6 +2960,21 @@ resource "coralogix_alert" "test" {
             },
           ]
           timeframe_ms   = 10
+          timeframe_type = "Up To"
+        },
+		{
+          flow_stages_groups = [
+            {
+              alert_defs = [
+                {
+                  id = coralogix_alert.test_2.id
+                },
+              ]
+              next_op   = "OR"
+              alerts_op = "AND"
+            },
+          ]
+          timeframe_ms   = 20
           timeframe_type = "Up To"
         }
       ]
