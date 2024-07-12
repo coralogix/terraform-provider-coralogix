@@ -75,7 +75,7 @@ var (
 	validDaysOfWeek            = GetKeys(daysOfWeekSchemaToProtoMap)
 
 	logFilterOperationTypeProtoToSchemaMap = map[alerts.LogFilterOperationType]string{
-		alerts.LogFilterOperationType_LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED: "OR",
+		alerts.LogFilterOperationType_LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED: "IS",
 		alerts.LogFilterOperationType_LOG_FILTER_OPERATION_TYPE_INCLUDES:          "NOT",
 		alerts.LogFilterOperationType_LOG_FILTER_OPERATION_TYPE_ENDS_WITH:         "ENDS_WITH",
 		alerts.LogFilterOperationType_LOG_FILTER_OPERATION_TYPE_STARTS_WITH:       "STARTS_WITH",
@@ -226,7 +226,7 @@ var (
 	validTracingTimeWindow            = GetKeys(tracingTimeWindowSchemaToProtoMap)
 
 	tracingFilterOperationProtoToSchemaMap = map[alerts.TracingFilterOperationType]string{
-		alerts.TracingFilterOperationType_TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED: "OR",
+		alerts.TracingFilterOperationType_TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED: "IS",
 		alerts.TracingFilterOperationType_TRACING_FILTER_OPERATION_TYPE_INCLUDES:          "NOT",
 		alerts.TracingFilterOperationType_TRACING_FILTER_OPERATION_TYPE_ENDS_WITH:         "ENDS_WITH",
 		alerts.TracingFilterOperationType_TRACING_FILTER_OPERATION_TYPE_STARTS_WITH:       "STARTS_WITH",
@@ -1297,13 +1297,6 @@ func tracingFiltersTypeSchema() schema.SetNestedAttribute {
 	}
 }
 
-func tracingFilterTypeSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Optional:   true,
-		Attributes: tracingFiltersTypeSchemaAttributes(),
-	}
-}
-
 func tracingFiltersTypeSchemaAttributes() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"values": schema.SetAttribute{
@@ -1311,11 +1304,13 @@ func tracingFiltersTypeSchemaAttributes() map[string]schema.Attribute {
 			ElementType: types.StringType,
 		},
 		"operation": schema.StringAttribute{
-			Required: true,
+			Optional: true,
+			Computed: true,
+			Default:  stringdefault.StaticString("IS"),
 			Validators: []validator.String{
 				stringvalidator.OneOf(validTracingFilterOperations...),
 			},
-			MarkdownDescription: fmt.Sprintf("Operation. Valid values: %q.", validTracingFilterOperations),
+			MarkdownDescription: fmt.Sprintf("Operation. Valid values: %q. 'IS' by default.", validTracingFilterOperations),
 		},
 	}
 }
@@ -1325,8 +1320,13 @@ func tracingSpanFieldsFilterSchema() schema.SetNestedAttribute {
 		Optional: true,
 		NestedObject: schema.NestedAttributeObject{
 			Attributes: map[string]schema.Attribute{
-				"key":         schema.StringAttribute{Required: true},
-				"filter_type": tracingFilterTypeSchema(),
+				"key": schema.StringAttribute{
+					Required: true,
+				},
+				"filter_type": schema.SingleNestedAttribute{
+					Optional:   true,
+					Attributes: tracingFiltersTypeSchemaAttributes(),
+				},
 			},
 		},
 	}
@@ -1414,10 +1414,13 @@ func logsAttributeFilterSchema() schema.SetNestedAttribute {
 					Required: true,
 				},
 				"operation": schema.StringAttribute{
-					Required: true,
+					Optional: true,
+					Computed: true,
+					Default:  stringdefault.StaticString("IS"),
 					Validators: []validator.String{
 						stringvalidator.OneOf(validLogFilterOperationType...),
 					},
+					MarkdownDescription: fmt.Sprintf("Operation. Valid values: %q.'IS' by default.", validLogFilterOperationType),
 				},
 			},
 		},
@@ -4344,7 +4347,6 @@ func flattenTracingSpansFields(ctx context.Context, spanFields []*alerts.Tracing
 			return types.SetNull(types.ObjectType{AttrTypes: tracingSpanFieldsFilterAttr()}), diags
 		}
 		tracingSpanFields = append(tracingSpanFields, tracingSpanField)
-
 	}
 	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: tracingSpanFieldsFilterAttr()}, tracingSpanFields)
 }
@@ -4354,7 +4356,7 @@ func flattenTracingSpanField(ctx context.Context, spanField *alerts.TracingSpanF
 		return nil, nil
 	}
 
-	filterType, diags := types.ObjectValueFrom(ctx, labelFilterTypesAttr(), flattenTracingFilterType(spanField.GetFilterType()))
+	filterType, diags := types.ObjectValueFrom(ctx, tracingFiltersTypeAttr(), flattenTracingFilterType(spanField.GetFilterType()))
 	if diags.HasError() {
 		return nil, diags
 	}

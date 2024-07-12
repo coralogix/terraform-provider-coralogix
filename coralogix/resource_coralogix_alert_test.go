@@ -119,13 +119,13 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.subsystem_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "subsystem-name",
 						},
 					),
@@ -165,7 +165,7 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than.logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
@@ -221,13 +221,13 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.subsystem_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "subsystem-name",
 						},
 					),
@@ -268,7 +268,7 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
@@ -324,13 +324,13 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.minutes", "30"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than_usual.logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than_usual.logs_filter.lucene_filter.label_filters.subsystem_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "subsystem-name",
 						},
 					),
@@ -367,13 +367,13 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than_usual.logs_filter.lucene_filter.lucene_query", "message:\"updated_error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than_usual.logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_more_than_usual.logs_filter.lucene_filter.label_filters.subsystem_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "subsystem-name",
 						},
 					),
@@ -471,7 +471,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_less_than.logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
@@ -516,13 +516,13 @@ func TestAccCoralogixResourceAlert_logs_ratio_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.lucene_query", "mod_date:[20020101 TO 20030101]"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.label_filters.subsystem_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "subsystem-name",
 						},
 					),
@@ -530,13 +530,13 @@ func TestAccCoralogixResourceAlert_logs_ratio_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.lucene_query", "mod_date:[20030101 TO 20040101]"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.lucene_filter.label_filters.subsystem_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "subsystem-name",
 						},
 					),
@@ -578,13 +578,13 @@ func TestAccCoralogixResourceAlert_logs_ratio_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.lucene_query", "mod_date:[20030101 TO 20040101]"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.lucene_filter.label_filters.subsystem_name.*",
 						map[string]string{
-							"operation": "OR",
+							"operation": "IS",
 							"value":     "subsystem-name",
 						},
 					),
@@ -1028,143 +1028,128 @@ func TestAccCoralogixResourceAlert_metric_less_than_or_equals(t *testing.T) {
 	)
 }
 
-func testAccCoralogixResourceAlertLogsLessThanUsual() string {
-	return `resource "coralogix_alert" "test" {
-	  name        = "logs-less-than alert example"
-	  description = "Example of logs-less-than alert example from terraform"
-	  priority    = "P2"
-
-	  labels = {
-		alert_type        = "security"
-		security_severity = "high"
-		}
-
-	  notification_group = {
-		simple_target_settings = [
-		{
-			recipients = ["example@coralogix.com", "example2@coralogix.com"]
+func TestAccCoralogixResourceAlert_metric_more_than_or_equals(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertMetricMoreThanOrEquals(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "metric-more-than-or-equals alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of metric-more-than-or-equals alert from terraform"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than_or_equals.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than_or_equals.threshold", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than_or_equals.for_over_pct", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than_or_equals.of_the_last.specific_value", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than_or_equals.missing_values.replace_with_zero", "true"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertMetricMoreThanOrEqualsUpdated(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "metric-more-than-or-equals alert example updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of metric-more-than-or-equals alert from terraform updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P4"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than_or_equals.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than_or_equals.threshold", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than_or_equals.for_over_pct", "15"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than_or_equals.of_the_last.specific_value", "1_HOUR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_more_than_or_equals.missing_values.replace_with_zero", "true"),
+				),
+			},
 		},
-		{
-			integration_id = "17730"
-		}
-		]
-	 }
-
-	  incidents_settings = {
-		notify_on           = "Triggered and Resolved"
-		retriggering_period = {
-			minutes = 1
-		}
-	  }
-
-	  schedule = {
-		active_on = {
-			days_of_week = ["Wednesday", "Thursday"]
-			start_time   = {
-				hours   = 10
-				minutes = 30
-			}
-			end_time = {
-				hours   = 20
-				minutes = 30
-			}
-		}
-	  }
-
-	  type_definition = {
-		logs_less_than = {
-			threshold   = 2
-			time_window = {
-				specific_value = "10_MINUTES"
-			}
-			logs_filter       = {
-				lucene_filter = {
-					lucene_query  = "message:\"error\""
-					label_filters = {
-						application_name = [
-							{
-								operation = "NOT"
-								value     = "application_name"
-							}
-						]
-						subsystem_name = [
-							{
-								operation = "STARTS_WITH"
-								value     = "subsystem-name"
-							}
-						]
-						severities = ["Warning", "Error"]
-					}
-				}
-			}
-		}
-	  }
-	}
-	`
+	},
+	)
 }
 
-func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
-	return `resource "coralogix_alert" "test" {
-	  name        = "logs-less-than alert example updated"
-	  description = "Example of logs-less-than alert example from terraform updated"
-	  priority    = "P3"
-
-	  notification_group = {
-		simple_target_settings = [
-		{
-			integration_id = "17730"
-		}
-		]
-	  }
-
-	  incidents_settings = {
-		notify_on           = "Triggered Only"
-		retriggering_period = {
-			minutes = 10
-		}
-	  }
-
-	  schedule = {
-		active_on = {
-			days_of_week = ["Monday", "Thursday"]
-			start_time   = {
-				hours   = 8
-				minutes = 30
-			}
-			end_time = {
-				hours   = 20
-				minutes = 30
-			}
-		}
-	  }
-
-	  type_definition = {
-		logs_less_than = {
-			threshold   = 20
-			time_window = {
-				specific_value = "2_HOURS"
-			}
-			logs_filter       = {
-				lucene_filter = {
-					lucene_query  = "message:\"error\""
-					label_filters = {
-						application_name = [
-							{
-								operation = "OR"
-								value     = "nginx"
-							},
-							{
-								operation = "NOT"
-								value     = "application_name"
-							}
-						]
-					}
-				}
-			}
-		}
-	  }
-	}
-	`
+func TestAccCoralogixResourceAlert_tracing_immediate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertTracingImmediate(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "tracing_immediate alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of tracing_immediate alert from terraform"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.latency_threshold_ms", "100"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.0.operation", "IS"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.0.values.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.1.operation", "STARTS_WITH"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.1.values.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.subsystem_name.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.severities.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.span_fields.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.span_fields.*",
+						map[string]string{
+							"key":                   "status",
+							"filter_type.operation": "STARTS_WITH",
+							"filter_type.values.#":  "2",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.span_fields.*",
+						map[string]string{
+							"key":                   "status",
+							"filter_type.operation": "ENDS_WITH",
+							"filter_type.values.#":  "2",
+						},
+					),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testAccCoralogixResourceAlertTracingImmediateUpdated(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "tracing_immediate alert example updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of tracing_immediate alert from terraform updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.latency_threshold_ms", "200"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.0.operation", "IS"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.0.values.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.1.operation", "STARTS_WITH"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.application_name.1.values.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.subsystem_name.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.severities.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.span_fields.#", "3"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.span_fields.*",
+						map[string]string{
+							"key":                   "status",
+							"filter_type.operation": "STARTS_WITH",
+							"filter_type.values.#":  "2",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.span_fields.*",
+						map[string]string{
+							"key":                   "status",
+							"filter_type.operation": "ENDS_WITH",
+							"filter_type.values.#":  "2",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_immediate.tracing_query.tracing_label_filters.span_fields.*",
+						map[string]string{
+							"key":                   "status",
+							"filter_type.operation": "IS",
+							"filter_type.values.#":  "2",
+						},
+					),
+				),
+			},
+		},
+	})
 }
 
 func testAccCheckAlertDestroy(s *terraform.State) error {
@@ -1357,13 +1342,13 @@ func testAccCoralogixResourceAlertLogsMoreThan() string {
           label_filters = {
             application_name = [
               {
-                operation = "OR"
+                operation = "IS"
                 value     = "nginx"
               }
             ]
             subsystem_name = [
               {
-                operation = "OR"
+                operation = "IS"
                 value     = "subsystem-name"
               }
             ]
@@ -1430,7 +1415,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
           label_filters = {
             application_name = [
               {
-                operation = "OR"
+                operation = "IS"
                 value     = "nginx"
               },
 		      {
@@ -1502,13 +1487,13 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
 			  label_filters = {
 				application_name = [
 				  {
-					operation = "OR"
+					operation = "IS"
 					value     = "nginx"
 				  }
 				]
 				subsystem_name = [
 				  {
-					operation = "OR"
+					operation = "IS"
 					value     = "subsystem-name"
 				  }
 				]
@@ -1574,7 +1559,7 @@ func testAccCoralogixResourceAlertLogsLessThanUpdated() string {
 		  label_filters = {
 			application_name = [
 			  {
-				operation = "OR"
+				operation = "IS"
 				value     = "nginx"
 			  },
 			  {
@@ -1647,13 +1632,13 @@ func testAccCoralogixResourceAlertLogsMoreThanUsual() string {
           label_filters = {
             application_name = [
               {
-                operation = "OR"
+                operation = "IS"
                 value     = "nginx"
               }
             ]
             subsystem_name = [
               {
-                operation = "OR"
+                operation = "IS"
                 value     = "subsystem-name"
               }
             ]
@@ -1697,13 +1682,13 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
           label_filters = {
             application_name = [
               {
-                operation = "OR"
+                operation = "IS"
                 value     = "nginx"
               }
             ]
             subsystem_name = [
               {
-                operation = "OR"
+                operation = "IS"
                 value     = "subsystem-name"
               }
             ]
@@ -1719,6 +1704,145 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
   }
 }
 `
+}
+
+func testAccCoralogixResourceAlertLogsLessThanUsual() string {
+	return `resource "coralogix_alert" "test" {
+	  name        = "logs-less-than alert example"
+	  description = "Example of logs-less-than alert example from terraform"
+	  priority    = "P2"
+
+	  labels = {
+		alert_type        = "security"
+		security_severity = "high"
+		}
+
+	  notification_group = {
+		simple_target_settings = [
+		{
+			recipients = ["example@coralogix.com", "example2@coralogix.com"]
+		},
+		{
+			integration_id = "17730"
+		}
+		]
+	 }
+
+	  incidents_settings = {
+		notify_on           = "Triggered and Resolved"
+		retriggering_period = {
+			minutes = 1
+		}
+	  }
+
+	  schedule = {
+		active_on = {
+			days_of_week = ["Wednesday", "Thursday"]
+			start_time   = {
+				hours   = 10
+				minutes = 30
+			}
+			end_time = {
+				hours   = 20
+				minutes = 30
+			}
+		}
+	  }
+
+	  type_definition = {
+		logs_less_than = {
+			threshold   = 2
+			time_window = {
+				specific_value = "10_MINUTES"
+			}
+			logs_filter       = {
+				lucene_filter = {
+					lucene_query  = "message:\"error\""
+					label_filters = {
+						application_name = [
+							{
+								operation = "NOT"
+								value     = "application_name"
+							}
+						]
+						subsystem_name = [
+							{
+								operation = "STARTS_WITH"
+								value     = "subsystem-name"
+							}
+						]
+						severities = ["Warning", "Error"]
+					}
+				}
+			}
+		}
+	  }
+	}
+	`
+}
+
+func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
+	return `resource "coralogix_alert" "test" {
+	  name        = "logs-less-than alert example updated"
+	  description = "Example of logs-less-than alert example from terraform updated"
+	  priority    = "P3"
+
+	  notification_group = {
+		simple_target_settings = [
+		{
+			integration_id = "17730"
+		}
+		]
+	  }
+
+	  incidents_settings = {
+		notify_on           = "Triggered Only"
+		retriggering_period = {
+			minutes = 10
+		}
+	  }
+
+	  schedule = {
+		active_on = {
+			days_of_week = ["Monday", "Thursday"]
+			start_time   = {
+				hours   = 8
+				minutes = 30
+			}
+			end_time = {
+				hours   = 20
+				minutes = 30
+			}
+		}
+	  }
+
+	  type_definition = {
+		logs_less_than = {
+			threshold   = 20
+			time_window = {
+				specific_value = "2_HOURS"
+			}
+			logs_filter       = {
+				lucene_filter = {
+					lucene_query  = "message:\"error\""
+					label_filters = {
+						application_name = [
+							{
+								operation = "IS"
+								value     = "nginx"
+							},
+							{
+								operation = "NOT"
+								value     = "application_name"
+							}
+						]
+					}
+				}
+			}
+		}
+	  }
+	}
+	`
 }
 
 func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
@@ -1745,13 +1869,13 @@ func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
           label_filters = {
             application_name = [
               {
-                operation = "OR"
+                operation = "IS"
                 value     = "nginx"
               }
             ]
             subsystem_name = [
               {
-                operation = "OR"
+                operation = "IS"
                 value     = "subsystem-name"
               }
             ]
@@ -1766,13 +1890,13 @@ func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
             label_filters = {
                 application_name = [
                 {
-                    operation = "OR"
+                    operation = "IS"
                     value     = "nginx"
                 }
                 ]
                 subsystem_name = [
                 {
-                    operation = "OR"
+                    operation = "IS"
                     value     = "subsystem-name"
                 }
                 ]
@@ -1817,13 +1941,13 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
           label_filters = {
             application_name = [
               {
-                operation = "OR"
+                operation = "IS"
                 value     = "nginx"
               }
             ]
             subsystem_name = [
               {
-                operation = "OR"
+                operation = "IS"
                 value     = "subsystem-name"
               }
             ]
@@ -2306,6 +2430,165 @@ func testAccCoralogixResourceAlertMetricLessThanOrEqualsUpdated() string {
 	  undetected_values_management = {
 		trigger_undetected_values = true
 		auto_retire_timeframe     = "5_Minutes"
+	  }
+	}
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertMetricMoreThanOrEquals() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "metric-more-than-or-equals alert example"
+  description = "Example of metric-more-than-or-equals alert from terraform"
+  priority    = "P3"
+
+  type_definition = {
+	metric_more_than_or_equals = {
+	  metric_filter = {
+		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+	  }
+	  threshold    = 2
+	  for_over_pct = 10
+	  of_the_last  = {
+		specific_value = "10_MINUTES"
+	  }
+	  missing_values = {
+		replace_with_zero = true
+	  }
+	}
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertMetricMoreThanOrEqualsUpdated() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "metric-more-than-or-equals alert example updated"
+  description = "Example of metric-more-than-or-equals alert from terraform updated"
+  priority    = "P4"
+
+  type_definition = {
+	metric_more_than_or_equals = {
+	  metric_filter = {
+		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+	  }
+	  threshold    = 10
+	  for_over_pct = 15
+	  of_the_last  = {
+		specific_value = "1_HOUR"
+	  }
+	  missing_values = {
+		replace_with_zero = true
+	  }
+	}
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertTracingImmediate() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "tracing_immediate alert example"
+  description = "Example of tracing_immediate alert from terraform"
+  priority    = "P1"
+
+  type_definition = {
+    tracing_immediate = {
+      tracing_query = {
+        latency_threshold_ms  = 100
+        tracing_label_filters = {
+          application_name = [
+            {
+              operation = "IS"
+              values    = ["nginx", "apache"]
+            },
+            {
+                operation = "STARTS_WITH"
+                values    = ["application-name:"]
+            }
+          ]
+          subsystem_name = [
+            {
+              operation = "IS"
+              values    = ["subsystem-name"]
+            }
+          ]
+          severities = ["Warning", "Error"]
+          span_fields = [
+            {
+              key         = "status"
+              filter_type = {
+                values    = ["200"]
+              }
+            },
+            {
+              key         = "status"
+              filter_type = {
+                operation = "STARTS_WITH"
+                values    = ["40", "50"]
+              }
+            },
+          ]
+        }
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertTracingImmediateUpdated() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "tracing_immediate alert example updated"
+  description = "Example of tracing_immediate alert from terraform updated"
+  priority    = "P2"
+
+  type_definition = {
+	tracing_immediate = {
+	  tracing_query = {
+		latency_threshold_ms  = 200
+		tracing_label_filters = {
+		  application_name = [
+			{
+			  operation = "IS"
+			  values    = ["nginx", "apache"]
+			},
+			{
+				operation = "STARTS_WITH"
+				values    = ["application-name:"]
+			}
+		  ]
+		  subsystem_name = [
+			{
+			  operation = "IS"
+			  values    = ["subsystem-name"]
+			}
+		  ]
+		  severities = ["Warning", "Error"]
+		  span_fields = [
+			{
+			  key         = "status"
+			  filter_type = {
+				values    = ["200"]
+			  }
+			},
+			{
+			  key         = "status"
+			  filter_type = {
+				operation = "STARTS_WITH"
+				values    = ["40", "50"]
+			  }
+			},
+            {
+              key         = "status"
+              filter_type = {
+                operation = "ENDS_WITH"
+                values    = ["500", "404"]
+              }
+            },
+		  ]
+		}
 	  }
 	}
   }
