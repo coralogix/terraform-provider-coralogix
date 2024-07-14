@@ -692,7 +692,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(true),
-				MarkdownDescription: "Alert enabled status.",
+				MarkdownDescription: "Alert enabled status. True by default.",
 			},
 			"priority": schema.StringAttribute{
 				Required: true,
@@ -715,12 +715,14 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 										stringvalidator.OneOf(validDaysOfWeek...),
 									),
 								},
+								MarkdownDescription: fmt.Sprintf("Days of the week. Valid values: %q.", validDaysOfWeek),
 							},
 							"start_time": timeOfDaySchema(),
 							"end_time":   timeOfDaySchema(),
 						},
 					},
 				},
+				MarkdownDescription: "Alert schedule. Will be activated all the time if not specified.",
 			},
 			"type_definition": schema.SingleNestedAttribute{
 				Required: true,
@@ -1083,10 +1085,12 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						},
 					},
 				},
+				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_more_than, logs_less_than, logs_more_than_usual, logs_ratio_more_than, logs_ratio_less_than, logs_new_value, logs_unique_count, logs_time_relative_more_than, logs_time_relative_less_than, metric_more_than, metric_less_than, metric_more_than_usual, metric_less_than_usual, metric_less_than_or_equals, metric_more_than_or_equals, tracing_immediate, tracing_more_than, flow.",
 			},
 			"group_by": schema.SetAttribute{
-				Optional:    true,
-				ElementType: types.StringType,
+				Optional:            true,
+				ElementType:         types.StringType,
+				MarkdownDescription: "Group by fields.",
 			},
 			"incidents_settings": schema.SingleNestedAttribute{
 				Optional: true,
@@ -5180,7 +5184,7 @@ func (r *AlertResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Delxeting Alert %s", id)
+	log.Printf("[INFO] Delteting Alert %s", id)
 	deleteReq := &alerts.DeleteAlertDefRequest{Id: wrapperspb.String(id)}
 	log.Printf("[INFO] Deleting Alert: %s", protojson.Format(deleteReq))
 	if _, err := r.client.DeleteAlert(ctx, deleteReq); err != nil {

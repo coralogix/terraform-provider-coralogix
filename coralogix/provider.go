@@ -305,6 +305,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewGroupDataSource,
 		NewUserDataSource,
 		NewTeamDataSource,
+		NewAlertDataSource,
 	}
 }
 
