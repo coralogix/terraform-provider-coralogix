@@ -213,6 +213,7 @@ var (
 	dashboardValidSpanFieldTypes           = []string{"metadata", "tag", "process_tag"}
 	dashboardValidSpanAggregationTypes     = []string{"metric", "dimension"}
 	dashboardValidColorSchemes             = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
+	secionValidColors                      = []string{"unspecified", "cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
 	createDashboardURL                     = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/CreateDashboard"
 	getDashboardURL                        = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/GetDashboard"
 	updateDashboardURL                     = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/ReplaceDashboard"
@@ -2226,9 +2227,9 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 									"color": schema.StringAttribute{
 										Optional: true,
 										Validators: []validator.String{
-											stringvalidator.OneOf("unspecified", "cyan", "green", "blue", "purple", "magenta", "pink", "orange"),
+											stringvalidator.OneOf(secionValidColors...),
 										},
-										MarkdownDescription: "Section color",
+										MarkdownDescription: fmt.Sprintf("Section color, valid values: %v", secionValidColors),
 									},
 									"collapsed": schema.BoolAttribute{
 										Optional: true,
