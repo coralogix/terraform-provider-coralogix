@@ -8,6 +8,14 @@
         "id": {
           "value": "jyFMEvjUGSuzXlqewnZyJ"
         },
+        "options": {
+          "custom": {
+            "name": "Status",
+            "color": {
+              "predefined": "SECTION_PREDEFINED_COLOR_BLUE"
+            }
+          }
+        },
         "rows": [
           {
             "id": {

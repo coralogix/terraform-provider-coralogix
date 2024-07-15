@@ -592,8 +592,13 @@ New Features:
 #### resource/coralogix_api_key
 * added support for `Organisation_Id` owners.
 
+#### resource/coralogix_dashboard
+* added support for section options 
+
 Bug fixing:
 #### resource/coralogix_api_key
 * HTTP 403 responses will now be displaying the actual error message
 
 Various documentation fixes
+
+Deprecation: `coralogix_sli` deprecated in favor of `coralogix_slo`

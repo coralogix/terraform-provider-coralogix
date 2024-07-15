@@ -8,6 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards"
+
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
@@ -36,8 +39,6 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards"
 )
 
 var (
@@ -212,6 +213,7 @@ var (
 	dashboardValidSpanFieldTypes           = []string{"metadata", "tag", "process_tag"}
 	dashboardValidSpanAggregationTypes     = []string{"metric", "dimension"}
 	dashboardValidColorSchemes             = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
+	secionValidColors                      = []string{"unspecified", "cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
 	createDashboardURL                     = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/CreateDashboard"
 	getDashboardURL                        = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/GetDashboard"
 	updateDashboardURL                     = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/ReplaceDashboard"
@@ -244,8 +246,16 @@ type DashboardLayoutModel struct {
 }
 
 type SectionModel struct {
-	ID   types.String `tfsdk:"id"`
-	Rows types.List   `tfsdk:"rows"` //RowModel
+	ID      types.String         `tfsdk:"id"`
+	Rows    types.List           `tfsdk:"rows"` //RowModel
+	Options *SectionOptionsModel `tfsdk:"options"`
+}
+
+type SectionOptionsModel struct {
+	Name        types.String `tfsdk:"name"`
+	Description types.String `tfsdk:"description"`
+	Collapsed   types.Bool   `tfsdk:"collapsed"`
+	Color       types.String `tfsdk:"color"`
 }
 
 type RowModel struct {
@@ -2206,6 +2216,26 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 								},
 								Optional: true,
 							},
+							"options": schema.SingleNestedAttribute{
+								Attributes: map[string]schema.Attribute{
+									"name": schema.StringAttribute{
+										Required: true,
+									},
+									"description": schema.StringAttribute{
+										Optional: true,
+									},
+									"color": schema.StringAttribute{
+										Optional: true,
+										Validators: []validator.String{
+											stringvalidator.OneOf(secionValidColors...),
+										},
+										MarkdownDescription: fmt.Sprintf("Section color, valid values: %v", secionValidColors),
+									},
+									"collapsed": schema.BoolAttribute{
+										Optional: true,
+									},
+								}, Optional: true,
+							},
 						},
 					},
 					Optional: true,
@@ -3609,9 +3639,65 @@ func expandSection(ctx context.Context, section SectionModel) (*dashboards.Secti
 		return nil, diags
 	}
 
-	return &dashboards.Section{
-		Id:   id,
-		Rows: rows,
+	if section.Options != nil {
+		options, diags := expandSectionOptions(ctx, *section.Options)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &dashboards.Section{
+			Id:      id,
+			Rows:    rows,
+			Options: options,
+		}, nil
+	} else {
+		return &dashboards.Section{
+			Id:      id,
+			Rows:    rows,
+			Options: nil,
+		}, nil
+	}
+}
+
+func expandSectionOptions(_ context.Context, option SectionOptionsModel) (*dashboards.SectionOptions, diag.Diagnostics) {
+
+	var color *dashboards.SectionColor
+	if !option.Color.IsNull() {
+		mappedColor := dashboards.SectionPredefinedColor_value[fmt.Sprintf("SECTION_PREDEFINED_COLOR_%s", strings.ToUpper(option.Color.ValueString()))]
+		// this means the color field somehow wasn't validated
+		if mappedColor == 0 && option.Color.String() != "unspecified" {
+			return nil, diag.Diagnostics{
+				diag.NewErrorDiagnostic(
+					"Extract Dashboard Section Options Error",
+					fmt.Sprintf("Unknown color: %s", option.Color.ValueString()),
+				),
+			}
+		}
+		color = &dashboards.SectionColor{
+			Value: &dashboards.SectionColor_Predefined{
+				Predefined: dashboards.SectionPredefinedColor(mappedColor),
+			},
+		}
+	}
+
+	var description *wrapperspb.StringValue
+	if !option.Description.IsNull() {
+		description = wrapperspb.String(option.Description.ValueString())
+	}
+
+	var collapsed *wrapperspb.BoolValue
+	if !option.Collapsed.IsNull() {
+		collapsed = wrapperspb.Bool(option.Collapsed.ValueBool())
+	}
+
+	return &dashboards.SectionOptions{
+		Value: &dashboards.SectionOptions_Custom{
+			Custom: &dashboards.CustomSectionOptions{
+				Name:        wrapperspb.String(option.Name.ValueString()),
+				Description: description,
+				Collapsed:   collapsed,
+				Color:       color,
+			},
+		},
 	}, nil
 }
 
@@ -6211,6 +6297,14 @@ func sectionModelAttr() map[string]attr.Type {
 				AttrTypes: rowModelAttr(),
 			},
 		},
+		"options": types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"name":        types.StringType,
+				"description": types.StringType,
+				"color":       types.StringType,
+				"collapsed":   types.BoolType,
+			},
+		},
 	}
 }
 
@@ -7187,9 +7281,50 @@ func flattenDashboardSection(ctx context.Context, section *dashboards.Section) (
 		return nil, diags
 	}
 
+	options, diags := flattenDashboardOptions(ctx, section.GetOptions())
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &SectionModel{
-		ID:   types.StringValue(section.GetId().GetValue()),
-		Rows: rows,
+		ID:      types.StringValue(section.GetId().GetValue()),
+		Rows:    rows,
+		Options: options,
+	}, nil
+}
+
+func flattenDashboardOptions(_ context.Context, opts *dashboards.SectionOptions) (*SectionOptionsModel, diag.Diagnostics) {
+	if opts == nil {
+		return nil, nil
+	}
+	var description basetypes.StringValue
+	if opts.GetCustom().Description != nil {
+		description = types.StringValue(opts.GetCustom().Description.GetValue())
+	} else {
+		description = types.StringNull()
+	}
+
+	var collapsed basetypes.BoolValue
+	if opts.GetCustom().Description != nil {
+		collapsed = types.BoolValue(opts.GetCustom().Collapsed.GetValue())
+	} else {
+		collapsed = types.BoolNull()
+	}
+
+	var color basetypes.StringValue
+	if opts.GetCustom().Color != nil {
+		colorString := opts.GetCustom().Color.GetPredefined().String()
+		colors := strings.Split(colorString, "_")
+		color = types.StringValue(strings.ToLower(colors[len(colors)-1]))
+	} else {
+		color = types.StringNull()
+	}
+
+	return &SectionOptionsModel{
+		Name:        types.StringValue(opts.GetCustom().Name.GetValue()),
+		Description: description,
+		Collapsed:   collapsed,
+		Color:       color,
 	}, nil
 }
 
