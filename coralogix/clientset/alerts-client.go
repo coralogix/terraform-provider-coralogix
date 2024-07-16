@@ -3,14 +3,14 @@ package clientset
 import (
 	"context"
 
-	alerts "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v2"
+	alerts "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v3"
 )
 
 type AlertsClient struct {
 	callPropertiesCreator *CallPropertiesCreator
 }
 
-func (a AlertsClient) CreateAlert(ctx context.Context, req *alerts.CreateAlertRequest) (*alerts.CreateAlertResponse, error) {
+func (a AlertsClient) CreateAlert(ctx context.Context, req *alerts.CreateAlertDefRequest) (*alerts.CreateAlertDefResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -18,12 +18,12 @@ func (a AlertsClient) CreateAlert(ctx context.Context, req *alerts.CreateAlertRe
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := alerts.NewAlertServiceClient(conn)
+	client := alerts.NewAlertDefsServiceClient(conn)
 
-	return client.CreateAlert(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.CreateAlertDef(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (a AlertsClient) GetAlert(ctx context.Context, req *alerts.GetAlertByUniqueIdRequest) (*alerts.GetAlertByUniqueIdResponse, error) {
+func (a AlertsClient) GetAlert(ctx context.Context, req *alerts.GetAlertDefRequest) (*alerts.GetAlertDefResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -31,12 +31,12 @@ func (a AlertsClient) GetAlert(ctx context.Context, req *alerts.GetAlertByUnique
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := alerts.NewAlertServiceClient(conn)
+	client := alerts.NewAlertDefsServiceClient(conn)
 
-	return client.GetAlertByUniqueId(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.GetAlertDef(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (a AlertsClient) UpdateAlert(ctx context.Context, req *alerts.UpdateAlertByUniqueIdRequest) (*alerts.UpdateAlertByUniqueIdResponse, error) {
+func (a AlertsClient) UpdateAlert(ctx context.Context, req *alerts.ReplaceAlertDefRequest) (*alerts.ReplaceAlertDefResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -44,12 +44,12 @@ func (a AlertsClient) UpdateAlert(ctx context.Context, req *alerts.UpdateAlertBy
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := alerts.NewAlertServiceClient(conn)
+	client := alerts.NewAlertDefsServiceClient(conn)
 
-	return client.UpdateAlertByUniqueId(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.ReplaceAlertDef(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
-func (a AlertsClient) DeleteAlert(ctx context.Context, req *alerts.DeleteAlertByUniqueIdRequest) (*alerts.DeleteAlertByUniqueIdResponse, error) {
+func (a AlertsClient) DeleteAlert(ctx context.Context, req *alerts.DeleteAlertDefRequest) (*alerts.DeleteAlertDefResponse, error) {
 	callProperties, err := a.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -57,9 +57,9 @@ func (a AlertsClient) DeleteAlert(ctx context.Context, req *alerts.DeleteAlertBy
 
 	conn := callProperties.Connection
 	defer conn.Close()
-	client := alerts.NewAlertServiceClient(conn)
+	client := alerts.NewAlertDefsServiceClient(conn)
 
-	return client.DeleteAlertByUniqueId(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.DeleteAlertDef(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 func NewAlertsClient(c *CallPropertiesCreator) *AlertsClient {

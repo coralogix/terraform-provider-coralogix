@@ -3,36 +3,27 @@ package coralogix
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var alertDataSourceName = "data." + alertResourceName
 
-func TestAccCoralogixDataSourceAlert_basic(t *testing.T) {
-	alert := standardAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		groupBy:               []string{"EventType"},
-		occurrencesThreshold:  acctest.RandIntRange(1, 1000),
-		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
-		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
-	}
-
+func TestAccCoralogixDataSourceAlert(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckActionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertStandard(&alert) +
+				Config: testAccCoralogixResourceAlertLogsImmediate() +
 					testAccCoralogixDataSourceAlert_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(alertDataSourceName, "name", alert.name),
+					resource.TestCheckResourceAttr(alertDataSourceName, "name", "logs immediate alert"),
 				),
 			},
 		},
 	})
 }
-
 func testAccCoralogixDataSourceAlert_read() string {
 	return `data "coralogix_alert" "test" {
 	id = coralogix_alert.test.id
