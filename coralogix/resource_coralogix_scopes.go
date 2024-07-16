@@ -22,7 +22,7 @@ import (
 	"strconv"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	teams "terraform-provider-coralogix/coralogix/clientset/grpc/teams"
+	scopes "terraform-provider-coralogix/coralogix/clientset/grpc/scopes"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 
@@ -101,29 +101,40 @@ func (r *ScopeResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 			},
 			"team_id": schema.StringAttribute{
 				MarkdownDescription: "Associated team.",
-				Computed: true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"retention": schema.Int64Attribute{
-				Computed:            true,
-				MarkdownDescription: "Scope retention.",
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
+			"filters": schema.ListNestedAttribute{
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"expression": schema.StringAttribute{
+							Required: true,
+						},
+						"entity_type": schema.StringAttribute{
+							Required: true,
+						},
+					},
 				},
+				MarkdownDescription: "Filters applied to include data in the scope.",
 			},
-			"filters": 
 		},
 		MarkdownDescription: "Coralogix Scope.",
 	}
 }
 
 type ScopeResourceModel struct {
-	ID         types.String  `tfsdk:"id"`
-	Name       types.String  `tfsdk:"name"`
-	Retention  types.Int64   `tfsdk:"retention"`
-	DailyQuota types.Float64 `tfsdk:"daily_quota"`
+	ID                types.String       `tfsdk:"id"`
+	DisplayName       types.String       `tfsdk:"name"`
+	Description       types.String       `tfsdk:"description"`
+	DefaultExpression types.String       `tfsdk:"default_expression"`
+	Filters           []ScopeFilterModel `tfsdk:"filters"`
+}
+
+type ScopeFilterModel struct {
+	EntityType types.String `tfsdk:"entity_type"`
+	Expression types.String `tfsdk:"expression"`
 }
 
 func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -140,29 +151,22 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 	log.Printf("[INFO] Creating new Scope: %s", protojson.Format(createScopeReq))
-	createScopeResp, err := r.client.CreateScope(ctx, createScopeReq)
+	createScopeResp, err := r.client.Create(ctx, createScopeReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error creating Scope",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", createScopeURL),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error creating Scope",
-				formatRpcErrors(err, createScopeURL, protojson.Format(createScopeReq)),
-			)
-		}
-
+		resp.Diagnostics.AddError(
+			"Error creating Scope",
+			formatRpcErrors(err, createScopeURL, protojson.Format(createScopeReq)),
+		)
 		return
 	}
-	log.Printf("[INFO] Submitted new team: %s", protojson.Format(createScopeResp.GetScopeId()))
+	log.Printf("[INFO] Submitted new scope: %s", protojson.Format(createScopeResp))
 
-	getScopeReq := &teams.GetScopeRequest{
-		ScopeId: createScopeResp.GetScopeId(),
+	getScopeReq := &scopes.GetTeamScopesByIdsRequest{
+		Ids: []string{strconv.Itoa(int(createScopeResp.Scope.TeamId))},
 	}
-	getScopeResp, err := r.client.GetScope(ctx, getScopeReq)
+
+	getScopeResp, err := r.client.Get(ctx, getScopeReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -179,20 +183,17 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 	resp.Diagnostics.Append(diags...)
 }
 
-func extractCreateScope(plan *ScopeResourceModel) (*teams.CreateScopeInOrgRequest, diag.Diagnostics) {
-	var dailyQuota *float64
-	if !(plan.DailyQuota.IsUnknown() || plan.DailyQuota.IsNull()) {
-		dailyQuota = new(float64)
-		*dailyQuota = plan.DailyQuota.ValueFloat64()
-	}
+func extractCreateScope(plan *ScopeResourceModel) (*scopes.CreateScopeRequest, diag.Diagnostics) {
 
-	return &teams.CreateScopeInOrgRequest{
-		ScopeName:  plan.Name.ValueString(),
-		DailyQuota: dailyQuota,
+	return &scopes.CreateScopeRequest{
+		DisplayName:       plan.Name.ValueString(),
+		Description:       plan.Description.ValueString(),
+		Filters:           plan.Filters,
+		DefaultExpression: plan.DefaultExpression.ValueString(),
 	}, nil
 }
 
-func flattenScope(resp *teams.GetScopeResponse) *ScopeResourceModel {
+func flattenScope(resp *scopes.GetScopeResponse) *ScopeResourceModel {
 	return &ScopeResourceModel{
 		ID:         types.StringValue(strconv.Itoa(int(resp.GetScopeId().GetId()))),
 		Name:       types.StringValue(resp.GetScopeName()),
@@ -217,8 +218,8 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		)
 		return
 	}
-	getScopeReq := &teams.GetScopeRequest{
-		ScopeId: &teams.ScopeId{
+	getScopeReq := &scopes.GetScopeRequest{
+		ScopeId: &scopes.ScopeId{
 			Id: uint32(intId),
 		},
 	}
@@ -283,7 +284,7 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	log.Printf("[INFO] Updated team: %s", plan.ID.ValueString())
 
-	getScopeReq := &teams.GetScopeRequest{
+	getScopeReq := &scopes.GetScopeRequest{
 		ScopeId: updateReq.GetScopeId(),
 	}
 	getScopeResp, err := r.client.GetScope(ctx, getScopeReq)
@@ -303,7 +304,7 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	resp.Diagnostics.Append(diags...)
 }
 
-func extractUpdateScope(plan *ScopeResourceModel) (*teams.UpdateScopeRequest, diag.Diagnostics) {
+func extractUpdateScope(plan *ScopeResourceModel) (*scopes.UpdateScopeRequest, diag.Diagnostics) {
 	dailyQuota := new(float64)
 	*dailyQuota = plan.DailyQuota.ValueFloat64()
 
@@ -311,16 +312,12 @@ func extractUpdateScope(plan *ScopeResourceModel) (*teams.UpdateScopeRequest, di
 	if err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error converting team id to int", err.Error())}
 	}
-	teamId := &teams.ScopeId{Id: uint32(id)}
+	teamId := &scopes.ScopeId{Id: uint32(id)}
 
 	teamName := new(string)
 	*teamName = plan.Name.ValueString()
 
-	return &teams.UpdateScopeRequest{
-		ScopeId:    teamId,
-		ScopeName:  teamName,
-		DailyQuota: dailyQuota,
-	}, nil
+	return &scope.UpdateScopeRequest{}, nil
 }
 
 func (r *ScopeResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -341,7 +338,7 @@ func (r *ScopeResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		return
 	}
 
-	deleteReq := &teams.DeleteScopeRequest{ScopeId: &teams.ScopeId{Id: uint32(id)}}
+	deleteReq := &scopes.DeleteScopeRequest{ScopeId: &scopes.ScopeId{Id: uint32(id)}}
 	log.Printf("[INFO] Deleting Scope: %s", protojson.Format(deleteReq))
 	_, err = r.client.DeleteScope(ctx, deleteReq)
 	if err != nil {
