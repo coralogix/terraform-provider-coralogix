@@ -14,7 +14,6 @@ provider "coralogix" {
 
 resource "coralogix_scope" "example" {
   display_name       = "ExampleScope"
-  team_id            = "4013254"
   default_expression = "subsystemName == 'newsletter'"
   filters            = [
     {
