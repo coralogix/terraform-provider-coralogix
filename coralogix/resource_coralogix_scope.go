@@ -18,33 +18,34 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math"
 	"strconv"
-
+	"strings"
 	"terraform-provider-coralogix/coralogix/clientset"
 	scopes "terraform-provider-coralogix/coralogix/clientset/grpc/scopes"
-
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var (
-	createScopeURL = "com.coralogixapis.scopes.v1.ScopeService/CreateScopeInOrg"
-	updateScopeURL = "com.coralogixapis.scopes.v1.ScopeService/UpdateScope"
-	deleteScopeURL = "com.coralogixapis.scopes.v1.ScopeService/DeleteScope"
+	createScopeURL = scopes.ScopesService_CreateScope_FullMethodName
+	deleteScopeURL = scopes.ScopesService_DeleteScope_FullMethodName
+	updateScopeURL = scopes.ScopesService_UpdateScope_FullMethodName
 )
+
+var availableEntityTypes = []string{"logs", "spans", "unspecified"}
 
 func NewScopeResource() resource.Resource {
 	return &ScopeResource{}
@@ -101,9 +102,9 @@ func (r *ScopeResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 			},
 			"team_id": schema.StringAttribute{
 				MarkdownDescription: "Associated team.",
-				Computed:            true,
+				Optional:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"filters": schema.ListNestedAttribute{
@@ -114,6 +115,9 @@ func (r *ScopeResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 						},
 						"entity_type": schema.StringAttribute{
 							Required: true,
+							Validators: []validator.String{
+								stringvalidator.OneOf(availableEntityTypes...),
+							},
 						},
 					},
 				},
@@ -184,22 +188,51 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 }
 
 func extractCreateScope(plan *ScopeResourceModel) (*scopes.CreateScopeRequest, diag.Diagnostics) {
+	var filters []*scopes.Filter
+
+	for _, filter := range plan.Filters {
+		entityType := scopes.EntityType_value[strings.ToUpper(filter.EntityType.ValueString())]
+
+		if entityType == 0 && filter.EntityType.ValueString() != "unspecified" {
+			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid entity type", fmt.Sprintf("Invalid entity type: %s", filter.EntityType.ValueString()))}
+		}
+		filters = append(filters, &scopes.Filter{
+			Expression: filter.Expression.ValueString(),
+			EntityType: scopes.EntityType(entityType),
+		})
+	}
 
 	return &scopes.CreateScopeRequest{
-		DisplayName:       plan.Name.ValueString(),
-		Description:       plan.Description.ValueString(),
-		Filters:           plan.Filters,
+		DisplayName:       plan.DisplayName.ValueString(),
+		Description:       plan.Description.ValueStringPointer(),
+		Filters:           filters,
 		DefaultExpression: plan.DefaultExpression.ValueString(),
 	}, nil
 }
 
-func flattenScope(resp *scopes.GetScopeResponse) *ScopeResourceModel {
-	return &ScopeResourceModel{
-		ID:         types.StringValue(strconv.Itoa(int(resp.GetScopeId().GetId()))),
-		Name:       types.StringValue(resp.GetScopeName()),
-		Retention:  types.Int64Value(int64(resp.GetRetention())),
-		DailyQuota: types.Float64Value(math.Round(resp.GetDailyQuota()*1000) / 1000),
+func flattenScope(resp *scopes.GetScopesResponse) []ScopeResourceModel {
+	var scopes []ScopeResourceModel
+	for _, scope := range resp.GetScopes() {
+		scopes = append(scopes, ScopeResourceModel{
+			ID:                types.StringValue(scope.GetId()),
+			DisplayName:       types.StringValue(scope.GetDisplayName()),
+			Description:       types.StringValue(scope.GetDescription()),
+			DefaultExpression: types.StringValue(scope.GetDefaultExpression()),
+			Filters:           flattenScopeFilters(scope.GetFilters()),
+		})
 	}
+	return scopes
+}
+
+func flattenScopeFilters(filters []*scopes.Filter) []ScopeFilterModel {
+	var result []ScopeFilterModel
+	for _, filter := range filters {
+		result = append(result, ScopeFilterModel{
+			EntityType: types.StringValue(scopes.EntityType_name[int32(filter.GetEntityType())]),
+			Expression: types.StringValue(filter.GetExpression()),
+		})
+	}
+	return result
 }
 
 func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -210,27 +243,17 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	intId, err := strconv.Atoi(plan.ID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error parsing Scope ID",
-			fmt.Sprintf("Error parsing Scope ID: %s", err.Error()),
-		)
-		return
-	}
-	getScopeReq := &scopes.GetScopeRequest{
-		ScopeId: &scopes.ScopeId{
-			Id: uint32(intId),
-		},
+	getScopeReq := &scopes.GetTeamScopesByIdsRequest{
+		Ids: []string{plan.ID.ValueString()},
 	}
 	log.Printf("[INFO] Reading Scope: %s", protojson.Format(getScopeReq))
-	getScopeResp, err := r.client.GetScope(ctx, getScopeReq)
+	getScopeResp, err := r.client.Get(ctx, getScopeReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Scope %q is in state, but no longer exists in Coralogix backend", intId),
-				fmt.Sprintf("%q will be recreated when you apply", intId),
+				fmt.Sprintf("Scope %v is in state, but no longer exists in Coralogix backend", plan.ID.ValueString()),
+				fmt.Sprintf("%q will be recreated when you apply", plan.ID.ValueString()),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
@@ -264,30 +287,22 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	}
 	log.Printf("[INFO] Updating Scope: %s", protojson.Format(updateReq))
 
-	_, err := r.client.UpdateScope(ctx, updateReq)
+	_, err := r.client.Update(ctx, updateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error updating Scope",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", updateScopeURL),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error updating Scope",
-				formatRpcErrors(err, updateScopeURL, protojson.Format(updateReq)),
-			)
-		}
-
+		resp.Diagnostics.AddError(
+			"Error updating Scope",
+			formatRpcErrors(err, updateScopeURL, protojson.Format(updateReq)),
+		)
 		return
 	}
 
 	log.Printf("[INFO] Updated team: %s", plan.ID.ValueString())
 
-	getScopeReq := &scopes.GetScopeRequest{
-		ScopeId: updateReq.GetScopeId(),
+	getScopeReq := &scopes.GetTeamScopesByIdsRequest{
+		Ids: []string{plan.ID.ValueString()},
 	}
-	getScopeResp, err := r.client.GetScope(ctx, getScopeReq)
+	getScopeResp, err := r.client.Get(ctx, getScopeReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -305,19 +320,28 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 }
 
 func extractUpdateScope(plan *ScopeResourceModel) (*scopes.UpdateScopeRequest, diag.Diagnostics) {
-	dailyQuota := new(float64)
-	*dailyQuota = plan.DailyQuota.ValueFloat64()
 
-	id, err := strconv.Atoi(plan.ID.ValueString())
-	if err != nil {
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error converting team id to int", err.Error())}
+	var filters []*scopes.Filter
+
+	for _, filter := range plan.Filters {
+		entityType := scopes.EntityType_value[strings.ToUpper(filter.EntityType.ValueString())]
+
+		if entityType == 0 && filter.EntityType.ValueString() != "unspecified" {
+			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid entity type", fmt.Sprintf("Invalid entity type: %s", filter.EntityType.ValueString()))}
+		}
+		filters = append(filters, &scopes.Filter{
+			Expression: filter.Expression.ValueString(),
+			EntityType: scopes.EntityType(entityType),
+		})
 	}
-	teamId := &scopes.ScopeId{Id: uint32(id)}
 
-	teamName := new(string)
-	*teamName = plan.Name.ValueString()
-
-	return &scope.UpdateScopeRequest{}, nil
+	return &scopes.UpdateScopeRequest{
+		Id:                plan.ID.ValueString(),
+		DisplayName:       plan.DisplayName.ValueString(),
+		Description:       plan.Description.ValueStringPointer(),
+		Filters:           filters,
+		DefaultExpression: plan.DefaultExpression.ValueString(),
+	}, nil
 }
 
 func (r *ScopeResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -329,31 +353,16 @@ func (r *ScopeResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	log.Printf("[INFO] Deleting Scope: %s", state.ID.ValueString())
-	id, err := strconv.Atoi(state.ID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error deleting Scope",
-			fmt.Sprintf("Error converting team id to int: %s", err.Error()),
-		)
-		return
-	}
 
-	deleteReq := &scopes.DeleteScopeRequest{ScopeId: &scopes.ScopeId{Id: uint32(id)}}
+	deleteReq := &scopes.DeleteScopeRequest{Id: state.ID.ValueString()}
 	log.Printf("[INFO] Deleting Scope: %s", protojson.Format(deleteReq))
-	_, err = r.client.DeleteScope(ctx, deleteReq)
+	_, err := r.client.Delete(ctx, deleteReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error deleting Scope",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", deleteScopeURL),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error deleting Scope",
-				formatRpcErrors(err, deleteScopeURL, protojson.Format(deleteReq)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error deleting Scope",
+			formatRpcErrors(err, deleteScopeURL, protojson.Format(deleteReq)),
+		)
 		return
 	}
 	log.Printf("[INFO] Deleted team: %s", state.ID.ValueString())

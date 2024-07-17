@@ -24,14 +24,12 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
 	_           datasource.DataSourceWithConfigure = &ScopeDataSource{}
-	getScopeURL                                    = "com.coralogixapis.scopes.v1.ScopeService/GetScope"
+	getScopeURL                                    = scopes.ScopesService_GetTeamScopesByIds_FullMethodName
 )
 
 func NewScopeDataSource() datasource.DataSource {
@@ -43,7 +41,7 @@ type ScopeDataSource struct {
 }
 
 func (d *ScopeDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_team"
+	resp.TypeName = req.ProviderTypeName + "_scope"
 }
 
 func (d *ScopeDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
@@ -86,22 +84,15 @@ func (d *ScopeDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	getScopeResp, err := d.client.Get(ctx, getScopeReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
-			resp.Diagnostics.AddWarning(
-				err.Error(),
-				fmt.Sprintf("Scope %q is in state, but no longer exists in Coralogix backend", data.ID.ValueString()),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Scope",
-				formatRpcErrors(err, getScopeURL, protojson.Format(getScopeReq)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error reading Scope",
+			formatRpcErrors(err, getScopeURL, protojson.Format(getScopeReq)),
+		)
 		return
 	}
 	log.Printf("[INFO] Received Scope: %s", protojson.Format(getScopeResp))
 
-	data = flattenScope(getScopeResp)
+	data = &(flattenScope(getScopeResp)[0])
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
