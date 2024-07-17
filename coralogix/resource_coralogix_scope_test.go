@@ -1,30 +1,32 @@
 package coralogix
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	scopes "terraform-provider-coralogix/coralogix/clientset/grpc/scopes"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-var teamResourceName = "coralogix_scope.test"
-
 func TestAccCoralogixResourceScope(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckUserDestroy,
+		CheckDestroy:             testAccCheckScopeDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceScope(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(userResourceName, "id"),
-					resource.TestCheckResourceAttr(userResourceName, "name", "example"),
-					resource.TestCheckResourceAttr(userResourceName, "retention", "1"),
-					resource.TestCheckResourceAttr(userResourceName, "daily_quota", "0.025"),
+					resource.TestCheckResourceAttr(userResourceName, "display_name", "ExampleScope"),
+					resource.TestCheckResourceAttr(userResourceName, "team_id", "4013254"),
+					resource.TestCheckResourceAttr(userResourceName, "default_expression", "subsystemName == 'newsletter'"),
+					resource.TestCheckResourceAttr(userResourceName, "filters.0.entity_type", "logs"),
+					resource.TestCheckResourceAttr(userResourceName, "filters.0.expression", "(subsystemName == 'purchases') || (subsystemName == 'signups')"),
 				),
 			},
 			{
@@ -36,10 +38,11 @@ func TestAccCoralogixResourceScope(t *testing.T) {
 				Config: testAccCoralogixResourceUpdatedScope(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(userResourceName, "id"),
-					resource.TestCheckResourceAttr(userResourceName, "name", "updated_example"),
-					resource.TestCheckTypeSetElemAttr(userResourceName, "team_admins_emails.*", "example@coralogix.com"),
-					resource.TestCheckResourceAttr(userResourceName, "retention", "1"),
-					resource.TestCheckResourceAttr(userResourceName, "daily_quota", "0.1"),
+					resource.TestCheckResourceAttr(userResourceName, "display_name", "NewExampleScope"),
+					resource.TestCheckResourceAttr(userResourceName, "team_id", "4013254"),
+					resource.TestCheckResourceAttr(userResourceName, "default_expression", "subsystemName == 'newsletter'"),
+					resource.TestCheckResourceAttr(userResourceName, "filters.0.entity_type", "logs"),
+					resource.TestCheckResourceAttr(userResourceName, "filters.0.expression", "(subsystemName == 'purchases') || (subsystemName == 'signups')"),
 				),
 			},
 		},
@@ -53,10 +56,13 @@ func testAccCheckScopeDestroy(s *terraform.State) error {
 		if rs.Type != "coralogix_scope" {
 			continue
 		}
+		ctx := context.TODO()
 
-		resp, err := client.Get(ctx, rs.Primary.ID)
+		resp, err := client.Get(ctx, &scopes.GetTeamScopesByIdsRequest{
+			Ids: []string{rs.Primary.ID},
+		})
 		if err == nil && resp != nil {
-			return fmt.Errorf("Scopes still exists and active: %s", rs.Primary.ID)
+			return fmt.Errorf("Scopes still exists: %v", rs.Primary.ID)
 		}
 	}
 
@@ -64,20 +70,30 @@ func testAccCheckScopeDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceScope() string {
-	return `resource "coralogix_scope" { "example" {
- 		name                    = "example"
- 		retention               = 1
- 		daily_quota             = 0.025
+	return `resource "coralogix_scope" {
+		display_name       = "ExampleScope"
+		team_id            = "4013254"
+		default_expression = "subsystemName == 'newsletter'"
+		filters            = [
+		  {
+			entity_type = "logs"
+			expression  = "(subsystemName == 'purchases') || (subsystemName == 'signups')"
+		  }
+		]
 	}
 	`
 }
 
 func testAccCoralogixResourceUpdatedScope() string {
-	return `resource "coralogix_scope" { "example" {
- 		name                    = "updated_example
- 		team_admins_emails      = ["example@coralogix.com"]
- 		retention               = 1
- 		daily_quota             = 0.1
-	}
+	return `resource "coralogix_scope" {  
+		display_name       = "NewExampleScope"
+		team_id            = "4013254"
+		default_expression = "subsystemName == 'newsletter'"
+		filters            = [
+		{
+			entity_type = "logs"
+			expression  = "(subsystemName == 'purchases') || (subsystemName == 'signups')"
+		}
+		]
 	`
 }
