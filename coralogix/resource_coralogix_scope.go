@@ -56,8 +56,7 @@ type ScopeResource struct {
 }
 
 func (r *ScopeResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_team"
-
+	resp.TypeName = req.ProviderTypeName + "_scope"
 }
 
 func (r *ScopeResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -97,31 +96,38 @@ func (r *ScopeResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				MarkdownDescription: "Scope display name.",
 			},
 			"description": schema.StringAttribute{
-				Required:            false,
+				Optional:            true,
 				MarkdownDescription: "Description of the scope. Optional.",
+			},
+			"default_expression": schema.StringAttribute{
+				Required:            true,
+				MarkdownDescription: "Default expression to use when no filter matches the query",
 			},
 			"team_id": schema.StringAttribute{
 				MarkdownDescription: "Associated team.",
-				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"filters": schema.ListNestedAttribute{
+				Required:            true,
+				MarkdownDescription: "Filters applied to include data in the scope.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"expression": schema.StringAttribute{
-							Required: true,
+							Required:            true,
+							MarkdownDescription: "Expression to run",
 						},
 						"entity_type": schema.StringAttribute{
-							Required: true,
+							Required:            true,
+							MarkdownDescription: "Entity type to apply the expression on",
 							Validators: []validator.String{
 								stringvalidator.OneOf(availableEntityTypes...),
 							},
 						},
 					},
 				},
-				MarkdownDescription: "Filters applied to include data in the scope.",
 			},
 		},
 		MarkdownDescription: "Coralogix Scope.",
@@ -130,7 +136,8 @@ func (r *ScopeResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 
 type ScopeResourceModel struct {
 	ID                types.String       `tfsdk:"id"`
-	DisplayName       types.String       `tfsdk:"name"`
+	DisplayName       types.String       `tfsdk:"display_name"`
+	TeamId            types.String       `tfsdk:"team_id"`
 	Description       types.String       `tfsdk:"description"`
 	DefaultExpression types.String       `tfsdk:"default_expression"`
 	Filters           []ScopeFilterModel `tfsdk:"filters"`

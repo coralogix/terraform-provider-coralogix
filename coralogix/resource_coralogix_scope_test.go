@@ -70,9 +70,8 @@ func testAccCheckScopeDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceScope() string {
-	return `resource "coralogix_scope" {
+	return `resource "coralogix_scope" "test" {
 		display_name       = "ExampleScope"
-		team_id            = "4013254"
 		default_expression = "subsystemName == 'newsletter'"
 		filters            = [
 		  {
@@ -85,9 +84,8 @@ func testAccCoralogixResourceScope() string {
 }
 
 func testAccCoralogixResourceUpdatedScope() string {
-	return `resource "coralogix_scope" {  
+	return `resource "coralogix_scope" "test_upgraded" {  
 		display_name       = "NewExampleScope"
-		team_id            = "4013254"
 		default_expression = "subsystemName == 'newsletter'"
 		filters            = [
 		{

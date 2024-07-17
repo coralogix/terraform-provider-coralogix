@@ -321,6 +321,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewGroupDataSource,
 		NewUserDataSource,
 		NewTeamDataSource,
+		NewScopeDataSource,
 	}
 }
 
@@ -347,5 +348,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewCustomRoleSource,
 		NewGroupResource,
 		NewUserResource,
+		NewScopeResource,
 	}
 }
