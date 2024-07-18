@@ -24,7 +24,7 @@ func TestAccCoralogixResourceScope(t *testing.T) {
 					resource.TestCheckResourceAttrSet(userResourceName, "id"),
 					resource.TestCheckResourceAttr(userResourceName, "display_name", "ExampleScope"),
 					resource.TestCheckResourceAttr(userResourceName, "team_id", "4013254"),
-					resource.TestCheckResourceAttr(userResourceName, "default_expression", "subsystemName == 'newsletter'"),
+					resource.TestCheckResourceAttr(userResourceName, "default_expression", "true"),
 					resource.TestCheckResourceAttr(userResourceName, "filters.0.entity_type", "logs"),
 					resource.TestCheckResourceAttr(userResourceName, "filters.0.expression", "(subsystemName == 'purchases') || (subsystemName == 'signups')"),
 				),
@@ -40,7 +40,7 @@ func TestAccCoralogixResourceScope(t *testing.T) {
 					resource.TestCheckResourceAttrSet(userResourceName, "id"),
 					resource.TestCheckResourceAttr(userResourceName, "display_name", "NewExampleScope"),
 					resource.TestCheckResourceAttr(userResourceName, "team_id", "4013254"),
-					resource.TestCheckResourceAttr(userResourceName, "default_expression", "subsystemName == 'newsletter'"),
+					resource.TestCheckResourceAttr(userResourceName, "default_expression", "true"),
 					resource.TestCheckResourceAttr(userResourceName, "filters.0.entity_type", "logs"),
 					resource.TestCheckResourceAttr(userResourceName, "filters.0.expression", "(subsystemName == 'purchases') || (subsystemName == 'signups')"),
 				),
@@ -72,7 +72,7 @@ func testAccCheckScopeDestroy(s *terraform.State) error {
 func testAccCoralogixResourceScope() string {
 	return `resource "coralogix_scope" "test" {
 		display_name       = "ExampleScope"
-		default_expression = "subsystemName == 'newsletter'"
+		default_expression = "true"
 		filters            = [
 		  {
 			entity_type = "logs"
@@ -86,7 +86,7 @@ func testAccCoralogixResourceScope() string {
 func testAccCoralogixResourceUpdatedScope() string {
 	return `resource "coralogix_scope" "test_upgraded" {  
 		display_name       = "NewExampleScope"
-		default_expression = "subsystemName == 'newsletter'"
+		default_expression = "true"
 		filters            = [
 		{
 			entity_type = "logs"
