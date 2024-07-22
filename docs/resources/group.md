@@ -10,6 +10,8 @@ description: |-
 
 Coralogix group.
 
+## Example Usage
+
 ```hcl
 resource "coralogix_custom_role" "example" {
   name  = "Example custom role"
@@ -43,8 +45,6 @@ resource "coralogix_group" "example" {
   members      = [coralogix_user.example.id]
   scope_id     = coralogix_scope.example.id
 }
-
-
 ```
 
 
