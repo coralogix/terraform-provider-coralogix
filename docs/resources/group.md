@@ -10,8 +10,6 @@ description: |-
 
 Coralogix group.
 
-## Example Usage
-
 ```hcl
 resource "coralogix_custom_role" "example" {
   name  = "Example custom role"
@@ -28,11 +26,25 @@ resource "coralogix_user" "example" {
   }
 }
 
+resource "coralogix_scope" "example" {
+  display_name       = "ExampleScope"
+  default_expression = "<v1>true"
+  filters            = [
+    {
+      entity_type = "logs"
+      expression  = "(subsystemName == 'purchases') || (subsystemName == 'signups')"
+    }
+  ]
+}
+
 resource "coralogix_group" "example" {
   display_name = "example"
   role         = coralogix_custom_role.example.name
   members      = [coralogix_user.example.id]
+  scope_id     = coralogix_scope.example.id
 }
+
+
 ```
 
 
@@ -47,6 +59,7 @@ resource "coralogix_group" "example" {
 ### Optional
 
 - `members` (Set of String)
+- `scope_id` (String) Scope attached to the group.
 
 ### Read-Only
 
