@@ -76,14 +76,27 @@ func testAccCheckGroupDestroy(s *terraform.State) error {
 
 func testAccCoralogixResourceGroup(userName string) string {
 	return fmt.Sprintf(`
-	resource "coralogix_user" "test" {
-	  user_name = "%s"
-	}
 
+	resource "coralogix_scope" "example" {
+		display_name       = "ExampleScope"
+		default_expression = "<v1>true"
+		filters            = [
+		{
+			entity_type = "logs"
+			expression  = "(subsystemName == 'purchases') || (subsystemName == 'signups')"
+		}
+		]
+	}
+	
+	resource "coralogix_user" "test" {
+		user_name = "%s"
+	}
+	
 	resource "coralogix_group" "test" {
-	  display_name = "example"
-      role         = "Read Only"
-      members      = [coralogix_user.test.id]
+		display_name = "example"
+		role         = "Read Only"
+		members      = [coralogix_user.test.id]
+		scope_id     = coralogix_scope.example.id
 	}
 `, userName)
 }

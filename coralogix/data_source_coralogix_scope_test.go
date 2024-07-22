@@ -13,7 +13,7 @@ func TestAccCoralogixDataSourceScopes_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceSLI() +
-					testAccCoralogixResourceSLI_read(),
+					testAccCoralogixResourceScopes_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(sliDataSourceName, "id"),
 				),
