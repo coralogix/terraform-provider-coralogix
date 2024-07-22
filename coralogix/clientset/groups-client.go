@@ -33,6 +33,7 @@ type SCIMGroup struct {
 	DisplayName string            `json:"displayName"`
 	Members     []SCIMGroupMember `json:"members"`
 	Role        string            `json:"role"`
+	ScopeID     string            `json:"scopeId"`
 }
 
 type SCIMGroupMember struct {

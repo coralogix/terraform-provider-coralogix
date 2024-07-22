@@ -20,8 +20,9 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"terraform-provider-coralogix/coralogix/clientset"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -89,6 +90,10 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			},
 			"role": schema.StringAttribute{
 				Required: true,
+			},
+			"scope_id": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "Scope attached to the group.",
 			},
 		},
 		MarkdownDescription: "Coralogix group.",
@@ -297,6 +302,7 @@ type GroupResourceModel struct {
 	DisplayName types.String `tfsdk:"display_name"`
 	Members     types.Set    `tfsdk:"members"` // Set of strings
 	Role        types.String `tfsdk:"role"`
+	ScopeID     types.String `tfsdk:"scope_id"`
 }
 
 func extractGroup(ctx context.Context, plan *GroupResourceModel) (*clientset.SCIMGroup, diag.Diagnostics) {
@@ -309,6 +315,7 @@ func extractGroup(ctx context.Context, plan *GroupResourceModel) (*clientset.SCI
 		DisplayName: plan.DisplayName.ValueString(),
 		Members:     members,
 		Role:        plan.Role.ValueString(),
+		ScopeID:     plan.ScopeID.ValueString(),
 	}, nil
 }
 

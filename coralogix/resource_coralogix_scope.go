@@ -101,7 +101,10 @@ func (r *ScopeResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 			},
 			"default_expression": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "Default expression to use when no filter matches the query",
+				MarkdownDescription: "Default expression to use when no filter matches the query. Until further notice, this can is limited to `true` (everything is included) or `false` (nothing is included).",
+				Validators: []validator.String{
+					stringvalidator.OneOf("true", "false"),
+				},
 			},
 			"team_id": schema.StringAttribute{
 				MarkdownDescription: "Associated team.",
