@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -101,9 +102,9 @@ func (r *ScopeResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 			},
 			"default_expression": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "Default expression to use when no filter matches the query. Until further notice, this can is limited to `true` (everything is included) or `false` (nothing is included).",
+				MarkdownDescription: "Default expression to use when no filter matches the query. Until further notice, this can is limited to `true` (everything is included) or `false` (nothing is included). Use a version tag (e.g `<v1> true` or `<v1> false`)",
 				Validators: []validator.String{
-					stringvalidator.OneOf("true", "false"),
+					stringvalidator.RegexMatches(regexp.MustCompile(`^<v[\d]+>\s+true|false+$`), "Default expression must be in the format `<vX> true` or `<vX> false where X is a version number. E.g. `<v1> true` or `<v1> false"),
 				},
 			},
 			"team_id": schema.StringAttribute{
