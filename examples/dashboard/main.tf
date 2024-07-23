@@ -624,6 +624,6 @@ resource "coralogix_dashboards_folder" "example" {
   name     = "example"
 }
 
-#resource "coralogix_dashboard" dashboard_from_json {
-#  content_json = file("./dashboard.json")
-#}
+resource "coralogix_dashboard" dashboard_from_json {
+  content_json = file("./dashboard.json")
+}
