@@ -29,7 +29,7 @@ resource "coralogix_user" "example" {
 
 resource "coralogix_scope" "example" {
   display_name       = "ExampleScope"
-  default_expression = "true"
+  default_expression = "<v1> true"
   filters            = [
     {
       entity_type = "logs"
