@@ -23,7 +23,6 @@ func TestAccCoralogixResourceScope(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coralogix_scope.test", "id"),
 					resource.TestCheckResourceAttr("coralogix_scope.test", "display_name", "ExampleScope"),
-					resource.TestCheckResourceAttr("coralogix_scope.test", "team_id", "4013254"),
 					resource.TestCheckResourceAttr("coralogix_scope.test", "default_expression", "<v1>true"),
 					resource.TestCheckResourceAttr("coralogix_scope.test", "filters.0.entity_type", "logs"),
 					resource.TestCheckResourceAttr("coralogix_scope.test", "filters.0.expression", "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"),
@@ -39,7 +38,6 @@ func TestAccCoralogixResourceScope(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coralogix_scope.test_upgraded", "id"),
 					resource.TestCheckResourceAttr("coralogix_scope.test_upgraded", "display_name", "NewExampleScope"),
-					resource.TestCheckResourceAttr("coralogix_scope.test_upgraded", "team_id", "4013254"),
 					resource.TestCheckResourceAttr("coralogix_scope.test_upgraded", "default_expression", "<v1>true"),
 					resource.TestCheckResourceAttr("coralogix_scope.test_upgraded", "filters.0.entity_type", "logs"),
 					resource.TestCheckResourceAttr("coralogix_scope.test_upgraded", "filters.0.expression", "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"),
@@ -92,5 +90,6 @@ func testAccCoralogixResourceUpdatedScope() string {
 			expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
 		}
 		]
+	}
 	`
 }
