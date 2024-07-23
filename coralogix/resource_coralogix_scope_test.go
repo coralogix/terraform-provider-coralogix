@@ -51,12 +51,12 @@ func TestAccCoralogixResourceScope(t *testing.T) {
 
 func testAccCheckScopeDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*clientset.ClientSet).Scopes()
+	ctx := context.TODO()
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "coralogix_scope" {
 			continue
 		}
-		ctx := context.TODO()
 
 		resp, err := client.Get(ctx, &scopes.GetTeamScopesByIdsRequest{
 			Ids: []string{rs.Primary.ID},
@@ -65,7 +65,6 @@ func testAccCheckScopeDestroy(s *terraform.State) error {
 			return fmt.Errorf("Scopes still exists: %v", rs.Primary.ID)
 		}
 	}
-
 	return nil
 }
 
