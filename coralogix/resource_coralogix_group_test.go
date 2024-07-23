@@ -96,8 +96,8 @@ func testAccCoralogixResourceGroup(userName string) string {
 	resource "coralogix_group" "test" {
 		display_name = "example"
 		role         = "Read Only"
-		members      = [data.coralogix_user.test.id]
-		scope_id     = data.coralogix_scope.example.id
+		members      = [coralogix_user.test.id]
+		scope_id     = coralogix_scope.example.id
 	}
 `, userName)
 }
