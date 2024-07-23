@@ -753,7 +753,7 @@ Required:
 <a id="nestedatt--annotations--source--logs--label_fields"></a>
 ### Nested Schema for `annotations.source.logs.message_template`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -883,7 +883,7 @@ Required:
 <a id="nestedatt--annotations--source--spans--label_fields"></a>
 ### Nested Schema for `annotations.source.spans.message_template`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -948,7 +948,7 @@ Optional:
 <a id="nestedatt--filters--source--logs--observation_field"></a>
 ### Nested Schema for `filters.source.logs.observation_field`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -991,7 +991,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--filters--source--spans--operator"></a>
@@ -1023,7 +1023,7 @@ Optional:
 
 Optional:
 
-- `sections` (Attributes List) Currently only one section is supported. (see [below for nested schema](#nestedatt--layout--sections))
+- `sections` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections))
 
 <a id="nestedatt--layout--sections"></a>
 ### Nested Schema for `layout.sections`
@@ -1108,9 +1108,9 @@ Optional:
 - `max_bars_per_chart` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--query))
 - `scale_type` (String)
-- `sort_by` (String) The field to sort by. Can be one of value, name, unspecified.
+- `sort_by` (String) The field to sort by. Can be one of unspecified, value, name.
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of usd_cents, kbytes, bytes_iec, gibytes, euro, seconds, bytes, mibytes, unspecified, microseconds, mbytes, euro_cents, usd, milliseconds, gbytes, kibytes.
+- `unit` (String) The unit of the chart. Can be one of unspecified, milliseconds, seconds, kbytes, mbytes, gbytes, mibytes, gibytes, usd_cents, bytes_iec, euro, microseconds, bytes, kibytes, euro_cents, usd.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
@@ -1172,7 +1172,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans.observation_field`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -1215,7 +1215,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--operator"></a>
@@ -1265,7 +1265,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--aggregation--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.aggregation.percent`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -1299,7 +1299,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.observation_field`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -1309,7 +1309,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--group_names_fields"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.group_names_fields`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -1318,7 +1318,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--stacked_group_name_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.stacked_group_name_field`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -1380,7 +1380,7 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max" "avg"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
@@ -1399,7 +1399,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator"></a>
@@ -1421,7 +1421,7 @@ Optional:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--stacked_group_name"></a>
@@ -1430,7 +1430,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 
@@ -1482,7 +1482,7 @@ Required:
 Optional:
 
 - `columns` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--columns))
-- `data_mode_type` (String) The data mode type. Can be one of ["unspecified" "archive"].
+- `data_mode_type` (String) The data mode type. Can be one of ["archive" "unspecified"].
 - `order_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
@@ -1539,7 +1539,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans.observation_field`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -1582,7 +1582,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--operator"></a>
@@ -1636,7 +1636,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.observation_field`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -1681,7 +1681,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_bys--name--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping.group_bys.name.percent`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -1692,7 +1692,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_bys"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping.group_bys`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -1760,7 +1760,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator"></a>
@@ -1802,7 +1802,7 @@ Read-Only:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max" "avg"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
@@ -1814,7 +1814,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 
@@ -1848,11 +1848,11 @@ Optional:
 Required:
 
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--query))
-- `unit` (String) The unit of the gauge. Can be one of ["percent" "bytes" "usd" "usd_cents" "seconds" "gbytes" "gibytes" "euro" "euro_cents" "microseconds" "milliseconds" "kbytes" "kibytes" "none" "mbytes" "bytes_iec" "mibytes"].
+- `unit` (String) The unit of the gauge. Can be one of ["none" "kbytes" "mibytes" "bytes" "kibytes" "euro" "usd_cents" "usd" "microseconds" "milliseconds" "seconds" "euro_cents" "percent" "mbytes" "bytes_iec" "gbytes" "gibytes"].
 
 Optional:
 
-- `data_mode_type` (String) The data mode type. Can be one of ["unspecified" "archive"].
+- `data_mode_type` (String) The data mode type. Can be one of ["archive" "unspecified"].
 - `max` (Number)
 - `min` (Number)
 - `show_inner_arc` (Boolean)
@@ -1914,7 +1914,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans.observation_field`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -1957,7 +1957,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--operator"></a>
@@ -2003,7 +2003,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--logs_aggregation--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.logs_aggregation.percent`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -2037,7 +2037,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.observation_field`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -2054,7 +2054,7 @@ Required:
 
 Optional:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["last" "min" "max" "avg" "sum" "unspecified"].
+- `aggregation` (String) The type of aggregation. Can be one of ["max" "avg" "sum" "unspecified" "last" "min"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters))
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters"></a>
@@ -2106,7 +2106,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator"></a>
@@ -2127,7 +2127,7 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max" "avg"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
@@ -2159,7 +2159,7 @@ Optional:
 - `scale_type` (String)
 - `sort_by` (String)
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of usd_cents, kbytes, bytes_iec, gibytes, euro, seconds, bytes, mibytes, unspecified, microseconds, mbytes, euro_cents, usd, milliseconds, gbytes, kibytes.
+- `unit` (String) The unit of the chart. Can be one of unspecified, milliseconds, seconds, kbytes, mbytes, gbytes, mibytes, gibytes, usd_cents, bytes_iec, euro, microseconds, bytes, kibytes, euro_cents, usd.
 - `y_axis_view_by` (String)
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
@@ -2203,7 +2203,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--aggregation--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.aggregation.percent`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -2237,7 +2237,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.filters.observation_field`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -2247,7 +2247,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--group_names_fields"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.group_names_fields`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -2256,7 +2256,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--stacked_group_name_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.stacked_group_name_field`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -2318,7 +2318,7 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max" "avg"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
@@ -2337,7 +2337,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator"></a>
@@ -2359,7 +2359,7 @@ Optional:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--stacked_group_name"></a>
@@ -2368,7 +2368,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 
@@ -2409,10 +2409,10 @@ Optional:
 - `is_visible` (Boolean)
 - `name` (String)
 - `resolution` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--resolution))
-- `scale_type` (String) The scale type. Valid values are: unspecified, linear, logarithmic.
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
 - `series_count_limit` (Number)
 - `series_name_template` (String)
-- `unit` (String) The unit. Valid values are: usd_cents, kbytes, bytes_iec, gibytes, euro, seconds, bytes, mibytes, unspecified, microseconds, mbytes, euro_cents, usd, milliseconds, gbytes, kibytes.
+- `unit` (String) The unit. Valid values are: unspecified, milliseconds, seconds, kbytes, mbytes, gbytes, mibytes, gibytes, usd_cents, bytes_iec, euro, microseconds, bytes, kibytes, euro_cents, usd.
 
 Read-Only:
 
@@ -2456,7 +2456,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--lucene_query--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.logs.lucene_query.percent`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -2490,7 +2490,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--lucene_query--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.logs.lucene_query.observation_field`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -2550,7 +2550,7 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max" "avg"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
@@ -2569,7 +2569,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--lucene_query--operator"></a>
@@ -2591,7 +2591,7 @@ Optional:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 
@@ -2725,7 +2725,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans.observation_field`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -2768,7 +2768,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--operator"></a>
@@ -2818,7 +2818,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--aggregation--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.aggregation.percent`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -2852,7 +2852,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--observation_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.observation_field`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -2862,7 +2862,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--group_names_fields"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.group_names_fields`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -2871,7 +2871,7 @@ Optional:
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--stacked_group_name_field"></a>
 ### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.stacked_group_name_field`
 
-Optional:
+Required:
 
 - `keypath` (List of String)
 - `scope` (String)
@@ -2933,7 +2933,7 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["sum" "percentile_99" "percentile_95" "percentile_50" "unspecified" "min" "max" "avg"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
@@ -2952,7 +2952,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator"></a>
@@ -2974,7 +2974,7 @@ Optional:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--stacked_group_name"></a>
@@ -2983,7 +2983,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
 
 
 
@@ -3069,6 +3069,7 @@ Optional:
 - `constant_list` (List of String)
 - `logs_path` (String)
 - `metric_label` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--metric_label))
+- `query` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query))
 - `span_field` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--span_field))
 
 <a id="nestedatt--variables--definition--multi_select--source--metric_label"></a>
@@ -3080,10 +3081,205 @@ Required:
 - `metric_name` (String)
 
 
+<a id="nestedatt--variables--definition--multi_select--source--query"></a>
+### Nested Schema for `variables.definition.multi_select.source.query`
+
+Required:
+
+- `query` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query))
+
+Optional:
+
+- `refresh_strategy` (String)
+- `value_display_options` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options))
+
+<a id="nestedatt--variables--definition--multi_select--source--query--query"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options`
+
+Optional:
+
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans))
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--logs"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans`
+
+Optional:
+
+- `field_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_name))
+- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_value))
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_name"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.field_value`
+
+Required:
+
+- `log_regex` (String)
+
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_value"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.field_value`
+
+Required:
+
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_value--observation_field))
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_value--observation_field"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.field_value.observation_field`
+
+Required:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--metrics"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans`
+
+Optional:
+
+- `label_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--label_name))
+- `label_value` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--label_value))
+- `metric_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name))
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--label_name"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name`
+
+Required:
+
+- `metric_regex` (String)
+
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--label_value"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name`
+
+Optional:
+
+- `label_filters` (Attributes List) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters))
+- `label_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_name))
+- `metric_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--metric_name))
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name.label_filters`
+
+Optional:
+
+- `label` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--label))
+- `metric` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--metric))
+- `operator` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--operator))
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--label"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name.label_filters.operator`
+
+Optional:
+
+- `string_value` (String)
+- `variable_name` (String)
+
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--metric"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name.label_filters.operator`
+
+Optional:
+
+- `string_value` (String)
+- `variable_name` (String)
+
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--operator"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name.label_filters.operator`
+
+Required:
+
+- `type` (String)
+
+Optional:
+
+- `selected_values` (Attributes List) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--operator--selected_values))
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--operator--selected_values"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name.label_filters.operator.selected_values`
+
+Optional:
+
+- `string_value` (String)
+- `variable_name` (String)
+
+
+
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_name"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name.label_name`
+
+Optional:
+
+- `string_value` (String)
+- `variable_name` (String)
+
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--metric_name"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name.metric_name`
+
+Optional:
+
+- `string_value` (String)
+- `variable_name` (String)
+
+
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name`
+
+Required:
+
+- `metric_regex` (String)
+
+
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans`
+
+Optional:
+
+- `field_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_name))
+- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_value))
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_name"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.field_value`
+
+Required:
+
+- `span_regex` (String)
+
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_value"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.field_value`
+
+Required:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+
+
+
+
+<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.value_display_options`
+
+Optional:
+
+- `label_regex` (String)
+- `value_regex` (String)
+
+
+
 <a id="nestedatt--variables--definition--multi_select--source--span_field"></a>
 ### Nested Schema for `variables.definition.multi_select.source.span_field`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
