@@ -21,28 +21,28 @@ func TestAccCoralogixResourceScope(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceScope(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(userResourceName, "id"),
-					resource.TestCheckResourceAttr(userResourceName, "display_name", "ExampleScope"),
-					resource.TestCheckResourceAttr(userResourceName, "team_id", "4013254"),
-					resource.TestCheckResourceAttr(userResourceName, "default_expression", "<v1> true"),
-					resource.TestCheckResourceAttr(userResourceName, "filters.0.entity_type", "logs"),
-					resource.TestCheckResourceAttr(userResourceName, "filters.0.expression", "(subsystemName == 'purchases') || (subsystemName == 'signups')"),
+					resource.TestCheckResourceAttrSet("coralogix_scope.test", "id"),
+					resource.TestCheckResourceAttr("coralogix_scope.test", "display_name", "ExampleScope"),
+					resource.TestCheckResourceAttr("coralogix_scope.test", "team_id", "4013254"),
+					resource.TestCheckResourceAttr("coralogix_scope.test", "default_expression", "<v1>true"),
+					resource.TestCheckResourceAttr("coralogix_scope.test", "filters.0.entity_type", "logs"),
+					resource.TestCheckResourceAttr("coralogix_scope.test", "filters.0.expression", "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"),
 				),
 			},
 			{
-				ResourceName:      userResourceName,
+				ResourceName:      "coralogix_scope.test",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
 			{
 				Config: testAccCoralogixResourceUpdatedScope(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(userResourceName, "id"),
-					resource.TestCheckResourceAttr(userResourceName, "display_name", "NewExampleScope"),
-					resource.TestCheckResourceAttr(userResourceName, "team_id", "4013254"),
-					resource.TestCheckResourceAttr(userResourceName, "default_expression", "<v1> true"),
-					resource.TestCheckResourceAttr(userResourceName, "filters.0.entity_type", "logs"),
-					resource.TestCheckResourceAttr(userResourceName, "filters.0.expression", "(subsystemName == 'purchases') || (subsystemName == 'signups')"),
+					resource.TestCheckResourceAttrSet("coralogix_scope.test_upgraded", "id"),
+					resource.TestCheckResourceAttr("coralogix_scope.test_upgraded", "display_name", "NewExampleScope"),
+					resource.TestCheckResourceAttr("coralogix_scope.test_upgraded", "team_id", "4013254"),
+					resource.TestCheckResourceAttr("coralogix_scope.test_upgraded", "default_expression", "<v1>true"),
+					resource.TestCheckResourceAttr("coralogix_scope.test_upgraded", "filters.0.entity_type", "logs"),
+					resource.TestCheckResourceAttr("coralogix_scope.test_upgraded", "filters.0.expression", "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"),
 				),
 			},
 		},
@@ -72,11 +72,11 @@ func testAccCheckScopeDestroy(s *terraform.State) error {
 func testAccCoralogixResourceScope() string {
 	return `resource "coralogix_scope" "test" {
 		display_name       = "ExampleScope"
-		default_expression = "<v1> true"
+		default_expression = "<v1>true"
 		filters            = [
 		  {
 			entity_type = "logs"
-			expression  = "(subsystemName == 'purchases') || (subsystemName == 'signups')"
+			expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
 		  }
 		]
 	}
@@ -86,11 +86,11 @@ func testAccCoralogixResourceScope() string {
 func testAccCoralogixResourceUpdatedScope() string {
 	return `resource "coralogix_scope" "test_upgraded" {  
 		display_name       = "NewExampleScope"
-		default_expression = "<v1> true"
+		default_expression = "<v1>true"
 		filters            = [
 		{
 			entity_type = "logs"
-			expression  = "(subsystemName == 'purchases') || (subsystemName == 'signups')"
+			expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
 		}
 		]
 	`

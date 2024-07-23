@@ -33,7 +33,7 @@ resource "coralogix_scope" "example" {
   filters            = [
     {
       entity_type = "logs"
-      expression  = "(subsystemName == 'purchases') || (subsystemName == 'signups')"
+      expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
     }
   ]
 }

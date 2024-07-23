@@ -84,7 +84,7 @@ func testAccCoralogixResourceGroup(userName string) string {
 		filters            = [
 		{
 			entity_type = "logs"
-			expression  = "(subsystemName == 'purchases') || (subsystemName == 'signups')"
+			expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
 		}
 		]
 	}
@@ -96,7 +96,7 @@ func testAccCoralogixResourceGroup(userName string) string {
 	resource "coralogix_group" "test" {
 		display_name = "example"
 		role         = "Read Only"
-		members      = [coralogix_user.test.id]
+		members      = [data.coralogix_user.test.id]
 		scope_id     = data.coralogix_scope.example.id
 	}
 `, userName)

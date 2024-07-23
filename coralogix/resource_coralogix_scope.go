@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"strconv"
 	"strings"
 	"terraform-provider-coralogix/coralogix/clientset"
 	scopes "terraform-provider-coralogix/coralogix/clientset/grpc/scopes"
@@ -102,9 +101,9 @@ func (r *ScopeResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 			},
 			"default_expression": schema.StringAttribute{
 				Required:            true,
-				MarkdownDescription: "Default expression to use when no filter matches the query. Until further notice, this can is limited to `true` (everything is included) or `false` (nothing is included). Use a version tag (e.g `<v1> true` or `<v1> false`)",
+				MarkdownDescription: "Default expression to use when no filter matches the query. Until further notice, this can is limited to `true` (everything is included) or `false` (nothing is included). Use a version tag (e.g `<v1>true` or `<v1>false`)",
 				Validators: []validator.String{
-					stringvalidator.RegexMatches(regexp.MustCompile(`^<v[\d]+>\s+true|false+$`), "Default expression must be in the format `<vX> true` or `<vX> false where X is a version number. E.g. `<v1> true` or `<v1> false"),
+					stringvalidator.RegexMatches(regexp.MustCompile(`^<v[\d]+>true|false+$`), "Default expression must be in the format `<vX>true` or `<vX>false where X is a version number. E.g. `<v1>true` or `<v1>false"),
 				},
 			},
 			"team_id": schema.StringAttribute{
@@ -178,8 +177,9 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 	log.Printf("[INFO] Submitted new scope: %s", protojson.Format(createScopeResp))
 
 	getScopeReq := &scopes.GetTeamScopesByIdsRequest{
-		Ids: []string{strconv.Itoa(int(createScopeResp.Scope.TeamId))},
+		Ids: []string{createScopeResp.Scope.Id},
 	}
+	log.Printf("[INFO] Getting new Scope: %s", protojson.Format(getScopeReq))
 
 	getScopeResp, err := r.client.Get(ctx, getScopeReq)
 	if err != nil {
@@ -191,7 +191,7 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 	log.Printf("[INFO] Received Scope: %s", protojson.Format(getScopeResp))
-	state := flattenScope(getScopeResp)
+	state := flattenScope(getScopeResp)[0]
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
@@ -224,10 +224,14 @@ func extractCreateScope(plan *ScopeResourceModel) (*scopes.CreateScopeRequest, d
 func flattenScope(resp *scopes.GetScopesResponse) []ScopeResourceModel {
 	var scopes []ScopeResourceModel
 	for _, scope := range resp.GetScopes() {
+		description := types.StringNull()
+		if scope.GetDescription() != "" {
+			description = types.StringValue(scope.GetDescription())
+		}
 		scopes = append(scopes, ScopeResourceModel{
 			ID:                types.StringValue(scope.GetId()),
 			DisplayName:       types.StringValue(scope.GetDisplayName()),
-			Description:       types.StringValue(scope.GetDescription()),
+			Description:       description,
 			DefaultExpression: types.StringValue(scope.GetDefaultExpression()),
 			Filters:           flattenScopeFilters(scope.GetFilters()),
 		})
@@ -239,7 +243,7 @@ func flattenScopeFilters(filters []*scopes.Filter) []ScopeFilterModel {
 	var result []ScopeFilterModel
 	for _, filter := range filters {
 		result = append(result, ScopeFilterModel{
-			EntityType: types.StringValue(scopes.EntityType_name[int32(filter.GetEntityType())]),
+			EntityType: types.StringValue(strings.ToLower(scopes.EntityType_name[int32(filter.GetEntityType())])),
 			Expression: types.StringValue(filter.GetExpression()),
 		})
 	}
@@ -308,7 +312,7 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	log.Printf("[INFO] Updated team: %s", plan.ID.ValueString())
+	log.Printf("[INFO] Updated scope: %s", plan.ID.ValueString())
 
 	getScopeReq := &scopes.GetTeamScopesByIdsRequest{
 		Ids: []string{plan.ID.ValueString()},
@@ -376,5 +380,5 @@ func (r *ScopeResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted team: %s", state.ID.ValueString())
+	log.Printf("[INFO] Deleted scope: %s", state.ID.ValueString())
 }
