@@ -602,3 +602,9 @@ Bug fixing:
 Various documentation fixes
 
 Deprecation: `coralogix_sli` deprecated in favor of `coralogix_slo`
+
+## Release 1.16.3
+New Features:
+#### resource/coralogix_dashboard
+* added support for more than one `section`.
+* added support for `query` option in `multi_select` variables.

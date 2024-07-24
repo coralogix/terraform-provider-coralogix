@@ -209,15 +209,22 @@ var (
 	}
 	dashboardProtoToSchemaGaugeThresholdBy = ReverseMap(dashboardSchemaToProtoGaugeThresholdBy)
 	dashboardValidGaugeThresholdBy         = GetKeys(dashboardSchemaToProtoGaugeThresholdBy)
-	dashboardValidLogsAggregationTypes     = []string{"count", "count_distinct", "sum", "avg", "min", "max", "percentile"}
-	dashboardValidSpanFieldTypes           = []string{"metadata", "tag", "process_tag"}
-	dashboardValidSpanAggregationTypes     = []string{"metric", "dimension"}
-	dashboardValidColorSchemes             = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
-	secionValidColors                      = []string{"unspecified", "cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
-	createDashboardURL                     = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/CreateDashboard"
-	getDashboardURL                        = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/GetDashboard"
-	updateDashboardURL                     = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/ReplaceDashboard"
-	deleteDashboardURL                     = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/DeleteDashboard"
+	dashboardSchemaToProtoRefreshStrategy  = map[string]dashboards.MultiSelect_RefreshStrategy{
+		"unspecified":          dashboards.MultiSelect_REFRESH_STRATEGY_UNSPECIFIED,
+		"on_dashboard_load":    dashboards.MultiSelect_REFRESH_STRATEGY_ON_DASHBOARD_LOAD,
+		"on_time_frame_change": dashboards.MultiSelect_REFRESH_STRATEGY_ON_TIME_FRAME_CHANGE,
+	}
+	dashboardProtoToSchemaRefreshStrategy = ReverseMap(dashboardSchemaToProtoRefreshStrategy)
+	dashboardValidRefreshStrategies       = GetKeys(dashboardSchemaToProtoRefreshStrategy)
+	dashboardValidLogsAggregationTypes    = []string{"count", "count_distinct", "sum", "avg", "min", "max", "percentile"}
+	dashboardValidSpanFieldTypes          = []string{"metadata", "tag", "process_tag"}
+	dashboardValidSpanAggregationTypes    = []string{"metric", "dimension"}
+	dashboardValidColorSchemes            = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
+	sectionValidColors                    = []string{"unspecified", "cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
+	createDashboardURL                    = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/CreateDashboard"
+	getDashboardURL                       = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/GetDashboard"
+	updateDashboardURL                    = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/ReplaceDashboard"
+	deleteDashboardURL                    = "com.coralogixapis.dashboards.dashboards.services.DashboardsService/DeleteDashboard"
 )
 
 var (
@@ -698,6 +705,78 @@ type VariableMultiSelectSourceModel struct {
 	MetricLabel  *MetricMultiSelectSourceModel `tfsdk:"metric_label"`
 	ConstantList types.List                    `tfsdk:"constant_list"` //types.String
 	SpanField    *SpansFieldModel              `tfsdk:"span_field"`
+	Query        types.Object                  `tfsdk:"query"` //VariableMultiSelectQueryModel
+}
+
+type VariableMultiSelectQueryModel struct {
+	Query               types.Object `tfsdk:"query"` //MultiSelectQueryModel
+	RefreshStrategy     types.String `tfsdk:"refresh_strategy"`
+	ValueDisplayOptions types.Object `tfsdk:"value_display_options"` //MultiSelectValueDisplayOptionsModel
+}
+
+type MultiSelectQueryModel struct {
+	Logs    types.Object `tfsdk:"logs"`    //MultiSelectLogsQueryModel
+	Metrics types.Object `tfsdk:"metrics"` //MultiSelectMetricsQueryModel
+	Spans   types.Object `tfsdk:"spans"`   //MultiSelectSpansQueryModel
+}
+
+type MultiSelectLogsQueryModel struct {
+	FieldName  types.Object `tfsdk:"field_name"`  //LogFieldNameModel
+	FieldValue types.Object `tfsdk:"field_value"` //FieldValueModel
+}
+
+type LogFieldNameModel struct {
+	LogRegex types.String `tfsdk:"log_regex"`
+}
+
+type SpanFieldNameModel struct {
+	SpanRegex types.String `tfsdk:"span_regex"`
+}
+
+type FieldValueModel struct {
+	ObservationField types.Object `tfsdk:"observation_field"` //ObservationFieldModel
+}
+
+type MultiSelectMetricsQueryModel struct {
+	MetricName types.Object `tfsdk:"metric_name"` //MetricAndLabelNameModel
+	LabelName  types.Object `tfsdk:"label_name"`  //MetricAndLabelNameModel
+	LabelValue types.Object `tfsdk:"label_value"` //LabelValueModel
+}
+
+type MetricAndLabelNameModel struct {
+	MetricRegex types.String `tfsdk:"metric_regex"`
+}
+
+type LabelValueModel struct {
+	MetricName   types.Object `tfsdk:"metric_name"`   //MetricLabelFilterOperatorSelectedValuesModel
+	LabelName    types.Object `tfsdk:"label_name"`    //MetricLabelFilterOperatorSelectedValuesModel
+	LabelFilters types.List   `tfsdk:"label_filters"` // MetricLabelFilterModel
+}
+
+type MetricLabelFilterModel struct {
+	Metric   types.Object `tfsdk:"metric"`   //MetricLabelFilterOperatorSelectedValuesModel
+	Label    types.Object `tfsdk:"label"`    //MetricLabelFilterOperatorSelectedValuesModel
+	Operator types.Object `tfsdk:"operator"` //MetricLabelFilterOperatorModel
+}
+
+type MetricLabelFilterOperatorModel struct {
+	Type           types.String `tfsdk:"type"`
+	SelectedValues types.List   `tfsdk:"selected_values"` //MetricLabelFilterOperatorSelectedValuesModel
+}
+
+type MetricLabelFilterOperatorSelectedValuesModel struct {
+	StringValue  types.String `tfsdk:"string_value"`
+	VariableName types.String `tfsdk:"variable_name"`
+}
+
+type MultiSelectSpansQueryModel struct {
+	FieldName  types.Object `tfsdk:"field_name"`  //SpanFieldNameModel
+	FieldValue types.Object `tfsdk:"field_value"` //SpansFieldModel
+}
+
+type MultiSelectValueDisplayOptionsModel struct {
+	ValueRegex types.String `tfsdk:"value_regex"`
+	LabelRegex types.String `tfsdk:"label_regex"`
 }
 
 type DashboardFilterModel struct {
@@ -2227,9 +2306,9 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 									"color": schema.StringAttribute{
 										Optional: true,
 										Validators: []validator.String{
-											stringvalidator.OneOf(secionValidColors...),
+											stringvalidator.OneOf(sectionValidColors...),
 										},
-										MarkdownDescription: fmt.Sprintf("Section color, valid values: %v", secionValidColors),
+										MarkdownDescription: fmt.Sprintf("Section color, valid values: %v", sectionValidColors),
 									},
 									"collapsed": schema.BoolAttribute{
 										Optional: true,
@@ -2239,10 +2318,6 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 						},
 					},
 					Optional: true,
-					Validators: []validator.List{
-						listvalidator.SizeBetween(1, 1),
-					},
-					MarkdownDescription: "Currently only one section is supported.",
 				},
 			},
 			MarkdownDescription: "Layout configuration for the dashboard's visual elements.",
@@ -2290,6 +2365,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 														path.MatchRelative().AtParent().AtName("metric_label"),
 														path.MatchRelative().AtParent().AtName("constant_list"),
 														path.MatchRelative().AtParent().AtName("span_field"),
+														path.MatchRelative().AtParent().AtName("query"),
 													),
 												},
 											},
@@ -2303,45 +2379,160 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 													},
 												},
 												Optional: true,
-												Validators: []validator.Object{
-													objectvalidator.ExactlyOneOf(
-														path.MatchRelative().AtParent().AtName("logs_path"),
-														path.MatchRelative().AtParent().AtName("constant_list"),
-														path.MatchRelative().AtParent().AtName("span_field"),
-													),
-												},
 											},
 											"constant_list": schema.ListAttribute{
 												ElementType: types.StringType,
 												Optional:    true,
-												Validators: []validator.List{
-													listvalidator.ExactlyOneOf(
-														path.MatchRelative().AtParent().AtName("logs_path"),
-														path.MatchRelative().AtParent().AtName("metric_label"),
-														path.MatchRelative().AtParent().AtName("span_field"),
-													),
-												},
 											},
 											"span_field": schema.SingleNestedAttribute{
 												Attributes: spansFieldAttributes(),
 												Optional:   true,
 												Validators: []validator.Object{
 													spansFieldValidator{},
-													objectvalidator.ExactlyOneOf(
-														path.MatchRelative().AtParent().AtName("logs_path"),
-														path.MatchRelative().AtParent().AtName("metric_label"),
-														path.MatchRelative().AtParent().AtName("constant_list"),
-													),
 												},
+											},
+											"query": schema.SingleNestedAttribute{
+												Attributes: map[string]schema.Attribute{
+													"query": schema.SingleNestedAttribute{
+														Attributes: map[string]schema.Attribute{
+															"logs": schema.SingleNestedAttribute{
+																Attributes: map[string]schema.Attribute{
+																	"field_name": schema.SingleNestedAttribute{
+																		Optional: true,
+																		Attributes: map[string]schema.Attribute{
+																			"log_regex": schema.StringAttribute{
+																				Required: true,
+																			},
+																		},
+																		Validators: []validator.Object{
+																			objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("field_value")),
+																		},
+																	},
+																	"field_value": schema.SingleNestedAttribute{
+																		Optional: true,
+																		Attributes: map[string]schema.Attribute{
+																			"observation_field": schema.SingleNestedAttribute{
+																				Attributes: observationFieldSchemaAttributes(),
+																				Required:   true,
+																			},
+																		},
+																	},
+																},
+																Optional: true,
+																Validators: []validator.Object{
+																	objectvalidator.ExactlyOneOf(
+																		path.MatchRelative().AtParent().AtName("spans"),
+																		path.MatchRelative().AtParent().AtName("metrics"),
+																	),
+																},
+															},
+															"metrics": schema.SingleNestedAttribute{
+																Attributes: map[string]schema.Attribute{
+																	"metric_name": schema.SingleNestedAttribute{
+																		Optional: true,
+																		Attributes: map[string]schema.Attribute{
+																			"metric_regex": schema.StringAttribute{
+																				Required: true,
+																			},
+																		},
+																		Validators: []validator.Object{
+																			objectvalidator.ExactlyOneOf(
+																				path.MatchRelative().AtParent().AtName("label_name"),
+																				path.MatchRelative().AtParent().AtName("label_value"),
+																			),
+																		},
+																	},
+																	"label_name": schema.SingleNestedAttribute{
+																		Optional: true,
+																		Attributes: map[string]schema.Attribute{
+																			"metric_regex": schema.StringAttribute{
+																				Required: true,
+																			},
+																		},
+																	},
+																	"label_value": schema.SingleNestedAttribute{
+																		Attributes: map[string]schema.Attribute{
+																			"metric_name": stringOrVariableSchema(),
+																			"label_name":  stringOrVariableSchema(),
+																			"label_filters": schema.ListNestedAttribute{
+																				Optional: true,
+																				NestedObject: schema.NestedAttributeObject{
+																					Attributes: map[string]schema.Attribute{
+																						"metric": stringOrVariableSchema(),
+																						"label":  stringOrVariableSchema(),
+																						"operator": schema.SingleNestedAttribute{
+																							Optional: true,
+																							Attributes: map[string]schema.Attribute{
+																								"type": schema.StringAttribute{
+																									Required: true,
+																									Validators: []validator.String{
+																										stringvalidator.OneOf("equals", "not_equals"),
+																									},
+																								},
+																								"selected_values": schema.ListNestedAttribute{
+																									Optional: true,
+																									NestedObject: schema.NestedAttributeObject{
+																										Attributes: stringOrVariableAttr(),
+																									},
+																								},
+																							},
+																						},
+																					},
+																				},
+																			},
+																		},
+																		Optional: true,
+																	},
+																},
+																Optional: true,
+															},
+															"spans": schema.SingleNestedAttribute{
+																Attributes: map[string]schema.Attribute{
+																	"field_name": schema.SingleNestedAttribute{
+																		Attributes: map[string]schema.Attribute{
+																			"span_regex": schema.StringAttribute{
+																				Required: true,
+																			},
+																		},
+																		Optional: true,
+																		Validators: []validator.Object{
+																			objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("field_value")),
+																		},
+																	},
+																	"field_value": spansFieldSchema(),
+																},
+																Optional: true,
+															},
+														},
+														Required: true,
+													},
+													"refresh_strategy": schema.StringAttribute{
+														Optional: true,
+														Computed: true,
+														Default:  stringdefault.StaticString("unspecified"),
+														Validators: []validator.String{
+															stringvalidator.OneOf(dashboardValidRefreshStrategies...),
+														},
+													},
+													"value_display_options": schema.SingleNestedAttribute{
+														Attributes: map[string]schema.Attribute{
+															"value_regex": schema.StringAttribute{
+																Optional: true,
+															},
+															"label_regex": schema.StringAttribute{
+																Optional: true,
+															},
+														},
+														Optional: true,
+													},
+												},
+												Optional: true,
 											},
 										},
 										Optional: true,
 									},
 								},
 								Optional: true,
-								Validators: []validator.Object{
-									objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("constant_value")),
-								},
 							},
 						},
 					},
@@ -2554,6 +2745,29 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 	}
 }
 
+func stringOrVariableSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Attributes: stringOrVariableAttr(),
+		Optional:   true,
+	}
+}
+
+func stringOrVariableAttr() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"string_value": schema.StringAttribute{
+			Optional: true,
+			Validators: []validator.String{
+				stringvalidator.ExactlyOneOf(
+					path.MatchRelative().AtParent().AtName("variable_name"),
+				),
+			},
+		},
+		"variable_name": schema.StringAttribute{
+			Optional: true,
+		},
+	}
+}
+
 func logsAndSpansAttributes() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"lucene_query": schema.StringAttribute{
@@ -2608,23 +2822,8 @@ func relativeTimeFrameAttributes() map[string]attr.Type {
 
 func observationFieldSingleNestedAttribute() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
-		Attributes: observationFieldSchema(),
+		Attributes: observationFieldSchemaAttributes(),
 		Required:   true,
-	}
-}
-
-func observationFieldSchema() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"keypath": schema.ListAttribute{
-			ElementType: types.StringType,
-			Required:    true,
-		},
-		"scope": schema.StringAttribute{
-			Required: true,
-			Validators: []validator.String{
-				stringvalidator.OneOf(dashboardValidObservationFieldScope...),
-			},
-		},
 	}
 }
 
@@ -2632,10 +2831,10 @@ func observationFieldSchemaAttributes() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"keypath": schema.ListAttribute{
 			ElementType: types.StringType,
-			Optional:    true,
+			Required:    true,
 		},
 		"scope": schema.StringAttribute{
-			Optional: true,
+			Required: true,
 			Validators: []validator.String{
 				stringvalidator.OneOf(dashboardValidObservationFieldScope...),
 			},
@@ -4179,6 +4378,484 @@ func expandSpansField(spansFilterField *SpansFieldModel) (*dashboards.SpanField,
 	default:
 		return nil, diag.NewErrorDiagnostic("Extract Spans Filter Field Error", fmt.Sprintf("Unknown spans filter field type %s", spansFilterField.Type.ValueString()))
 	}
+}
+
+func expandMultiSelectSourceQuery(ctx context.Context, sourceQuery types.Object) (*dashboards.MultiSelect_Source, diag.Diagnostics) {
+	if sourceQuery.IsNull() || sourceQuery.IsUnknown() {
+		return nil, nil
+	}
+
+	var queryObject VariableMultiSelectQueryModel
+	if diags := sourceQuery.As(ctx, &queryObject, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	query, diags := expandMultiSelectQuery(ctx, queryObject.Query)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	valueDisplayOptions, diags := expandMultiSelectValueDisplayOptions(ctx, queryObject.ValueDisplayOptions)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.MultiSelect_Source{
+		Value: &dashboards.MultiSelect_Source_Query{
+			Query: &dashboards.MultiSelect_QuerySource{
+				Query:               query,
+				RefreshStrategy:     dashboardSchemaToProtoRefreshStrategy[queryObject.RefreshStrategy.ValueString()],
+				ValueDisplayOptions: valueDisplayOptions,
+			},
+		},
+	}, nil
+}
+
+func expandMultiSelectQuery(ctx context.Context, query types.Object) (*dashboards.MultiSelect_Query, diag.Diagnostics) {
+	if query.IsNull() || query.IsUnknown() {
+		return nil, nil
+	}
+
+	var queryObject MultiSelectQueryModel
+	diags := query.As(ctx, &queryObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	multiSelectQuery := &dashboards.MultiSelect_Query{}
+	switch {
+	case !(queryObject.Metrics.IsNull() || queryObject.Metrics.IsUnknown()):
+		multiSelectQuery.Value, diags = expandMultiSelectMetricsQuery(ctx, queryObject.Metrics)
+	case !(queryObject.Logs.IsNull() || queryObject.Logs.IsUnknown()):
+		multiSelectQuery.Value, diags = expandMultiSelectLogsQuery(ctx, queryObject.Logs)
+	case !(queryObject.Spans.IsNull() || queryObject.Spans.IsUnknown()):
+		multiSelectQuery.Value, diags = expandMultiSelectSpansQuery(ctx, queryObject.Spans)
+	default:
+		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand MultiSelect Query", "MultiSelect Query must be either Metrics, Logs or Spans")}
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return multiSelectQuery, nil
+}
+
+func expandMultiSelectValueDisplayOptions(ctx context.Context, options types.Object) (*dashboards.MultiSelect_ValueDisplayOptions, diag.Diagnostics) {
+	if options.IsNull() || options.IsUnknown() {
+		return nil, nil
+	}
+
+	var optionsObject MultiSelectValueDisplayOptionsModel
+	diags := options.As(ctx, &optionsObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.MultiSelect_ValueDisplayOptions{
+		ValueRegex: typeStringToWrapperspbString(optionsObject.ValueRegex),
+		LabelRegex: typeStringToWrapperspbString(optionsObject.LabelRegex),
+	}, nil
+}
+
+func expandMultiSelectLogsQuery(ctx context.Context, logs types.Object) (*dashboards.MultiSelect_Query_LogsQuery_, diag.Diagnostics) {
+	if logs.IsNull() || logs.IsUnknown() {
+		return nil, nil
+	}
+
+	var logsObject MultiSelectLogsQueryModel
+	diags := logs.As(ctx, &logsObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	logsQuery := &dashboards.MultiSelect_Query_LogsQuery_{
+		LogsQuery: &dashboards.MultiSelect_Query_LogsQuery{
+			Type: &dashboards.MultiSelect_Query_LogsQuery_Type{},
+		},
+	}
+
+	switch {
+	case !(logsObject.FieldName.IsNull() || logsObject.FieldName.IsUnknown()):
+		logsQuery.LogsQuery.Type.Value, diags = expandMultiSelectLogsQueryTypeFieldName(ctx, logsObject.FieldName)
+	case !(logsObject.FieldValue.IsNull() || logsObject.FieldValue.IsUnknown()):
+		logsQuery.LogsQuery.Type.Value, diags = expandMultiSelectLogsQueryTypFieldValue(ctx, logsObject.FieldValue)
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return logsQuery, nil
+}
+
+func expandMultiSelectLogsQueryTypeFieldName(ctx context.Context, name types.Object) (*dashboards.MultiSelect_Query_LogsQuery_Type_FieldName_, diag.Diagnostics) {
+	if name.IsNull() || name.IsUnknown() {
+		return nil, nil
+	}
+
+	var nameObject LogFieldNameModel
+	diags := name.As(ctx, &nameObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.MultiSelect_Query_LogsQuery_Type_FieldName_{
+		FieldName: &dashboards.MultiSelect_Query_LogsQuery_Type_FieldName{
+			LogRegex: typeStringToWrapperspbString(nameObject.LogRegex),
+		},
+	}, nil
+}
+
+func expandMultiSelectLogsQueryTypFieldValue(ctx context.Context, value types.Object) (*dashboards.MultiSelect_Query_LogsQuery_Type_FieldValue_, diag.Diagnostics) {
+	if value.IsNull() || value.IsUnknown() {
+		return nil, nil
+	}
+
+	var valueObject FieldValueModel
+	diags := value.As(ctx, &valueObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	observationField, diags := expandObservationFieldObject(ctx, valueObject.ObservationField)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.MultiSelect_Query_LogsQuery_Type_FieldValue_{
+		FieldValue: &dashboards.MultiSelect_Query_LogsQuery_Type_FieldValue{
+			ObservationField: observationField,
+		},
+	}, nil
+}
+
+func expandMultiSelectMetricsQuery(ctx context.Context, metrics types.Object) (*dashboards.MultiSelect_Query_MetricsQuery_, diag.Diagnostics) {
+	if metrics.IsNull() || metrics.IsUnknown() {
+		return nil, nil
+	}
+
+	var metricsObject MultiSelectMetricsQueryModel
+	diags := metrics.As(ctx, &metricsObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	metricsQuery := &dashboards.MultiSelect_Query_MetricsQuery_{
+		MetricsQuery: &dashboards.MultiSelect_Query_MetricsQuery{
+			Type: &dashboards.MultiSelect_Query_MetricsQuery_Type{},
+		},
+	}
+
+	switch {
+	case !(metricsObject.MetricName.IsNull() || metricsObject.MetricName.IsUnknown()):
+		metricsQuery.MetricsQuery.Type.Value, diags = expandMultiSelectMetricsQueryTypeMetricName(ctx, metricsObject.MetricName)
+	case !(metricsObject.LabelName.IsNull() || metricsObject.LabelName.IsUnknown()):
+		metricsQuery.MetricsQuery.Type.Value, diags = expandMultiSelectMetricsQueryTypeLabelName(ctx, metricsObject.LabelName)
+	case !(metricsObject.LabelValue.IsNull() || metricsObject.LabelValue.IsUnknown()):
+		metricsQuery.MetricsQuery.Type.Value, diags = expandMultiSelectMetricsQueryTypeLabelValue(ctx, metricsObject.LabelValue)
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return metricsQuery, nil
+}
+
+func expandMultiSelectMetricsQueryTypeMetricName(ctx context.Context, name types.Object) (*dashboards.MultiSelect_Query_MetricsQuery_Type_MetricName_, diag.Diagnostics) {
+	if name.IsNull() || name.IsUnknown() {
+		return nil, nil
+	}
+
+	var nameObject MetricAndLabelNameModel
+	diags := name.As(ctx, &nameObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.MultiSelect_Query_MetricsQuery_Type_MetricName_{
+		MetricName: &dashboards.MultiSelect_Query_MetricsQuery_Type_MetricName{
+			MetricRegex: typeStringToWrapperspbString(nameObject.MetricRegex),
+		},
+	}, nil
+}
+
+func expandMultiSelectMetricsQueryTypeLabelName(ctx context.Context, name types.Object) (*dashboards.MultiSelect_Query_MetricsQuery_Type_LabelName_, diag.Diagnostics) {
+	if name.IsNull() || name.IsUnknown() {
+		return nil, nil
+	}
+
+	var nameObject MetricAndLabelNameModel
+	diags := name.As(ctx, &nameObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.MultiSelect_Query_MetricsQuery_Type_LabelName_{
+		LabelName: &dashboards.MultiSelect_Query_MetricsQuery_Type_LabelName{
+			MetricRegex: typeStringToWrapperspbString(nameObject.MetricRegex),
+		},
+	}, nil
+}
+
+func expandMultiSelectMetricsQueryTypeLabelValue(ctx context.Context, value types.Object) (*dashboards.MultiSelect_Query_MetricsQuery_Type_LabelValue_, diag.Diagnostics) {
+	if value.IsNull() || value.IsUnknown() {
+		return nil, nil
+	}
+
+	var valueObject LabelValueModel
+	diags := value.As(ctx, &valueObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	metricName, diags := expandStringOrVariable(ctx, valueObject.MetricName)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	labelName, diags := expandStringOrVariable(ctx, valueObject.LabelName)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	labelFilters, diags := expandMetricsLabelFilters(ctx, valueObject.LabelFilters)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.MultiSelect_Query_MetricsQuery_Type_LabelValue_{
+		LabelValue: &dashboards.MultiSelect_Query_MetricsQuery_Type_LabelValue{
+			MetricName:   metricName,
+			LabelName:    labelName,
+			LabelFilters: labelFilters,
+		},
+	}, nil
+}
+
+func expandStringOrVariables(ctx context.Context, name types.List) ([]*dashboards.MultiSelect_Query_MetricsQuery_StringOrVariable, diag.Diagnostics) {
+	var nameObjects []types.Object
+	var expandedNames []*dashboards.MultiSelect_Query_MetricsQuery_StringOrVariable
+	diags := name.ElementsAs(ctx, &nameObjects, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	for _, no := range nameObjects {
+		expandedName, expandDiags := expandStringOrVariable(ctx, no)
+		if expandDiags.HasError() {
+			diags.Append(expandDiags...)
+			continue
+		}
+		expandedNames = append(expandedNames, expandedName)
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return expandedNames, nil
+}
+
+func expandStringOrVariable(ctx context.Context, name types.Object) (*dashboards.MultiSelect_Query_MetricsQuery_StringOrVariable, diag.Diagnostics) {
+	if name.IsNull() || name.IsUnknown() {
+		return nil, nil
+	}
+
+	var nameObject MetricLabelFilterOperatorSelectedValuesModel
+	diags := name.As(ctx, &nameObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	switch {
+	case !(nameObject.VariableName.IsNull() || nameObject.VariableName.IsUnknown()):
+		return &dashboards.MultiSelect_Query_MetricsQuery_StringOrVariable{
+			Value: &dashboards.MultiSelect_Query_MetricsQuery_StringOrVariable_VariableName{
+				VariableName: typeStringToWrapperspbString(nameObject.VariableName),
+			},
+		}, nil
+	case !(nameObject.StringValue.IsNull() || nameObject.StringValue.IsUnknown()):
+		return &dashboards.MultiSelect_Query_MetricsQuery_StringOrVariable{
+			Value: &dashboards.MultiSelect_Query_MetricsQuery_StringOrVariable_StringValue{
+				StringValue: typeStringToWrapperspbString(nameObject.StringValue),
+			},
+		}, nil
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand StringOrVariable", "StringOrVariable must be either VariableName or StringValue")}
+	}
+}
+
+func expandMetricsLabelFilters(ctx context.Context, filters types.List) ([]*dashboards.MultiSelect_Query_MetricsQuery_MetricsLabelFilter, diag.Diagnostics) {
+	var filtersObjects []types.Object
+	var expandedFilters []*dashboards.MultiSelect_Query_MetricsQuery_MetricsLabelFilter
+	diags := filters.ElementsAs(ctx, &filtersObjects, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	for _, fo := range filtersObjects {
+		var filter MetricLabelFilterModel
+		if dg := fo.As(ctx, &filter, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		expandedFilter, expandDiags := expandMetricLabelFilter(ctx, filter)
+		if expandDiags.HasError() {
+			diags.Append(expandDiags...)
+			continue
+		}
+		expandedFilters = append(expandedFilters, expandedFilter)
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return expandedFilters, nil
+}
+
+func expandMetricLabelFilter(ctx context.Context, filter MetricLabelFilterModel) (*dashboards.MultiSelect_Query_MetricsQuery_MetricsLabelFilter, diag.Diagnostics) {
+	metric, diags := expandStringOrVariable(ctx, filter.Metric)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	label, diags := expandStringOrVariable(ctx, filter.Label)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	operator, diags := expandMetricLabelFilterOperator(ctx, filter.Operator)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.MultiSelect_Query_MetricsQuery_MetricsLabelFilter{
+		Metric:   metric,
+		Label:    label,
+		Operator: operator,
+	}, nil
+}
+
+func expandMetricLabelFilterOperator(ctx context.Context, operator types.Object) (*dashboards.MultiSelect_Query_MetricsQuery_Operator, diag.Diagnostics) {
+	if operator.IsNull() || operator.IsUnknown() {
+		return nil, nil
+	}
+
+	var operatorObject MetricLabelFilterOperatorModel
+	diags := operator.As(ctx, &operatorObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	values, diags := expandStringOrVariables(ctx, operatorObject.SelectedValues)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	selection := &dashboards.MultiSelect_Query_MetricsQuery_Selection{
+		Value: &dashboards.MultiSelect_Query_MetricsQuery_Selection_List{
+			List: &dashboards.MultiSelect_Query_MetricsQuery_Selection_ListSelection{
+				Values: values,
+			},
+		},
+	}
+	switch operatorObject.Type.ValueString() {
+	case "equals":
+		return &dashboards.MultiSelect_Query_MetricsQuery_Operator{
+			Value: &dashboards.MultiSelect_Query_MetricsQuery_Operator_Equals{
+				Equals: &dashboards.MultiSelect_Query_MetricsQuery_Equals{
+					Selection: selection,
+				},
+			},
+		}, nil
+	case "not_equals":
+		return &dashboards.MultiSelect_Query_MetricsQuery_Operator{
+			Value: &dashboards.MultiSelect_Query_MetricsQuery_Operator_NotEquals{
+				NotEquals: &dashboards.MultiSelect_Query_MetricsQuery_NotEquals{
+					Selection: selection,
+				},
+			},
+		}, nil
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand MetricLabelFilterOperator", fmt.Sprintf("Unknown operator type %s", operatorObject.Type.ValueString()))}
+	}
+}
+
+func expandMultiSelectSpansQuery(ctx context.Context, spans types.Object) (*dashboards.MultiSelect_Query_SpansQuery_, diag.Diagnostics) {
+	if spans.IsNull() || spans.IsUnknown() {
+		return nil, nil
+	}
+
+	var spansObject MultiSelectSpansQueryModel
+	diags := spans.As(ctx, &spansObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	spansQuery := &dashboards.MultiSelect_Query_SpansQuery_{
+		SpansQuery: &dashboards.MultiSelect_Query_SpansQuery{
+			Type: &dashboards.MultiSelect_Query_SpansQuery_Type{},
+		},
+	}
+
+	switch {
+	case !(spansObject.FieldName.IsNull() || spansObject.FieldName.IsUnknown()):
+		spansQuery.SpansQuery.Type.Value, diags = expandMultiSelectSpansQueryTypeFieldName(ctx, spansObject.FieldName)
+	case !(spansObject.FieldValue.IsNull() || spansObject.FieldValue.IsUnknown()):
+		spansQuery.SpansQuery.Type.Value, diags = expandMultiSelectSpansQueryTypeFieldValue(ctx, spansObject.FieldValue)
+	default:
+		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand MultiSelect Spans Query", "MultiSelect Spans Query must be either FieldName or FieldValue")}
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return spansQuery, nil
+}
+
+func expandMultiSelectSpansQueryTypeFieldName(ctx context.Context, name types.Object) (*dashboards.MultiSelect_Query_SpansQuery_Type_FieldName_, diag.Diagnostics) {
+	if name.IsNull() || name.IsUnknown() {
+		return nil, nil
+	}
+
+	var nameObject SpanFieldNameModel
+	diags := name.As(ctx, &nameObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &dashboards.MultiSelect_Query_SpansQuery_Type_FieldName_{
+		FieldName: &dashboards.MultiSelect_Query_SpansQuery_Type_FieldName{
+			SpanRegex: typeStringToWrapperspbString(nameObject.SpanRegex),
+		},
+	}, nil
+}
+
+func expandMultiSelectSpansQueryTypeFieldValue(ctx context.Context, value types.Object) (*dashboards.MultiSelect_Query_SpansQuery_Type_FieldValue_, diag.Diagnostics) {
+	if value.IsNull() || value.IsUnknown() {
+		return nil, nil
+	}
+
+	var valueObject SpansFieldModel
+	diags := value.As(ctx, &valueObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	spansField, dgs := expandSpansField(&valueObject)
+	if dgs != nil {
+		return nil, diag.Diagnostics{dgs}
+	}
+
+	return &dashboards.MultiSelect_Query_SpansQuery_Type_FieldValue_{
+		FieldValue: &dashboards.MultiSelect_Query_SpansQuery_Type_FieldValue{
+			Value: spansField,
+		},
+	}, nil
 }
 
 func expandGaugeQueryMetrics(ctx context.Context, gaugeQueryMetrics *GaugeQueryMetricsModel) (*dashboards.Gauge_MetricsQuery, diag.Diagnostics) {
@@ -5931,6 +6608,8 @@ func expandMultiSelectSource(ctx context.Context, source *VariableMultiSelectSou
 				},
 			},
 		}, nil
+	case !source.Query.IsNull():
+		return expandMultiSelectSourceQuery(ctx, source.Query)
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Multi Select Source", fmt.Sprintf("unknown multi select source type: %T", source))}
 	}
@@ -7200,6 +7879,9 @@ func dashboardsVariablesModelAttr() map[string]attr.Type {
 								"span_field": types.ObjectType{
 									AttrTypes: spansFieldModelAttr(),
 								},
+								"query": types.ObjectType{
+									AttrTypes: multiSelectQueryAttr(),
+								},
 							},
 						},
 					},
@@ -7294,7 +7976,7 @@ func flattenDashboardSection(ctx context.Context, section *dashboards.Section) (
 }
 
 func flattenDashboardOptions(_ context.Context, opts *dashboards.SectionOptions) (*SectionOptionsModel, diag.Diagnostics) {
-	if opts == nil {
+	if opts == nil || opts.GetCustom() == nil {
 		return nil, nil
 	}
 	var description basetypes.StringValue
@@ -9132,7 +9814,7 @@ func flattenDashboardVariables(ctx context.Context, variables []*dashboards.Vari
 	var diagnostics diag.Diagnostics
 	variablesElements := make([]attr.Value, 0, len(variables))
 	for _, variable := range variables {
-		flattenedVariable, diags := flattenDashboardVariable(variable)
+		flattenedVariable, diags := flattenDashboardVariable(ctx, variable)
 		if diags.HasError() {
 			diagnostics = append(diagnostics, diags...)
 			continue
@@ -9149,12 +9831,12 @@ func flattenDashboardVariables(ctx context.Context, variables []*dashboards.Vari
 	return types.ListValueMust(types.ObjectType{AttrTypes: dashboardsVariablesModelAttr()}, variablesElements), diagnostics
 }
 
-func flattenDashboardVariable(variable *dashboards.Variable) (*DashboardVariableModel, diag.Diagnostics) {
+func flattenDashboardVariable(ctx context.Context, variable *dashboards.Variable) (*DashboardVariableModel, diag.Diagnostics) {
 	if variable == nil {
 		return nil, nil
 	}
 
-	definition, diags := flattenDashboardVariableDefinition(variable.GetDefinition())
+	definition, diags := flattenDashboardVariableDefinition(ctx, variable.GetDefinition())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -9166,7 +9848,7 @@ func flattenDashboardVariable(variable *dashboards.Variable) (*DashboardVariable
 	}, nil
 }
 
-func flattenDashboardVariableDefinition(variableDefinition *dashboards.Variable_Definition) (*DashboardVariableDefinitionModel, diag.Diagnostics) {
+func flattenDashboardVariableDefinition(ctx context.Context, variableDefinition *dashboards.Variable_Definition) (*DashboardVariableDefinitionModel, diag.Diagnostics) {
 	if variableDefinition == nil {
 		return nil, nil
 	}
@@ -9177,18 +9859,18 @@ func flattenDashboardVariableDefinition(variableDefinition *dashboards.Variable_
 			ConstantValue: wrapperspbStringToTypeString(variableDefinition.GetConstant().GetValue()),
 		}, nil
 	case *dashboards.Variable_Definition_MultiSelect:
-		return flattenDashboardVariableDefinitionMultiSelect(variableDefinition.GetMultiSelect())
+		return flattenDashboardVariableDefinitionMultiSelect(ctx, variableDefinition.GetMultiSelect())
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Variable Definition", fmt.Sprintf("unknown variable definition type %T", variableDefinition))}
 	}
 }
 
-func flattenDashboardVariableDefinitionMultiSelect(multiSelect *dashboards.MultiSelect) (*DashboardVariableDefinitionModel, diag.Diagnostics) {
+func flattenDashboardVariableDefinitionMultiSelect(ctx context.Context, multiSelect *dashboards.MultiSelect) (*DashboardVariableDefinitionModel, diag.Diagnostics) {
 	if multiSelect == nil {
 		return nil, nil
 	}
 
-	source, diags := flattenDashboardVariableSource(multiSelect.GetSource())
+	source, diags := flattenDashboardVariableSource(ctx, multiSelect.GetSource())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -9208,7 +9890,7 @@ func flattenDashboardVariableDefinitionMultiSelect(multiSelect *dashboards.Multi
 	}, nil
 }
 
-func flattenDashboardVariableSource(source *dashboards.MultiSelect_Source) (*VariableMultiSelectSourceModel, diag.Diagnostics) {
+func flattenDashboardVariableSource(ctx context.Context, source *dashboards.MultiSelect_Source) (*VariableMultiSelectSourceModel, diag.Diagnostics) {
 	if source == nil {
 		return nil, nil
 	}
@@ -9216,6 +9898,7 @@ func flattenDashboardVariableSource(source *dashboards.MultiSelect_Source) (*Var
 	result := &VariableMultiSelectSourceModel{
 		LogsPath:     types.StringNull(),
 		ConstantList: types.ListNull(types.StringType),
+		Query:        types.ObjectNull(multiSelectQueryAttr()),
 	}
 
 	switch source.GetValue().(type) {
@@ -9234,11 +9917,485 @@ func flattenDashboardVariableSource(source *dashboards.MultiSelect_Source) (*Var
 			return nil, diag.Diagnostics{dg}
 		}
 		result.SpanField = spansField
+	case *dashboards.MultiSelect_Source_Query:
+		query, diags := flattenDashboardVariableDefinitionMultiSelectQuery(ctx, source.GetQuery())
+		if diags != nil {
+			return nil, diags
+		}
+		result.Query = query
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Variable Definition Multi Select Source", fmt.Sprintf("unknown variable definition multi select source type %T", source))}
 	}
 
 	return result, nil
+}
+
+func flattenDashboardVariableDefinitionMultiSelectQuery(ctx context.Context, querySource *dashboards.MultiSelect_QuerySource) (types.Object, diag.Diagnostics) {
+	if querySource == nil {
+		return types.ObjectNull(multiSelectQueryAttr()), nil
+	}
+
+	query, diags := flattenDashboardVariableDefinitionMultiSelectQueryModel(ctx, querySource.GetQuery())
+	if diags.HasError() {
+		return types.ObjectNull(multiSelectQueryAttr()), diags
+	}
+
+	valueDisplayOptions, diags := flattenDashboardVariableDefinitionMultiSelectValueDisplayOptions(ctx, querySource.GetValueDisplayOptions())
+	if diags.HasError() {
+		return types.ObjectNull(multiSelectQueryAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, multiSelectQueryAttr(), &VariableMultiSelectQueryModel{
+		Query:               query,
+		RefreshStrategy:     types.StringValue(dashboardProtoToSchemaRefreshStrategy[querySource.GetRefreshStrategy()]),
+		ValueDisplayOptions: valueDisplayOptions,
+	})
+}
+
+func flattenDashboardVariableDefinitionMultiSelectQueryModel(ctx context.Context, query *dashboards.MultiSelect_Query) (types.Object, diag.Diagnostics) {
+	if query == nil {
+		return types.ObjectNull(multiSelectQueryModelAttr()), nil
+	}
+
+	multiSelectQueryModel := &MultiSelectQueryModel{
+		Logs:    types.ObjectNull(multiSelectQueryLogsQueryModelAttr()),
+		Metrics: types.ObjectNull(multiSelectQueryMetricsQueryModelAttr()),
+		Spans:   types.ObjectNull(multiSelectQuerySpansQueryModelAttr()),
+	}
+	var diags diag.Diagnostics
+	switch queryType := query.GetValue().(type) {
+	case *dashboards.MultiSelect_Query_LogsQuery_:
+		multiSelectQueryModel.Logs, diags = flattenDashboardVariableDefinitionMultiSelectQueryLogsModel(ctx, queryType.LogsQuery)
+	case *dashboards.MultiSelect_Query_MetricsQuery_:
+		multiSelectQueryModel.Metrics, diags = flattenDashboardVariableDefinitionMultiSelectQueryMetricsModel(ctx, queryType.MetricsQuery)
+	case *dashboards.MultiSelect_Query_SpansQuery_:
+		multiSelectQueryModel.Spans, diags = flattenDashboardVariableDefinitionMultiSelectQuerySpansModel(ctx, queryType.SpansQuery)
+	}
+
+	if diags.HasError() {
+		return types.ObjectNull(multiSelectQueryModelAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, multiSelectQueryModelAttr(), multiSelectQueryModel)
+}
+
+func flattenDashboardVariableDefinitionMultiSelectQueryLogsModel(ctx context.Context, query *dashboards.MultiSelect_Query_LogsQuery) (types.Object, diag.Diagnostics) {
+	if query == nil {
+		return types.ObjectNull(multiSelectQueryLogsQueryModelAttr()), nil
+	}
+
+	logsQuery := &MultiSelectLogsQueryModel{
+		FieldName:  types.ObjectNull(multiSelectQueryLogsQueryFieldNameModelAttr()),
+		FieldValue: types.ObjectNull(multiSelectQueryLogsQueryFieldValueModelAttr()),
+	}
+
+	var diags diag.Diagnostics
+	switch queryType := query.GetType().GetValue().(type) {
+	case *dashboards.MultiSelect_Query_LogsQuery_Type_FieldName_:
+		logsQuery.FieldName, diags = flattenDashboardVariableDefinitionMultiSelectQueryLogsFieldNameModel(ctx, queryType.FieldName)
+	case *dashboards.MultiSelect_Query_LogsQuery_Type_FieldValue_:
+		logsQuery.FieldValue, diags = flattenDashboardVariableDefinitionMultiSelectQueryLogsFieldValueModel(ctx, queryType.FieldValue)
+	}
+
+	if diags.HasError() {
+		return types.ObjectNull(multiSelectQueryLogsQueryModelAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, multiSelectQueryLogsQueryModelAttr(), logsQuery)
+}
+
+func flattenDashboardVariableDefinitionMultiSelectQueryLogsFieldNameModel(ctx context.Context, name *dashboards.MultiSelect_Query_LogsQuery_Type_FieldName) (types.Object, diag.Diagnostics) {
+	if name == nil {
+		return types.ObjectNull(multiSelectQueryLogsQueryFieldNameModelAttr()), nil
+	}
+
+	return types.ObjectValueFrom(ctx, multiSelectQueryLogsQueryFieldNameModelAttr(), &LogFieldNameModel{
+		LogRegex: wrapperspbStringToTypeString(name.GetLogRegex()),
+	})
+}
+
+func flattenDashboardVariableDefinitionMultiSelectQueryLogsFieldValueModel(ctx context.Context, value *dashboards.MultiSelect_Query_LogsQuery_Type_FieldValue) (types.Object, diag.Diagnostics) {
+	if value == nil {
+		return types.ObjectNull(multiSelectQueryLogsQueryFieldValueModelAttr()), nil
+	}
+
+	observationField, diags := flattenObservationField(ctx, value.GetObservationField())
+	if diags.HasError() {
+		return types.ObjectNull(multiSelectQueryLogsQueryFieldValueModelAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, multiSelectQueryLogsQueryFieldValueModelAttr(), &FieldValueModel{
+		ObservationField: observationField,
+	})
+}
+
+func flattenDashboardVariableDefinitionMultiSelectQueryMetricsModel(ctx context.Context, query *dashboards.MultiSelect_Query_MetricsQuery) (types.Object, diag.Diagnostics) {
+	if query == nil {
+		return types.ObjectNull(multiSelectQueryMetricsQueryModelAttr()), nil
+	}
+
+	var diags diag.Diagnostics
+	metricQuery := &MultiSelectMetricsQueryModel{
+		MetricName: types.ObjectNull(multiSelectQueryMetricsNameAttr()),
+		LabelName:  types.ObjectNull(multiSelectQueryMetricsNameAttr()),
+		LabelValue: types.ObjectNull(multiSelectQueryLabelValueModelAttr()),
+	}
+
+	switch queryType := query.GetType().GetValue().(type) {
+	case *dashboards.MultiSelect_Query_MetricsQuery_Type_MetricName_:
+		metricQuery.MetricName, diags = flattenDashboardVariableDefinitionMultiSelectQueryMetricsMetricNameModel(ctx, queryType.MetricName)
+	case *dashboards.MultiSelect_Query_MetricsQuery_Type_LabelName_:
+		metricQuery.LabelName, diags = flattenDashboardVariableDefinitionMultiSelectQueryMetricsLabelNameModel(ctx, queryType.LabelName)
+	case *dashboards.MultiSelect_Query_MetricsQuery_Type_LabelValue_:
+		metricQuery.LabelValue, diags = flattenDashboardVariableDefinitionMultiSelectQueryMetricsLabelValueModel(ctx, queryType.LabelValue)
+	}
+
+	if diags.HasError() {
+		return types.ObjectNull(multiSelectQueryMetricsQueryModelAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, multiSelectQueryMetricsQueryModelAttr(), metricQuery)
+}
+
+func flattenDashboardVariableDefinitionMultiSelectQueryMetricsMetricNameModel(ctx context.Context, name *dashboards.MultiSelect_Query_MetricsQuery_Type_MetricName) (types.Object, diag.Diagnostics) {
+	if name == nil {
+		return types.ObjectNull(multiSelectQueryMetricsNameAttr()), nil
+	}
+
+	return types.ObjectValueFrom(ctx, multiSelectQueryMetricsNameAttr(), &MetricAndLabelNameModel{
+		MetricRegex: wrapperspbStringToTypeString(name.GetMetricRegex()),
+	})
+}
+
+func flattenDashboardVariableDefinitionMultiSelectQueryMetricsLabelNameModel(ctx context.Context, name *dashboards.MultiSelect_Query_MetricsQuery_Type_LabelName) (types.Object, diag.Diagnostics) {
+	if name == nil {
+		return types.ObjectNull(multiSelectQueryMetricsNameAttr()), nil
+	}
+
+	return types.ObjectValueFrom(ctx, multiSelectQueryMetricsNameAttr(), &MetricAndLabelNameModel{
+		MetricRegex: wrapperspbStringToTypeString(name.GetMetricRegex()),
+	})
+}
+
+func flattenDashboardVariableDefinitionMultiSelectQueryMetricsLabelValueModel(ctx context.Context, value *dashboards.MultiSelect_Query_MetricsQuery_Type_LabelValue) (types.Object, diag.Diagnostics) {
+	if value == nil {
+		return types.ObjectNull(multiSelectQueryLabelValueModelAttr()), nil
+	}
+
+	metricName, diags := flattenMultiSelectQueryMetricsQueryStringOrVariable(ctx, value.GetMetricName())
+	if diags.HasError() {
+		return types.ObjectNull(multiSelectQueryLabelValueModelAttr()), diags
+	}
+
+	labelName, diags := flattenMultiSelectQueryMetricsQueryStringOrVariable(ctx, value.GetLabelName())
+	if diags.HasError() {
+		return types.ObjectNull(multiSelectQueryLabelValueModelAttr()), diags
+	}
+
+	labelFilters, diags := flattenMultiSelectQueryMetricsQueryMetricsLabelFilters(ctx, value.GetLabelFilters())
+	if diags.HasError() {
+		return types.ObjectNull(multiSelectQueryLabelValueModelAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, multiSelectQueryLabelValueModelAttr(), &LabelValueModel{
+		MetricName:   metricName,
+		LabelName:    labelName,
+		LabelFilters: labelFilters,
+	})
+}
+
+func flattenMultiSelectQueryMetricsQueryMetricsLabelFilters(ctx context.Context, filters []*dashboards.MultiSelect_Query_MetricsQuery_MetricsLabelFilter) (types.List, diag.Diagnostics) {
+	var diagnostics diag.Diagnostics
+	flattenedFilters := make([]attr.Value, 0, len(filters))
+	for _, filter := range filters {
+		flattenedFilter, diags := flattenMultiSelectQueryMetricsQueryMetricsLabelFilter(ctx, filter)
+		if diags.HasError() {
+			diagnostics.Append(diags...)
+			continue
+		}
+		filtersElement, diags := types.ObjectValueFrom(ctx, multiSelectQueryLabelFilterAttr(), flattenedFilter)
+		if diags.HasError() {
+			diagnostics.Append(diags...)
+			continue
+		}
+		flattenedFilters = append(flattenedFilters, filtersElement)
+	}
+
+	if diagnostics.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: multiSelectQueryLabelFilterAttr()}), diagnostics
+	}
+
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: multiSelectQueryLabelFilterAttr()}, flattenedFilters)
+}
+
+func flattenMultiSelectQueryMetricsQueryMetricsLabelFilter(ctx context.Context, filter *dashboards.MultiSelect_Query_MetricsQuery_MetricsLabelFilter) (*MetricLabelFilterModel, diag.Diagnostics) {
+	if filter == nil {
+		return nil, nil
+	}
+
+	metric, diags := flattenMultiSelectQueryMetricsQueryStringOrVariable(ctx, filter.GetMetric())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	label, diags := flattenMultiSelectQueryMetricsQueryStringOrVariable(ctx, filter.GetLabel())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	operator, diags := flattenMultiSelectQueryMetricsQueryMetricsLabelFilterOperator(ctx, filter.GetOperator())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &MetricLabelFilterModel{
+		Metric:   metric,
+		Label:    label,
+		Operator: operator,
+	}, nil
+}
+
+func flattenMultiSelectQueryMetricsQueryMetricsLabelFilterOperator(ctx context.Context, operator *dashboards.MultiSelect_Query_MetricsQuery_Operator) (types.Object, diag.Diagnostics) {
+	if operator == nil {
+		return types.ObjectNull(multiSelectQueryMetricsQueryMetricsLabelFilterOperatorAttr()), nil
+	}
+
+	var diags diag.Diagnostics
+	metricLabelFilterOperatorModel := &MetricLabelFilterOperatorModel{}
+	switch operatorType := operator.GetValue().(type) {
+	case *dashboards.MultiSelect_Query_MetricsQuery_Operator_Equals:
+		metricLabelFilterOperatorModel.Type = types.StringValue("equals")
+		metricLabelFilterOperatorModel.SelectedValues, diags = flattenMultiSelectQueryMetricsQueryOperatorSelectedValues(ctx, operatorType.Equals.GetSelection().GetList().GetValues())
+	case *dashboards.MultiSelect_Query_MetricsQuery_Operator_NotEquals:
+		metricLabelFilterOperatorModel.Type = types.StringValue("not_equals")
+		metricLabelFilterOperatorModel.SelectedValues, diags = flattenMultiSelectQueryMetricsQueryOperatorSelectedValues(ctx, operatorType.NotEquals.GetSelection().GetList().GetValues())
+	}
+
+	if diags.HasError() {
+		return types.ObjectNull(multiSelectQueryMetricsQueryMetricsLabelFilterOperatorAttr()), diags
+	}
+	return types.ObjectValueFrom(ctx, multiSelectQueryMetricsQueryMetricsLabelFilterOperatorAttr(), metricLabelFilterOperatorModel)
+}
+
+func flattenMultiSelectQueryMetricsQueryOperatorSelectedValues(ctx context.Context, values []*dashboards.MultiSelect_Query_MetricsQuery_StringOrVariable) (types.List, diag.Diagnostics) {
+	var diagnostics diag.Diagnostics
+	flattenedValues := make([]types.Object, 0, len(values))
+	for _, value := range values {
+		flattenedValue, diags := flattenMultiSelectQueryMetricsQueryStringOrVariable(ctx, value)
+		if diags.HasError() {
+			diagnostics.Append(diags...)
+			continue
+		}
+		valuesElement, diags := types.ObjectValueFrom(ctx, multiSelectQueryMetricsQueryMetricsLabelFilterOperatorAttr(), flattenedValue)
+		if diags.HasError() {
+			diagnostics.Append(diags...)
+			continue
+		}
+		flattenedValues = append(flattenedValues, valuesElement)
+	}
+
+	if diagnostics.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: multiSelectQueryMetricsQueryMetricsLabelFilterOperatorAttr()}), diagnostics
+	}
+
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: multiSelectQueryMetricsQueryMetricsLabelFilterOperatorAttr()}, flattenedValues)
+}
+
+func flattenMultiSelectQueryMetricsQueryStringOrVariable(ctx context.Context, stringOrVariable *dashboards.MultiSelect_Query_MetricsQuery_StringOrVariable) (types.Object, diag.Diagnostics) {
+	if stringOrVariable == nil {
+		return types.ObjectNull(multiSelectQueryStringOrValueAttr()), nil
+	}
+
+	metricLabelFilterOperatorSelectedValuesModel := &MetricLabelFilterOperatorSelectedValuesModel{
+		StringValue:  types.StringNull(),
+		VariableName: types.StringNull(),
+	}
+
+	switch stringOrVariableType := stringOrVariable.GetValue().(type) {
+	case *dashboards.MultiSelect_Query_MetricsQuery_StringOrVariable_StringValue:
+		metricLabelFilterOperatorSelectedValuesModel.StringValue = wrapperspbStringToTypeString(stringOrVariableType.StringValue)
+	case *dashboards.MultiSelect_Query_MetricsQuery_StringOrVariable_VariableName:
+		metricLabelFilterOperatorSelectedValuesModel.VariableName = wrapperspbStringToTypeString(stringOrVariableType.VariableName)
+	}
+
+	return types.ObjectValueFrom(ctx, multiSelectQueryStringOrValueAttr(), metricLabelFilterOperatorSelectedValuesModel)
+}
+
+func flattenDashboardVariableDefinitionMultiSelectQuerySpansModel(ctx context.Context, query *dashboards.MultiSelect_Query_SpansQuery) (types.Object, diag.Diagnostics) {
+	if query == nil {
+		return types.ObjectNull(multiSelectQuerySpansQueryModelAttr()), nil
+	}
+
+	var diags diag.Diagnostics
+	multiSelectSpansQueryModel := &MultiSelectSpansQueryModel{
+		FieldName:  types.ObjectNull(spansQueryFieldNameAttr()),
+		FieldValue: types.ObjectNull(spansFieldModelAttr()),
+	}
+	switch queryType := query.GetType().GetValue().(type) {
+	case *dashboards.MultiSelect_Query_SpansQuery_Type_FieldName_:
+		multiSelectSpansQueryModel.FieldName, diags = flattenMultiSelectQuerySpansFieldName(ctx, queryType.FieldName)
+	case *dashboards.MultiSelect_Query_SpansQuery_Type_FieldValue_:
+		multiSelectSpansQueryModel.FieldValue, diags = flattenMultiSelectQuerySpansFieldValue(ctx, queryType.FieldValue)
+	default:
+		return types.ObjectNull(multiSelectQuerySpansQueryModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Variable Definition Multi Select Query Spans Model", fmt.Sprintf("unknown variable definition multi select query spans type %T", queryType))}
+	}
+
+	if diags.HasError() {
+		return types.ObjectNull(multiSelectQuerySpansQueryModelAttr()), diags
+	}
+
+	return types.ObjectValueFrom(ctx, multiSelectQuerySpansQueryModelAttr(), multiSelectSpansQueryModel)
+}
+
+func flattenMultiSelectQuerySpansFieldName(ctx context.Context, name *dashboards.MultiSelect_Query_SpansQuery_Type_FieldName) (types.Object, diag.Diagnostics) {
+	if name == nil {
+		return types.ObjectNull(multiSelectQuerySpansQueryModelAttr()), nil
+	}
+
+	return types.ObjectValueFrom(ctx, multiSelectQuerySpansQueryModelAttr(), &SpanFieldNameModel{
+		SpanRegex: wrapperspbStringToTypeString(name.GetSpanRegex()),
+	})
+}
+
+func flattenMultiSelectQuerySpansFieldValue(ctx context.Context, value *dashboards.MultiSelect_Query_SpansQuery_Type_FieldValue) (types.Object, diag.Diagnostics) {
+	if value == nil || value.GetValue() == nil {
+		return types.ObjectNull(spansFieldModelAttr()), nil
+	}
+
+	spanField, dg := flattenSpansField(value.GetValue())
+	if dg != nil {
+		return types.ObjectNull(spansFieldModelAttr()), diag.Diagnostics{dg}
+	}
+
+	return types.ObjectValueFrom(ctx, spansFieldModelAttr(), spanField)
+}
+
+func flattenDashboardVariableDefinitionMultiSelectValueDisplayOptions(ctx context.Context, options *dashboards.MultiSelect_ValueDisplayOptions) (types.Object, diag.Diagnostics) {
+	if options == nil {
+		return types.ObjectNull(multiSelectValueDisplayOptionsModelAttr()), nil
+	}
+
+	return types.ObjectValueFrom(ctx, multiSelectValueDisplayOptionsModelAttr(), &MultiSelectValueDisplayOptionsModel{
+		ValueRegex: wrapperspbStringToTypeString(options.GetValueRegex()),
+		LabelRegex: wrapperspbStringToTypeString(options.GetLabelRegex()),
+	})
+}
+
+func multiSelectQueryAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"query": types.ObjectType{
+			AttrTypes: multiSelectQueryOptionsAttr(),
+		},
+		"refresh_strategy": types.StringType,
+		"value_display_options": types.ObjectType{
+			AttrTypes: multiSelectValueDisplayOptionsModelAttr(),
+		},
+	}
+}
+
+func multiSelectQueryOptionsAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"logs":    types.ObjectType{AttrTypes: multiSelectQueryLogsQueryModelAttr()},
+		"metrics": types.ObjectType{AttrTypes: multiSelectQueryMetricsQueryModelAttr()},
+		"spans":   types.ObjectType{AttrTypes: multiSelectQuerySpansQueryModelAttr()},
+	}
+}
+
+func multiSelectQueryLogsQueryModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"field_name":  types.ObjectType{AttrTypes: multiSelectQueryLogsQueryFieldNameModelAttr()},
+		"field_value": types.ObjectType{AttrTypes: multiSelectQueryLogsQueryFieldValueModelAttr()},
+	}
+}
+
+func multiSelectQueryMetricsQueryModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"metric_name": types.ObjectType{AttrTypes: multiSelectQueryMetricsNameAttr()},
+		"label_name":  types.ObjectType{AttrTypes: multiSelectQueryMetricsNameAttr()},
+		"label_value": types.ObjectType{AttrTypes: multiSelectQueryLabelValueModelAttr()},
+	}
+}
+
+func multiSelectQueryMetricsNameAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"metric_regex": types.StringType,
+	}
+}
+
+func multiSelectQueryLabelValueModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"metric_name": types.ObjectType{AttrTypes: multiSelectQueryStringOrValueAttr()},
+		"label_name":  types.ObjectType{AttrTypes: multiSelectQueryStringOrValueAttr()},
+		"label_filters": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: multiSelectQueryLabelFilterAttr(),
+			},
+		},
+	}
+}
+
+func multiSelectQueryLabelFilterAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"metric":   types.ObjectType{AttrTypes: multiSelectQueryStringOrValueAttr()},
+		"label":    types.ObjectType{AttrTypes: multiSelectQueryStringOrValueAttr()},
+		"operator": types.ObjectType{AttrTypes: multiSelectQueryMetricsQueryMetricsLabelFilterOperatorAttr()},
+	}
+}
+
+func multiSelectQueryModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"logs":    types.ObjectType{AttrTypes: multiSelectQueryLogsQueryModelAttr()},
+		"metrics": types.ObjectType{AttrTypes: multiSelectQueryMetricsQueryModelAttr()},
+		"spans":   types.ObjectType{AttrTypes: multiSelectQuerySpansQueryModelAttr()},
+	}
+}
+
+func multiSelectQueryLogsQueryFieldNameModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"log_regex": types.StringType,
+	}
+}
+
+func multiSelectQueryLogsQueryFieldValueModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"observation_field": types.ObjectType{AttrTypes: observationFieldAttributes()},
+	}
+}
+
+func multiSelectQueryMetricsQueryMetricsLabelFilterOperatorAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"type": types.StringType,
+		"selected_values": types.ListType{ElemType: types.ObjectType{
+			AttrTypes: multiSelectQueryStringOrValueAttr(),
+		}},
+	}
+}
+
+func multiSelectQueryStringOrValueAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"string_value":  types.StringType,
+		"variable_name": types.StringType,
+	}
+}
+
+func multiSelectValueDisplayOptionsModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"value_regex": types.StringType,
+		"label_regex": types.StringType,
+	}
+}
+
+func multiSelectQuerySpansQueryModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"field_name":  types.ObjectType{AttrTypes: spansQueryFieldNameAttr()},
+		"field_value": types.ObjectType{AttrTypes: spansFieldModelAttr()},
+	}
+}
+
+func spansQueryFieldNameAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"span_regex": types.StringType,
+	}
 }
 
 func flattenDashboardVariableSelectedValues(selection *dashboards.MultiSelect_Selection) (types.List, diag.Diagnostics) {

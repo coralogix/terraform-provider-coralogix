@@ -567,7 +567,15 @@ resource "coralogix_dashboard" dashboard {
         multi_select = {
           selected_values = ["1", "2", "3"]
           source          = {
-            constant_list = ["1", "2", "3"]
+            query ={
+              query = {
+                metrics = {
+                  metric_name = {
+                    metric_regex = "vector(1)"
+                  }
+                }
+              }
+            }
           }
           values_order_direction = "asc"
         }
