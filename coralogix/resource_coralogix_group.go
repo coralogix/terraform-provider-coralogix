@@ -128,10 +128,10 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		)
 		return
 	}
-	groupStr, _ = json.Marshal(createResp)
-	log.Printf("[INFO] Submitted new group: %s", groupStr)
-
-	state, diags := flattenSCIMGroup(createResp)
+	getResp, err := r.client.GetGroup(ctx, createResp.ID)
+	groupStr, _ = json.Marshal(getResp)
+	log.Printf("[INFO] Getting group: %s", groupStr)
+	state, diags := flattenSCIMGroup(getResp)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -148,11 +148,17 @@ func flattenSCIMGroup(group *clientset.SCIMGroup) (*GroupResourceModel, diag.Dia
 		return nil, diags
 	}
 
+	scopeId := types.StringNull()
+	if group.ScopeID != "" {
+		scopeId = types.StringValue(group.ScopeID)
+	}
+
 	return &GroupResourceModel{
 		ID:          types.StringValue(group.ID),
 		DisplayName: types.StringValue(group.DisplayName),
 		Members:     members,
 		Role:        types.StringValue(group.Role),
+		ScopeID:     scopeId,
 	}, nil
 }
 

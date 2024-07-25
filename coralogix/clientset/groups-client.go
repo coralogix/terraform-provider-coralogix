@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 
 	"terraform-provider-coralogix/coralogix/clientset/rest"
@@ -33,7 +34,7 @@ type SCIMGroup struct {
 	DisplayName string            `json:"displayName"`
 	Members     []SCIMGroupMember `json:"members"`
 	Role        string            `json:"role"`
-	ScopeID     string            `json:"scopeId"`
+	ScopeID     string            `json:"nextGenScopeId"`
 }
 
 type SCIMGroupMember struct {
@@ -45,11 +46,13 @@ func (c GroupsClient) CreateGroup(ctx context.Context, groupReq *SCIMGroup) (*SC
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("[INFO] Creating Group: %s", body)
 
 	bodyResp, err := c.client.Post(ctx, "", "application/json", string(body))
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("[INFO] Received Group: %s", bodyResp)
 
 	var groupResp SCIMGroup
 	err = json.Unmarshal([]byte(bodyResp), &groupResp)
@@ -85,6 +88,7 @@ func (c GroupsClient) UpdateGroup(ctx context.Context, groupID string, groupReq 
 	if err != nil {
 		return nil, err
 	}
+	log.Printf("[INFO] Received Group: %s", bodyResp)
 
 	var groupResp SCIMGroup
 	err = json.Unmarshal([]byte(bodyResp), &groupResp)
@@ -96,6 +100,8 @@ func (c GroupsClient) UpdateGroup(ctx context.Context, groupID string, groupReq 
 }
 
 func (c GroupsClient) DeleteGroup(ctx context.Context, groupID string) error {
+	log.Printf("[INFO] Deleting Group: %s", groupID)
+
 	_, err := c.client.Delete(ctx, fmt.Sprintf("/%s", groupID))
 	return err
 
