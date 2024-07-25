@@ -59,8 +59,8 @@ func testAccCheckScopeDestroy(s *terraform.State) error {
 		resp, err := client.Get(ctx, &scopes.GetTeamScopesByIdsRequest{
 			Ids: []string{rs.Primary.ID},
 		})
-		if err == nil && resp != nil {
-			return fmt.Errorf("Scopes still exists: %v", rs.Primary.ID)
+		if err == nil && resp != nil && resp.Scopes != nil && len(resp.Scopes) > 0 {
+			return fmt.Errorf("Scope still exists: %v", rs.Primary.ID)
 		}
 	}
 	return nil
