@@ -2159,7 +2159,7 @@ Optional:
 - `scale_type` (String)
 - `sort_by` (String)
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of unspecified, milliseconds, seconds, kbytes, mbytes, gbytes, mibytes, gibytes, usd_cents, bytes_iec, euro, microseconds, bytes, kibytes, euro_cents, usd.
+- `unit` (String) The unit of the chart. Can be one of kbytes, mibytes, seconds, mbytes, kibytes, gibytes, usd, unspecified, bytes, euro, microseconds, milliseconds, gbytes, bytes_iec, euro_cents, usd_cents.
 - `y_axis_view_by` (String)
 
 <a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
@@ -2177,11 +2177,11 @@ Optional:
 Required:
 
 - `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--aggregation))
-- `group_names` (List of String)
 
 Optional:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters))
+- `group_names` (List of String)
 - `group_names_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--group_names_fields))
 - `lucene_query` (String)
 - `stacked_group_name` (String)
@@ -2792,11 +2792,11 @@ Optional:
 Required:
 
 - `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--aggregation))
-- `group_names` (List of String)
 
 Optional:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters))
+- `group_names` (List of String)
 - `group_names_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--group_names_fields))
 - `lucene_query` (String)
 - `stacked_group_name` (String)
