@@ -609,7 +609,7 @@ New Features:
 * added support for more than one `section`.
 * added support for `query` option in `multi_select` variables.
 
-## Release 1.17
+## Release 1.17.0
 
 Bug fixing:
 #### resource/coralogix_dashboard
