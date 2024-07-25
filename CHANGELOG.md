@@ -613,4 +613,4 @@ New Features:
 ## Release 1.16.3
 Bug fixing:
 #### resource/coralogix_dashboard
-* changing `group_names` to Optional.
+* changing `pie_chart` and `horizontal_bar_chart` `query.logs.group_names` to Optional.

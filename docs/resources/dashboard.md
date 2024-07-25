@@ -2792,11 +2792,11 @@ Optional:
 Required:
 
 - `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--aggregation))
-- `group_names` (List of String)
 
 Optional:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters))
+- `group_names` (List of String)
 - `group_names_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--group_names_fields))
 - `lucene_query` (String)
 - `stacked_group_name` (String)
