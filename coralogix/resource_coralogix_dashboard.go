@@ -1687,7 +1687,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"filters":     logsFiltersSchema(),
 																					"group_names": schema.ListAttribute{
 																						ElementType: types.StringType,
-																						Required:    true,
+																						Optional:    true,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtLeast(1),
 																						},
@@ -2112,7 +2112,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"filters":     logsFiltersSchema(),
 																					"group_names": schema.ListAttribute{
 																						ElementType: types.StringType,
-																						Required:    true,
+																						Optional:    true,
 																						Validators: []validator.List{
 																							listvalidator.SizeAtLeast(1),
 																						},

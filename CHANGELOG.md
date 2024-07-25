@@ -608,3 +608,9 @@ New Features:
 #### resource/coralogix_dashboard
 * added support for more than one `section`.
 * added support for `query` option in `multi_select` variables.
+
+
+## Release 1.16.3
+Bug fixing:
+#### resource/coralogix_dashboard
+* changing `group_names` to Optional.
