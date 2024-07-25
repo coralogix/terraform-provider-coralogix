@@ -12,10 +12,9 @@ func TestAccCoralogixDataSourceScopes_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceSLI() +
-					testAccCoralogixResourceScopes_read(),
+				Config: testAccCoralogixResourceScope() + testAccCoralogixResourceScopes_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(sliDataSourceName, "id"),
+					resource.TestCheckResourceAttrSet("coralogix_scope.test", "id"),
 				),
 			},
 		},
