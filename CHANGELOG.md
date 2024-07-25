@@ -609,12 +609,11 @@ New Features:
 * added support for more than one `section`.
 * added support for `query` option in `multi_select` variables.
 
-## Release 1.16.4
+## Release 1.17
+
 Bug fixing:
 #### resource/coralogix_dashboard
 * changing `pie_chart` and `horizontal_bar_chart` `query.logs.group_names` to Optional.
-
-## Release 1.17
 
 New Features:
 #### resource/coralogix_scope
