@@ -42,6 +42,7 @@ func TestAccCoralogixResourceGroup(t *testing.T) {
 					resource.TestCheckResourceAttr(groupResourceName, "role", "Read Only"),
 					resource.TestCheckResourceAttr(groupResourceName, "members.#", "1"),
 					resource.TestCheckResourceAttrPair(groupResourceName, "members.0", "coralogix_user.test", "id"),
+					resource.TestCheckResourceAttrPair(groupResourceName, "scope_id", "coralogix_scope.test", "id"),
 				),
 			},
 			{
@@ -76,14 +77,27 @@ func testAccCheckGroupDestroy(s *terraform.State) error {
 
 func testAccCoralogixResourceGroup(userName string) string {
 	return fmt.Sprintf(`
-	resource "coralogix_user" "test" {
-	  user_name = "%s"
+
+	resource "coralogix_scope" "test" {
+		display_name       = "ExampleScope"
+		default_expression = "<v1>true"
+		filters            = [
+		{
+			entity_type = "logs"
+			expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
+		}
+		]
 	}
 
+	resource "coralogix_user" "test" {
+		user_name = "%s"
+	}
+	
 	resource "coralogix_group" "test" {
-	  display_name = "example"
-      role         = "Read Only"
-      members      = [coralogix_user.test.id]
+		display_name = "example"
+		role         = "Read Only"
+		members      = [coralogix_user.test.id]
+		scope_id     = coralogix_scope.test.id
 	}
 `, userName)
 }
