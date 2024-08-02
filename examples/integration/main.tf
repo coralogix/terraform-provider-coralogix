@@ -12,14 +12,10 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_sli" "example" {
-  name            = "coralogix_sli_example"
-  slo_percentage  = 80
-  service_name    = "service_name"
-  threshold_value = 3
+resource "coralogix_integration" "example" {
+  
 }
 
-data "coralogix_sli" "data_example" {
-  id = coralogix_sli.example.id
-  service_name = coralogix_sli.example.service_name
+data "coralogix_integration" "data_example" {
+  id = coralogix_integration.example.id
 }
