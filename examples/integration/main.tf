@@ -13,7 +13,9 @@ provider "coralogix" {
 }
 
 resource "coralogix_integration" "example" {
-  
+	integration_key = ""
+	version = ""
+	parameters = ""
 }
 
 data "coralogix_integration" "data_example" {

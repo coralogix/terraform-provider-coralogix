@@ -623,3 +623,18 @@ New Features:
 #### resource/coralogix_group
 * added support for associated scopes
 
+
+## Release 1.18
+
+New Features:
+#### resource/coralogix_integration
+* added integration support
+
+#### resource/coralogix_sli
+* removed, use `coralogix_slo` instead
+
+#### resource/coralogix_traces_policy
+* removed, use `coralogix_traces_policies` instead
+
+#### resource/coralogix_logs_policy
+* removed, use `coralogix_logs_policies` instead
