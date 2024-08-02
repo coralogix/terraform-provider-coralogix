@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,17 +19,20 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strings"
 	"time"
+
+	"terraform-provider-coralogix/coralogix/clientset"
+	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"terraform-provider-coralogix/coralogix/clientset"
-	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -608,5 +611,96 @@ func flattenTCOTracesPolicy(ctx context.Context, policy *tcopolicies.Policy) (*T
 		Services:           services,
 		Actions:            actions,
 		Tags:               flattenTCOPolicyTags(ctx, traceRules.GetTagRules()),
+	}, nil
+}
+
+func validateTCORuleModelModel(rule types.Object, root string, resp *resource.ValidateConfigResponse) {
+	if rule.IsNull() || rule.IsUnknown() {
+		return
+	}
+
+	ruleModel := &TCORuleModel{}
+	diags := rule.As(context.Background(), ruleModel, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	ruleType := ruleModel.RuleType.ValueString()
+	nameLength := len(ruleModel.Names.Elements())
+	if (ruleType == "starts_with" || ruleType == "includes") && nameLength > 1 {
+		resp.Diagnostics.AddAttributeWarning(
+			path.Root(root),
+			"Conflicting Attributes Values Configuration",
+			fmt.Sprintf("Currently, rule_type \"%s\" is supportred with only one value, but \"names\" includes %d elements.", ruleType, nameLength),
+		)
+	}
+}
+
+func flattenTCOPolicyTags(ctx context.Context, tags []*tcopolicies.TagRule) types.Map {
+	if len(tags) == 0 {
+		return types.MapNull(types.ObjectType{AttrTypes: tcoRuleModelAttr()})
+	}
+
+	elements := make(map[string]attr.Value)
+	for _, tag := range tags {
+		name := tag.GetTagName().GetValue()
+
+		ruleType := types.StringValue(tcoPoliciesRuleTypeProtoToSchema[tag.GetRuleTypeId()])
+
+		values := strings.Split(tag.GetTagValue().GetValue(), ",")
+		valuesSet := stringSliceToTypeStringSet(values)
+
+		tagRule := TCORuleModel{RuleType: ruleType, Names: valuesSet}
+
+		element, _ := types.ObjectValueFrom(ctx, tcoRuleModelAttr(), tagRule)
+		elements[name] = element
+	}
+
+	return types.MapValueMust(types.ObjectType{AttrTypes: tcoRuleModelAttr()}, elements)
+}
+
+func expandTagsRules(ctx context.Context, tags types.Map) ([]*tcopolicies.TagRule, diag.Diagnostics) {
+	var tagsMap map[string]types.Object
+	d := tags.ElementsAs(ctx, &tagsMap, true)
+	if d != nil {
+		panic(d)
+	}
+
+	var diags diag.Diagnostics
+	result := make([]*tcopolicies.TagRule, 0, len(tagsMap))
+	for tagName, tagElement := range tagsMap {
+		tagRule, digs := expandTagRule(ctx, tagName, tagElement)
+		if digs.HasError() {
+			diags.Append(digs...)
+			continue
+		}
+		result = append(result, tagRule)
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+	return result, nil
+}
+
+func tcoRuleModelAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"rule_type": types.StringType,
+		"names": types.SetType{
+			ElemType: types.StringType,
+		},
+	}
+}
+
+func expandTagRule(ctx context.Context, name string, tag types.Object) (*tcopolicies.TagRule, diag.Diagnostics) {
+	rule, diags := expandTCOPolicyRule(ctx, tag)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &tcopolicies.TagRule{
+		TagName:    wrapperspb.String(name),
+		RuleTypeId: rule.GetRuleTypeId(),
+		TagValue:   rule.GetName(),
 	}, nil
 }

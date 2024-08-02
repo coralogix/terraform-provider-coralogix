@@ -302,8 +302,6 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 	return []func() datasource.DataSource{
 		NewEvents2MetricDataSource,
 		NewActionDataSource,
-		NewTCOPolicyDataSource,
-		NewTCOPolicyTracesDataSource,
 		NewTCOPoliciesLogsDataSource,
 		NewTCOPoliciesTracesDataSource,
 		NewDashboardDataSource,
@@ -329,8 +327,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 	return []func() resource.Resource{
 		NewEvents2MetricResource,
 		NewActionResource,
-		NewTCOPolicyResource,
-		NewTCOPolicyTracesResource,
 		NewTCOPoliciesLogsResource,
 		NewTCOPoliciesTracesResource,
 		NewDashboardResource,
