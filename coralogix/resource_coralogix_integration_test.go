@@ -3,6 +3,7 @@ package coralogix
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -14,6 +15,7 @@ import (
 )
 
 var integrationResourceName = "aws-metrics-collector"
+var testRoleArn = os.Getenv("AWS_TEST_ROLE")
 
 func TestAccCoralogixResourceIntegration(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -33,7 +35,7 @@ func TestAccCoralogixResourceIntegration(t *testing.T) {
 					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.WithAggregations", "false"),
 					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.EnrichWithTags", "true"),
 					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.IntegrationName", "sdk-integration-setup"),
-					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.AwsRoleArn", "arn:aws:iam::123456789012:role/example-role"),
+					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.AwsRoleArn", testRoleArn),
 				),
 			},
 		},
@@ -64,7 +66,7 @@ func testAccCheckIntegrationDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceIntegration() string {
-	return `resource "coralogix_integration" "example" {
+	return fmt.Sprintf(`resource "coralogix_integration" "example" {
 		integration_key = "aws-metrics-collector"
 		version = "0.1.0"
 	    # Note that the attribute casing is important here
@@ -72,13 +74,12 @@ func testAccCoralogixResourceIntegration() string {
 		  ApplicationName = "cxsdk"
 		  SubsystemName = "aws-metrics-collector"
 		  MetricNamespaces = ["AWS/S3"]
-		  AwsRoleArn = "arn:aws:iam::123456789012:role/example-role"
+		  AwsRoleArn = "%v"
 		  IntegrationName = "sdk-integration-setup"
 		  AwsRegion = "eu-north-1"
 		  WithAggregations = false
 		  EnrichWithTags = true
 	  }
 	}
-	
-	`
+	`, testRoleArn)
 }
