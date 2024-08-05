@@ -79,7 +79,7 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	}
 
 	getIntegrationReq := &integrations.GetIntegrationDetailsRequest{
-		Id: wrapperspb.String(data.ID.ValueString()),
+		Id: wrapperspb.String(data.IntegrationKey.ValueString()),
 	}
 	log.Printf("[INFO] Reading Integrations: %s", protojson.Format(getIntegrationReq))
 	getIntegrationResp, err := d.client.Get(ctx, getIntegrationReq)
@@ -93,7 +93,7 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
 
-	data, diags = integrationDetail(getIntegrationResp)
+	data, diags = integrationDetail(getIntegrationResp, data.ID.ValueString())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

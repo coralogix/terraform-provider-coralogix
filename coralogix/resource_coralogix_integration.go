@@ -123,12 +123,20 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	createReq, diags := extractCreateIntegration(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+
+	_, testErr := r.client.TestIntegration(ctx, &integrations.TestIntegrationRequest{
+		IntegrationData: createReq.Metadata,
+	})
+	if testErr != nil {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	log.Printf("[INFO] Creating new Integration: %s", protojson.Format(createReq))
 	createResp, err := r.client.Create(ctx, createReq)
 	if err != nil {
@@ -142,7 +150,8 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 	log.Printf("[INFO] Submitted new integration: %s", protojson.Format(createResp))
 
 	getIntegrationReq := &integrations.GetIntegrationDetailsRequest{
-		Id: createResp.IntegrationId,
+		Id:                     wrapperspb.String(plan.IntegrationKey.String()),
+		IncludeTestingRevision: wrapperspb.Bool(true),
 	}
 	log.Printf("[INFO] Getting new Integration: %s", protojson.Format(getIntegrationReq))
 
@@ -156,7 +165,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
-	state, e := integrationDetail(getIntegrationResp)
+	state, e := integrationDetail(getIntegrationResp, createResp.IntegrationId.Value)
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
@@ -278,9 +287,18 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 	return parameters, diag.Diagnostics{}
 }
 
-func integrationDetail(resp *integrations.GetIntegrationDetailsResponse) (*IntegrationResourceModel, diag.Diagnostics) {
+func integrationDetail(resp *integrations.GetIntegrationDetailsResponse, id string) (*IntegrationResourceModel, diag.Diagnostics) {
 	integration := resp.GetIntegrationDetail()
-	registeredInstance := resp.IntegrationDetail.IntegrationTypeDetails.(*integrations.IntegrationDetails_Default).Default.Registered[0]
+	var registeredInstance *integrations.IntegrationDetails_DefaultIntegrationDetails_RegisteredInstance
+	for _, instance := range resp.IntegrationDetail.IntegrationTypeDetails.(*integrations.IntegrationDetails_Default).Default.Registered {
+		if instance.Id.Value == id {
+			registeredInstance = instance
+			break
+		}
+	}
+	if registeredInstance == nil {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Integration not found", fmt.Sprintf("Integration with id %s not found", id))}
+	}
 	parameters, diags := parametersToDynamic(registeredInstance.GetParameters())
 	if diags.HasError() {
 		return nil, diags
@@ -335,7 +353,8 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	getIntegrationReq := &integrations.GetIntegrationDetailsRequest{
-		Id: wrapperspb.String(plan.ID.ValueString()),
+		Id:                     wrapperspb.String(plan.IntegrationKey.ValueString()),
+		IncludeTestingRevision: wrapperspb.Bool(true),
 	}
 	log.Printf("[INFO] Reading Integration: %s", protojson.Format(getIntegrationReq))
 	getIntegrationResp, err := r.client.Get(ctx, getIntegrationReq)
@@ -357,7 +376,7 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
 
-	state, e := integrationDetail(getIntegrationResp)
+	state, e := integrationDetail(getIntegrationResp, plan.ID.ValueString())
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
@@ -382,6 +401,14 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 	log.Printf("[INFO] Updating Integration: %s", protojson.Format(updateReq))
 
+	_, testErr := r.client.TestIntegration(ctx, &integrations.TestIntegrationRequest{
+		IntegrationData: updateReq.Metadata,
+	})
+	if testErr != nil {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	_, err := r.client.Update(ctx, updateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
@@ -395,7 +422,8 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 	log.Printf("[INFO] Updated scope: %s", plan.ID.ValueString())
 
 	getIntegrationReq := &integrations.GetIntegrationDetailsRequest{
-		Id: wrapperspb.String(plan.ID.ValueString()),
+		Id:                     wrapperspb.String(plan.ID.ValueString()),
+		IncludeTestingRevision: wrapperspb.Bool(true),
 	}
 	getIntegrationResp, err := r.client.Get(ctx, getIntegrationReq)
 	if err != nil {
@@ -407,7 +435,7 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
-	state, e := integrationDetail(getIntegrationResp)
+	state, e := integrationDetail(getIntegrationResp, plan.ID.ValueString())
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return

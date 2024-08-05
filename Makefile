@@ -19,11 +19,12 @@ NAME=coralogix
 BINARY=terraform-provider-${NAME}
 VERSION=1.5
 OS_ARCH=darwin_arm64
+BUILD_ARGS=-ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn"
 
 default: install
 
 build:
-	go build -o ${BINARY}
+	go build ${BUILD_ARGS} -o ${BINARY}
 
 release:
 	GOOS=darwin GOARCH=amd64 go build -o ./bin/${BINARY}_${VERSION}_darwin_amd64
@@ -44,8 +45,8 @@ install: build
 	mv ${BINARY} ~/.terraform.d/plugins/${HOSTNAME}/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
 
 test:
-	go test -i $(TEST) || exit 1
-	echo $(TEST) | xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4
+	go test ${BUILD_ARGS} -i $(TEST) || exit 1
+	echo $(TEST) | xargs -t -n4 go test ${BUILD_ARGS} $(TESTARGS) -timeout=30s -parallel=4
 
 testacc:
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
