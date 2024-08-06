@@ -66,7 +66,7 @@ func testAccCheckIntegrationDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceIntegration() string {
-	return fmt.Sprintf(`resource "coralogix_integration" "example" {
+	return fmt.Sprintf(`resource "coralogix_integration" "test" {
 		integration_key = "aws-metrics-collector"
 		version = "0.1.0"
 	    # Note that the attribute casing is important here

@@ -218,6 +218,7 @@ func extractUpdateIntegration(ctx context.Context, plan *IntegrationResourceMode
 
 func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*integrations.Parameter, diag.Diagnostics) {
 	parameters := make([]*integrations.Parameter, 0)
+
 	switch p := planParameters.UnderlyingValue().(type) {
 	case types.Object:
 		obj := planParameters.UnderlyingValue().(types.Object)
@@ -264,11 +265,13 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 			case types.Tuple:
 
 				strings := make([]*wrapperspb.StringValue, len(v.Elements()))
-				for _, value := range v.Elements() {
+				for i, value := range v.Elements() {
+					log.Printf("Hello %v - %v", value, len(strings))
+
 					switch value := value.(type) {
 					case types.String:
 						if !value.IsNull() && value.ValueString() != "" {
-							strings = append(strings, wrapperspb.String(value.ValueString()))
+							strings[i] = wrapperspb.String(value.ValueString())
 						}
 					default:
 						return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid parameter type", fmt.Sprintf("Invalid parameter type %v: %v", v, p))}
@@ -363,7 +366,11 @@ func parametersToDynamic(parameters []*integrations.Parameter) (types.Dynamic, d
 				values[i] = types.StringValue(value.Value)
 				assignedTypes[i] = types.StringType
 			}
-			parameters, _ := types.TupleValue(assignedTypes, values)
+			parameters, diags := types.TupleValue(assignedTypes, values)
+			if diags.HasError() {
+				return types.Dynamic{}, diags
+			}
+			log.Printf("Hello %v : %v", parameter.Key, parameters)
 			obj[parameter.Key] = parameters
 			t[parameter.Key] = types.TupleType{ElemTypes: assignedTypes}
 		default:
