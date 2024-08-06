@@ -135,12 +135,13 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 	_, testErr := r.client.TestIntegration(ctx, &integrations.TestIntegrationRequest{
 		IntegrationData: createReq.Metadata,
 	})
+	log.Printf("[INFO] Creating new Integration: %s", protojson.Format(createReq))
+
 	if testErr != nil {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	log.Printf("[INFO] Creating new Integration: %s", protojson.Format(createReq))
 	createResp, err := r.client.Create(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
@@ -153,7 +154,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 	log.Printf("[INFO] Submitted new integration: %s", protojson.Format(createResp))
 
 	getIntegrationReq := &integrations.GetIntegrationDetailsRequest{
-		Id:                     wrapperspb.String(plan.IntegrationKey.String()),
+		Id:                     wrapperspb.String(plan.IntegrationKey.ValueString()),
 		IncludeTestingRevision: wrapperspb.Bool(true),
 	}
 	log.Printf("[INFO] Getting new Integration: %s", protojson.Format(getIntegrationReq))
@@ -260,6 +261,28 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 							Values: strings,
 						}},
 				})
+			case types.Tuple:
+
+				strings := make([]*wrapperspb.StringValue, len(v.Elements()))
+				for _, value := range v.Elements() {
+					switch value := value.(type) {
+					case types.String:
+						if !value.IsNull() && value.ValueString() != "" {
+							strings = append(strings, wrapperspb.String(value.ValueString()))
+						}
+					default:
+						return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid parameter type", fmt.Sprintf("Invalid parameter type %v: %v", v, p))}
+					}
+
+				}
+
+				parameters = append(parameters, &integrations.Parameter{
+					Key: key,
+					Value: &integrations.Parameter_StringList_{
+						StringList: &integrations.Parameter_StringList{
+							Values: strings,
+						}},
+				})
 			case types.List:
 				values := make([]*types.String, len(v.Elements()))
 
@@ -281,7 +304,7 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 						}},
 				})
 			default:
-				return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid parameter type", fmt.Sprintf("Invalid parameter type: %v", p))}
+				return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid parameter type", fmt.Sprintf("Invalid parameter type %v: %v", v, p))}
 			}
 		}
 	default:
@@ -291,6 +314,7 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 }
 
 func integrationDetail(resp *integrations.GetIntegrationDetailsResponse, id string) (*IntegrationResourceModel, diag.Diagnostics) {
+
 	integration := resp.GetIntegrationDetail()
 	var registeredInstance *integrations.IntegrationDetails_DefaultIntegrationDetails_RegisteredInstance
 	for _, instance := range resp.IntegrationDetail.IntegrationTypeDetails.(*integrations.IntegrationDetails_Default).Default.Registered {
@@ -306,6 +330,7 @@ func integrationDetail(resp *integrations.GetIntegrationDetailsResponse, id stri
 	if diags.HasError() {
 		return nil, diags
 	}
+
 	return &IntegrationResourceModel{
 		ID:             types.StringValue(registeredInstance.Id.Value),
 		IntegrationKey: types.StringValue(integration.Integration.Id.Value),
@@ -333,12 +358,14 @@ func parametersToDynamic(parameters []*integrations.Parameter) (types.Dynamic, d
 			t[parameter.Key] = types.BoolType
 		case *integrations.Parameter_StringList_:
 			values := make([]attr.Value, len(v.StringList.Values))
+			assignedTypes := make([]attr.Type, len(v.StringList.Values))
 			for i, value := range v.StringList.Values {
 				values[i] = types.StringValue(value.Value)
+				assignedTypes[i] = types.StringType
 			}
-			parameters, _ := types.ListValue(types.StringType, values)
+			parameters, _ := types.TupleValue(assignedTypes, values)
 			obj[parameter.Key] = parameters
-			t[parameter.Key] = types.ListType{ElemType: types.StringType}
+			t[parameter.Key] = types.TupleType{ElemTypes: assignedTypes}
 		default:
 			log.Printf("[ERROR] Invalid parameter type: %v", v)
 		}
