@@ -4,7 +4,7 @@
 // 	protoc        v5.26.1
 // source: com/coralogixapis/scopes/v1/entity_type.proto
 
-package integrations
+package scopes
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
