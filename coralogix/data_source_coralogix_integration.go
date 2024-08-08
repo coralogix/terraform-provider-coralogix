@@ -93,7 +93,7 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
 
-	data, diags = integrationDetail(getIntegrationResp, data.IntegrationKey.ValueString())
+	data, diags = integrationDetail(getIntegrationResp)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

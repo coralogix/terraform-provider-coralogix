@@ -27,10 +27,10 @@ func TestAccCoralogixResourceIntegration(t *testing.T) {
 				Config: testAccCoralogixResourceIntegration(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coralogix_integration.test", "id"),
-					resource.TestCheckResourceAttr("coralogix_integration.test", "integration_key", "aws-metrics-collector"),
+					resource.TestCheckResourceAttr("coralogix_integration.test", "integration_key", integrationResourceName),
 					resource.TestCheckResourceAttr("coralogix_integration.test", "version", "0.1.0"),
 					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.ApplicationName", "cxsdk"),
-					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.SubsystemName", "aws-metrics-collector"),
+					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.SubsystemName", integrationResourceName),
 					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.AwsRegion", "eu-north-1"),
 					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.WithAggregations", "false"),
 					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.EnrichWithTags", "true"),
@@ -63,12 +63,12 @@ func testAccCheckIntegrationDestroy(s *terraform.State) error {
 
 func testAccCoralogixResourceIntegration() string {
 	return fmt.Sprintf(`resource "coralogix_integration" "test" {
-		integration_key = "aws-metrics-collector"
+		integration_key = "%v"
 		version = "0.1.0"
 	    # Note that the attribute casing is important here
 		parameters = {
 		  ApplicationName = "cxsdk"
-		  SubsystemName = "aws-metrics-collector"
+		  SubsystemName = "%v"
 		  MetricNamespaces = ["AWS/S3"]
 		  AwsRoleArn = "%v"
 		  IntegrationName = "sdk-integration-setup"
@@ -77,5 +77,5 @@ func testAccCoralogixResourceIntegration() string {
 		  EnrichWithTags = true
 	  }
 	}
-	`, testRoleArn)
+	`, integrationResourceName, integrationResourceName, testRoleArn)
 }

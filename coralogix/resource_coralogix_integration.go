@@ -169,7 +169,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
-	state, e := integrationDetail(getIntegrationResp, plan.IntegrationKey.ValueString())
+	state, e := integrationDetail(getIntegrationResp)
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
@@ -275,7 +275,7 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 	return parameters, diag.Diagnostics{}
 }
 
-func integrationDetail(resp *integrations.GetDeployedIntegrationResponse, integrationKey string) (*IntegrationResourceModel, diag.Diagnostics) {
+func integrationDetail(resp *integrations.GetDeployedIntegrationResponse) (*IntegrationResourceModel, diag.Diagnostics) {
 
 	integration := resp.Integration
 	parameters, diags := parametersToDynamic(integration.GetParameters())
@@ -285,7 +285,7 @@ func integrationDetail(resp *integrations.GetDeployedIntegrationResponse, integr
 
 	return &IntegrationResourceModel{
 		ID:             types.StringValue(integration.Id.Value),
-		IntegrationKey: types.StringValue(integrationKey),
+		IntegrationKey: types.StringValue(integration.DefinitionKey.Value),
 		Version:        types.StringValue(integration.DefinitionVersion.Value),
 		Parameters:     parameters,
 	}, diag.Diagnostics{}
@@ -360,7 +360,7 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
 
-	state, e := integrationDetail(getIntegrationResp, plan.IntegrationKey.ValueString())
+	state, e := integrationDetail(getIntegrationResp)
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
@@ -418,7 +418,7 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
-	state, e := integrationDetail(getIntegrationResp, plan.IntegrationKey.ValueString())
+	state, e := integrationDetail(getIntegrationResp)
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
