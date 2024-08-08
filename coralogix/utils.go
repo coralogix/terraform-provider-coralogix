@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -50,8 +50,6 @@ var (
 
 func formatRpcErrors(err error, url, requestStr string) string {
 	switch status.Code(err) {
-	case codes.PermissionDenied, codes.Unauthenticated:
-		return fmt.Sprintf("permission denied for url - %s\ncheck your api-key and permissions", url)
 	case codes.Internal:
 		return fmt.Sprintf("internal error in Coralogix backend.\nerror - %s\nurl - %s\nrequest - %s", err, url, requestStr)
 	case codes.InvalidArgument:
@@ -227,6 +225,12 @@ func convertAttribute(resourceAttribute resourceschema.Attribute) datasourcesche
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			Attributes:          convertAttributes(attr.Attributes),
+		}
+	case resourceschema.DynamicAttribute:
+		return datasourceschema.DynamicAttribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
 		}
 	default:
 		panic(fmt.Sprintf("unknown resource attribute type: %T", resourceAttribute))

@@ -39,6 +39,7 @@ type ClientSet struct {
 	users               *UsersClient
 	customRole          *RolesClient
 	scopes              *ScopesClient
+	integrations        *IntegrationsClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -137,6 +138,10 @@ func (c *ClientSet) Scopes() *ScopesClient {
 	return c.scopes
 }
 
+func (c *ClientSet) Integrations() *IntegrationsClient {
+	return c.integrations
+}
+
 func NewClientSet(targetUrl, apiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 
@@ -165,5 +170,6 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		users:               NewUsersClient(apikeyCPC),
 		customRole:          NewRolesClient(apikeyCPC),
 		scopes:              NewScopesClient(apikeyCPC),
+		integrations:        NewIntegrationsClient(apikeyCPC),
 	}
 }

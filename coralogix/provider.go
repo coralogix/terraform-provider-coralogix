@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -302,12 +302,9 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 	return []func() datasource.DataSource{
 		NewEvents2MetricDataSource,
 		NewActionDataSource,
-		NewTCOPolicyDataSource,
-		NewTCOPolicyTracesDataSource,
 		NewTCOPoliciesLogsDataSource,
 		NewTCOPoliciesTracesDataSource,
 		NewDashboardDataSource,
-		NewSLIDataSource,
 		NewWebhookDataSource,
 		NewRecordingRuleGroupSetDataSource,
 		NewArchiveRetentionsDataSource,
@@ -322,6 +319,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewUserDataSource,
 		NewTeamDataSource,
 		NewScopeDataSource,
+		NewIntegrationDataSource,
 	}
 }
 
@@ -329,12 +327,9 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 	return []func() resource.Resource{
 		NewEvents2MetricResource,
 		NewActionResource,
-		NewTCOPolicyResource,
-		NewTCOPolicyTracesResource,
 		NewTCOPoliciesLogsResource,
 		NewTCOPoliciesTracesResource,
 		NewDashboardResource,
-		NewSLIResource,
 		NewWebhookResource,
 		NewRecordingRuleGroupSetResource,
 		NewArchiveRetentionsResource,
@@ -349,5 +344,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewGroupResource,
 		NewUserResource,
 		NewScopeResource,
+		NewIntegrationResource,
 	}
 }
