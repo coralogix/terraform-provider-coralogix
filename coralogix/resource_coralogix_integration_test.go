@@ -51,15 +51,11 @@ func testAccCheckIntegrationDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.Get(ctx, &integrations.GetIntegrationDetailsRequest{
-			Id:                     wrapperspb.String(integrationResourceName),
-			IncludeTestingRevision: wrapperspb.Bool(true),
+		_, err := client.Get(ctx, &integrations.GetDeployedIntegrationRequest{
+			IntegrationId: wrapperspb.String(rs.Primary.ID),
 		})
-		if err == nil && resp != nil {
-			details, _ := integrationDetail(resp, rs.Primary.ID)
-			if details != nil {
-				return fmt.Errorf("Integration still exists: %v", rs.Primary.ID)
-			}
+		if err == nil {
+			return fmt.Errorf("Integration still exists: %v", rs.Primary.ID)
 		}
 	}
 	return nil

@@ -30,7 +30,7 @@ import (
 
 var (
 	_                 datasource.DataSourceWithConfigure = &IntegrationDataSource{}
-	getIntegrationURL                                    = integrations.IntegrationService_GetIntegrationDetails_FullMethodName
+	getIntegrationURL                                    = integrations.IntegrationService_GetDeployedIntegration_FullMethodName
 )
 
 func NewIntegrationDataSource() datasource.DataSource {
@@ -93,7 +93,7 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
 
-	data, diags = integrationDetail(getIntegrationResp, data.ID.ValueString())
+	data, diags = integrationDetail(getIntegrationResp, data.IntegrationKey.ValueString())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

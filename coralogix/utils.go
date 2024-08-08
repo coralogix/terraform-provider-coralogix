@@ -50,8 +50,6 @@ var (
 
 func formatRpcErrors(err error, url, requestStr string) string {
 	switch status.Code(err) {
-	case codes.PermissionDenied, codes.Unauthenticated:
-		return fmt.Sprintf("permission denied for url - %s\ncheck your api-key and permissions", url)
 	case codes.Internal:
 		return fmt.Sprintf("internal error in Coralogix backend.\nerror - %s\nurl - %s\nrequest - %s", err, url, requestStr)
 	case codes.InvalidArgument:

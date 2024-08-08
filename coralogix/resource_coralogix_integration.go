@@ -41,7 +41,7 @@ import (
 var (
 	createIntegrationsUrl = integrations.IntegrationService_SaveIntegration_FullMethodName
 	deleteIntegrationsUrl = integrations.IntegrationService_DeleteIntegration_FullMethodName
-	getIntegrationsUrl    = integrations.IntegrationService_GetIntegrationDetails_FullMethodName
+	getIntegrationsUrl    = integrations.IntegrationService_GetDeployedIntegration_FullMethodName
 	updateIntegrationsUrl = integrations.IntegrationService_UpdateIntegration_FullMethodName
 )
 
@@ -169,7 +169,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
-	state, e := integrationDetail(getIntegrationResp, createResp.IntegrationId.Value)
+	state, e := integrationDetail(getIntegrationResp, plan.IntegrationKey.ValueString())
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
@@ -198,6 +198,7 @@ func extractCreateIntegration(ctx context.Context, plan *IntegrationResourceMode
 }
 
 func extractUpdateIntegration(ctx context.Context, plan *IntegrationResourceModel) (*integrations.UpdateIntegrationRequest, diag.Diagnostics) {
+
 	parameters, diags := dynamicToParameters(ctx, plan.Parameters)
 	if diags.HasError() {
 		return nil, diags
@@ -274,7 +275,7 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 	return parameters, diag.Diagnostics{}
 }
 
-func integrationDetail(resp *integrations.GetDeployedIntegrationResponse, id string) (*IntegrationResourceModel, diag.Diagnostics) {
+func integrationDetail(resp *integrations.GetDeployedIntegrationResponse, integrationKey string) (*IntegrationResourceModel, diag.Diagnostics) {
 
 	integration := resp.Integration
 	parameters, diags := parametersToDynamic(integration.GetParameters())
@@ -284,7 +285,7 @@ func integrationDetail(resp *integrations.GetDeployedIntegrationResponse, id str
 
 	return &IntegrationResourceModel{
 		ID:             types.StringValue(integration.Id.Value),
-		IntegrationKey: types.StringValue(integration.Id.Value),
+		IntegrationKey: types.StringValue(integrationKey),
 		Version:        types.StringValue(integration.DefinitionVersion.Value),
 		Parameters:     parameters,
 	}, diag.Diagnostics{}
@@ -359,7 +360,7 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
 
-	state, e := integrationDetail(getIntegrationResp, plan.ID.ValueString())
+	state, e := integrationDetail(getIntegrationResp, plan.IntegrationKey.ValueString())
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
@@ -417,7 +418,7 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
-	state, e := integrationDetail(getIntegrationResp, plan.ID.ValueString())
+	state, e := integrationDetail(getIntegrationResp, plan.IntegrationKey.ValueString())
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
