@@ -138,7 +138,8 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 	log.Printf("[INFO] Creating new Integration: %s", protojson.Format(createReq))
 
 	if testErr != nil {
-		resp.Diagnostics.Append(diags...)
+		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Invalid integration configuration", fmt.Sprintf("API responded with an error: %v", testErr.Error()))}
+		resp.Diagnostics.Append(newDiags...)
 		return
 	}
 
@@ -153,9 +154,8 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 	}
 	log.Printf("[INFO] Submitted new integration: %s", protojson.Format(createResp))
 
-	getIntegrationReq := &integrations.GetIntegrationDetailsRequest{
-		Id:                     wrapperspb.String(plan.IntegrationKey.ValueString()),
-		IncludeTestingRevision: wrapperspb.Bool(true),
+	getIntegrationReq := &integrations.GetDeployedIntegrationRequest{
+		IntegrationId: createResp.IntegrationId,
 	}
 	log.Printf("[INFO] Getting new Integration: %s", protojson.Format(getIntegrationReq))
 
@@ -242,32 +242,10 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 					Key:   key,
 					Value: &integrations.Parameter_BooleanValue{BooleanValue: wrapperspb.Bool(b)},
 				})
-			case types.Set:
-				values := make([]*types.String, len(v.Elements()))
-
-				err := v.ElementsAs(ctx, &values, false)
-				if err != nil {
-					return nil, err
-				}
-
-				strings := make([]*wrapperspb.StringValue, len(v.Elements()))
-				for _, value := range values {
-					strings = append(strings, wrapperspb.String(value.ValueString()))
-				}
-
-				parameters = append(parameters, &integrations.Parameter{
-					Key: key,
-					Value: &integrations.Parameter_StringList_{
-						StringList: &integrations.Parameter_StringList{
-							Values: strings,
-						}},
-				})
 			case types.Tuple:
 
 				strings := make([]*wrapperspb.StringValue, len(v.Elements()))
 				for i, value := range v.Elements() {
-					log.Printf("Hello %v - %v", value, len(strings))
-
 					switch value := value.(type) {
 					case types.String:
 						if !value.IsNull() && value.ValueString() != "" {
@@ -286,28 +264,8 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 							Values: strings,
 						}},
 				})
-			case types.List:
-				values := make([]*types.String, len(v.Elements()))
-
-				err := v.ElementsAs(ctx, &values, false)
-				if err != nil {
-					return nil, err
-				}
-
-				strings := make([]*wrapperspb.StringValue, len(v.Elements()))
-				for _, value := range values {
-					strings = append(strings, wrapperspb.String(value.ValueString()))
-				}
-
-				parameters = append(parameters, &integrations.Parameter{
-					Key: key,
-					Value: &integrations.Parameter_StringList_{
-						StringList: &integrations.Parameter_StringList{
-							Values: strings,
-						}},
-				})
 			default:
-				return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid parameter type", fmt.Sprintf("Invalid parameter type %v: %v", v, p))}
+				return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid parameter type", fmt.Sprintf("Invalid parameter type (Lists have to be tuples) %v: %v", v, p))}
 			}
 		}
 	default:
@@ -316,28 +274,18 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 	return parameters, diag.Diagnostics{}
 }
 
-func integrationDetail(resp *integrations.GetIntegrationDetailsResponse, id string) (*IntegrationResourceModel, diag.Diagnostics) {
+func integrationDetail(resp *integrations.GetDeployedIntegrationResponse, id string) (*IntegrationResourceModel, diag.Diagnostics) {
 
-	integration := resp.GetIntegrationDetail()
-	var registeredInstance *integrations.IntegrationDetails_DefaultIntegrationDetails_RegisteredInstance
-	for _, instance := range resp.IntegrationDetail.IntegrationTypeDetails.(*integrations.IntegrationDetails_Default).Default.Registered {
-		if instance.Id.Value == id {
-			registeredInstance = instance
-			break
-		}
-	}
-	if registeredInstance == nil {
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Integration not found", fmt.Sprintf("Integration with id %s not found", id))}
-	}
-	parameters, diags := parametersToDynamic(registeredInstance.GetParameters())
+	integration := resp.Integration
+	parameters, diags := parametersToDynamic(integration.GetParameters())
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &IntegrationResourceModel{
-		ID:             types.StringValue(registeredInstance.Id.Value),
-		IntegrationKey: types.StringValue(integration.Integration.Id.Value),
-		Version:        types.StringValue(registeredInstance.DefinitionVersion.Value),
+		ID:             types.StringValue(integration.Id.Value),
+		IntegrationKey: types.StringValue(integration.Id.Value),
+		Version:        types.StringValue(integration.DefinitionVersion.Value),
 		Parameters:     parameters,
 	}, diag.Diagnostics{}
 }
@@ -370,7 +318,6 @@ func parametersToDynamic(parameters []*integrations.Parameter) (types.Dynamic, d
 			if diags.HasError() {
 				return types.Dynamic{}, diags
 			}
-			log.Printf("Hello %v : %v", parameter.Key, parameters)
 			obj[parameter.Key] = parameters
 			t[parameter.Key] = types.TupleType{ElemTypes: assignedTypes}
 		default:
@@ -389,9 +336,8 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	getIntegrationReq := &integrations.GetIntegrationDetailsRequest{
-		Id:                     wrapperspb.String(plan.IntegrationKey.ValueString()),
-		IncludeTestingRevision: wrapperspb.Bool(true),
+	getIntegrationReq := &integrations.GetDeployedIntegrationRequest{
+		IntegrationId: wrapperspb.String(plan.ID.ValueString()),
 	}
 	log.Printf("[INFO] Reading Integration: %s", protojson.Format(getIntegrationReq))
 	getIntegrationResp, err := r.client.Get(ctx, getIntegrationReq)
@@ -458,9 +404,8 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 
 	log.Printf("[INFO] Updated scope: %s", plan.ID.ValueString())
 
-	getIntegrationReq := &integrations.GetIntegrationDetailsRequest{
-		Id:                     wrapperspb.String(plan.ID.ValueString()),
-		IncludeTestingRevision: wrapperspb.Bool(true),
+	getIntegrationReq := &integrations.GetDeployedIntegrationRequest{
+		IntegrationId: wrapperspb.String(plan.ID.ValueString()),
 	}
 	getIntegrationResp, err := r.client.Get(ctx, getIntegrationReq)
 	if err != nil {

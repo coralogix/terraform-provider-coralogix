@@ -13,10 +13,10 @@ provider "coralogix" {
 }
 
 resource "coralogix_integration" "example" {
-	integration_key = "aws-metrics-collector"
-	version = "0.1.0"
+  integration_key = "aws-metrics-collector"
+  version = "0.1.0"
   # Note that the attribute casing is important here
-	parameters = {
+  parameters = {
     ApplicationName = "cxsdk"
     SubsystemName = "aws-metrics-collector"
     MetricNamespaces = ["AWS/S3"]

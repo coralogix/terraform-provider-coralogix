@@ -28,8 +28,8 @@ type SaveIntegrationRequest = ext.SaveIntegrationRequest
 // DeleteIntegrationRequest is a request to delete an integration.
 type DeleteIntegrationRequest = ext.DeleteIntegrationRequest
 
-// GetIntegrationDetailsRequest is a request to get integration details.
-type GetIntegrationDetailsRequest = ext.GetIntegrationDetailsRequest
+// GetDeployedIntegrationRequest is a request to get integration details.
+type GetDeployedIntegrationRequest = ext.GetDeployedIntegrationRequest
 
 // GetIntegrationDefinitionRequest is a request to get an integration definition.
 type GetIntegrationDefinitionRequest = ext.GetIntegrationDefinitionRequest
@@ -83,7 +83,7 @@ func (c IntegrationsClient) Update(ctx context.Context, req *UpdateIntegrationRe
 }
 
 // Get gets integration details
-func (c IntegrationsClient) Get(ctx context.Context, req *GetIntegrationDetailsRequest) (*ext.GetIntegrationDetailsResponse, error) {
+func (c IntegrationsClient) Get(ctx context.Context, req *GetDeployedIntegrationRequest) (*ext.GetDeployedIntegrationResponse, error) {
 	callProperties, err := c.callPropertiesCreator.GetCallProperties(ctx)
 	if err != nil {
 		return nil, err
@@ -93,7 +93,7 @@ func (c IntegrationsClient) Get(ctx context.Context, req *GetIntegrationDetailsR
 	defer conn.Close()
 	client := ext.NewIntegrationServiceClient(conn)
 
-	return client.GetIntegrationDetails(callProperties.Ctx, req, callProperties.CallOptions...)
+	return client.GetDeployedIntegration(callProperties.Ctx, req, callProperties.CallOptions...)
 }
 
 // GetDefinition gets an integration definition

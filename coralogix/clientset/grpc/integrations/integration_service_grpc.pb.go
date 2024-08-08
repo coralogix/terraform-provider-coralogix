@@ -19,6 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
+	IntegrationService_ListManagedIntegrationKeys_FullMethodName   = "/com.coralogix.integrations.v1.IntegrationService/ListManagedIntegrationKeys"
+	IntegrationService_GetDeployedIntegration_FullMethodName       = "/com.coralogix.integrations.v1.IntegrationService/GetDeployedIntegration"
 	IntegrationService_GetIntegrations_FullMethodName              = "/com.coralogix.integrations.v1.IntegrationService/GetIntegrations"
 	IntegrationService_GetIntegrationDefinition_FullMethodName     = "/com.coralogix.integrations.v1.IntegrationService/GetIntegrationDefinition"
 	IntegrationService_GetIntegrationDetails_FullMethodName        = "/com.coralogix.integrations.v1.IntegrationService/GetIntegrationDetails"
@@ -36,6 +38,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type IntegrationServiceClient interface {
+	ListManagedIntegrationKeys(ctx context.Context, in *ListManagedIntegrationKeysRequest, opts ...grpc.CallOption) (*ListManagedIntegrationKeysResponse, error)
+	GetDeployedIntegration(ctx context.Context, in *GetDeployedIntegrationRequest, opts ...grpc.CallOption) (*GetDeployedIntegrationResponse, error)
 	GetIntegrations(ctx context.Context, in *GetIntegrationsRequest, opts ...grpc.CallOption) (*GetIntegrationsResponse, error)
 	GetIntegrationDefinition(ctx context.Context, in *GetIntegrationDefinitionRequest, opts ...grpc.CallOption) (*GetIntegrationDefinitionResponse, error)
 	GetIntegrationDetails(ctx context.Context, in *GetIntegrationDetailsRequest, opts ...grpc.CallOption) (*GetIntegrationDetailsResponse, error)
@@ -55,6 +59,24 @@ type integrationServiceClient struct {
 
 func NewIntegrationServiceClient(cc grpc.ClientConnInterface) IntegrationServiceClient {
 	return &integrationServiceClient{cc}
+}
+
+func (c *integrationServiceClient) ListManagedIntegrationKeys(ctx context.Context, in *ListManagedIntegrationKeysRequest, opts ...grpc.CallOption) (*ListManagedIntegrationKeysResponse, error) {
+	out := new(ListManagedIntegrationKeysResponse)
+	err := c.cc.Invoke(ctx, IntegrationService_ListManagedIntegrationKeys_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *integrationServiceClient) GetDeployedIntegration(ctx context.Context, in *GetDeployedIntegrationRequest, opts ...grpc.CallOption) (*GetDeployedIntegrationResponse, error) {
+	out := new(GetDeployedIntegrationResponse)
+	err := c.cc.Invoke(ctx, IntegrationService_GetDeployedIntegration_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *integrationServiceClient) GetIntegrations(ctx context.Context, in *GetIntegrationsRequest, opts ...grpc.CallOption) (*GetIntegrationsResponse, error) {
@@ -160,6 +182,8 @@ func (c *integrationServiceClient) TestIntegration(ctx context.Context, in *Test
 // All implementations must embed UnimplementedIntegrationServiceServer
 // for forward compatibility
 type IntegrationServiceServer interface {
+	ListManagedIntegrationKeys(context.Context, *ListManagedIntegrationKeysRequest) (*ListManagedIntegrationKeysResponse, error)
+	GetDeployedIntegration(context.Context, *GetDeployedIntegrationRequest) (*GetDeployedIntegrationResponse, error)
 	GetIntegrations(context.Context, *GetIntegrationsRequest) (*GetIntegrationsResponse, error)
 	GetIntegrationDefinition(context.Context, *GetIntegrationDefinitionRequest) (*GetIntegrationDefinitionResponse, error)
 	GetIntegrationDetails(context.Context, *GetIntegrationDetailsRequest) (*GetIntegrationDetailsResponse, error)
@@ -178,6 +202,12 @@ type IntegrationServiceServer interface {
 type UnimplementedIntegrationServiceServer struct {
 }
 
+func (UnimplementedIntegrationServiceServer) ListManagedIntegrationKeys(context.Context, *ListManagedIntegrationKeysRequest) (*ListManagedIntegrationKeysResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListManagedIntegrationKeys not implemented")
+}
+func (UnimplementedIntegrationServiceServer) GetDeployedIntegration(context.Context, *GetDeployedIntegrationRequest) (*GetDeployedIntegrationResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDeployedIntegration not implemented")
+}
 func (UnimplementedIntegrationServiceServer) GetIntegrations(context.Context, *GetIntegrationsRequest) (*GetIntegrationsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetIntegrations not implemented")
 }
@@ -222,6 +252,42 @@ type UnsafeIntegrationServiceServer interface {
 
 func RegisterIntegrationServiceServer(s grpc.ServiceRegistrar, srv IntegrationServiceServer) {
 	s.RegisterService(&IntegrationService_ServiceDesc, srv)
+}
+
+func _IntegrationService_ListManagedIntegrationKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListManagedIntegrationKeysRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IntegrationServiceServer).ListManagedIntegrationKeys(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IntegrationService_ListManagedIntegrationKeys_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IntegrationServiceServer).ListManagedIntegrationKeys(ctx, req.(*ListManagedIntegrationKeysRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _IntegrationService_GetDeployedIntegration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDeployedIntegrationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IntegrationServiceServer).GetDeployedIntegration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: IntegrationService_GetDeployedIntegration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IntegrationServiceServer).GetDeployedIntegration(ctx, req.(*GetDeployedIntegrationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _IntegrationService_GetIntegrations_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -429,6 +495,14 @@ var IntegrationService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "com.coralogix.integrations.v1.IntegrationService",
 	HandlerType: (*IntegrationServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListManagedIntegrationKeys",
+			Handler:    _IntegrationService_ListManagedIntegrationKeys_Handler,
+		},
+		{
+			MethodName: "GetDeployedIntegration",
+			Handler:    _IntegrationService_GetDeployedIntegration_Handler,
+		},
 		{
 			MethodName: "GetIntegrations",
 			Handler:    _IntegrationService_GetIntegrations_Handler,
