@@ -52,4 +52,4 @@ testacc:
 	TF_ACC=1 go test ${BUILD_ARGS} $(TEST) -v $(TESTARGS) -timeout 120m
 
 generate:
-	go generate
+	go generate ${BUILD_ARGS}
