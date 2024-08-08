@@ -78,8 +78,8 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	getIntegrationReq := &integrations.GetIntegrationDetailsRequest{
-		Id: wrapperspb.String(data.IntegrationKey.ValueString()),
+	getIntegrationReq := &integrations.GetDeployedIntegrationRequest{
+		IntegrationId: wrapperspb.String(data.ID.ValueString()),
 	}
 	log.Printf("[INFO] Reading Integrations: %s", protojson.Format(getIntegrationReq))
 	getIntegrationResp, err := d.client.Get(ctx, getIntegrationReq)
