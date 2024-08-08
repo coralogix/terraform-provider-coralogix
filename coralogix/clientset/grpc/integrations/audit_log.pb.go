@@ -72,16 +72,16 @@ var file_com_coralogix_integrations_v1_audit_log_proto_extTypes = []protoimpl.Ex
 	{
 		ExtendedType:  (*descriptorpb.MethodOptions)(nil),
 		ExtensionType: (*AuditLogDescription)(nil),
-		Field:         5001,
+		Field:         5007,
 		Name:          "com.coralogix.integrations.v1.audit_log_description",
-		Tag:           "bytes,5001,opt,name=audit_log_description",
+		Tag:           "bytes,5007,opt,name=audit_log_description",
 		Filename:      "com/coralogix/integrations/v1/audit_log.proto",
 	},
 }
 
 // Extension fields to descriptorpb.MethodOptions.
 var (
-	// optional com.coralogix.integrations.v1.AuditLogDescription audit_log_description = 5001;
+	// optional com.coralogix.integrations.v1.AuditLogDescription audit_log_description = 5007;
 	E_AuditLogDescription = &file_com_coralogix_integrations_v1_audit_log_proto_extTypes[0]
 )
 
