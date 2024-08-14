@@ -132,13 +132,20 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	_, testErr := r.client.TestIntegration(ctx, &integrations.TestIntegrationRequest{
+	result, testErr := r.client.TestIntegration(ctx, &integrations.TestIntegrationRequest{
 		IntegrationData: createReq.Metadata,
 	})
 	log.Printf("[INFO] Creating new Integration: %s", protojson.Format(createReq))
 
 	if testErr != nil {
-		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Invalid integration configuration", fmt.Sprintf("API responded with an error: %v", testErr.Error()))}
+		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Testing the integration has failed", fmt.Sprintf("API responded with an error: %v", testErr.Error()))}
+		resp.Diagnostics.Append(newDiags...)
+		return
+	}
+
+	fail, hasFailed := result.Result.Result.(*integrations.TestIntegrationResult_Failure_)
+	if hasFailed {
+		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Invalid integration configuration", fmt.Sprintf("API responded with an error: %v", fail.Failure.ErrorMessage))}
 		resp.Diagnostics.Append(newDiags...)
 		return
 	}
