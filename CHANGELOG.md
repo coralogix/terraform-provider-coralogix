@@ -649,6 +649,10 @@ Fix: Duplicate GRPC extension crash (actually)
 
 ## Release 1.18.3
 
+**defunct**
+
+## Release 1.18.4
+
 Fix: 
 
 #### resource/coralogix_integration
@@ -656,6 +660,9 @@ Fix:
 
 ### resource/coralogix_webhook
 * Replaced depracated MS Teams webhook with MS Teams Workflow Webhook.
+
+### resource/coralogix_alert
+* removed regex validation from search query
 
 New Features:
 
