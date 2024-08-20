@@ -2,15 +2,15 @@ name: semantic-release
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - master
-    paths:
-      - '**/*.go'
-      - '**/*.tf'
-      - '**/*.md'
-      - '.github/workflows/release.yml'
+  # push:
+  #   branches:
+  #     - main
+  #     - master
+  #   paths:
+  #     - '**/*.go'
+  #     - '**/*.tf'
+  #     - '**/*.md'
+  #     - '.github/workflows/release.yml'
 
 jobs:
   release:
