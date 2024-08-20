@@ -624,7 +624,7 @@ New Features:
 * added support for associated scopes
 
 
-## Release 1.18
+## Release 1.18.0
 
 New Features:
 #### resource/coralogix_integration
@@ -638,3 +638,22 @@ New Features:
 
 #### resource/coralogix_logs_policy
 * removed, use `coralogix_logs_policies` instead
+
+## Release 1.18.1
+
+Fix: Duplicate GRPC extension crash
+
+## Release 1.18.2
+
+Fix: Duplicate GRPC extension crash (actually)
+
+## Release 1.18.3
+
+Fix: 
+
+#### resource/coralogix_integration
+* improved error messages for invalid parameters before creating 
+
+New Features:
+
+* endpoints can now specified in an abbreviated fashion: `[AP1, AP2, EU1, EU2, US1, US2]`.
