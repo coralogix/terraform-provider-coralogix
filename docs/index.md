@@ -77,15 +77,16 @@ $ export CORALOGIX_DOMAIN="<add the environment you want to work at>"
 
 ## region-domain table:
 
-| Region  | Domain              |
-|---------|---------------------|
-| APAC1   | coralogix.in        |
-| APAC2   | coralogixsg.com     |
-| EUROPE1 | coralogix.com       |
-| EUROPE2 | eu2.coralogix.com   |
-| USA1    | coralogix.us        |
-| USA2    | cx498.coralogix.com |
+| Region  | Short | Domain              |
+|---------|-------|---------------------|
+| APAC1   | AP1   | coralogix.in        |
+| APAC2   | AP2   | coralogixsg.com     |
+| EUROPE1 | EU1   | coralogix.com       |
+| EUROPE2 | EU2   | eu2.coralogix.com   |
+| USA1    | US1   | coralogix.us        |
+| USA2    | US2   | cx498.coralogix.com |
 
+For more information on the endpoints, check out [https://coralogix.com/docs/coralogix-endpoints/]()
 
 ## Argument Reference
 
@@ -93,5 +94,5 @@ $ export CORALOGIX_DOMAIN="<add the environment you want to work at>"
   environment. environment variable 'CORALOGIX_API_KEY' can be defined instead.
 - `domain` (String) The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined
   instead.
-- `env` (String) The Coralogix API environment. can be one of ["USA1" "USA2" "APAC1" "APAC2" "EUROPE1" "EUROPE2"]. environment
+- `env` (String) The Coralogix API environment. can be one of ["USA1" "USA2" "APAC1" "APAC2" "EUROPE1" "EUROPE2" "US1" "US2" "AP1" "AP2" "EU1" "EU2"]. environment
   variable 'CORALOGIX_ENV' can be defined instead.
