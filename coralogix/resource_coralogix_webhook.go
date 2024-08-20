@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,10 +21,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"terraform-provider-coralogix/coralogix/clientset"
 	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -254,19 +255,19 @@ type WebhookResource struct {
 }
 
 type WebhookResourceModel struct {
-	ID             types.String         `tfsdk:"id"`
-	ExternalID     types.String         `tfsdk:"external_id"`
-	Name           types.String         `tfsdk:"name"`
-	CustomWebhook  *CustomWebhookModel  `tfsdk:"custom"`
-	Slack          *SlackModel          `tfsdk:"slack"`
-	PagerDuty      *PagerDutyModel      `tfsdk:"pager_duty"`
-	SendLog        *SendLogModel        `tfsdk:"sendlog"`
-	EmailGroup     *EmailGroupModel     `tfsdk:"email_group"`
-	MicrosoftTeams *MicrosoftTeamsModel `tfsdk:"microsoft_teams"`
-	Jira           *JiraModel           `tfsdk:"jira"`
-	Opsgenie       *OpsgenieModel       `tfsdk:"opsgenie"`
-	Demisto        *DemistoModel        `tfsdk:"demisto"`
-	EventBridge    *EventBridgeModel    `tfsdk:"event_bridge"`
+	ID              types.String          `tfsdk:"id"`
+	ExternalID      types.String          `tfsdk:"external_id"`
+	Name            types.String          `tfsdk:"name"`
+	CustomWebhook   *CustomWebhookModel   `tfsdk:"custom"`
+	Slack           *SlackModel           `tfsdk:"slack"`
+	PagerDuty       *PagerDutyModel       `tfsdk:"pager_duty"`
+	SendLog         *SendLogModel         `tfsdk:"sendlog"`
+	EmailGroup      *EmailGroupModel      `tfsdk:"email_group"`
+	MsTeamsWorkflow *MsTeamsWorkflowModel `tfsdk:"microsoft_teams"`
+	Jira            *JiraModel            `tfsdk:"jira"`
+	Opsgenie        *OpsgenieModel        `tfsdk:"opsgenie"`
+	Demisto         *DemistoModel         `tfsdk:"demisto"`
+	EventBridge     *EventBridgeModel     `tfsdk:"event_bridge"`
 }
 
 type CustomWebhookModel struct {
@@ -302,7 +303,7 @@ type EmailGroupModel struct {
 	Emails types.List `tfsdk:"emails"` //types.String
 }
 
-type MicrosoftTeamsModel struct {
+type MsTeamsWorkflowModel struct {
 	URL types.String `tfsdk:"url"`
 }
 
@@ -561,7 +562,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Attributes: map[string]schema.Attribute{
 					"url": schema.StringAttribute{
 						Optional:            true,
-						MarkdownDescription: "Microsoft Teams URL.",
+						MarkdownDescription: "Microsoft Teams Workflow URL.",
 					},
 				},
 				Validators: []validator.Object{
@@ -578,7 +579,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					),
 				},
 				Optional:            true,
-				MarkdownDescription: "Microsoft Teams webhook.",
+				MarkdownDescription: "Microsoft Teams Workflow webhook.",
 			},
 			"jira": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
@@ -942,9 +943,9 @@ func expandWebhookType(ctx context.Context, plan *WebhookResourceModel, data *we
 	} else if plan.EmailGroup != nil {
 		data.Config, diags = expandEmailGroup(ctx, plan.EmailGroup)
 		data.Type = webhooks.WebhookType_EMAIL_GROUP
-	} else if plan.MicrosoftTeams != nil {
-		data.Config, data.Url = expandMicrosoftTeams(plan.MicrosoftTeams)
-		data.Type = webhooks.WebhookType_MICROSOFT_TEAMS
+	} else if plan.MsTeamsWorkflow != nil {
+		data.Config, data.Url = expandMicrosoftTeamsWorkflow(plan.MsTeamsWorkflow)
+		data.Type = webhooks.WebhookType_MS_TEAMS_WORKFLOW
 	} else if plan.Jira != nil {
 		data.Config, data.Url = expandJira(plan.Jira)
 		data.Type = webhooks.WebhookType_JIRA
@@ -981,14 +982,14 @@ func expandEventBridge(bridge *EventBridgeModel) *webhooks.OutgoingWebhookInputD
 	}
 }
 
-func expandMicrosoftTeams(microsoftTeams *MicrosoftTeamsModel) (*webhooks.OutgoingWebhookInputData_MicrosoftTeams, *wrapperspb.StringValue) {
+func expandMicrosoftTeamsWorkflow(microsoftTeams *MsTeamsWorkflowModel) (*webhooks.OutgoingWebhookInputData_MsTeamsWorkflow, *wrapperspb.StringValue) {
 	var url *wrapperspb.StringValue
 	if planUrl := microsoftTeams.URL; !(planUrl.IsNull() || planUrl.IsUnknown()) {
 		url = wrapperspb.String(planUrl.ValueString())
 	}
 
-	return &webhooks.OutgoingWebhookInputData_MicrosoftTeams{
-		MicrosoftTeams: &webhooks.MicrosoftTeamsConfig{},
+	return &webhooks.OutgoingWebhookInputData_MsTeamsWorkflow{
+		MsTeamsWorkflow: &webhooks.MSTeamsWorkflowConfig{},
 	}, url
 }
 
@@ -1183,8 +1184,8 @@ func flattenWebhook(ctx context.Context, webhook *webhooks.OutgoingWebhook) (*We
 		result.SendLog = flattenSendLog(configType.SendLog, url)
 	case *webhooks.OutgoingWebhook_EmailGroup:
 		result.EmailGroup = flattenEmailGroup(configType.EmailGroup)
-	case *webhooks.OutgoingWebhook_MicrosoftTeams:
-		result.MicrosoftTeams = flattenMicrosoftTeams(configType.MicrosoftTeams, url)
+	case *webhooks.OutgoingWebhook_MsTeamsWorkflow:
+		result.MsTeamsWorkflow = flattenMsTeamsWorkflow(configType.MsTeamsWorkflow, url)
 	case *webhooks.OutgoingWebhook_Jira:
 		result.Jira = flattenJira(configType.Jira, url)
 	case *webhooks.OutgoingWebhook_Opsgenie:
@@ -1291,8 +1292,8 @@ func flattenEmailGroup(emailGroup *webhooks.EmailGroupConfig) *EmailGroupModel {
 	}
 }
 
-func flattenMicrosoftTeams(_ *webhooks.MicrosoftTeamsConfig, url *wrapperspb.StringValue) *MicrosoftTeamsModel {
-	return &MicrosoftTeamsModel{
+func flattenMsTeamsWorkflow(_ *webhooks.MSTeamsWorkflowConfig, url *wrapperspb.StringValue) *MsTeamsWorkflowModel {
+	return &MsTeamsWorkflowModel{
 		URL: wrapperspbStringToTypeString(url),
 	}
 }

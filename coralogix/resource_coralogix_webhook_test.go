@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -228,7 +228,7 @@ func TestAccCoralogixResourceJiraWebhook(t *testing.T) {
 	})
 }
 
-func TestAccCoralogixResourceMicrosoftTeamsWebhook(t *testing.T) {
+func TestAccCoralogixResourceMicrosoftTeamsWorkflowWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := getRandomWebhook()
 	resource.Test(t, resource.TestCase{
@@ -237,7 +237,7 @@ func TestAccCoralogixResourceMicrosoftTeamsWebhook(t *testing.T) {
 		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceMicrosoftTeamsWebhook(webhook),
+				Config: testAccCoralogixResourceMicrosoftTeamsWorkflowWebhook(webhook),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
@@ -460,7 +460,7 @@ func testAccCoralogixResourceSendLogWebhook(w *webhookTestFields) string {
 		w.name, w.url)
 }
 
-func testAccCoralogixResourceMicrosoftTeamsWebhook(w *webhookTestFields) string {
+func testAccCoralogixResourceMicrosoftTeamsWorkflowWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
   	name = "%s"
 	microsoft_teams = {
