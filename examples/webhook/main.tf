@@ -54,7 +54,7 @@ resource "coralogix_webhook" "email_group_webhook" {
 
 resource "coralogix_webhook" "microsoft_teams_webhook" {
   name            = "microsoft-teams-webhook"
-  microsoft_teams = {
+  microsoft_teams_workflow = {
     url = "https://example-url.com/"
   }
 }

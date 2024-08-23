@@ -667,3 +667,10 @@ Fix:
 New Features:
 
 * endpoints can now specified in an abbreviated fashion: `[AP1, AP2, EU1, EU2, US1, US2]`.
+
+## Release 1.18.5
+
+Fix: 
+
+### resource/coralogix_webhook
+* Replaced depracated MS Teams webhook with MS Teams Workflow Webhook.

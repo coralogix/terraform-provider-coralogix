@@ -241,7 +241,7 @@ func TestAccCoralogixResourceMicrosoftTeamsWorkflowWebhook(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(resourceName, "id"),
 					resource.TestCheckResourceAttr(resourceName, "name", webhook.name),
-					resource.TestCheckResourceAttr(resourceName, "microsoft_teams.url", webhook.url),
+					resource.TestCheckResourceAttr(resourceName, "microsoft_teams_workflow.url", webhook.url),
 				),
 			},
 			{
@@ -463,7 +463,7 @@ func testAccCoralogixResourceSendLogWebhook(w *webhookTestFields) string {
 func testAccCoralogixResourceMicrosoftTeamsWorkflowWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
   	name = "%s"
-	microsoft_teams = {
+	microsoft_teams_workflow = {
         url  = "%s"
   	}
 }

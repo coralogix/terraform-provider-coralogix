@@ -263,7 +263,8 @@ type WebhookResourceModel struct {
 	PagerDuty       *PagerDutyModel       `tfsdk:"pager_duty"`
 	SendLog         *SendLogModel         `tfsdk:"sendlog"`
 	EmailGroup      *EmailGroupModel      `tfsdk:"email_group"`
-	MsTeamsWorkflow *MsTeamsWorkflowModel `tfsdk:"microsoft_teams"`
+	MsTeamsWorkflow *MsTeamsWorkflowModel `tfsdk:"microsoft_teams_workflow"`
+	MsTeams         *MsTeamsWorkflowModel `tfsdk:"microsoft_teams"`
 	Jira            *JiraModel            `tfsdk:"jira"`
 	Opsgenie        *OpsgenieModel        `tfsdk:"opsgenie"`
 	Demisto         *DemistoModel         `tfsdk:"demisto"`
@@ -416,6 +417,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
+						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
@@ -468,6 +470,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
+						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
@@ -491,6 +494,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
+						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
@@ -525,6 +529,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("pager_duty"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
+						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
@@ -549,6 +554,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("pager_duty"),
 						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
+						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
@@ -558,7 +564,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Optional:            true,
 				MarkdownDescription: "Email group webhook.",
 			},
-			"microsoft_teams": schema.SingleNestedAttribute{
+			"microsoft_teams_workflow": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"url": schema.StringAttribute{
 						Optional:            true,
@@ -572,6 +578,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("pager_duty"),
 						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
+						path.MatchRelative().AtParent().AtName("microsoft_teams"),
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
@@ -581,6 +588,32 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Optional:            true,
 				MarkdownDescription: "Microsoft Teams Workflow webhook.",
 			},
+			"microsoft_teams": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"url": schema.StringAttribute{
+						Optional:            true,
+						MarkdownDescription: "Microsoft Teams URL.",
+					},
+				},
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(
+						path.MatchRelative().AtParent().AtName("custom"),
+						path.MatchRelative().AtParent().AtName("slack"),
+						path.MatchRelative().AtParent().AtName("pager_duty"),
+						path.MatchRelative().AtParent().AtName("sendlog"),
+						path.MatchRelative().AtParent().AtName("email_group"),
+						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
+						path.MatchRelative().AtParent().AtName("jira"),
+						path.MatchRelative().AtParent().AtName("opsgenie"),
+						path.MatchRelative().AtParent().AtName("demisto"),
+						path.MatchRelative().AtParent().AtName("event_bridge"),
+					),
+				},
+				Optional:            true,
+				MarkdownDescription: "Microsoft Teams webhook. (Deprecated, please use microsoft_teams_workflow)",
+				DeprecationMessage:  "Please use microsoft_teams_workflow",
+			},
+
 			"jira": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"api_token": schema.StringAttribute{
@@ -608,6 +641,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
+						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
 						path.MatchRelative().AtParent().AtName("event_bridge"),
@@ -631,6 +665,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
+						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("demisto"),
 						path.MatchRelative().AtParent().AtName("event_bridge"),
@@ -665,6 +700,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
+						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("event_bridge"),
@@ -704,6 +740,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						path.MatchRelative().AtParent().AtName("sendlog"),
 						path.MatchRelative().AtParent().AtName("email_group"),
 						path.MatchRelative().AtParent().AtName("microsoft_teams"),
+						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
 						path.MatchRelative().AtParent().AtName("jira"),
 						path.MatchRelative().AtParent().AtName("opsgenie"),
 						path.MatchRelative().AtParent().AtName("demisto"),
@@ -758,7 +795,7 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 	getWebhookStr := protojson.Format(getWebhookResp)
 	log.Printf("[INFO] Reading webhook - %s", getWebhookStr)
 
-	plan, diags = flattenWebhook(ctx, getWebhookResp.GetWebhook())
+	plan, diags = flattenWebhookWrite(ctx, getWebhookResp.GetWebhook())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -862,7 +899,7 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 	log.Printf("[INFO] Received Webhook: %s", protojson.Format(getWebhookResp))
 
-	plan, diags = flattenWebhook(ctx, getWebhookResp.GetWebhook())
+	plan, diags = flattenWebhookWrite(ctx, getWebhookResp.GetWebhook())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -946,6 +983,9 @@ func expandWebhookType(ctx context.Context, plan *WebhookResourceModel, data *we
 	} else if plan.MsTeamsWorkflow != nil {
 		data.Config, data.Url = expandMicrosoftTeamsWorkflow(plan.MsTeamsWorkflow)
 		data.Type = webhooks.WebhookType_MS_TEAMS_WORKFLOW
+	} else if plan.MsTeams != nil {
+		data.Config, data.Url = expandMicrosoftTeams(plan.MsTeams)
+		data.Type = webhooks.WebhookType_MS_TEAMS_WORKFLOW
 	} else if plan.Jira != nil {
 		data.Config, data.Url = expandJira(plan.Jira)
 		data.Type = webhooks.WebhookType_JIRA
@@ -990,6 +1030,17 @@ func expandMicrosoftTeamsWorkflow(microsoftTeams *MsTeamsWorkflowModel) (*webhoo
 
 	return &webhooks.OutgoingWebhookInputData_MsTeamsWorkflow{
 		MsTeamsWorkflow: &webhooks.MSTeamsWorkflowConfig{},
+	}, url
+}
+
+func expandMicrosoftTeams(microsoftTeams *MsTeamsWorkflowModel) (*webhooks.OutgoingWebhookInputData_MicrosoftTeams, *wrapperspb.StringValue) {
+	var url *wrapperspb.StringValue
+	if planUrl := microsoftTeams.URL; !(planUrl.IsNull() || planUrl.IsUnknown()) {
+		url = wrapperspb.String(planUrl.ValueString())
+	}
+
+	return &webhooks.OutgoingWebhookInputData_MicrosoftTeams{
+		MicrosoftTeams: &webhooks.MicrosoftTeamsConfig{},
 	}, url
 }
 
@@ -1164,6 +1215,44 @@ func expandDemisto(demisto *DemistoModel) (*webhooks.OutgoingWebhookInputData_De
 	}, url
 }
 
+// Temporary function to prevent the creation of depreacted resources
+func flattenWebhookWrite(ctx context.Context, webhook *webhooks.OutgoingWebhook) (*WebhookResourceModel, diag.Diagnostics) {
+	result := &WebhookResourceModel{
+		ID:         wrapperspbStringToTypeString(webhook.Id),
+		ExternalID: types.StringValue(strconv.Itoa(int(webhook.GetExternalId().GetValue()))),
+		Name:       wrapperspbStringToTypeString(webhook.Name),
+	}
+
+	url := webhook.GetUrl()
+	var diags diag.Diagnostics
+	switch configType := webhook.Config.(type) {
+	case *webhooks.OutgoingWebhook_Slack:
+		result.Slack, diags = flattenSlack(ctx, configType.Slack, url)
+	case *webhooks.OutgoingWebhook_GenericWebhook:
+		result.CustomWebhook, diags = flattenGenericWebhook(ctx, configType.GenericWebhook, url)
+	case *webhooks.OutgoingWebhook_PagerDuty:
+		result.PagerDuty = flattenPagerDuty(configType.PagerDuty)
+	case *webhooks.OutgoingWebhook_SendLog:
+		result.SendLog = flattenSendLog(configType.SendLog, url)
+	case *webhooks.OutgoingWebhook_EmailGroup:
+		result.EmailGroup = flattenEmailGroup(configType.EmailGroup)
+	case *webhooks.OutgoingWebhook_MsTeamsWorkflow:
+		result.MsTeamsWorkflow = flattenMsTeamsWorkflow(configType.MsTeamsWorkflow, url)
+	case *webhooks.OutgoingWebhook_Jira:
+		result.Jira = flattenJira(configType.Jira, url)
+	case *webhooks.OutgoingWebhook_Opsgenie:
+		result.Opsgenie = flattenOpsgenie(configType.Opsgenie, url)
+	case *webhooks.OutgoingWebhook_Demisto:
+		result.Demisto = flattenDemisto(configType.Demisto, url)
+	case *webhooks.OutgoingWebhook_AwsEventBridge:
+		result.EventBridge = flattenEventBridge(configType.AwsEventBridge)
+	default:
+		diags.AddError("Error flattening webhook", fmt.Sprintf("Unknown webhook type: %T", configType))
+	}
+
+	return result, diags
+}
+
 func flattenWebhook(ctx context.Context, webhook *webhooks.OutgoingWebhook) (*WebhookResourceModel, diag.Diagnostics) {
 	result := &WebhookResourceModel{
 		ID:         wrapperspbStringToTypeString(webhook.Id),
@@ -1186,6 +1275,8 @@ func flattenWebhook(ctx context.Context, webhook *webhooks.OutgoingWebhook) (*We
 		result.EmailGroup = flattenEmailGroup(configType.EmailGroup)
 	case *webhooks.OutgoingWebhook_MsTeamsWorkflow:
 		result.MsTeamsWorkflow = flattenMsTeamsWorkflow(configType.MsTeamsWorkflow, url)
+	case *webhooks.OutgoingWebhook_MicrosoftTeams:
+		result.MsTeams = flattenMicrosoftTeams(configType.MicrosoftTeams, url)
 	case *webhooks.OutgoingWebhook_Jira:
 		result.Jira = flattenJira(configType.Jira, url)
 	case *webhooks.OutgoingWebhook_Opsgenie:
@@ -1293,6 +1384,12 @@ func flattenEmailGroup(emailGroup *webhooks.EmailGroupConfig) *EmailGroupModel {
 }
 
 func flattenMsTeamsWorkflow(_ *webhooks.MSTeamsWorkflowConfig, url *wrapperspb.StringValue) *MsTeamsWorkflowModel {
+	return &MsTeamsWorkflowModel{
+		URL: wrapperspbStringToTypeString(url),
+	}
+}
+
+func flattenMicrosoftTeams(microsoftTeamsConfig *webhooks.MicrosoftTeamsConfig, url *wrapperspb.StringValue) *MsTeamsWorkflowModel {
 	return &MsTeamsWorkflowModel{
 		URL: wrapperspbStringToTypeString(url),
 	}
