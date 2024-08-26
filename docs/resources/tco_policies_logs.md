@@ -4,12 +4,12 @@
 
 page_title: "coralogix_tco_policies_logs Resource - terraform-provider-coralogix"
 subcategory: ""
-description: "Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api .
+description: "Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.
 ---
 
 # coralogix_tco_policies_logs (Resource)
 
-Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api .
+Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.
 
 **Please note!** - This resource will override all the existing policies with the new ones (even those who were managed outside terraform).
 

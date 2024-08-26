@@ -267,9 +267,7 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 				Required: true,
 			},
 		},
-		MarkdownDescription: "Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api ." +
-			"Please note that this resource is deprecated. Please use the `coralogix_tco_policies_traces` resource instead.",
-		DeprecationMessage: "This resource is deprecated. Please use the `coralogix_tco_policies_traces` resource instead.",
+		MarkdownDescription: "Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.",
 	}
 }
 
