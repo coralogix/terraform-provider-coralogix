@@ -267,7 +267,7 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 				Required: true,
 			},
 		},
-		MarkdownDescription: "Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api",
+		MarkdownDescription: "Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.",
 	}
 }
 

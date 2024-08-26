@@ -3,12 +3,12 @@
 page_title: "coralogix_tco_policies_traces Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api
+  Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.
 ---
 
 # coralogix_tco_policies_traces (Resource)
 
-Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api
+Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.
 
 
 
@@ -166,3 +166,11 @@ Required:
 Optional:
 
 - `rule_type` (String)
+
+## Import
+
+```sh
+terraform import coralogix_tco_policies_traces.example ""
+```
+
+terraform will import all the policies from the Coralogix TCO-Policies-List.

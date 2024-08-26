@@ -3,12 +3,12 @@
 page_title: "coralogix_tco_policies_traces Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api
+  Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.
 ---
 
 # coralogix_tco_policies_traces (Data Source)
 
-Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api
+Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.
 
 
 ## Example Usage
