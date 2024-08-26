@@ -3,12 +3,13 @@
 page_title: "coralogix_tco_policies_traces Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api .Please note that this resource is deprecated. Please use the coralogix_tco_policies_traces resource instead.
+  Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api
 ---
 
 # coralogix_tco_policies_traces (Data Source)
 
-Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api .Please note that this resource is deprecated. Please use the `coralogix_tco_policies_traces` resource instead.
+Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api
+
 
 ## Example Usage
 
@@ -23,6 +24,7 @@ data "coralogix_tco_policies_traces" "example" {
 
 ### Read-Only
 
+- `id` (String) This field can be ignored
 - `policies` (Attributes List) (see [below for nested schema](#nestedatt--policies))
 
 <a id="nestedatt--policies"></a>
