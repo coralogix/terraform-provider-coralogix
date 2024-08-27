@@ -19,13 +19,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 
-	"terraform-provider-coralogix/coralogix/clientset"
-
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var _ datasource.DataSourceWithConfigure = &GroupDataSource{}
@@ -35,7 +36,7 @@ func NewGroupDataSource() datasource.DataSource {
 }
 
 type GroupDataSource struct {
-	client *clientset.GroupsClient
+	client *cxsdk.GroupsClient
 }
 
 func (d *GroupDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -47,11 +48,11 @@ func (d *GroupDataSource) Configure(_ context.Context, req datasource.ConfigureR
 		return
 	}
 
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
+	clientSet, ok := req.ProviderData.(*cxsdk.ClientSet)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *cxsdk.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
@@ -75,9 +76,16 @@ func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 	//Get refreshed Group value from Coralogix
-	id := data.ID.ValueString()
+	id, _ := strconv.ParseUint(data.ID.ValueString(), 10, 32)
+
+	request := cxsdk.GetTeamGroupRequest{
+		GroupId: &cxsdk.GroupsTeamGroupID{
+			Id: id,
+		},
+	}
+
 	log.Printf("[INFO] Reading Group: %s", id)
-	getGroupResp, err := d.client.GetGroup(ctx, id)
+	getGroupResp, err := d.client.Get(ctx, request)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -86,9 +94,10 @@ func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", id),
 			)
 		} else {
+
 			resp.Diagnostics.AddError(
-				"Error reading Group",
-				formatRpcErrors(err, fmt.Sprintf("%s/%s", d.client.TargetUrl, id), ""),
+				"Error reading API Keys",
+				formatRpcErrors(err, cxsdk.GetTeamGroupRpc, protojson.Format(request)),
 			)
 		}
 		return

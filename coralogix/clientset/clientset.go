@@ -21,12 +21,10 @@ type ClientSet struct {
 	dataSet             *DataSetClient
 	dashboards          *DashboardsClient
 	grafana             *GrafanaClient
-	actions             *ActionsClient
 	recordingRuleGroups *RecordingRulesGroupsSetsClient
 	tcoPolicies         *TCOPoliciesClient
 	webhooks            *WebhooksClient
 	events2Metrics      *Events2MetricsClient
-	slis                *SLIClient
 	archiveRetentions   *ArchiveRetentionsClient
 	archiveMetrics      *ArchiveMetricsClient
 	archiveLogs         *ArchiveLogsClient
@@ -34,7 +32,6 @@ type ClientSet struct {
 	teams               *TeamsClient
 	slos                *SLOsClient
 	dahboardsFolders    *DashboardsFoldersClient
-	apiKeys             *ApikeysClient
 	groups              *GroupsClient
 	users               *UsersClient
 	customRole          *RolesClient
@@ -66,10 +63,6 @@ func (c *ClientSet) Grafana() *GrafanaClient {
 	return c.grafana
 }
 
-func (c *ClientSet) Actions() *ActionsClient {
-	return c.actions
-}
-
 func (c *ClientSet) RecordingRuleGroupsSets() *RecordingRulesGroupsSetsClient {
 	return c.recordingRuleGroups
 }
@@ -84,10 +77,6 @@ func (c *ClientSet) Webhooks() *WebhooksClient {
 
 func (c *ClientSet) Events2Metrics() *Events2MetricsClient {
 	return c.events2Metrics
-}
-
-func (c *ClientSet) SLIs() *SLIClient {
-	return c.slis
 }
 
 func (c *ClientSet) ArchiveRetentions() *ArchiveRetentionsClient {
@@ -108,10 +97,6 @@ func (c *ClientSet) AlertSchedulers() *AlertsSchedulersClient {
 
 func (c *ClientSet) Teams() *TeamsClient {
 	return c.teams
-}
-
-func (c *ClientSet) ApiKeys() *ApikeysClient {
-	return c.apiKeys
 }
 
 func (c *ClientSet) CustomRoles() *RolesClient {
@@ -153,11 +138,9 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		dataSet:             NewDataSetClient(apikeyCPC),
 		dashboards:          NewDashboardsClient(apikeyCPC),
 		grafana:             NewGrafanaClient(apikeyCPC),
-		actions:             NewActionsClient(apikeyCPC),
 		recordingRuleGroups: NewRecordingRuleGroupsClient(apikeyCPC),
 		tcoPolicies:         NewTCOPoliciesClient(apikeyCPC),
 		webhooks:            NewWebhooksClient(apikeyCPC),
-		slis:                NewSLIsClient(apikeyCPC),
 		archiveRetentions:   NewArchiveRetentionsClient(apikeyCPC),
 		archiveMetrics:      NewArchiveMetricsClient(apikeyCPC),
 		archiveLogs:         NewArchiveLogsClient(apikeyCPC),
@@ -165,7 +148,6 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		teams:               NewTeamsClient(apikeyCPC),
 		slos:                NewSLOsClient(apikeyCPC),
 		dahboardsFolders:    NewDashboardsFoldersClient(apikeyCPC),
-		apiKeys:             NewApiKeysClient(apikeyCPC),
 		groups:              NewGroupsClient(apikeyCPC),
 		users:               NewUsersClient(apikeyCPC),
 		customRole:          NewRolesClient(apikeyCPC),
