@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,9 +19,7 @@ import (
 	"fmt"
 	"log"
 
-	"terraform-provider-coralogix/coralogix/clientset"
-	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
-
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
@@ -43,16 +41,12 @@ import (
 var (
 	_                                       resource.ResourceWithConfigure   = &ActionResource{}
 	_                                       resource.ResourceWithImportState = &ActionResource{}
-	actionSchemaSourceTypeToProtoSourceType                                  = map[string]actions.SourceType{
-		"Log":     actions.SourceType_SOURCE_TYPE_LOG,
-		"DataMap": actions.SourceType_SOURCE_TYPE_DATA_MAP,
+	actionSchemaSourceTypeToProtoSourceType                                  = map[string]cxsdk.SourceType{
+		"Log":     cxsdk.SourceTypeSourceTypeLog,
+		"DataMap": cxsdk.SourceTypeSourceTypeDataMap,
 	}
 	actionProtoSourceTypeToSchemaSourceType = ReverseMap(actionSchemaSourceTypeToProtoSourceType)
 	actionValidSourceTypes                  = GetKeys(actionSchemaSourceTypeToProtoSourceType)
-	createActionURL                         = "com.coralogixapis.actions.v2.ActionsService/CreateAction"
-	updateActionURL                         = "com.coralogixapis.actions.v2.ActionsService/ReplaceAction"
-	getActionURL                            = "com.coralogixapis.actions.v2.ActionsService/GetAction"
-	deleteActionURL                         = "com.coralogixapis.actions.v2.ActionsService/DeleteAction"
 )
 
 func NewActionResource() resource.Resource {
@@ -60,7 +54,7 @@ func NewActionResource() resource.Resource {
 }
 
 type ActionResource struct {
-	client *clientset.ActionsClient
+	client *cxsdk.ActionsClient
 }
 
 func (r *ActionResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -72,7 +66,7 @@ func (r *ActionResource) Configure(_ context.Context, req resource.ConfigureRequ
 		return
 	}
 
-	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
+	clientSet, ok := req.ProviderData.(*cxsdk.ClientSet)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
@@ -175,11 +169,11 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 	actionStr := protojson.Format(createActionRequest)
 	log.Printf("[INFO] Creating new action: %s", actionStr)
-	createResp, err := r.client.CreateAction(ctx, createActionRequest)
+	createResp, err := r.client.Create(ctx, createActionRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err)
 		resp.Diagnostics.AddError("Error creating Action",
-			formatRpcErrors(err, createActionURL, actionStr),
+			formatRpcErrors(err, cxsdk.CreateActionRpc, actionStr),
 		)
 		return
 	}
@@ -193,7 +187,7 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenAction(action *actions.Action) ActionResourceModel {
+func flattenAction(action *cxsdk.Action) ActionResourceModel {
 	return ActionResourceModel{
 		ID:           types.StringValue(action.GetId().GetValue()),
 		Name:         types.StringValue(action.GetName().GetValue()),
@@ -218,8 +212,8 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 	//Get refreshed Action value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading Action: %s", id)
-	getActionReq := &actions.GetActionRequest{Id: wrapperspb.String(id)}
-	getActionResp, err := r.client.GetAction(ctx, getActionReq)
+	getActionReq := &cxsdk.GetActionRequest{Id: wrapperspb.String(id)}
+	getActionResp, err := r.client.Get(ctx, getActionReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -231,7 +225,7 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				formatRpcErrors(err, getActionURL, protojson.Format(getActionReq)),
+				formatRpcErrors(err, cxsdk.GetActionRpc, protojson.Format(getActionReq)),
 			)
 		}
 		return
@@ -260,12 +254,12 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 	log.Printf("[INFO] Updating Action: %s", protojson.Format(actionUpdateReq))
-	actionUpdateResp, err := r.client.UpdateAction(ctx, actionUpdateReq)
+	actionUpdateResp, err := r.client.Replace(ctx, actionUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Action",
-			formatRpcErrors(err, updateActionURL, protojson.Format(actionUpdateReq)),
+			formatRpcErrors(err, cxsdk.ReplaceActionRpc, protojson.Format(actionUpdateReq)),
 		)
 		return
 	}
@@ -273,8 +267,8 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	// Get refreshed Action value from Coralogix
 	id := plan.ID.ValueString()
-	getActionReq := &actions.GetActionRequest{Id: wrapperspb.String(id)}
-	getActionResp, err := r.client.GetAction(ctx, getActionReq)
+	getActionReq := &cxsdk.GetActionRequest{Id: wrapperspb.String(id)}
+	getActionResp, err := r.client.Get(ctx, getActionReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -310,11 +304,11 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting Action %s", id)
-	deleteReq := &actions.DeleteActionRequest{Id: wrapperspb.String(id)}
-	if _, err := r.client.DeleteAction(ctx, deleteReq); err != nil {
+	deleteReq := &cxsdk.DeleteActionRequest{Id: wrapperspb.String(id)}
+	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Action %s", id),
-			formatRpcErrors(err, deleteActionURL, protojson.Format(deleteReq)),
+			formatRpcErrors(err, cxsdk.DeleteActionRpc, protojson.Format(deleteReq)),
 		)
 		return
 	}
@@ -333,7 +327,7 @@ type ActionResourceModel struct {
 	IsHidden     types.Bool   `tfsdk:"is_hidden"`
 }
 
-func extractCreateAction(ctx context.Context, plan ActionResourceModel) (*actions.CreateActionRequest, diag.Diagnostics) {
+func extractCreateAction(ctx context.Context, plan ActionResourceModel) (*cxsdk.CreateActionRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	name := typeStringToWrapperspbString(plan.Name)
 	url := typeStringToWrapperspbString(plan.URL)
@@ -344,7 +338,7 @@ func extractCreateAction(ctx context.Context, plan ActionResourceModel) (*action
 	subsystemNames, dgs := typeStringSliceToWrappedStringSlice(ctx, plan.Subsystems.Elements())
 	diags = append(diags, dgs...)
 
-	return &actions.CreateActionRequest{
+	return &cxsdk.CreateActionRequest{
 		Name:             name,
 		Url:              url,
 		IsPrivate:        isPrivate,
@@ -354,7 +348,7 @@ func extractCreateAction(ctx context.Context, plan ActionResourceModel) (*action
 	}, diags
 }
 
-func extractUpdateAction(ctx context.Context, plan ActionResourceModel) (*actions.ReplaceActionRequest, diag.Diagnostics) {
+func extractUpdateAction(ctx context.Context, plan ActionResourceModel) (*cxsdk.ReplaceActionRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	id := wrapperspb.String(plan.ID.ValueString())
 	name := typeStringToWrapperspbString(plan.Name)
@@ -371,8 +365,8 @@ func extractUpdateAction(ctx context.Context, plan ActionResourceModel) (*action
 	}
 	isHidden := wrapperspb.Bool(plan.IsHidden.ValueBool())
 
-	return &actions.ReplaceActionRequest{
-		Action: &actions.Action{
+	return &cxsdk.ReplaceActionRequest{
+		Action: &cxsdk.Action{
 			Id:               id,
 			Name:             name,
 			Url:              url,
