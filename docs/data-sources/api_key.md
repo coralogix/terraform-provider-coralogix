@@ -30,7 +30,7 @@ data "coralogix_api_key" "same_key_by_id" {
 - `active` (Boolean) Api Key Is Active.
 - `hashed` (Boolean) Api Key Is Hashed.
 - `name` (String) Api Key name.
-- `owner` (Attributes) Api Key Owner.It can either be a team_id or a user_id (see [below for nested schema](#nestedatt--owner))
+- `owner` (Attributes) Api Key Owner. It can either be a team_id or a user_id (see [below for nested schema](#nestedatt--owner))
 - `permissions` (Set of String) Api Key Permissions
 - `presets` (Set of String) Api Key Presets
 - `value` (String) Api Key value.

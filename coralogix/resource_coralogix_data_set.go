@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,8 +25,8 @@ import (
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	enrichment "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"google.golang.org/grpc/codes"
@@ -38,13 +38,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-var (
-	fileContentLimit = int(1e6)
-	createDataSetURL = "com.coralogix.enrichment.v1.CustomEnrichmentService/CreateCustomEnrichment"
-	getDataSetURL    = "com.coralogix.enrichment.v1.CustomEnrichmentService/GetCustomEnrichment"
-	updateDataSetURL = "com.coralogix.enrichment.v1.CustomEnrichmentService/UpdateCustomEnrichment"
-	deleteDataSetURL = "com.coralogix.enrichment.v1.CustomEnrichmentService/DeleteCustomEnrichment"
-)
+var fileContentLimit = int(1e6)
 
 func resourceCoralogixDataSet() *schema.Resource {
 	return &schema.Resource{
@@ -139,10 +133,10 @@ func resourceCoralogixDataSetCreate(ctx context.Context, d *schema.ResourceData,
 	}
 	log.Printf("[INFO] Creating new enrichment-data: %s", protojson.Format(req))
 
-	resp, err := meta.(*clientset.ClientSet).DataSet().CreatDataSet(ctx, req)
+	resp, err := meta.(*clientset.ClientSet).DataSet().Create(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, createDataSetURL, protojson.Format(req)))
+		return diag.Errorf(formatRpcErrors(err, cxsdk.CreateDataSetRPC, protojson.Format(req)))
 	}
 
 	if uploadedFile, ok := d.GetOk("uploaded_file"); ok {
@@ -166,10 +160,10 @@ func setModificationTimeUploaded(d *schema.ResourceData, uploadedFile interface{
 
 func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
-	req := &enrichment.GetCustomEnrichmentRequest{Id: wrapperspb.UInt32(strToUint32(id))}
+	req := &cxsdk.GetDataSetRequest{Id: wrapperspb.UInt32(strToUint32(id))}
 
 	log.Print("[INFO] Reading enrichment-data")
-	DataSetResp, err := meta.(*clientset.ClientSet).DataSet().GetDataSet(ctx, req)
+	DataSetResp, err := meta.(*clientset.ClientSet).DataSet().Get(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -180,7 +174,7 @@ func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, m
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		return diag.Errorf(formatRpcErrors(err, getDataSetURL, protojson.Format(req)))
+		return diag.Errorf(formatRpcErrors(err, cxsdk.GetDataSetRPC, protojson.Format(req)))
 	}
 
 	log.Printf("[INFO] Received enrichment-data: %s", protojson.Format(DataSetResp))
@@ -194,10 +188,10 @@ func resourceCoralogixDataSetUpdate(ctx context.Context, d *schema.ResourceData,
 	}
 
 	log.Print("[INFO] Updating enrichment-data")
-	_, err = meta.(*clientset.ClientSet).DataSet().UpdateDataSet(ctx, req)
+	_, err = meta.(*clientset.ClientSet).DataSet().Update(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, updateDataSetURL, protojson.Format(req)))
+		return diag.Errorf(formatRpcErrors(err, cxsdk.UpdateDataSetRPC, protojson.Format(req)))
 	}
 
 	if uploadedFile, ok := d.GetOk("uploaded_file"); ok {
@@ -211,13 +205,13 @@ func resourceCoralogixDataSetUpdate(ctx context.Context, d *schema.ResourceData,
 
 func resourceCoralogixDataSetDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
-	req := &enrichment.DeleteCustomEnrichmentRequest{CustomEnrichmentId: wrapperspb.UInt32(strToUint32(id))}
+	req := &cxsdk.DeleteDataSetRequest{CustomEnrichmentId: wrapperspb.UInt32(strToUint32(id))}
 
 	log.Printf("[INFO] Deleting enrichment-data %s", id)
-	_, err := meta.(*clientset.ClientSet).DataSet().DeleteDataSet(ctx, req)
+	_, err := meta.(*clientset.ClientSet).DataSet().Delete(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, deleteDataSetURL, protojson.Format(req)))
+		return diag.Errorf(formatRpcErrors(err, cxsdk.DeleteDataSetRPC, protojson.Format(req)))
 	}
 
 	log.Printf("[INFO] enrichment-data %s deleted", id)
@@ -226,7 +220,7 @@ func resourceCoralogixDataSetDelete(ctx context.Context, d *schema.ResourceData,
 	return nil
 }
 
-func setDataSet(d *schema.ResourceData, c *enrichment.CustomEnrichment) diag.Diagnostics {
+func setDataSet(d *schema.ResourceData, c *cxsdk.DataSet) diag.Diagnostics {
 	if err := d.Set("name", c.Name); err != nil {
 		return diag.FromErr(err)
 	}
@@ -250,12 +244,12 @@ func setDataSet(d *schema.ResourceData, c *enrichment.CustomEnrichment) diag.Dia
 	return nil
 }
 
-func expandDataSetRequest(d *schema.ResourceData) (*enrichment.CreateCustomEnrichmentRequest, string, error) {
+func expandDataSetRequest(d *schema.ResourceData) (*cxsdk.CreateDataSetRequest, string, error) {
 	name, description, file, modificationTime, err := expandEnrichmentReq(d)
 	if err != nil {
 		return nil, "", err
 	}
-	req := &enrichment.CreateCustomEnrichmentRequest{
+	req := &cxsdk.CreateDataSetRequest{
 		Name:        name,
 		Description: description,
 		File:        file,
@@ -263,13 +257,13 @@ func expandDataSetRequest(d *schema.ResourceData) (*enrichment.CreateCustomEnric
 	return req, modificationTime, nil
 }
 
-func expandUpdateDataSetRequest(d *schema.ResourceData) (*enrichment.UpdateCustomEnrichmentRequest, string, error) {
+func expandUpdateDataSetRequest(d *schema.ResourceData) (*cxsdk.UpdateDataSetRequest, string, error) {
 	customEnrichmentId := wrapperspb.UInt32(strToUint32(d.Id()))
 	name, description, file, modificationTime, err := expandEnrichmentReq(d)
 	if err != nil {
 		return nil, "", err
 	}
-	req := &enrichment.UpdateCustomEnrichmentRequest{
+	req := &cxsdk.UpdateDataSetRequest{
 		CustomEnrichmentId: customEnrichmentId,
 		Name:               name,
 		Description:        description,
@@ -278,23 +272,23 @@ func expandUpdateDataSetRequest(d *schema.ResourceData) (*enrichment.UpdateCusto
 	return req, modificationTime, nil
 }
 
-func expandEnrichmentReq(d *schema.ResourceData) (*wrapperspb.StringValue, *wrapperspb.StringValue, *enrichment.File, string, error) {
+func expandEnrichmentReq(d *schema.ResourceData) (*wrapperspb.StringValue, *wrapperspb.StringValue, *cxsdk.File, string, error) {
 	name := wrapperspb.String(d.Get("name").(string))
 	description := wrapperspb.String(d.Get("description").(string))
 	file, modificationTime, err := expandFileAndModificationTime(d)
 	return name, description, file, modificationTime, err
 }
 
-func expandFileAndModificationTime(d *schema.ResourceData) (*enrichment.File, string, error) {
+func expandFileAndModificationTime(d *schema.ResourceData) (*cxsdk.File, string, error) {
 	fileContent, modificationTime, err := expandFileContent(d)
 	if err != nil {
 		return nil, modificationTime, err
 	}
 
-	return &enrichment.File{
+	return &cxsdk.File{
 		Name:      wrapperspb.String(" "),
 		Extension: wrapperspb.String("csv"),
-		Content:   &enrichment.File_Textual{Textual: wrapperspb.String(fileContent)},
+		Content:   &cxsdk.FileTextual{Textual: wrapperspb.String(fileContent)},
 	}, modificationTime, nil
 }
 

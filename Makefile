@@ -19,8 +19,10 @@ NAME=coralogix
 BINARY=terraform-provider-${NAME}
 VERSION=1.5
 OS_ARCH=darwin_arm64
-BUILD_ARGS=-ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn"
 
+# for some reason the GOFLAGS are not picked up by the go test command
+BUILD_ARGS=-ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn"
+GOFLAGS='-ldflags=-X=google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn'
 default: install
 
 build:
@@ -52,4 +54,4 @@ testacc:
 	TF_ACC=1 go test ${BUILD_ARGS} $(TEST) -v $(TESTARGS) -timeout 120m
 
 generate:
-	go generate ${BUILD_ARGS}
+	go generate

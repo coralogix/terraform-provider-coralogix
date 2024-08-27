@@ -271,7 +271,7 @@ Optional:
 Optional:
 
 - `attachments` (Attributes List) Slack attachments. (see [below for nested schema](#nestedatt--slack--attachments))
-- `notify_on` (Set of String) Slack notifications. can be one of: error_and_critical_logs, flow_anomalies, spike_anomalies, data_usage
+- `notify_on` (Set of String) Slack notifications. can be one of: data_usage, error_and_critical_logs, flow_anomalies, spike_anomalies
 - `url` (String) Slack URL.
 
 <a id="nestedatt--slack--attachments"></a>
@@ -279,7 +279,7 @@ Optional:
 
 Required:
 
-- `type` (String) Slack attachment type. can be one of: logs, empty, metric_snapshot
+- `type` (String) Slack attachment type. can be one of: empty, logs, metric_snapshot
 
 Optional:
 

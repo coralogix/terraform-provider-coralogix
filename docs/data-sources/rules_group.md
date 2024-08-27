@@ -32,7 +32,7 @@ data "coralogix_rules_group" "imported_rules_group_example" {
 - `name` (String) Rule-group name
 - `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing).
 - `rule_subgroups` (List of Object) List of rule-subgroups. Every rule-subgroup is list of rules with 'or' (||) operation between. (see [below for nested schema](#nestedatt--rule_subgroups))
-- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
+- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["critical" "debug" "error" "info" "verbose" "warning"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.
 
 <a id="nestedatt--rule_subgroups"></a>

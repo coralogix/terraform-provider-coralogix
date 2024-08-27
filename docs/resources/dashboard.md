@@ -1020,7 +1020,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--filters--source--spans--operator"></a>
@@ -1137,9 +1137,9 @@ Optional:
 - `max_bars_per_chart` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query))
 - `scale_type` (String)
-- `sort_by` (String) The field to sort by. Can be one of unspecified, value, name.
+- `sort_by` (String) The field to sort by. Can be one of name, unspecified, value.
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of unspecified, mbytes, gibytes, usd_cents, gbytes, bytes_iec, kibytes, usd, microseconds, milliseconds, seconds, euro_cents, bytes, kbytes, mibytes, euro.
+- `unit` (String) The unit of the chart. Can be one of bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query"></a>
@@ -1244,7 +1244,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans--operator"></a>
@@ -1409,8 +1409,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "max" "min" "percentile_50" "percentile_95" "percentile_99" "sum" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unique_count" "unspecified"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1428,7 +1428,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--operator"></a>
@@ -1450,7 +1450,7 @@ Optional:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--stacked_group_name"></a>
@@ -1459,7 +1459,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 
@@ -1506,12 +1506,12 @@ Required:
 
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query))
 - `results_per_page` (Number) The number of results to display per page.
-- `row_style` (String) The style of the rows. Can be one of ["condensed" "json" "one_line" "two_line"].
+- `row_style` (String) The style of the rows. Can be one of ["condensed" "json" "list" "one_line" "two_line" "unspecified"].
 
 Optional:
 
 - `columns` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--columns))
-- `data_mode_type` (String) The data mode type. Can be one of ["unspecified" "archive"].
+- `data_mode_type` (String) The data mode type. Can be one of ["archive" "unspecified"].
 - `order_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--order_by))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query"></a>
@@ -1611,7 +1611,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans--operator"></a>
@@ -1789,7 +1789,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--operator"></a>
@@ -1831,8 +1831,8 @@ Read-Only:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "max" "min" "percentile_50" "percentile_95" "percentile_99" "sum" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unique_count" "unspecified"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1843,7 +1843,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 
@@ -1867,7 +1867,7 @@ Optional:
 Optional:
 
 - `field` (String)
-- `order_direction` (String) The order direction. Can be one of ["desc" "asc"].
+- `order_direction` (String) The order direction. Can be one of ["asc" "desc" "unspecified"].
 
 
 
@@ -1877,16 +1877,16 @@ Optional:
 Required:
 
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query))
-- `unit` (String) The unit of the gauge. Can be one of ["usd" "milliseconds" "mbytes" "bytes_iec" "mibytes" "none" "kbytes" "seconds" "gbytes" "kibytes" "euro" "euro_cents" "usd_cents" "percent" "microseconds" "bytes" "gibytes"].
+- `unit` (String) The unit of the gauge. Can be one of ["bytes" "bytes_iec" "custom" "euro" "euro_cents" "gbytes" "gibytes" "kbytes" "kibytes" "mbytes" "mibytes" "microseconds" "milliseconds" "nanoseconds" "none" "percent" "percent01" "percent100" "seconds" "unspecified" "usd" "usd_cents"].
 
 Optional:
 
-- `data_mode_type` (String) The data mode type. Can be one of ["unspecified" "archive"].
+- `data_mode_type` (String) The data mode type. Can be one of ["archive" "unspecified"].
 - `max` (Number)
 - `min` (Number)
 - `show_inner_arc` (Boolean)
 - `show_outer_arc` (Boolean)
-- `threshold_by` (String) The threshold by. Can be one of ["value" "background" "unspecified"].
+- `threshold_by` (String) The threshold by. Can be one of ["background" "unspecified" "value"].
 - `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--thresholds))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query"></a>
@@ -1986,7 +1986,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans--operator"></a>
@@ -2083,7 +2083,7 @@ Required:
 
 Optional:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["unspecified" "last" "min" "max" "avg" "sum"].
+- `aggregation` (String) The type of aggregation. Can be one of ["avg" "last" "max" "min" "sum" "unspecified"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters"></a>
@@ -2135,7 +2135,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--operator"></a>
@@ -2156,8 +2156,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "max" "min" "percentile_50" "percentile_95" "percentile_99" "sum" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unique_count" "unspecified"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -2188,7 +2188,7 @@ Optional:
 - `scale_type` (String)
 - `sort_by` (String)
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of unspecified, mbytes, gibytes, usd_cents, gbytes, bytes_iec, kibytes, usd, microseconds, milliseconds, seconds, euro_cents, bytes, kbytes, mibytes, euro.
+- `unit` (String) The unit of the chart. Can be one of bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
 - `y_axis_view_by` (String)
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query"></a>
@@ -2347,8 +2347,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "max" "min" "percentile_50" "percentile_95" "percentile_99" "sum" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unique_count" "unspecified"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -2366,7 +2366,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--operator"></a>
@@ -2388,7 +2388,7 @@ Optional:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--stacked_group_name"></a>
@@ -2397,7 +2397,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 
@@ -2438,10 +2438,10 @@ Optional:
 - `is_visible` (Boolean)
 - `name` (String)
 - `resolution` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--resolution))
-- `scale_type` (String) The scale type. Valid values are: unspecified, linear, logarithmic.
+- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
 - `series_count_limit` (Number)
 - `series_name_template` (String)
-- `unit` (String) The unit. Valid values are: unspecified, mbytes, gibytes, usd_cents, gbytes, bytes_iec, kibytes, usd, microseconds, milliseconds, seconds, euro_cents, bytes, kbytes, mibytes, euro.
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
 
 Read-Only:
 
@@ -2579,8 +2579,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "max" "min" "percentile_50" "percentile_95" "percentile_99" "sum" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unique_count" "unspecified"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -2598,7 +2598,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--operator"></a>
@@ -2620,7 +2620,7 @@ Optional:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 
@@ -2640,10 +2640,10 @@ Optional:
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, unspecified, min, max, sum.
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. False by default.
-- `placement` (String) The placement of the legend. Valid values are: auto, bottom, side, hidden, unspecified.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--tooltip"></a>
@@ -2652,7 +2652,7 @@ Optional:
 Optional:
 
 - `show_labels` (Boolean)
-- `type` (String) The tooltip type. Valid values are: unspecified, all, single.
+- `type` (String) The tooltip type. Valid values are: all, single, unspecified.
 
 
 
@@ -2690,7 +2690,7 @@ Optional:
 Optional:
 
 - `is_visible` (Boolean)
-- `label_source` (String) The source of the label. Valid values are: unspecified, inner, stack
+- `label_source` (String) The source of the label. Valid values are: inner, stack, unspecified
 - `show_name` (Boolean)
 - `show_percentage` (Boolean)
 - `show_value` (Boolean)
@@ -2798,7 +2798,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans--operator"></a>
@@ -2963,8 +2963,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["min" "max" "avg" "sum" "percentile_99" "percentile_95" "percentile_50" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "max" "min" "percentile_50" "percentile_95" "percentile_99" "sum" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unique_count" "unspecified"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -2982,7 +2982,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--operator"></a>
@@ -3004,7 +3004,7 @@ Optional:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--stacked_group_name"></a>
@@ -3013,7 +3013,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 
@@ -3084,7 +3084,7 @@ Optional:
 
 Required:
 
-- `values_order_direction` (String) The order direction of the values. Can be one of `desc`, `asc`.
+- `values_order_direction` (String) The order direction of the values. Can be one of `asc`, `desc`, `unspecified`.
 
 Optional:
 
@@ -3291,7 +3291,7 @@ Required:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
 
@@ -3312,4 +3312,4 @@ Optional:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]

@@ -90,7 +90,6 @@ func OldProvider() *oldSchema.Provider {
 
 		DataSourcesMap: map[string]*oldSchema.Resource{
 			"coralogix_rules_group":      dataSourceCoralogixRulesGroup(),
-			"coralogix_alert":            dataSourceCoralogixAlert(),
 			"coralogix_enrichment":       dataSourceCoralogixEnrichment(),
 			"coralogix_data_set":         dataSourceCoralogixDataSet(),
 			"coralogix_hosted_dashboard": dataSourceCoralogixHostedDashboard(),
@@ -98,7 +97,6 @@ func OldProvider() *oldSchema.Provider {
 
 		ResourcesMap: map[string]*oldSchema.Resource{
 			"coralogix_rules_group":      resourceCoralogixRulesGroup(),
-			"coralogix_alert":            resourceCoralogixAlert(),
 			"coralogix_enrichment":       resourceCoralogixEnrichment(),
 			"coralogix_data_set":         resourceCoralogixDataSet(),
 			"coralogix_hosted_dashboard": resourceCoralogixHostedDashboard(),
@@ -328,6 +326,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewTeamDataSource,
 		NewScopeDataSource,
 		NewIntegrationDataSource,
+		NewAlertDataSource,
 	}
 }
 
@@ -353,5 +352,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewUserResource,
 		NewScopeResource,
 		NewIntegrationResource,
+		NewAlertResource,
 	}
 }
