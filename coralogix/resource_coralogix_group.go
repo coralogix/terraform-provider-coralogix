@@ -311,7 +311,7 @@ type GroupResourceModel struct {
 	ScopeID     types.String `tfsdk:"scope_id"`
 }
 
-func extractGroup(ctx context.Context, plan *GroupResourceModel) (*cxsdk.SCIMGroup, diag.Diagnostics) {
+func extractGroup(ctx context.Context, plan *GroupResourceModel) (*cxsdk.Group, diag.Diagnostics) {
 	members, diags := extractGroupMembers(ctx, plan.Members)
 	if diags.HasError() {
 		return nil, diags
