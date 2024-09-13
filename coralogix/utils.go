@@ -516,6 +516,10 @@ func flattenTimeframe(timeMS int) []interface{} {
 	}}
 }
 
+func objIsNullOrUnknown(obj types.Object) bool {
+	return obj.IsNull() || obj.IsUnknown()
+}
+
 func sliceToString(data []string) string {
 	b, _ := json.Marshal(data)
 	return fmt.Sprintf("%v", string(b))
@@ -819,4 +823,20 @@ func convertSchemaWithoutID(rs resourceschema.Schema) datasourceschema.Schema {
 		MarkdownDescription: rs.MarkdownDescription,
 		DeprecationMessage:  rs.DeprecationMessage,
 	}
+}
+
+func typeStringToWrapperspbUint32(str types.String) (*wrapperspb.UInt32Value, diag2.Diagnostics) {
+	parsed, err := strconv.ParseUint(str.ValueString(), 10, 32)
+	if err != nil {
+		return nil, diag2.Diagnostics{diag2.NewErrorDiagnostic("Failed to convert string to uint32", err.Error())}
+	}
+	return wrapperspb.UInt32(uint32(parsed)), nil
+}
+
+func WrapperspbUint32ToString(num *wrapperspb.UInt32Value) types.String {
+	if num == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(strconv.FormatUint(uint64(num.GetValue()), 10))
+
 }
