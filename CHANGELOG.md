@@ -674,3 +674,10 @@ Fix:
 
 ### resource/coralogix_webhook
 * Replaced depracated MS Teams webhook with MS Teams Workflow Webhook.
+
+## Release 1.18.6
+
+New Features:
+
+### resource/coralogix_rules_group
+* added support for `text` option for `json_extract` rule type.

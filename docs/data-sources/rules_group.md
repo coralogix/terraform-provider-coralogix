@@ -31,7 +31,7 @@ data "coralogix_rules_group" "imported_rules_group_example" {
 - `hidden` (Boolean)
 - `id` (String) The ID of this resource.
 - `name` (String) Rule-group name
-- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default will be added last.
+- `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing).
 - `rule_subgroups` (List of Object) List of rule-subgroups. Every rule-subgroup is list of rules with 'or' (||) operation between. (see [below for nested schema](#nestedatt--rule_subgroups))
 - `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["Warning" "Error" "Critical" "Debug" "Verbose" "Info"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.
@@ -114,6 +114,7 @@ Read-Only:
 - `active` (Boolean)
 - `description` (String)
 - `destination_field` (String)
+- `destination_field_text` (String)
 - `id` (String)
 - `json_key` (String)
 - `name` (String)
@@ -193,5 +194,3 @@ Read-Only:
 - `regular_expression` (String)
 - `replacement_string` (String)
 - `source_field` (String)
-
-
