@@ -35,7 +35,8 @@ resource "coralogix_rules_group" "rules_group_example" {
         name              = "Worker to category"
         description       = "Extracts value from 'worker' and populates 'Category'"
         json_key          = "worker"
-        destination_field = "Category"
+        destination_field = "Text"
+        destination_field_text = "text.free_text"
       }
     }
 

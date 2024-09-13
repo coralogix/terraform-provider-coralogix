@@ -45,15 +45,16 @@ var (
 	}
 	rulesProtoSeverityToSchemaSeverity                 = reverseMapStrings(rulesSchemaSeverityToProtoSeverity)
 	rulesValidSeverities                               = getKeysStrings(rulesSchemaSeverityToProtoSeverity)
-	rulesSchemaDestinationFieldToProtoDestinationField = map[string]string{
-		"Category": "DESTINATION_FIELD_CATEGORY_OR_UNSPECIFIED",
-		"Class":    "DESTINATION_FIELD_CLASSNAME",
-		"Method":   "DESTINATION_FIELD_METHODNAME",
-		"ThreadID": "DESTINATION_FIELD_THREADID",
-		"Severity": "DESTINATION_FIELD_SEVERITY",
+	rulesSchemaDestinationFieldToProtoDestinationField = map[string]rulesv1.JsonExtractParameters_DestinationField{
+		"Category": rulesv1.JsonExtractParameters_DESTINATION_FIELD_CATEGORY_OR_UNSPECIFIED,
+		"Class":    rulesv1.JsonExtractParameters_DESTINATION_FIELD_CLASSNAME,
+		"Method":   rulesv1.JsonExtractParameters_DESTINATION_FIELD_METHODNAME,
+		"ThreadID": rulesv1.JsonExtractParameters_DESTINATION_FIELD_THREADID,
+		"Severity": rulesv1.JsonExtractParameters_DESTINATION_FIELD_SEVERITY,
+		"Text":     rulesv1.JsonExtractParameters_DESTINATION_FIELD_TEXT,
 	}
-	rulesProtoDestinationFieldToSchemaDestinationField = reverseMapStrings(rulesSchemaDestinationFieldToProtoDestinationField)
-	rulesValidDestinationFields                        = getKeysStrings(rulesSchemaDestinationFieldToProtoDestinationField)
+	rulesProtoDestinationFieldToSchemaDestinationField = ReverseMap(rulesSchemaDestinationFieldToProtoDestinationField)
+	rulesValidDestinationFields                        = GetKeys(rulesSchemaDestinationFieldToProtoDestinationField)
 	rulesSchemaFormatStandardToProtoFormatStandard     = map[string]string{
 		"Strftime": "FORMAT_STANDARD_STRFTIME_OR_UNSPECIFIED",
 		"JavaSDF":  "FORMAT_STANDARD_JAVASDF",
@@ -315,6 +316,11 @@ func jsonExtractSchema() map[string]*schema.Schema {
 		ValidateFunc: validation.StringInSlice(rulesValidDestinationFields, false),
 		Description: fmt.Sprintf("The field that will be populated by the results of RegEx operation."+
 			"Can be one of %s.", fmt.Sprint(rulesValidDestinationFields)),
+	}
+	jsonExtractSchema["destination_field_text"] = &schema.Schema{
+		Type:        schema.TypeString,
+		Optional:    true,
+		Description: "Required when destination_field is 'Text'. should be either 'text' or 'text.<some value>'",
 	}
 	jsonExtractSchema["json_key"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -778,9 +784,12 @@ func expandParameters(ruleType string, m map[string]interface{}) *rulesv1.RulePa
 		ruleParametersExtractParameters := rulesv1.RuleParameters_ExtractParameters{ExtractParameters: &extractParameters}
 		ruleParameters.RuleParameters = &ruleParametersExtractParameters
 	case "json_extract":
-		destinationField := expandDestinationField(m["destination_field"].(string))
+		destinationField := rulesSchemaDestinationFieldToProtoDestinationField[m["destination_field"].(string)]
 		rule := wrapperspb.String(m["json_key"].(string))
-		jsonExtractParameters := rulesv1.JsonExtractParameters{DestinationField: destinationField, Rule: rule}
+		jsonExtractParameters := rulesv1.JsonExtractParameters{DestinationFieldType: destinationField, Rule: rule}
+		if destinationField == rulesv1.JsonExtractParameters_DESTINATION_FIELD_TEXT {
+			jsonExtractParameters.DestinationFieldText = wrapperspb.String(m["destination_field_text"].(string))
+		}
 		ruleParametersJsonExtractParameters := rulesv1.RuleParameters_JsonExtractParameters{JsonExtractParameters: &jsonExtractParameters}
 		ruleParameters.RuleParameters = &ruleParametersJsonExtractParameters
 	case "replace":
@@ -837,12 +846,6 @@ func expandParameters(ruleType string, m map[string]interface{}) *rulesv1.RulePa
 	}
 
 	return &ruleParameters
-}
-
-func expandDestinationField(destinationField string) rulesv1.JsonExtractParameters_DestinationField {
-	destinationFieldStr := rulesSchemaDestinationFieldToProtoDestinationField[destinationField]
-	destinationFieldVal := rulesv1.JsonExtractParameters_DestinationField_value[destinationFieldStr]
-	return rulesv1.JsonExtractParameters_DestinationField(destinationFieldVal)
 }
 
 func expandFieldFormatStandard(formatStandard string) rulesv1.ExtractTimestampParameters_FormatStandard {
@@ -927,7 +930,10 @@ func flattenRule(r *rulesv1.Rule) (map[string]interface{}, error) {
 		ruleType = "json_extract"
 		jsonExtractParameters := ruleParams.JsonExtractParameters
 		rule["json_key"] = jsonExtractParameters.GetRule().GetValue()
-		rule["destination_field"] = rulesProtoDestinationFieldToSchemaDestinationField[jsonExtractParameters.GetDestinationField().String()]
+		rule["destination_field"] = rulesProtoDestinationFieldToSchemaDestinationField[jsonExtractParameters.GetDestinationFieldType()]
+		if jsonExtractParameters.GetDestinationFieldType() == rulesv1.JsonExtractParameters_DESTINATION_FIELD_TEXT {
+			rule["destination_field_text"] = jsonExtractParameters.GetDestinationFieldText().GetValue()
+		}
 	case *rulesv1.RuleParameters_ReplaceParameters:
 		ruleType = "replace"
 		replaceParameters := ruleParams.ReplaceParameters

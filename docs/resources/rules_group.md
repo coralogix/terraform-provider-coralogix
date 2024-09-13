@@ -330,7 +330,7 @@ Read-Only:
 
 Required:
 
-- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [Class Method ThreadID Severity Category].
+- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [Method ThreadID Severity Text Category Class].
 - `json_key` (String) JSON key to extract its value directly into a Coralogix metadata field.
 - `name` (String) The rule name.
 
@@ -338,6 +338,7 @@ Optional:
 
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
+- `destination_field_text` (String) Required when destination_field is 'Text'. should be either 'text' or 'text.<some value>'
 - `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
