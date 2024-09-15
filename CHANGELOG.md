@@ -681,3 +681,10 @@ New Features:
 
 ### resource/coralogix_rules_group
 * added support for `text` option for `json_extract` rule type.
+
+## Release 1.18.7
+
+New Features:
+
+### data-source/coralogix_webhook
+* Added support for searching by webhook name.
