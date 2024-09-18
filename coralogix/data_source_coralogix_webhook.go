@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,15 +20,17 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
+	"terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
 
-	"google.golang.org/protobuf/encoding/protojson"
-
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -69,6 +71,21 @@ func (d *WebhookDataSource) Schema(ctx context.Context, _ datasource.SchemaReque
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+
+	if idAttr, ok := resp.Schema.Attributes["id"].(schema.StringAttribute); ok {
+		idAttr.Required = false
+		idAttr.Optional = true
+		idAttr.Validators = []validator.String{
+			stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("name")),
+		}
+		resp.Schema.Attributes["id"] = idAttr
+	}
+
+	if nameAttr, ok := resp.Schema.Attributes["name"].(schema.StringAttribute); ok {
+		nameAttr.Required = false
+		nameAttr.Optional = true
+		resp.Schema.Attributes["name"] = nameAttr
+	}
 }
 
 func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -78,10 +95,77 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	//Get refreshed Webhook value from Coralogix
 	id := data.ID.ValueString()
-	log.Printf("[INFO] Reading Webhook: %s", id)
+	name := data.Name.ValueString()
 
+	var getWebhookResp *webhooks.GetOutgoingWebhookResponse
+	var err error
+
+	if id != "" {
+		getWebhookResp, err = d.fetchWebhookByID(ctx, id, resp)
+		if err != nil {
+			return
+		}
+
+	} else if name != "" {
+		log.Printf("[INFO] Listing Webhooks to find by name: %s", name)
+		listWebhookReq := &webhooks.ListAllOutgoingWebhooksRequest{}
+		listWebhookResp, err := d.client.ListWebhooks(ctx, listWebhookReq)
+		if err != nil {
+			log.Printf("[ERROR] Received error when listing webhooks: %s", err.Error())
+			listWebhookReqStr := protojson.Format(listWebhookReq)
+			resp.Diagnostics.AddError(
+				"Error listing Webhooks",
+				formatRpcErrors(err, "ListWebhooks", listWebhookReqStr),
+			)
+			return
+		}
+
+		var webhookID string
+		var found bool
+		for _, webhookSummary := range listWebhookResp.GetDeployed() {
+			if webhookSummary.GetName().GetValue() == name {
+				if found {
+					resp.Diagnostics.AddError(
+						"Multiple Webhooks Found",
+						fmt.Sprintf("Multiple webhooks found with name %q", name),
+					)
+					return
+				}
+				found = true
+				log.Printf("[INFO] Found Webhook ID by name: %s", webhookSummary.GetId().GetValue())
+				webhookID = webhookSummary.GetId().GetValue()
+			}
+		}
+
+		if webhookID == "" {
+			resp.Diagnostics.AddError(
+				"Webhook Not Found",
+				fmt.Sprintf("No webhook found with name %q", name),
+			)
+			return
+		}
+
+		getWebhookResp, err = d.fetchWebhookByID(ctx, webhookID, resp)
+		if err != nil {
+			return
+		}
+	}
+
+	log.Printf("[INFO] Received Webhook: %s", protojson.Format(getWebhookResp))
+
+	data, diags := flattenWebhook(ctx, getWebhookResp.GetWebhook())
+	if diags.HasError() {
+		resp.Diagnostics = diags
+		return
+	}
+
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+}
+
+func (d *WebhookDataSource) fetchWebhookByID(ctx context.Context, id string, resp *datasource.ReadResponse) (*webhooks.GetOutgoingWebhookResponse, error) {
+	log.Printf("[INFO] Reading Webhook by ID: %s", id)
 	getWebhookReq := &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(id)}
 	getWebhookResp, err := d.client.GetWebhook(ctx, getWebhookReq)
 	if err != nil {
@@ -98,15 +182,7 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 				formatRpcErrors(err, "Webhook", reqStr),
 			)
 		}
-		return
+		return nil, err
 	}
-	log.Printf("[INFO] Received Webhook: %s", protojson.Format(getWebhookResp))
-
-	data, diags := flattenWebhook(ctx, getWebhookResp.GetWebhook())
-	if diags.HasError() {
-		resp.Diagnostics = diags
-		return
-	}
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	return getWebhookResp, nil
 }
