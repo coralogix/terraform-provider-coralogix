@@ -569,30 +569,6 @@ func getKeysInt32(m map[string]int32) []string {
 	return result
 }
 
-func getKeysRelativeTimeFrame(m map[string]protoTimeFrameAndRelativeTimeFrame) []string {
-	result := make([]string, 0)
-	for k := range m {
-		result = append(result, k)
-	}
-	return result
-}
-
-func reverseMapStrings(m map[string]string) map[string]string {
-	n := make(map[string]string)
-	for k, v := range m {
-		n[v] = k
-	}
-	return n
-}
-
-func reverseMapRelativeTimeFrame(m map[string]protoTimeFrameAndRelativeTimeFrame) map[protoTimeFrameAndRelativeTimeFrame]string {
-	n := make(map[protoTimeFrameAndRelativeTimeFrame]string)
-	for k, v := range m {
-		n[v] = k
-	}
-	return n
-}
-
 func strToUint32(str string) uint32 {
 	n, _ := strconv.ParseUint(str, 10, 32)
 	return uint32(n)
