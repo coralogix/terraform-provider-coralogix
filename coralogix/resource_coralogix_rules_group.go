@@ -43,8 +43,8 @@ var (
 		"Error":    "VALUE_ERROR",
 		"Critical": "VALUE_CRITICAL",
 	}
-	rulesProtoSeverityToSchemaSeverity                 = reverseMapStrings(rulesSchemaSeverityToProtoSeverity)
-	rulesValidSeverities                               = getKeysStrings(rulesSchemaSeverityToProtoSeverity)
+	rulesProtoSeverityToSchemaSeverity                 = ReverseMap(rulesSchemaSeverityToProtoSeverity)
+	rulesValidSeverities                               = GetKeys(rulesSchemaSeverityToProtoSeverity)
 	rulesSchemaDestinationFieldToProtoDestinationField = map[string]rulesv1.JsonExtractParameters_DestinationField{
 		"Category": rulesv1.JsonExtractParameters_DESTINATION_FIELD_CATEGORY_OR_UNSPECIFIED,
 		"Class":    rulesv1.JsonExtractParameters_DESTINATION_FIELD_CLASSNAME,
@@ -64,8 +64,8 @@ var (
 		"MicroTS":  "FORMAT_STANDARD_MICROTS",
 		"NanoTS":   "FORMAT_STANDARD_NANOTS",
 	}
-	rulesProtoFormatStandardToSchemaFormatStandard = reverseMapStrings(rulesSchemaFormatStandardToProtoFormatStandard)
-	rulesValidFormatStandards                      = getKeysStrings(rulesSchemaFormatStandardToProtoFormatStandard)
+	rulesProtoFormatStandardToSchemaFormatStandard = ReverseMap(rulesSchemaFormatStandardToProtoFormatStandard)
+	rulesValidFormatStandards                      = GetKeys(rulesSchemaFormatStandardToProtoFormatStandard)
 	createParsingRuleURL                           = "com.coralogix.rules.v1.RuleGroupsService/CreateRuleGroup"
 	getParsingRuleURL                              = "com.coralogix.rules.v1.RuleGroupsService/GetRuleGroup"
 	updateParsingRuleURL                           = "com.coralogix.rules.v1.RuleGroupsService/UpdateRuleGroup"

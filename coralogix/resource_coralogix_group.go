@@ -129,7 +129,7 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		)
 		return
 	}
-	getResp, err := r.client.GetGroup(ctx, createResp.ID)
+	getResp, err := r.client.Get(ctx, createResp.GroupId)
 	groupStr, _ = json.Marshal(getResp)
 	log.Printf("[INFO] Getting group: %s", groupStr)
 	state, diags := flattenSCIMGroup(getResp)
@@ -305,11 +305,11 @@ func (r *GroupResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 }
 
 type GroupResourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	DisplayName types.String `tfsdk:"display_name"`
-	Members     types.Set    `tfsdk:"members"` // Set of strings
-	Role        types.String `tfsdk:"role"`
-	ScopeID     types.String `tfsdk:"scope_id"`
+	ID      types.String `tfsdk:"id"`
+	Name    types.String `tfsdk:"display_name"`
+	Members types.Set    `tfsdk:"members"` // Set of strings
+	Role    types.String `tfsdk:"role"`
+	ScopeID types.String `tfsdk:"scope_id"`
 }
 
 func extractGroup(ctx context.Context, plan *GroupResourceModel) (*cxsdk.Group, diag.Diagnostics) {
@@ -318,11 +318,11 @@ func extractGroup(ctx context.Context, plan *GroupResourceModel) (*cxsdk.Group, 
 		return nil, diags
 	}
 
-	return &cxsdk.SCIMGroup{
-		DisplayName: plan.DisplayName.ValueString(),
-		Members:     members,
-		Role:        plan.Role.ValueString(),
-		ScopeID:     plan.ScopeID.ValueString(),
+	return &cxsdk.TeamGroup{
+		Name:    plan.Name.ValueString(),
+		Members: members,
+		Role:    plan.Role.ValueString(),
+		ScopeID: plan.ScopeID.ValueString(),
 	}, nil
 }
 

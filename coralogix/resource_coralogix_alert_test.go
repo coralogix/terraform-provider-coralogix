@@ -22,11 +22,12 @@ import (
 	"fmt"
 	"testing"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	alertsv3 "terraform-provider-coralogix/coralogix/clientset/grpc/alerts/v3"
 )
 
 var alertResourceName = "coralogix_alert.test"
@@ -1329,13 +1330,13 @@ func testAccCheckAlertDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &alertsv3.GetAlertDefRequest{
+		req := &cxsdk.GetAlertDefRequest{
 			Id: wrapperspb.String(rs.Primary.ID),
 		}
 
 		resp, err := client.GetAlert(ctx, req)
 		if err == nil {
-			if resp.GetAlertDef().Id.Value == rs.Primary.ID {
+			if resp.GetAlert().Id.Value == rs.Primary.ID {
 				return fmt.Errorf("alert still exists: %s", rs.Primary.ID)
 			}
 		}
