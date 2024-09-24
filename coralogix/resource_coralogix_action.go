@@ -42,8 +42,8 @@ var (
 	_                                       resource.ResourceWithConfigure   = &ActionResource{}
 	_                                       resource.ResourceWithImportState = &ActionResource{}
 	actionSchemaSourceTypeToProtoSourceType                                  = map[string]cxsdk.SourceType{
-		"Log":     cxsdk.SourceTypeSourceTypeLog,
-		"DataMap": cxsdk.SourceTypeSourceTypeDataMap,
+		"Log":     cxsdk.SourceTypeLog,
+		"DataMap": cxsdk.SourceTypeDataMap,
 	}
 	actionProtoSourceTypeToSchemaSourceType = ReverseMap(actionSchemaSourceTypeToProtoSourceType)
 	actionValidSourceTypes                  = GetKeys(actionSchemaSourceTypeToProtoSourceType)

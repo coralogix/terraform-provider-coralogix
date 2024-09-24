@@ -518,7 +518,7 @@ func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*cx
 	return &cxsdk.CreateAPIKeyRequest{
 		Name:  apiKeyModel.Name.ValueString(),
 		Owner: &owner,
-		KeyPermissions: &cxsdk.APIKeyPermissionsCreate{
+		KeyPermissions: &cxsdk.APIKeyPermissions{
 			Presets:     presets,
 			Permissions: permissions,
 		},
