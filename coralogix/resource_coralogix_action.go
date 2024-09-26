@@ -280,7 +280,7 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				formatRpcErrors(err, getActionURL, protojson.Format(getActionReq)),
+				formatRpcErrors(err, cxsdk.GetActionRpc, protojson.Format(getActionReq)),
 			)
 		}
 		return
