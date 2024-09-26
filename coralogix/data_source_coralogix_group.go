@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-//
+// 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//
+// 
 //     https://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,14 +19,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strconv"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/encoding/protojson"
+	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 var _ datasource.DataSourceWithConfigure = &GroupDataSource{}
@@ -36,7 +34,7 @@ func NewGroupDataSource() datasource.DataSource {
 }
 
 type GroupDataSource struct {
-	client *cxsdk.GroupsClient
+	client *clientset.GroupsClient
 }
 
 func (d *GroupDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -48,11 +46,11 @@ func (d *GroupDataSource) Configure(_ context.Context, req datasource.ConfigureR
 		return
 	}
 
-	clientSet, ok := req.ProviderData.(*cxsdk.ClientSet)
+	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *cxsdk.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
@@ -76,16 +74,9 @@ func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 	//Get refreshed Group value from Coralogix
-	id, _ := strconv.ParseUint(data.ID.ValueString(), 10, 32)
-
-	request := cxsdk.GetTeamGroupRequest{
-		GroupId: &cxsdk.GroupsTeamGroupID{
-			Id: id,
-		},
-	}
-
+	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading Group: %s", id)
-	getGroupResp, err := d.client.Get(ctx, request)
+	getGroupResp, err := d.client.GetGroup(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -94,10 +85,9 @@ func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", id),
 			)
 		} else {
-
 			resp.Diagnostics.AddError(
-				"Error reading API Keys",
-				formatRpcErrors(err, cxsdk.GetTeamGroupRpc, protojson.Format(request)),
+				"Error reading Group",
+				formatRpcErrors(err, fmt.Sprintf("%s/%s", d.client.TargetUrl, id), ""),
 			)
 		}
 		return
