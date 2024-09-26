@@ -134,7 +134,7 @@ func resourceSchemaV1() schema.Schema {
 					},
 				},
 				Required:            true,
-				MarkdownDescription: "Api Key Owner.It can either be a team_id or a user_id ",
+				MarkdownDescription: "Api Key Owner. It can either be a team_id or a user_id ",
 			},
 
 			"active": schema.BoolAttribute{
@@ -209,7 +209,7 @@ func resourceSchemaV0() schema.Schema {
 					},
 				},
 				Required:            true,
-				MarkdownDescription: "Api Key Owner.It can either be a team_id or a user_id ",
+				MarkdownDescription: "Api Key Owner. It can either be a team_id or a user_id ",
 			},
 
 			"active": schema.BoolAttribute{
