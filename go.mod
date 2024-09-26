@@ -2,12 +2,9 @@ module terraform-provider-coralogix
 
 go 1.23
 
-toolchain go1.23.0
-
-replace github.com/coralogix/coralogix-management-sdk => ../coralogix-management-sdk
-
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
+	github.com/coralogix/coralogix-management-sdk v0.2.2-0.20240926124132-1adf5d665a2e
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
@@ -24,7 +21,6 @@ require (
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v3 v3.0.1
-	github.com/coralogix/coralogix-management-sdk v0.2.2-0.20240828115216-6f699f7a4510 
 )
 
 require (
