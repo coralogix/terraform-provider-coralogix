@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-//
+// 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//
+// 
 //     https://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,7 +20,8 @@ import (
 	"fmt"
 	"log"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -34,7 +35,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func NewGroupResource() resource.Resource {
@@ -42,7 +42,7 @@ func NewGroupResource() resource.Resource {
 }
 
 type GroupResource struct {
-	client *cxsdk.GroupsClient
+	client *clientset.GroupsClient
 }
 
 func (r *GroupResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -54,11 +54,11 @@ func (r *GroupResource) Configure(_ context.Context, req resource.ConfigureReque
 		return
 	}
 
-	clientSet, ok := req.ProviderData.(*cxsdk.ClientSet)
+	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *cxsdk.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
@@ -120,16 +120,16 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 	groupStr, _ := json.Marshal(createGroupRequest)
 	log.Printf("[INFO] Creating new group: %s", string(groupStr))
-	createResp, err := r.client.Create(ctx, createGroupRequest)
+	createResp, err := r.client.CreateGroup(ctx, createGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Group",
-			formatRpcErrors(err, cxsdk.CreateTeamGroupRpc, protojson.Format(groupStr)),
+			formatRpcErrors(err, r.client.TargetUrl, string(groupStr)),
 		)
 		return
 	}
-	getResp, err := r.client.Get(ctx, createResp.GroupId)
+	getResp, err := r.client.GetGroup(ctx, createResp.ID)
 	groupStr, _ = json.Marshal(getResp)
 	log.Printf("[INFO] Getting group: %s", groupStr)
 	state, diags := flattenSCIMGroup(getResp)
@@ -143,7 +143,7 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenSCIMGroup(group *cxsdk.GroupsTeamGroup) (*GroupResourceModel, diag.Diagnostics) {
+func flattenSCIMGroup(group *clientset.SCIMGroup) (*GroupResourceModel, diag.Diagnostics) {
 	members, diags := flattenSCIMGroupMembers(group.Members)
 	if diags.HasError() {
 		return nil, diags
@@ -163,7 +163,7 @@ func flattenSCIMGroup(group *cxsdk.GroupsTeamGroup) (*GroupResourceModel, diag.D
 	}, nil
 }
 
-func flattenSCIMGroupMembers(members []cxsdk.SCIMGroupMember) (types.Set, diag.Diagnostics) {
+func flattenSCIMGroupMembers(members []clientset.SCIMGroupMember) (types.Set, diag.Diagnostics) {
 	if len(members) == 0 {
 		return types.SetNull(types.StringType), nil
 	}
@@ -305,30 +305,30 @@ func (r *GroupResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 }
 
 type GroupResourceModel struct {
-	ID      types.String `tfsdk:"id"`
-	Name    types.String `tfsdk:"display_name"`
-	Members types.Set    `tfsdk:"members"` // Set of strings
-	Role    types.String `tfsdk:"role"`
-	ScopeID types.String `tfsdk:"scope_id"`
+	ID          types.String `tfsdk:"id"`
+	DisplayName types.String `tfsdk:"display_name"`
+	Members     types.Set    `tfsdk:"members"` // Set of strings
+	Role        types.String `tfsdk:"role"`
+	ScopeID     types.String `tfsdk:"scope_id"`
 }
 
-func extractGroup(ctx context.Context, plan *GroupResourceModel) (*cxsdk.Group, diag.Diagnostics) {
+func extractGroup(ctx context.Context, plan *GroupResourceModel) (*clientset.SCIMGroup, diag.Diagnostics) {
 	members, diags := extractGroupMembers(ctx, plan.Members)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.TeamGroup{
-		Name:    plan.Name.ValueString(),
-		Members: members,
-		Role:    plan.Role.ValueString(),
-		ScopeID: plan.ScopeID.ValueString(),
+	return &clientset.SCIMGroup{
+		DisplayName: plan.DisplayName.ValueString(),
+		Members:     members,
+		Role:        plan.Role.ValueString(),
+		ScopeID:     plan.ScopeID.ValueString(),
 	}, nil
 }
 
-func extractGroupMembers(ctx context.Context, members types.Set) ([]cxsdk.SCIMGroupMember, diag.Diagnostics) {
+func extractGroupMembers(ctx context.Context, members types.Set) ([]clientset.SCIMGroupMember, diag.Diagnostics) {
 	membersElements := members.Elements()
-	groupMembers := make([]cxsdk.SCIMGroupMember, 0, len(membersElements))
+	groupMembers := make([]clientset.SCIMGroupMember, 0, len(membersElements))
 	var diags diag.Diagnostics
 	for _, member := range membersElements {
 		val, err := member.ToTerraformValue(ctx)
@@ -342,7 +342,7 @@ func extractGroupMembers(ctx context.Context, members types.Set) ([]cxsdk.SCIMGr
 			diags.AddError("Failed to convert value to string", err.Error())
 			continue
 		}
-		groupMembers = append(groupMembers, cxsdk.SCIMGroupMember{Value: str})
+		groupMembers = append(groupMembers, clientset.SCIMGroupMember{Value: str})
 	}
 	if diags.HasError() {
 		return nil, diags
