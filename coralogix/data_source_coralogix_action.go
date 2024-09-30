@@ -90,7 +90,7 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				formatRpcErrors(err, cxsdk.GetActionRpc, protojson.Format(getActionReq)),
+				formatRpcErrors(err, cxsdk.GetActionRPC, protojson.Format(getActionReq)),
 			)
 		}
 		return

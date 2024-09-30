@@ -277,7 +277,7 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Api Key",
-			formatRpcErrors(err, cxsdk.CreateAPIKeyRpc, protojson.Format(createApiKeyRequest)),
+			formatRpcErrors(err, cxsdk.CreateAPIKeyRPC, protojson.Format(createApiKeyRequest)),
 		)
 		return
 	}
@@ -375,7 +375,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Api Key",
-			formatRpcErrors(err, cxsdk.UpdateAPIKeyRpc, protojson.Format(&updateApiKeyRequest)),
+			formatRpcErrors(err, cxsdk.UpdateAPIKeyRPC, protojson.Format(&updateApiKeyRequest)),
 		)
 		return
 	}
@@ -408,7 +408,7 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error getting Api Key",
-			formatRpcErrors(err, cxsdk.DeleteAPIKeyRpc, protojson.Format(deleteApiKeyRequest)),
+			formatRpcErrors(err, cxsdk.DeleteAPIKeyRPC, protojson.Format(deleteApiKeyRequest)),
 		)
 		return
 	}
@@ -434,7 +434,7 @@ func (r *ApiKeyResource) getKeyInfo(ctx context.Context, id *string, keyValue *s
 		} else {
 			diags.AddError(
 				"Error getting Api Key",
-				formatRpcErrors(err, cxsdk.GetAPIKeyRpc, protojson.Format(getApiKeyRequest)),
+				formatRpcErrors(err, cxsdk.GetAPIKeyRPC, protojson.Format(getApiKeyRequest)),
 			)
 		}
 		return nil, diags
