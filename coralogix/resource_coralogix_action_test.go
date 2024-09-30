@@ -17,6 +17,7 @@ package coralogix
 import (
 	"context"
 	"fmt"
+	"terraform-provider-coralogix/coralogix/clientset"
 	"testing"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
@@ -100,7 +101,7 @@ func testAccCheckActionDestroy(s *terraform.State) error {
 	testAccProvider = OldProvider()
 	rc := terraform2.ResourceConfig{}
 	testAccProvider.Configure(context.Background(), &rc)
-	client := testAccProvider.Meta().(*cxsdk.ClientSet).Actions()
+	client := testAccProvider.Meta().(*clientset.ClientSet).Actions()
 	ctx := context.TODO()
 
 	for _, rs := range s.RootModule().Resources {
