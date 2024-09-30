@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,9 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	"terraform-provider-coralogix/coralogix/clientset"
-	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
-
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -102,7 +100,7 @@ func testAccCheckActionDestroy(s *terraform.State) error {
 	testAccProvider = OldProvider()
 	rc := terraform2.ResourceConfig{}
 	testAccProvider.Configure(context.Background(), &rc)
-	client := testAccProvider.Meta().(*clientset.ClientSet).Actions()
+	client := testAccProvider.Meta().(*cxsdk.ClientSet).Actions()
 	ctx := context.TODO()
 
 	for _, rs := range s.RootModule().Resources {
@@ -110,11 +108,11 @@ func testAccCheckActionDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &actions.GetActionRequest{
+		req := &cxsdk.GetActionRequest{
 			Id: wrapperspb.String(rs.Primary.ID),
 		}
 
-		resp, err := client.GetAction(ctx, req)
+		resp, err := client.Get(ctx, req)
 		if err == nil {
 			if resp.Action.Id.Value == rs.Primary.ID {
 				return fmt.Errorf("action still exists: %s", rs.Primary.ID)
