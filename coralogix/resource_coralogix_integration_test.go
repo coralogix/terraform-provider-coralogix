@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	integrations "terraform-provider-coralogix/coralogix/clientset/grpc/integrations"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -51,7 +51,7 @@ func testAccCheckIntegrationDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := client.Get(ctx, &integrations.GetDeployedIntegrationRequest{
+		_, err := client.Get(ctx, &cxsdk.GetDeployedIntegrationRequest{
 			IntegrationId: wrapperspb.String(rs.Primary.ID),
 		})
 		if err == nil {
