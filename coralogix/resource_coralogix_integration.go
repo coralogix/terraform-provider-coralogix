@@ -40,10 +40,10 @@ import (
 )
 
 var (
-	createIntegrationsUrl = cxsdk.CreateIntegrationRPC
-	deleteIntegrationsUrl = cxsdk.IntegrationService_DeleteIntegration_FullMethodName
-	getIntegrationsUrl    = cxsdk.IntegrationService_GetDeployedIntegration_FullMethodName
-	updateIntegrationsUrl = cxsdk.IntegrationService_UpdateIntegration_FullMethodName
+	createIntegrationsUrl = cxsdk.SaveIntegrationRPC
+	deleteIntegrationsUrl = cxsdk.DeleteIntegrationRPC
+	getIntegrationsUrl    = cxsdk.GetDeployedIntegrationRPC
+	updateIntegrationsUrl = cxsdk.UpdateIntegrationRPC
 )
 
 func NewIntegrationResource() resource.Resource {
