@@ -148,7 +148,7 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 	return &ClientSet{
 		apikeys:             cxsdk.NewAPIKeysClient(apiKeySdk),
 		actions:             cxsdk.NewActionsClient(apiKeySdk),
-		integrations:        cxsdk.NewIntegrationsClient(apikeyCPC),
+		integrations:        cxsdk.NewIntegrationsClient(apiKeySdk),
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
 		alerts:              cxsdk.NewAlertsClient(apiKeySdk),
 		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),

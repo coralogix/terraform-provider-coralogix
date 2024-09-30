@@ -20,7 +20,8 @@ import (
 	"log"
 	"math/big"
 	"terraform-provider-coralogix/coralogix/clientset"
-	integrations "terraform-provider-coralogix/coralogix/clientset/grpc/integrations"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -39,10 +40,10 @@ import (
 )
 
 var (
-	createIntegrationsUrl = integrations.IntegrationService_SaveIntegration_FullMethodName
-	deleteIntegrationsUrl = integrations.IntegrationService_DeleteIntegration_FullMethodName
-	getIntegrationsUrl    = integrations.IntegrationService_GetDeployedIntegration_FullMethodName
-	updateIntegrationsUrl = integrations.IntegrationService_UpdateIntegration_FullMethodName
+	createIntegrationsUrl = cxsdk.CreateIntegrationRPC
+	deleteIntegrationsUrl = cxsdk.IntegrationService_DeleteIntegration_FullMethodName
+	getIntegrationsUrl    = cxsdk.IntegrationService_GetDeployedIntegration_FullMethodName
+	updateIntegrationsUrl = cxsdk.IntegrationService_UpdateIntegration_FullMethodName
 )
 
 func NewIntegrationResource() resource.Resource {
@@ -50,7 +51,7 @@ func NewIntegrationResource() resource.Resource {
 }
 
 type IntegrationResource struct {
-	client *clientset.IntegrationsClient
+	client *cxsdk.IntegrationsClient
 }
 
 func (r *IntegrationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -132,7 +133,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	result, testErr := r.client.TestIntegration(ctx, &integrations.TestIntegrationRequest{
+	result, testErr := r.client.Test(ctx, &cxsdk.TestIntegrationRequest{
 		IntegrationData: createReq.Metadata,
 	})
 	log.Printf("[INFO] Creating new Integration: %s", protojson.Format(createReq))
@@ -143,7 +144,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	fail, hasFailed := result.Result.Result.(*integrations.TestIntegrationResult_Failure_)
+	fail, hasFailed := result.Result.Result.(*cxsdk.IntegrationTestFail)
 	if hasFailed {
 		newDiags := diag.Diagnostics{diag.NewErrorDiagnostic("Invalid integration configuration", fmt.Sprintf("API responded with an error: %v", fail.Failure.ErrorMessage))}
 		resp.Diagnostics.Append(newDiags...)
@@ -161,7 +162,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 	}
 	log.Printf("[INFO] Submitted new integration: %s", protojson.Format(createResp))
 
-	getIntegrationReq := &integrations.GetDeployedIntegrationRequest{
+	getIntegrationReq := &cxsdk.GetDeployedIntegrationRequest{
 		IntegrationId: createResp.IntegrationId,
 	}
 	log.Printf("[INFO] Getting new Integration: %s", protojson.Format(getIntegrationReq))
@@ -186,17 +187,17 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(diags...)
 }
 
-func extractCreateIntegration(ctx context.Context, plan *IntegrationResourceModel) (*integrations.SaveIntegrationRequest, diag.Diagnostics) {
+func extractCreateIntegration(ctx context.Context, plan *IntegrationResourceModel) (*cxsdk.SaveIntegrationRequest, diag.Diagnostics) {
 	parameters, diags := dynamicToParameters(ctx, plan.Parameters)
 	if diags.HasError() {
 		return nil, diags
 	}
-	return &integrations.SaveIntegrationRequest{
-		Metadata: &integrations.IntegrationMetadata{
+	return &cxsdk.SaveIntegrationRequest{
+		Metadata: &cxsdk.IntegrationMetadata{
 			IntegrationKey: wrapperspb.String(plan.IntegrationKey.ValueString()),
 			Version:        wrapperspb.String(plan.Version.ValueString()),
-			SpecificData: &integrations.IntegrationMetadata_IntegrationParameters{
-				IntegrationParameters: &integrations.GenericIntegrationParameters{
+			SpecificData: &cxsdk.IntegrationMetadataIntegrationParameters{
+				IntegrationParameters: &cxsdk.GenericIntegrationParameters{
 					Parameters: parameters,
 				},
 			},
@@ -204,19 +205,19 @@ func extractCreateIntegration(ctx context.Context, plan *IntegrationResourceMode
 	}, diag.Diagnostics{}
 }
 
-func extractUpdateIntegration(ctx context.Context, plan *IntegrationResourceModel) (*integrations.UpdateIntegrationRequest, diag.Diagnostics) {
+func extractUpdateIntegration(ctx context.Context, plan *IntegrationResourceModel) (*cxsdk.UpdateIntegrationRequest, diag.Diagnostics) {
 
 	parameters, diags := dynamicToParameters(ctx, plan.Parameters)
 	if diags.HasError() {
 		return nil, diags
 	}
-	return &integrations.UpdateIntegrationRequest{
+	return &cxsdk.UpdateIntegrationRequest{
 		Id: wrapperspb.String(plan.ID.ValueString()),
-		Metadata: &integrations.IntegrationMetadata{
+		Metadata: &cxsdk.IntegrationMetadata{
 			IntegrationKey: wrapperspb.String(plan.IntegrationKey.ValueString()),
 			Version:        wrapperspb.String(plan.Version.ValueString()),
-			SpecificData: &integrations.IntegrationMetadata_IntegrationParameters{
-				IntegrationParameters: &integrations.GenericIntegrationParameters{
+			SpecificData: &cxsdk.IntegrationMetadataIntegrationParameters{
+				IntegrationParameters: &cxsdk.GenericIntegrationParameters{
 					Parameters: parameters,
 				},
 			},
@@ -224,8 +225,8 @@ func extractUpdateIntegration(ctx context.Context, plan *IntegrationResourceMode
 	}, diag.Diagnostics{}
 }
 
-func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*integrations.Parameter, diag.Diagnostics) {
-	parameters := make([]*integrations.Parameter, 0)
+func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*cxsdk.IntegrationParameter, diag.Diagnostics) {
+	parameters := make([]*cxsdk.IntegrationParameter, 0)
 
 	switch p := planParameters.UnderlyingValue().(type) {
 	case types.Object:
@@ -234,21 +235,21 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 		for key, value := range obj.Attributes() {
 			switch v := value.(type) {
 			case types.String:
-				parameters = append(parameters, &integrations.Parameter{
+				parameters = append(parameters, &cxsdk.IntegrationParameter{
 					Key:   key,
-					Value: &integrations.Parameter_StringValue{StringValue: wrapperspb.String(v.ValueString())},
+					Value: &cxsdk.IntegrationParameterStringValue{StringValue: wrapperspb.String(v.ValueString())},
 				})
 			case types.Number:
 				f, _ := v.ValueBigFloat().Float64()
-				parameters = append(parameters, &integrations.Parameter{
+				parameters = append(parameters, &cxsdk.IntegrationParameter{
 					Key:   key,
-					Value: &integrations.Parameter_NumericValue{NumericValue: wrapperspb.Double(f)},
+					Value: &cxsdk.IntegrationParameterNumericValue{NumericValue: wrapperspb.Double(f)},
 				})
 			case types.Bool:
 				b := v.ValueBool()
-				parameters = append(parameters, &integrations.Parameter{
+				parameters = append(parameters, &cxsdk.IntegrationParameter{
 					Key:   key,
-					Value: &integrations.Parameter_BooleanValue{BooleanValue: wrapperspb.Bool(b)},
+					Value: &cxsdk.IntegrationParameterBooleanValue{BooleanValue: wrapperspb.Bool(b)},
 				})
 			case types.Tuple:
 
@@ -265,10 +266,10 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 
 				}
 
-				parameters = append(parameters, &integrations.Parameter{
+				parameters = append(parameters, &cxsdk.IntegrationParameter{
 					Key: key,
-					Value: &integrations.Parameter_StringList_{
-						StringList: &integrations.Parameter_StringList{
+					Value: &cxsdk.IntegrationParameterStringList{
+						StringList: &cxsdk.IntegrationParameterStringListInner{
 							Values: strings,
 						}},
 				})
@@ -282,7 +283,7 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 	return parameters, diag.Diagnostics{}
 }
 
-func integrationDetail(resp *integrations.GetDeployedIntegrationResponse) (*IntegrationResourceModel, diag.Diagnostics) {
+func integrationDetail(resp *cxsdk.GetDeployedIntegrationResponse) (*IntegrationResourceModel, diag.Diagnostics) {
 
 	integration := resp.Integration
 	parameters, diags := parametersToDynamic(integration.GetParameters())
@@ -298,24 +299,24 @@ func integrationDetail(resp *integrations.GetDeployedIntegrationResponse) (*Inte
 	}, diag.Diagnostics{}
 }
 
-func parametersToDynamic(parameters []*integrations.Parameter) (types.Dynamic, diag.Diagnostics) {
+func parametersToDynamic(parameters []*cxsdk.IntegrationParameter) (types.Dynamic, diag.Diagnostics) {
 	obj := make(map[string]attr.Value, len(parameters))
 	t := make(map[string]attr.Type, len(parameters))
 	for _, parameter := range parameters {
 		switch v := parameter.Value.(type) {
-		case *integrations.Parameter_StringValue:
+		case *cxsdk.IntegrationParameterStringValue:
 			obj[parameter.Key] = types.StringValue(v.StringValue.Value)
 			t[parameter.Key] = types.StringType
-		case *integrations.Parameter_ApiKey:
+		case *cxsdk.IntegrationParameterAPIKey:
 			obj[parameter.Key] = types.StringValue(v.ApiKey.Value.Value)
 			t[parameter.Key] = types.StringType
-		case *integrations.Parameter_NumericValue:
+		case *cxsdk.IntegrationParameterNumericValue:
 			obj[parameter.Key] = types.NumberValue(big.NewFloat(v.NumericValue.Value))
 			t[parameter.Key] = types.NumberType
-		case *integrations.Parameter_BooleanValue:
+		case *cxsdk.IntegrationParameterBooleanValue:
 			obj[parameter.Key] = types.BoolValue(v.BooleanValue.Value)
 			t[parameter.Key] = types.BoolType
-		case *integrations.Parameter_StringList_:
+		case *cxsdk.IntegrationParameterStringList:
 			values := make([]attr.Value, len(v.StringList.Values))
 			assignedTypes := make([]attr.Type, len(v.StringList.Values))
 			for i, value := range v.StringList.Values {
@@ -344,7 +345,7 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	getIntegrationReq := &integrations.GetDeployedIntegrationRequest{
+	getIntegrationReq := &cxsdk.GetDeployedIntegrationRequest{
 		IntegrationId: wrapperspb.String(plan.ID.ValueString()),
 	}
 	log.Printf("[INFO] Reading Integration: %s", protojson.Format(getIntegrationReq))
@@ -392,7 +393,7 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 	log.Printf("[INFO] Updating Integration: %s", protojson.Format(updateReq))
 
-	_, testErr := r.client.TestIntegration(ctx, &integrations.TestIntegrationRequest{
+	_, testErr := r.client.Test(ctx, &cxsdk.TestIntegrationRequest{
 		IntegrationData: updateReq.Metadata,
 	})
 	if testErr != nil {
@@ -412,7 +413,7 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 
 	log.Printf("[INFO] Updated scope: %s", plan.ID.ValueString())
 
-	getIntegrationReq := &integrations.GetDeployedIntegrationRequest{
+	getIntegrationReq := &cxsdk.GetDeployedIntegrationRequest{
 		IntegrationId: wrapperspb.String(plan.ID.ValueString()),
 	}
 	getIntegrationResp, err := r.client.Get(ctx, getIntegrationReq)
@@ -445,7 +446,7 @@ func (r *IntegrationResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	log.Printf("[INFO] Deleting Integration: %s", state.ID.ValueString())
 
-	deleteReq := &integrations.DeleteIntegrationRequest{IntegrationId: wrapperspb.String(state.ID.ValueString())}
+	deleteReq := &cxsdk.DeleteIntegrationRequest{IntegrationId: wrapperspb.String(state.ID.ValueString())}
 	log.Printf("[INFO] Deleting Integration: %s", protojson.Format(deleteReq))
 	_, err := r.client.Delete(ctx, deleteReq)
 	if err != nil {
