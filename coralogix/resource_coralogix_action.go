@@ -309,7 +309,7 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Action %s", id),
-			formatRpcErrors(err, cxsdk.DeleteActionRPC, protojson.Format(deleteReq)),
+			formatRpcErrors(err, cxsdk.RemoveActionRPC, protojson.Format(deleteReq)), // TODO update with IAC-151
 		)
 		return
 	}
