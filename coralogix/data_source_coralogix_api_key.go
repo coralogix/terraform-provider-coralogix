@@ -93,7 +93,7 @@ func (d *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading API Keys",
-				formatRpcErrors(err, cxsdk.GetAPIKeyRpc, protojson.Format(getApiKey)),
+				formatRpcErrors(err, cxsdk.GetAPIKeyRPC, protojson.Format(getApiKey)),
 			)
 		}
 		return

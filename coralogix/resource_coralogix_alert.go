@@ -40,10 +40,10 @@ import (
 var (
 	_              resource.ResourceWithConfigure   = &AlertResource{}
 	_              resource.ResourceWithImportState = &AlertResource{}
-	createAlertURL                                  = cxsdk.CreateAlertDefRpc
-	updateAlertURL                                  = cxsdk.ReplaceAlertDefRpc
-	getAlertURL                                     = cxsdk.GetAlertDefRpc
-	deleteAlertURL                                  = cxsdk.DeleteAlertDefRpc
+	createAlertURL                                  = cxsdk.CreateAlertDefRPC
+	updateAlertURL                                  = cxsdk.ReplaceAlertDefRPC
+	getAlertURL                                     = cxsdk.GetAlertDefRPC
+	deleteAlertURL                                  = cxsdk.DeleteAlertDefRPC
 
 	alertPriorityProtoToSchemaMap = map[cxsdk.AlertDefPriority]string{
 		cxsdk.AlertDefPriorityP5OrUnspecified: "P5",
@@ -760,7 +760,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 											Validators: []validator.String{
 												stringvalidator.OneOf(validLogsTimeWindowValues...),
 											},
-											MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", validLogsTimeWindowValues),
+											MarkdownDescription: fmt.Sprintf("Time window to evaluate the threshold with. Valid values: %q.", validLogsTimeWindowValues),
 										},
 										"minimum_threshold": schema.Float64Attribute{
 											Required: true,
@@ -823,7 +823,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 											Validators: []validator.String{
 												stringvalidator.OneOf(validLogsNewValueTimeWindowValues...),
 											},
-											MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", validLogsNewValueTimeWindowValues),
+											MarkdownDescription: fmt.Sprintf("Time window to evaluate the threshold with. Valid values: %q.", validLogsNewValueTimeWindowValues),
 										},
 									},
 								},
@@ -850,7 +850,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 											Validators: []validator.String{
 												stringvalidator.OneOf(validLogsUniqueCountTimeWindowValues...),
 											},
-											MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", validLogsUniqueCountTimeWindowValues),
+											MarkdownDescription: fmt.Sprintf("Time window to evaluate the threshold with. Valid values: %q.", validLogsUniqueCountTimeWindowValues),
 										},
 										"unique_count_keypath": schema.StringAttribute{Required: true},
 										"max_unique_count":     schema.Int64Attribute{Required: true},
@@ -866,7 +866,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 						},
 					},
-					"logs_time_relative": schema.SingleNestedAttribute{
+					"logs_time_relative_threshold": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
 							"logs_filter":                  logsFilterSchema(),
@@ -877,6 +877,13 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								Validators: []validator.List{listvalidator.SizeAtLeast(1)},
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
+										"condition": schema.StringAttribute{
+											Required: true,
+											Validators: []validator.String{
+												stringvalidator.OneOf(logsTimeRelativeConditionValues...),
+											},
+											MarkdownDescription: fmt.Sprintf("Condition . Valid values: %q.", logsTimeRelativeConditionValues),
+										},
 										"threshold": schema.Float64Attribute{
 											Required: true,
 										},
@@ -997,7 +1004,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 											Validators: []validator.String{
 												stringvalidator.OneOf(validTracingTimeWindow...),
 											},
-											MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", validTracingTimeWindow),
+											MarkdownDescription: fmt.Sprintf("Time window to evaluate the threshold with. Valid values: %q.", validTracingTimeWindow),
 										},
 									},
 									// Condition type is missing since there is only a single type to be filled in
@@ -1198,16 +1205,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				ElementType: types.StringType,
 			},
 		},
-	}
-}
-
-func timeRelativeCompareTo() schema.StringAttribute {
-	return schema.StringAttribute{
-		Required: true,
-		Validators: []validator.String{
-			stringvalidator.OneOf(validLogsTimeRelativeComparedTo...),
-		},
-		MarkdownDescription: fmt.Sprintf("Compared to. Valid values: %q.", validLogsTimeRelativeComparedTo),
 	}
 }
 
@@ -4309,12 +4306,6 @@ func logsThresholdRulesAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"threshold":   types.Float64Type,
 		"time_window": types.StringType,
-	}
-}
-
-func logsTimeWindowAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"specific_value": types.StringType,
 	}
 }
 

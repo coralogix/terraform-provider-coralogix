@@ -173,7 +173,7 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err)
 		resp.Diagnostics.AddError("Error creating Action",
-			formatRpcErrors(err, cxsdk.CreateActionRpc, actionStr),
+			formatRpcErrors(err, cxsdk.CreateActionRPC, actionStr),
 		)
 		return
 	}
@@ -225,7 +225,7 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				formatRpcErrors(err, cxsdk.GetActionRpc, protojson.Format(getActionReq)),
+				formatRpcErrors(err, cxsdk.GetActionRPC, protojson.Format(getActionReq)),
 			)
 		}
 		return
@@ -259,7 +259,7 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Action",
-			formatRpcErrors(err, cxsdk.ReplaceActionRpc, protojson.Format(actionUpdateReq)),
+			formatRpcErrors(err, cxsdk.ReplaceActionRPC, protojson.Format(actionUpdateReq)),
 		)
 		return
 	}
@@ -280,7 +280,7 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				formatRpcErrors(err, cxsdk.GetActionRpc, protojson.Format(getActionReq)),
+				formatRpcErrors(err, cxsdk.GetActionRPC, protojson.Format(getActionReq)),
 			)
 		}
 		return
@@ -308,7 +308,7 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Action %s", id),
-			formatRpcErrors(err, cxsdk.DeleteActionRpc, protojson.Format(deleteReq)),
+			formatRpcErrors(err, cxsdk.DeleteActionRPC, protojson.Format(deleteReq)),
 		)
 		return
 	}
