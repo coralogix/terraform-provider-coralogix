@@ -22,6 +22,8 @@ import (
 	"terraform-provider-coralogix/coralogix/clientset"
 	integrations "terraform-provider-coralogix/coralogix/clientset/grpc/integrations"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -29,8 +31,9 @@ import (
 )
 
 var (
-	_                 datasource.DataSourceWithConfigure = &IntegrationDataSource{}
-	getIntegrationURL                                    = integrations.IntegrationService_GetDeployedIntegration_FullMethodName
+	_ datasource.DataSourceWithConfigure = &IntegrationDataSource{}
+	// TODO move this into cxsdk
+	getIntegrationURL = integrations.IntegrationService_GetDeployedIntegration_FullMethodName
 )
 
 func NewIntegrationDataSource() datasource.DataSource {
@@ -38,7 +41,7 @@ func NewIntegrationDataSource() datasource.DataSource {
 }
 
 type IntegrationDataSource struct {
-	client *clientset.IntegrationsClient
+	client *cxsdk.IntegrationsClient
 }
 
 func (d *IntegrationDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -78,7 +81,7 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 		return
 	}
 
-	getIntegrationReq := &integrations.GetDeployedIntegrationRequest{
+	getIntegrationReq := &cxsdk.GetDeployedIntegrationRequest{
 		IntegrationId: wrapperspb.String(data.ID.ValueString()),
 	}
 	log.Printf("[INFO] Reading Integrations: %s", protojson.Format(getIntegrationReq))

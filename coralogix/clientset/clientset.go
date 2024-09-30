@@ -19,9 +19,11 @@ import (
 )
 
 type ClientSet struct {
-	actions             *cxsdk.ActionsClient
-	alerts              *cxsdk.AlertsClient
-	apikeys             *cxsdk.ApikeysClient
+	actions      *cxsdk.ActionsClient
+	alerts       *cxsdk.AlertsClient
+	apikeys      *cxsdk.ApikeysClient
+	integrations *cxsdk.IntegrationsClient
+
 	ruleGroups          *RuleGroupsClient
 	enrichments         *EnrichmentsClient
 	dataSet             *DataSetClient
@@ -42,7 +44,6 @@ type ClientSet struct {
 	users               *UsersClient
 	customRole          *RolesClient
 	scopes              *ScopesClient
-	integrations        *IntegrationsClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -136,7 +137,7 @@ func (c *ClientSet) Scopes() *ScopesClient {
 	return c.scopes
 }
 
-func (c *ClientSet) Integrations() *IntegrationsClient {
+func (c *ClientSet) Integrations() *cxsdk.IntegrationsClient {
 	return c.integrations
 }
 
@@ -147,6 +148,7 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 	return &ClientSet{
 		apikeys:             cxsdk.NewAPIKeysClient(apiKeySdk),
 		actions:             cxsdk.NewActionsClient(apiKeySdk),
+		integrations:        cxsdk.NewIntegrationsClient(apikeyCPC),
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
 		alerts:              cxsdk.NewAlertsClient(apiKeySdk),
 		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
@@ -168,6 +170,5 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		users:               NewUsersClient(apikeyCPC),
 		customRole:          NewRolesClient(apikeyCPC),
 		scopes:              NewScopesClient(apikeyCPC),
-		integrations:        NewIntegrationsClient(apikeyCPC),
 	}
 }

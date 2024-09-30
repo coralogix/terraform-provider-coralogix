@@ -300,8 +300,10 @@ type AlertResourceModel struct {
 	Description       types.String `tfsdk:"description"`
 	Enabled           types.Bool   `tfsdk:"enabled"`
 	Priority          types.String `tfsdk:"priority"`
-	Schedule          types.Object `tfsdk:"schedule"`           // AlertScheduleModel
-	TypeDefinition    types.Object `tfsdk:"type_definition"`    // AlertTypeDefinitionModel
+	Schedule          types.Object `tfsdk:"schedule"`        // AlertScheduleModel
+	TypeDefinition    types.Object `tfsdk:"type_definition"` // AlertTypeDefinitionModel
+	Deleted           types.Bool   `tfsdk:"deleted"`
+	PhantomMode       types.Bool   `tfsdk:"phantom_mode"`
 	Type              types.String `tfsdk:"type"`               // AlertType
 	GroupBy           types.Set    `tfsdk:"group_by"`           // []types.String
 	IncidentsSettings types.Object `tfsdk:"incidents_settings"` // IncidentsSettingsModel
