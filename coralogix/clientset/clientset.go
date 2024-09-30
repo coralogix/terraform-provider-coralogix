@@ -14,9 +14,14 @@
 
 package clientset
 
+import (
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+)
+
 type ClientSet struct {
+	actions             *cxsdk.ActionsClient
+	alerts              *cxsdk.AlertsClient
 	ruleGroups          *RuleGroupsClient
-	alerts              *AlertsClient
 	enrichments         *EnrichmentsClient
 	dataSet             *DataSetClient
 	dashboards          *DashboardsClient
@@ -43,10 +48,13 @@ func (c *ClientSet) RuleGroups() *RuleGroupsClient {
 	return c.ruleGroups
 }
 
-func (c *ClientSet) Alerts() *AlertsClient {
+func (c *ClientSet) Alerts() *cxsdk.AlertsClient {
 	return c.alerts
 }
 
+func (c *ClientSet) Actions() *cxsdk.ActionsClient {
+	return c.actions
+}
 func (c *ClientSet) Enrichments() *EnrichmentsClient {
 	return c.enrichments
 }
@@ -129,10 +137,12 @@ func (c *ClientSet) Integrations() *IntegrationsClient {
 
 func NewClientSet(targetUrl, apiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
+	apiKeySdk := cxsdk.NewCallPropertiesCreator(targetUrl, cxsdk.NewAuthContext(apiKey, apiKey))
 
 	return &ClientSet{
+		actions:             cxsdk.NewActionsClient(apiKeySdk),
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
-		alerts:              NewAlertsClient(apikeyCPC),
+		alerts:              cxsdk.NewAlertsClient(apiKeySdk),
 		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
 		enrichments:         NewEnrichmentClient(apikeyCPC),
 		dataSet:             NewDataSetClient(apikeyCPC),
