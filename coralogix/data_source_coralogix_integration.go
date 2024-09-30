@@ -20,7 +20,6 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	integrations "terraform-provider-coralogix/coralogix/clientset/grpc/integrations"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -31,9 +30,8 @@ import (
 )
 
 var (
-	_ datasource.DataSourceWithConfigure = &IntegrationDataSource{}
-	// TODO move this into cxsdk
-	getIntegrationURL = integrations.IntegrationService_GetDeployedIntegration_FullMethodName
+	_                 datasource.DataSourceWithConfigure = &IntegrationDataSource{}
+	getIntegrationURL                                    = cxsdk.GetDeployedIntegrationRPC
 )
 
 func NewIntegrationDataSource() datasource.DataSource {
