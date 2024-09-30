@@ -3,6 +3,7 @@ package coralogix
 import (
 	"context"
 	"fmt"
+	"terraform-provider-coralogix/coralogix/clientset"
 	"testing"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
@@ -1302,7 +1303,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 }
 
 func testAccCheckAlertDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*cxsdk.ClientSet).Alerts()
+	client := testAccProvider.Meta().(*clientset.ClientSet).Alerts()
 
 	ctx := context.TODO()
 
