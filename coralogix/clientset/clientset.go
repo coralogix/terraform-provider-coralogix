@@ -21,6 +21,7 @@ import (
 type ClientSet struct {
 	actions             *cxsdk.ActionsClient
 	alerts              *cxsdk.AlertsClient
+	apikeys             *cxsdk.ApikeysClient
 	ruleGroups          *RuleGroupsClient
 	enrichments         *EnrichmentsClient
 	dataSet             *DataSetClient
@@ -50,6 +51,10 @@ func (c *ClientSet) RuleGroups() *RuleGroupsClient {
 
 func (c *ClientSet) Alerts() *cxsdk.AlertsClient {
 	return c.alerts
+}
+
+func (c *ClientSet) APIKeys() *cxsdk.ApikeysClient {
+	return c.apikeys
 }
 
 func (c *ClientSet) Actions() *cxsdk.ActionsClient {
@@ -140,6 +145,7 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 	apiKeySdk := cxsdk.NewCallPropertiesCreator(targetUrl, cxsdk.NewAuthContext(apiKey, apiKey))
 
 	return &ClientSet{
+		apikeys:             cxsdk.NewAPIKeysClient(apiKeySdk),
 		actions:             cxsdk.NewActionsClient(apiKeySdk),
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
 		alerts:              cxsdk.NewAlertsClient(apiKeySdk),
