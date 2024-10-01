@@ -416,30 +416,37 @@ type LogsUniqueCountRuleModel struct {
 }
 
 type LogsTimeRelativeThresholdModel struct {
-	Rules                      types.List   `tfsdk:"rules"`                        // []RuleModel
+	Rules                      types.List   `tfsdk:"rules"`                        // []RuleLogsTimeRelativeModel
 	LogsFilter                 types.Object `tfsdk:"logs_filter"`                  // AlertsLogsFilterModel
 	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
 }
 
 type MetricThresholdModel struct {
-	Rules                      types.List   `tfsdk:"rules"`                        // []MetricRule
+	Rules                      types.List   `tfsdk:"rules"`                        // []MetricThresholdRule
 	MetricFilter               types.Object `tfsdk:"metric_filter"`                // MetricFilterModel
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
 }
 
-type MetricRule struct {
+type MetricUnusualRuleModel struct {
 	Threshold           types.Float64 `tfsdk:"threshold"`
 	ForOverPct          types.Int64   `tfsdk:"for_over_pct"`
 	OfTheLast           types.String  `tfsdk:"of_the_last"`
 	Condition           types.String  `tfsdk:"condition"`
 	MinNonNullValuesPct types.Int64   `tfsdk:"min_non_null_values_pct"`
-	MissingValues       types.Object  `tfsdk:"missing_values"` // MetricMissingValuesModel
+}
+
+type MetricThresholdRuleModel struct {
+	Threshold     types.Float64 `tfsdk:"threshold"`
+	ForOverPct    types.Int64   `tfsdk:"for_over_pct"`
+	OfTheLast     types.String  `tfsdk:"of_the_last"`
+	Condition     types.String  `tfsdk:"condition"`
+	MissingValues types.Object  `tfsdk:"missing_values"` // MetricMissingValuesModel
 }
 
 type MetricUnusualModel struct {
 	MetricFilter types.Object `tfsdk:"metric_filter"` // MetricFilterModel
-	Rules        types.List   `tfsdk:"rules"`         // []MetricRule
+	Rules        types.List   `tfsdk:"rules"`         // []MetricUnusualRuleModel
 }
 
 type MetricImmediateModel struct {
@@ -533,6 +540,12 @@ type RuleModel struct {
 	Condition      types.String  `tfsdk:"condition"`
 	Threshold      types.Float64 `tfsdk:"threshold"`
 	TimeWindow     types.String  `tfsdk:"time_window"`
+	IgnoreInfinity types.Bool    `tfsdk:"ignore_infinity"`
+}
+
+type RuleLogsTimeRelativeModel struct {
+	ComparedTo     types.String  `tfsdk:"compared_to"`
+	Threshold      types.Float64 `tfsdk:"threshold"`
 	IgnoreInfinity types.Bool    `tfsdk:"ignore_infinity"`
 }
 
@@ -2237,7 +2250,7 @@ func extractLogSeverities(ctx context.Context, elements []attr.Value) ([]cxsdk.L
 }
 
 func expandLogsThresholdTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, thresholdObject types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
-	if thresholdObject.IsNull() || thresholdObject.IsUnknown() {
+	if objIsNullOrUnknown(thresholdObject) {
 		return properties, nil
 	}
 
@@ -2315,7 +2328,7 @@ func extractThresholdRules(ctx context.Context, elements types.List) ([]*cxsdk.L
 }
 
 func extractUndetectedValuesManagement(ctx context.Context, management types.Object) (*cxsdk.UndetectedValuesManagement, diag.Diagnostics) {
-	if management.IsNull() || management.IsUnknown() {
+	if objIsNullOrUnknown(management) {
 		return nil, nil
 	}
 
@@ -2658,6 +2671,10 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 		return nil, diags
 	}
 
+	undetected, diags := extractUndetectedValuesManagement(ctx, relativeThresholdModel.UndetectedValuesManagement)
+	if diags.HasError() {
+		return nil, diags
+	}
 	notificationPayloadFilter, diags := typeStringSliceToWrappedStringSlice(ctx, relativeThresholdModel.NotificationPayloadFilter.Elements())
 	if diags.HasError() {
 		return nil, diags
@@ -2669,9 +2686,10 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 	}
 	properties.TypeDefinition = &cxsdk.AlertDefPropertiesLogsTimeRelativeThreshold{
 		LogsTimeRelativeThreshold: &cxsdk.LogsTimeRelativeThresholdType{
-			LogsFilter:                logsFilter,
-			Rules:                     rules,
-			NotificationPayloadFilter: notificationPayloadFilter,
+			LogsFilter:                 logsFilter,
+			Rules:                      rules,
+			NotificationPayloadFilter:  notificationPayloadFilter,
+			UndetectedValuesManagement: undetected,
 		},
 	}
 	properties.Type = cxsdk.AlertDefTypeLogsTimeRelativeThreshold
@@ -2723,10 +2741,16 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *c
 	if diags.HasError() {
 		return nil, diags
 	}
+
+	undetected, diags := extractUndetectedValuesManagement(ctx, metricThresholdModel.UndetectedValuesManagement)
+	if diags.HasError() {
+		return nil, diags
+	}
 	properties.TypeDefinition = &cxsdk.AlertDefPropertiesMetricThreshold{
 		MetricThreshold: &cxsdk.MetricThresholdType{
-			MetricFilter: metricFilter,
-			Rules:        rules,
+			MetricFilter:               metricFilter,
+			Rules:                      rules,
+			UndetectedValuesManagement: undetected,
 		},
 	}
 	properties.Type = cxsdk.AlertDefTypeMetricThreshold
@@ -2740,7 +2764,7 @@ func extractMetricThresholdRules(ctx context.Context, elements types.List) ([]*c
 	var objs []types.Object
 	elements.ElementsAs(ctx, &objs, false)
 	for i, r := range objs {
-		var rule MetricRule
+		var rule MetricThresholdRuleModel
 		if dg := r.As(ctx, &rule, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -3105,7 +3129,7 @@ func extractMetricUnusualRules(ctx context.Context, elements types.List) ([]*cxs
 	var objs []types.Object
 	elements.ElementsAs(ctx, &objs, false)
 	for i, r := range objs {
-		var rule MetricRule
+		var rule MetricUnusualRuleModel
 		if dg := r.As(ctx, &rule, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -3923,9 +3947,9 @@ func flattenLogsTimeRelativeThreshold(ctx context.Context, logsTimeRelativeThres
 		return types.ObjectNull(logsTimeRelativeAttr()), diags
 	}
 
-	rulesRaw := make([]RuleModel, len(logsTimeRelativeThreshold.Rules))
+	rulesRaw := make([]RuleLogsTimeRelativeModel, len(logsTimeRelativeThreshold.Rules))
 	for i, rule := range logsTimeRelativeThreshold.Rules {
-		rulesRaw[i] = RuleModel{
+		rulesRaw[i] = RuleLogsTimeRelativeModel{
 			Threshold:      wrapperspbDoubleToTypeFloat64(rule.Condition.GetThreshold()),
 			ComparedTo:     types.StringValue(logsTimeRelativeComparedToProtoToSchemaMap[rule.Condition.ComparedTo]),
 			IgnoreInfinity: wrapperspbBoolToTypeBool(rule.Condition.GetIgnoreInfinity()),
@@ -3936,10 +3960,17 @@ func flattenLogsTimeRelativeThreshold(ctx context.Context, logsTimeRelativeThres
 	if diags.HasError() {
 		return types.ObjectNull(logsTimeRelativeAttr()), diags
 	}
+
+	undetected, diags := flattenUndetectedValuesManagement(ctx, logsTimeRelativeThreshold.UndetectedValuesManagement)
+	if diags.HasError() {
+		return types.ObjectNull(logsTimeRelativeAttr()), diags
+	}
+
 	logsTimeRelativeThresholdModel := LogsTimeRelativeThresholdModel{
-		LogsFilter:                logsFilter,
-		Rules:                     rules,
-		NotificationPayloadFilter: wrappedStringSliceToTypeStringSet(logsTimeRelativeThreshold.GetNotificationPayloadFilter()),
+		LogsFilter:                 logsFilter,
+		Rules:                      rules,
+		NotificationPayloadFilter:  wrappedStringSliceToTypeStringSet(logsTimeRelativeThreshold.GetNotificationPayloadFilter()),
+		UndetectedValuesManagement: undetected,
 	}
 
 	return types.ObjectValueFrom(ctx, logsTimeRelativeAttr(), logsTimeRelativeThresholdModel)
@@ -3960,14 +3991,14 @@ func flattenMetricThreshold(ctx context.Context, metricThreshold *cxsdk.MetricTh
 		return types.ObjectNull(metricThresholdAttr()), diags
 	}
 
-	rulesRaw := make([]MetricRule, len(metricThreshold.Rules))
+	rulesRaw := make([]MetricThresholdRuleModel, len(metricThreshold.Rules))
 	for i, rule := range metricThreshold.Rules {
 		missingValues, diags := flattenMissingValues(ctx, rule.Condition.MissingValues)
 		if diags.HasError() {
 			return types.ObjectNull(metricThresholdAttr()), diags
 		}
 
-		rulesRaw[i] = MetricRule{
+		rulesRaw[i] = MetricThresholdRuleModel{
 			Threshold:     wrapperspbDoubleToTypeFloat64(rule.Condition.GetThreshold()),
 			ForOverPct:    wrapperspbUint32ToTypeInt64(rule.Condition.GetForOverPct()),
 			OfTheLast:     types.StringValue(metricFilterOperationTypeProtoToSchemaMap[rule.Condition.OfTheLast.GetMetricTimeWindowSpecificValue()]),
@@ -4219,9 +4250,9 @@ func flattenMetricUnusual(ctx context.Context, metricMoreThanUsual *cxsdk.Metric
 		return types.ObjectNull(metricUnusualAttr()), diags
 	}
 
-	rulesRaw := make([]MetricRule, len(metricMoreThanUsual.Rules))
+	rulesRaw := make([]MetricUnusualRuleModel, len(metricMoreThanUsual.Rules))
 	for i, rule := range metricMoreThanUsual.Rules {
-		rulesRaw[i] = MetricRule{
+		rulesRaw[i] = MetricUnusualRuleModel{
 			OfTheLast:           types.StringValue(metricFilterOperationTypeProtoToSchemaMap[rule.Condition.GetOfTheLast().GetMetricTimeWindowSpecificValue()]),
 			Threshold:           wrapperspbDoubleToTypeFloat64(rule.Condition.GetThreshold()),
 			ForOverPct:          wrapperspbUint32ToTypeInt64(rule.Condition.GetForOverPct()),
