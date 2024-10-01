@@ -486,7 +486,7 @@ type FlowStagesGroupsAlertDefsModel struct {
 }
 
 type AlertsLogsFilterModel struct {
-	SimpleFilter types.Object `tfsdk:"simple_filter"` // LuceneFilterModel
+	SimpleFilter types.Object `tfsdk:"simple_filter"` // SimpleFilterModel
 }
 
 type SimpleFilterModel struct {
@@ -2284,7 +2284,7 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *cxsdk.Al
 	return properties, nil
 }
 
-func extractLogsTimeWindow(ctx context.Context, timeWindow types.String) (*cxsdk.LogsTimeWindow, diag.Diagnostics) {
+func extractLogsTimeWindow(timeWindow types.String) (*cxsdk.LogsTimeWindow, diag.Diagnostics) {
 	if timeWindow.IsNull() || timeWindow.IsUnknown() {
 		return nil, nil
 	}
@@ -2307,7 +2307,7 @@ func extractThresholdRules(ctx context.Context, elements types.List) ([]*cxsdk.L
 			diags.Append(dg...)
 			continue
 		}
-		timeWindow, dg := extractLogsTimeWindow(ctx, rule.TimeWindow)
+		timeWindow, dg := extractLogsTimeWindow(rule.TimeWindow)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -2395,7 +2395,7 @@ func extractUnusualRules(ctx context.Context, elements types.List) ([]*cxsdk.Log
 			diags.Append(dg...)
 			continue
 		}
-		timeWindow, dg := extractLogsTimeWindow(ctx, rule.TimeWindow)
+		timeWindow, dg := extractLogsTimeWindow(rule.TimeWindow)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -4435,7 +4435,7 @@ func logsImmediateAttr() map[string]attr.Type {
 
 func logsFilterAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"lucene_filter": types.ObjectType{
+		"simple_filter": types.ObjectType{
 			AttrTypes: luceneFilterAttr(),
 		},
 	}
