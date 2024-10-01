@@ -2106,6 +2106,8 @@ func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
 	  rules = [{
 			threshold         = 2
 			time_window = "10_MINUTES"
+			condition		 = "MORE_THAN"
+
 		}]
     }
   }
@@ -2175,6 +2177,7 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
 	  rules = [ {
 		time_window = "1_HOUR"
 		threshold = 120
+		condition		 = "MORE_THAN"
 	  }
 		]
       group_by_for = "Numerator Only"
@@ -2199,6 +2202,7 @@ func testAccCoralogixResourceAlertLogsRatioLessThan() string {
 				{
 					threshold         = 2
 					time_window       = "10_MINUTES"
+					condition		 = "LESS_THAN"
 				}
 			]
       		group_by_for = "Denominator Only"
@@ -2222,6 +2226,7 @@ func testAccCoralogixResourceAlertLogsRatioLessThanUpdated() string {
 				{
 					threshold         = 20
 					time_window       = "2_HOURS"
+					condition		 = "LESS_THAN"
 				}
 			]
 			undetected_values_management  = {
