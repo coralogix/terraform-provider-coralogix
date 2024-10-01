@@ -505,7 +505,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
 	)
 }
 
-func TestAccCoralogixResourceAlert_logs_ratio_more_than(t *testing.T) {
+func TestAccCoralogixResourceAlert_logs_ratio_threshold(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -526,39 +526,39 @@ func TestAccCoralogixResourceAlert_logs_ratio_more_than(t *testing.T) {
 							"recipients.0": "example@coralogix.com",
 						},
 					),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.denominator_alias", "denominator"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_alias", "numerator"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.time_window", "10_MINUTES"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.threshold", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.simple_filter.lucene_query", "mod_date:[20020101 TO 20030101]"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.simple_filter.label_filters.application_name.*",
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.denominator_alias", "denominator"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.numerator_alias", "numerator"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.time_window", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.threshold", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.denominator.simple_filter.lucene_query", "mod_date:[20020101 TO 20030101]"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.application_name.*",
 						map[string]string{
 							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.simple_filter.label_filters.subsystem_name.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.subsystem_name.*",
 						map[string]string{
 							"operation": "IS",
 							"value":     "subsystem-name",
 						},
 					),
-					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.simple_filter.label_filters.severities.*", "Warning"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.simple_filter.lucene_query", "mod_date:[20030101 TO 20040101]"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.simple_filter.label_filters.application_name.*",
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.severities.*", "Warning"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.numerator.simple_filter.lucene_query", "mod_date:[20030101 TO 20040101]"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.application_name.*",
 						map[string]string{
 							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.simple_filter.label_filters.subsystem_name.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.subsystem_name.*",
 						map[string]string{
 							"operation": "IS",
 							"value":     "subsystem-name",
 						},
 					),
-					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.simple_filter.label_filters.severities.*", "Error"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.group_by_for", "Both"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.severities.*", "Error"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.group_by_for", "Both"),
 				),
 			},
 			{
@@ -587,35 +587,35 @@ func TestAccCoralogixResourceAlert_logs_ratio_more_than(t *testing.T) {
 							"recipients.0": "example@coralogix.com",
 						},
 					),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.denominator_alias", "updated-denominator"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_alias", "updated-numerator"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.time_window", "1_HOUR"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.threshold", "120"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.group_by_for", "Numerator Only"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.simple_filter.lucene_query", "mod_date:[20030101 TO 20040101]"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.simple_filter.label_filters.application_name.*",
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.denominator_alias", "updated-denominator"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.numerator_alias", "updated-numerator"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.time_window", "1_HOUR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.threshold", "120"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.group_by_for", "Numerator Only"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.denominator_logs_filter.simple_filter.lucene_query", "mod_date:[20030101 TO 20040101]"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_threshold.denominator_logs_filter.simple_filter.label_filters.application_name.*",
 						map[string]string{
 							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.denominator_logs_filter.simple_filter.label_filters.subsystem_name.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_threshold.denominator_logs_filter.simple_filter.label_filters.subsystem_name.*",
 						map[string]string{
 							"operation": "IS",
 							"value":     "subsystem-name",
 						},
 					),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.simple_filter.lucene_query", "mod_date:[20040101 TO 20050101]"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.simple_filter.label_filters.application_name.#", "0"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.simple_filter.label_filters.severities.#", "0"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.simple_filter.label_filters.subsystem_name.#", "2"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.simple_filter.label_filters.subsystem_name.*",
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.numerator_logs_filter.simple_filter.lucene_query", "mod_date:[20040101 TO 20050101]"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.numerator_logs_filter.simple_filter.label_filters.application_name.#", "0"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.numerator_logs_filter.simple_filter.label_filters.severities.#", "0"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.numerator_logs_filter.simple_filter.label_filters.subsystem_name.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_threshold.numerator_logs_filter.simple_filter.label_filters.subsystem_name.*",
 						map[string]string{
 							"operation": "ENDS_WITH",
 							"value":     "updated-subsystem-name",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_more_than.numerator_logs_filter.simple_filter.label_filters.subsystem_name.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_threshold.numerator_logs_filter.simple_filter.label_filters.subsystem_name.*",
 						map[string]string{
 							"operation": "NOT",
 							"value":     "subsystem-name",
@@ -1821,10 +1821,10 @@ func testAccCoralogixResourceAlertLogsMoreThanUsual() string {
 
   type_definition = {
     logs_unusual = {
-		rules = [
+		rules = [{
 			threshold   = 2
 			time_window = "10_MINUTES"
-		]
+		}]
       logs_filter = {
         simple_filter = {
           lucene_query  = "message:\"error\""
@@ -1948,11 +1948,11 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 
 	  type_definition = {
 		logs_threshold = {
-			rules = [
+			rules = [{
 				threshold   = 2
 				time_window = "10_MINUTES"
 				condition   = "LESS_THAN"
-			]
+			}]
 			logs_filter       = {
 				simple_filter = {
 					lucene_query  = "message:\"error\""
@@ -2103,10 +2103,10 @@ func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
             }
             }
         }
-	  rules = [
+	  rules = [{
 			threshold         = 2
 			time_window = "10_MINUTES"
-		]
+		}]
     }
   }
 }
@@ -2133,8 +2133,8 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
 
   type_definition = {
     logs_ratio_threshold = {
-      denominator       = "updated-denominator"
-      denominator_logs_filter = {
+      denominator_alias       = "updated-denominator"
+      denominator = {
         simple_filter = {
           lucene_query  = "mod_date:[20030101 TO 20040101]"
           label_filters = {
@@ -2154,8 +2154,8 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
           }
         }
       }
-      numerator       = "updated-numerator"
-      numerator_logs_filter = {
+      numerator_alias       = "updated-numerator"
+      numerator = {
         simple_filter = {
           lucene_query  = "mod_date:[20040101 TO 20050101]"
           label_filters = {
