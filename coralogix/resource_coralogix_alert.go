@@ -700,7 +700,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"notification_payload_filter": notificationPayloadFilterSchema(),
 						},
 						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("logs_threshold"),
 								path.MatchRelative().AtParent().AtName("logs_unusual"),
@@ -748,7 +747,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"logs_filter":                 logsFilterSchema(),
 						},
 						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("logs_immediate"),
 								path.MatchRelative().AtParent().AtName("logs_unusual"),
@@ -790,7 +788,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 						},
 						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("logs_immediate"),
 								path.MatchRelative().AtParent().AtName("logs_threshold"),
@@ -844,7 +841,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"group_by_for":                logsRatioGroupByForSchema(),
 						},
 						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("logs_immediate"),
 								path.MatchRelative().AtParent().AtName("logs_threshold"),
@@ -883,7 +879,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"notification_payload_filter": notificationPayloadFilterSchema(),
 						},
 						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("logs_immediate"),
 								path.MatchRelative().AtParent().AtName("logs_threshold"),
@@ -930,7 +925,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 						},
 						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("logs_immediate"),
 								path.MatchRelative().AtParent().AtName("logs_threshold"),
@@ -984,7 +978,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 						},
 						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("logs_immediate"),
 								path.MatchRelative().AtParent().AtName("logs_threshold"),
@@ -1037,7 +1030,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 						},
 						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("logs_immediate"),
 								path.MatchRelative().AtParent().AtName("logs_threshold"),
@@ -1090,7 +1082,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 						},
 						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("logs_immediate"),
 								path.MatchRelative().AtParent().AtName("logs_threshold"),
@@ -1114,7 +1105,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"notification_payload_filter": notificationPayloadFilterSchema(),
 						},
 						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("logs_immediate"),
 								path.MatchRelative().AtParent().AtName("logs_threshold"),
@@ -1156,7 +1146,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 						},
 						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("logs_immediate"),
 								path.MatchRelative().AtParent().AtName("logs_threshold"),
@@ -1237,7 +1226,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 						},
 						Validators: []validator.Object{
-							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("logs_immediate"),
 								path.MatchRelative().AtParent().AtName("logs_threshold"),
@@ -2435,7 +2423,9 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *cxs
 	}
 
 	rules, diags := extractRatioRules(ctx, ratioThresholdModel.Rules)
-
+	if diags.HasError() {
+		return nil, diags
+	}
 	notificationPayloadFilter, diags := typeStringSliceToWrappedStringSlice(ctx, ratioThresholdModel.NotificationPayloadFilter.Elements())
 	if diags.HasError() {
 		return nil, diags
@@ -2467,7 +2457,7 @@ func extractRatioRules(ctx context.Context, elements types.List) ([]*cxsdk.LogsR
 			diags.Append(dg...)
 			continue
 		}
-		timeWindow, dg := extractLogsRatioTimeWindow(ctx, rule.TimeWindow)
+		timeWindow, dg := extractLogsRatioTimeWindow(rule.TimeWindow)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -2487,7 +2477,7 @@ func extractRatioRules(ctx context.Context, elements types.List) ([]*cxsdk.LogsR
 	return rules, nil
 }
 
-func extractLogsRatioTimeWindow(ctx context.Context, window types.String) (*cxsdk.LogsRatioTimeWindow, diag.Diagnostics) {
+func extractLogsRatioTimeWindow(window types.String) (*cxsdk.LogsRatioTimeWindow, diag.Diagnostics) {
 	if window.IsNull() || window.IsUnknown() {
 		return nil, nil
 	}
@@ -2534,7 +2524,7 @@ func expandLogsNewValueAlertTypeDefinition(ctx context.Context, properties *cxsd
 	return properties, nil
 }
 
-func extractLogsNewValueTimeWindow(ctx context.Context, window types.String) (*cxsdk.LogsNewValueTimeWindow, diag.Diagnostics) {
+func extractLogsNewValueTimeWindow(window types.String) (*cxsdk.LogsNewValueTimeWindow, diag.Diagnostics) {
 	if window.IsNull() || window.IsUnknown() {
 		return nil, nil
 	}
@@ -2557,7 +2547,7 @@ func extractNewValueRules(ctx context.Context, elements types.List) ([]*cxsdk.Lo
 			continue
 		}
 
-		timeWindow, dg := extractLogsNewValueTimeWindow(ctx, rule.TimeWindow)
+		timeWindow, dg := extractLogsNewValueTimeWindow(rule.TimeWindow)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -2622,7 +2612,7 @@ func extractLogsUniqueCountRules(ctx context.Context, elements types.List) ([]*c
 			diags.Append(dg...)
 			continue
 		}
-		timeWindow, dg := extractLogsUniqueCountTimeWindow(ctx, rule.TimeWindow)
+		timeWindow, dg := extractLogsUniqueCountTimeWindow(rule.TimeWindow)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -2642,7 +2632,7 @@ func extractLogsUniqueCountRules(ctx context.Context, elements types.List) ([]*c
 	return rules, nil
 }
 
-func extractLogsUniqueCountTimeWindow(ctx context.Context, window types.String) (*cxsdk.LogsUniqueValueTimeWindow, diag.Diagnostics) {
+func extractLogsUniqueCountTimeWindow(window types.String) (*cxsdk.LogsUniqueValueTimeWindow, diag.Diagnostics) {
 	if window.IsNull() || window.IsUnknown() {
 		return nil, nil
 	}
@@ -2756,7 +2746,7 @@ func extractMetricThresholdRules(ctx context.Context, elements types.List) ([]*c
 			continue
 		}
 
-		ofTheLast, dg := extractMetricTimeWindow(ctx, rule.OfTheLast)
+		ofTheLast, dg := extractMetricTimeWindow(rule.OfTheLast)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -2805,7 +2795,7 @@ func extractMetricFilter(ctx context.Context, filter types.Object) (*cxsdk.Metri
 	return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Metric Filter", "Metric Filter is not valid")}
 }
 
-func extractMetricTimeWindow(ctx context.Context, window types.String) (*cxsdk.MetricTimeWindow, diag.Diagnostics) {
+func extractMetricTimeWindow(window types.String) (*cxsdk.MetricTimeWindow, diag.Diagnostics) {
 	if window.IsNull() || window.IsUnknown() {
 		return nil, nil
 	}
@@ -2925,7 +2915,7 @@ func extractTracingThresholdRules(ctx context.Context, elements types.List) ([]*
 			diags.Append(dg...)
 			continue
 		}
-		timeWindow, dg := extractTracingTimeWindow(ctx, rule.TimeWindow)
+		timeWindow, dg := extractTracingTimeWindow(rule.TimeWindow)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -3066,7 +3056,7 @@ func extractTracingSpanFieldsFilterType(ctx context.Context, spanFields types.Se
 	return filters, nil
 }
 
-func extractTracingTimeWindow(ctx context.Context, window types.String) (*cxsdk.TracingTimeWindow, diag.Diagnostics) {
+func extractTracingTimeWindow(window types.String) (*cxsdk.TracingTimeWindow, diag.Diagnostics) {
 	if window.IsNull() || window.IsUnknown() {
 		return nil, nil
 	}
@@ -3121,7 +3111,7 @@ func extractMetricUnusualRules(ctx context.Context, elements types.List) ([]*cxs
 			continue
 		}
 
-		ofTheLast, dg := extractMetricTimeWindow(ctx, rule.OfTheLast)
+		ofTheLast, dg := extractMetricTimeWindow(rule.OfTheLast)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -3694,7 +3684,7 @@ func flattenLogsThresholdRules(ctx context.Context, rules []*cxsdk.LogsThreshold
 	}
 	convertedRules := make([]*RuleModel, len(rules))
 	for i, rule := range rules {
-		timeWindow := flattenLogsTimeWindow(ctx, rule.Condition.TimeWindow)
+		timeWindow := flattenLogsTimeWindow(rule.Condition.TimeWindow)
 		convertedRules[i] = &RuleModel{
 			Condition:  types.StringValue(logsThresholdConditionMap[rule.Condition.ConditionType]),
 			Threshold:  wrapperspbDoubleToTypeFloat64(rule.Condition.Threshold),
@@ -3704,7 +3694,7 @@ func flattenLogsThresholdRules(ctx context.Context, rules []*cxsdk.LogsThreshold
 	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsThresholdRulesAttr()}, convertedRules)
 }
 
-func flattenLogsTimeWindow(ctx context.Context, timeWindow *cxsdk.LogsTimeWindow) types.String {
+func flattenLogsTimeWindow(timeWindow *cxsdk.LogsTimeWindow) types.String {
 	if timeWindow == nil {
 		return types.StringNull()
 	}
@@ -3736,7 +3726,7 @@ func flattenLogsUnusual(ctx context.Context, unusual *cxsdk.LogsUnusualType) (ty
 
 	rulesRaw := make([]RuleModel, len(unusual.Rules))
 	for i, rule := range unusual.Rules {
-		timeWindow := flattenLogsTimeWindow(ctx, rule.Condition.TimeWindow)
+		timeWindow := flattenLogsTimeWindow(rule.Condition.TimeWindow)
 		rulesRaw[i] = RuleModel{
 			Threshold:  wrapperspbDoubleToTypeFloat64(rule.Condition.MinimumThreshold),
 			TimeWindow: timeWindow,
@@ -3744,7 +3734,9 @@ func flattenLogsUnusual(ctx context.Context, unusual *cxsdk.LogsUnusualType) (ty
 	}
 
 	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsUnusualRulesAttr()}, rulesRaw)
-
+	if diags.HasError() {
+		return types.ObjectNull(logsUnusualAttr()), diags
+	}
 	logsMoreThanUsualModel := LogsUnusualModel{
 		LogsFilter:                logsFilter,
 		Rules:                     rules,
@@ -3814,7 +3806,9 @@ func flattenLogsUniqueCount(ctx context.Context, uniqueCount *cxsdk.LogsUniqueCo
 	}
 
 	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsRatioThresholdRulesAttr()}, rulesRaw)
-
+	if diags.HasError() {
+		return types.ObjectNull(logsUniqueCountAttr()), diags
+	}
 	logsUniqueCountModel := LogsUniqueCountModel{
 		LogsFilter:                logsFilter,
 		Rules:                     rules,
@@ -3939,7 +3933,9 @@ func flattenLogsTimeRelativeThreshold(ctx context.Context, logsTimeRelativeThres
 	}
 
 	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsTimeRelativeRulesAttr()}, rulesRaw)
-
+	if diags.HasError() {
+		return types.ObjectNull(logsTimeRelativeAttr()), diags
+	}
 	logsTimeRelativeThresholdModel := LogsTimeRelativeThresholdModel{
 		LogsFilter:                logsFilter,
 		Rules:                     rules,
@@ -4202,7 +4198,9 @@ func flattenTracingThreshold(ctx context.Context, tracingThreshold *cxsdk.Tracin
 	}
 
 	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: metricThresholdRulesAttr()}, rulesRaw)
-
+	if diags.HasError() {
+		return types.ObjectNull(tracingThresholdAttr()), diags
+	}
 	tracingThresholdModel := TracingThresholdModel{
 		TracingFilter:             tracingQuery,
 		Rules:                     rules,
@@ -4232,7 +4230,9 @@ func flattenMetricUnusual(ctx context.Context, metricMoreThanUsual *cxsdk.Metric
 	}
 
 	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: metricUnusualRulesAttr()}, rulesRaw)
-
+	if diags.HasError() {
+		return types.ObjectNull(metricUnusualAttr()), diags
+	}
 	metricMoreThanUsualModel := MetricUnusualModel{
 		MetricFilter: metricFilter,
 		Rules:        rules,
