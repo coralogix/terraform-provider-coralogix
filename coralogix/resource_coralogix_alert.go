@@ -3981,7 +3981,9 @@ func flattenMetricThreshold(ctx context.Context, metricThreshold *cxsdk.MetricTh
 	}
 
 	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: metricThresholdRulesAttr()}, rulesRaw)
-
+	if diags.HasError() {
+		return types.ObjectNull(metricThresholdAttr()), diags
+	}
 	metricThresholdModel := MetricThresholdModel{
 		MetricFilter:               metricFilter,
 		Rules:                      rules,
