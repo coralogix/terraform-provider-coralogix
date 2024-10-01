@@ -2569,16 +2569,16 @@ func testAccCoralogixResourceAlertMetricsMoreThanUsualUpdated() string {
   priority    = "P3"
 
   type_definition = {
-	metric_more_than_usual = {
-	  metric_filter = {
-		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
-	  }
-	  threshold    = 20
-	  for_over_pct = 10
-	  of_the_last  = {
-		specific_value = "10_MINUTES"
-	  }
-	  min_non_null_values_pct = 10
+	metric_unusual = {
+		metric_filter = {
+			promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+		}
+		rules = [{
+			threshold    = 20
+			for_over_pct = 10
+			of_the_last = "10_MINUTES"
+			min_non_null_values_pct = 10
+		}]
 	}
   }
 }
@@ -2592,18 +2592,19 @@ func testAccCoralogixResourceAlertMetricLessThanOrEquals() string {
   priority    = "P1"
 
   type_definition = {
-	metric_less_than_or_equals = {
+	metric_threshold = {
 	  metric_filter = {
 		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
 	  }
-	  threshold    = 2
-	  for_over_pct = 10
-	  of_the_last  = {
-		specific_value = "10_MINUTES"
-	  }
-	  missing_values = {
-		replace_with_zero = true
-	  }
+		rules = [{
+			threshold    = 2
+			for_over_pct = 10
+			of_the_last = "10_MINUTES"
+			condition = "LESS_THAN_OR_EQUALS"
+			missing_values = {
+			  replace_with_zero = true
+			}
+		}]
 	  undetected_values_management = {
 		trigger_undetected_values = true
 		auto_retire_timeframe     = "5_Minutes"
@@ -2621,18 +2622,20 @@ func testAccCoralogixResourceAlertMetricLessThanOrEqualsUpdated() string {
   priority    = "P2"
 
   type_definition = {
-	metric_less_than_or_equals = {
+	metric_threshold = {
 	  metric_filter = {
 		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
 	  }
-	  threshold    = 5
-	  for_over_pct = 15
-	  of_the_last  = {
-		specific_value = "10_MINUTES"
-	  }
-	  missing_values = {
-		min_non_null_values_pct = 50
-	  }
+	  
+		rules = [{
+			threshold    = 5
+	  		for_over_pct = 15
+			of_the_last = "10_MINUTES"
+			condition = "LESS_THAN_OR_EQUALS"
+			missing_values = {
+				min_non_null_values_pct = 50
+			}
+		}]
 	  undetected_values_management = {
 		trigger_undetected_values = true
 		auto_retire_timeframe     = "5_Minutes"
@@ -2650,18 +2653,19 @@ func testAccCoralogixResourceAlertMetricMoreThanOrEquals() string {
   priority    = "P3"
 
   type_definition = {
-	metric_more_than_or_equals = {
+	metric_threshold = {
 	  metric_filter = {
 		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
 	  }
-	  threshold    = 2
-	  for_over_pct = 10
-	  of_the_last  = {
-		specific_value = "10_MINUTES"
-	  }
-	  missing_values = {
-		replace_with_zero = true
-	  }
+		rules = [{
+			threshold    = 2
+			for_over_pct = 10
+			of_the_last = "10_MINUTES"
+			condition = "MORE_THAN_OR_EQUALS"
+			missing_values = {
+				replace_with_zero = true
+			}
+		}]
 	}
   }
 }
@@ -2675,18 +2679,19 @@ func testAccCoralogixResourceAlertMetricMoreThanOrEqualsUpdated() string {
   priority    = "P4"
 
   type_definition = {
-	metric_more_than_or_equals = {
+	metric_threshold = {
 	  metric_filter = {
 		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
 	  }
-	  threshold    = 10
-	  for_over_pct = 15
-	  of_the_last  = {
-		specific_value = "1_HOUR"
-	  }
-	  missing_values = {
-		replace_with_zero = true
-	  }
+		rules = [{
+			threshold    = 10
+			for_over_pct = 15
+			of_the_last = "1_HOUR"
+			condition = "MORE_THAN_OR_EQUALS"
+			missing_values = {
+				replace_with_zero = true
+			}
+		}]
 	}
   }
 }
@@ -2817,7 +2822,7 @@ func testAccCoralogixResourceAlertTracingMoreThan() string {
   priority    = "P2"
 
   type_definition = {
-    tracing_more_than = {
+    tracing_threshold = {
       tracing_query = {
         latency_threshold_ms  = 100
         tracing_label_filters = {
@@ -2833,8 +2838,10 @@ func testAccCoralogixResourceAlertTracingMoreThan() string {
           ]
         }
       }
+	rules = [{
       span_amount = 5
       time_window = "10_MINUTES"
+	}]
     }
   }
 }
@@ -2848,7 +2855,7 @@ func testAccCoralogixResourceAlertTracingMoreThanUpdated() string {
   priority    = "P3"
 
   type_definition = {
-	tracing_more_than = {
+	tracing_threshold = {
 	  tracing_query = {
 		latency_threshold_ms  = 200
 		tracing_label_filters = {
@@ -2863,8 +2870,10 @@ func testAccCoralogixResourceAlertTracingMoreThanUpdated() string {
 		  ]
 		}
 	  }
-	  span_amount = 5
-	  time_window = "1_HOUR"
+	  rules = [{
+      span_amount = 5
+      time_window = "1_HOUR"
+	}]
 	}
   }
 }
