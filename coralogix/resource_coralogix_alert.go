@@ -302,9 +302,8 @@ type AlertResourceModel struct {
 	Priority          types.String `tfsdk:"priority"`
 	Schedule          types.Object `tfsdk:"schedule"`        // AlertScheduleModel
 	TypeDefinition    types.Object `tfsdk:"type_definition"` // AlertTypeDefinitionModel
-	Deleted           types.Bool   `tfsdk:"deleted"`
 	PhantomMode       types.Bool   `tfsdk:"phantom_mode"`
-	Type              types.String `tfsdk:"type"`               // AlertType
+	Deleted           types.Bool   `tfsdk:"deleted"`
 	GroupBy           types.Set    `tfsdk:"group_by"`           // []types.String
 	IncidentsSettings types.Object `tfsdk:"incidents_settings"` // IncidentsSettingsModel
 	NotificationGroup types.Object `tfsdk:"notification_group"` // NotificationGroupModel
@@ -691,7 +690,8 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			},
 			// type is being inferred by the type_definition attribute
 			"type_definition": schema.SingleNestedAttribute{
-				Required: true,
+				Required:            true,
+				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_unusual, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_unusual, tracing_immediate, tracing_threshold flow.",
 				Attributes: map[string]schema.Attribute{
 					"logs_immediate": schema.SingleNestedAttribute{
 						Optional: true,
@@ -747,6 +747,22 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"notification_payload_filter": notificationPayloadFilterSchema(),
 							"logs_filter":                 logsFilterSchema(),
 						},
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs_immediate"),
+								path.MatchRelative().AtParent().AtName("logs_unusual"),
+								path.MatchRelative().AtParent().AtName("logs_ratio_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_new_value"),
+								path.MatchRelative().AtParent().AtName("logs_unique_count"),
+								path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_unusual"),
+								path.MatchRelative().AtParent().AtName("tracing_immediate"),
+								path.MatchRelative().AtParent().AtName("tracing_threshold"),
+								path.MatchRelative().AtParent().AtName("flow"),
+							),
+						},
 					},
 					"logs_unusual": schema.SingleNestedAttribute{
 						Optional: true,
@@ -772,6 +788,22 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 									// Condition type is missing since there is only a single type to be filled in
 								},
 							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs_immediate"),
+								path.MatchRelative().AtParent().AtName("logs_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_ratio_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_new_value"),
+								path.MatchRelative().AtParent().AtName("logs_unique_count"),
+								path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_unusual"),
+								path.MatchRelative().AtParent().AtName("tracing_immediate"),
+								path.MatchRelative().AtParent().AtName("tracing_threshold"),
+								path.MatchRelative().AtParent().AtName("flow"),
+							),
 						},
 					},
 					"logs_ratio_threshold": schema.SingleNestedAttribute{
@@ -811,6 +843,22 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"notification_payload_filter": notificationPayloadFilterSchema(),
 							"group_by_for":                logsRatioGroupByForSchema(),
 						},
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs_immediate"),
+								path.MatchRelative().AtParent().AtName("logs_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unusual"),
+								path.MatchRelative().AtParent().AtName("logs_new_value"),
+								path.MatchRelative().AtParent().AtName("logs_unique_count"),
+								path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_unusual"),
+								path.MatchRelative().AtParent().AtName("tracing_immediate"),
+								path.MatchRelative().AtParent().AtName("tracing_threshold"),
+								path.MatchRelative().AtParent().AtName("flow"),
+							),
+						},
 					},
 					"logs_new_value": schema.SingleNestedAttribute{
 						Optional: true,
@@ -836,6 +884,19 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						},
 						Validators: []validator.Object{
 							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs_immediate"),
+								path.MatchRelative().AtParent().AtName("logs_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unusual"),
+								path.MatchRelative().AtParent().AtName("logs_ratio_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unique_count"),
+								path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_unusual"),
+								path.MatchRelative().AtParent().AtName("tracing_immediate"),
+								path.MatchRelative().AtParent().AtName("tracing_threshold"),
+								path.MatchRelative().AtParent().AtName("flow"),
+							),
 						},
 					},
 					"logs_unique_count": schema.SingleNestedAttribute{
@@ -867,6 +928,22 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 									},
 								},
 							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs_immediate"),
+								path.MatchRelative().AtParent().AtName("logs_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unusual"),
+								path.MatchRelative().AtParent().AtName("logs_ratio_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_new_value"),
+								path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_unusual"),
+								path.MatchRelative().AtParent().AtName("tracing_immediate"),
+								path.MatchRelative().AtParent().AtName("tracing_threshold"),
+								path.MatchRelative().AtParent().AtName("flow"),
+							),
 						},
 					},
 					"logs_time_relative_threshold": schema.SingleNestedAttribute{
@@ -906,6 +983,22 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								},
 							},
 						},
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs_immediate"),
+								path.MatchRelative().AtParent().AtName("logs_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unusual"),
+								path.MatchRelative().AtParent().AtName("logs_new_value"),
+								path.MatchRelative().AtParent().AtName("logs_ratio_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unique_count"),
+								path.MatchRelative().AtParent().AtName("metric_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_unusual"),
+								path.MatchRelative().AtParent().AtName("tracing_immediate"),
+								path.MatchRelative().AtParent().AtName("tracing_threshold"),
+								path.MatchRelative().AtParent().AtName("flow"),
+							),
+						},
 					},
 					// Metrics
 					"metric_threshold": schema.SingleNestedAttribute{
@@ -942,6 +1035,22 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 									},
 								},
 							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs_immediate"),
+								path.MatchRelative().AtParent().AtName("logs_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unusual"),
+								path.MatchRelative().AtParent().AtName("logs_ratio_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unique_count"),
+								path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_new_value"),
+								path.MatchRelative().AtParent().AtName("metric_unusual"),
+								path.MatchRelative().AtParent().AtName("tracing_immediate"),
+								path.MatchRelative().AtParent().AtName("tracing_threshold"),
+								path.MatchRelative().AtParent().AtName("flow"),
+							),
 						},
 					},
 					"metric_unusual": schema.SingleNestedAttribute{
@@ -980,6 +1089,22 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								},
 							},
 						},
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs_immediate"),
+								path.MatchRelative().AtParent().AtName("logs_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unusual"),
+								path.MatchRelative().AtParent().AtName("logs_ratio_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unique_count"),
+								path.MatchRelative().AtParent().AtName("logs_new_value"),
+								path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_threshold"),
+								path.MatchRelative().AtParent().AtName("tracing_immediate"),
+								path.MatchRelative().AtParent().AtName("tracing_threshold"),
+								path.MatchRelative().AtParent().AtName("flow"),
+							),
+						},
 					},
 					// Tracing
 					"tracing_immediate": schema.SingleNestedAttribute{
@@ -987,6 +1112,22 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						Attributes: map[string]schema.Attribute{
 							"tracing_filter":              tracingQuerySchema(),
 							"notification_payload_filter": notificationPayloadFilterSchema(),
+						},
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs_immediate"),
+								path.MatchRelative().AtParent().AtName("logs_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unusual"),
+								path.MatchRelative().AtParent().AtName("logs_ratio_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unique_count"),
+								path.MatchRelative().AtParent().AtName("logs_new_value"),
+								path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_unusual"),
+								path.MatchRelative().AtParent().AtName("tracing_threshold"),
+								path.MatchRelative().AtParent().AtName("flow"),
+							),
 						},
 					},
 					"tracing_threshold": schema.SingleNestedAttribute{
@@ -1013,6 +1154,22 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 									// Condition type is missing since there is only a single type to be filled in
 								},
 							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs_immediate"),
+								path.MatchRelative().AtParent().AtName("logs_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unusual"),
+								path.MatchRelative().AtParent().AtName("logs_ratio_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unique_count"),
+								path.MatchRelative().AtParent().AtName("logs_new_value"),
+								path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_unusual"),
+								path.MatchRelative().AtParent().AtName("tracing_immediate"),
+								path.MatchRelative().AtParent().AtName("flow"),
+							),
 						},
 					},
 					// Flow
@@ -1079,7 +1236,22 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								Default:  booldefault.StaticBool(false),
 							},
 						},
-						MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_unusual, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_unusual, tracing_immediate, tracing_threshold flow.",
+						Validators: []validator.Object{
+							objectvalidator.ConflictsWith(path.MatchRoot("group_by")),
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("logs_immediate"),
+								path.MatchRelative().AtParent().AtName("logs_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unusual"),
+								path.MatchRelative().AtParent().AtName("logs_ratio_threshold"),
+								path.MatchRelative().AtParent().AtName("logs_unique_count"),
+								path.MatchRelative().AtParent().AtName("logs_new_value"),
+								path.MatchRelative().AtParent().AtName("logs_time_relative_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_threshold"),
+								path.MatchRelative().AtParent().AtName("metric_unusual"),
+								path.MatchRelative().AtParent().AtName("tracing_immediate"),
+								path.MatchRelative().AtParent().AtName("tracing_threshold"),
+							),
+						},
 					},
 				},
 			},
