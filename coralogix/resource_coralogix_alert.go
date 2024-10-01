@@ -374,20 +374,20 @@ type LogsImmediateModel struct {
 }
 
 type LogsThresholdModel struct {
-	Rules                      types.List   `tfsdk:"rules"`                        // []RuleModel
+	Rules                      types.List   `tfsdk:"rules"`                        // []LogsThresholdRuleModel
 	LogsFilter                 types.Object `tfsdk:"logs_filter"`                  // AlertsLogsFilterModel
 	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
 }
 
 type LogsUnusualModel struct {
-	Rules                     types.List   `tfsdk:"rules"`                       // []RuleModel
+	Rules                     types.List   `tfsdk:"rules"`                       // []LogsUnusualRuleModel
 	LogsFilter                types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
 	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
 }
 
 type LogsRatioThresholdModel struct {
-	Rules                     types.List   `tfsdk:"rules"`     // []RuleModel
+	Rules                     types.List   `tfsdk:"rules"`     // []LogsRatioThresholdRuleModel
 	Numerator                 types.Object `tfsdk:"numerator"` // AlertsLogsFilterModel
 	NumeratorAlias            types.String `tfsdk:"numerator_alias"`
 	Denominator               types.Object `tfsdk:"denominator"` // AlertsLogsFilterModel
@@ -535,12 +535,30 @@ type NewValueRuleModel struct {
 	KeypathToTrack types.String `tfsdk:"keypath_to_track"`
 }
 
-type RuleModel struct {
+type LogsTimeRelativeRuleModel struct {
+	Threshold      types.Float64 `tfsdk:"threshold"`
 	ComparedTo     types.String  `tfsdk:"compared_to"`
 	Condition      types.String  `tfsdk:"condition"`
+	IgnoreInfinity types.Bool    `tfsdk:"ignore_infinity"`
+}
+
+type LogsRatioThresholdRuleModel struct {
 	Threshold      types.Float64 `tfsdk:"threshold"`
 	TimeWindow     types.String  `tfsdk:"time_window"`
 	IgnoreInfinity types.Bool    `tfsdk:"ignore_infinity"`
+	Condition      types.String  `tfsdk:"condition"` // Currently there is only a single condition
+}
+
+type LogsUnusualRuleModel struct {
+	// Condition      types.String  `tfsdk:"condition"` // Currently there is only a single condition
+	MinimumThreshold types.Float64 `tfsdk:"minimum_threshold"`
+	TimeWindow       types.String  `tfsdk:"time_window"`
+}
+
+type LogsThresholdRuleModel struct {
+	Condition  types.String  `tfsdk:"condition"`
+	Threshold  types.Float64 `tfsdk:"threshold"`
+	TimeWindow types.String  `tfsdk:"time_window"`
 }
 
 type RuleLogsTimeRelativeModel struct {
@@ -756,8 +774,9 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 									},
 								},
 							},
-							"notification_payload_filter": notificationPayloadFilterSchema(),
-							"logs_filter":                 logsFilterSchema(),
+							"notification_payload_filter":  notificationPayloadFilterSchema(),
+							"logs_filter":                  logsFilterSchema(),
+							"undetected_values_management": undetectedValuesManagementSchema(),
 						},
 						Validators: []validator.Object{
 							objectvalidator.ExactlyOneOf(
@@ -846,6 +865,13 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 											Optional: true,
 											Computed: true,
 											Default:  booldefault.StaticBool(false),
+										},
+										"condition": schema.StringAttribute{
+											Required: true,
+											Validators: []validator.String{
+												stringvalidator.OneOf(logsRatioConditionMapValues...),
+											},
+											MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", logsRatioConditionMapValues),
 										},
 									},
 								},
@@ -2273,11 +2299,17 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *cxsdk.Al
 	if diags.HasError() {
 		return nil, diags
 	}
+	undetected, diags := extractUndetectedValuesManagement(ctx, thresholdModel.UndetectedValuesManagement)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	properties.TypeDefinition = &cxsdk.AlertDefPropertiesLogsThreshold{
 		LogsThreshold: &cxsdk.LogsThresholdType{
-			LogsFilter:                logsFilter,
-			Rules:                     rules,
-			NotificationPayloadFilter: notificationPayloadFilter,
+			LogsFilter:                 logsFilter,
+			Rules:                      rules,
+			NotificationPayloadFilter:  notificationPayloadFilter,
+			UndetectedValuesManagement: undetected,
 		},
 	}
 
@@ -2303,7 +2335,7 @@ func extractThresholdRules(ctx context.Context, elements types.List) ([]*cxsdk.L
 	var objs []types.Object
 	elements.ElementsAs(ctx, &objs, false)
 	for i, r := range objs {
-		var rule RuleModel
+		var rule LogsThresholdRuleModel
 		if dg := r.As(ctx, &rule, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -2391,7 +2423,7 @@ func extractUnusualRules(ctx context.Context, elements types.List) ([]*cxsdk.Log
 	var objs []types.Object
 	elements.ElementsAs(ctx, &objs, false)
 	for i, r := range objs {
-		var rule RuleModel
+		var rule LogsUnusualRuleModel
 		if dg := r.As(ctx, &rule, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -2403,7 +2435,7 @@ func extractUnusualRules(ctx context.Context, elements types.List) ([]*cxsdk.Log
 		}
 		rules[i] = &cxsdk.LogsUnusualRule{
 			Condition: &cxsdk.LogsUnusualCondition{
-				MinimumThreshold: typeFloat64ToWrapperspbDouble(rule.Threshold),
+				MinimumThreshold: typeFloat64ToWrapperspbDouble(rule.MinimumThreshold),
 				TimeWindow:       timeWindow,
 				ConditionType:    cxsdk.LogsUnusualConditionTypeMoreThanOrUnspecified,
 			},
@@ -2465,7 +2497,7 @@ func extractRatioRules(ctx context.Context, elements types.List) ([]*cxsdk.LogsR
 	var objs []types.Object
 	elements.ElementsAs(ctx, &objs, false)
 	for i, r := range objs {
-		var rule RuleModel
+		var rule LogsRatioThresholdRuleModel
 		if dg := r.As(ctx, &rule, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -2702,7 +2734,7 @@ func extractTimeRelativeThresholdRules(ctx context.Context, elements types.List)
 	var objs []types.Object
 	elements.ElementsAs(ctx, &objs, false)
 	for i, r := range objs {
-		var rule RuleModel
+		var rule LogsTimeRelativeRuleModel
 		if dg := r.As(ctx, &rule, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -3706,10 +3738,10 @@ func flattenLogsThresholdRules(ctx context.Context, rules []*cxsdk.LogsThreshold
 	if rules == nil {
 		return types.ListNull(types.ObjectType{AttrTypes: flowStageAttr()}), nil
 	}
-	convertedRules := make([]*RuleModel, len(rules))
+	convertedRules := make([]*LogsThresholdRuleModel, len(rules))
 	for i, rule := range rules {
 		timeWindow := flattenLogsTimeWindow(rule.Condition.TimeWindow)
-		convertedRules[i] = &RuleModel{
+		convertedRules[i] = &LogsThresholdRuleModel{
 			Condition:  types.StringValue(logsThresholdConditionMap[rule.Condition.ConditionType]),
 			Threshold:  wrapperspbDoubleToTypeFloat64(rule.Condition.Threshold),
 			TimeWindow: timeWindow,
@@ -3748,12 +3780,12 @@ func flattenLogsUnusual(ctx context.Context, unusual *cxsdk.LogsUnusualType) (ty
 		return types.ObjectNull(logsUnusualAttr()), diags
 	}
 
-	rulesRaw := make([]RuleModel, len(unusual.Rules))
+	rulesRaw := make([]LogsUnusualRuleModel, len(unusual.Rules))
 	for i, rule := range unusual.Rules {
 		timeWindow := flattenLogsTimeWindow(rule.Condition.TimeWindow)
-		rulesRaw[i] = RuleModel{
-			Threshold:  wrapperspbDoubleToTypeFloat64(rule.Condition.MinimumThreshold),
-			TimeWindow: timeWindow,
+		rulesRaw[i] = LogsUnusualRuleModel{
+			MinimumThreshold: wrapperspbDoubleToTypeFloat64(rule.Condition.MinimumThreshold),
+			TimeWindow:       timeWindow,
 		}
 	}
 
@@ -3784,10 +3816,10 @@ func flattenLogsRatioThreshold(ctx context.Context, ratioThreshold *cxsdk.LogsRa
 		return types.ObjectNull(logsRatioThresholdAttr()), diags
 	}
 
-	rulesRaw := make([]RuleModel, len(ratioThreshold.Rules))
+	rulesRaw := make([]LogsRatioThresholdRuleModel, len(ratioThreshold.Rules))
 	for i, rule := range ratioThreshold.Rules {
 		timeWindow := types.StringValue(logsRatioTimeWindowValueProtoToSchemaMap[rule.Condition.TimeWindow.GetLogsRatioTimeWindowSpecificValue()])
-		rulesRaw[i] = RuleModel{
+		rulesRaw[i] = LogsRatioThresholdRuleModel{
 			Threshold:      wrapperspbDoubleToTypeFloat64(rule.Condition.GetThreshold()),
 			TimeWindow:     timeWindow,
 			IgnoreInfinity: wrapperspbBoolToTypeBool(rule.Condition.GetIgnoreInfinity()),
@@ -3795,7 +3827,9 @@ func flattenLogsRatioThreshold(ctx context.Context, ratioThreshold *cxsdk.LogsRa
 	}
 
 	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsRatioThresholdRulesAttr()}, rulesRaw)
-
+	if diags.HasError() {
+		return types.ObjectNull(logsRatioThresholdAttr()), diags
+	}
 	logsRatioMoreThanModel := LogsRatioThresholdModel{
 		Numerator:                 numeratorLogsFilter,
 		NumeratorAlias:            wrapperspbStringToTypeString(ratioThreshold.GetNumeratorAlias()),
@@ -3861,6 +3895,9 @@ func flattenLogsNewValue(ctx context.Context, newValue *cxsdk.LogsNewValueType) 
 	}
 
 	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsRatioThresholdRulesAttr()}, rulesRaw)
+	if diags.HasError() {
+		return types.ObjectNull(logsNewValueAttr()), diags
+	}
 
 	logsNewValueModel := LogsNewValueModel{
 		LogsFilter:                logsFilter,
