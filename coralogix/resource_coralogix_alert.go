@@ -416,7 +416,7 @@ type LogsUniqueCountRuleModel struct {
 }
 
 type LogsTimeRelativeThresholdModel struct {
-	Rules                      types.List   `tfsdk:"rules"`                        // []RuleLogsTimeRelativeModel
+	Rules                      types.List   `tfsdk:"rules"`                        // []RuleLogsTimeRelativeThresholdModel
 	LogsFilter                 types.Object `tfsdk:"logs_filter"`                  // AlertsLogsFilterModel
 	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
@@ -559,12 +559,6 @@ type LogsThresholdRuleModel struct {
 	Condition  types.String  `tfsdk:"condition"`
 	Threshold  types.Float64 `tfsdk:"threshold"`
 	TimeWindow types.String  `tfsdk:"time_window"`
-}
-
-type RuleLogsTimeRelativeModel struct {
-	ComparedTo     types.String  `tfsdk:"compared_to"`
-	Threshold      types.Float64 `tfsdk:"threshold"`
-	IgnoreInfinity types.Bool    `tfsdk:"ignore_infinity"`
 }
 
 type TracingFilterModel struct {
@@ -1654,7 +1648,6 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-
 	alertProperties, diags := extractAlertProperties(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -2063,7 +2056,7 @@ func extractDaysOfWeek(ctx context.Context, daysOfWeek types.List) ([]cxsdk.Aler
 }
 
 func expandAlertsTypeDefinition(ctx context.Context, alertProperties *cxsdk.AlertDefProperties, alertDefinition types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
-	if alertDefinition.IsNull() || alertDefinition.IsUnknown() {
+	if objIsNullOrUnknown(alertDefinition) {
 		return alertProperties, nil
 	}
 
@@ -2107,7 +2100,8 @@ func expandAlertsTypeDefinition(ctx context.Context, alertProperties *cxsdk.Aler
 	} else if tracingThreshold := alertDefinitionModel.TracingImmediate; !objIsNullOrUnknown(tracingImmediate) {
 		// TracingThreshold
 		alertProperties, diags = expandTracingThresholdTypeDefinition(ctx, alertProperties, tracingThreshold)
-	} else if flow := alertDefinitionModel.Flow; !(flow.IsNull() || flow.IsUnknown()) {
+	} else if flow := alertDefinitionModel.Flow; !objIsNullOrUnknown(flow) {
+		// Flow
 		alertProperties, diags = expandFlowAlertTypeDefinition(ctx, alertProperties, flow)
 	} else {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Alert Type Definition", "Alert Type Definition is not valid")}
@@ -3189,7 +3183,7 @@ func extractMetricUnusualRules(ctx context.Context, elements types.List) ([]*cxs
 }
 
 func expandFlowAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, flow types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
-	if flow.IsNull() || flow.IsUnknown() {
+	if objIsNullOrUnknown(flow) {
 		return properties, nil
 	}
 
@@ -3384,28 +3378,27 @@ func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp
 
 func flattenAlert(ctx context.Context, alert *cxsdk.AlertDef) (*AlertResourceModel, diag.Diagnostics) {
 	alertProperties := alert.GetAlertDefProperties()
+
 	alertSchedule, diags := flattenAlertSchedule(ctx, alertProperties)
 	if diags.HasError() {
 		return nil, diags
 	}
-
 	alertTypeDefinition, diags := flattenAlertTypeDefinition(ctx, alertProperties)
 	if diags.HasError() {
 		return nil, diags
 	}
-
 	incidentsSettings, diags := flattenIncidentsSettings(ctx, alertProperties.GetIncidentsSettings())
 	if diags.HasError() {
 		return nil, diags
 	}
-
 	notificationGroup, diags := flattenNotificationGroup(ctx, alertProperties.GetNotificationGroup())
 	if diags.HasError() {
 		return nil, diags
 	}
-
 	labels, diags := types.MapValueFrom(ctx, types.StringType, alertProperties.GetLabels())
-
+	if diags.HasError() {
+		return nil, diags
+	}
 	return &AlertResourceModel{
 		ID:                wrapperspbStringToTypeString(alert.GetId()),
 		Name:              wrapperspbStringToTypeString(alertProperties.GetName()),
@@ -3554,7 +3547,6 @@ func flattenAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefP
 	}
 
 	alertTypeDefinitionModel := AlertTypeDefinitionModel{
-
 		LogsImmediate:             types.ObjectNull(logsImmediateAttr()),
 		LogsThreshold:             types.ObjectNull(logsThresholdAttr()),
 		LogsUnusual:               types.ObjectNull(logsUnusualAttr()),
@@ -3984,12 +3976,13 @@ func flattenLogsTimeRelativeThreshold(ctx context.Context, logsTimeRelativeThres
 		return types.ObjectNull(logsTimeRelativeAttr()), diags
 	}
 
-	rulesRaw := make([]RuleLogsTimeRelativeModel, len(logsTimeRelativeThreshold.Rules))
+	rulesRaw := make([]LogsTimeRelativeRuleModel, len(logsTimeRelativeThreshold.Rules))
 	for i, rule := range logsTimeRelativeThreshold.Rules {
-		rulesRaw[i] = RuleLogsTimeRelativeModel{
+		rulesRaw[i] = LogsTimeRelativeRuleModel{
 			Threshold:      wrapperspbDoubleToTypeFloat64(rule.Condition.GetThreshold()),
 			ComparedTo:     types.StringValue(logsTimeRelativeComparedToProtoToSchemaMap[rule.Condition.ComparedTo]),
 			IgnoreInfinity: wrapperspbBoolToTypeBool(rule.Condition.GetIgnoreInfinity()),
+			Condition:      types.StringValue(logsTimeRelativeConditionMap[rule.Condition.ConditionType]),
 		}
 	}
 
@@ -4551,6 +4544,7 @@ func logsThresholdRulesAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"threshold":   types.Float64Type,
 		"time_window": types.StringType,
+		"condition":   types.StringType,
 	}
 }
 
@@ -4575,7 +4569,7 @@ func logsRatioThresholdAttr() map[string]attr.Type {
 		"numerator_alias":   types.StringType,
 		"denominator":       types.ObjectType{AttrTypes: logsFilterAttr()},
 		"denominator_alias": types.StringType,
-		"rules":             types.ListType{ElemType: types.ObjectType{AttrTypes: logsThresholdRulesAttr()}},
+		"rules":             types.ListType{ElemType: types.ObjectType{AttrTypes: logsRatioThresholdRulesAttr()}},
 		"notification_payload_filter": types.SetType{
 			ElemType: types.StringType,
 		},
@@ -4588,6 +4582,7 @@ func logsRatioThresholdRulesAttr() map[string]attr.Type {
 		"threshold":       types.Float64Type,
 		"time_window":     types.StringType,
 		"ignore_infinity": types.BoolType,
+		"condition":       types.StringType,
 	}
 }
 
@@ -4673,6 +4668,7 @@ func logsTimeRelativeRulesAttr() map[string]attr.Type {
 		"threshold":       types.Float64Type,
 		"compared_to":     types.StringType,
 		"ignore_infinity": types.BoolType,
+		"condition":       types.StringType,
 	}
 }
 
@@ -4688,7 +4684,7 @@ func metricThresholdRulesAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"threshold":      types.Float64Type,
 		"for_over_pct":   types.Int64Type,
-		"of_the_last":    types.ObjectType{AttrTypes: metricTimeWindowAttr()},
+		"of_the_last":    types.StringType,
 		"missing_values": types.ObjectType{AttrTypes: metricMissingValuesAttr()},
 		"condition":      types.StringType,
 	}
@@ -4697,12 +4693,6 @@ func metricThresholdRulesAttr() map[string]attr.Type {
 func metricFilterAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"promql": types.StringType,
-	}
-}
-
-func metricTimeWindowAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"specific_value": types.StringType,
 	}
 }
 
@@ -4724,8 +4714,8 @@ func metricUnusualRulesAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"threshold":               types.Float64Type,
 		"for_over_pct":            types.Int64Type,
-		"of_the_last":             types.ObjectType{AttrTypes: metricTimeWindowAttr()},
-		"min_non_null_values_pct": types.ObjectType{AttrTypes: metricMissingValuesAttr()},
+		"of_the_last":             types.StringType,
+		"min_non_null_values_pct": types.Int64Type,
 		"condition":               types.StringType,
 	}
 }
@@ -4840,7 +4830,6 @@ func (r *AlertResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	alertProperties, diags := extractAlertProperties(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)

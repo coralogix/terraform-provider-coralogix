@@ -751,9 +751,9 @@ func TestAccCoralogixResourceAlert_logs_time_relative_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-time-relative-more-than alert example"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-time-relative-more-than alert from terraform"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P4"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.threshold", "10"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.compared_to", "Same Hour Yesterday"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.ignore_infinity", "true"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.threshold", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.compared_to", "Same Hour Yesterday"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.ignore_infinity", "true"),
 				),
 			},
 			{
@@ -766,9 +766,9 @@ func TestAccCoralogixResourceAlert_logs_time_relative_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-time-relative-more-than alert example updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-time-relative-more-than alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.threshold", "50"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.compared_to", "Same Day Last Week"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_more_than.ignore_infinity", "false"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.threshold", "50"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.compared_to", "Same Day Last Week"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.ignore_infinity", "false"),
 				),
 			},
 		},
@@ -788,9 +788,9 @@ func TestAccCoralogixResourceAlert_logs_time_relative_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-time-relative-more-than alert example"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-time-relative-more-than alert from terraform"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P4"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.threshold", "10"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.compared_to", "Same Hour Yesterday"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.ignore_infinity", "true"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.threshold", "10"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.compared_to", "Same Hour Yesterday"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.ignore_infinity", "true"),
 				),
 			},
 			{
@@ -803,11 +803,11 @@ func TestAccCoralogixResourceAlert_logs_time_relative_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-time-relative-more-than alert example updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-time-relative-more-than alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.threshold", "50"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.compared_to", "Same Day Last Week"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.ignore_infinity", "false"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.undetected_values_management.trigger_undetected_values", "true"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_less_than.undetected_values_management.auto_retire_timeframe", "6_Hours"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.1.threshold", "50"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.1.compared_to", "Same Day Last Week"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.1.ignore_infinity", "false"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.1.undetected_values_management.trigger_undetected_values", "true"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.1.undetected_values_management.auto_retire_timeframe", "6_Hours"),
 				),
 			},
 		},
@@ -1203,22 +1203,22 @@ func TestAccCoralogixResourceAlert_tracing_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "tracing_more_than alert example"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of tracing_more_than alert from terraform"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.tracing_filter.latency_threshold_ms", "100"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.tracing_filter.tracing_label_filters.application_name.#", "2"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_more_than.tracing_filter.tracing_label_filters.application_name.*",
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_threshold.tracing_filter.latency_threshold_ms", "100"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_threshold.tracing_filter.tracing_label_filters.application_name.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_threshold.tracing_filter.tracing_label_filters.application_name.*",
 						map[string]string{
 							"operation": "IS",
 							"values.#":  "2",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_more_than.tracing_filter.tracing_label_filters.application_name.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_threshold.tracing_filter.tracing_label_filters.application_name.*",
 						map[string]string{
 							"operation": "STARTS_WITH",
 							"values.#":  "1",
 						},
 					),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.span_amount", "5"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.time_window", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_threshold.span_amount", "5"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_threshold.time_window", "10_MINUTES"),
 				),
 			},
 			{
@@ -1231,21 +1231,21 @@ func TestAccCoralogixResourceAlert_tracing_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "tracing_more_than alert example updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of tracing_more_than alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.tracing_filter.latency_threshold_ms", "200"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_more_than.tracing_filter.tracing_label_filters.application_name.*",
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_threshold.tracing_filter.latency_threshold_ms", "200"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_threshold.tracing_filter.tracing_label_filters.application_name.*",
 						map[string]string{
 							"operation": "IS",
 							"values.#":  "2",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_more_than.tracing_filter.tracing_label_filters.application_name.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_threshold.tracing_filter.tracing_label_filters.application_name.*",
 						map[string]string{
 							"operation": "STARTS_WITH",
 							"values.#":  "1",
 						},
 					),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.span_amount", "5"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_more_than.time_window", "1_HOUR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_threshold.span_amount", "5"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_threshold.time_window", "1_HOUR"),
 				),
 			},
 		},
@@ -1425,9 +1425,11 @@ func testAccCoralogixResourceAlertLogsImmediateUpdated() string {
   type_definition = {
     logs_threshold = {
       rules = [
-        { threshold   = 2
+        { 
+	      threshold   = 2.0
           time_window = "10_MINUTES"
-        condition = "MORE_THAN" }
+          condition = "MORE_THAN" 
+		}
       ]
       logs_filter = {
         simple_filter = {
@@ -1501,7 +1503,7 @@ func testAccCoralogixResourceAlertLogsMoreThan() string {
   type_definition = {
     logs_threshold = {
 		rules = [
-			{threshold   = 2
+			{threshold   = 2.0
 			time_window = "10_MINUTES"
 			condition   = "MORE_THAN"}
 		]
@@ -1575,7 +1577,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
     logs_threshold = {
       rules = [
         {
-          threshold   = 20
+          threshold   = 20.0
           time_window = "2_HOURS"
           condition   = "MORE_THAN"
         }
@@ -1671,7 +1673,7 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
       }
       rules = [
         {
-          threshold   = 2
+          threshold   = 2.0
           time_window = "10_MINUTES"
           condition   = "LESS_THAN"
         }
@@ -1726,7 +1728,7 @@ func testAccCoralogixResourceAlertLogsLessThanUpdated() string {
     logs_threshold = {
       rules = [
         {
-          threshold   = 20
+          threshold   = 20.0
           time_window = "2_HOURS"
           condition   = "LESS_THAN"
         }
@@ -1877,7 +1879,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
 		rules = [
       		{
 				time_window = "1_HOUR"
-				threshold = 20
+				threshold = 20.0
 			}
 	]
     }
@@ -1932,7 +1934,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 	  type_definition = {
 		logs_threshold = {
 			rules = [{
-				threshold   = 2
+				threshold   = 2.0
 				time_window = "10_MINUTES"
 				condition   = "LESS_THAN"
 			}]
@@ -2000,7 +2002,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
 	  type_definition = {
 		logs_threshold = {
 			rules = [
-				threshold   = 20
+				threshold   = 20.0
 				time_window = "2_HOURS"
 				condition   = "LESS_THAN"
 			]
@@ -2087,7 +2089,7 @@ func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
             }
         }
 	  rules = [{
-			threshold         = 2
+			threshold         = 2.0
 			time_window = "10_MINUTES"
 			condition		 = "MORE_THAN"
 
@@ -2159,7 +2161,7 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
       }
 	  rules = [ {
 		time_window = "1_HOUR"
-		threshold = 120
+		threshold = 120.0
 		condition		 = "MORE_THAN"
 	  }
 		]
@@ -2183,7 +2185,7 @@ func testAccCoralogixResourceAlertLogsRatioLessThan() string {
       		denominator_alias = "denominator"
 			rules       = [
 				{
-					threshold         = 2
+					threshold         = 2.0
 					time_window       = "10_MINUTES"
 					condition		 = "LESS_THAN"
 				}
@@ -2207,7 +2209,7 @@ func testAccCoralogixResourceAlertLogsRatioLessThanUpdated() string {
 	  		denominator = "updated-denominator"
 			rules       = [
 				{
-					threshold         = 20
+					threshold         = 20.0
 					time_window       = "2_HOURS"
 					condition		 = "LESS_THAN"
 				}
@@ -2312,7 +2314,7 @@ func testAccCoralogixResourceAlertLogsTimeRelativeMoreThan() string {
   type_definition = {
     logs_time_relative_threshold = {
 	rules = [ {
-		threshold        = 10
+		threshold        = 10.0
 		compared_to      = "Same Hour Yesterday"
 		ignore_infinity  = true
 		condition 	     = "MORE_THAN"
@@ -2333,7 +2335,7 @@ func testAccCoralogixResourceAlertLogsTimeRelativeMoreThanUpdated() string {
 	logs_time_relative_threshold = {
 	rules = [
 	{
-		threshold   = 50
+		threshold   = 50.0
 		compared_to = "Same Day Last Week"
 		condition   = "MORE_THAN"
 	}]
@@ -2353,7 +2355,7 @@ func testAccCoralogixResourceAlertLogsTimeRelativeLessThan() string {
 	logs_time_relative_threshold = {
 		rules = [
 		{
-			threshold        = 10
+			threshold        = 10.0
 			compared_to      = "Same Hour Yesterday"
 			ignore_infinity  = true
 			condition        = "LESS_THAN"
@@ -2373,7 +2375,7 @@ func testAccCoralogixResourceAlertLogsTimeRelativeLessThanUpdated() string {
   type_definition = {
 	logs_time_relative_threshold = {
 		rules = [{
-			threshold                   = 50
+			threshold                   = 50.0
 			compared_to                 = "Same Day Last Week"
 			ignore_infinity             = false
 			condition                   = "LESS_THAN"
@@ -2400,7 +2402,7 @@ func testAccCoralogixResourceAlertMetricMoreThan() string {
         promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
       }
 		rules = [{
-			threshold    = 2
+			threshold    = 2.0
 			for_over_pct = 10
 			of_the_last  = "10_MINUTES"
 			missing_values = {
@@ -2426,7 +2428,7 @@ func testAccCoralogixResourceAlertMetricMoreThanUpdated() string {
         promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
       }
 		rules = [{
-			threshold    = 10
+			threshold    = 10.0
 			for_over_pct = 15
 			of_the_last  = "1_HOUR"
 			missing_values = {
@@ -2452,7 +2454,7 @@ func testAccCoralogixResourceAlertMetricLessThan() string {
         promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
 	}
 		rules = [{
-			threshold    = 2
+			threshold    = 2.0
 			for_over_pct = 10
 			of_the_last  = "10_MINUTES"
 			missing_values = {
@@ -2482,7 +2484,7 @@ func testAccCoralogixResourceAlertMetricLessThanUpdated() string {
         promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
       }
 	  rules = [{
-		threshold    = 5
+		threshold    = 5.0
 		for_over_pct = 15
 		of_the_last  = "10_MINUTES"
 		missing_values = {
@@ -2511,13 +2513,15 @@ func testAccCoralogixResourceAlertMetricsLessThanUsual() string {
       metric_filter = {
         promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
       }
-  	  rules = [{
+  	  rules = [
+	  {
 		for_over_pct = 10
 		of_the_last  = "12_HOURS"
-		threshold       = 20
+		threshold       = 20.0
 		min_non_null_values_pct = 15
 		condition = "LESS_THAN"
-	  }]
+	  }
+		]
     }
   }
 }
@@ -2538,7 +2542,7 @@ func testAccCoralogixResourceAlertMetricsLessThanUsualUpdated() string {
   	  rules = [{
 		for_over_pct = 15
 		of_the_last = "10_MINUTES"
-		threshold = 2
+		threshold = 2.0
 		min_non_null_values_pct = 10
 		condition = "LESS_THAN"
       }]
@@ -2560,7 +2564,7 @@ func testAccCoralogixResourceAlertMetricsMoreThanUsual() string {
         promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
       }
 		rules = [{
-			threshold    = 2
+			threshold    = 2.0
 			for_over_pct = 10
 			of_the_last  = "10_MINUTES"
 			min_non_null_values_pct = 10
@@ -2584,7 +2588,7 @@ func testAccCoralogixResourceAlertMetricsMoreThanUsualUpdated() string {
 			promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
 		}
 		rules = [{
-			threshold    = 20
+			threshold    = 20.0
 			for_over_pct = 10
 			of_the_last = "10_MINUTES"
 			min_non_null_values_pct = 10
@@ -2608,7 +2612,7 @@ func testAccCoralogixResourceAlertMetricLessThanOrEquals() string {
 		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
 	  }
 		rules = [{
-			threshold    = 2
+			threshold    = 2.0
 			for_over_pct = 10
 			of_the_last = "10_MINUTES"
 			condition = "LESS_THAN_OR_EQUALS"
@@ -2639,7 +2643,7 @@ func testAccCoralogixResourceAlertMetricLessThanOrEqualsUpdated() string {
 	  }
 	  
 		rules = [{
-			threshold    = 5
+			threshold    = 5.0
 	  		for_over_pct = 15
 			of_the_last = "10_MINUTES"
 			condition = "LESS_THAN_OR_EQUALS"
@@ -2669,7 +2673,7 @@ func testAccCoralogixResourceAlertMetricMoreThanOrEquals() string {
 		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
 	  }
 		rules = [{
-			threshold    = 2
+			threshold    = 2.0
 			for_over_pct = 10
 			of_the_last = "10_MINUTES"
 			condition = "MORE_THAN_OR_EQUALS"
@@ -2695,7 +2699,7 @@ func testAccCoralogixResourceAlertMetricMoreThanOrEqualsUpdated() string {
 		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
 	  }
 		rules = [{
-			threshold    = 10
+			threshold    = 10.0
 			for_over_pct = 15
 			of_the_last = "1_HOUR"
 			condition = "MORE_THAN_OR_EQUALS"
