@@ -3411,6 +3411,7 @@ func flattenAlert(ctx context.Context, alert *cxsdk.AlertDef) (*AlertResourceMod
 		IncidentsSettings: incidentsSettings,
 		NotificationGroup: notificationGroup,
 		Labels:            labels,
+		PhantomMode:       wrapperspbBoolToTypeBool(alertProperties.GetPhantomMode()),
 	}, nil
 }
 
