@@ -2942,6 +2942,7 @@ resource "coralogix_alert" "test" {
   priority    = "P3"
   type_definition = {
     flow = {
+	  enforce_suppression = false
       stages = [
         {
           flow_stages_groups = [
