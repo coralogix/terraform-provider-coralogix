@@ -3864,7 +3864,7 @@ func flattenLogsUniqueCount(ctx context.Context, uniqueCount *cxsdk.LogsUniqueCo
 		}
 	}
 
-	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsUniqueCountAttr()}, rulesRaw)
+	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsUniqueCountRulesAttr()}, rulesRaw)
 	if diags.HasError() {
 		return types.ObjectNull(logsUniqueCountAttr()), diags
 	}
@@ -3895,7 +3895,7 @@ func flattenLogsNewValue(ctx context.Context, newValue *cxsdk.LogsNewValueType) 
 		}
 	}
 
-	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsNewValueAttr()}, rulesRaw)
+	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsNewValueRulesAttr()}, rulesRaw)
 	if diags.HasError() {
 		return types.ObjectNull(logsNewValueAttr()), diags
 	}
