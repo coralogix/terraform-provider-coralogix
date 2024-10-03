@@ -824,7 +824,7 @@ func TestAccCoralogixResourceAlert_metric_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than.of_the_last", "10_MINUTES"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than.missing_values.replace_with_zero", "true"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than.undetected_values_management.trigger_undetected_values", "true"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than.undetected_values_management.auto_retire_timeframe", "5_Minutes"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than.undetected_values_management.auto_retire_timeframe", "5_MINUTES"),
 				),
 			},
 			{
@@ -843,7 +843,7 @@ func TestAccCoralogixResourceAlert_metric_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than.of_the_last", "10_MINUTES"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than.missing_values.min_non_null_values_pct", "50"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than.undetected_values_management.trigger_undetected_values", "true"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than.undetected_values_management.auto_retire_timeframe", "5_Minutes"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_less_than.undetected_values_management.auto_retire_timeframe", "5_MINUTES"),
 				),
 			},
 		},
@@ -961,7 +961,7 @@ func TestAccCoralogixResourceAlert_metric_less_than_or_equals(t *testing.T) {
 						"missing_values.replace_with_zero": "true",
 					}),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.trigger_undetected_values", "true"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.auto_retire_timeframe", "5_Minutes"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.auto_retire_timeframe", "5_MINUTES"),
 				),
 			},
 			{
@@ -988,7 +988,7 @@ func TestAccCoralogixResourceAlert_metric_less_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.of_the_last", "10_MINUTES"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.missing_values.min_non_null_values_pct", "50"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.trigger_undetected_values", "true"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.auto_retire_timeframe", "5_Minutes"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.auto_retire_timeframe", "5_MINUTES"),
 				),
 			},
 		},
@@ -2413,7 +2413,7 @@ func testAccCoralogixResourceAlertMetricLessThan() string {
 		}]
       undetected_values_management = {
         trigger_undetected_values = true
-        auto_retire_timeframe     = "5_Minutes"
+        auto_retire_timeframe     = "5_MINUTES"
       }
     }
   }
@@ -2443,7 +2443,7 @@ func testAccCoralogixResourceAlertMetricLessThanUpdated() string {
 	  }]
       undetected_values_management = {
         trigger_undetected_values = true
-        auto_retire_timeframe     = "5_Minutes"
+        auto_retire_timeframe     = "5_MINUTES"
       }
     }
   }
@@ -2571,7 +2571,7 @@ func testAccCoralogixResourceAlertMetricLessThanOrEquals() string {
 		}]
 	  undetected_values_management = {
 		trigger_undetected_values = true
-		auto_retire_timeframe     = "5_Minutes"
+		auto_retire_timeframe     = "5_MINUTES"
 	  }
 	}
   }
@@ -2602,7 +2602,7 @@ func testAccCoralogixResourceAlertMetricLessThanOrEqualsUpdated() string {
 		}]
 	  undetected_values_management = {
 		trigger_undetected_values = true
-		auto_retire_timeframe     = "5_Minutes"
+		auto_retire_timeframe     = "5_MINUTES"
 	  }
 	}
   }
