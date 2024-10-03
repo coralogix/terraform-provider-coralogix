@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"terraform-provider-coralogix/coralogix/clientset"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -50,7 +51,7 @@ func (d *ActionDataSource) Configure(_ context.Context, req datasource.Configure
 		return
 	}
 
-	clientSet, ok := req.ProviderData.(*cxsdk.ClientSet)
+	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
