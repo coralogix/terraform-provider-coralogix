@@ -2115,7 +2115,7 @@ func expandAlertsTypeDefinition(ctx context.Context, alertProperties *cxsdk.Aler
 }
 
 func expandLogsImmediateAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, logsImmediateObject types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
-	if logsImmediateObject.IsNull() || logsImmediateObject.IsUnknown() {
+	if objIsNullOrUnknown(logsImmediateObject) {
 		return properties, nil
 	}
 
