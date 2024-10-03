@@ -959,8 +959,11 @@ func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_unusual.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_unusual.rules.*",
 						map[string]string{
-							"minimum_threshold": "20",
-							"time_window":       "12_HOURS",
+							"threshold":               "20",
+							"for_over_pct":            "10",
+							"of_the_last":             "12_HOURS",
+							"condition":               "LESS_THAN_OR_EQUALS",
+							"min_non_null_values_pct": "50",
 						},
 					),
 				),
@@ -979,8 +982,11 @@ func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_unusual.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_unusual.rules.*",
 						map[string]string{
-							"minimum_threshold": "2",
-							"time_window":       "10_MINUTES",
+							"threshold":               "2",
+							"for_over_pct":            "10",
+							"of_the_last":             "10_MINUTES",
+							"condition":               "LESS_THAN_OR_EQUALS",
+							"min_non_null_values_pct": "50",
 						},
 					),
 				),
@@ -1003,7 +1009,7 @@ func TestAccCoralogixResourceAlert_metric_less_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of metric-less-than-or-equals alert from terraform"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.*", map[string]string{
 						"threshold":                        "2.0",
 						"for_over_pct":                     "10",
@@ -1026,7 +1032,7 @@ func TestAccCoralogixResourceAlert_metric_less_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of metric-less-than-or-equals alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.*", map[string]string{
 						"threshold":                              "5.0",
 						"for_over_pct":                           "15",
@@ -1060,7 +1066,7 @@ func TestAccCoralogixResourceAlert_metric_more_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of metric-more-than-or-equals alert from terraform"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.*", map[string]string{
 						"threshold":                        "2.0",
 						"for_over_pct":                     "10",
@@ -1081,7 +1087,7 @@ func TestAccCoralogixResourceAlert_metric_more_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of metric-more-than-or-equals alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P4"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.*", map[string]string{
 						"threshold":                        "10.0",
 						"for_over_pct":                     "15",
@@ -2492,8 +2498,11 @@ func testAccCoralogixResourceAlertMetricsLessThanUsual() string {
       }
   	  rules = [
 	  {
-		time_window  = "12_HOURS"
-		minimum_threshold       = 20.0
+		threshold    = 20.0
+		for_over_pct = 10
+		of_the_last = "12_HOURS"
+		condition = "LESS_THAN_OR_EQUALS"
+		min_non_null_values_pct = 50
 	  }
 		]
     }
@@ -2514,8 +2523,11 @@ func testAccCoralogixResourceAlertMetricsLessThanUsualUpdated() string {
 		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
 	  }
   	  rules = [{
-		time_window = "10_MINUTES"
-		minimum_threshold = 2.0
+		threshold    = 2.0
+		for_over_pct = 10
+		of_the_last = "10_MINUTES"
+		condition = "LESS_THAN_OR_EQUALS"
+		min_non_null_values_pct = 50
       }]
 	}
   }
