@@ -97,6 +97,11 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 }
 
 func testAccCheckActionDestroy(s *terraform.State) error {
+	meta := testAccProvider.Meta()
+
+	if meta == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).Actions()
 	ctx := context.TODO()
 
