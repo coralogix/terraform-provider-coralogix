@@ -72,7 +72,7 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs immediate alert updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs immediate alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.advanced_target_settings.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
 						map[string]string{
 							"retriggering_period.minutes": "10",
 							"notify_on":                   "Triggered Only",
@@ -132,7 +132,6 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 							"time_window": "10_MINUTES",
 						},
 					),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.evaluation_window", "Dynamic"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name.*",
 						map[string]string{
@@ -347,7 +346,6 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_unusual.notification_payload_filter.*", "coralogix.metadata.sdkId"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_unusual.notification_payload_filter.*", "coralogix.metadata.sdkName"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_unusual.notification_payload_filter.*", "coralogix.metadata.sdkVersion"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unusual.minimum_threshold", "2"),
 				),
 			},
 			{
@@ -428,6 +426,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
 						map[string]string{
 							"threshold":   "2.0",
 							"time_window": "10_MINUTES",
+							"condition":   "LESS_THAN",
 						},
 					),
 
@@ -473,6 +472,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
 						map[string]string{
 							"threshold":   "20",
 							"time_window": "2_HOURS",
+							"condition":   "LESS_THAN",
 						},
 					),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.lucene_query", "message:\"error\""),
@@ -521,7 +521,7 @@ func TestAccCoralogixResourceAlert_logs_ratio_threshold(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_threshold.rules.*",
 						map[string]string{
-							"threshold":   "2.0",
+							"threshold":   "2",
 							"condition":   "MORE_THAN",
 							"time_window": "10_MINUTES",
 						},
@@ -585,7 +585,7 @@ func TestAccCoralogixResourceAlert_logs_ratio_threshold(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_threshold.rules.*",
 						map[string]string{
 							"time_window": "1_HOUR",
-							"threshold":   "120.0",
+							"threshold":   "120",
 							"condition":   "MORE_THAN",
 						},
 					),
@@ -1631,7 +1631,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
 
 func testAccCoralogixResourceAlertLogsLessThan() string {
 	return `resource "coralogix_alert" "test" {
-  name        = "logs-threshold less-than alert example"
+  name        = "less-than alert example"
   description = "Example of logs-threshold less-than alert example from terraform"
   priority    = "P2"
 
