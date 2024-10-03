@@ -18,7 +18,7 @@ func TestAccCoralogixDataSourceAlert(t *testing.T) {
 				Config: testAccCoralogixResourceAlertLogsImmediate() +
 					testAccCoralogixDataSourceAlert_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(alertDataSourceName, "name", "logs immediate alert"),
+					resource.TestCheckResourceAttr(alertDataSourceName, "name", "logs immediate alert updated"),
 				),
 			},
 		},

@@ -34,7 +34,7 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 							"recipients.0": "example@coralogix.com",
 						}),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
-					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Wednesday"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
@@ -1353,7 +1353,7 @@ func testAccCheckAlertDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCoralogixResourceAlertLogsImmediate() string {
+func testAccCoralogixResourceAlertLogsImmediateUpdated() string {
 	return `resource "coralogix_alert" "test" {
   name        = "logs immediate alert updated"
   description = "Example of logs immediate alert from terraform updated"
@@ -1365,10 +1365,10 @@ func testAccCoralogixResourceAlertLogsImmediate() string {
   }
 
   notification_group = {
-    advanced_target_settings = [
+    simple_target_settings = [
       {
         retriggering_period = {
-          minutes = 10
+          minutes = 1
         }
         notify_on  = "Triggered Only"
         recipients = ["example@coralogix.com"]
@@ -1410,7 +1410,7 @@ func testAccCoralogixResourceAlertLogsImmediate() string {
 `
 }
 
-func testAccCoralogixResourceAlertLogsImmediateUpdated() string {
+func testAccCoralogixResourceAlertLogsImmediate() string {
 	return `resource "coralogix_alert" "test" {
   name        = "logs-more-than alert example"
   description = "Example of logs-more-than alert example from terraform"
