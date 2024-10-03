@@ -2097,7 +2097,7 @@ func expandAlertsTypeDefinition(ctx context.Context, alertProperties *cxsdk.Aler
 	} else if tracingImmediate := alertDefinitionModel.TracingImmediate; !objIsNullOrUnknown(tracingImmediate) {
 		// TracingImmediate
 		alertProperties, diags = expandTracingImmediateTypeDefinition(ctx, alertProperties, tracingImmediate)
-	} else if tracingThreshold := alertDefinitionModel.TracingImmediate; !objIsNullOrUnknown(tracingImmediate) {
+	} else if tracingThreshold := alertDefinitionModel.TracingThreshold; !objIsNullOrUnknown(tracingThreshold) {
 		// TracingThreshold
 		alertProperties, diags = expandTracingThresholdTypeDefinition(ctx, alertProperties, tracingThreshold)
 	} else if flow := alertDefinitionModel.Flow; !objIsNullOrUnknown(flow) {
