@@ -4289,6 +4289,7 @@ func flattenMetricUnusual(ctx context.Context, metricMoreThanUsual *cxsdk.Metric
 			Threshold:           wrapperspbDoubleToTypeFloat64(rule.Condition.GetThreshold()),
 			ForOverPct:          wrapperspbUint32ToTypeInt64(rule.Condition.GetForOverPct()),
 			MinNonNullValuesPct: wrapperspbUint32ToTypeInt64(rule.Condition.GetMinNonNullValuesPct()),
+			Condition:           types.StringValue(metricUnusualConditionMap[rule.Condition.ConditionType]),
 		}
 	}
 
