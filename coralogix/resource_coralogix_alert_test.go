@@ -108,8 +108,13 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.minutes", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.hours", "20"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.minutes", "30"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.threshold", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.time_window", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.rules.*",
+						map[string]string{
+							"threshold":   "2",
+							"time_window": "10_MINUTES",
+						},
+					),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.evaluation_window", "Dynamic"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name.*",
@@ -149,8 +154,15 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.minutes", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.hours", "20"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.minutes", "30"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.threshold", "20"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.time_window", "2_HOURS"),
+
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.rules.*",
+						map[string]string{
+							"threshold":   "20",
+							"time_window": "2_HOURS",
+						},
+					),
+
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.evaluation_window", "Rolling"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name.*",
@@ -489,7 +501,6 @@ func TestAccCoralogixResourceAlert_logs_ratio_threshold(t *testing.T) {
 					),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.denominator_alias", "denominator"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.numerator_alias", "numerator"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.time_window", "10_MINUTES"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_threshold.rules.*",
 						map[string]string{
@@ -1402,8 +1413,8 @@ func testAccCoralogixResourceAlertLogsImmediateUpdated() string {
 
 func testAccCoralogixResourceAlertLogsImmediate() string {
 	return `resource "coralogix_alert" "test" {
-  name        = "logs immediate alert example"
-  description = "Example of logs immediate alert example from terraform"
+  name        = "logs immediate alert"
+  description = "Example of logs immediate alert from terraform"
   priority    = "P2"
 
   labels = {
@@ -1422,7 +1433,7 @@ func testAccCoralogixResourceAlertLogsImmediate() string {
   incidents_settings = {
     notify_on = "Triggered and Resolved"
     retriggering_period = {
-      minutes = 1
+      minutes = 10
     }
   }
 
