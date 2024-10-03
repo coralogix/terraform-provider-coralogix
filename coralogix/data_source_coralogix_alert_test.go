@@ -15,8 +15,7 @@ func TestAccCoralogixDataSourceAlert(t *testing.T) {
 		CheckDestroy:             testAccCheckActionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertLogsImmediate() +
-					testAccCoralogixDataSourceAlert_read(),
+				Config: testAccCoralogixResourceAlertLogsImmediateForReading(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertDataSourceName, "name", "logs immediate alert updated"),
 				),
@@ -24,8 +23,81 @@ func TestAccCoralogixDataSourceAlert(t *testing.T) {
 		},
 	})
 }
-func testAccCoralogixDataSourceAlert_read() string {
-	return `data "coralogix_alert" "test" {
+
+func testAccCoralogixResourceAlertLogsImmediateForReading() string {
+	return `resource "coralogix_alert" "dstest" {
+  name        = "logs-more-than alert example"
+  description = "Example of logs-more-than alert example from terraform"
+  priority    = "P2"
+
+  labels = {
+    alert_type        = "security"
+    security_severity = "high"
+  }
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  schedule = {
+    active_on = {
+      days_of_week = ["Wednesday", "Thursday"]
+      start_time = {
+        hours   = 8
+        minutes = 30
+      }
+      end_time = {
+        hours   = 20
+        minutes = 30
+      }
+    }
+  }
+
+  type_definition = {
+    logs_threshold = {
+      rules = [
+        { 
+	      threshold   = 2.0
+          time_window = "10_MINUTES"
+          condition = "MORE_THAN" 
+		}
+      ]
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+          label_filters = {
+            application_name = [
+              {
+                operation = "IS"
+                value     = "nginx"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "IS"
+                value     = "subsystem-name"
+              }
+            ]
+            severities = ["Warning"]
+          }
+        }
+      }
+    }
+  }
+}
+
+data "coralogix_alert" "test" {
 	id = coralogix_alert.test.id
 }
 `
