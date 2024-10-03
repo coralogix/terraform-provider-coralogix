@@ -95,11 +95,6 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "high"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
 						map[string]string{
-							"integration_id": "17730",
-						},
-					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
-						map[string]string{
 							"recipients.#": "1",
 							"recipients.0": "example@coralogix.com",
 						},
@@ -145,11 +140,6 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "low"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
-						map[string]string{
-							"integration_id": "17730",
-						},
-					),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered Only"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
@@ -198,11 +188,6 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "2"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
 						map[string]string{
-							"integration_id": "17730",
-						},
-					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
-						map[string]string{
 							"recipients.#": "1",
 							"recipients.0": "example@coralogix.com",
 						},
@@ -247,13 +232,6 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "low"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.advanced_target_settings.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.advanced_target_settings.*",
-						map[string]string{
-							"integration_id":              "17730",
-							"notify_on":                   "Triggered Only",
-							"retriggering_period.minutes": "10",
-						},
-					),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered Only"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
@@ -307,12 +285,6 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 							"recipients.0":                "example@coralogix.com",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.advanced_target_settings.*",
-						map[string]string{
-							"integration_id": "17730",
-							"notify_on":      "Triggered and Resolved",
-						},
-					),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
@@ -355,13 +327,6 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.#", "0"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.advanced_target_settings.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.advanced_target_settings.*",
-						map[string]string{
-							"integration_id":              "17730",
-							"notify_on":                   "Triggered and Resolved",
-							"retriggering_period.minutes": "10",
-						},
-					),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_more_than_usual.logs_filter.simple_filter.lucene_query", "message:\"updated_error\""),
@@ -408,11 +373,6 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
 							"recipients.1": "example@coralogix.com",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
-						map[string]string{
-							"integration_id": "17730",
-						},
-					),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
@@ -452,11 +412,6 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-less-than alert example from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
-						map[string]string{
-							"integration_id": "17730",
-						},
-					),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered Only"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
@@ -559,11 +514,6 @@ func TestAccCoralogixResourceAlert_logs_ratio_threshold(t *testing.T) {
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_name"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_description"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "2"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
-						map[string]string{
-							"integration_id": "17730",
-						},
-					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
 						map[string]string{
 							"recipients.#": "1",
@@ -1424,9 +1374,6 @@ func testAccCoralogixResourceAlertLogsImmediate() string {
   notification_group = {
     simple_target_settings = [
       {
-        integration_id = "17730"
-      },
-      {
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -1502,9 +1449,6 @@ func testAccCoralogixResourceAlertLogsMoreThan() string {
   notification_group = {
     simple_target_settings = [
       {
-        integration_id = "17730"
-      },
-      {
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -1577,9 +1521,6 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
 
   notification_group = {
     simple_target_settings = [
-      {
-        integration_id = "17730"
-      }
     ]
   }
 
@@ -1650,9 +1591,6 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
 
   notification_group = {
     simple_target_settings = [
-      {
-        integration_id = "17730"
-      },
       {
         recipients = ["example@coralogix.com"]
       }
@@ -1728,9 +1666,6 @@ func testAccCoralogixResourceAlertLogsLessThanUpdated() string {
 
   notification_group = {
     advanced_target_settings = [
-      {
-        integration_id = "17730"
-      }
     ]
   }
 
@@ -1800,10 +1735,6 @@ func testAccCoralogixResourceAlertLogsMoreThanUsual() string {
 
   notification_group = {
     advanced_target_settings = [
-      {
-        integration_id = "17730"
-        notify_on      = "Triggered and Resolved"
-      },
       {
         retriggering_period = {
           minutes = 1
@@ -1878,10 +1809,6 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
 
   notification_group = {
     advanced_target_settings = [
-      {
-        integration_id = "17730"
-        notify_on      = "Triggered and Resolved"
-      }
     ]
   }
 
@@ -1935,9 +1862,6 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 		{
 			recipients = ["example@coralogix.com", "example2@coralogix.com"]
 		},
-		{
-			integration_id = "17730"
-		}
 		]
 	 }
 
@@ -2003,9 +1927,6 @@ func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
 
 	  notification_group = {
 		simple_target_settings = [
-		{
-			integration_id = "17730"
-		}
 		]
 	  }
 
@@ -2142,9 +2063,6 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
     simple_target_settings = [
       {
         recipients = ["example@coralogix.com"]
-      },
-      {
-            integration_id = "17730"
       }
     ]
   }
