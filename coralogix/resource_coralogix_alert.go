@@ -113,8 +113,8 @@ var (
 
 	autoRetireTimeframeProtoToSchemaMap = map[cxsdk.AutoRetireTimeframe]string{
 		cxsdk.AutoRetireTimeframeNeverOrUnspecified: "Never",
-		cxsdk.AutoRetireTimeframe5Minutes:           "5_Minutes",
-		cxsdk.AutoRetireTimeframe10Minutes:          "10_Minutes",
+		cxsdk.AutoRetireTimeframe5Minutes:           "5_MINUTES",
+		cxsdk.AutoRetireTimeframe10Minutes:          "10_MINUTES",
 		cxsdk.AutoRetireTimeframe1Hour:              "1_Hour",
 		cxsdk.AutoRetireTimeframe2Hours:             "2_Hours",
 		cxsdk.AutoRetireTimeframe6Hours:             "6_Hours",
