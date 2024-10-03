@@ -98,7 +98,7 @@ func testAccCoralogixResourceAlertLogsImmediateForReading() string {
 }
 
 data "coralogix_alert" "test" {
-	id = coralogix_alert.test.id
+	id = coralogix_alert.dstest.id
 }
 `
 }
