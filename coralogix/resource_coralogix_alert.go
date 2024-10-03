@@ -1617,7 +1617,6 @@ func timeOfDaySchema() schema.SingleNestedAttribute {
 func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
-		Computed: true,
 		PlanModifiers: []planmodifier.Object{
 			objectplanmodifier.UseStateForUnknown(),
 		},
