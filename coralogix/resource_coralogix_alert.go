@@ -3720,10 +3720,16 @@ func flattenLogsThreshold(ctx context.Context, threshold *cxsdk.LogsThresholdTyp
 		return types.ObjectNull(logsThresholdAttr()), diags
 	}
 
+	undetected, diags := flattenUndetectedValuesManagement(ctx, threshold.GetUndetectedValuesManagement())
+	if diags.HasError() {
+		return types.ObjectNull(logsThresholdAttr()), diags
+	}
+
 	logsMoreThanModel := LogsThresholdModel{
-		LogsFilter:                logsFilter,
-		Rules:                     rules,
-		NotificationPayloadFilter: wrappedStringSliceToTypeStringSet(threshold.GetNotificationPayloadFilter()),
+		LogsFilter:                 logsFilter,
+		Rules:                      rules,
+		NotificationPayloadFilter:  wrappedStringSliceToTypeStringSet(threshold.GetNotificationPayloadFilter()),
+		UndetectedValuesManagement: undetected,
 	}
 	return types.ObjectValueFrom(ctx, logsThresholdAttr(), logsMoreThanModel)
 }
