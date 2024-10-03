@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	terraform2 "github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -98,9 +97,6 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 }
 
 func testAccCheckActionDestroy(s *terraform.State) error {
-	testAccProvider = OldProvider()
-	rc := terraform2.ResourceConfig{}
-	testAccProvider.Configure(context.Background(), &rc)
 	client := testAccProvider.Meta().(*clientset.ClientSet).Actions()
 	ctx := context.TODO()
 
