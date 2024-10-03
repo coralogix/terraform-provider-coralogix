@@ -1379,8 +1379,8 @@ func testAccCoralogixResourceAlertLogsImmediateUpdated() string {
 
 func testAccCoralogixResourceAlertLogsImmediate() string {
 	return `resource "coralogix_alert" "test" {
-  name        = "logs-more-than alert example"
-  description = "Example of logs-more-than alert example from terraform"
+  name        = "logs immediate alert example"
+  description = "Example of logs immediate alert example from terraform"
   priority    = "P2"
 
   labels = {
@@ -1416,34 +1416,11 @@ func testAccCoralogixResourceAlertLogsImmediate() string {
       }
     }
   }
-
   type_definition = {
-    logs_threshold = {
-      rules = [
-        { 
-	      threshold   = 2.0
-          time_window = "10_Minutes"
-          condition = "MORE_THAN" 
-		}
-      ]
+    logs_immediate = {
       logs_filter = {
         simple_filter = {
           lucene_query = "message:\"error\""
-          label_filters = {
-            application_name = [
-              {
-                operation = "IS"
-                value     = "nginx"
-              }
-            ]
-            subsystem_name = [
-              {
-                operation = "IS"
-                value     = "subsystem-name"
-              }
-            ]
-            severities = ["Warning"]
-          }
         }
       }
     }
