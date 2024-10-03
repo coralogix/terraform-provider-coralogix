@@ -546,7 +546,7 @@ type LogsRatioThresholdRuleModel struct {
 	Threshold      types.Float64 `tfsdk:"threshold"`
 	TimeWindow     types.String  `tfsdk:"time_window"`
 	IgnoreInfinity types.Bool    `tfsdk:"ignore_infinity"`
-	Condition      types.String  `tfsdk:"condition"` // Currently there is only a single condition
+	Condition      types.String  `tfsdk:"condition"`
 }
 
 type LogsUnusualRuleModel struct {
@@ -3823,6 +3823,7 @@ func flattenLogsRatioThreshold(ctx context.Context, ratioThreshold *cxsdk.LogsRa
 			Threshold:      wrapperspbDoubleToTypeFloat64(rule.Condition.GetThreshold()),
 			TimeWindow:     timeWindow,
 			IgnoreInfinity: wrapperspbBoolToTypeBool(rule.Condition.GetIgnoreInfinity()),
+			Condition:      types.StringValue(logsRatioConditionMap[rule.Condition.GetConditionType()]),
 		}
 	}
 
@@ -3863,7 +3864,7 @@ func flattenLogsUniqueCount(ctx context.Context, uniqueCount *cxsdk.LogsUniqueCo
 		}
 	}
 
-	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsRatioThresholdRulesAttr()}, rulesRaw)
+	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsUniqueCountAttr()}, rulesRaw)
 	if diags.HasError() {
 		return types.ObjectNull(logsUniqueCountAttr()), diags
 	}
@@ -3894,7 +3895,7 @@ func flattenLogsNewValue(ctx context.Context, newValue *cxsdk.LogsNewValueType) 
 		}
 	}
 
-	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsRatioThresholdRulesAttr()}, rulesRaw)
+	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsNewValueAttr()}, rulesRaw)
 	if diags.HasError() {
 		return types.ObjectNull(logsNewValueAttr()), diags
 	}
