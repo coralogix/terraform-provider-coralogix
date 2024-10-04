@@ -1381,7 +1381,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					},
 					"simple_target_settings": schema.SetNestedAttribute{
 						Optional: true,
-						Computed: true,
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"integration_id": schema.StringAttribute{
