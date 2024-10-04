@@ -1374,6 +1374,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 						},
 						Validators: []validator.Set{
+							setvalidator.SizeAtLeast(1),
 							setvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("simple_target_settings"),
 							),
