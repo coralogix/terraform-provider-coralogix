@@ -208,7 +208,7 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 			{
 				Config: testAccCoralogixResourceAlertLogsLessThan(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-less-than alert example"),
+					resource.TestCheckResourceAttr(alertResourceName, "name", "less-than alert example"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-threshold less-than alert example from terraform"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
@@ -229,8 +229,14 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.minutes", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.hours", "20"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.minutes", "30"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.threshold", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.time_window", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.rules.*",
+						map[string]string{
+							"time_window": "10_MINUTES",
+							"threshold":   "2",
+							"condition":   "LESS_THAN",
+						},
+					),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name.*",
 						map[string]string{
@@ -269,8 +275,15 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.minutes", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.hours", "20"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.minutes", "30"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.threshold", "20"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.time_window", "2_HOURS"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.rules.*",
+						map[string]string{
+							"time_window": "2_HOURS",
+							"threshold":   "20",
+							"condition":   "LESS_THAN",
+						},
+					),
+
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name.*",
 						map[string]string{
