@@ -1620,9 +1620,6 @@ func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
 		Computed: true,
-		PlanModifiers: []planmodifier.Object{
-			objectplanmodifier.UseStateForUnknown(),
-		},
 		Attributes: map[string]schema.Attribute{
 			"trigger_undetected_values": schema.BoolAttribute{
 				Optional: true,
