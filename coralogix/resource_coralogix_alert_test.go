@@ -248,7 +248,6 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "low"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.advanced_target_settings.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered Only"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
@@ -1751,11 +1750,6 @@ func testAccCoralogixResourceAlertLogsLessThanUpdated() string {
     security_severity = "low"
   }
 
-  notification_group = {
-    advanced_target_settings = [
-    ]
-  }
-
   incidents_settings = {
     notify_on = "Triggered Only"
     retriggering_period = {
@@ -2021,6 +2015,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
 
 	  notification_group = {
 		simple_target_settings = [
+			{ recipients = ["example@coralogix.com"] }
 		]
 	  }
 
