@@ -1910,7 +1910,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
 		rules = [
       		{
 				time_window = "1_HOUR"
-				threshold = 20
+				minimum_threshold = 20
 			}
 	]
     }

@@ -1283,6 +1283,8 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			},
 			"deleted": schema.BoolAttribute{
 				Computed: true,
+				Optional: true,
+				Default:  booldefault.StaticBool(false),
 			},
 			"group_by": schema.SetAttribute{
 				Optional:            true,
@@ -1617,6 +1619,7 @@ func timeOfDaySchema() schema.SingleNestedAttribute {
 func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
+		Computed: true,
 		PlanModifiers: []planmodifier.Object{
 			objectplanmodifier.UseStateForUnknown(),
 		},
@@ -1758,7 +1761,7 @@ func expandIncidentsSettingsByRetriggeringPeriod(ctx context.Context, incidentsS
 }
 
 func extractNotificationGroup(ctx context.Context, notificationGroupObject types.Object) (*cxsdk.AlertDefNotificationGroup, diag.Diagnostics) {
-	if notificationGroupObject.IsNull() || notificationGroupObject.IsUnknown() {
+	if objIsNullOrUnknown(notificationGroupObject) {
 		return nil, nil
 	}
 
