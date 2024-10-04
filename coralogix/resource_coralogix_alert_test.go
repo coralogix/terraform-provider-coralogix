@@ -352,7 +352,7 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unusual.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_unusual.rules.*",
 						map[string]string{
-							"minimum_threshold": "2",
+							"minimum_threshold": "20",
 							"time_window":       "10_MINUTES",
 						},
 					),
@@ -393,7 +393,7 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unusual.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_unusual.rules.*",
 						map[string]string{
-							"minimum_threshold": "2",
+							"minimum_threshold": "20",
 							"time_window":       "1_HOUR",
 						},
 					),
