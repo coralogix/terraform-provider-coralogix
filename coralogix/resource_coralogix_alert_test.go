@@ -584,7 +584,7 @@ func TestAccCoralogixResourceAlert_logs_ratio_threshold(t *testing.T) {
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_id"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_name"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_description"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "2"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
 						map[string]string{
 							"recipients.#": "1",
