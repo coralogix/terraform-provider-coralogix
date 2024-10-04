@@ -2949,7 +2949,7 @@ func expandTracingThresholdTypeDefinition(ctx context.Context, properties *cxsdk
 			Rules:                     rules,
 		},
 	}
-	properties.Type = cxsdk.AlertDefTypeTracingImmediate
+	properties.Type = cxsdk.AlertDefTypeTracingThreshold
 
 	return properties, nil
 }
