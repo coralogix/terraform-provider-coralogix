@@ -335,7 +335,7 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unusual.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_unusual.rules.*",
 						map[string]string{
-							"minimum_threshold": "20",
+							"minimum_threshold": "2",
 							"time_window":       "10_MINUTES",
 						},
 					),
@@ -2441,9 +2441,9 @@ func testAccCoralogixResourceAlertMetricMoreThan() string {
 
   type_definition = {
     metric_threshold = {
-      metric_filter = {
-        promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
-      }
+		metric_filter = {
+			promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+		}
 		rules = [{
 			threshold    = 2
 			for_over_pct = 10
@@ -2466,7 +2466,7 @@ func testAccCoralogixResourceAlertMetricMoreThanUpdated() string {
   priority    = "P4"
 
   type_definition = {
-    metric_more_than = {
+    metric_threshold = {
       metric_filter = {
         promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
       }
