@@ -12,12 +12,6 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_custom_role" "example" {
-  name  = "Example custom role"
-  description = "This role is created with terraform!"
-  parent_role = "Standard User"
-  permissions = ["spans.events2metrics:UpdateConfig"]
-}
 
 resource "coralogix_user" "example" {
   user_name = "example@coralogix.com"
@@ -29,7 +23,7 @@ resource "coralogix_user" "example" {
 
 resource "coralogix_scope" "example" {
   display_name       = "ExampleScope"
-  default_expression = "<v1> true"
+  default_expression = "<v1>true"
   filters            = [
     {
       entity_type = "logs"
@@ -39,9 +33,9 @@ resource "coralogix_scope" "example" {
 }
 
 resource "coralogix_group" "example" {
-  display_name = "example"
-  role         = coralogix_custom_role.example.name
+  display_name = "example2"
+  role         = "Read Only"
   members      = [coralogix_user.example.id]
-  scope_id     = data.coralogix_scope.example.id
+  scope_id     = coralogix_scope.example.id
 }
 
