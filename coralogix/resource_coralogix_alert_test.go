@@ -93,6 +93,7 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "high"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
 						map[string]string{
 							"recipients.#": "1",
@@ -1605,7 +1606,10 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
 
   notification_group = {
     simple_target_settings = [
-    ]
+      {
+        recipients = ["example@coralogix.com"]
+      }
+	]
   }
 
   incidents_settings = {
