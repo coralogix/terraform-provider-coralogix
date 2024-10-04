@@ -1001,7 +1001,7 @@ func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
 							"threshold":               "20",
 							"for_over_pct":            "10",
 							"of_the_last":             "12_HOURS",
-							"condition":               "LESS_THAN_OR_EQUALS",
+							"condition":               "LESS_THAN",
 							"min_non_null_values_pct": "50",
 						},
 					),
@@ -1024,7 +1024,7 @@ func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
 							"threshold":               "2",
 							"for_over_pct":            "10",
 							"of_the_last":             "10_MINUTES",
-							"condition":               "LESS_THAN_OR_EQUALS",
+							"condition":               "LESS_THAN",
 							"min_non_null_values_pct": "50",
 						},
 					),
@@ -1049,7 +1049,7 @@ func TestAccCoralogixResourceAlert_metric_less_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.*", map[string]string{
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.rules.*", map[string]string{
 						"threshold":                        "2",
 						"for_over_pct":                     "10",
 						"of_the_last":                      "10_MINUTES",
@@ -1072,7 +1072,7 @@ func TestAccCoralogixResourceAlert_metric_less_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.*", map[string]string{
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.rules.*", map[string]string{
 						"threshold":                              "5",
 						"for_over_pct":                           "15",
 						"of_the_last":                            "10_MINUTES",
@@ -1106,7 +1106,7 @@ func TestAccCoralogixResourceAlert_metric_more_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.*", map[string]string{
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.rules.*", map[string]string{
 						"threshold":                        "2",
 						"for_over_pct":                     "10",
 						"of_the_last":                      "10_MINUTES",
@@ -1127,7 +1127,7 @@ func TestAccCoralogixResourceAlert_metric_more_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P4"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.*", map[string]string{
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.rules.*", map[string]string{
 						"threshold":                        "10",
 						"for_over_pct":                     "15",
 						"of_the_last":                      "1_HOUR",
@@ -2026,11 +2026,11 @@ func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
 
 	  type_definition = {
 		logs_threshold = {
-			rules = [
+			rules = [{
 				threshold   = 20
 				time_window = "2_HOURS"
 				condition   = "LESS_THAN"
-			]
+			}]
 			logs_filter       = {
 				simple_filter = {
 					lucene_query  = "message:\"error\""
@@ -2540,7 +2540,7 @@ func testAccCoralogixResourceAlertMetricsLessThanUsual() string {
 		threshold    = 20
 		for_over_pct = 10
 		of_the_last = "12_HOURS"
-		condition = "LESS_THAN_OR_EQUALS"
+		condition = "LESS_THAN"
 		min_non_null_values_pct = 50
 	  }
 		]
@@ -2565,7 +2565,7 @@ func testAccCoralogixResourceAlertMetricsLessThanUsualUpdated() string {
 		threshold    = 2
 		for_over_pct = 10
 		of_the_last = "10_MINUTES"
-		condition = "LESS_THAN_OR_EQUALS"
+		condition = "LESS_THAN"
 		min_non_null_values_pct = 50
       }]
 	}
