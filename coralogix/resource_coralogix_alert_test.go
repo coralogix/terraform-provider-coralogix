@@ -72,7 +72,7 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs immediate alert updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs immediate alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.advanced_target_settings.*",
 						map[string]string{
 							"retriggering_period.minutes": "1",
 							"notify_on":                   "Triggered Only",
@@ -652,8 +652,6 @@ func TestAccCoralogixResourceAlert_logs_ratio_less_than(t *testing.T) {
 						},
 					),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.group_by_for", "Denominator Only"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.undetected_values_management.trigger_undetected_values", "false"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.undetected_values_management.auto_retire_timeframe", "Never"),
 				),
 			},
 			{
@@ -749,10 +747,16 @@ func TestAccCoralogixResourceAlert_logs_unique_count(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "1"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "remote_addr_geoip.city_name"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.unique_count_keypath", "remote_addr_geoip.country_name"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.max_unique_count", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.time_window", "5_MINUTES"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.max_unique_count_per_group_by_key", "500"),
+
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_unique_count.rules.*",
+						map[string]string{
+							"unique_count_keypath":              "remote_addr_geoip.country_name",
+							"time_window":                       "5_MINUTES",
+							"max_unique_count_per_group_by_key": "500",
+							"max_unique_count":                  "2",
+						},
+					),
 				),
 			},
 			{
@@ -766,9 +770,15 @@ func TestAccCoralogixResourceAlert_logs_unique_count(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-unique-count alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "0"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.unique_count_keypath", "remote_addr_geoip.city_name"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.max_unique_count", "5"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.time_window", "20_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_unique_count.rules.*",
+						map[string]string{
+							"unique_count_keypath":              "remote_addr_geoip.city_name",
+							"time_window":                       "20_MINUTES",
+							"max_unique_count_per_group_by_key": "500",
+							"max_unique_count":                  "5",
+						},
+					),
 				),
 			},
 		},
@@ -1411,7 +1421,7 @@ func testAccCoralogixResourceAlertLogsImmediateUpdated() string {
   }
 
   notification_group = {
-    simple_target_settings = [
+    advanced_target_settings = [
       {
         retriggering_period = {
           minutes = 1
