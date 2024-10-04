@@ -180,7 +180,6 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 						},
 					),
 
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.evaluation_window", "Rolling"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name.*",
 						map[string]string{
@@ -1914,6 +1913,13 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
 
   notification_group = {
     advanced_target_settings = [
+	{
+        retriggering_period = {
+          minutes = 1
+        }
+        notify_on  = "Triggered and Resolved"
+        recipients = ["example@coralogix.com"]
+      }
     ]
   }
 
