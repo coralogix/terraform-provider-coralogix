@@ -786,10 +786,9 @@ func TestAccCoralogixResourceAlert_logs_unique_count(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_unique_count.rules.*",
 						map[string]string{
-							"unique_count_keypath":              "remote_addr_geoip.city_name",
-							"time_window":                       "20_MINUTES",
-							"max_unique_count_per_group_by_key": "500",
-							"max_unique_count":                  "5",
+							"unique_count_keypath": "remote_addr_geoip.city_name",
+							"time_window":          "20_MINUTES",
+							"max_unique_count":     "5",
 						},
 					),
 				),
@@ -1102,10 +1101,6 @@ func TestAccCoralogixResourceAlert_metric_less_than_or_equals(t *testing.T) {
 						"condition":                              "LESS_THAN_OR_EQUALS",
 						"missing_values.min_non_null_values_pct": "50",
 					}),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.threshold", "5"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.for_over_pct", "15"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.of_the_last", "10_MINUTES"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.missing_values.min_non_null_values_pct", "50"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.trigger_undetected_values", "true"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.auto_retire_timeframe", "5_MINUTES"),
 				),
@@ -1312,8 +1307,13 @@ func TestAccCoralogixResourceAlert_tracing_more_than(t *testing.T) {
 							"values.#":  "1",
 						},
 					),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_threshold.span_amount", "5"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_threshold.time_window", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_threshold.rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_threshold.rules.*",
+						map[string]string{
+							"time_window": "10_MINUTES",
+							"span_amount": "5",
+						},
+					),
 				),
 			},
 			{
@@ -1339,8 +1339,13 @@ func TestAccCoralogixResourceAlert_tracing_more_than(t *testing.T) {
 							"values.#":  "1",
 						},
 					),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_threshold.span_amount", "5"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_threshold.time_window", "1_HOUR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.tracing_threshold.rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.tracing_threshold.rules.*",
+						map[string]string{
+							"time_window": "1_HOUR",
+							"span_amount": "5",
+						},
+					),
 				),
 			},
 		},
@@ -2250,8 +2255,8 @@ func testAccCoralogixResourceAlertLogsRatioLessThanUpdated() string {
 
   	type_definition = {
 		logs_ratio_threshold = {
-	  		numerator   = "updated-numerator"
-	  		denominator = "updated-denominator"
+	  		numerator_alias   = "updated-numerator"
+	  		denominator_alias = "updated-denominator"
 			rules       = [
 				{
 					threshold         = 20
