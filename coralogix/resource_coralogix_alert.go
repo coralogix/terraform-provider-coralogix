@@ -114,11 +114,11 @@ var (
 		cxsdk.AutoRetireTimeframeNeverOrUnspecified: "Never",
 		cxsdk.AutoRetireTimeframe5Minutes:           "5_MINUTES",
 		cxsdk.AutoRetireTimeframe10Minutes:          "10_MINUTES",
-		cxsdk.AutoRetireTimeframe1Hour:              "1_Hour",
-		cxsdk.AutoRetireTimeframe2Hours:             "2_Hours",
-		cxsdk.AutoRetireTimeframe6Hours:             "6_Hours",
-		cxsdk.AutoRetireTimeframe12Hours:            "12_Hours",
-		cxsdk.AutoRetireTimeframe24Hours:            "24_Hours",
+		cxsdk.AutoRetireTimeframe1Hour:              "1_HOUR",
+		cxsdk.AutoRetireTimeframe2Hours:             "2_HOURS",
+		cxsdk.AutoRetireTimeframe6Hours:             "6_HOURS",
+		cxsdk.AutoRetireTimeframe12Hours:            "12_HOURS",
+		cxsdk.AutoRetireTimeframe24Hours:            "24_HOURS",
 	}
 	autoRetireTimeframeSchemaToProtoMap = ReverseMap(autoRetireTimeframeProtoToSchemaMap)
 	validAutoRetireTimeframes           = GetKeys(autoRetireTimeframeSchemaToProtoMap)
@@ -1458,15 +1458,9 @@ func timeOfDaySchema() schema.SingleNestedAttribute {
 func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
-		Computed: true,
-		PlanModifiers: []planmodifier.Object{
-			objectplanmodifier.UseStateForUnknown(),
-		},
 		Attributes: map[string]schema.Attribute{
 			"trigger_undetected_values": schema.BoolAttribute{
 				Optional: true,
-				Computed: true,
-				Default:  booldefault.StaticBool(true),
 			},
 			"auto_retire_timeframe": schema.StringAttribute{
 				Optional: true,
@@ -2198,7 +2192,6 @@ func extractUndetectedValuesManagement(ctx context.Context, management types.Obj
 	if objIsNullOrUnknown(management) {
 		return nil, nil
 	}
-
 	var managementModel UndetectedValuesManagementModel
 	if diags := management.As(ctx, &managementModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
