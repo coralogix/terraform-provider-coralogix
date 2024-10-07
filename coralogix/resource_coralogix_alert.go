@@ -1458,12 +1458,19 @@ func timeOfDaySchema() schema.SingleNestedAttribute {
 func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
+		Computed: true,
+		PlanModifiers: []planmodifier.Object{
+			objectplanmodifier.UseStateForUnknown(),
+		},
 		Attributes: map[string]schema.Attribute{
 			"trigger_undetected_values": schema.BoolAttribute{
 				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(false),
 			},
 			"auto_retire_timeframe": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(validAutoRetireTimeframes...),
 				},
@@ -1506,6 +1513,8 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+
+	log.Printf("[INFO] Created Alert: %s", protojson.Format(alert))
 	// Set state to fully populated data
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
