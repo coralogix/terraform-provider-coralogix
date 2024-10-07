@@ -874,8 +874,8 @@ func TestAccCoralogixResourceAlert_logs_time_relative_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-time-relative-more-than alert example updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-time-relative-more-than alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.1.undetected_values_management.trigger_undetected_values", "true"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.1.undetected_values_management.auto_retire_timeframe", "6_HOURS"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.undetected_values_management.trigger_undetected_values", "true"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.undetected_values_management.auto_retire_timeframe", "6_HOURS"),
 
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_time_relative_threshold.rules.*",

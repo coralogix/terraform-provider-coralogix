@@ -1,6 +1,6 @@
 module terraform-provider-coralogix
 
-go 1.23
+go 1.23.0
 
 replace github.com/coralogix/coralogix-management-sdk => ../coralogix-management-sdk
 
