@@ -1458,10 +1458,6 @@ func timeOfDaySchema() schema.SingleNestedAttribute {
 func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
-		Computed: true,
-		PlanModifiers: []planmodifier.Object{
-			objectplanmodifier.UseStateForUnknown(),
-		},
 		Attributes: map[string]schema.Attribute{
 			"trigger_undetected_values": schema.BoolAttribute{
 				Optional: true,
@@ -1471,6 +1467,7 @@ func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 			"auto_retire_timeframe": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
+				Default:  stringdefault.StaticString("Never"),
 				Validators: []validator.String{
 					stringvalidator.OneOf(validAutoRetireTimeframes...),
 				},
