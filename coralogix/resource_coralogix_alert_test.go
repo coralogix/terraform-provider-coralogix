@@ -687,8 +687,6 @@ func TestAccCoralogixResourceAlert_logs_ratio_less_than(t *testing.T) {
 							"time_window": "2_HOURS",
 						},
 					),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.undetected_values_management.trigger_undetected_values", "true"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.undetected_values_management.auto_retire_timeframe", "6_HOURS"),
 				),
 			},
 		},
@@ -2269,10 +2267,6 @@ func testAccCoralogixResourceAlertLogsRatioLessThanUpdated() string {
 					condition		 = "LESS_THAN"
 				}
 			]
-			undetected_values_management  = {
-				trigger_undetected_values = true
-				auto_retire_timeframe = "6_HOURS"
-			}
 		}
   	}
 }
