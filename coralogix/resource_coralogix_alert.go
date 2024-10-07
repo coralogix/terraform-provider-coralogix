@@ -3599,7 +3599,11 @@ func flattenLogsTimeWindow(timeWindow *cxsdk.LogsTimeWindow) types.String {
 
 func flattenUndetectedValuesManagement(ctx context.Context, undetectedValuesManagement *cxsdk.UndetectedValuesManagement) (types.Object, diag.Diagnostics) {
 	if undetectedValuesManagement == nil {
-		return types.ObjectNull(undetectedValuesManagementAttr()), nil
+		undetectedValuesManagementModel := UndetectedValuesManagementModel{
+			TriggerUndetectedValues: types.BoolNull(),
+			AutoRetireTimeframe:     types.StringNull(),
+		}
+		return types.ObjectValueFrom(ctx, undetectedValuesManagementAttr(), undetectedValuesManagementModel)
 	}
 
 	undetectedValuesManagementModel := UndetectedValuesManagementModel{
