@@ -33,7 +33,7 @@ resource "coralogix_scope" "example" {
 }
 
 resource "coralogix_group" "example" {
-  display_name = "example2"
+  display_name = "example"
   role         = "Read Only"
   members      = [coralogix_user.example.id]
   scope_id     = coralogix_scope.example.id
