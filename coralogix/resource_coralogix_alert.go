@@ -10,9 +10,9 @@ import (
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/helpers/validatordiag"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -604,54 +604,36 @@ func (r *AlertResource) Configure(_ context.Context, req resource.ConfigureReque
 	r.client = clientSet.Alerts()
 }
 
-type advancedTargetSettingsPlanModifier struct{}
+// type requiredWhenGroupBySet struct {
+// }
 
-func (a advancedTargetSettingsPlanModifier) Description(ctx context.Context) string {
-	return "Advanced target settings."
-}
+// func (r requiredWhenGroupBySet) Description(ctx context.Context) string {
+// 	return "Required when group_by is set."
+// }
 
-func (a advancedTargetSettingsPlanModifier) MarkdownDescription(ctx context.Context) string {
-	return "Advanced target settings."
-}
+// func (r requiredWhenGroupBySet) MarkdownDescription(ctx context.Context) string {
+// 	return "Required when group_by is set."
+// }
 
-func (a advancedTargetSettingsPlanModifier) PlanModifyObject(ctx context.Context, request planmodifier.ObjectRequest, response *planmodifier.ObjectResponse) {
-	if !request.ConfigValue.IsUnknown() {
-		return
-	}
+// func (r requiredWhenGroupBySet) ValidateInt64(ctx context.Context, req validator.Int64Request, resp *validator.Int64Response) {
+// 	if !req.ConfigValue.IsNull() {
+// 		return
+// 	}
 
-	response.PlanValue = request.StateValue
-}
+// 	var groupBy types.Set
+// 	diags := req.Config.GetAttribute(ctx, path.Root("group_by"), &groupBy)
+// 	if diags.HasError() {
+// 		resp.Diagnostics.Append(diags...)
+// 		return
+// 	}
 
-type requiredWhenGroupBySet struct {
-}
-
-func (r requiredWhenGroupBySet) Description(ctx context.Context) string {
-	return "Required when group_by is set."
-}
-
-func (r requiredWhenGroupBySet) MarkdownDescription(ctx context.Context) string {
-	return "Required when group_by is set."
-}
-
-func (r requiredWhenGroupBySet) ValidateInt64(ctx context.Context, req validator.Int64Request, resp *validator.Int64Response) {
-	if !req.ConfigValue.IsNull() {
-		return
-	}
-
-	var groupBy types.Set
-	diags := req.Config.GetAttribute(ctx, path.Root("group_by"), &groupBy)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	if !(groupBy.IsNull() || groupBy.IsUnknown()) {
-		resp.Diagnostics.Append(validatordiag.InvalidAttributeCombinationDiagnostic(
-			req.Path,
-			fmt.Sprintf("Attribute %q must be specified when %q is specified", req.Path, "group_by"),
-		))
-	}
-}
+// 	if !(groupBy.IsNull() || groupBy.IsUnknown()) {
+// 		resp.Diagnostics.Append(validatordiag.InvalidAttributeCombinationDiagnostic(
+// 			req.Path,
+// 			fmt.Sprintf("Attribute %q must be specified when %q is specified", req.Path, "group_by"),
+// 		))
+// 	}
+// }
 
 func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
@@ -716,22 +698,22 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			"type_definition": schema.SingleNestedAttribute{
 				Required:            true,
 				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_unusual, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_unusual, tracing_immediate, tracing_threshold flow.",
-				// Validators: []validator.Object{
-				// 	objectvalidator.ExactlyOneOf(
-				// 		path.MatchRoot("type_definition").AtName("logs_immediate"),
-				// 		path.MatchRoot("type_definition").AtName("logs_threshold"),
-				// 		path.MatchRoot("type_definition").AtName("logs_unusual"),
-				// 		path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
-				// 		path.MatchRoot("type_definition").AtName("logs_unique_count"),
-				// 		path.MatchRoot("type_definition").AtName("logs_new_value"),
-				// 		path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
-				// 		path.MatchRoot("type_definition").AtName("metric_threshold"),
-				// 		path.MatchRoot("type_definition").AtName("metric_unusual"),
-				// 		path.MatchRoot("type_definition").AtName("tracing_immediate"),
-				// 		path.MatchRoot("type_definition").AtName("tracing_threshold"),
-				// 		path.MatchRoot("type_definition").AtName("flow"),
-				// 	),
-				// },
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(
+						path.MatchRoot("type_definition").AtName("logs_immediate"),
+						path.MatchRoot("type_definition").AtName("logs_threshold"),
+						path.MatchRoot("type_definition").AtName("logs_unusual"),
+						path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
+						path.MatchRoot("type_definition").AtName("logs_unique_count"),
+						path.MatchRoot("type_definition").AtName("logs_new_value"),
+						path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
+						path.MatchRoot("type_definition").AtName("metric_threshold"),
+						path.MatchRoot("type_definition").AtName("metric_unusual"),
+						path.MatchRoot("type_definition").AtName("tracing_immediate"),
+						path.MatchRoot("type_definition").AtName("tracing_threshold"),
+						path.MatchRoot("type_definition").AtName("flow"),
+					),
+				},
 				Attributes: map[string]schema.Attribute{
 					"logs_immediate": schema.SingleNestedAttribute{
 						Optional: true,
