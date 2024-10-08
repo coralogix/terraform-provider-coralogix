@@ -698,28 +698,27 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			"type_definition": schema.SingleNestedAttribute{
 				Required:            true,
 				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_unusual, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_unusual, tracing_immediate, tracing_threshold flow.",
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRoot("type_definition").AtName("logs_immediate"),
-						path.MatchRoot("type_definition").AtName("logs_threshold"),
-						path.MatchRoot("type_definition").AtName("logs_unusual"),
-						path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
-						path.MatchRoot("type_definition").AtName("logs_unique_count"),
-						path.MatchRoot("type_definition").AtName("logs_new_value"),
-						path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
-						path.MatchRoot("type_definition").AtName("metric_threshold"),
-						path.MatchRoot("type_definition").AtName("metric_unusual"),
-						path.MatchRoot("type_definition").AtName("tracing_immediate"),
-						path.MatchRoot("type_definition").AtName("tracing_threshold"),
-						path.MatchRoot("type_definition").AtName("flow"),
-					),
-				},
 				Attributes: map[string]schema.Attribute{
 					"logs_immediate": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
 							"logs_filter":                 logsFilterSchema(),
 							"notification_payload_filter": notificationPayloadFilterSchema(),
+						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRoot("type_definition").AtName("logs_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unique_count"),
+								path.MatchRoot("type_definition").AtName("logs_new_value"),
+								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("tracing_immediate"),
+								path.MatchRoot("type_definition").AtName("tracing_threshold"),
+								path.MatchRoot("type_definition").AtName("flow"),
+							),
 						},
 					},
 					"logs_threshold": schema.SingleNestedAttribute{
@@ -754,6 +753,21 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"logs_filter":                  logsFilterSchema(),
 							"undetected_values_management": undetectedValuesManagementSchema(),
 						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRoot("type_definition").AtName("logs_immediate"),
+								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unique_count"),
+								path.MatchRoot("type_definition").AtName("logs_new_value"),
+								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("tracing_immediate"),
+								path.MatchRoot("type_definition").AtName("tracing_threshold"),
+								path.MatchRoot("type_definition").AtName("flow"),
+							),
+						},
 					},
 					"logs_unusual": schema.SingleNestedAttribute{
 						Optional: true,
@@ -779,6 +793,21 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 									// Condition type is missing since there is only a single type to be filled in
 								},
 							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRoot("type_definition").AtName("logs_immediate"),
+								path.MatchRoot("type_definition").AtName("logs_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unique_count"),
+								path.MatchRoot("type_definition").AtName("logs_new_value"),
+								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("tracing_immediate"),
+								path.MatchRoot("type_definition").AtName("tracing_threshold"),
+								path.MatchRoot("type_definition").AtName("flow"),
+							),
 						},
 					},
 					"logs_ratio_threshold": schema.SingleNestedAttribute{
@@ -825,6 +854,21 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"notification_payload_filter": notificationPayloadFilterSchema(),
 							"group_by_for":                logsRatioGroupByForSchema(),
 						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRoot("type_definition").AtName("logs_immediate"),
+								path.MatchRoot("type_definition").AtName("logs_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_unique_count"),
+								path.MatchRoot("type_definition").AtName("logs_new_value"),
+								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("tracing_immediate"),
+								path.MatchRoot("type_definition").AtName("tracing_threshold"),
+								path.MatchRoot("type_definition").AtName("flow"),
+							),
+						},
 					},
 					"logs_new_value": schema.SingleNestedAttribute{
 						Optional: true,
@@ -847,6 +891,21 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 							"logs_filter":                 logsFilterSchema(),
 							"notification_payload_filter": notificationPayloadFilterSchema(),
+						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRoot("type_definition").AtName("logs_immediate"),
+								path.MatchRoot("type_definition").AtName("logs_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unique_count"),
+								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("tracing_immediate"),
+								path.MatchRoot("type_definition").AtName("tracing_threshold"),
+								path.MatchRoot("type_definition").AtName("flow"),
+							),
 						},
 					},
 					"logs_unique_count": schema.SingleNestedAttribute{
@@ -877,6 +936,21 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 									},
 								},
 							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRoot("type_definition").AtName("logs_immediate"),
+								path.MatchRoot("type_definition").AtName("logs_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_new_value"),
+								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("tracing_immediate"),
+								path.MatchRoot("type_definition").AtName("tracing_threshold"),
+								path.MatchRoot("type_definition").AtName("flow"),
+							),
 						},
 					},
 					"logs_time_relative_threshold": schema.SingleNestedAttribute{
@@ -916,6 +990,21 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								},
 							},
 						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRoot("type_definition").AtName("logs_immediate"),
+								path.MatchRoot("type_definition").AtName("logs_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unique_count"),
+								path.MatchRoot("type_definition").AtName("logs_new_value"),
+								path.MatchRoot("type_definition").AtName("metric_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("tracing_immediate"),
+								path.MatchRoot("type_definition").AtName("tracing_threshold"),
+								path.MatchRoot("type_definition").AtName("flow"),
+							),
+						},
 					},
 					// Metrics
 					"metric_threshold": schema.SingleNestedAttribute{
@@ -952,6 +1041,21 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 									},
 								},
 							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRoot("type_definition").AtName("logs_immediate"),
+								path.MatchRoot("type_definition").AtName("logs_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unique_count"),
+								path.MatchRoot("type_definition").AtName("logs_new_value"),
+								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("tracing_immediate"),
+								path.MatchRoot("type_definition").AtName("tracing_threshold"),
+								path.MatchRoot("type_definition").AtName("flow"),
+							),
 						},
 					},
 					"metric_unusual": schema.SingleNestedAttribute{
@@ -990,6 +1094,21 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								},
 							},
 						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRoot("type_definition").AtName("logs_immediate"),
+								path.MatchRoot("type_definition").AtName("logs_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unique_count"),
+								path.MatchRoot("type_definition").AtName("logs_new_value"),
+								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_threshold"),
+								path.MatchRoot("type_definition").AtName("tracing_immediate"),
+								path.MatchRoot("type_definition").AtName("tracing_threshold"),
+								path.MatchRoot("type_definition").AtName("flow"),
+							),
+						},
 					},
 					// Tracing
 					"tracing_immediate": schema.SingleNestedAttribute{
@@ -997,6 +1116,21 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						Attributes: map[string]schema.Attribute{
 							"tracing_filter":              tracingQuerySchema(),
 							"notification_payload_filter": notificationPayloadFilterSchema(),
+						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRoot("type_definition").AtName("logs_immediate"),
+								path.MatchRoot("type_definition").AtName("logs_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unique_count"),
+								path.MatchRoot("type_definition").AtName("logs_new_value"),
+								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("tracing_threshold"),
+								path.MatchRoot("type_definition").AtName("flow"),
+							),
 						},
 					},
 					"tracing_threshold": schema.SingleNestedAttribute{
@@ -1023,6 +1157,21 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 									// Condition type is missing since there is only a single type to be filled in
 								},
 							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRoot("type_definition").AtName("logs_immediate"),
+								path.MatchRoot("type_definition").AtName("logs_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unique_count"),
+								path.MatchRoot("type_definition").AtName("logs_new_value"),
+								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("tracing_immediate"),
+								path.MatchRoot("type_definition").AtName("flow"),
+							),
 						},
 					},
 					// Flow
@@ -1088,6 +1237,21 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								Computed: true,
 								Default:  booldefault.StaticBool(false),
 							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRoot("type_definition").AtName("logs_immediate"),
+								path.MatchRoot("type_definition").AtName("logs_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
+								path.MatchRoot("type_definition").AtName("logs_unique_count"),
+								path.MatchRoot("type_definition").AtName("logs_new_value"),
+								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_threshold"),
+								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("tracing_immediate"),
+								path.MatchRoot("type_definition").AtName("tracing_threshold"),
+							),
 						},
 					},
 				},
