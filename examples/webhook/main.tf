@@ -30,7 +30,7 @@ data "coralogix_webhook" "imported_webhook_by_id" {
 }
 
 data "coralogix_webhook" "imported_webhook_by_name" {
-  id = coralogix_webhook.slack_webhook.name
+  name = coralogix_webhook.slack_webhook.name
 }
 
 resource "coralogix_webhook" "custom_webhook" {
