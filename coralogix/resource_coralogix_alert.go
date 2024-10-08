@@ -2207,6 +2207,10 @@ func extractUndetectedValuesManagement(ctx context.Context, management types.Obj
 		return nil, diags
 	}
 
+	if (managementModel.AutoRetireTimeframe.IsNull() || managementModel.AutoRetireTimeframe.IsUnknown()) && (managementModel.TriggerUndetectedValues.IsNull() || managementModel.TriggerUndetectedValues.IsUnknown()) {
+		return nil, nil
+	}
+
 	var autoRetireTimeframe *cxsdk.AutoRetireTimeframe
 	if !(managementModel.AutoRetireTimeframe.IsNull() || managementModel.AutoRetireTimeframe.IsUnknown()) {
 		autoRetireTimeframe = new(cxsdk.AutoRetireTimeframe)
