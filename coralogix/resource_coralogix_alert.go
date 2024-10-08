@@ -872,7 +872,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 											Optional: true,
 											Validators: []validator.Int64{
 												int64validator.AlsoRequires(path.MatchRoot("group_by")),
-												requiredWhenGroupBySet{},
 											},
 										},
 									},
