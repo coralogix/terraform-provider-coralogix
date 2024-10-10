@@ -51,15 +51,15 @@ func dataSourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceDa
 	var enrichmentType string
 	if id == "geo_ip" || id == "suspicious_ip" || id == "aws" {
 		enrichmentType = id
-		enrichmentResp, err = meta.(*clientset.ClientSet).Enrichments().GetEnrichmentsByType(ctx, id)
+		enrichmentResp, err = meta.(*clientset.ClientSet).Enrichments().GetByType(ctx, id)
 	} else {
 		enrichmentType = "custom"
-		enrichmentResp, err = meta.(*clientset.ClientSet).Enrichments().GetCustomEnrichments(ctx, strToUint32(id))
+		enrichmentResp, err = meta.(*clientset.ClientSet).DataSet().Get(ctx, strToUint32(id))
 	}
 	if err != nil {
 		reqStr := protojson.Format(&cxsdk.GetEnrichmentsRequest{})
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, getEnrichmentsURL, reqStr))
+		return diag.Errorf(formatRpcErrors(err, cxsdk.GetEnrichmentsRPC, reqStr))
 	}
 
 	var enrichmentStr string
