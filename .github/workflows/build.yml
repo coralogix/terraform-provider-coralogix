@@ -14,13 +14,13 @@ jobs:
       GO111MODULE: on
     strategy:
       matrix:
-        go-version: [ 1.20.x ]
+        go-version: [ 1.23 ]
         os: [ ubuntu-latest ]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
       - name: Install Go
-        uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go-version }}
       - name: Run build

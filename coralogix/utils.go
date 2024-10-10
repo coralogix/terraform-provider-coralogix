@@ -16,14 +16,17 @@ package coralogix
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math/big"
 	"math/rand"
 	"net/url"
 	"reflect"
 	"regexp"
+	"slices"
 	"strconv"
 	"time"
 
@@ -513,6 +516,10 @@ func flattenTimeframe(timeMS int) []interface{} {
 	}}
 }
 
+func objIsNullOrUnknown(obj types.Object) bool {
+	return obj.IsNull() || obj.IsUnknown()
+}
+
 func sliceToString(data []string) string {
 	b, _ := json.Marshal(data)
 	return fmt.Sprintf("%v", string(b))
@@ -560,30 +567,6 @@ func getKeysInt32(m map[string]int32) []string {
 		result = append(result, k)
 	}
 	return result
-}
-
-func getKeysRelativeTimeFrame(m map[string]protoTimeFrameAndRelativeTimeFrame) []string {
-	result := make([]string, 0)
-	for k := range m {
-		result = append(result, k)
-	}
-	return result
-}
-
-func reverseMapStrings(m map[string]string) map[string]string {
-	n := make(map[string]string)
-	for k, v := range m {
-		n[v] = k
-	}
-	return n
-}
-
-func reverseMapRelativeTimeFrame(m map[string]protoTimeFrameAndRelativeTimeFrame) map[protoTimeFrameAndRelativeTimeFrame]string {
-	n := make(map[protoTimeFrameAndRelativeTimeFrame]string)
-	for k, v := range m {
-		n[v] = k
-	}
-	return n
 }
 
 func strToUint32(str string) uint32 {
@@ -754,12 +737,12 @@ func ReverseMap[K, V comparable](m map[K]V) map[V]K {
 	return n
 }
 
-func GetKeys[K, V comparable](m map[K]V) []K {
-	result := make([]K, 0)
-	for k := range m {
-		result = append(result, k)
-	}
-	return result
+func GetKeys[K cmp.Ordered, V comparable](m map[K]V) []K {
+	return slices.Sorted(maps.Keys(m))
+}
+
+func GetValues[K, V cmp.Ordered](m map[K]V) []V {
+	return slices.Sorted(maps.Values(m))
 }
 
 func parseNumInt32(desired string) int32 {
@@ -816,4 +799,20 @@ func convertSchemaWithoutID(rs resourceschema.Schema) datasourceschema.Schema {
 		MarkdownDescription: rs.MarkdownDescription,
 		DeprecationMessage:  rs.DeprecationMessage,
 	}
+}
+
+func typeStringToWrapperspbUint32(str types.String) (*wrapperspb.UInt32Value, diag2.Diagnostics) {
+	parsed, err := strconv.ParseUint(str.ValueString(), 10, 32)
+	if err != nil {
+		return nil, diag2.Diagnostics{diag2.NewErrorDiagnostic("Failed to convert string to uint32", err.Error())}
+	}
+	return wrapperspb.UInt32(uint32(parsed)), nil
+}
+
+func WrapperspbUint32ToString(num *wrapperspb.UInt32Value) types.String {
+	if num == nil {
+		return types.StringNull()
+	}
+	return types.StringValue(strconv.FormatUint(uint64(num.GetValue()), 10))
+
 }
