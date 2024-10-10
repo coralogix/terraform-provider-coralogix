@@ -23,10 +23,10 @@ type ClientSet struct {
 	alerts       *cxsdk.AlertsClient
 	apikeys      *cxsdk.ApikeysClient
 	integrations *cxsdk.IntegrationsClient
+	enrichments  *cxsdk.EnrichmentsClient
+	dataSet      *cxsdk.DataSetClient
 
 	ruleGroups          *RuleGroupsClient
-	enrichments         *EnrichmentsClient
-	dataSet             *DataSetClient
 	dashboards          *DashboardsClient
 	grafana             *GrafanaClient
 	recordingRuleGroups *RecordingRulesGroupsSetsClient
@@ -61,11 +61,11 @@ func (c *ClientSet) APIKeys() *cxsdk.ApikeysClient {
 func (c *ClientSet) Actions() *cxsdk.ActionsClient {
 	return c.actions
 }
-func (c *ClientSet) Enrichments() *EnrichmentsClient {
+func (c *ClientSet) Enrichments() *cxsdk.EnrichmentsClient {
 	return c.enrichments
 }
 
-func (c *ClientSet) DataSet() *DataSetClient {
+func (c *ClientSet) DataSet() *cxsdk.DataSetClient {
 	return c.dataSet
 }
 
@@ -146,14 +146,15 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 	apiKeySdk := cxsdk.NewCallPropertiesCreator(targetUrl, cxsdk.NewAuthContext(apiKey, apiKey))
 
 	return &ClientSet{
-		apikeys:             cxsdk.NewAPIKeysClient(apiKeySdk),
-		actions:             cxsdk.NewActionsClient(apiKeySdk),
-		integrations:        cxsdk.NewIntegrationsClient(apiKeySdk),
+		apikeys:      cxsdk.NewAPIKeysClient(apiKeySdk),
+		actions:      cxsdk.NewActionsClient(apiKeySdk),
+		integrations: cxsdk.NewIntegrationsClient(apiKeySdk),
+		enrichments:  cxsdk.NewEnrichmentClient(apiKeySdk),
+		alerts:       cxsdk.NewAlertsClient(apiKeySdk),
+		dataSet:      cxsdk.NewDataSetClient(apiKeySdk),
+
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
-		alerts:              cxsdk.NewAlertsClient(apiKeySdk),
 		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
-		enrichments:         NewEnrichmentClient(apikeyCPC),
-		dataSet:             NewDataSetClient(apikeyCPC),
 		dashboards:          NewDashboardsClient(apikeyCPC),
 		grafana:             NewGrafanaClient(apikeyCPC),
 		recordingRuleGroups: NewRecordingRuleGroupsClient(apikeyCPC),

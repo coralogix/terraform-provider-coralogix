@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,7 +20,8 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -45,7 +46,7 @@ func dataSourceCoralogixEnrichment() *schema.Resource {
 func dataSourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Get("id").(string)
 	log.Print("[INFO] Reading enrichment")
-	var enrichmentResp []*enrichmentv1.Enrichment
+	var enrichmentResp []*cxsdk.Enrichment
 	var err error
 	var enrichmentType string
 	if id == "geo_ip" || id == "suspicious_ip" || id == "aws" {
@@ -56,7 +57,7 @@ func dataSourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceDa
 		enrichmentResp, err = meta.(*clientset.ClientSet).Enrichments().GetCustomEnrichments(ctx, strToUint32(id))
 	}
 	if err != nil {
-		reqStr := protojson.Format(&enrichmentv1.GetEnrichmentsRequest{})
+		reqStr := protojson.Format(&cxsdk.GetEnrichmentsRequest{})
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.Errorf(formatRpcErrors(err, getEnrichmentsURL, reqStr))
 	}

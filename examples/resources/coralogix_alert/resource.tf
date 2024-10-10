@@ -113,7 +113,6 @@ resource "coralogix_alert" "ratio_alert" {
         threshold   = 2
         time_window = "10_MINUTES"
         condition   = "MORE_THAN"
-
       }]
     }
   }
