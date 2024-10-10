@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -56,7 +56,16 @@ import (
 )
 
 var (
-	dashboardRowStyleSchemaToProto = map[string]dashboards.RowStyle{
+	dashboardLegendPlacementSchemaToProto = map[string]dashboards.Legend_LegendPlacement{
+		"unspecified": dashboards.Legend_LEGEND_PLACEMENT_UNSPECIFIED,
+		"auto":        dashboards.Legend_LEGEND_PLACEMENT_AUTO,
+		"bottom":      dashboards.Legend_LEGEND_PLACEMENT_BOTTOM,
+		"side":        dashboards.Legend_LEGEND_PLACEMENT_SIDE,
+		"hidden":      dashboards.Legend_LEGEND_PLACEMENT_HIDDEN,
+	}
+	dashboardLegendPlacementProtoToSchema = ReverseMap(dashboardLegendPlacementSchemaToProto)
+	dashboardValidLegendPlacements        = GetKeys(dashboardLegendPlacementSchemaToProto)
+	dashboardRowStyleSchemaToProto        = map[string]dashboards.RowStyle{
 		//"unspecified": dashboards.RowStyle_ROW_STYLE_UNSPECIFIED,
 		"one_line":  dashboards.RowStyle_ROW_STYLE_ONE_LINE,
 		"two_line":  dashboards.RowStyle_ROW_STYLE_TWO_LINE,
@@ -310,9 +319,10 @@ type LineChartModel struct {
 }
 
 type LegendModel struct {
-	IsVisible    types.Bool `tfsdk:"is_visible"`
-	Columns      types.List `tfsdk:"columns"` //types.String (dashboardValidLegendColumns)
-	GroupByQuery types.Bool `tfsdk:"group_by_query"`
+	IsVisible    types.Bool   `tfsdk:"is_visible"`
+	Columns      types.List   `tfsdk:"columns"` //types.String (dashboardValidLegendColumns)
+	GroupByQuery types.Bool   `tfsdk:"group_by_query"`
+	Placement    types.String `tfsdk:"placement"`
 }
 
 type TooltipModel struct {
@@ -1138,6 +1148,14 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																				Optional: true,
 																				Computed: true,
 																				Default:  booldefault.StaticBool(false),
+																			},
+																			"placement": schema.StringAttribute{
+																				Optional: true,
+																				Computed: true,
+																				Validators: []validator.String{
+																					stringvalidator.OneOf(dashboardValidLegendPlacements...),
+																				},
+																				MarkdownDescription: fmt.Sprintf("The placement of the legend. Valid values are: %s.", strings.Join(dashboardValidLegendPlacements, ", ")),
 																			},
 																		},
 																		Optional: true,
@@ -6068,6 +6086,7 @@ func expandLineChartLegend(ctx context.Context, legend *LegendModel) (*dashboard
 		IsVisible:    typeBoolToWrapperspbBool(legend.IsVisible),
 		Columns:      columns,
 		GroupByQuery: typeBoolToWrapperspbBool(legend.GroupByQuery),
+		Placement:    dashboardLegendPlacementSchemaToProto[legend.Placement.ValueString()],
 	}, nil
 }
 
@@ -7027,6 +7046,7 @@ func widgetModelAttr() map[string]attr.Type {
 									ElemType: types.StringType,
 								},
 								"group_by_query": types.BoolType,
+								"placement":      types.StringType,
 							},
 						},
 						"tooltip": types.ObjectType{
@@ -8351,6 +8371,7 @@ func flattenLegend(legend *dashboards.Legend) *LegendModel {
 		IsVisible:    wrapperspbBoolToTypeBool(legend.GetIsVisible()),
 		GroupByQuery: wrapperspbBoolToTypeBool(legend.GetGroupByQuery()),
 		Columns:      flattenLegendColumns(legend.GetColumns()),
+		Placement:    types.StringValue(dashboardLegendPlacementProtoToSchema[legend.GetPlacement()]),
 	}
 }
 
