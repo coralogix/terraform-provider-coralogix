@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -241,11 +240,7 @@ func resourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData
 	if customId == "" {
 		enrichments, err = EnrichmentsByType(ctx, meta.(*clientset.ClientSet).Enrichments(), enrichmentType)
 	} else {
-		customIdParsed, err := strconv.ParseUint(customId, 10, 32)
-		if err != nil {
-			return diag.Errorf("failed to parse custom_enrichment_id %s: %s", customId, err)
-		}
-		enrichments, err = EnrichmentsByID(ctx, meta.(*clientset.ClientSet).Enrichments(), uint32(customIdParsed))
+		enrichments, err = EnrichmentsByID(ctx, meta.(*clientset.ClientSet).Enrichments(), strToUint32(customId))
 	}
 
 	if err != nil {
