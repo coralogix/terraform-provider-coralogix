@@ -50,6 +50,8 @@ github.com/coralogix/coralogix-management-sdk v0.2.2-0.20240927143336-8d284ec1ba
 github.com/coralogix/coralogix-management-sdk v0.2.2-0.20240927143336-8d284ec1bab4/go.mod h1:1aa/coMEMe5M1NvnRymOrBF2iCdefaWR0CMaMjPu0oI=
 github.com/coralogix/coralogix-management-sdk v0.2.2-0.20240930135143-86bc936547ee h1:GoX4cr7woBa4pE5RAvFgbTyeGxEl0zAMWK4zBrjfNbA=
 github.com/coralogix/coralogix-management-sdk v0.2.2-0.20240930135143-86bc936547ee/go.mod h1:1aa/coMEMe5M1NvnRymOrBF2iCdefaWR0CMaMjPu0oI=
+github.com/coralogix/coralogix-management-sdk v0.2.2-0.20241010143039-39400089275c h1:jhfYAE0mRWHMNyiqVjiqu3wW44D7pI+FNQBUGWQNNMw=
+github.com/coralogix/coralogix-management-sdk v0.2.2-0.20241010143039-39400089275c/go.mod h1:1aa/coMEMe5M1NvnRymOrBF2iCdefaWR0CMaMjPu0oI=
 github.com/cyphar/filepath-securejoin v0.2.4 h1:Ugdm7cg7i6ZK6x3xDF1oEu1nfkyfH53EtKeQYTC3kyg=
 github.com/cyphar/filepath-securejoin v0.2.4/go.mod h1:aPGpWjXOXUn2NCNjFvBE6aRxGGx79pTxQpKOJNYHHl4=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
