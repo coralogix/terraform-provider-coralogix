@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -32,6 +33,41 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
+
+func EnrichmentsByID(ctx context.Context, client *cxsdk.EnrichmentsClient, customEnrichmentID uint32) ([]*cxsdk.Enrichment, error) {
+	resp, err := client.List(ctx, &cxsdk.GetEnrichmentsRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	log.Printf("[INFO] Received custom enrichment: %s", protojson.Format(resp))
+	result := make([]*cxsdk.Enrichment, 0)
+	for _, enrichment := range resp.GetEnrichments() {
+		if customEnrichment := enrichment.GetEnrichmentType().GetCustomEnrichment(); customEnrichment != nil && customEnrichment.GetId().GetValue() == customEnrichmentID {
+			result = append(result, enrichment)
+		}
+	}
+	log.Printf("[INFO] found %s enrichments for ID %s", len(result), customEnrichmentID)
+	return result, nil
+}
+
+func EnrichmentsByType(ctx context.Context, client *cxsdk.EnrichmentsClient, enrichmentType string) ([]*cxsdk.Enrichment, error) {
+	resp, err := client.List(ctx, &cxsdk.GetEnrichmentsRequest{})
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("[INFO] Received custom enrichment: %s", protojson.Format(resp))
+
+	result := make([]*cxsdk.Enrichment, 0)
+	for _, enrichment := range resp.GetEnrichments() {
+		if enrichment.GetEnrichmentType().String() == enrichmentType+":{}" {
+			result = append(result, enrichment)
+		}
+	}
+	log.Printf("[INFO] found %s enrichments for type %s", len(result), enrichmentType)
+
+	return result, nil
+}
 
 var validEnrichmentTypes = []string{"geo_ip", "suspicious_ip", "aws", "custom"}
 
@@ -187,12 +223,12 @@ func resourceCoralogixEnrichmentCreate(ctx context.Context, d *schema.ResourceDa
 	}
 	createReq := &cxsdk.AddEnrichmentsRequest{RequestEnrichments: enrichmentReq}
 	log.Printf("[INFO] Creating new enrichment: %s", protojson.Format(createReq))
-	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().CreateEnrichments(ctx, createReq)
+	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().Add(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, cxsdk.AddEnrichmentsRpc, protojson.Format(createReq)))
+		return diag.Errorf(formatRpcErrors(err, cxsdk.AddEnrichmentsRPC, protojson.Format(createReq)))
 	}
-	log.Printf("[INFO] Submitted new enrichment: %s", protojson.Format(&cxsdk.AddEnrichmentsResponse{Enrichments: enrichmentResp}))
+	log.Printf("[INFO] Submitted new enrichment: %s", enrichmentResp)
 	d.SetId(enrichmentTypeOrCustomId)
 	return resourceCoralogixEnrichmentRead(ctx, d, meta)
 }
@@ -200,13 +236,16 @@ func resourceCoralogixEnrichmentCreate(ctx context.Context, d *schema.ResourceDa
 func resourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	enrichmentType, customId := extractEnrichmentTypeAndCustomId(d)
 	log.Printf("[INFO] Reading enrichment %s", customId)
-	var enrichmentResp []*cxsdk.Enrichment
+	var enrichments []*cxsdk.Enrichment
 	var err error
 	if customId == "" {
-		enrichmentResp, err = meta.(*clientset.ClientSet).Enrichments().GetByType(ctx, enrichmentType)
+		enrichments, err = EnrichmentsByType(ctx, meta.(*clientset.ClientSet).Enrichments(), enrichmentType)
 	} else {
-		enrichmentResp, err = meta.(*clientset.ClientSet).DataSet().Get(ctx,
-			&cxsdk.GetDataSetRequest{Id: wrapperspb.UInt32(strToUint32(customId))})
+		customIdParsed, err := strconv.ParseUint(customId, 10, 32)
+		if err != nil {
+			return diag.Errorf("failed to parse custom_enrichment_id %s: %s", customId, err)
+		}
+		enrichments, err = EnrichmentsByID(ctx, meta.(*clientset.ClientSet).Enrichments(), uint32(customIdParsed))
 	}
 
 	if err != nil {
@@ -215,15 +254,13 @@ func resourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{
 				Severity: diag.Warning,
-				Summary:  fmt.Sprintf("Events2Metric %q is in state, but no longer exists in Coralogix backend", customId),
+				Summary:  fmt.Sprintf("Enrichment %q is in state, but no longer exists in Coralogix backend", customId),
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", customId),
 			}}
 		}
 		return diag.Errorf(formatRpcErrors(err, cxsdk.GetEnrichmentsRPC, protojson.Format(&cxsdk.GetEnrichmentsRequest{})))
-
 	}
-	log.Printf("[INFO] Received enrichment: %s", enrichmentResp)
-	return setEnrichment(d, enrichmentType, enrichmentResp)
+	return setEnrichment(d, enrichmentType, enrichments)
 }
 
 func extractEnrichmentTypeAndCustomId(d *schema.ResourceData) (string, string) {
@@ -271,7 +308,7 @@ func resourceCoralogixEnrichmentUpdate(ctx context.Context, d *schema.ResourceDa
 		return diag.Errorf(formatRpcErrors(err, cxsdk.DeleteEnrichmentsRPC, protojson.Format(deleteReq)))
 	}
 	createReq := &cxsdk.AddEnrichmentsRequest{RequestEnrichments: enrichmentReq}
-	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().Create(ctx, createReq)
+	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().Add(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		return diag.Errorf(formatRpcErrors(err, cxsdk.AddEnrichmentsRPC, protojson.Format(createReq)))
@@ -284,7 +321,7 @@ func resourceCoralogixEnrichmentDelete(ctx context.Context, d *schema.ResourceDa
 	id := d.Id()
 	log.Printf("[INFO] Deleting enrichment %s", id)
 	if id == "geo_ip" || id == "suspicious_ip" || id == "aws" {
-		enrichments, err := meta.(*clientset.ClientSet).Enrichments().GetByType(ctx, id)
+		enrichments, err := EnrichmentsByType(ctx, meta.(*clientset.ClientSet).Enrichments(), id)
 		if err != nil {
 			log.Printf("[ERROR] Received error: %s", err.Error())
 			return diag.Errorf(formatRpcErrors(err, cxsdk.GetEnrichmentsRPC, protojson.Format(&cxsdk.GetEnrichmentsRequest{})))
@@ -296,7 +333,7 @@ func resourceCoralogixEnrichmentDelete(ctx context.Context, d *schema.ResourceDa
 		deleteReq := &cxsdk.DeleteEnrichmentsRequest{EnrichmentIds: enrichmentIds}
 		if err = meta.(*clientset.ClientSet).Enrichments().Delete(ctx, deleteReq); err != nil {
 			log.Printf("[ERROR] Received error: %s", err.Error())
-			return diag.Errorf(formatRpcErrors(err, deleteEnrichmentsURL, protojson.Format(deleteReq)))
+			return diag.Errorf(formatRpcErrors(err, cxsdk.DeleteEnrichmentsRPC, protojson.Format(deleteReq)))
 		}
 	} else {
 		ids := extractIdsFromEnrichment(d)
@@ -399,7 +436,7 @@ func expandGeoIp(v interface{}) []*cxsdk.EnrichmentRequestModel {
 			FieldName: fieldName,
 			EnrichmentType: &cxsdk.EnrichmentType{
 				Type: &cxsdk.EnrichmentTypeGeoIP{
-					GeoIP: &cxsdk.GeoIPType{},
+					GeoIp: &cxsdk.GeoIPType{},
 				},
 			},
 		}
@@ -420,7 +457,7 @@ func expandSuspiciousIp(v interface{}) []*cxsdk.EnrichmentRequestModel {
 			FieldName: fieldName,
 			EnrichmentType: &cxsdk.EnrichmentType{
 				Type: &cxsdk.EnrichmentTypeSuspiciousIP{
-					SuspiciousIP: &cxsdk.SuspiciousIPType{},
+					SuspiciousIp: &cxsdk.SuspiciousIPType{},
 				},
 			},
 		}
