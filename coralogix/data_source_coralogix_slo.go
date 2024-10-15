@@ -90,7 +90,7 @@ func (d *SLODataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",
-				formatRpcErrors(err, getSloUrl, protojson.Format(getSLOReq)),
+				formatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(getSLOReq)),
 			)
 		}
 		return

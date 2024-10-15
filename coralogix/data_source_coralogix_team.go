@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,21 +18,22 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	teams "terraform-provider-coralogix/coralogix/clientset/grpc/teams"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
-	_          datasource.DataSourceWithConfigure = &TeamDataSource{}
-	getTeamURL                                    = "com.coralogixapis.aaa.organisations.v2.TeamService/GetTeam"
+	_ datasource.DataSourceWithConfigure = &TeamDataSource{}
 )
 
 func NewTeamDataSource() datasource.DataSource {
@@ -40,7 +41,7 @@ func NewTeamDataSource() datasource.DataSource {
 }
 
 type TeamDataSource struct {
-	client *clientset.TeamsClient
+	client *cxsdk.TeamsClient
 }
 
 func (d *TeamDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -88,13 +89,13 @@ func (d *TeamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		)
 		return
 	}
-	getTeamReq := &teams.GetTeamRequest{
-		TeamId: &teams.TeamId{
+	getTeamReq := &cxsdk.GetTeamRequest{
+		TeamId: &cxsdk.TeamID{
 			Id: uint32(intId),
 		},
 	}
 	log.Printf("[INFO] Reading Team: %s", protojson.Format(getTeamReq))
-	getTeamResp, err := d.client.GetTeam(ctx, getTeamReq)
+	getTeamResp, err := d.client.Get(ctx, getTeamReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -105,14 +106,19 @@ func (d *TeamDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Team",
-				formatRpcErrors(err, getTeamURL, protojson.Format(getTeamReq)),
+				formatRpcErrors(err, cxsdk.GetTeamRPC, protojson.Format(getTeamReq)),
 			)
 		}
 		return
 	}
 	log.Printf("[INFO] Received Team: %s", protojson.Format(getTeamResp))
 
-	data = flattenTeam(getTeamResp)
+	data = &TeamResourceModel{
+		ID:         types.StringValue(strconv.Itoa(int(getTeamResp.GetTeamId().GetId()))),
+		Name:       types.StringValue(getTeamResp.GetTeamName()),
+		Retention:  types.Int64Value(int64(getTeamResp.GetRetention())),
+		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),
+	}
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
