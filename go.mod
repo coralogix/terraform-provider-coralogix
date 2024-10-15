@@ -6,7 +6,7 @@ replace github.com/coralogix/coralogix-management-sdk => ../coralogix-management
 
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
-	github.com/coralogix/coralogix-management-sdk v0.2.2-0.20241011142100-6bc3484623dd
+	github.com/coralogix/coralogix-management-sdk v0.2.2-0.20241015112844-617674bb2413
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
