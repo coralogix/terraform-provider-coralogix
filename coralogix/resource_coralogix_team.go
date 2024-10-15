@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,9 +21,10 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"terraform-provider-coralogix/coralogix/clientset"
-	teams "terraform-provider-coralogix/coralogix/clientset/grpc/teams"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"google.golang.org/grpc/codes"
@@ -40,18 +41,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-var (
-	createTeamURL = "com.coralogixapis.aaa.organisations.v2.TeamService/CreateTeamInOrg"
-	updateTeamURL = "com.coralogixapis.aaa.organisations.v2.TeamService/UpdateTeam"
-	deleteTeamURL = "com.coralogixapis.aaa.organisations.v2.TeamService/DeleteTeam"
-)
-
 func NewTeamResource() resource.Resource {
 	return &TeamResource{}
 }
 
 type TeamResource struct {
-	client *clientset.TeamsClient
+	client *cxsdk.TeamsClient
 }
 
 func (r *TeamResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -136,65 +131,54 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		return
 	}
 	log.Printf("[INFO] Creating new Team: %s", protojson.Format(createTeamReq))
-	createTeamResp, err := r.client.CreateTeam(ctx, createTeamReq)
+	createTeamResp, err := r.client.Create(ctx, createTeamReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error creating Team",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", createTeamURL),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error creating Team",
-				formatRpcErrors(err, createTeamURL, protojson.Format(createTeamReq)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error creating Team",
+			formatRpcErrors(err, cxsdk.CreateTeamInOrgRPC, protojson.Format(createTeamReq)),
+		)
 
 		return
 	}
 	log.Printf("[INFO] Submitted new team: %s", protojson.Format(createTeamResp.GetTeamId()))
 
-	getTeamReq := &teams.GetTeamRequest{
+	getTeamReq := &cxsdk.GetTeamRequest{
 		TeamId: createTeamResp.GetTeamId(),
 	}
-	getTeamResp, err := r.client.GetTeam(ctx, getTeamReq)
+	getTeamResp, err := r.client.Get(ctx, getTeamReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Team",
-			formatRpcErrors(err, getTeamURL, protojson.Format(getTeamReq)),
+			formatRpcErrors(err, cxsdk.GetTeamRPC, protojson.Format(getTeamReq)),
 		)
 		return
 	}
 	log.Printf("[INFO] Received Team: %s", protojson.Format(getTeamResp))
-	state := flattenTeam(getTeamResp)
+	state := TeamResourceModel{
+		ID:         types.StringValue(strconv.Itoa(int(getTeamResp.GetTeamId().GetId()))),
+		Name:       types.StringValue(getTeamResp.GetTeamName()),
+		Retention:  types.Int64Value(int64(getTeamResp.GetRetention())),
+		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),
+	}
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
 
-func extractCreateTeam(plan *TeamResourceModel) (*teams.CreateTeamInOrgRequest, diag.Diagnostics) {
+func extractCreateTeam(plan *TeamResourceModel) (*cxsdk.CreateTeamInOrgRequest, diag.Diagnostics) {
 	var dailyQuota *float64
 	if !(plan.DailyQuota.IsUnknown() || plan.DailyQuota.IsNull()) {
 		dailyQuota = new(float64)
 		*dailyQuota = plan.DailyQuota.ValueFloat64()
 	}
 
-	return &teams.CreateTeamInOrgRequest{
+	return &cxsdk.CreateTeamInOrgRequest{
 		TeamName:   plan.Name.ValueString(),
 		DailyQuota: dailyQuota,
 	}, nil
-}
-
-func flattenTeam(resp *teams.GetTeamResponse) *TeamResourceModel {
-	return &TeamResourceModel{
-		ID:         types.StringValue(strconv.Itoa(int(resp.GetTeamId().GetId()))),
-		Name:       types.StringValue(resp.GetTeamName()),
-		Retention:  types.Int64Value(int64(resp.GetRetention())),
-		DailyQuota: types.Float64Value(math.Round(resp.GetDailyQuota()*1000) / 1000),
-	}
 }
 
 func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -213,13 +197,13 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		)
 		return
 	}
-	getTeamReq := &teams.GetTeamRequest{
-		TeamId: &teams.TeamId{
+	getTeamReq := &cxsdk.GetTeamRequest{
+		TeamId: &cxsdk.TeamID{
 			Id: uint32(intId),
 		},
 	}
 	log.Printf("[INFO] Reading Team: %s", protojson.Format(getTeamReq))
-	getTeamResp, err := r.client.GetTeam(ctx, getTeamReq)
+	getTeamResp, err := r.client.Get(ctx, getTeamReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -231,14 +215,19 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Team",
-				formatRpcErrors(err, getTeamURL, protojson.Format(getTeamReq)),
+				formatRpcErrors(err, cxsdk.GetTeamRPC, protojson.Format(getTeamReq)),
 			)
 		}
 		return
 	}
 	log.Printf("[INFO] Received Team: %s", protojson.Format(getTeamResp))
 
-	state := flattenTeam(getTeamResp)
+	state := TeamResourceModel{
+		ID:         types.StringValue(strconv.Itoa(int(getTeamResp.GetTeamId().GetId()))),
+		Name:       types.StringValue(getTeamResp.GetTeamName()),
+		Retention:  types.Int64Value(int64(getTeamResp.GetRetention())),
+		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),
+	}
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
@@ -259,47 +248,45 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	}
 	log.Printf("[INFO] Updating Team: %s", protojson.Format(updateReq))
 
-	_, err := r.client.UpdateTeam(ctx, updateReq)
+	_, err := r.client.Update(ctx, updateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error updating Team",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", updateTeamURL),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error updating Team",
-				formatRpcErrors(err, updateTeamURL, protojson.Format(updateReq)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error updating Team",
+			formatRpcErrors(err, cxsdk.UpdateTeamRPC, protojson.Format(updateReq)),
+		)
 
 		return
 	}
 
 	log.Printf("[INFO] Updated team: %s", plan.ID.ValueString())
 
-	getTeamReq := &teams.GetTeamRequest{
+	getTeamReq := &cxsdk.GetTeamRequest{
 		TeamId: updateReq.GetTeamId(),
 	}
-	getTeamResp, err := r.client.GetTeam(ctx, getTeamReq)
+	getTeamResp, err := r.client.Get(ctx, getTeamReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Team",
-			formatRpcErrors(err, getTeamURL, protojson.Format(getTeamReq)),
+			formatRpcErrors(err, cxsdk.GetTeamRPC, protojson.Format(getTeamReq)),
 		)
 		return
 	}
 	log.Printf("[INFO] Received Team: %s", protojson.Format(getTeamResp))
-	state := flattenTeam(getTeamResp)
+	state := TeamResourceModel{
+		ID:         types.StringValue(strconv.Itoa(int(getTeamResp.GetTeamId().GetId()))),
+		Name:       types.StringValue(getTeamResp.GetTeamName()),
+		Retention:  types.Int64Value(int64(getTeamResp.GetRetention())),
+		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),
+	}
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
 
-func extractUpdateTeam(plan *TeamResourceModel) (*teams.UpdateTeamRequest, diag.Diagnostics) {
+func extractUpdateTeam(plan *TeamResourceModel) (*cxsdk.UpdateTeamRequest, diag.Diagnostics) {
 	dailyQuota := new(float64)
 	*dailyQuota = plan.DailyQuota.ValueFloat64()
 
@@ -307,12 +294,12 @@ func extractUpdateTeam(plan *TeamResourceModel) (*teams.UpdateTeamRequest, diag.
 	if err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error converting team id to int", err.Error())}
 	}
-	teamId := &teams.TeamId{Id: uint32(id)}
+	teamId := &cxsdk.TeamID{Id: uint32(id)}
 
 	teamName := new(string)
 	*teamName = plan.Name.ValueString()
 
-	return &teams.UpdateTeamRequest{
+	return &cxsdk.UpdateTeamRequest{
 		TeamId:     teamId,
 		TeamName:   teamName,
 		DailyQuota: dailyQuota,
@@ -337,22 +324,15 @@ func (r *TeamResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		return
 	}
 
-	deleteReq := &teams.DeleteTeamRequest{TeamId: &teams.TeamId{Id: uint32(id)}}
+	deleteReq := &cxsdk.DeleteTeamRequest{TeamId: &cxsdk.TeamID{Id: uint32(id)}}
 	log.Printf("[INFO] Deleting Team: %s", protojson.Format(deleteReq))
-	_, err = r.client.DeleteTeam(ctx, deleteReq)
+	_, err = r.client.Delete(ctx, deleteReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.PermissionDenied || status.Code(err) == codes.Unauthenticated {
-			resp.Diagnostics.AddError(
-				"Error deleting Team",
-				fmt.Sprintf("permission denied for url - %s\ncheck your org-key and permissions", deleteTeamURL),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error deleting Team",
-				formatRpcErrors(err, deleteTeamURL, protojson.Format(deleteReq)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error deleting Team",
+			formatRpcErrors(err, cxsdk.DeleteTeamRPC, protojson.Format(deleteReq)),
+		)
 		return
 	}
 	log.Printf("[INFO] Deleted team: %s", state.ID.ValueString())

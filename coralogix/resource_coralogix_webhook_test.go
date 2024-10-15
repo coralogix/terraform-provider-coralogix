@@ -20,7 +20,8 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -377,7 +378,7 @@ func testAccCheckWebhookDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.GetWebhook(ctx, &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(rs.Primary.ID)})
+		resp, err := client.Get(ctx, &cxsdk.GetOutgoingWebhookRequest{Id: wrapperspb.String(rs.Primary.ID)})
 		if err == nil {
 			if resp.GetWebhook().GetId().GetValue() == rs.Primary.ID {
 				return fmt.Errorf("webhook still exists: %s", rs.Primary.ID)
