@@ -28,6 +28,7 @@ type ClientSet struct {
 	webhooks     *cxsdk.WebhooksClient
 	slos         *cxsdk.SLOsClient
 	teams        *cxsdk.TeamsClient
+	scopes       *cxsdk.ScopesClient
 
 	ruleGroups          *RuleGroupsClient
 	dashboards          *DashboardsClient
@@ -43,7 +44,6 @@ type ClientSet struct {
 	groups              *GroupsClient
 	users               *UsersClient
 	customRole          *RolesClient
-	scopes              *ScopesClient
 }
 
 func (c *ClientSet) RuleGroups() *RuleGroupsClient {
@@ -133,7 +133,7 @@ func (c *ClientSet) Users() *UsersClient {
 	return c.users
 }
 
-func (c *ClientSet) Scopes() *ScopesClient {
+func (c *ClientSet) Scopes() *cxsdk.ScopesClient {
 	return c.scopes
 }
 
@@ -155,6 +155,7 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		webhooks:     cxsdk.NewWebhooksClient(apiKeySdk),
 		slos:         cxsdk.NewSLOsClient(apiKeySdk),
 		teams:        cxsdk.NewTeamsClient(apiKeySdk),
+		scopes:       cxsdk.NewScopesClient(apiKeySdk),
 
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
 		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
@@ -170,6 +171,5 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		groups:              NewGroupsClient(apikeyCPC),
 		users:               NewUsersClient(apikeyCPC),
 		customRole:          NewRolesClient(apikeyCPC),
-		scopes:              NewScopesClient(apikeyCPC),
 	}
 }
