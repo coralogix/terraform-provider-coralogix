@@ -25,13 +25,13 @@ type ClientSet struct {
 	integrations *cxsdk.IntegrationsClient
 	enrichments  *cxsdk.EnrichmentsClient
 	dataSet      *cxsdk.DataSetClient
+	webhooks     *cxsdk.WebhooksClient
 
 	ruleGroups          *RuleGroupsClient
 	dashboards          *DashboardsClient
 	grafana             *GrafanaClient
 	recordingRuleGroups *RecordingRulesGroupsSetsClient
 	tcoPolicies         *TCOPoliciesClient
-	webhooks            *WebhooksClient
 	events2Metrics      *Events2MetricsClient
 	archiveRetentions   *ArchiveRetentionsClient
 	archiveMetrics      *ArchiveMetricsClient
@@ -85,7 +85,7 @@ func (c *ClientSet) TCOPolicies() *TCOPoliciesClient {
 	return c.tcoPolicies
 }
 
-func (c *ClientSet) Webhooks() *WebhooksClient {
+func (c *ClientSet) Webhooks() *cxsdk.WebhooksClient {
 	return c.webhooks
 }
 
@@ -152,6 +152,7 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		enrichments:  cxsdk.NewEnrichmentClient(apiKeySdk),
 		alerts:       cxsdk.NewAlertsClient(apiKeySdk),
 		dataSet:      cxsdk.NewDataSetClient(apiKeySdk),
+		webhooks:     cxsdk.NewWebhooksClient(apiKeySdk),
 
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
 		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
@@ -159,7 +160,6 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		grafana:             NewGrafanaClient(apikeyCPC),
 		recordingRuleGroups: NewRecordingRuleGroupsClient(apikeyCPC),
 		tcoPolicies:         NewTCOPoliciesClient(apikeyCPC),
-		webhooks:            NewWebhooksClient(apikeyCPC),
 		archiveRetentions:   NewArchiveRetentionsClient(apikeyCPC),
 		archiveMetrics:      NewArchiveMetricsClient(apikeyCPC),
 		archiveLogs:         NewArchiveLogsClient(apikeyCPC),
