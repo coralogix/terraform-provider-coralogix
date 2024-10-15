@@ -363,7 +363,7 @@ func flattenSLOType(flattenedSlo *SLOResourceModel, slo *cxsdk.ServiceSlo) (*SLO
 	switch sliType := slo.SliType.(type) {
 	case *cxsdk.ServiceSloErrorSli:
 		flattenedSlo.Type = types.StringValue("error")
-	case *cxsdk.ServiceSlo_LatencySli:
+	case *cxsdk.ServiceSloLatencySli:
 		flattenedSlo.Type = types.StringValue("latency")
 		latency, err := strconv.Atoi(sliType.LatencySli.GetThresholdMicroseconds().GetValue())
 		if err != nil {
