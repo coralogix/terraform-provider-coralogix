@@ -26,6 +26,7 @@ type ClientSet struct {
 	enrichments  *cxsdk.EnrichmentsClient
 	dataSet      *cxsdk.DataSetClient
 	webhooks     *cxsdk.WebhooksClient
+	slos         *cxsdk.SLOsClient
 
 	ruleGroups          *RuleGroupsClient
 	dashboards          *DashboardsClient
@@ -38,7 +39,6 @@ type ClientSet struct {
 	archiveLogs         *ArchiveLogsClient
 	alertsSchedulers    *AlertsSchedulersClient
 	teams               *TeamsClient
-	slos                *SLOsClient
 	dahboardsFolders    *DashboardsFoldersClient
 	groups              *GroupsClient
 	users               *UsersClient
@@ -117,7 +117,7 @@ func (c *ClientSet) CustomRoles() *RolesClient {
 	return c.customRole
 }
 
-func (c *ClientSet) SLOs() *SLOsClient {
+func (c *ClientSet) SLOs() *cxsdk.SLOsClient {
 	return c.slos
 }
 
@@ -153,6 +153,7 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		alerts:       cxsdk.NewAlertsClient(apiKeySdk),
 		dataSet:      cxsdk.NewDataSetClient(apiKeySdk),
 		webhooks:     cxsdk.NewWebhooksClient(apiKeySdk),
+		slos:         cxsdk.NewSLOsClient(apikeySdk),
 
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
 		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
@@ -165,7 +166,6 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		archiveLogs:         NewArchiveLogsClient(apikeyCPC),
 		alertsSchedulers:    NewAlertsSchedulersClient(apikeyCPC),
 		teams:               NewTeamsClient(apikeyCPC),
-		slos:                NewSLOsClient(apikeyCPC),
 		dahboardsFolders:    NewDashboardsFoldersClient(apikeyCPC),
 		groups:              NewGroupsClient(apikeyCPC),
 		users:               NewUsersClient(apikeyCPC),
