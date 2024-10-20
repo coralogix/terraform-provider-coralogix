@@ -33,6 +33,8 @@ bin
 # .tfstate files
 *.tfstate
 *.tfstate.*
+*.terraform.lock.hcl*
+
 *.idea
 # Crash log files
 crash.log
