@@ -14,11 +14,11 @@ Coralogix webhook. For more info please review - https://coralogix.com/docs/cora
 
 ```hcl
 data "coralogix_webhook" "imported_webhook_by_id" {
-  id = coralogix_webhook.slack_webhook.id
+  id = "60f3b3b3d7b3b00001b3b3b3"
 }
 
 data "coralogix_webhook" "imported_webhook_by_name" {
-  id = coralogix_webhook.slack_webhook.name
+  name = "slack-webhook"
 }
 ```
 
@@ -26,7 +26,7 @@ data "coralogix_webhook" "imported_webhook_by_name" {
 ### **please note that the linkage is done by the external_id (and not by the id)**
 ```hcl
 data "coralogix_webhook" "imported_webhook_by_id" {
-  id = coralogix_webhook.slack_webhook.id
+  name = "slack-webhook"
 }
 
 resource "coralogix_alert" "standard_alert" {
