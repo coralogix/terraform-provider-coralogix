@@ -29,9 +29,9 @@ type ClientSet struct {
 	slos         *cxsdk.SLOsClient
 	teams        *cxsdk.TeamsClient
 	scopes       *cxsdk.ScopesClient
+	dashboards   *cxsdk.DashboardsClient
 
 	ruleGroups          *RuleGroupsClient
-	dashboards          *DashboardsClient
 	grafana             *GrafanaClient
 	recordingRuleGroups *RecordingRulesGroupsSetsClient
 	tcoPolicies         *TCOPoliciesClient
@@ -69,7 +69,7 @@ func (c *ClientSet) DataSet() *cxsdk.DataSetClient {
 	return c.dataSet
 }
 
-func (c *ClientSet) Dashboards() *DashboardsClient {
+func (c *ClientSet) Dashboards() *cxsdk.DashboardsClient {
 	return c.dashboards
 }
 
@@ -156,10 +156,10 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		slos:         cxsdk.NewSLOsClient(apiKeySdk),
 		teams:        cxsdk.NewTeamsClient(apiKeySdk),
 		scopes:       cxsdk.NewScopesClient(apiKeySdk),
+		dashboards:   cxsdk.NewDashboardsClient(apiKeySdk),
 
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
 		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
-		dashboards:          NewDashboardsClient(apikeyCPC),
 		grafana:             NewGrafanaClient(apikeyCPC),
 		recordingRuleGroups: NewRecordingRuleGroupsClient(apikeyCPC),
 		tcoPolicies:         NewTCOPoliciesClient(apikeyCPC),

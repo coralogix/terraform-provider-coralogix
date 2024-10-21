@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,14 +20,12 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -38,7 +36,7 @@ func NewDashboardDataSource() datasource.DataSource {
 }
 
 type DashboardDataSource struct {
-	client *clientset.DashboardsClient
+	client *cxsdk.DashboardsClient
 }
 
 func (d *DashboardDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -80,19 +78,14 @@ func (d *DashboardDataSource) Read(ctx context.Context, req datasource.ReadReque
 	//Get refreshed Dashboard value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading Dashboard: %s", id)
-	getDashboardReq := &dashboards.GetDashboardRequest{DashboardId: wrapperspb.String(id)}
-	getDashboardResp, err := d.client.GetDashboard(ctx, getDashboardReq)
+	getDashboardReq := &cxsdk.GetDashboardRequest{DashboardId: wrapperspb.String(id)}
+	getDashboardResp, err := d.client.Get(ctx, getDashboardReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
-			resp.Diagnostics.AddWarning(err.Error(),
-				fmt.Sprintf("Dashboard %q is in state, but no longer exists in Coralogix backend", id))
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Dashboard",
-				formatRpcErrors(err, getDashboardURL, protojson.Format(getDashboardReq)),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error reading Dashboard",
+			formatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(getDashboardReq)),
+		)
 		return
 	}
 	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
