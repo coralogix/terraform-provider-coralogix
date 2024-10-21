@@ -181,7 +181,7 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Scope",
-			formatRpcErrors(err, getScopeURL, protojson.Format(getScopeReq)),
+			formatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
 		)
 		return
 	}
@@ -198,7 +198,7 @@ func EntityType(s string) string {
 }
 
 func extractCreateScope(plan *ScopeResourceModel) (*cxsdk.CreateScopeRequest, diag.Diagnostics) {
-	var filters []*cxsdk.Filter
+	var filters []*cxsdk.ScopeFilter
 
 	for _, filter := range plan.Filters {
 		entityType := cxsdk.EntityTypeValueLookup[EntityType(filter.EntityType.ValueString())]
@@ -206,7 +206,7 @@ func extractCreateScope(plan *ScopeResourceModel) (*cxsdk.CreateScopeRequest, di
 		if entityType == 0 && filter.EntityType.ValueString() != "unspecified" {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid entity type", fmt.Sprintf("Invalid entity type: %s", filter.EntityType.ValueString()))}
 		}
-		filters = append(filters, &cxsdk.Filter{
+		filters = append(filters, &cxsdk.ScopeFilter{
 			Expression: filter.Expression.ValueString(),
 			EntityType: cxsdk.EntityType(entityType),
 		})
@@ -238,7 +238,7 @@ func flattenScope(resp *cxsdk.GetScopesResponse) []ScopeResourceModel {
 	return scopes
 }
 
-func flattenScopeFilters(filters []*cxsdk.Filter) []ScopeFilterModel {
+func flattenScopeFilters(filters []*cxsdk.ScopeFilter) []ScopeFilterModel {
 	var result []ScopeFilterModel
 	for _, filter := range filters {
 		result = append(result, ScopeFilterModel{
@@ -335,7 +335,7 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 func extractUpdateScope(plan *ScopeResourceModel) (*cxsdk.UpdateScopeRequest, diag.Diagnostics) {
 
-	var filters []*cxsdk.Filter
+	var filters []*cxsdk.ScopeFilter
 
 	for _, filter := range plan.Filters {
 		entityType := cxsdk.EntityTypeValueLookup[EntityType(filter.EntityType.ValueString())]
@@ -343,7 +343,7 @@ func extractUpdateScope(plan *ScopeResourceModel) (*cxsdk.UpdateScopeRequest, di
 		if entityType == 0 && filter.EntityType.ValueString() != "unspecified" {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid entity type", fmt.Sprintf("Invalid entity type: %s", filter.EntityType.ValueString()))}
 		}
-		filters = append(filters, &cxsdk.Filter{
+		filters = append(filters, &cxsdk.ScopeFilter{
 			Expression: filter.Expression.ValueString(),
 			EntityType: cxsdk.EntityType(entityType),
 		})
