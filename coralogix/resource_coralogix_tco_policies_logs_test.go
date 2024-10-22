@@ -96,7 +96,7 @@ func testAccTCOPoliciesLogsCheckDestroy(s *terraform.State) error {
 			continue
 		}
 
-		if resp, err := client.GetTCOPolicies(ctx, &cxsdk.GetCompanyPoliciesRequest{SourceType: &logSource}); err == nil {
+		if resp, err := client.List(ctx, &cxsdk.GetCompanyPoliciesRequest{SourceType: &logSource}); err == nil {
 			if err == nil {
 				if len(resp.GetPolicies()) != 0 {
 					return fmt.Errorf("tco-policies still exist: %s", protojson.Format(resp))

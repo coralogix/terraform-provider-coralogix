@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -3337,7 +3337,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	}
 	dashboardStr := protojson.Format(createDashboardReq)
 	log.Printf("[INFO] Creating new Dashboard: %s", dashboardStr)
-	created, err := r.client.Create(ctx, createDashboardReq)
+	_, err := r.client.Create(ctx, createDashboardReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -3348,7 +3348,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	getDashboardReq := &cxsdk.GetDashboardRequest{
-		DashboardId: created.GetId(),
+		DashboardId: dashboard.GetId(),
 	}
 	getDashboardResp, err := r.client.Get(ctx, getDashboardReq)
 	if err != nil {

@@ -363,12 +363,12 @@ func (r *TCOPoliciesLogsResource) Read(ctx context.Context, _ resource.ReadReque
 
 	getPoliciesReq := &cxsdk.GetCompanyPoliciesRequest{SourceType: &logSource}
 	log.Printf("[INFO] Reading tco-policies-logs")
-	getPoliciesResp, err := r.client.GetTCOPolicies(ctx, getPoliciesReq)
+	getPoliciesResp, err := r.client.List(ctx, getPoliciesReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if retryableStatusCode(status.Code(err)) {
 			log.Print("[INFO] Retrying to read tco-policies-logs")
-			getPoliciesResp, err = r.client.GetTCOPolicies(ctx, getPoliciesReq)
+			getPoliciesResp, err = r.client.List(ctx, getPoliciesReq)
 			continue
 		}
 		resp.Diagnostics.AddError(
