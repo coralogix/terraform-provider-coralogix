@@ -34,12 +34,12 @@ type ClientSet struct {
 	archiveMetrics    *cxsdk.ArchiveMetricsClient
 	archiveRetentions *cxsdk.ArchiveRetentionsClient
 	tcoPolicies       *cxsdk.TCOPoliciesClient
+	alertScheduler    *cxsdk.AlertSchedulerClient
 
 	ruleGroups          *RuleGroupsClient
 	grafana             *GrafanaClient
 	recordingRuleGroups *RecordingRulesGroupsSetsClient
 	events2Metrics      *Events2MetricsClient
-	alertsSchedulers    *AlertsSchedulersClient
 	dahboardsFolders    *DashboardsFoldersClient
 	groups              *GroupsClient
 	users               *UsersClient
@@ -105,8 +105,8 @@ func (c *ClientSet) ArchiveLogs() *cxsdk.ArchiveLogsClient {
 	return c.archiveLogs
 }
 
-func (c *ClientSet) AlertSchedulers() *AlertsSchedulersClient {
-	return c.alertsSchedulers
+func (c *ClientSet) AlertSchedulers() *cxsdk.AlertSchedulerClient {
+	return c.alertScheduler
 }
 
 func (c *ClientSet) Teams() *cxsdk.TeamsClient {
@@ -161,12 +161,12 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		archiveMetrics:    cxsdk.NewArchiveMetricsClient(apiKeySdk),
 		archiveRetentions: cxsdk.NewArchiveRetentionsClient(apiKeySdk),
 		tcoPolicies:       cxsdk.NewTCOPoliciesClient(apiKeySdk),
+		alertScheduler:    cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
 		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
 		grafana:             NewGrafanaClient(apikeyCPC),
 		recordingRuleGroups: NewRecordingRuleGroupsClient(apikeyCPC),
-		alertsSchedulers:    NewAlertsSchedulersClient(apikeyCPC),
 		dahboardsFolders:    NewDashboardsFoldersClient(apikeyCPC),
 		groups:              NewGroupsClient(apikeyCPC),
 		users:               NewUsersClient(apikeyCPC),
