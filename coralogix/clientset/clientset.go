@@ -4,6 +4,20 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Copyright 2024 Coralogix Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
 //	https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
@@ -33,11 +47,11 @@ type ClientSet struct {
 	archiveLogs       *cxsdk.ArchiveLogsClient
 	archiveMetrics    *cxsdk.ArchiveMetricsClient
 	archiveRetentions *cxsdk.ArchiveRetentionsClient
+	tcoPolicies       *cxsdk.TCOPoliciesClient
 
 	ruleGroups          *RuleGroupsClient
 	grafana             *GrafanaClient
 	recordingRuleGroups *RecordingRulesGroupsSetsClient
-	tcoPolicies         *TCOPoliciesClient
 	events2Metrics      *Events2MetricsClient
 	alertsSchedulers    *AlertsSchedulersClient
 	dahboardsFolders    *DashboardsFoldersClient
@@ -81,7 +95,7 @@ func (c *ClientSet) RecordingRuleGroupsSets() *RecordingRulesGroupsSetsClient {
 	return c.recordingRuleGroups
 }
 
-func (c *ClientSet) TCOPolicies() *TCOPoliciesClient {
+func (c *ClientSet) TCOPolicies() *cxsdk.TCOPoliciesClient {
 	return c.tcoPolicies
 }
 
@@ -160,12 +174,12 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		archiveLogs:       cxsdk.NewArchiveLogsClient(apiKeySdk),
 		archiveMetrics:    cxsdk.NewArchiveMetricsClient(apiKeySdk),
 		archiveRetentions: cxsdk.NewArchiveRetentionsClient(apiKeySdk),
+		tcoPolicies:       cxsdk.NewTCOPoliciesClient(apiKeySdk),
 
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
 		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
 		grafana:             NewGrafanaClient(apikeyCPC),
 		recordingRuleGroups: NewRecordingRuleGroupsClient(apikeyCPC),
-		tcoPolicies:         NewTCOPoliciesClient(apikeyCPC),
 		alertsSchedulers:    NewAlertsSchedulersClient(apikeyCPC),
 		dahboardsFolders:    NewDashboardsFoldersClient(apikeyCPC),
 		groups:              NewGroupsClient(apikeyCPC),
