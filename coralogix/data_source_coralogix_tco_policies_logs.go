@@ -82,12 +82,12 @@ func (d *TCOPoliciesLogsDataSource) Read(ctx context.Context, _ datasource.ReadR
 
 	getPoliciesReq := &cxsdk.GetCompanyPoliciesRequest{SourceType: &logSource}
 	log.Printf("[INFO] Reading tco-policies-logs")
-	getPoliciesResp, err := d.client.GetTCOPolicies(ctx, getPoliciesReq)
+	getPoliciesResp, err := d.client.List(ctx, getPoliciesReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if retryableStatusCode(status.Code(err)) {
 			log.Print("[INFO] Retrying to read tco-policies-logs")
-			getPoliciesResp, err = d.client.GetTCOPolicies(ctx, getPoliciesReq)
+			getPoliciesResp, err = d.client.List(ctx, getPoliciesReq)
 			continue
 		}
 		resp.Diagnostics.AddError(

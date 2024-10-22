@@ -3337,7 +3337,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	}
 	dashboardStr := protojson.Format(createDashboardReq)
 	log.Printf("[INFO] Creating new Dashboard: %s", dashboardStr)
-	created, err := r.client.Create(ctx, createDashboardReq)
+	_, err := r.client.Create(ctx, createDashboardReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
