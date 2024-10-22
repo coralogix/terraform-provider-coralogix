@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +19,10 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -30,16 +34,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	archiveLogs "terraform-provider-coralogix/coralogix/clientset/grpc/archive-logs"
 )
 
 var (
-	_                    resource.ResourceWithConfigure   = &ArchiveLogsResource{}
-	_                    resource.ResourceWithImportState = &ArchiveLogsResource{}
-	updateArchiveLogsURL                                  = "com.coralogix.archive.v1.TargetService/SetTarget"
-	getArchiveLogsURL                                     = "com.coralogix.archive.v1.TargetService/GetTarget"
+	_ resource.ResourceWithConfigure   = &ArchiveLogsResource{}
+	_ resource.ResourceWithImportState = &ArchiveLogsResource{}
 )
 
 type ArchiveLogsResourceModel struct {
@@ -56,7 +55,7 @@ func NewArchiveLogsResource() resource.Resource {
 }
 
 type ArchiveLogsResource struct {
-	client *clientset.ArchiveLogsClient
+	client *cxsdk.ArchiveLogsClient
 }
 
 func (r *ArchiveLogsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -141,12 +140,12 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 	log.Printf("[INFO] Creating new archive-logs: %s", protojson.Format(createReq))
-	createResp, err := r.client.UpdateArchiveLogs(ctx, createReq)
+	createResp, err := r.client.Update(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating archive-logs",
-			formatRpcErrors(err, updateArchiveLogsURL, protojson.Format(createReq)),
+			formatRpcErrors(err, cxsdk.ArchiveLogsSetTargetRPC, protojson.Format(createReq)),
 		)
 		return
 	}
@@ -162,24 +161,34 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenArchiveLogs(target *archiveLogs.Target) *ArchiveLogsResourceModel {
+func flattenArchiveLogs(target *cxsdk.Target) *ArchiveLogsResourceModel {
 	if target == nil {
 		return nil
 	}
+	s3Target, ok := target.GetTargetSpec().(*cxsdk.TargetS3)
+	if !ok {
+		return nil
+	}
+
 	return &ArchiveLogsResourceModel{
 		ID:                types.StringValue(""),
-		Active:            types.BoolValue(target.GetIsActive().GetValue()),
-		Bucket:            types.StringValue(target.GetBucket().GetValue()),
-		Region:            types.StringValue(target.GetRegion().GetValue()),
-		ArchivingFormatId: types.StringValue(target.GetArchivingFormatId().GetValue()),
-		EnableTags:        types.BoolValue(target.GetEnableTags().GetValue()),
+		Active:            types.BoolValue(target.ArchiveSpec.GetIsActive()),
+		Bucket:            types.StringValue(s3Target.S3.GetBucket()),
+		Region:            types.StringValue(s3Target.S3.GetRegion()),
+		ArchivingFormatId: types.StringValue(target.ArchiveSpec.GetArchivingFormatId()),
+		EnableTags:        types.BoolValue(target.ArchiveSpec.GetEnableTags()),
 	}
 }
 
-func extractArchiveLogs(plan ArchiveLogsResourceModel) *archiveLogs.SetTargetRequest {
-	return &archiveLogs.SetTargetRequest{
-		IsActive: wrapperspb.Bool(plan.Active.ValueBool()),
-		Bucket:   wrapperspb.String(plan.Bucket.ValueString()),
+func extractArchiveLogs(plan ArchiveLogsResourceModel) *cxsdk.SetTargetRequest {
+	return &cxsdk.SetTargetRequest{
+		IsActive: plan.Active.ValueBool(),
+		TargetSpec: &cxsdk.SetTargetRequestS3{
+			S3: &cxsdk.S3TargetSpec{
+				Bucket: plan.Bucket.ValueString(),
+				Region: plan.Region.ValueStringPointer(),
+			},
+		},
 	}
 }
 
@@ -194,7 +203,7 @@ func (r *ArchiveLogsResource) Read(ctx context.Context, req resource.ReadRequest
 	//Get refreshed ArchiveLogs value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading archive-logs: %s", id)
-	getResp, err := r.client.GetArchiveLogs(ctx)
+	getResp, err := r.client.Get(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -206,7 +215,7 @@ func (r *ArchiveLogsResource) Read(ctx context.Context, req resource.ReadRequest
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading archive-logs",
-				formatRpcErrors(err, getArchiveLogsURL, ""),
+				formatRpcErrors(err, cxsdk.ArchiveLogsGetTargetRPC, ""),
 			)
 		}
 		return
@@ -234,7 +243,7 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 	log.Printf("[INFO] Updating archive-logs: %s", protojson.Format(updateReq))
-	updateResp, err := r.client.UpdateArchiveLogs(ctx, updateReq)
+	updateResp, err := r.client.Update(ctx, updateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -245,12 +254,12 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 	log.Printf("[INFO] Submitted updated archive-logs %s", protojson.Format(updateResp))
 
-	readResp, err := r.client.GetArchiveLogs(ctx)
+	readResp, err := r.client.Get(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading archive-logs",
-			formatRpcErrors(err, getArchiveLogsURL, ""),
+			formatRpcErrors(err, cxsdk.ArchiveLogsGetTargetRPC, ""),
 		)
 		return
 	}

@@ -19,26 +19,26 @@ import (
 )
 
 type ClientSet struct {
-	actions      *cxsdk.ActionsClient
-	alerts       *cxsdk.AlertsClient
-	apikeys      *cxsdk.ApikeysClient
-	integrations *cxsdk.IntegrationsClient
-	enrichments  *cxsdk.EnrichmentsClient
-	dataSet      *cxsdk.DataSetClient
-	webhooks     *cxsdk.WebhooksClient
-	slos         *cxsdk.SLOsClient
-	teams        *cxsdk.TeamsClient
-	scopes       *cxsdk.ScopesClient
-	dashboards   *cxsdk.DashboardsClient
+	actions           *cxsdk.ActionsClient
+	alerts            *cxsdk.AlertsClient
+	apikeys           *cxsdk.ApikeysClient
+	integrations      *cxsdk.IntegrationsClient
+	enrichments       *cxsdk.EnrichmentsClient
+	dataSet           *cxsdk.DataSetClient
+	webhooks          *cxsdk.WebhooksClient
+	slos              *cxsdk.SLOsClient
+	teams             *cxsdk.TeamsClient
+	scopes            *cxsdk.ScopesClient
+	dashboards        *cxsdk.DashboardsClient
+	archiveLogs       *cxsdk.ArchiveLogsClient
+	archiveMetrics    *cxsdk.ArchiveMetricsClient
+	archiveRetentions *cxsdk.ArchiveRetentionsClient
 
 	ruleGroups          *RuleGroupsClient
 	grafana             *GrafanaClient
 	recordingRuleGroups *RecordingRulesGroupsSetsClient
 	tcoPolicies         *TCOPoliciesClient
 	events2Metrics      *Events2MetricsClient
-	archiveRetentions   *ArchiveRetentionsClient
-	archiveMetrics      *ArchiveMetricsClient
-	archiveLogs         *ArchiveLogsClient
 	alertsSchedulers    *AlertsSchedulersClient
 	dahboardsFolders    *DashboardsFoldersClient
 	groups              *GroupsClient
@@ -93,15 +93,15 @@ func (c *ClientSet) Events2Metrics() *Events2MetricsClient {
 	return c.events2Metrics
 }
 
-func (c *ClientSet) ArchiveRetentions() *ArchiveRetentionsClient {
+func (c *ClientSet) ArchiveRetentions() *cxsdk.ArchiveRetentionsClient {
 	return c.archiveRetentions
 }
 
-func (c *ClientSet) ArchiveMetrics() *ArchiveMetricsClient {
+func (c *ClientSet) ArchiveMetrics() *cxsdk.ArchiveMetricsClient {
 	return c.archiveMetrics
 }
 
-func (c *ClientSet) ArchiveLogs() *ArchiveLogsClient {
+func (c *ClientSet) ArchiveLogs() *cxsdk.ArchiveLogsClient {
 	return c.archiveLogs
 }
 
@@ -146,26 +146,26 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 	apiKeySdk := cxsdk.NewCallPropertiesCreator(targetUrl, cxsdk.NewAuthContext(apiKey, apiKey))
 
 	return &ClientSet{
-		apikeys:      cxsdk.NewAPIKeysClient(apiKeySdk),
-		actions:      cxsdk.NewActionsClient(apiKeySdk),
-		integrations: cxsdk.NewIntegrationsClient(apiKeySdk),
-		enrichments:  cxsdk.NewEnrichmentClient(apiKeySdk),
-		alerts:       cxsdk.NewAlertsClient(apiKeySdk),
-		dataSet:      cxsdk.NewDataSetClient(apiKeySdk),
-		webhooks:     cxsdk.NewWebhooksClient(apiKeySdk),
-		slos:         cxsdk.NewSLOsClient(apiKeySdk),
-		teams:        cxsdk.NewTeamsClient(apiKeySdk),
-		scopes:       cxsdk.NewScopesClient(apiKeySdk),
-		dashboards:   cxsdk.NewDashboardsClient(apiKeySdk),
+		apikeys:           cxsdk.NewAPIKeysClient(apiKeySdk),
+		actions:           cxsdk.NewActionsClient(apiKeySdk),
+		integrations:      cxsdk.NewIntegrationsClient(apiKeySdk),
+		enrichments:       cxsdk.NewEnrichmentClient(apiKeySdk),
+		alerts:            cxsdk.NewAlertsClient(apiKeySdk),
+		dataSet:           cxsdk.NewDataSetClient(apiKeySdk),
+		webhooks:          cxsdk.NewWebhooksClient(apiKeySdk),
+		slos:              cxsdk.NewSLOsClient(apiKeySdk),
+		teams:             cxsdk.NewTeamsClient(apiKeySdk),
+		scopes:            cxsdk.NewScopesClient(apiKeySdk),
+		dashboards:        cxsdk.NewDashboardsClient(apiKeySdk),
+		archiveLogs:       cxsdk.NewArchiveLogsClient(apiKeySdk),
+		archiveMetrics:    cxsdk.NewArchiveMetricsClient(apiKeySdk),
+		archiveRetentions: cxsdk.NewArchiveRetentionsClient(apiKeySdk),
 
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
 		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
 		grafana:             NewGrafanaClient(apikeyCPC),
 		recordingRuleGroups: NewRecordingRuleGroupsClient(apikeyCPC),
 		tcoPolicies:         NewTCOPoliciesClient(apikeyCPC),
-		archiveRetentions:   NewArchiveRetentionsClient(apikeyCPC),
-		archiveMetrics:      NewArchiveMetricsClient(apikeyCPC),
-		archiveLogs:         NewArchiveLogsClient(apikeyCPC),
 		alertsSchedulers:    NewAlertsSchedulersClient(apikeyCPC),
 		dahboardsFolders:    NewDashboardsFoldersClient(apikeyCPC),
 		groups:              NewGroupsClient(apikeyCPC),
