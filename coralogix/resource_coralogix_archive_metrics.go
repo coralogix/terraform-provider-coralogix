@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,6 +18,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+
+	"terraform-provider-coralogix/coralogix/clientset"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -35,15 +39,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
-	"terraform-provider-coralogix/coralogix/clientset"
-	archiveMetrics "terraform-provider-coralogix/coralogix/clientset/grpc/archive-metrics"
 )
 
 var (
-	_                       resource.ResourceWithConfigure   = &ArchiveMetricsResource{}
-	_                       resource.ResourceWithImportState = &ArchiveMetricsResource{}
-	updateArchiveMetricsURL                                  = "com.coralogix.metrics.metrics_configurator.MetricsConfiguratorPublicService/ConfigureTenant"
-	getArchiveMetricsURL                                     = "com.coralogix.metrics.metrics_configurator.MetricsConfiguratorPublicService/GetTenantConfig"
+	_ resource.ResourceWithConfigure   = &ArchiveMetricsResource{}
+	_ resource.ResourceWithImportState = &ArchiveMetricsResource{}
 )
 
 type ArchiveMetricsResourceModel struct {
@@ -60,7 +60,7 @@ func NewArchiveMetricsResource() resource.Resource {
 }
 
 type ArchiveMetricsResource struct {
-	client *clientset.ArchiveMetricsClient
+	client *cxsdk.ArchiveMetricsClient
 }
 
 func (r *ArchiveMetricsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -198,23 +198,23 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 	log.Printf("[INFO] Creating new archive-metrics: %s", protojson.Format(createReq))
-	_, err := r.client.UpdateArchiveMetrics(ctx, createReq)
+	_, err := r.client.ConfigureTenant(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating archive-metrics",
-			formatRpcErrors(err, updateArchiveMetricsURL, protojson.Format(createReq)),
+			formatRpcErrors(err, cxsdk.ArchiveMetricsConfigureTenantRPC, protojson.Format(createReq)),
 		)
 		return
 	}
 	log.Print("[INFO] Submitted new archive-metrics")
 
-	readResp, err := r.client.GetArchiveMetrics(ctx)
+	readResp, err := r.client.Get(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading archive-metrics",
-			formatRpcErrors(err, getArchiveMetricsURL, ""),
+			formatRpcErrors(err, cxsdk.ArchiveMetricsGetTenantConfigRPC, ""),
 		)
 		return
 	}
@@ -229,7 +229,7 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenArchiveMetrics(ctx context.Context, metricConfig *archiveMetrics.TenantConfigV2) (*ArchiveMetricsResourceModel, diag.Diagnostics) {
+func flattenArchiveMetrics(ctx context.Context, metricConfig *cxsdk.TenantConfigV2) (*ArchiveMetricsResourceModel, diag.Diagnostics) {
 	flattenedMetricsConfig := &ArchiveMetricsResourceModel{
 		ID:       types.StringValue(""),
 		TenantID: types.Int64Value(int64(metricConfig.GetTenantId())),
@@ -250,7 +250,7 @@ func flattenArchiveMetrics(ctx context.Context, metricConfig *archiveMetrics.Ten
 	return flattenedMetricsConfig, nil
 }
 
-func flattenRetentionPolicy(ctx context.Context, policy *archiveMetrics.RetentionPolicyRequest) (types.Object, diag.Diagnostics) {
+func flattenRetentionPolicy(ctx context.Context, policy *cxsdk.RetentionPolicyRequest) (types.Object, diag.Diagnostics) {
 	if policy == nil {
 		return types.ObjectNull(retentionPolicyModelAttr()), nil
 	}
@@ -264,9 +264,9 @@ func flattenRetentionPolicy(ctx context.Context, policy *archiveMetrics.Retentio
 	return types.ObjectValueFrom(ctx, retentionPolicyModelAttr(), flattenedPolicy)
 }
 
-func flattenStorageConfig(ctx context.Context, metricConfig *archiveMetrics.TenantConfigV2, flattenedMetricsConfig *ArchiveMetricsResourceModel) (*ArchiveMetricsResourceModel, diag.Diagnostics) {
+func flattenStorageConfig(ctx context.Context, metricConfig *cxsdk.TenantConfigV2, flattenedMetricsConfig *ArchiveMetricsResourceModel) (*ArchiveMetricsResourceModel, diag.Diagnostics) {
 	switch storageConfig := metricConfig.GetStorageConfig().(type) {
-	case *archiveMetrics.TenantConfigV2_Ibm:
+	case *cxsdk.TenantConfigV2Ibm:
 		ibmConfig := &IBMConfigModel{
 			Endpoint: types.StringValue(storageConfig.Ibm.GetEndpoint()),
 			Crn:      types.StringValue(storageConfig.Ibm.GetCrn()),
@@ -277,7 +277,7 @@ func flattenStorageConfig(ctx context.Context, metricConfig *archiveMetrics.Tena
 		}
 		flattenedMetricsConfig.IBM = ibmConfigObject
 		flattenedMetricsConfig.S3 = types.ObjectNull(s3ConfigModelAttr())
-	case *archiveMetrics.TenantConfigV2_S3:
+	case *cxsdk.TenantConfigV2S3:
 		s3Config := &S3ConfigModel{
 			Bucket: types.StringValue(storageConfig.S3.GetBucket()),
 			Region: types.StringValue(storageConfig.S3.GetRegion()),
@@ -315,16 +315,16 @@ func s3ConfigModelAttr() map[string]attr.Type {
 	}
 }
 
-func extractArchiveMetrics(ctx context.Context, plan ArchiveMetricsResourceModel) (*archiveMetrics.ConfigureTenantRequest, diag.Diagnostics) {
-	tenantConfig := archiveMetrics.ConfigureTenantRequest{}
+func extractArchiveMetrics(ctx context.Context, plan ArchiveMetricsResourceModel) (*cxsdk.ConfigureTenantRequest, diag.Diagnostics) {
+	tenantConfig := cxsdk.ConfigureTenantRequest{}
 	if !plan.IBM.IsNull() {
 		var ibmConfig IBMConfigModel
 		diags := plan.IBM.As(ctx, &ibmConfig, basetypes.ObjectAsOptions{})
 		if diags.HasError() {
 			return nil, diags
 		}
-		tenantConfig.StorageConfig = &archiveMetrics.ConfigureTenantRequest_Ibm{
-			Ibm: &archiveMetrics.IbmConfigV2{
+		tenantConfig.StorageConfig = &cxsdk.ConfigureTenantRequestIbm{
+			Ibm: &cxsdk.ArchiveIbmConfigV2{
 				Endpoint: ibmConfig.Endpoint.ValueString(),
 				Crn:      ibmConfig.Crn.ValueString(),
 			},
@@ -335,8 +335,8 @@ func extractArchiveMetrics(ctx context.Context, plan ArchiveMetricsResourceModel
 		if diags.HasError() {
 			return nil, diags
 		}
-		tenantConfig.StorageConfig = &archiveMetrics.ConfigureTenantRequest_S3{
-			S3: &archiveMetrics.S3Config{
+		tenantConfig.StorageConfig = &cxsdk.ConfigureTenantRequestS3{
+			S3: &cxsdk.ArchiveS3Config{
 				Bucket: s3Config.Bucket.ValueString(),
 				Region: s3Config.Region.ValueString(),
 			},
@@ -351,7 +351,7 @@ func extractArchiveMetrics(ctx context.Context, plan ArchiveMetricsResourceModel
 	return &tenantConfig, nil
 }
 
-func extractRetentionPolicies(ctx context.Context, policy types.Object) (*archiveMetrics.RetentionPolicyRequest, diag.Diagnostics) {
+func extractRetentionPolicies(ctx context.Context, policy types.Object) (*cxsdk.RetentionPolicyRequest, diag.Diagnostics) {
 	if policy.IsNull() || policy.IsUnknown() {
 		return nil, nil
 	}
@@ -361,7 +361,7 @@ func extractRetentionPolicies(ctx context.Context, policy types.Object) (*archiv
 		return nil, diags
 	}
 
-	return &archiveMetrics.RetentionPolicyRequest{
+	return &cxsdk.RetentionPolicyRequest{
 		RawResolution:         uint32(policyModel.RawResolution.ValueInt64()),
 		FiveMinutesResolution: uint32(policyModel.FiveMinutesResolution.ValueInt64()),
 		OneHourResolution:     uint32(policyModel.OneHourResolution.ValueInt64()),
@@ -379,7 +379,7 @@ func (r *ArchiveMetricsResource) Read(ctx context.Context, req resource.ReadRequ
 	//Get refreshed archiveMetrics value from Coralogix
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Reading archiveMetrics: %s", id)
-	getResp, err := r.client.GetArchiveMetrics(ctx)
+	getResp, err := r.client.Get(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -391,7 +391,7 @@ func (r *ArchiveMetricsResource) Read(ctx context.Context, req resource.ReadRequ
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading archive-metrics",
-				formatRpcErrors(err, getArchiveMetricsURL, ""),
+				formatRpcErrors(err, cxsdk.ArchiveMetricsGetTenantConfigRPC, ""),
 			)
 		}
 		return
@@ -417,29 +417,29 @@ func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 
-	createReq, diags := extractArchiveMetrics(ctx, *plan)
+	updateReq, diags := extractArchiveMetrics(ctx, *plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Updating new archiveMetrics: %s", protojson.Format(createReq))
-	_, err := r.client.UpdateArchiveMetrics(ctx, createReq)
+	log.Printf("[INFO] Updating new archiveMetrics: %s", protojson.Format(updateReq))
+	_, err := r.client.ConfigureTenant(ctx, updateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating archive-metrics",
-			formatRpcErrors(err, createEvents2MetricURL, protojson.Format(createReq)),
+			formatRpcErrors(err, createEvents2MetricURL, protojson.Format(updateReq)),
 		)
 		return
 	}
 	log.Print("[INFO] Submitted updated archive-metrics")
 
-	readResp, err := r.client.GetArchiveMetrics(ctx)
+	readResp, err := r.client.Get(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading archive-metrics",
-			formatRpcErrors(err, getArchiveMetricsURL, ""),
+			formatRpcErrors(err, cxsdk.ArchiveMetricsGetTenantConfigRPC, ""),
 		)
 		return
 	}
