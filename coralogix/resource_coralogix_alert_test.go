@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 // Copyright 2024 Coralogix Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-=======
->>>>>>> 7454ef8 (feat: alerts v3 schema (WIP))
 package coralogix
 
 import (
