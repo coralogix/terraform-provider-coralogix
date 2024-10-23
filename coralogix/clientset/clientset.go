@@ -35,12 +35,12 @@ type ClientSet struct {
 	archiveRetentions *cxsdk.ArchiveRetentionsClient
 	tcoPolicies       *cxsdk.TCOPoliciesClient
 	alertScheduler    *cxsdk.AlertSchedulerClient
+	dahboardsFolders  *cxsdk.DashboardsFoldersClient
 
 	ruleGroups          *RuleGroupsClient
 	grafana             *GrafanaClient
 	recordingRuleGroups *RecordingRulesGroupsSetsClient
 	events2Metrics      *Events2MetricsClient
-	dahboardsFolders    *DashboardsFoldersClient
 	groups              *GroupsClient
 	users               *UsersClient
 	customRole          *RolesClient
@@ -121,7 +121,7 @@ func (c *ClientSet) SLOs() *cxsdk.SLOsClient {
 	return c.slos
 }
 
-func (c *ClientSet) DashboardsFolders() *DashboardsFoldersClient {
+func (c *ClientSet) DashboardsFolders() *cxsdk.DashboardsFoldersClient {
 	return c.dahboardsFolders
 }
 
@@ -162,12 +162,12 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		archiveRetentions: cxsdk.NewArchiveRetentionsClient(apiKeySdk),
 		tcoPolicies:       cxsdk.NewTCOPoliciesClient(apiKeySdk),
 		alertScheduler:    cxsdk.NewAlertSchedulerClient(apiKeySdk),
+		dahboardsFolders:  cxsdk.NewDashboardsFoldersClient(apiKeySdk),
 
 		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
 		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
 		grafana:             NewGrafanaClient(apikeyCPC),
 		recordingRuleGroups: NewRecordingRuleGroupsClient(apikeyCPC),
-		dahboardsFolders:    NewDashboardsFoldersClient(apikeyCPC),
 		groups:              NewGroupsClient(apikeyCPC),
 		users:               NewUsersClient(apikeyCPC),
 		customRole:          NewRolesClient(apikeyCPC),
