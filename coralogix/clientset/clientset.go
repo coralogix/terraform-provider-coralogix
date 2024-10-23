@@ -39,11 +39,11 @@ type ClientSet struct {
 	ruleGroups          *cxsdk.RuleGroupsClient
 	recordingRuleGroups *cxsdk.RecordingRuleGroupSetsClient
 	users               *cxsdk.UsersClient
+	customRole          *cxsdk.RolesClient
 
 	grafana        *GrafanaClient
 	events2Metrics *Events2MetricsClient
 	groups         *GroupsClient
-	customRole     *RolesClient
 }
 
 func (c *ClientSet) RuleGroups() *cxsdk.RuleGroupsClient {
@@ -113,7 +113,7 @@ func (c *ClientSet) Teams() *cxsdk.TeamsClient {
 	return c.teams
 }
 
-func (c *ClientSet) CustomRoles() *RolesClient {
+func (c *ClientSet) CustomRoles() *cxsdk.RolesClient {
 	return c.customRole
 }
 
@@ -166,10 +166,10 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		users:               cxsdk.NewUsersClient(apiKeySdk),
 		ruleGroups:          cxsdk.NewRuleGroupsClient(apiKeySdk),
 		recordingRuleGroups: cxsdk.NewRecordingRuleGroupSetsClient(apiKeySdk),
+		customRole:          cxsdk.NewRolesClient(apiKeySdk),
 
 		events2Metrics: NewEvents2MetricsClient(apikeyCPC),
 		grafana:        NewGrafanaClient(apikeyCPC),
 		groups:         NewGroupsClient(apikeyCPC),
-		customRole:     NewRolesClient(apikeyCPC),
 	}
 }
