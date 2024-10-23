@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,6 +20,8 @@ import (
 	"log"
 	"strconv"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -32,15 +34,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
-	"terraform-provider-coralogix/coralogix/clientset"
-	roles "terraform-provider-coralogix/coralogix/clientset/grpc/roles"
-)
 
-var (
-	getRolePath    = "com.coralogixapis.aaa.rbac.v2.RoleManagementService/GetCustomRole"
-	createRolePath = "com.coralogixapis.aaa.rbac.v2.RoleManagementService/CreateRole"
-	deleteRolePath = "com.coralogixapis.aaa.rbac.v2.RoleManagementService/DeleteRole"
-	updateRolePath = "com.coralogixapis.aaa.rbac.v2.RoleManagementService/UpdateRole"
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 )
 
 func NewCustomRoleSource() resource.Resource {
@@ -48,7 +43,7 @@ func NewCustomRoleSource() resource.Resource {
 }
 
 type CustomRoleSource struct {
-	client *clientset.RolesClient
+	client *cxsdk.RolesClient
 }
 
 func (c *CustomRoleSource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -112,7 +107,7 @@ func (c *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 		},
-		MarkdownDescription: "Coralogix Custom roles.",
+		MarkdownDescription: "Coralogix Custom cxsdk.",
 	}
 }
 
@@ -131,12 +126,12 @@ func (c *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	log.Printf("[INFO] Creating Custom Role: %s", protojson.Format(createCustomRoleRequest))
-	createCustomRoleResponse, err := c.client.CreateRole(ctx, createCustomRoleRequest)
+	createCustomRoleResponse, err := c.client.Create(ctx, createCustomRoleRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Custom Role",
-			formatRpcErrors(err, createRolePath, protojson.Format(createCustomRoleRequest)),
+			formatRpcErrors(err, cxsdk.RolesCreateRoleRPC, protojson.Format(createCustomRoleRequest)),
 		)
 		return
 	}
@@ -161,9 +156,9 @@ func (c *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	readReq := &roles.GetCustomRoleRequest{RoleId: uint32(roleId)}
+	readReq := &cxsdk.GetCustomRoleRequest{RoleId: uint32(roleId)}
 	log.Printf("[INFO] Reading Custom Role: %s", protojson.Format(readReq))
-	role, err := c.client.GetRole(ctx, readReq)
+	role, err := c.client.Get(ctx, readReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -175,7 +170,7 @@ func (c *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Custom Role",
-				formatRpcErrors(err, getRolePath, protojson.Format(readReq)),
+				formatRpcErrors(err, cxsdk.RolesGetCustomRoleRPC, protojson.Format(readReq)),
 			)
 		}
 		return
@@ -205,7 +200,7 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		resp.Diagnostics.AddError("Invalid Id", "Custom role id must be an int")
 		return
 	}
-	var updateRoleRequest = roles.UpdateRoleRequest{
+	var updateRoleRequest = cxsdk.UpdateRoleRequest{
 		RoleId: uint32(roleId),
 	}
 
@@ -228,17 +223,17 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 			resp.Diagnostics.Append(diags...)
 			return
 		}
-		updateRoleRequest.NewPermissions = &roles.Permissions{
+		updateRoleRequest.NewPermissions = &cxsdk.RolePermissions{
 			Permissions: permissions,
 		}
 	}
 
-	_, err = c.client.UpdateRole(ctx, &updateRoleRequest)
+	_, err = c.client.Update(ctx, &updateRoleRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating custom role",
-			formatRpcErrors(err, updateRolePath, protojson.Format(&updateRoleRequest)),
+			formatRpcErrors(err, cxsdk.RolesUpdateRoleRPC, protojson.Format(&updateRoleRequest)),
 		)
 		return
 	}
@@ -266,16 +261,16 @@ func (c *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteReques
 		resp.Diagnostics.AddError("Invalid Id", "Custom role id must be an int")
 		return
 	}
-	deleteRoleRequest := roles.DeleteRoleRequest{
+	deleteRoleRequest := cxsdk.DeleteRoleRequest{
 		RoleId: uint32(id),
 	}
 
-	_, err = c.client.DeleteRole(ctx, &deleteRoleRequest)
+	_, err = c.client.Delete(ctx, &deleteRoleRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error deleting Custom Role",
-			formatRpcErrors(err, deleteRolePath, protojson.Format(&deleteRoleRequest)),
+			formatRpcErrors(err, cxsdk.RolesDeleteRoleRPC, protojson.Format(&deleteRoleRequest)),
 		)
 		return
 	}
@@ -283,21 +278,21 @@ func (c *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteReques
 	log.Printf("[INFO] Custom Role %v deleted", id)
 }
 
-func makeCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) (*roles.CreateRoleRequest, diag.Diagnostics) {
+func makeCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) (*cxsdk.CreateRoleRequest, diag.Diagnostics) {
 	permissions, diags := typeStringSliceToStringSlice(ctx, roleModel.Permissions.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &roles.CreateRoleRequest{
+	return &cxsdk.CreateRoleRequest{
 		Name:        roleModel.Name.ValueString(),
 		Description: roleModel.Description.ValueString(),
 		Permissions: permissions,
-		ParentRole:  &roles.CreateRoleRequest_ParentRoleName{ParentRoleName: roleModel.ParentRole.ValueString()},
+		ParentRole:  &cxsdk.CreateRoleRequestParentRoleName{ParentRoleName: roleModel.ParentRole.ValueString()},
 	}, nil
 }
 
-func flatterCustomRole(ctx context.Context, customRole *roles.CustomRole) (*RolesModel, diag.Diagnostics) {
+func flatterCustomRole(ctx context.Context, customRole *cxsdk.CustomRole) (*RolesModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	permissions, diags := types.SetValueFrom(ctx, types.StringType, customRole.Permissions)
