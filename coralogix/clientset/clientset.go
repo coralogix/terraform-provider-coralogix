@@ -37,16 +37,16 @@ type ClientSet struct {
 	alertScheduler    *cxsdk.AlertSchedulerClient
 	dahboardsFolders  *cxsdk.DashboardsFoldersClient
 
-	ruleGroups          *RuleGroupsClient
+	ruleGroups          *cxsdk.RuleGroupsClient
 	grafana             *GrafanaClient
 	recordingRuleGroups *RecordingRulesGroupsSetsClient
 	events2Metrics      *Events2MetricsClient
 	groups              *GroupsClient
-	users               *UsersClient
+	users               *cxsdk.UsersClient
 	customRole          *RolesClient
 }
 
-func (c *ClientSet) RuleGroups() *RuleGroupsClient {
+func (c *ClientSet) RuleGroups() *cxsdk.RuleGroupsClient {
 	return c.ruleGroups
 }
 
@@ -129,7 +129,7 @@ func (c *ClientSet) Groups() *GroupsClient {
 	return c.groups
 }
 
-func (c *ClientSet) Users() *UsersClient {
+func (c *ClientSet) Users() *cxsdk.UsersClient {
 	return c.users
 }
 
@@ -163,13 +163,13 @@ func NewClientSet(targetUrl, apiKey string) *ClientSet {
 		tcoPolicies:       cxsdk.NewTCOPoliciesClient(apiKeySdk),
 		alertScheduler:    cxsdk.NewAlertSchedulerClient(apiKeySdk),
 		dahboardsFolders:  cxsdk.NewDashboardsFoldersClient(apiKeySdk),
+		users:             cxsdk.NewUsersClient(apiKeySdk),
 
-		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
+		ruleGroups:          cxsdk.NewRuleGroupsClient(apiKeySdk),
 		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
 		grafana:             NewGrafanaClient(apikeyCPC),
 		recordingRuleGroups: NewRecordingRuleGroupsClient(apikeyCPC),
 		groups:              NewGroupsClient(apikeyCPC),
-		users:               NewUsersClient(apikeyCPC),
 		customRole:          NewRolesClient(apikeyCPC),
 	}
 }
