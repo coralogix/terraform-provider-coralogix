@@ -248,7 +248,7 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating archive-logs",
-			formatRpcErrors(err, createEvents2MetricURL, protojson.Format(updateReq)),
+			formatRpcErrors(err, cxsdk.CreateE2MRequest, protojson.Format(updateReq)),
 		)
 		return
 	}

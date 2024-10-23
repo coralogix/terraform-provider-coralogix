@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,6 +24,7 @@ import (
 	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
 	l2m "terraform-provider-coralogix/coralogix/clientset/grpc/logs2metrics/v2"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
@@ -63,15 +64,10 @@ var (
 		"Min": e2m.E2MAggSamples_SAMPLE_TYPE_MIN,
 		"Max": e2m.E2MAggSamples_SAMPLE_TYPE_MAX,
 	}
-	protoToSchemaAggregationSampleType = map[e2m.E2MAggSamples_SampleType]string{
-		e2m.E2MAggSamples_SAMPLE_TYPE_MIN: "Min",
-		e2m.E2MAggSamples_SAMPLE_TYPE_MAX: "Max",
-	}
-	validSampleTypes       = []string{"Min", "Max"}
-	createEvents2MetricURL = "com.coralogixapis.events2metrics.v2.Events2MetricService/CreateE2M"
-	getEvents2MetricURL    = "com.coralogixapis.events2metrics.v2.Events2MetricService/GetE2M"
-	updateEvents2MetricURL = "com.coralogixapis.events2metrics.v2.Events2MetricService/ReplaceE2M"
-	deleteEvents2MetricURL = "com.coralogixapis.events2metrics.v2.Events2MetricService/DeleteE2M"
+
+	protoToSchemaAggregationSampleType = ReverseMap(schemaToProtoAggregationSampleType)
+
+	validSampleTypes = GetKeys(schemaToProtoAggregationSampleType)
 )
 
 var (
@@ -857,7 +853,7 @@ func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateR
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Events2Metric",
-			formatRpcErrors(err, createEvents2MetricURL, protojson.Format(e2mCreateReq)),
+			formatRpcErrors(err, cxsdk.CreateE2MRequest, protojson.Format(e2mCreateReq)),
 		)
 	}
 	log.Printf("[INFO] Submitted new Events2metric: %s", protojson.Format(e2mCreateResp))
@@ -893,7 +889,7 @@ func (r *Events2MetricResource) Read(ctx context.Context, req resource.ReadReque
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				formatRpcErrors(err, getEvents2MetricURL, protojson.Format(getE2MReq)),
+				formatRpcErrors(err, cxsdk.GetE2MRequest, protojson.Format(getE2MReq)),
 			)
 		}
 		return
@@ -926,7 +922,7 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Events2Metric",
-			formatRpcErrors(err, updateEvents2MetricURL, protojson.Format(e2mUpdateReq)),
+			formatRpcErrors(err, cxsdk.ReplaceE2MRequest, protojson.Format(e2mUpdateReq)),
 		)
 		return
 	}
@@ -946,7 +942,7 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				formatRpcErrors(err, getEvents2MetricURL, protojson.Format(e2mUpdateReq)),
+				formatRpcErrors(err, cxsdk.GetE2MRequest, protojson.Format(e2mUpdateReq)),
 			)
 		}
 		return
@@ -974,7 +970,7 @@ func (r *Events2MetricResource) Delete(ctx context.Context, req resource.DeleteR
 	if _, err := r.client.DeleteEvents2Metric(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting Events2Metric",
-			formatRpcErrors(err, deleteEvents2MetricURL, protojson.Format(deleteReq)),
+			formatRpcErrors(err, cxsdk.DeleteE2MRequest, protojson.Format(deleteReq)),
 		)
 		return
 	}
@@ -985,7 +981,7 @@ func (r *Events2MetricResource) ImportState(ctx context.Context, req resource.Im
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func flattenE2M(ctx context.Context, e2m *e2m.E2M) Events2MetricResourceModel {
+func flattenE2M(ctx context.Context, e2m *cxsdk.E2M) Events2MetricResourceModel {
 	return Events2MetricResourceModel{
 		ID:           types.StringValue(e2m.GetId().GetValue()),
 		Name:         types.StringValue(e2m.GetName().GetValue()),
