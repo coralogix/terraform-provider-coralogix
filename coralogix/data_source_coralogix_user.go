@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,11 +20,13 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 var _ datasource.DataSourceWithConfigure = &UserDataSource{}
@@ -34,7 +36,7 @@ func NewUserDataSource() datasource.DataSource {
 }
 
 type UserDataSource struct {
-	client *clientset.UsersClient
+	client *cxsdk.UsersClient
 }
 
 func (d *UserDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -76,7 +78,7 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	//Get refreshed User value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading User: %s", id)
-	getUserResp, err := d.client.GetUser(ctx, id)
+	getUserResp, err := d.client.Get(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -87,7 +89,7 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading User",
-				formatRpcErrors(err, fmt.Sprintf("%s/%s", d.client.TargetUrl, id), ""),
+				formatRpcErrors(err, fmt.Sprintf("%s/%s", d.client.BaseUrl(), id), ""),
 			)
 		}
 		return
