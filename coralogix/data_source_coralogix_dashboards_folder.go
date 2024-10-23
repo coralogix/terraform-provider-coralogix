@@ -19,8 +19,6 @@ import (
 	"fmt"
 	"log"
 
-	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards"
-
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -37,7 +35,7 @@ func NewDashboardsFoldersDataSource() datasource.DataSource {
 }
 
 type DashboardsFolderDataSource struct {
-	client *clientset.DashboardsFoldersClient
+	client *cxsdk.DashboardsFoldersClient
 }
 
 func (d *DashboardsFolderDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -78,18 +76,18 @@ func (d *DashboardsFolderDataSource) Read(ctx context.Context, req datasource.Re
 
 	//Get refreshed dashboards-folder value from Coralogix
 	log.Print("[INFO] Reading dashboards-folders")
-	getDashboardsFolders, err := d.client.GetDashboardsFolders(ctx, &dashboards.ListDashboardFoldersRequest{})
+	getDashboardsFolders, err := d.client.List(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error listing dashboards-folders",
-			formatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(&dashboards.ListDashboardFoldersRequest{})),
+			formatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(&cxsdk.ListDashboardFolderRequest{})),
 		)
 
 		return
 	}
 	log.Printf("[INFO] Received dashboards-folders: %s", protojson.Format(getDashboardsFolders))
-	var dashboardsFolder *dashboards.DashboardFolder
+	var dashboardsFolder *cxsdk.DashboardFolder
 	for _, folder := range getDashboardsFolders.GetFolder() {
 		if folder.GetId().GetValue() == data.ID.ValueString() {
 			dashboardsFolder = folder
