@@ -92,7 +92,7 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				formatRpcErrors(err, cxsdk.GetE2MRequest, protojson.Format(getE2MReq)),
+				formatRpcErrors(err, cxsdk.E2MGetRPC, protojson.Format(getE2MReq)),
 			)
 		}
 		return
