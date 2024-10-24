@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,8 +20,8 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	rrgs "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups-sets/v1"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -37,7 +37,7 @@ func NewRecordingRuleGroupSetDataSource() datasource.DataSource {
 }
 
 type RecordingRuleGroupSetDataSource struct {
-	client *clientset.RecordingRulesGroupsSetsClient
+	client *cxsdk.RecordingRuleGroupSetsClient
 }
 
 func (d *RecordingRuleGroupSetDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -79,8 +79,8 @@ func (d *RecordingRuleGroupSetDataSource) Read(ctx context.Context, req datasour
 	//Get refreshed recording-rule-group-set value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading recording-rule-group-set: %s", id)
-	getReq := &rrgs.FetchRuleGroupSet{Id: id}
-	getResp, err := d.client.GetRecordingRuleGroupsSet(ctx, getReq)
+	getReq := &cxsdk.GetRuleGroupSetRequest{Id: id}
+	getResp, err := d.client.Get(ctx, getReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {

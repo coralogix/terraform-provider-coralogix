@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,13 +20,14 @@ import (
 	"log"
 	"time"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
-	"terraform-provider-coralogix/coralogix/clientset"
-	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 )
 
 var _ datasource.DataSourceWithConfigure = &TCOPoliciesLogsDataSource{}
@@ -36,7 +37,7 @@ func NewTCOPoliciesLogsDataSource() datasource.DataSource {
 }
 
 type TCOPoliciesLogsDataSource struct {
-	client *clientset.TCOPoliciesClient
+	client *cxsdk.TCOPoliciesClient
 }
 
 func (d *TCOPoliciesLogsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -79,14 +80,14 @@ func (d *TCOPoliciesLogsDataSource) Read(ctx context.Context, _ datasource.ReadR
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	getPoliciesReq := &tcopolicies.GetCompanyPoliciesRequest{SourceType: &logSource}
+	getPoliciesReq := &cxsdk.GetCompanyPoliciesRequest{SourceType: &logSource}
 	log.Printf("[INFO] Reading tco-policies-logs")
-	getPoliciesResp, err := d.client.GetTCOPolicies(ctx, getPoliciesReq)
+	getPoliciesResp, err := d.client.List(ctx, getPoliciesReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if retryableStatusCode(status.Code(err)) {
 			log.Print("[INFO] Retrying to read tco-policies-logs")
-			getPoliciesResp, err = d.client.GetTCOPolicies(ctx, getPoliciesReq)
+			getPoliciesResp, err = d.client.List(ctx, getPoliciesReq)
 			continue
 		}
 		resp.Diagnostics.AddError(
