@@ -17,10 +17,10 @@ package coralogix
 import (
 	"context"
 	"fmt"
+	"terraform-provider-coralogix/coralogix/clientset"
 	"testing"
 
-	"terraform-provider-coralogix/coralogix/clientset"
-	scopes "terraform-provider-coralogix/coralogix/clientset/grpc/scopes"
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -70,7 +70,7 @@ func testAccCheckScopeDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.Get(ctx, &scopes.GetTeamScopesByIdsRequest{
+		resp, err := client.Get(ctx, &cxsdk.GetTeamScopesByIDsRequest{
 			Ids: []string{rs.Primary.ID},
 		})
 		if err == nil && resp != nil && resp.Scopes != nil && len(resp.Scopes) > 0 {
