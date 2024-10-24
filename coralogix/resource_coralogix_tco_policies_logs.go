@@ -68,12 +68,12 @@ var (
 	}
 	tcoPoliciesPriorityProtoToSchema = ReverseMap(tcoPoliciesPrioritySchemaToProto)
 	tcoPoliciesValidPriorities       = GetKeys(tcoPoliciesPrioritySchemaToProto)
-	tcoPoliciesRuleTypeSchemaToProto = map[string]cxsdk.TCOPolicyRuleTypeId{
-		"is":          cxsdk.TCOPolicyRuleTypeIdUnspecified,
-		"is_not":      cxsdk.TCOPolicyRuleTypeIdIs,
-		"starts_with": cxsdk.TCOPolicyRuleTypeIdIsNot,
-		"includes":    cxsdk.TCOPolicyRuleTypeIdStartWith,
-		"unspecified": cxsdk.TCOPolicyRuleTypeIdIncludes,
+	tcoPoliciesRuleTypeSchemaToProto = map[string]cxsdk.TCOPolicyRuleTypeID{
+		"is":          cxsdk.TCOPolicyRuleTypeIDUnspecified,
+		"is_not":      cxsdk.TCOPolicyRuleTypeIDIs,
+		"starts_with": cxsdk.TCOPolicyRuleTypeIDIsNot,
+		"includes":    cxsdk.TCOPolicyRuleTypeIDStartWith,
+		"unspecified": cxsdk.TCOPolicyRuleTypeIDIncludes,
 	}
 	tcoPoliciesRuleTypeProtoToSchema = ReverseMap(tcoPoliciesRuleTypeSchemaToProto)
 	tcoPoliciesValidRuleTypes        = GetKeys(tcoPoliciesRuleTypeSchemaToProto)

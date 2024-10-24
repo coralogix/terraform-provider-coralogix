@@ -86,7 +86,7 @@ var (
 		"one_line":    cxsdk.RowStyleOneLine,
 		"two_line":    cxsdk.RowStyleTwoLine,
 		"condensed":   cxsdk.RowStyleCondensed,
-		"json":        cxsdk.RowStyleJson,
+		"json":        cxsdk.RowStyleJSON,
 		"list":        cxsdk.RowStyleList,
 	}
 	dashboardRowStyleProtoToSchema     = ReverseMap(dashboardRowStyleSchemaToProto)
@@ -239,7 +239,7 @@ var (
 	dashboardValidSortBy                        = GetKeys(dashboardSchemaToProtoSortBy)
 	dashboardSchemaToProtoObservationFieldScope = map[string]cxsdk.DatasetScope{
 		"unspecified": cxsdk.DatasetScopeUnspecified,
-		"user_data":   cxsdk.DatasetScopeUser_data,
+		"user_data":   cxsdk.DatasetScopeUserData,
 		"label":       cxsdk.DatasetScopeLabel,
 		"metadata":    cxsdk.DatasetScopeMetadata,
 	}
