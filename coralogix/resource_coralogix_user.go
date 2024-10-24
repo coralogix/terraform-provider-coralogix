@@ -171,7 +171,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating User",
-			formatRpcErrors(err, r.client.BaseUrl(), string(userStr)),
+			formatRpcErrors(err, r.client.BaseURL(), string(userStr)),
 		)
 		return
 	}
@@ -283,7 +283,7 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading User",
-				formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseUrl(), id), ""),
+				formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), ""),
 			)
 		}
 		return
@@ -338,7 +338,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating User",
-			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseUrl(), userID), string(userStr)),
+			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), userID), string(userStr)),
 		)
 		return
 	}
@@ -359,7 +359,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading User",
-				formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseUrl(), id), string(userStr)),
+				formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), string(userStr)),
 			)
 		}
 		return
@@ -391,7 +391,7 @@ func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	if err := r.client.Delete(ctx, id); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting User %s", id),
-			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseUrl(), id), ""),
+			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), ""),
 		)
 		return
 	}

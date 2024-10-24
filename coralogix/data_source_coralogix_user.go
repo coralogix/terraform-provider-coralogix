@@ -89,7 +89,7 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading User",
-				formatRpcErrors(err, fmt.Sprintf("%s/%s", d.client.BaseUrl(), id), ""),
+				formatRpcErrors(err, fmt.Sprintf("%s/%s", d.client.BaseURL(), id), ""),
 			)
 		}
 		return
