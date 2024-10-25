@@ -188,7 +188,7 @@ func testAccCheckEnrichmentDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.GetByType(ctx, rs.Primary.ID)
+		resp, err := EnrichmentsByType(ctx, client, rs.Primary.ID)
 		if err == nil {
 			if len(resp) != 0 {
 				return fmt.Errorf("enrichment still exists: %s", rs.Primary.ID)
