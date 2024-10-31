@@ -46,7 +46,7 @@ func EnrichmentsByID(ctx context.Context, client *cxsdk.EnrichmentsClient, custo
 			result = append(result, enrichment)
 		}
 	}
-	log.Printf("[INFO] found %s enrichments for ID %v", len(result), customEnrichmentID)
+	log.Printf("[INFO] found %v enrichments for ID %v", len(result), customEnrichmentID)
 	return result, nil
 }
 
@@ -63,7 +63,7 @@ func EnrichmentsByType(ctx context.Context, client *cxsdk.EnrichmentsClient, enr
 			result = append(result, enrichment)
 		}
 	}
-	log.Printf("[INFO] found %s enrichments for type %v", len(result), enrichmentType)
+	log.Printf("[INFO] found %v enrichments for type %v", len(result), enrichmentType)
 
 	return result, nil
 }
