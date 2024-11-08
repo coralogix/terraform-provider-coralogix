@@ -143,7 +143,7 @@ func (c *ClientSet) Integrations() *cxsdk.IntegrationsClient {
 
 func NewClientSet(targetUrl, apiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
-	apiKeySdk := cxsdk.NewCallPropertiesCreator(targetUrl, cxsdk.NewAuthContext(apiKey, apiKey))
+	apiKeySdk := cxsdk.NewCallPropertiesCreatorTerraformOperator(targetUrl, cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 
 	return &ClientSet{
 		apikeys:             cxsdk.NewAPIKeysClient(apiKeySdk),

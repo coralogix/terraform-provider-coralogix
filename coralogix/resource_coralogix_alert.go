@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -291,12 +291,12 @@ var (
 	metricsThresholdConditionValues     = GetValues(metricsThresholdConditionMap)
 	metricsThresholdConditionToProtoMap = ReverseMap(metricsThresholdConditionMap)
 
-	metricUnusualConditionMap = map[cxsdk.MetricUnusualConditionType]string{
-		cxsdk.MetricUnusualConditionTypeMoreThanOrUnspecified: "MORE_THAN",
-		cxsdk.MetricUnusualConditionTypeLessThan:              "LESS_THAN",
+	metricAnomalyConditionMap = map[cxsdk.MetricAnomalyConditionType]string{
+		cxsdk.MetricAnomalyConditionTypeMoreThanOrUnspecified: "MORE_THAN",
+		cxsdk.MetricAnomalyConditionTypeLessThan:              "LESS_THAN",
 	}
-	metricUnusualConditionValues     = GetValues(metricUnusualConditionMap)
-	metricUnusualConditionToProtoMap = ReverseMap(metricUnusualConditionMap)
+	metricAnomalyConditionValues     = GetValues(metricAnomalyConditionMap)
+	metricAnomalyConditionToProtoMap = ReverseMap(metricAnomalyConditionMap)
 )
 
 func NewAlertResource() resource.Resource {
@@ -330,13 +330,13 @@ type AlertScheduleModel struct {
 type AlertTypeDefinitionModel struct {
 	LogsImmediate             types.Object `tfsdk:"logs_immediate"`               // LogsImmediateModel
 	LogsThreshold             types.Object `tfsdk:"logs_threshold"`               // LogsThresholdModel
-	LogsUnusual               types.Object `tfsdk:"logs_unusual"`                 // LogsUnusualModel
+	LogsAnomaly               types.Object `tfsdk:"logs_anomaly"`                 // LogsAnomalyModel
 	LogsRatioThreshold        types.Object `tfsdk:"logs_ratio_threshold"`         // LogsRatioThresholdModel
 	LogsNewValue              types.Object `tfsdk:"logs_new_value"`               // LogsNewValueModel
 	LogsUniqueCount           types.Object `tfsdk:"logs_unique_count"`            // LogsUniqueCountModel
 	LogsTimeRelativeThreshold types.Object `tfsdk:"logs_time_relative_threshold"` // LogsTimeRelativeThresholdModel
 	MetricThreshold           types.Object `tfsdk:"metric_threshold"`             // MetricThresholdModel
-	MetricUnusual             types.Object `tfsdk:"metric_unusual"`               // MetricUnusualModel
+	MetricAnomaly             types.Object `tfsdk:"metric_anomaly"`               // MetricAnomalyModel
 	TracingImmediate          types.Object `tfsdk:"tracing_immediate"`            // TracingImmediateModel
 	TracingThreshold          types.Object `tfsdk:"tracing_threshold"`            // TracingThresholdModel
 	Flow                      types.Object `tfsdk:"flow"`                         // FlowModel
@@ -348,21 +348,15 @@ type IncidentsSettingsModel struct {
 }
 
 type NotificationGroupModel struct {
-	GroupByFields          types.List `tfsdk:"group_by_fields"`          // []types.String
-	AdvancedTargetSettings types.Set  `tfsdk:"advanced_target_settings"` // AdvancedTargetSettingsModel
-	SimpleTargetSettings   types.Set  `tfsdk:"simple_target_settings"`   // SimpleTargetSettingsModel
+	GroupByFields         types.List `tfsdk:"group_by_keys"` // []types.String
+	WebhooksSettingsModel types.Set  `tfsdk:"webhooks"`      // WebhooksSettingsModel
 }
 
-type AdvancedTargetSettingsModel struct {
+type WebhooksSettingsModel struct {
 	RetriggeringPeriod types.Object `tfsdk:"retriggering_period"` // RetriggeringPeriodModel
 	NotifyOn           types.String `tfsdk:"notify_on"`
 	IntegrationID      types.String `tfsdk:"integration_id"`
 	Recipients         types.Set    `tfsdk:"recipients"` //[]types.String
-}
-
-type SimpleTargetSettingsModel struct {
-	IntegrationID types.String `tfsdk:"integration_id"`
-	Recipients    types.Set    `tfsdk:"recipients"` //[]types.String
 }
 
 type ActiveOnModel struct {
@@ -393,8 +387,8 @@ type LogsThresholdModel struct {
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
 }
 
-type LogsUnusualModel struct {
-	Rules                     types.List   `tfsdk:"rules"`                       // []LogsUnusualRuleModel
+type LogsAnomalyModel struct {
+	Rules                     types.List   `tfsdk:"rules"`                       // []LogsAnomalyRuleModel
 	LogsFilter                types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
 	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
 }
@@ -441,7 +435,7 @@ type MetricThresholdModel struct {
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
 }
 
-type MetricUnusualRuleModel struct {
+type MetricAnomalyRuleModel struct {
 	Threshold           types.Float64 `tfsdk:"threshold"`
 	ForOverPct          types.Int64   `tfsdk:"for_over_pct"`
 	OfTheLast           types.String  `tfsdk:"of_the_last"`
@@ -457,9 +451,9 @@ type MetricThresholdRuleModel struct {
 	MissingValues types.Object  `tfsdk:"missing_values"` // MetricMissingValuesModel
 }
 
-type MetricUnusualModel struct {
+type MetricAnomalyModel struct {
 	MetricFilter types.Object `tfsdk:"metric_filter"` // MetricFilterModel
-	Rules        types.List   `tfsdk:"rules"`         // []MetricUnusualRuleModel
+	Rules        types.List   `tfsdk:"rules"`         // []MetricAnomalyRuleModel
 }
 
 type MetricImmediateModel struct {
@@ -562,7 +556,7 @@ type LogsRatioThresholdRuleModel struct {
 	Condition      types.String  `tfsdk:"condition"`
 }
 
-type LogsUnusualRuleModel struct {
+type LogsAnomalyRuleModel struct {
 	// Condition      types.String  `tfsdk:"condition"` // Currently there is only a single condition
 	MinimumThreshold types.Float64 `tfsdk:"minimum_threshold"`
 	TimeWindow       types.String  `tfsdk:"time_window"`
@@ -711,7 +705,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			// type is being inferred by the type_definition attribute
 			"type_definition": schema.SingleNestedAttribute{
 				Required:            true,
-				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_unusual, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_unusual, tracing_immediate, tracing_threshold flow.",
+				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold flow.",
 				Attributes: map[string]schema.Attribute{
 					"logs_immediate": schema.SingleNestedAttribute{
 						Optional: true,
@@ -722,13 +716,13 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						Validators: []validator.Object{
 							objectvalidator.ExactlyOneOf(
 								path.MatchRoot("type_definition").AtName("logs_threshold"),
-								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_anomaly"),
 								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
 								path.MatchRoot("type_definition").AtName("logs_unique_count"),
 								path.MatchRoot("type_definition").AtName("logs_new_value"),
 								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
 								path.MatchRoot("type_definition").AtName("metric_threshold"),
-								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("metric_anomaly"),
 								path.MatchRoot("type_definition").AtName("tracing_immediate"),
 								path.MatchRoot("type_definition").AtName("tracing_threshold"),
 								path.MatchRoot("type_definition").AtName("flow"),
@@ -770,20 +764,20 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						Validators: []validator.Object{
 							objectvalidator.ExactlyOneOf(
 								path.MatchRoot("type_definition").AtName("logs_immediate"),
-								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_anomaly"),
 								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
 								path.MatchRoot("type_definition").AtName("logs_unique_count"),
 								path.MatchRoot("type_definition").AtName("logs_new_value"),
 								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
 								path.MatchRoot("type_definition").AtName("metric_threshold"),
-								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("metric_anomaly"),
 								path.MatchRoot("type_definition").AtName("tracing_immediate"),
 								path.MatchRoot("type_definition").AtName("tracing_threshold"),
 								path.MatchRoot("type_definition").AtName("flow"),
 							),
 						},
 					},
-					"logs_unusual": schema.SingleNestedAttribute{
+					"logs_anomaly": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
 							"logs_filter":                 logsFilterSchema(),
@@ -817,7 +811,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								path.MatchRoot("type_definition").AtName("logs_new_value"),
 								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
 								path.MatchRoot("type_definition").AtName("metric_threshold"),
-								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("metric_anomaly"),
 								path.MatchRoot("type_definition").AtName("tracing_immediate"),
 								path.MatchRoot("type_definition").AtName("tracing_threshold"),
 								path.MatchRoot("type_definition").AtName("flow"),
@@ -872,12 +866,12 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							objectvalidator.ExactlyOneOf(
 								path.MatchRoot("type_definition").AtName("logs_immediate"),
 								path.MatchRoot("type_definition").AtName("logs_threshold"),
-								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_anomaly"),
 								path.MatchRoot("type_definition").AtName("logs_unique_count"),
 								path.MatchRoot("type_definition").AtName("logs_new_value"),
 								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
 								path.MatchRoot("type_definition").AtName("metric_threshold"),
-								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("metric_anomaly"),
 								path.MatchRoot("type_definition").AtName("tracing_immediate"),
 								path.MatchRoot("type_definition").AtName("tracing_threshold"),
 								path.MatchRoot("type_definition").AtName("flow"),
@@ -910,12 +904,12 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							objectvalidator.ExactlyOneOf(
 								path.MatchRoot("type_definition").AtName("logs_immediate"),
 								path.MatchRoot("type_definition").AtName("logs_threshold"),
-								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_anomaly"),
 								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
 								path.MatchRoot("type_definition").AtName("logs_unique_count"),
 								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
 								path.MatchRoot("type_definition").AtName("metric_threshold"),
-								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("metric_anomaly"),
 								path.MatchRoot("type_definition").AtName("tracing_immediate"),
 								path.MatchRoot("type_definition").AtName("tracing_threshold"),
 								path.MatchRoot("type_definition").AtName("flow"),
@@ -955,12 +949,12 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							objectvalidator.ExactlyOneOf(
 								path.MatchRoot("type_definition").AtName("logs_immediate"),
 								path.MatchRoot("type_definition").AtName("logs_threshold"),
-								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_anomaly"),
 								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
 								path.MatchRoot("type_definition").AtName("logs_new_value"),
 								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
 								path.MatchRoot("type_definition").AtName("metric_threshold"),
-								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("metric_anomaly"),
 								path.MatchRoot("type_definition").AtName("tracing_immediate"),
 								path.MatchRoot("type_definition").AtName("tracing_threshold"),
 								path.MatchRoot("type_definition").AtName("flow"),
@@ -1008,12 +1002,12 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							objectvalidator.ExactlyOneOf(
 								path.MatchRoot("type_definition").AtName("logs_immediate"),
 								path.MatchRoot("type_definition").AtName("logs_threshold"),
-								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_anomaly"),
 								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
 								path.MatchRoot("type_definition").AtName("logs_unique_count"),
 								path.MatchRoot("type_definition").AtName("logs_new_value"),
 								path.MatchRoot("type_definition").AtName("metric_threshold"),
-								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("metric_anomaly"),
 								path.MatchRoot("type_definition").AtName("tracing_immediate"),
 								path.MatchRoot("type_definition").AtName("tracing_threshold"),
 								path.MatchRoot("type_definition").AtName("flow"),
@@ -1060,19 +1054,19 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							objectvalidator.ExactlyOneOf(
 								path.MatchRoot("type_definition").AtName("logs_immediate"),
 								path.MatchRoot("type_definition").AtName("logs_threshold"),
-								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_anomaly"),
 								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
 								path.MatchRoot("type_definition").AtName("logs_unique_count"),
 								path.MatchRoot("type_definition").AtName("logs_new_value"),
 								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
-								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("metric_anomaly"),
 								path.MatchRoot("type_definition").AtName("tracing_immediate"),
 								path.MatchRoot("type_definition").AtName("tracing_threshold"),
 								path.MatchRoot("type_definition").AtName("flow"),
 							),
 						},
 					},
-					"metric_unusual": schema.SingleNestedAttribute{
+					"metric_anomaly": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
 							"metric_filter": metricFilterSchema(),
@@ -1100,9 +1094,9 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 										"condition": schema.StringAttribute{
 											Required: true,
 											Validators: []validator.String{
-												stringvalidator.OneOf(metricUnusualConditionValues...),
+												stringvalidator.OneOf(metricAnomalyConditionValues...),
 											},
-											MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", metricUnusualConditionValues),
+											MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", metricAnomalyConditionValues),
 										},
 									},
 								},
@@ -1112,7 +1106,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							objectvalidator.ExactlyOneOf(
 								path.MatchRoot("type_definition").AtName("logs_immediate"),
 								path.MatchRoot("type_definition").AtName("logs_threshold"),
-								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_anomaly"),
 								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
 								path.MatchRoot("type_definition").AtName("logs_unique_count"),
 								path.MatchRoot("type_definition").AtName("logs_new_value"),
@@ -1135,13 +1129,13 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							objectvalidator.ExactlyOneOf(
 								path.MatchRoot("type_definition").AtName("logs_immediate"),
 								path.MatchRoot("type_definition").AtName("logs_threshold"),
-								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_anomaly"),
 								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
 								path.MatchRoot("type_definition").AtName("logs_unique_count"),
 								path.MatchRoot("type_definition").AtName("logs_new_value"),
 								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
 								path.MatchRoot("type_definition").AtName("metric_threshold"),
-								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("metric_anomaly"),
 								path.MatchRoot("type_definition").AtName("tracing_threshold"),
 								path.MatchRoot("type_definition").AtName("flow"),
 							),
@@ -1176,13 +1170,13 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							objectvalidator.ExactlyOneOf(
 								path.MatchRoot("type_definition").AtName("logs_immediate"),
 								path.MatchRoot("type_definition").AtName("logs_threshold"),
-								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_anomaly"),
 								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
 								path.MatchRoot("type_definition").AtName("logs_unique_count"),
 								path.MatchRoot("type_definition").AtName("logs_new_value"),
 								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
 								path.MatchRoot("type_definition").AtName("metric_threshold"),
-								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("metric_anomaly"),
 								path.MatchRoot("type_definition").AtName("tracing_immediate"),
 								path.MatchRoot("type_definition").AtName("flow"),
 							),
@@ -1256,13 +1250,13 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							objectvalidator.ExactlyOneOf(
 								path.MatchRoot("type_definition").AtName("logs_immediate"),
 								path.MatchRoot("type_definition").AtName("logs_threshold"),
-								path.MatchRoot("type_definition").AtName("logs_unusual"),
+								path.MatchRoot("type_definition").AtName("logs_anomaly"),
 								path.MatchRoot("type_definition").AtName("logs_ratio_threshold"),
 								path.MatchRoot("type_definition").AtName("logs_unique_count"),
 								path.MatchRoot("type_definition").AtName("logs_new_value"),
 								path.MatchRoot("type_definition").AtName("logs_time_relative_threshold"),
 								path.MatchRoot("type_definition").AtName("metric_threshold"),
-								path.MatchRoot("type_definition").AtName("metric_unusual"),
+								path.MatchRoot("type_definition").AtName("metric_anomaly"),
 								path.MatchRoot("type_definition").AtName("tracing_immediate"),
 								path.MatchRoot("type_definition").AtName("tracing_threshold"),
 							),
@@ -1313,7 +1307,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Optional: true,
 				Computed: true,
 				Default: objectdefault.StaticValue(types.ObjectValueMust(notificationGroupAttr(), map[string]attr.Value{
-					"group_by_fields": types.ListNull(types.StringType),
+					"group_by_keys": types.ListNull(types.StringType),
 					"advanced_target_settings": types.SetNull(types.ObjectType{
 						AttrTypes: advancedTargetSettingsAttr(),
 					}),
@@ -1322,7 +1316,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					}),
 				})),
 				Attributes: map[string]schema.Attribute{
-					"group_by_fields": schema.ListAttribute{
+					"group_by_keys": schema.ListAttribute{
 						Optional:    true,
 						ElementType: types.StringType,
 					},
@@ -1702,10 +1696,10 @@ func extractAlertProperties(ctx context.Context, plan *AlertResourceModel) (*cxs
 		Description:       typeStringToWrapperspbString(plan.Description),
 		Enabled:           typeBoolToWrapperspbBool(plan.Enabled),
 		Priority:          alertPrioritySchemaToProtoMap[plan.Priority.ValueString()],
-		GroupBy:           groupBy,
+		GroupByKeys:       groupBy,
 		IncidentsSettings: incidentsSettings,
 		NotificationGroup: notificationGroup,
-		Labels:            labels,
+		EntityLabels:      labels,
 	}
 
 	alertProperties, diags = expandAlertsSchedule(ctx, alertProperties, plan.Schedule)
@@ -1778,12 +1772,34 @@ func extractNotificationGroup(ctx context.Context, notificationGroupObject types
 	}
 
 	notificationGroup := &cxsdk.AlertDefNotificationGroup{
-		GroupByFields: groupByFields,
+		GroupByKeys: groupByFields,
+		Webhooks:    extractWebhooks(ctx, notificationGroupModel.Webhooks),
 	}
-	notificationGroup, diags = expandNotificationTargetSettings(ctx, notificationGroupModel, notificationGroup)
-	if diags.HasError() {
-		return nil, diags
-	}
+
+	// &cxsdk.AlertDefNotificationGroup{
+	// 	GroupByKeys: []*wrapperspb.StringValue{},
+	// 	Webhooks: []*cxsdk.AlertDefWebhooksSettings{
+	// 		{
+	// 			RetriggeringPeriod: &cxsdk.AlertDefWebhooksSettingsMinutes{
+	// 				Minutes: wrapperspb.UInt32(5),
+	// 			},
+	// 			NotifyOn: &notifyOn,
+	// 			Integration: &cxsdk.AlertDefIntegrationType{
+	// 				IntegrationType: &cxsdk.AlertDefIntegrationTypeRecipients{
+	// 					Recipients: &cxsdk.AlertDefRecipients{
+	// 						Emails: []*wrapperspb.StringValue{
+	// 							{Value: "example@coralogix.com"},
+	// 						},
+	// 					},
+	// 				},
+	// 			},
+	// 		},
+	// 	},
+	// },
+	// 	notificationGroup, diags = expandNotificationTargetSettings(ctx, notificationGroupModel, notificationGroup)
+	// if diags.HasError() {
+	// 	return nil, diags
+	// }
 
 	return notificationGroup, nil
 }
@@ -1818,7 +1834,7 @@ func extractAdvancedTargetSettings(ctx context.Context, advancedTargetSettings t
 	}
 	var expandedAdvancedTargetSettings []*cxsdk.AlertDefAdvancedTargetSettings
 	for _, ao := range advancedTargetSettingsObjects {
-		var advancedTargetSettingsModel AdvancedTargetSettingsModel
+		var advancedTargetSettingsModel WebhooksSettingsModel
 		if dg := ao.As(ctx, &advancedTargetSettingsModel, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -1842,7 +1858,7 @@ func extractAdvancedTargetSettings(ctx context.Context, advancedTargetSettings t
 	}, nil
 }
 
-func extractAdvancedTargetSetting(ctx context.Context, advancedTargetSettingsModel AdvancedTargetSettingsModel) (*cxsdk.AlertDefAdvancedTargetSettings, diag.Diagnostics) {
+func extractAdvancedTargetSetting(ctx context.Context, advancedTargetSettingsModel WebhooksSettingsModel) (*cxsdk.AlertDefAdvancedTargetSettings, diag.Diagnostics) {
 	notifyOn := notifyOnSchemaToProtoMap[advancedTargetSettingsModel.NotifyOn.ValueString()]
 	advancedTargetSettings := &cxsdk.AlertDefAdvancedTargetSettings{
 		NotifyOn: &notifyOn,
@@ -1879,8 +1895,8 @@ func extractAdvancedTargetSetting(ctx context.Context, advancedTargetSettingsMod
 	return advancedTargetSettings, nil
 }
 
-func expandAlertNotificationByRetriggeringPeriod(ctx context.Context, alertNotification *cxsdk.AlertDefAdvancedTargetSettings, period types.Object) (*cxsdk.AlertDefAdvancedTargetSettings, diag.Diagnostics) {
-	if period.IsNull() || period.IsUnknown() {
+func expandAlertNotificationByRetriggeringPeriod(ctx context.Context, alertNotification *cxsdk.AlertDefWebhooksSettings, period types.Object) (*cxsdk.AlertDefWebhooksSettings, diag.Diagnostics) {
+	if objIsNullOrUnknown(period) {
 		return alertNotification, nil
 	}
 
@@ -1890,7 +1906,7 @@ func expandAlertNotificationByRetriggeringPeriod(ctx context.Context, alertNotif
 	}
 
 	if !(periodModel.Minutes.IsNull() || periodModel.Minutes.IsUnknown()) {
-		alertNotification.RetriggeringPeriod = &cxsdk.AlertDefAdvancedTargetSettingsMinutes{
+		alertNotification.RetriggeringPeriod = &cxsdk.AlertDefWebhooksSettingsMinutes{
 			Minutes: typeInt64ToWrappedUint32(periodModel.Minutes),
 		}
 	}
@@ -1898,73 +1914,8 @@ func expandAlertNotificationByRetriggeringPeriod(ctx context.Context, alertNotif
 	return alertNotification, nil
 }
 
-func extractSimpleTargetSettings(ctx context.Context, simpleTargetSettings types.Set) (*cxsdk.AlertDefNotificationGroupSimple, diag.Diagnostics) {
-	if simpleTargetSettings.IsNull() || simpleTargetSettings.IsUnknown() {
-		return nil, nil
-	}
-
-	var simpleTargetSettingsObjects []types.Object
-	diags := simpleTargetSettings.ElementsAs(ctx, &simpleTargetSettingsObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-	var expandedSimpleTargetSettings []*cxsdk.AlertDefIntegrationType
-	for _, ao := range simpleTargetSettingsObjects {
-		var simpleTargetSettingsModel SimpleTargetSettingsModel
-		if dg := ao.As(ctx, &simpleTargetSettingsModel, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedSimpleTargetSetting, expandDiags := extractSimpleTargetSetting(ctx, simpleTargetSettingsModel)
-		if expandDiags.HasError() {
-			diags.Append(expandDiags...)
-			continue
-		}
-		expandedSimpleTargetSettings = append(expandedSimpleTargetSettings, expandedSimpleTargetSetting)
-	}
-
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.AlertDefNotificationGroupSimple{
-		Simple: &cxsdk.AlertDefTargetSimple{
-			Integrations: expandedSimpleTargetSettings,
-		},
-	}, nil
-
-}
-
-func extractSimpleTargetSetting(ctx context.Context, model SimpleTargetSettingsModel) (*cxsdk.AlertDefIntegrationType, diag.Diagnostics) {
-	if !model.IntegrationID.IsNull() && !model.IntegrationID.IsUnknown() {
-		integrationId, diag := typeStringToWrapperspbUint32(model.IntegrationID)
-		if diag.HasError() {
-			return nil, diag
-		}
-		return &cxsdk.AlertDefIntegrationType{
-			IntegrationType: &cxsdk.AlertDefIntegrationTypeIntegrationID{
-				IntegrationId: integrationId,
-			},
-		}, nil
-	} else if !model.Recipients.IsNull() && !model.Recipients.IsUnknown() {
-		emails, diags := typeStringSliceToWrappedStringSlice(ctx, model.Recipients.Elements())
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &cxsdk.AlertDefIntegrationType{
-			IntegrationType: &cxsdk.AlertDefIntegrationTypeRecipients{
-				Recipients: &cxsdk.AlertDefRecipients{
-					Emails: emails,
-				},
-			},
-		}, nil
-	}
-	return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Integration ID is not set", "Integration ID is not set")}
-
-}
-
 func expandAlertsSchedule(ctx context.Context, alertProperties *cxsdk.AlertDefProperties, scheduleObject types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
-	if scheduleObject.IsNull() || scheduleObject.IsUnknown() {
+	if objIsNullOrUnknown(scheduleObject) {
 		return alertProperties, nil
 	}
 
@@ -1988,7 +1939,7 @@ func expandAlertsSchedule(ctx context.Context, alertProperties *cxsdk.AlertDefPr
 }
 
 func expandActiveOnSchedule(ctx context.Context, activeOnObject types.Object) (*cxsdk.AlertDefPropertiesActiveOn, diag.Diagnostics) {
-	if activeOnObject.IsNull() || activeOnObject.IsUnknown() {
+	if objIsNullOrUnknown(activeOnObject) {
 		return nil, nil
 	}
 
@@ -2077,9 +2028,9 @@ func expandAlertsTypeDefinition(ctx context.Context, alertProperties *cxsdk.Aler
 	} else if logsThreshold := alertDefinitionModel.LogsThreshold; !objIsNullOrUnknown(logsThreshold) {
 		// LogsThreshold
 		alertProperties, diags = expandLogsThresholdTypeDefinition(ctx, alertProperties, logsThreshold)
-	} else if logsUnusual := alertDefinitionModel.LogsUnusual; !objIsNullOrUnknown(logsUnusual) {
-		// LogsUnusual
-		alertProperties, diags = expandLogsUnusualAlertTypeDefinition(ctx, alertProperties, logsUnusual)
+	} else if logsAnomaly := alertDefinitionModel.LogsAnomaly; !objIsNullOrUnknown(logsAnomaly) {
+		// LogsAnomaly
+		alertProperties, diags = expandLogsAnomalyAlertTypeDefinition(ctx, alertProperties, logsAnomaly)
 	} else if logsRatioThreshold := alertDefinitionModel.LogsRatioThreshold; !objIsNullOrUnknown(logsRatioThreshold) {
 		// LogsRatioThreshold
 		alertProperties, diags = expandLogsRatioThresholdTypeDefinition(ctx, alertProperties, logsRatioThreshold)
@@ -2095,9 +2046,9 @@ func expandAlertsTypeDefinition(ctx context.Context, alertProperties *cxsdk.Aler
 	} else if metricThreshold := alertDefinitionModel.MetricThreshold; !objIsNullOrUnknown(metricThreshold) {
 		// MetricsThreshold
 		alertProperties, diags = expandMetricThresholdAlertTypeDefinition(ctx, alertProperties, metricThreshold)
-	} else if metricUnusual := alertDefinitionModel.MetricUnusual; !objIsNullOrUnknown(metricUnusual) {
-		// MetricsUnusual
-		alertProperties, diags = expandMetricUnusualAlertTypeDefinition(ctx, alertProperties, metricUnusual)
+	} else if metricAnomaly := alertDefinitionModel.MetricAnomaly; !objIsNullOrUnknown(metricAnomaly) {
+		// MetricsAnomaly
+		alertProperties, diags = expandMetricAnomalyAlertTypeDefinition(ctx, alertProperties, metricAnomaly)
 	} else if tracingImmediate := alertDefinitionModel.TracingImmediate; !objIsNullOrUnknown(tracingImmediate) {
 		// TracingImmediate
 		alertProperties, diags = expandTracingImmediateTypeDefinition(ctx, alertProperties, tracingImmediate)
@@ -2382,49 +2333,49 @@ func extractUndetectedValuesManagement(ctx context.Context, management types.Obj
 	}, nil
 }
 
-func expandLogsUnusualAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, unusual types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
-	if unusual.IsNull() || unusual.IsUnknown() {
+func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, anomaly types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
+	if anomaly.IsNull() || anomaly.IsUnknown() {
 		return properties, nil
 	}
 
-	var unusualModel LogsUnusualModel
-	if diags := unusual.As(ctx, &unusualModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+	var anomalyModel LogsAnomalyModel
+	if diags := anomaly.As(ctx, &anomalyModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
 	}
 
-	logsFilter, diags := extractLogsFilter(ctx, unusualModel.LogsFilter)
+	logsFilter, diags := extractLogsFilter(ctx, anomalyModel.LogsFilter)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	notificationPayloadFilter, diags := typeStringSliceToWrappedStringSlice(ctx, unusualModel.NotificationPayloadFilter.Elements())
+	notificationPayloadFilter, diags := typeStringSliceToWrappedStringSlice(ctx, anomalyModel.NotificationPayloadFilter.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	rules, diags := extractUnusualRules(ctx, unusualModel.Rules)
+	rules, diags := extractAnomalyRules(ctx, anomalyModel.Rules)
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.TypeDefinition = &cxsdk.AlertDefPropertiesLogsUnusual{
-		LogsUnusual: &cxsdk.LogsUnusualType{
+	properties.TypeDefinition = &cxsdk.AlertDefPropertiesLogsAnomaly{
+		LogsAnomaly: &cxsdk.LogsAnomalyType{
 			LogsFilter:                logsFilter,
 			Rules:                     rules,
 			NotificationPayloadFilter: notificationPayloadFilter,
 		},
 	}
 
-	properties.Type = cxsdk.AlertDefTypeLogsUnusual
+	properties.Type = cxsdk.AlertDefTypeLogsAnomaly
 	return properties, nil
 }
 
-func extractUnusualRules(ctx context.Context, elements types.List) ([]*cxsdk.LogsUnusualRule, diag.Diagnostics) {
+func extractAnomalyRules(ctx context.Context, elements types.List) ([]*cxsdk.LogsAnomalyRule, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
-	rules := make([]*cxsdk.LogsUnusualRule, len(elements.Elements()))
+	rules := make([]*cxsdk.LogsAnomalyRule, len(elements.Elements()))
 	var objs []types.Object
 	elements.ElementsAs(ctx, &objs, false)
 	for i, r := range objs {
-		var rule LogsUnusualRuleModel
+		var rule LogsAnomalyRuleModel
 		if dg := r.As(ctx, &rule, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -2434,11 +2385,11 @@ func extractUnusualRules(ctx context.Context, elements types.List) ([]*cxsdk.Log
 			diags.Append(dg...)
 			continue
 		}
-		rules[i] = &cxsdk.LogsUnusualRule{
-			Condition: &cxsdk.LogsUnusualCondition{
+		rules[i] = &cxsdk.LogsAnomalyRule{
+			Condition: &cxsdk.LogsAnomalyCondition{
 				MinimumThreshold: typeFloat64ToWrapperspbDouble(rule.MinimumThreshold),
 				TimeWindow:       timeWindow,
-				ConditionType:    cxsdk.LogsUnusualConditionTypeMoreThanOrUnspecified,
+				ConditionType:    cxsdk.LogsAnomalyConditionTypeMoreThanOrUnspecified,
 			},
 		}
 	}
@@ -3125,44 +3076,44 @@ func extractTracingTimeWindow(window types.String) (*cxsdk.TracingTimeWindow, di
 	}, nil
 }
 
-func expandMetricUnusualAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, metricUnusual types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
-	if objIsNullOrUnknown(metricUnusual) {
+func expandMetricAnomalyAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, metricAnomaly types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
+	if objIsNullOrUnknown(metricAnomaly) {
 		return properties, nil
 	}
 
-	var metricUnusualModel MetricUnusualModel
-	if diags := metricUnusual.As(ctx, &metricUnusualModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+	var metricAnomalyModel MetricAnomalyModel
+	if diags := metricAnomaly.As(ctx, &metricAnomalyModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
 	}
 
-	metricFilter, diags := extractMetricFilter(ctx, metricUnusualModel.MetricFilter)
+	metricFilter, diags := extractMetricFilter(ctx, metricAnomalyModel.MetricFilter)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	rules, diags := extractMetricUnusualRules(ctx, metricUnusualModel.Rules)
+	rules, diags := extractMetricAnomalyRules(ctx, metricAnomalyModel.Rules)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	properties.TypeDefinition = &cxsdk.AlertDefPropertiesMetricUnusual{
-		MetricUnusual: &cxsdk.MetricUnusualType{
+	properties.TypeDefinition = &cxsdk.AlertDefPropertiesMetricAnomaly{
+		MetricAnomaly: &cxsdk.MetricAnomalyType{
 			MetricFilter: metricFilter,
 			Rules:        rules,
 		},
 	}
-	properties.Type = cxsdk.AlertDefTypeMetricUnusual
+	properties.Type = cxsdk.AlertDefTypeMetricAnomaly
 
 	return properties, nil
 }
 
-func extractMetricUnusualRules(ctx context.Context, elements types.List) ([]*cxsdk.MetricUnusualRule, diag.Diagnostics) {
+func extractMetricAnomalyRules(ctx context.Context, elements types.List) ([]*cxsdk.MetricAnomalyRule, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
-	rules := make([]*cxsdk.MetricUnusualRule, len(elements.Elements()))
+	rules := make([]*cxsdk.MetricAnomalyRule, len(elements.Elements()))
 	var objs []types.Object
 	elements.ElementsAs(ctx, &objs, false)
 	for i, r := range objs {
-		var rule MetricUnusualRuleModel
+		var rule MetricAnomalyRuleModel
 		if dg := r.As(ctx, &rule, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -3173,12 +3124,12 @@ func extractMetricUnusualRules(ctx context.Context, elements types.List) ([]*cxs
 			diags.Append(dg...)
 			continue
 		}
-		rules[i] = &cxsdk.MetricUnusualRule{
-			Condition: &cxsdk.MetricUnusualCondition{
+		rules[i] = &cxsdk.MetricAnomalyRule{
+			Condition: &cxsdk.MetricAnomalyCondition{
 				Threshold:           typeFloat64ToWrapperspbDouble(rule.Threshold),
 				ForOverPct:          typeInt64ToWrappedUint32(rule.ForOverPct),
 				OfTheLast:           ofTheLast,
-				ConditionType:       metricUnusualConditionToProtoMap[rule.Condition.ValueString()],
+				ConditionType:       metricAnomalyConditionToProtoMap[rule.Condition.ValueString()],
 				MinNonNullValuesPct: typeInt64ToWrappedUint32(rule.MinNonNullValuesPct),
 			},
 		}
@@ -3452,7 +3403,7 @@ func flattenAdvancedTargetSettings(ctx context.Context, advancedTargetSettings *
 		return types.SetNull(types.ObjectType{AttrTypes: advancedTargetSettingsAttr()}), nil
 	}
 
-	var notificationsModel []*AdvancedTargetSettingsModel
+	var notificationsModel []*WebhooksSettingsModel
 	var diags diag.Diagnostics
 	for _, notification := range advancedTargetSettings.GetAdvancedTargetsSettings() {
 		retriggeringPeriod, dgs := flattenRetriggeringPeriod(ctx, notification)
@@ -3460,7 +3411,7 @@ func flattenAdvancedTargetSettings(ctx context.Context, advancedTargetSettings *
 			diags.Append(dgs...)
 			continue
 		}
-		notificationModel := AdvancedTargetSettingsModel{
+		notificationModel := WebhooksSettingsModel{
 			NotifyOn:           types.StringValue(notifyOnProtoToSchemaMap[notification.GetNotifyOn()]),
 			RetriggeringPeriod: retriggeringPeriod,
 			IntegrationID:      types.StringNull(),
@@ -3558,13 +3509,13 @@ func flattenAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefP
 	alertTypeDefinitionModel := AlertTypeDefinitionModel{
 		LogsImmediate:             types.ObjectNull(logsImmediateAttr()),
 		LogsThreshold:             types.ObjectNull(logsThresholdAttr()),
-		LogsUnusual:               types.ObjectNull(logsUnusualAttr()),
+		LogsAnomaly:               types.ObjectNull(logsAnomalyAttr()),
 		LogsRatioThreshold:        types.ObjectNull(logsRatioThresholdAttr()),
 		LogsNewValue:              types.ObjectNull(logsNewValueAttr()),
 		LogsUniqueCount:           types.ObjectNull(logsUniqueCountAttr()),
 		LogsTimeRelativeThreshold: types.ObjectNull(logsTimeRelativeAttr()),
 		MetricThreshold:           types.ObjectNull(metricThresholdAttr()),
-		MetricUnusual:             types.ObjectNull(metricUnusualAttr()),
+		MetricAnomaly:             types.ObjectNull(metricAnomalyAttr()),
 		TracingImmediate:          types.ObjectNull(tracingImmediateAttr()),
 		TracingThreshold:          types.ObjectNull(tracingThresholdAttr()),
 		Flow:                      types.ObjectNull(flowAttr()),
@@ -3575,8 +3526,8 @@ func flattenAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefP
 		alertTypeDefinitionModel.LogsImmediate, diags = flattenLogsImmediate(ctx, alertTypeDefinition.LogsImmediate)
 	case *cxsdk.AlertDefPropertiesLogsThreshold:
 		alertTypeDefinitionModel.LogsThreshold, diags = flattenLogsThreshold(ctx, alertTypeDefinition.LogsThreshold)
-	case *cxsdk.AlertDefPropertiesLogsUnusual:
-		alertTypeDefinitionModel.LogsUnusual, diags = flattenLogsUnusual(ctx, alertTypeDefinition.LogsUnusual)
+	case *cxsdk.AlertDefPropertiesLogsAnomaly:
+		alertTypeDefinitionModel.LogsAnomaly, diags = flattenLogsAnomaly(ctx, alertTypeDefinition.LogsAnomaly)
 	case *cxsdk.AlertDefPropertiesLogsRatioThreshold:
 		alertTypeDefinitionModel.LogsRatioThreshold, diags = flattenLogsRatioThreshold(ctx, alertTypeDefinition.LogsRatioThreshold)
 	case *cxsdk.AlertDefPropertiesLogsNewValue:
@@ -3587,8 +3538,8 @@ func flattenAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefP
 		alertTypeDefinitionModel.LogsTimeRelativeThreshold, diags = flattenLogsTimeRelativeThreshold(ctx, alertTypeDefinition.LogsTimeRelativeThreshold)
 	case *cxsdk.AlertDefPropertiesMetricThreshold:
 		alertTypeDefinitionModel.MetricThreshold, diags = flattenMetricThreshold(ctx, alertTypeDefinition.MetricThreshold)
-	case *cxsdk.AlertDefPropertiesMetricUnusual:
-		alertTypeDefinitionModel.MetricUnusual, diags = flattenMetricUnusual(ctx, alertTypeDefinition.MetricUnusual)
+	case *cxsdk.AlertDefPropertiesMetricAnomaly:
+		alertTypeDefinitionModel.MetricAnomaly, diags = flattenMetricAnomaly(ctx, alertTypeDefinition.MetricAnomaly)
 	case *cxsdk.AlertDefPropertiesTracingImmediate:
 		alertTypeDefinitionModel.TracingImmediate, diags = flattenTracingImmediate(ctx, alertTypeDefinition.TracingImmediate)
 	case *cxsdk.AlertDefPropertiesTracingThreshold:
@@ -3781,35 +3732,35 @@ func flattenUndetectedValuesManagement(ctx context.Context, undetectedValuesMana
 	return types.ObjectValueFrom(ctx, undetectedValuesManagementAttr(), undetectedValuesManagementModel)
 }
 
-func flattenLogsUnusual(ctx context.Context, unusual *cxsdk.LogsUnusualType) (types.Object, diag.Diagnostics) {
-	if unusual == nil {
-		return types.ObjectNull(logsUnusualAttr()), nil
+func flattenLogsAnomaly(ctx context.Context, anomaly *cxsdk.LogsAnomalyType) (types.Object, diag.Diagnostics) {
+	if anomaly == nil {
+		return types.ObjectNull(logsAnomalyAttr()), nil
 	}
 
-	logsFilter, diags := flattenAlertsLogsFilter(ctx, unusual.GetLogsFilter())
+	logsFilter, diags := flattenAlertsLogsFilter(ctx, anomaly.GetLogsFilter())
 	if diags.HasError() {
-		return types.ObjectNull(logsUnusualAttr()), diags
+		return types.ObjectNull(logsAnomalyAttr()), diags
 	}
 
-	rulesRaw := make([]LogsUnusualRuleModel, len(unusual.Rules))
-	for i, rule := range unusual.Rules {
+	rulesRaw := make([]LogsAnomalyRuleModel, len(anomaly.Rules))
+	for i, rule := range anomaly.Rules {
 		timeWindow := flattenLogsTimeWindow(rule.Condition.TimeWindow)
-		rulesRaw[i] = LogsUnusualRuleModel{
+		rulesRaw[i] = LogsAnomalyRuleModel{
 			MinimumThreshold: wrapperspbDoubleToTypeFloat64(rule.Condition.MinimumThreshold),
 			TimeWindow:       timeWindow,
 		}
 	}
 
-	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsUnusualRulesAttr()}, rulesRaw)
+	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsAnomalyRulesAttr()}, rulesRaw)
 	if diags.HasError() {
-		return types.ObjectNull(logsUnusualAttr()), diags
+		return types.ObjectNull(logsAnomalyAttr()), diags
 	}
-	logsMoreThanUsualModel := LogsUnusualModel{
+	logsMoreThanUsualModel := LogsAnomalyModel{
 		LogsFilter:                logsFilter,
 		Rules:                     rules,
-		NotificationPayloadFilter: wrappedStringSliceToTypeStringSet(unusual.GetNotificationPayloadFilter()),
+		NotificationPayloadFilter: wrappedStringSliceToTypeStringSet(anomaly.GetNotificationPayloadFilter()),
 	}
-	return types.ObjectValueFrom(ctx, logsUnusualAttr(), logsMoreThanUsualModel)
+	return types.ObjectValueFrom(ctx, logsAnomalyAttr(), logsMoreThanUsualModel)
 }
 
 func flattenLogsRatioThreshold(ctx context.Context, ratioThreshold *cxsdk.LogsRatioThresholdType) (types.Object, diag.Diagnostics) {
@@ -4290,36 +4241,36 @@ func flattenTracingThreshold(ctx context.Context, tracingThreshold *cxsdk.Tracin
 	return types.ObjectValueFrom(ctx, tracingThresholdAttr(), tracingThresholdModel)
 }
 
-func flattenMetricUnusual(ctx context.Context, metricMoreThanUsual *cxsdk.MetricUnusualType) (types.Object, diag.Diagnostics) {
+func flattenMetricAnomaly(ctx context.Context, metricMoreThanUsual *cxsdk.MetricAnomalyType) (types.Object, diag.Diagnostics) {
 	if metricMoreThanUsual == nil {
-		return types.ObjectNull(metricUnusualAttr()), nil
+		return types.ObjectNull(metricAnomalyAttr()), nil
 	}
 
 	metricFilter, diags := flattenMetricFilter(ctx, metricMoreThanUsual.GetMetricFilter())
 	if diags.HasError() {
-		return types.ObjectNull(metricUnusualAttr()), diags
+		return types.ObjectNull(metricAnomalyAttr()), diags
 	}
 
-	rulesRaw := make([]MetricUnusualRuleModel, len(metricMoreThanUsual.Rules))
+	rulesRaw := make([]MetricAnomalyRuleModel, len(metricMoreThanUsual.Rules))
 	for i, rule := range metricMoreThanUsual.Rules {
-		rulesRaw[i] = MetricUnusualRuleModel{
+		rulesRaw[i] = MetricAnomalyRuleModel{
 			OfTheLast:           types.StringValue(metricFilterOperationTypeProtoToSchemaMap[rule.Condition.GetOfTheLast().GetMetricTimeWindowSpecificValue()]),
 			Threshold:           wrapperspbDoubleToTypeFloat64(rule.Condition.GetThreshold()),
 			ForOverPct:          wrapperspbUint32ToTypeInt64(rule.Condition.GetForOverPct()),
 			MinNonNullValuesPct: wrapperspbUint32ToTypeInt64(rule.Condition.GetMinNonNullValuesPct()),
-			Condition:           types.StringValue(metricUnusualConditionMap[rule.Condition.ConditionType]),
+			Condition:           types.StringValue(metricAnomalyConditionMap[rule.Condition.ConditionType]),
 		}
 	}
 
-	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: metricUnusualRulesAttr()}, rulesRaw)
+	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: metricAnomalyRulesAttr()}, rulesRaw)
 	if diags.HasError() {
-		return types.ObjectNull(metricUnusualAttr()), diags
+		return types.ObjectNull(metricAnomalyAttr()), diags
 	}
-	metricMoreThanUsualModel := MetricUnusualModel{
+	metricMoreThanUsualModel := MetricAnomalyModel{
 		MetricFilter: metricFilter,
 		Rules:        rules,
 	}
-	return types.ObjectValueFrom(ctx, metricUnusualAttr(), metricMoreThanUsualModel)
+	return types.ObjectValueFrom(ctx, metricAnomalyAttr(), metricMoreThanUsualModel)
 }
 
 func flattenFlow(ctx context.Context, flow *cxsdk.FlowType) (types.Object, diag.Diagnostics) {
@@ -4431,7 +4382,7 @@ func incidentsSettingsAttr() map[string]attr.Type {
 
 func notificationGroupAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"group_by_fields": types.ListType{
+		"group_by_keys": types.ListType{
 			ElemType: types.StringType,
 		},
 		"advanced_target_settings": types.SetType{
@@ -4473,8 +4424,8 @@ func alertTypeDefinitionAttr() map[string]attr.Type {
 		"logs_threshold": types.ObjectType{
 			AttrTypes: logsThresholdAttr(),
 		},
-		"logs_unusual": types.ObjectType{
-			AttrTypes: logsUnusualAttr(),
+		"logs_anomaly": types.ObjectType{
+			AttrTypes: logsAnomalyAttr(),
 		},
 		"logs_ratio_threshold": types.ObjectType{
 			AttrTypes: logsRatioThresholdAttr(),
@@ -4491,8 +4442,8 @@ func alertTypeDefinitionAttr() map[string]attr.Type {
 		"metric_threshold": types.ObjectType{
 			AttrTypes: metricThresholdAttr(),
 		},
-		"metric_unusual": types.ObjectType{
-			AttrTypes: metricUnusualAttr(),
+		"metric_anomaly": types.ObjectType{
+			AttrTypes: metricAnomalyAttr(),
 		},
 		"tracing_immediate": types.ObjectType{
 			AttrTypes: tracingImmediateAttr(),
@@ -4569,15 +4520,15 @@ func logsThresholdRulesAttr() map[string]attr.Type {
 	}
 }
 
-func logsUnusualAttr() map[string]attr.Type {
+func logsAnomalyAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"logs_filter":                 types.ObjectType{AttrTypes: logsFilterAttr()},
-		"rules":                       types.ListType{ElemType: types.ObjectType{AttrTypes: logsUnusualRulesAttr()}},
+		"rules":                       types.ListType{ElemType: types.ObjectType{AttrTypes: logsAnomalyRulesAttr()}},
 		"notification_payload_filter": types.SetType{ElemType: types.StringType},
 	}
 }
 
-func logsUnusualRulesAttr() map[string]attr.Type {
+func logsAnomalyRulesAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"minimum_threshold": types.Float64Type,
 		"time_window":       types.StringType,
@@ -4724,14 +4675,14 @@ func metricMissingValuesAttr() map[string]attr.Type {
 	}
 }
 
-func metricUnusualAttr() map[string]attr.Type {
+func metricAnomalyAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"metric_filter": types.ObjectType{AttrTypes: metricFilterAttr()},
-		"rules":         types.ListType{ElemType: types.ObjectType{AttrTypes: metricUnusualRulesAttr()}},
+		"rules":         types.ListType{ElemType: types.ObjectType{AttrTypes: metricAnomalyRulesAttr()}},
 	}
 }
 
-func metricUnusualRulesAttr() map[string]attr.Type {
+func metricAnomalyRulesAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"threshold":               types.Float64Type,
 		"for_over_pct":            types.Int64Type,
