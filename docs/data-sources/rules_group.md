@@ -7,15 +7,8 @@ description: |-
 ---
 
 # coralogix_rules_group (Data Source)
-Rule-group is list of rule-subgroups with 'and' (&&) operation between. More info: https://coralogix.com/docs/rules-api/.
 
-## Example Usage
 
-```hcl
-data "coralogix_rules_group" "imported_rules_group_example" {
-  id = coralogix_rules_group.rules_group_example.id
-}
-```
 
 
 

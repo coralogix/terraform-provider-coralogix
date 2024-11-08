@@ -8,18 +8,7 @@ description: |-
 
 # coralogix_dashboards_folder (Resource)
 
-## Example Usage
 
-```hcl
-resource "coralogix_dashboards_folder" "example" {
-  name     = "example"
-}
-
-resource "coralogix_dashboards_folder" "example_2" {
-  name     = "example2"
-  parent_id = coralogix_dashboards_folder.example.id
-}
-```
 
 
 
@@ -34,20 +23,3 @@ resource "coralogix_dashboards_folder" "example_2" {
 ### Read-Only
 
 - `id` (String) Unique identifier for the folder.
-
-### Import
-
-Dashboards folders can be imported using the `id`, e.g.
-
-```shell
-$ terraform import coralogix_dashboards_folder.this <folder_id>
-```
-
-to get the folder id run the following command and look for the id field of the folder you want to import:
-```sh
-grpcurl -H "Authorization: Bearer <api-key>" -d @ ng-api-grpc.<region-domain>:443 com.coralogixapis.dashboards.v1.services.DashboardFoldersService/ListDashboardFolders <<EOF
-{
-}
-EOF
-```
-[region-domain table](../index.md#region-domain-table)

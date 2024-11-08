@@ -1,8 +1,8 @@
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.8"
-      source  = "coralogix/coralogix"
+      version = "1.5"
+      source  = "locally/debug/coralogix"
     }
   }
 }
@@ -615,15 +615,9 @@ resource "coralogix_dashboard" dashboard {
   auto_refresh = {
     type = "two_minutes"
   }
-  folder = {
-    id = coralogix_dashboards_folder.example.id
-  }
 }
 
-resource "coralogix_dashboards_folder" "example" {
-  name     = "example"
-}
 
-resource "coralogix_dashboard" dashboard_from_json {
-  content_json = file("./dashboard.json")
-}
+# resource "coralogix_dashboard" dashboard_from_json {
+#   content_json = file("./dashboard.json")
+# }

@@ -8,13 +8,7 @@ description: |-
 
 # coralogix_archive_logs (Resource)
 
-## Example Usage
 
-```hcl
-resource "coralogix_archive_logs" "example" {
-  bucket = "example-bucket"
-}
-```
 
 
 
