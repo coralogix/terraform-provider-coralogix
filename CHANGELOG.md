@@ -688,3 +688,17 @@ New Features:
 
 ### data-source/coralogix_webhook
 * Added support for searching by webhook name.
+
+## Release 1.18.12
+
+Fix: 
+
+* coralogix_integration with sensitive data didn't work
+* coralogix_integration with additional default parameters didn't work
+* documentation examples are now automatically generated
+
+New Features
+
+### resource/coralogix_dashboard 
+
+* Support for auto generated IDs added
