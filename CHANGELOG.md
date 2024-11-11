@@ -702,3 +702,7 @@ New Features
 ### resource/coralogix_dashboard 
 
 * Support for auto generated IDs added
+
+DEVELOPERS:
+
+* go version was update to 1.23.x
