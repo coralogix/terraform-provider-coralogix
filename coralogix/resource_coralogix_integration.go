@@ -105,7 +105,6 @@ func (r *IntegrationResource) Schema(ctx context.Context, req resource.SchemaReq
 			},
 			"parameters": schema.DynamicAttribute{
 				Required:            true,
-				Computed:            true,
 				MarkdownDescription: "Data required for the integration.",
 			},
 		},
