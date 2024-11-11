@@ -309,6 +309,9 @@ func parametersToDynamic(parameters []*integrations.Parameter) (types.Dynamic, d
 		case *integrations.Parameter_ApiKey:
 			obj[parameter.Key] = types.StringValue(v.ApiKey.Value.Value)
 			t[parameter.Key] = types.StringType
+		case *integrations.Parameter_SensitiveData:
+			obj[parameter.Key] = types.StringValue("<redacted>")
+			t[parameter.Key] = types.StringType
 		case *integrations.Parameter_NumericValue:
 			obj[parameter.Key] = types.NumberValue(big.NewFloat(v.NumericValue.Value))
 			t[parameter.Key] = types.NumberType
@@ -329,7 +332,9 @@ func parametersToDynamic(parameters []*integrations.Parameter) (types.Dynamic, d
 			obj[parameter.Key] = parameters
 			t[parameter.Key] = types.TupleType{ElemTypes: assignedTypes}
 		default:
-			log.Printf("[ERROR] Invalid parameter type: %v", v)
+			obj[parameter.Key] = types.StringValue(protojson.Format(parameter))
+			t[parameter.Key] = types.StringType
+			log.Printf("[WARN] Invalid parameter type: %v", v)
 		}
 	}
 	val, e := types.ObjectValue(t, obj)
