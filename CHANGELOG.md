@@ -689,7 +689,7 @@ New Features:
 ### data-source/coralogix_webhook
 * Added support for searching by webhook name.
 
-## Release 1.18.3
+## Release 1.18.8
 
 New Features:
 
