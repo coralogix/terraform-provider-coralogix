@@ -10,608 +10,6 @@ description: |-
 
 
 
-## Example Usage
-
-```hcl
-resource "coralogix_dashboard" dashboard {
-  name        = "portal monitoring"
-  description = "<insert description>"
-  layout      = {
-    sections = [
-      {
-        options = {
-          name = "Status"
-          color = "blue"
-        }
-        rows = [
-          {
-            height  = 15
-            widgets = [
-              {
-                title      = "Avg api response times"
-                definition = {
-                  line_chart = {
-                    query_definitions = [
-                      {
-                        query = {
-                          logs = {
-                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND message:\"HTTP\" AND NOT \"OPTIONS\" AND NOT \"metrics\" AND NOT \"firebase\""
-                            aggregations = [
-                              {
-                                type  = "avg"
-                                field = "meta.responseTime.numeric"
-                              },
-                            ]
-                            group_by = [
-                              "meta.organization.keyword"
-                            ]
-                          }
-                        }
-                        scale_type         = "linear"
-                        series_count_limit = 100
-                        unit               = "milliseconds"
-                        resolution         = {
-                          interval = "seconds:900"
-                        }
-                      },
-                    ]
-                    legend = {
-                      is_visible = true
-                      columns    = ["avg", "max"]
-                    }
-                    tooltip = {
-                      show_labels = false
-                      type        = "all"
-                    }
-                  }
-                }
-              },
-              {
-                title      = "Avg Snowflake query times"
-                definition = {
-                  line_chart = {
-                    query_definitions = [
-                      {
-                        query = {
-                          logs = {
-                            lucene_query = "kubernetes.namespace_name:\"portal\" AND \"Successfully executed\""
-                            aggregations = [
-                              {
-                                type    = "percentile"
-                                field   = "sfResponseTime.numeric"
-                                percent = 95.5
-                              },
-                            ]
-                            group_by = [
-                              "sfDatabase.keyword"
-                            ]
-                          }
-                        }
-                        scale_type         = "linear"
-                        series_count_limit = 100
-                        unit               = "milliseconds"
-                      },
-                    ]
-                    legend = {
-                      is_visible = true
-                      columns    = ["avg"]
-                    }
-                    tooltip = {
-                      show_labels = false
-                      type        = "all"
-                    }
-                  }
-                }
-              },
-              {
-                title      = "Avg RDS query times"
-                definition = {
-                  line_chart = {
-                    query_definitions = [
-                      {
-                        query = {
-                          logs = {
-                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND \"Postgres successfully\""
-                            aggregations = [
-                              {
-                                type  = "avg"
-                                field = "RDSResponseTime.numeric"
-                              },
-                            ]
-                            group_by = [
-                              "RDSDatabase.keyword"
-                            ]
-                          }
-                        }
-                        scale_type         = "linear"
-                        series_count_limit = 100
-                        unit               = "milliseconds"
-                        resolution         = {
-                          buckets_presented = 10
-                        }
-                      },
-                    ]
-                    legend = {
-                      is_visible = true
-                      columns    = ["avg"]
-                    }
-                    tooltip = {
-                      show_labels = false
-                      type        = "all"
-                    }
-                  }
-                }
-                width = 10
-              },
-            ]
-          },
-          {
-            height  = 15
-            widgets = [
-              {
-                title      = "OpenAPI - Avg response times"
-                definition = {
-                  line_chart = {
-                    query_definitions = [
-                      {
-                        query = {
-                          logs = {
-                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/openapi-deployment.*/ AND message:\"HTTP\" AND NOT \"OPTIONS\" AND NOT \"metrics\" AND NOT \"firebase\""
-                            aggregations = [
-                              {
-                                type  = "avg"
-                                field = "meta.responseTime.numeric"
-                              },
-                            ]
-                            group_by = [
-                              "meta.organization.keyword"
-                            ]
-                          }
-                        }
-                        scale_type         = "linear"
-                        series_count_limit = 100
-                        unit               = "milliseconds"
-                      },
-                    ]
-                    legend = {
-                      is_visible = true
-                      columns    = ["avg", "max"]
-                    }
-                    tooltip = {
-                      show_labels = false
-                      type        = "all"
-                    }
-                  }
-                }
-                width = 10
-              },
-              {
-                title      = "gauge"
-                definition = {
-                  gauge = {
-                    unit  = "milliseconds"
-                    query = {
-                      metrics = {
-                        promql_query = "vector(1)"
-                        aggregation  = "unspecified"
-                      }
-                    }
-                  }
-                }
-              }
-            ]
-          },
-          {
-            height  = 15
-            widgets = [
-              {
-                title      = "Open API Requests per organization"
-                definition = {
-                  line_chart = {
-                    query_definitions = [
-                      {
-                        query = {
-                          logs = {
-                            lucene_query = "kubernetes.namespace_name:\"portal\" AND (service:\"api.eu.name.ai-production\" OR service:\"api.us.name.ai-production\")"
-                            aggregations = [
-                              {
-                                type = "count"
-                              },
-                            ]
-                            group_by = [
-                              "meta.organization.keyword"
-                            ]
-                          }
-                        }
-                        scale_type         = "linear"
-                        series_count_limit = 100
-                      },
-                    ]
-                    legend = {
-                      is_visible = true
-                    }
-                    tooltip = {
-                      show_labels = false
-                      type        = "all"
-                    }
-                  }
-                }
-                width = 0
-              },
-              {
-                title      = "Last failed SF queries DBs"
-                definition = {
-                  line_chart = {
-                    query_definitions = [
-                      {
-                        query = {
-                          logs = {
-                            lucene_query = "kubernetes.namespace_name:\"portal\" AND \"Failed to execute statement\""
-                            aggregations = [
-                              {
-                                type = "count"
-                              }
-                            ]
-                            group_by = [
-                              "sfDatabase.keyword"
-                            ]
-                          }
-                        }
-                        scale_type         = "linear"
-                        series_count_limit = 100
-                      },
-                    ]
-                    legend = {
-                      is_visible = true
-                    }
-                    tooltip = {
-                      show_labels = false
-                      type        = "all"
-                    }
-                  }
-                }
-                width = 0
-              },
-              {
-                title      = "Avg configuration service query times"
-                definition = {
-                  line_chart = {
-                    query_definitions = [
-                      {
-                        query = {
-                          logs = {
-                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND \"Configuration Service request\""
-                            aggregations = [
-                              {
-                                type  = "avg"
-                                field = "configResponseTime.numeric"
-                              },
-                            ]
-                          }
-                        }
-                        scale_type         = "linear"
-                        series_count_limit = 100
-                      },
-                    ]
-                    legend = {
-                      is_visible = false
-                    }
-                    tooltip = {
-                      show_labels = false
-                      type        = "all"
-                    }
-                  }
-                }
-              },
-            ]
-            height = 15
-          },
-          {
-            height  = 19
-            widgets = [
-              {
-                title      = "Slowest API requests"
-                definition = {
-                  line_chart = {
-                    query_definitions = [
-                      {
-                        query = {
-                          logs = {
-                            lucene_query = " kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND message:\"http\""
-                            aggregations = [
-                              {
-                                type  = "max"
-                                field = "meta.responseTime.numeric"
-                              },
-                            ]
-                            group_by = [
-                              "meta.req.url.keyword"
-                            ]
-                          }
-                        }
-                        scale_type         = "linear"
-                        series_count_limit = 10
-                        unit               = "milliseconds"
-                      },
-                    ]
-                    legend = {
-                      is_visible = true
-                      columns    = ["max"]
-                    }
-                    tooltip = {
-                      show_labels = false
-                      type        = "all"
-                    }
-                  }
-                }
-              },
-            ]
-          },
-          {
-            height  = 19
-            widgets = [
-              {
-                title      = "Cache warmer runs"
-                definition = {
-                  line_chart = {
-                    query_definitions = [
-                      {
-                        query = {
-                          logs = {
-                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.container_name:\"portal-cache-warmer\" AND message:\"Finish cache warmer run successfully\""
-                            aggregations = [
-                              {
-                                type = "count"
-                              },
-                            ]
-                          }
-                        }
-                        scale_type         = "linear"
-                        series_count_limit = 20
-                      },
-                    ]
-                    legend = {
-                      is_visible = true
-                    }
-                    tooltip = {
-                      show_labels = false
-                      type        = "all"
-                    }
-                  }
-                }
-              },
-              {
-                title      = "Alerts notification eu runs"
-                definition = {
-                  line_chart = {
-                    query_definitions = [
-                      {
-                        query = {
-                          logs = {
-                            lucene_query = "service:\"portal-eu-notify-alerts-production\" AND \"Finished notify new alerts\""
-                            aggregations = [
-                              {
-                                type = "count"
-                              },
-                            ]
-                          }
-                        }
-                        scale_type         = "linear"
-                        series_count_limit = 20
-                      },
-                    ]
-                    legend = {
-                      is_visible = true
-                    }
-                    tooltip = {
-                      show_labels = false
-                      type        = "all"
-                    }
-                  }
-                }
-              },
-              {
-                title      = "Alerts notification runs"
-                definition = {
-                  line_chart = {
-                    query_definitions = [
-                      {
-                        query = {
-                          logs = {
-                            lucene_query = "service:\"portal-notify-alerts-production\" AND \"Finished notify new alerts\""
-                            aggregations = [
-                              {
-                                type = "count"
-                              },
-                            ]
-                          }
-                        }
-                      },
-                    ]
-                    scale_type         = "linear"
-                    series_count_limit = 20
-                  }
-                  legend = {
-                    is_visible = true
-                  }
-                  tooltip = {
-                    show_labels = false
-                    type        = "all"
-                  }
-                }
-              },
-              {
-                title      = "Alerts notification us runs"
-                definition = {
-                  pie_chart = {
-                    query = {
-                      logs = {
-                        lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
-                        aggregation  = {
-                          type = "count"
-                        }
-                        group_names = [
-                          "service.keyword"
-                        ]
-                      }
-                    }
-                    label_definition = {
-                    }
-                  }
-                }
-              },
-              {
-                title      = "Alerts notification us runs"
-                definition = {
-                  bar_chart = {
-                    query = {
-                      logs = {
-                        lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
-                        aggregation  = {
-                          type = "count"
-                        }
-                        group_names_fields = [
-                          {
-                            keypath = ["logid"]
-                            scope   = "metadata"
-                          },
-                        ]
-                        stacked_group_name_field = {
-                          keypath = ["logid"]
-                          scope   = "metadata"
-                        }
-                      }
-                    }
-                    xaxis = {
-                      time = {
-                        interval          = "1h0m5s"
-                        buckets_presented = 10
-                      }
-                    }
-                  }
-                }
-              },
-              {
-                title      = "Horizontal Bar-Chart"
-                definition = {
-                  horizontal_bar_chart = {
-                    color_scheme   = "cold"
-                    colors_by      = "aggregation"
-                    display_on_bar = true
-                    query          = {
-                      logs = {
-                        lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
-                        aggregation  = {
-                          type = "count"
-                        }
-                        group_names        = ["coralogix.logId.keyword"]
-                        stacked_group_name = "coralogix.metadata.severity"
-                      }
-                    }
-                    y_axis_view_by = "value"
-                  }
-                }
-              },
-              {
-                definition = {
-                  markdown = {
-                    markdown_text = "## Markdown\n\nThis is a markdown widget"
-                    tooltip_text  = "This is a tooltip"
-                  }
-                }
-              },
-              {
-                title      = "Data Table"
-                definition = {
-                  data_table = {
-                    results_per_page = 10
-                    row_style        = "one_line"
-                    query            = {
-                      data_prime = {
-                        query   = "xxx"
-                        filters = [
-                          {
-                            logs = {
-                              lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
-                              aggregation  = {
-                                type = "count"
-                              }
-                              group_names        = ["coralogix.logId.keyword"]
-                              stacked_group_name = "coralogix.metadata.severity"
-                              field              = "coralogix.metadata.applicationName"
-                              operator           = {
-                                type            = "equals"
-                                selected_values = ["staging"]
-                              }
-                            }
-                          },
-                        ]
-                      }
-                    }
-                  }
-                }
-              },
-            ]
-          },
-        ]
-      },
-    ]
-  }
-  variables = [
-    {
-      name         = "test_variable"
-      display_name = "Test Variable"
-      definition   = {
-        multi_select = {
-          selected_values = ["1", "2", "3"]
-          source          = {
-            constant_list = ["1", "2", "3"]
-          }
-          values_order_direction = "asc"
-        }
-      }
-    },
-  ]
-  filters = [
-    {
-      source = {
-        metrics = {
-          metric_name = "http_requests_total"
-          label       = "status"
-          field       = "coralogix.metadata.applicationName"
-          operator    = {
-            type            = "equals"
-            selected_values = ["staging"]
-          }
-        }
-      }
-    },
-  ]
-  annotations = [
-    {
-      name   = "test_annotation"
-      source = {
-        metrics = {
-          promql_query = "vector(1)"
-          strategy     = {
-            start_time = {}
-          }
-          message_template = "test annotation"
-          labels           = ["test"]
-        }
-      }
-    },
-  ]
-  auto_refresh = {
-    type = "two_minutes"
-  }
-  folder = {
-    id = coralogix_dashboards_folder.example.id
-  }
-}
-```
-
-
 
 
 <!-- schema generated by tfplugindocs -->
@@ -670,33 +68,24 @@ Optional:
 - `message_template` (String)
 
 <a id="nestedatt--annotations--source--logs--strategy"></a>
-### Nested Schema for `annotations.source.logs.message_template`
+### Nested Schema for `annotations.source.logs.strategy`
 
 Optional:
 
-- `duration` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--message_template--duration))
-- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--message_template--instant))
-- `range` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--message_template--range))
+- `duration` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--duration))
+- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--instant))
+- `range` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--range))
 
-<a id="nestedatt--annotations--source--logs--message_template--duration"></a>
-### Nested Schema for `annotations.source.logs.message_template.duration`
-
-Required:
-
-- `duration_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--message_template--duration--duration_field))
-- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--message_template--duration--start_timestamp_field))
-
-<a id="nestedatt--annotations--source--logs--message_template--duration--duration_field"></a>
-### Nested Schema for `annotations.source.logs.message_template.duration.start_timestamp_field`
+<a id="nestedatt--annotations--source--logs--strategy--duration"></a>
+### Nested Schema for `annotations.source.logs.strategy.duration`
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `duration_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--duration--duration_field))
+- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--duration--start_timestamp_field))
 
-
-<a id="nestedatt--annotations--source--logs--message_template--duration--start_timestamp_field"></a>
-### Nested Schema for `annotations.source.logs.message_template.duration.start_timestamp_field`
+<a id="nestedatt--annotations--source--logs--strategy--duration--duration_field"></a>
+### Nested Schema for `annotations.source.logs.strategy.duration.duration_field`
 
 Required:
 
@@ -704,16 +93,8 @@ Required:
 - `scope` (String)
 
 
-
-<a id="nestedatt--annotations--source--logs--message_template--instant"></a>
-### Nested Schema for `annotations.source.logs.message_template.instant`
-
-Required:
-
-- `timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--message_template--instant--timestamp_field))
-
-<a id="nestedatt--annotations--source--logs--message_template--instant--timestamp_field"></a>
-### Nested Schema for `annotations.source.logs.message_template.instant.timestamp_field`
+<a id="nestedatt--annotations--source--logs--strategy--duration--start_timestamp_field"></a>
+### Nested Schema for `annotations.source.logs.strategy.duration.start_timestamp_field`
 
 Required:
 
@@ -722,16 +103,15 @@ Required:
 
 
 
-<a id="nestedatt--annotations--source--logs--message_template--range"></a>
-### Nested Schema for `annotations.source.logs.message_template.range`
+<a id="nestedatt--annotations--source--logs--strategy--instant"></a>
+### Nested Schema for `annotations.source.logs.strategy.instant`
 
 Required:
 
-- `end_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--message_template--range--end_timestamp_field))
-- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--message_template--range--start_timestamp_field))
+- `timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--instant--timestamp_field))
 
-<a id="nestedatt--annotations--source--logs--message_template--range--end_timestamp_field"></a>
-### Nested Schema for `annotations.source.logs.message_template.range.start_timestamp_field`
+<a id="nestedatt--annotations--source--logs--strategy--instant--timestamp_field"></a>
+### Nested Schema for `annotations.source.logs.strategy.instant.timestamp_field`
 
 Required:
 
@@ -739,8 +119,26 @@ Required:
 - `scope` (String)
 
 
-<a id="nestedatt--annotations--source--logs--message_template--range--start_timestamp_field"></a>
-### Nested Schema for `annotations.source.logs.message_template.range.start_timestamp_field`
+
+<a id="nestedatt--annotations--source--logs--strategy--range"></a>
+### Nested Schema for `annotations.source.logs.strategy.range`
+
+Required:
+
+- `end_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--range--end_timestamp_field))
+- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--logs--strategy--range--start_timestamp_field))
+
+<a id="nestedatt--annotations--source--logs--strategy--range--end_timestamp_field"></a>
+### Nested Schema for `annotations.source.logs.strategy.range.end_timestamp_field`
+
+Required:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+<a id="nestedatt--annotations--source--logs--strategy--range--start_timestamp_field"></a>
+### Nested Schema for `annotations.source.logs.strategy.range.start_timestamp_field`
 
 Required:
 
@@ -751,7 +149,7 @@ Required:
 
 
 <a id="nestedatt--annotations--source--logs--label_fields"></a>
-### Nested Schema for `annotations.source.logs.message_template`
+### Nested Schema for `annotations.source.logs.label_fields`
 
 Required:
 
@@ -774,14 +172,14 @@ Optional:
 - `message_template` (String)
 
 <a id="nestedatt--annotations--source--metrics--strategy"></a>
-### Nested Schema for `annotations.source.metrics.message_template`
+### Nested Schema for `annotations.source.metrics.strategy`
 
 Required:
 
-- `start_time` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics--message_template--start_time))
+- `start_time` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--metrics--strategy--start_time))
 
-<a id="nestedatt--annotations--source--metrics--message_template--start_time"></a>
-### Nested Schema for `annotations.source.metrics.message_template.start_time`
+<a id="nestedatt--annotations--source--metrics--strategy--start_time"></a>
+### Nested Schema for `annotations.source.metrics.strategy.start_time`
 
 
 
@@ -800,33 +198,24 @@ Optional:
 - `message_template` (String)
 
 <a id="nestedatt--annotations--source--spans--strategy"></a>
-### Nested Schema for `annotations.source.spans.message_template`
+### Nested Schema for `annotations.source.spans.strategy`
 
 Optional:
 
-- `duration` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--message_template--duration))
-- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--message_template--instant))
-- `range` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--message_template--range))
+- `duration` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--duration))
+- `instant` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--instant))
+- `range` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--range))
 
-<a id="nestedatt--annotations--source--spans--message_template--duration"></a>
-### Nested Schema for `annotations.source.spans.message_template.duration`
-
-Required:
-
-- `duration_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--message_template--duration--duration_field))
-- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--message_template--duration--start_timestamp_field))
-
-<a id="nestedatt--annotations--source--spans--message_template--duration--duration_field"></a>
-### Nested Schema for `annotations.source.spans.message_template.duration.start_timestamp_field`
+<a id="nestedatt--annotations--source--spans--strategy--duration"></a>
+### Nested Schema for `annotations.source.spans.strategy.duration`
 
 Required:
 
-- `keypath` (List of String)
-- `scope` (String)
+- `duration_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--duration--duration_field))
+- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--duration--start_timestamp_field))
 
-
-<a id="nestedatt--annotations--source--spans--message_template--duration--start_timestamp_field"></a>
-### Nested Schema for `annotations.source.spans.message_template.duration.start_timestamp_field`
+<a id="nestedatt--annotations--source--spans--strategy--duration--duration_field"></a>
+### Nested Schema for `annotations.source.spans.strategy.duration.duration_field`
 
 Required:
 
@@ -834,16 +223,8 @@ Required:
 - `scope` (String)
 
 
-
-<a id="nestedatt--annotations--source--spans--message_template--instant"></a>
-### Nested Schema for `annotations.source.spans.message_template.instant`
-
-Required:
-
-- `timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--message_template--instant--timestamp_field))
-
-<a id="nestedatt--annotations--source--spans--message_template--instant--timestamp_field"></a>
-### Nested Schema for `annotations.source.spans.message_template.instant.timestamp_field`
+<a id="nestedatt--annotations--source--spans--strategy--duration--start_timestamp_field"></a>
+### Nested Schema for `annotations.source.spans.strategy.duration.start_timestamp_field`
 
 Required:
 
@@ -852,16 +233,15 @@ Required:
 
 
 
-<a id="nestedatt--annotations--source--spans--message_template--range"></a>
-### Nested Schema for `annotations.source.spans.message_template.range`
+<a id="nestedatt--annotations--source--spans--strategy--instant"></a>
+### Nested Schema for `annotations.source.spans.strategy.instant`
 
 Required:
 
-- `end_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--message_template--range--end_timestamp_field))
-- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--message_template--range--start_timestamp_field))
+- `timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--instant--timestamp_field))
 
-<a id="nestedatt--annotations--source--spans--message_template--range--end_timestamp_field"></a>
-### Nested Schema for `annotations.source.spans.message_template.range.start_timestamp_field`
+<a id="nestedatt--annotations--source--spans--strategy--instant--timestamp_field"></a>
+### Nested Schema for `annotations.source.spans.strategy.instant.timestamp_field`
 
 Required:
 
@@ -869,8 +249,26 @@ Required:
 - `scope` (String)
 
 
-<a id="nestedatt--annotations--source--spans--message_template--range--start_timestamp_field"></a>
-### Nested Schema for `annotations.source.spans.message_template.range.start_timestamp_field`
+
+<a id="nestedatt--annotations--source--spans--strategy--range"></a>
+### Nested Schema for `annotations.source.spans.strategy.range`
+
+Required:
+
+- `end_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--range--end_timestamp_field))
+- `start_timestamp_field` (Attributes) (see [below for nested schema](#nestedatt--annotations--source--spans--strategy--range--start_timestamp_field))
+
+<a id="nestedatt--annotations--source--spans--strategy--range--end_timestamp_field"></a>
+### Nested Schema for `annotations.source.spans.strategy.range.end_timestamp_field`
+
+Required:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+<a id="nestedatt--annotations--source--spans--strategy--range--start_timestamp_field"></a>
+### Nested Schema for `annotations.source.spans.strategy.range.start_timestamp_field`
 
 Required:
 
@@ -881,7 +279,7 @@ Required:
 
 
 <a id="nestedatt--annotations--source--spans--label_fields"></a>
-### Nested Schema for `annotations.source.spans.message_template`
+### Nested Schema for `annotations.source.spans.label_fields`
 
 Required:
 
@@ -934,7 +332,7 @@ Optional:
 - `observation_field` (Attributes) (see [below for nested schema](#nestedatt--filters--source--logs--observation_field))
 
 <a id="nestedatt--filters--source--logs--operator"></a>
-### Nested Schema for `filters.source.logs.observation_field`
+### Nested Schema for `filters.source.logs.operator`
 
 Required:
 
@@ -986,12 +384,12 @@ Required:
 - `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--filters--source--spans--operator))
 
 <a id="nestedatt--filters--source--spans--field"></a>
-### Nested Schema for `filters.source.spans.operator`
+### Nested Schema for `filters.source.spans.field`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
 <a id="nestedatt--filters--source--spans--operator"></a>
@@ -1067,11 +465,11 @@ Read-Only:
 - `id` (String)
 
 <a id="nestedatt--layout--sections--rows--widgets"></a>
-### Nested Schema for `layout.sections.rows.id`
+### Nested Schema for `layout.sections.rows.widgets`
 
 Required:
 
-- `definition` (Attributes) The widget definition. Can contain one of 'line_chart', 'data_table', 'gauge', 'pie_chart', 'bar_chart', 'horizontal_bar_chart', 'markdown'. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition))
+- `definition` (Attributes) The widget definition. Can contain one of 'line_chart', 'data_table', 'gauge', 'pie_chart', 'bar_chart', 'horizontal_bar_chart', 'markdown'. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
 
 Optional:
 
@@ -1083,21 +481,21 @@ Read-Only:
 
 - `id` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition"></a>
-### Nested Schema for `layout.sections.rows.id.definition`
+<a id="nestedatt--layout--sections--rows--widgets--definition"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition`
 
 Optional:
 
-- `bar_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--bar_chart))
-- `data_table` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--data_table))
-- `gauge` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--gauge))
-- `horizontal_bar_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--horizontal_bar_chart))
-- `line_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--line_chart))
-- `markdown` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--markdown))
-- `pie_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart))
+- `bar_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart))
+- `data_table` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table))
+- `gauge` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge))
+- `horizontal_bar_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart))
+- `line_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart))
+- `markdown` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--markdown))
+- `pie_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart))
 
-<a id="nestedatt--layout--sections--rows--id--definition--bar_chart"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart`
 
 Optional:
 
@@ -1106,25 +504,25 @@ Optional:
 - `data_mode_type` (String)
 - `group_name_template` (String)
 - `max_bars_per_chart` (Number)
-- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--query))
+- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query))
 - `scale_type` (String)
 - `sort_by` (String) The field to sort by. Can be one of unspecified, value, name.
-- `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of unspecified, milliseconds, seconds, kbytes, mbytes, gbytes, mibytes, gibytes, usd_cents, bytes_iec, euro, microseconds, bytes, kibytes, euro_cents, usd.
-- `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis))
+- `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--stack_definition))
+- `unit` (String) The unit of the chart. Can be one of gbytes, euro_cents, euro, usd_cents, mbytes, microseconds, bytes, gibytes, unspecified, mibytes, usd, kbytes, seconds, bytes_iec, kibytes, milliseconds.
+- `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query`
 
 Optional:
 
-- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--data_prime))
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans))
+- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--data_prime"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime`
 
 Required:
 
@@ -1132,33 +530,33 @@ Required:
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters))
 - `group_names` (List of String)
 - `stacked_group_name` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters`
 
 Optional:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--logs"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs`
 
 Required:
 
 - `field` (String) Field in the logs to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--observation_field))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs.operator`
 
 Required:
 
@@ -1169,8 +567,8 @@ Optional:
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--logs--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.logs.observation_field`
 
 Required:
 
@@ -1179,17 +577,17 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--metrics"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.metrics`
 
 Required:
 
 - `label` (String)
 - `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--metrics--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--metrics--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.metrics.operator`
 
 Required:
 
@@ -1201,25 +599,25 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans`
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--operator))
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.field`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--spans--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.spans.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.spans.operator`
 
 Required:
 
@@ -1233,24 +631,24 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--logs"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs`
 
 Required:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--aggregation))
+- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--aggregation))
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters))
 - `group_names` (List of String)
-- `group_names_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--group_names_fields))
+- `group_names_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--group_names_fields))
 - `lucene_query` (String)
 - `stacked_group_name` (String)
-- `stacked_group_name_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--stacked_group_name_field))
+- `stacked_group_name_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--stacked_group_name_field))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--aggregation"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.aggregation`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.aggregation`
 
 Required:
 
@@ -1259,11 +657,11 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--aggregation--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--aggregation--observation_field))
 - `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--aggregation--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.aggregation.percent`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--aggregation--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.aggregation.observation_field`
 
 Required:
 
@@ -1272,20 +670,20 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.filters`
 
 Required:
 
 - `field` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--observation_field))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.filters.operator`
 
 Required:
 
@@ -1296,8 +694,8 @@ Optional:
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.filters.observation_field`
 
 Required:
 
@@ -1306,8 +704,8 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--group_names_fields"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.group_names_fields`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--group_names_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.group_names_fields`
 
 Required:
 
@@ -1315,8 +713,8 @@ Required:
 - `scope` (String)
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--stacked_group_name_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.stacked_group_name_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--stacked_group_name_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.stacked_group_name_field`
 
 Required:
 
@@ -1325,8 +723,8 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--metrics"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.metrics`
 
 Required:
 
@@ -1334,24 +732,24 @@ Required:
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--filters))
 - `group_names` (List of String)
 - `stacked_group_name` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.metrics.filters`
 
 Required:
 
 - `metric` (String) Metric name to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--filters--operator))
 
 Optional:
 
 - `label` (String) Label associated with the metric.
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.label`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.metrics.filters.operator`
 
 Required:
 
@@ -1364,46 +762,46 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans`
 
 Optional:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--aggregation))
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters))
-- `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--group_names))
+- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--aggregation))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters))
+- `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--group_names))
 - `lucene_query` (String)
-- `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--stacked_group_name))
+- `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--stacked_group_name))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--aggregation"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.aggregation`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.aggregation`
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.filters`
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator))
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.field`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.filters.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.filters.operator`
 
 Required:
 
@@ -1415,28 +813,28 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--group_names"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.group_names`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--group_names"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.group_names`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--spans--stacked_group_name"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.spans.stacked_group_name`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--stacked_group_name"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.stacked_group_name`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--stack_definition"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--stack_definition"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.stack_definition`
 
 Optional:
 
@@ -1444,16 +842,16 @@ Optional:
 - `stack_name_template` (String)
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.xaxis`
 
 Optional:
 
-- `time` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--time))
-- `value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--value))
+- `time` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time))
+- `value` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--value))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--time"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.value`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--time"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.xaxis.time`
 
 Required:
 
@@ -1464,68 +862,68 @@ Optional:
 - `buckets_presented` (Number)
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--xaxis--value"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.xaxis.value`
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis--value"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.xaxis.value`
 
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--data_table"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table`
 
 Required:
 
-- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--query))
+- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query))
 - `results_per_page` (Number) The number of results to display per page.
-- `row_style` (String) The style of the rows. Can be one of ["one_line" "two_line" "condensed" "json"].
+- `row_style` (String) The style of the rows. Can be one of ["two_line" "condensed" "json" "one_line"].
 
 Optional:
 
-- `columns` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--columns))
-- `data_mode_type` (String) The data mode type. Can be one of ["archive" "unspecified"].
-- `order_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by))
+- `columns` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--columns))
+- `data_mode_type` (String) The data mode type. Can be one of ["unspecified" "archive"].
+- `order_by` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--order_by))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by`
-
-Optional:
-
-- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--data_prime))
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans))
-
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--data_prime"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query`
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters))
+- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime`
+
+Optional:
+
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters))
 - `query` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters`
 
 Optional:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--logs"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs`
 
 Required:
 
 - `field` (String) Field in the logs to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--observation_field))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs.operator`
 
 Required:
 
@@ -1536,8 +934,8 @@ Optional:
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--logs--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.logs.observation_field`
 
 Required:
 
@@ -1546,17 +944,17 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--metrics"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.metrics`
 
 Required:
 
 - `label` (String)
 - `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--metrics--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--metrics--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.metrics.operator`
 
 Required:
 
@@ -1568,25 +966,25 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans`
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--operator))
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.field`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--spans--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.spans.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.spans.operator`
 
 Required:
 
@@ -1600,29 +998,29 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--logs"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs`
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters))
-- `grouping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters))
+- `grouping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping))
 - `lucene_query` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.filters`
 
 Required:
 
 - `field` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--observation_field))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.filters.operator`
 
 Required:
 
@@ -1633,8 +1031,8 @@ Optional:
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.filters.observation_field`
 
 Required:
 
@@ -1643,21 +1041,21 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.grouping`
 
 Optional:
 
-- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--aggregations))
+- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations))
 - `group_by` (List of String)
-- `group_bys` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_bys))
+- `group_bys` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--group_bys))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--aggregations"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping.group_bys`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.grouping.aggregations`
 
 Required:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_bys--aggregation))
+- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations--aggregation))
 
 Optional:
 
@@ -1665,8 +1063,8 @@ Optional:
 - `is_visible` (Boolean)
 - `name` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_bys--aggregation"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping.group_bys.name`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations--aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.grouping.aggregations.aggregation`
 
 Required:
 
@@ -1675,11 +1073,11 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_bys--name--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations--aggregation--observation_field))
 - `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_bys--name--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping.group_bys.name.percent`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations--aggregation--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.grouping.aggregations.aggregation.observation_field`
 
 Required:
 
@@ -1689,8 +1087,8 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_bys"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping.group_bys`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--group_bys"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.grouping.group_bys`
 
 Required:
 
@@ -1700,8 +1098,8 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--metrics"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.metrics`
 
 Required:
 
@@ -1709,22 +1107,22 @@ Required:
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.metrics.filters`
 
 Required:
 
 - `metric` (String) Metric name to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters--operator))
 
 Optional:
 
 - `label` (String) Label associated with the metric.
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.label`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.metrics.filters.operator`
 
 Required:
 
@@ -1737,34 +1135,34 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans`
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters))
-- `grouping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters))
+- `grouping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping))
 - `lucene_query` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters`
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator))
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters.field`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.filters.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters.operator`
 
 Required:
 
@@ -1776,20 +1174,20 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.grouping`
 
 Optional:
 
-- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--aggregations))
-- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_by))
+- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--aggregations))
+- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--group_by))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--aggregations"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping.group_by`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--aggregations"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.grouping.aggregations`
 
 Optional:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_by--aggregation))
+- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--aggregations--aggregation))
 - `is_visible` (Boolean)
 - `name` (String)
 
@@ -1797,31 +1195,31 @@ Read-Only:
 
 - `id` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_by--aggregation"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping.group_by.id`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--aggregations--aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.grouping.aggregations.aggregation`
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by--spans--grouping--group_by"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by.spans.grouping.group_by`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping--group_by"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.grouping.group_by`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--columns"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--columns"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.columns`
 
 Required:
 
@@ -1832,8 +1230,8 @@ Optional:
 - `width` (Number)
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--order_by"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.order_by`
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--order_by"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.order_by`
 
 Optional:
 
@@ -1842,65 +1240,65 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--gauge"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge`
 
 Required:
 
-- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--query))
-- `unit` (String) The unit of the gauge. Can be one of ["none" "kbytes" "mibytes" "bytes" "kibytes" "euro" "usd_cents" "usd" "microseconds" "milliseconds" "seconds" "euro_cents" "percent" "mbytes" "bytes_iec" "gbytes" "gibytes"].
+- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query))
+- `unit` (String) The unit of the gauge. Can be one of ["euro_cents" "usd_cents" "none" "microseconds" "milliseconds" "bytes_iec" "kibytes" "gibytes" "euro" "percent" "seconds" "mbytes" "gbytes" "kbytes" "usd" "bytes" "mibytes"].
 
 Optional:
 
-- `data_mode_type` (String) The data mode type. Can be one of ["archive" "unspecified"].
+- `data_mode_type` (String) The data mode type. Can be one of ["unspecified" "archive"].
 - `max` (Number)
 - `min` (Number)
 - `show_inner_arc` (Boolean)
 - `show_outer_arc` (Boolean)
 - `threshold_by` (String) The threshold by. Can be one of ["unspecified" "value" "background"].
-- `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds))
+- `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--thresholds))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds`
-
-Optional:
-
-- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--data_prime))
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans))
-
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--data_prime"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query`
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters))
+- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime`
+
+Optional:
+
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters))
 - `query` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters`
 
 Optional:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--logs"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs`
 
 Required:
 
 - `field` (String) Field in the logs to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--observation_field))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs.operator`
 
 Required:
 
@@ -1911,8 +1309,8 @@ Optional:
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--logs--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.logs.observation_field`
 
 Required:
 
@@ -1921,17 +1319,17 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--metrics"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.metrics`
 
 Required:
 
 - `label` (String)
 - `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--metrics--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--metrics--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.metrics.operator`
 
 Required:
 
@@ -1943,25 +1341,25 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans`
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--operator))
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.field`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--spans--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.spans.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.spans.operator`
 
 Required:
 
@@ -1975,20 +1373,20 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--logs"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs`
 
 Required:
 
-- `logs_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--logs_aggregation))
+- `logs_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--logs_aggregation))
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters))
 - `lucene_query` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--logs_aggregation"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.logs_aggregation`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--logs_aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.logs_aggregation`
 
 Required:
 
@@ -1997,11 +1395,11 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--logs_aggregation--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--logs_aggregation--observation_field))
 - `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--logs_aggregation--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.logs_aggregation.percent`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--logs_aggregation--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.logs_aggregation.observation_field`
 
 Required:
 
@@ -2010,20 +1408,20 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.filters`
 
 Required:
 
 - `field` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--observation_field))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.filters.operator`
 
 Required:
 
@@ -2034,8 +1432,8 @@ Optional:
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.filters.observation_field`
 
 Required:
 
@@ -2045,8 +1443,8 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--metrics"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.metrics`
 
 Required:
 
@@ -2054,23 +1452,23 @@ Required:
 
 Optional:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["max" "avg" "sum" "unspecified" "last" "min"].
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters))
+- `aggregation` (String) The type of aggregation. Can be one of ["last" "min" "max" "avg" "sum" "unspecified"].
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.metrics.filters`
 
 Required:
 
 - `metric` (String) Metric name to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters--operator))
 
 Optional:
 
 - `label` (String) Label associated with the metric.
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.label`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.metrics.filters.operator`
 
 Required:
 
@@ -2083,34 +1481,34 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans`
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters))
 - `lucene_query` (String)
-- `spans_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--spans_aggregation))
+- `spans_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--spans_aggregation))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters`
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator))
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters.field`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.filters.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters.operator`
 
 Required:
 
@@ -2122,20 +1520,20 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds--spans--spans_aggregation"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds.spans.spans_aggregation`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--spans_aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.spans_aggregation`
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--thresholds"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.thresholds`
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--thresholds"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.thresholds`
 
 Optional:
 
@@ -2144,8 +1542,8 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--horizontal_bar_chart"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart`
 
 Optional:
 
@@ -2155,40 +1553,40 @@ Optional:
 - `display_on_bar` (Boolean)
 - `group_name_template` (String)
 - `max_bars_per_chart` (Number)
-- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--query))
+- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query))
 - `scale_type` (String)
 - `sort_by` (String)
-- `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of kbytes, mibytes, seconds, mbytes, kibytes, gibytes, usd, unspecified, bytes, euro, microseconds, milliseconds, gbytes, bytes_iec, euro_cents, usd_cents.
+- `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--stack_definition))
+- `unit` (String) The unit of the chart. Can be one of gbytes, euro_cents, euro, usd_cents, mbytes, microseconds, bytes, gibytes, unspecified, mibytes, usd, kbytes, seconds, bytes_iec, kibytes, milliseconds.
 - `y_axis_view_by` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query`
 
 Optional:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--logs"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs`
 
 Required:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--aggregation))
+- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--aggregation))
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters))
 - `group_names` (List of String)
-- `group_names_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--group_names_fields))
+- `group_names_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--group_names_fields))
 - `lucene_query` (String)
 - `stacked_group_name` (String)
-- `stacked_group_name_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--stacked_group_name_field))
+- `stacked_group_name_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--stacked_group_name_field))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--aggregation"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.aggregation`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.aggregation`
 
 Required:
 
@@ -2197,11 +1595,11 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--aggregation--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--aggregation--observation_field))
 - `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--aggregation--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.aggregation.percent`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--aggregation--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.aggregation.observation_field`
 
 Required:
 
@@ -2210,20 +1608,20 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.filters`
 
 Required:
 
 - `field` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--observation_field))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.filters.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.filters.operator`
 
 Required:
 
@@ -2234,8 +1632,8 @@ Optional:
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.filters.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.filters.observation_field`
 
 Required:
 
@@ -2244,8 +1642,8 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--group_names_fields"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.group_names_fields`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--group_names_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.group_names_fields`
 
 Required:
 
@@ -2253,8 +1651,8 @@ Required:
 - `scope` (String)
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--stacked_group_name_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.stacked_group_name_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--stacked_group_name_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.stacked_group_name_field`
 
 Required:
 
@@ -2263,8 +1661,8 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--metrics"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics`
 
 Required:
 
@@ -2272,24 +1670,24 @@ Required:
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--filters))
 - `group_names` (List of String)
 - `stacked_group_name` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.filters`
 
 Required:
 
 - `metric` (String) Metric name to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--filters--operator))
 
 Optional:
 
 - `label` (String) Label associated with the metric.
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.filters.label`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.filters.operator`
 
 Required:
 
@@ -2302,46 +1700,46 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans`
 
 Optional:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--aggregation))
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters))
-- `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--group_names))
+- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--aggregation))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters))
+- `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--group_names))
 - `lucene_query` (String)
-- `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--stacked_group_name))
+- `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--stacked_group_name))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--aggregation"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.aggregation`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.aggregation`
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters`
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator))
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.filters.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.field`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.filters.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.filters.operator`
 
 Required:
 
@@ -2353,28 +1751,28 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--group_names"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.group_names`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--group_names"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.group_names`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--y_axis_view_by--spans--stacked_group_name"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by.spans.stacked_group_name`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--stacked_group_name"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.stacked_group_name`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--stack_definition"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.y_axis_view_by`
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--stack_definition"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.stack_definition`
 
 Optional:
 
@@ -2383,24 +1781,24 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--line_chart"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart`
 
 Required:
 
-- `query_definitions` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--query_definitions))
+- `query_definitions` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions))
 
 Optional:
 
-- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--legend))
-- `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip))
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--legend))
+- `tooltip` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--tooltip))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query_definitions"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions`
 
 Required:
 
-- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--query))
+- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query))
 
 Optional:
 
@@ -2408,40 +1806,40 @@ Optional:
 - `data_mode_type` (String)
 - `is_visible` (Boolean)
 - `name` (String)
-- `resolution` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--resolution))
-- `scale_type` (String) The scale type. Valid values are: linear, logarithmic, unspecified.
+- `resolution` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--resolution))
+- `scale_type` (String) The scale type. Valid values are: unspecified, linear, logarithmic.
 - `series_count_limit` (Number)
 - `series_name_template` (String)
-- `unit` (String) The unit. Valid values are: unspecified, milliseconds, seconds, kbytes, mbytes, gbytes, mibytes, gibytes, usd_cents, bytes_iec, euro, microseconds, bytes, kibytes, euro_cents, usd.
+- `unit` (String) The unit. Valid values are: gbytes, euro_cents, euro, usd_cents, mbytes, microseconds, bytes, gibytes, unspecified, mibytes, usd, kbytes, seconds, bytes_iec, kibytes, milliseconds.
 
 Read-Only:
 
 - `id` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--query"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query`
 
 Optional:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.logs`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs`
 
 Required:
 
-- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--aggregations))
+- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--aggregations))
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters))
 - `group_by` (List of String)
 - `lucene_query` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--aggregations"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.logs.lucene_query`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--aggregations"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.aggregations`
 
 Required:
 
@@ -2450,11 +1848,11 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--lucene_query--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--aggregations--observation_field))
 - `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--lucene_query--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.logs.lucene_query.percent`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--aggregations--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.aggregations.observation_field`
 
 Required:
 
@@ -2463,20 +1861,20 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.logs.lucene_query`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.filters`
 
 Required:
 
 - `field` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--lucene_query--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--lucene_query--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--observation_field))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--lucene_query--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.logs.lucene_query.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.filters.operator`
 
 Required:
 
@@ -2487,8 +1885,8 @@ Optional:
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--logs--lucene_query--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.logs.lucene_query.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.filters.observation_field`
 
 Required:
 
@@ -2498,8 +1896,8 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.metrics`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics`
 
 Required:
 
@@ -2507,22 +1905,22 @@ Required:
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.metrics.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.filters`
 
 Required:
 
 - `metric` (String) Metric name to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters--operator))
 
 Optional:
 
 - `label` (String) Label associated with the metric.
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--metrics--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.metrics.filters.label`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.filters.operator`
 
 Required:
 
@@ -2535,45 +1933,45 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans`
 
 Optional:
 
-- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--aggregations))
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--filters))
-- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--group_by))
+- `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--aggregations))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters))
+- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--group_by))
 - `lucene_query` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--aggregations"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.spans.lucene_query`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--aggregations"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.aggregations`
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.spans.lucene_query`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters`
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--lucene_query--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--lucene_query--operator))
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--lucene_query--field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.spans.lucene_query.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.field`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--lucene_query--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.spans.lucene_query.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.filters.operator`
 
 Required:
 
@@ -2585,19 +1983,19 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--id--spans--group_by"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id.spans.lucene_query`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--group_by"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.group_by`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip--resolution"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip.id`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--resolution"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.resolution`
 
 Optional:
 
@@ -2606,28 +2004,29 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--legend"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.legend`
 
 Optional:
 
-- `columns` (List of String) The columns to display in the legend. Valid values are: unspecified, min, max, sum, avg, last.
+- `columns` (List of String) The columns to display in the legend. Valid values are: max, sum, avg, last, unspecified, min.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. False by default.
+- `placement` (String) The placement of the legend. Valid values are: unspecified, auto, bottom, side, hidden.
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--tooltip"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.tooltip`
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--tooltip"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.tooltip`
 
 Optional:
 
 - `show_labels` (Boolean)
-- `type` (String) The tooltip type. Valid values are: unspecified, all, single.
+- `type` (String) The tooltip type. Valid values are: all, single, unspecified.
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--markdown"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart`
+<a id="nestedatt--layout--sections--rows--widgets--definition--markdown"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.markdown`
 
 Optional:
 
@@ -2635,13 +2034,13 @@ Optional:
 - `tooltip_text` (String)
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart`
 
 Required:
 
-- `label_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--label_definition))
-- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--query))
+- `label_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--label_definition))
+- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query))
 
 Optional:
 
@@ -2651,11 +2050,11 @@ Optional:
 - `max_slices_per_chart` (Number)
 - `min_slice_percentage` (Number)
 - `show_legend` (Boolean)
-- `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--stack_definition))
+- `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition))
 - `unit` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--label_definition"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--label_definition"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.label_definition`
 
 Optional:
 
@@ -2666,18 +2065,18 @@ Optional:
 - `show_value` (Boolean)
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--query"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query`
 
 Optional:
 
-- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--data_prime))
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans))
+- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--data_prime"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime`
 
 Required:
 
@@ -2685,33 +2084,33 @@ Required:
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters))
 - `group_names` (List of String)
 - `stacked_group_name` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters`
 
 Optional:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--logs"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs`
 
 Required:
 
 - `field` (String) Field in the logs to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--observation_field))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs.operator`
 
 Required:
 
@@ -2722,8 +2121,8 @@ Optional:
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--logs--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.logs.observation_field`
 
 Required:
 
@@ -2732,17 +2131,17 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--metrics"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.metrics`
 
 Required:
 
 - `label` (String)
 - `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--metrics--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--metrics--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.metrics.operator`
 
 Required:
 
@@ -2754,25 +2153,25 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans`
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--operator))
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.field`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--spans--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.spans.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.spans.operator`
 
 Required:
 
@@ -2786,24 +2185,24 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--logs"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs`
 
 Required:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--aggregation))
+- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--aggregation))
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters))
 - `group_names` (List of String)
-- `group_names_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--group_names_fields))
+- `group_names_fields` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--group_names_fields))
 - `lucene_query` (String)
 - `stacked_group_name` (String)
-- `stacked_group_name_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--stacked_group_name_field))
+- `stacked_group_name_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--stacked_group_name_field))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--aggregation"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.aggregation`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.aggregation`
 
 Required:
 
@@ -2812,11 +2211,11 @@ Required:
 Optional:
 
 - `field` (String)
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--aggregation--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--aggregation--observation_field))
 - `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--aggregation--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.aggregation.percent`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--aggregation--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.aggregation.observation_field`
 
 Required:
 
@@ -2825,20 +2224,20 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.filters`
 
 Required:
 
 - `field` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--operator))
 
 Optional:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--observation_field))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.filters.operator`
 
 Required:
 
@@ -2849,8 +2248,8 @@ Optional:
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--observation_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.observation_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.filters.observation_field`
 
 Required:
 
@@ -2859,8 +2258,8 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--group_names_fields"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.group_names_fields`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--group_names_fields"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.group_names_fields`
 
 Required:
 
@@ -2868,8 +2267,8 @@ Required:
 - `scope` (String)
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--stacked_group_name_field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.stacked_group_name_field`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--stacked_group_name_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.stacked_group_name_field`
 
 Required:
 
@@ -2878,8 +2277,8 @@ Required:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--metrics"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.metrics`
 
 Required:
 
@@ -2887,24 +2286,24 @@ Required:
 
 Optional:
 
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--filters))
 - `group_names` (List of String)
 - `stacked_group_name` (String)
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.metrics.filters`
 
 Required:
 
 - `metric` (String) Metric name to apply the filter on.
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--filters--operator))
 
 Optional:
 
 - `label` (String) Label associated with the metric.
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.label`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.metrics.filters.operator`
 
 Required:
 
@@ -2917,46 +2316,46 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans`
 
 Optional:
 
-- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--aggregation))
-- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters))
-- `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--group_names))
+- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--aggregation))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters))
+- `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--group_names))
 - `lucene_query` (String)
-- `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--stacked_group_name))
+- `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--stacked_group_name))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--aggregation"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.aggregation`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.aggregation`
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["unique_count" "error_count" "unspecified"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
 - `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.filters`
 
 Required:
 
-- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--field))
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator))
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--operator))
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--field"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.field`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--filters--operator"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.filters.operator`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.filters.operator`
 
 Required:
 
@@ -2968,28 +2367,28 @@ Optional:
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--group_names"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.group_names`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--group_names"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.group_names`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--unit--spans--stacked_group_name"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit.spans.stacked_group_name`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--stacked_group_name"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.stacked_group_name`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
 
 
-<a id="nestedatt--layout--sections--rows--id--definition--pie_chart--stack_definition"></a>
-### Nested Schema for `layout.sections.rows.id.definition.pie_chart.unit`
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--stack_definition"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.stack_definition`
 
 Optional:
 
@@ -3094,39 +2493,39 @@ Optional:
 - `value_display_options` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options))
 
 <a id="nestedatt--variables--definition--multi_select--source--query--query"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options`
+### Nested Schema for `variables.definition.multi_select.source.query.query`
 
 Optional:
 
-- `logs` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--logs))
-- `metrics` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--metrics))
-- `spans` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--spans))
 
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--logs"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans`
+<a id="nestedatt--variables--definition--multi_select--source--query--query--logs"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.logs`
 
 Optional:
 
-- `field_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_name))
-- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_value))
+- `field_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--logs--field_name))
+- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--logs--field_value))
 
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_name"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.field_value`
+<a id="nestedatt--variables--definition--multi_select--source--query--query--logs--field_name"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.logs.field_name`
 
 Required:
 
 - `log_regex` (String)
 
 
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_value"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.field_value`
+<a id="nestedatt--variables--definition--multi_select--source--query--query--logs--field_value"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.logs.field_value`
 
 Required:
 
-- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_value--observation_field))
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--logs--field_value--observation_field))
 
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_value--observation_field"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.field_value.observation_field`
+<a id="nestedatt--variables--definition--multi_select--source--query--query--logs--field_value--observation_field"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.logs.field_value.observation_field`
 
 Required:
 
@@ -3136,52 +2535,43 @@ Required:
 
 
 
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--metrics"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans`
+<a id="nestedatt--variables--definition--multi_select--source--query--query--metrics"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.metrics`
 
 Optional:
 
-- `label_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--label_name))
-- `label_value` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--label_value))
-- `metric_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name))
+- `label_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_name))
+- `label_value` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value))
+- `metric_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--metric_name))
 
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--label_name"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name`
+<a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_name"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.metrics.label_name`
 
 Required:
 
 - `metric_regex` (String)
 
 
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--label_value"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name`
+<a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.metrics.label_value`
 
 Optional:
 
-- `label_filters` (Attributes List) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters))
-- `label_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_name))
-- `metric_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--metric_name))
+- `label_filters` (Attributes List) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters))
+- `label_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_name))
+- `metric_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--metric_name))
 
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name.label_filters`
-
-Optional:
-
-- `label` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--label))
-- `metric` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--metric))
-- `operator` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--operator))
-
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--label"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name.label_filters.operator`
+<a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.metrics.label_value.label_filters`
 
 Optional:
 
-- `string_value` (String)
-- `variable_name` (String)
+- `label` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--label))
+- `metric` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--metric))
+- `operator` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--operator))
 
-
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--metric"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name.label_filters.operator`
+<a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--label"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.metrics.label_value.label_filters.label`
 
 Optional:
 
@@ -3189,8 +2579,17 @@ Optional:
 - `variable_name` (String)
 
 
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--operator"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name.label_filters.operator`
+<a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--metric"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.metrics.label_value.label_filters.metric`
+
+Optional:
+
+- `string_value` (String)
+- `variable_name` (String)
+
+
+<a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--operator"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.metrics.label_value.label_filters.operator`
 
 Required:
 
@@ -3198,30 +2597,10 @@ Required:
 
 Optional:
 
-- `selected_values` (Attributes List) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--operator--selected_values))
+- `selected_values` (Attributes List) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--operator--selected_values))
 
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_filters--operator--selected_values"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name.label_filters.operator.selected_values`
-
-Optional:
-
-- `string_value` (String)
-- `variable_name` (String)
-
-
-
-
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--label_name"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name.label_name`
-
-Optional:
-
-- `string_value` (String)
-- `variable_name` (String)
-
-
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name--metric_name"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name.metric_name`
+<a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_filters--operator--selected_values"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.metrics.label_value.label_filters.operator.selected_values`
 
 Optional:
 
@@ -3230,8 +2609,28 @@ Optional:
 
 
 
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--metric_name"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.metric_name`
+
+<a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--label_name"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.metrics.label_value.label_name`
+
+Optional:
+
+- `string_value` (String)
+- `variable_name` (String)
+
+
+<a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--label_value--metric_name"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.metrics.label_value.metric_name`
+
+Optional:
+
+- `string_value` (String)
+- `variable_name` (String)
+
+
+
+<a id="nestedatt--variables--definition--multi_select--source--query--query--metrics--metric_name"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.metrics.metric_name`
 
 Required:
 
@@ -3239,29 +2638,29 @@ Required:
 
 
 
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans`
+<a id="nestedatt--variables--definition--multi_select--source--query--query--spans"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.spans`
 
 Optional:
 
-- `field_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_name))
-- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_value))
+- `field_name` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--spans--field_name))
+- `field_value` (Attributes) (see [below for nested schema](#nestedatt--variables--definition--multi_select--source--query--query--spans--field_value))
 
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_name"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.field_value`
+<a id="nestedatt--variables--definition--multi_select--source--query--query--spans--field_name"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.spans.field_name`
 
 Required:
 
 - `span_regex` (String)
 
 
-<a id="nestedatt--variables--definition--multi_select--source--query--value_display_options--spans--field_value"></a>
-### Nested Schema for `variables.definition.multi_select.source.query.value_display_options.spans.field_value`
+<a id="nestedatt--variables--definition--multi_select--source--query--query--spans--field_value"></a>
+### Nested Schema for `variables.definition.multi_select.source.query.query.spans.field_value`
 
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]
 
 
 
@@ -3282,4 +2681,4 @@ Optional:
 Required:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
-- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["unspecified" "application_name" "subsystem_name" "service_name" "operation_name"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["operation_name" "unspecified" "application_name" "subsystem_name" "service_name"]

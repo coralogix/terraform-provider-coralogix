@@ -24,3 +24,4 @@ Coralogix group.
 - `display_name` (String) Group display name.
 - `members` (Set of String)
 - `role` (String)
+- `scope_id` (String) Scope attached to the group.

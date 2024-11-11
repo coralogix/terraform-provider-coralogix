@@ -12,13 +12,26 @@ Coralogix User.
 
 ## Example Usage
 
-```hcl
+```terraform
+resource "coralogix_custom_role" "example" {
+  name  = "Example custom role"
+  description = "This role is created with terraform!"
+  parent_role = "Standard User"
+  permissions = ["spans.events2metrics:UpdateConfig"]
+}
+
 resource "coralogix_user" "example" {
-  user_name = "user-name"
-  name {
-    family_name = "family-name"
-    given_name  = "given-name"
+  user_name = "example@coralogix.com"
+  name      = {
+    given_name  = "example"
+    family_name = "example"
   }
+}
+
+resource "coralogix_group" "example" {
+  display_name = "example"
+  role         = coralogix_custom_role.example.name
+  members      = [coralogix_user.example.id]
 }
 ```
 
@@ -57,18 +70,3 @@ Read-Only:
 - `primary` (Boolean)
 - `type` (String)
 - `value` (String)
-
-### Import
-
-```sh
-terraform import coralogix_user.example <user-id>
-```
-
-to get the user id you can use the following command:
-```sh
-curl --location --request GET 'https://ng-api-http.<region-domain>/scim/Users' \
---header 'Authorization: Bearer <api-key>' \'  
-```
-[region-domain table](../index.md#region-domain-table)
-
-

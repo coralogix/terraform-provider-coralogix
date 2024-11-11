@@ -9,10 +9,30 @@ description: |-
 # coralogix_alerts_scheduler (Resource)
 
 Coralogix alerts-scheduler.
+
 ## Example Usage
 
-```hcl
+```terraform
 resource "coralogix_alerts_scheduler" "example" {
+  name        = "example"
+  description = "example"
+  filter      = {
+    what_expression   = "source logs | filter $d.cpodId:string == '122'"
+    alerts_unique_ids = ["ed6f3713-d827-49a2-9bb6-a8dba8b8c580"]
+  }
+  schedule = {
+    operation = "mute"
+    one_time  = {
+      time_frame = {
+        start_time = "2021-01-04T00:00:00.000"
+        end_time   = "2025-01-01T00:00:50.000"
+        time_zone  = "UTC+2"
+      }
+    }
+  }
+}
+
+resource "coralogix_alerts_scheduler" "example_2" {
   name        = "example"
   description = "example"
   filter      = {
@@ -35,7 +55,7 @@ resource "coralogix_alerts_scheduler" "example" {
           }
         }
         time_frame = {
-          start_time = "2021-01-01T00:00:00.000"
+          start_time = "2021-01-04T00:00:00.000"
           duration = {
             for_over = 2
             frequency = "hours"
@@ -138,7 +158,7 @@ Optional:
 - `end_time` (String) The end time of the time frame. In a isodate format. For example, `2021-01-01T00:00:00.000`.
 
 <a id="nestedatt--schedule--one_time--time_frame--duration"></a>
-### Nested Schema for `schedule.one_time.time_frame.end_time`
+### Nested Schema for `schedule.one_time.time_frame.duration`
 
 Required:
 
@@ -169,28 +189,28 @@ Optional:
 - `termination_date` (String)
 
 <a id="nestedatt--schedule--recurring--dynamic--frequency"></a>
-### Nested Schema for `schedule.recurring.dynamic.termination_date`
+### Nested Schema for `schedule.recurring.dynamic.frequency`
 
 Optional:
 
-- `daily` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--termination_date--daily))
-- `monthly` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--termination_date--monthly))
-- `weekly` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--termination_date--weekly))
+- `daily` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--daily))
+- `monthly` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--monthly))
+- `weekly` (Attributes) (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--frequency--weekly))
 
-<a id="nestedatt--schedule--recurring--dynamic--termination_date--daily"></a>
-### Nested Schema for `schedule.recurring.dynamic.termination_date.daily`
+<a id="nestedatt--schedule--recurring--dynamic--frequency--daily"></a>
+### Nested Schema for `schedule.recurring.dynamic.frequency.daily`
 
 
-<a id="nestedatt--schedule--recurring--dynamic--termination_date--monthly"></a>
-### Nested Schema for `schedule.recurring.dynamic.termination_date.monthly`
+<a id="nestedatt--schedule--recurring--dynamic--frequency--monthly"></a>
+### Nested Schema for `schedule.recurring.dynamic.frequency.monthly`
 
 Optional:
 
 - `days` (Set of Number)
 
 
-<a id="nestedatt--schedule--recurring--dynamic--termination_date--weekly"></a>
-### Nested Schema for `schedule.recurring.dynamic.termination_date.weekly`
+<a id="nestedatt--schedule--recurring--dynamic--frequency--weekly"></a>
+### Nested Schema for `schedule.recurring.dynamic.frequency.weekly`
 
 Optional:
 
@@ -199,7 +219,7 @@ Optional:
 
 
 <a id="nestedatt--schedule--recurring--dynamic--time_frame"></a>
-### Nested Schema for `schedule.recurring.dynamic.termination_date`
+### Nested Schema for `schedule.recurring.dynamic.time_frame`
 
 Required:
 
@@ -208,18 +228,13 @@ Required:
 
 Optional:
 
-- `duration` (Attributes) The duration from the start time to wait. (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--termination_date--duration))
+- `duration` (Attributes) The duration from the start time to wait. (see [below for nested schema](#nestedatt--schedule--recurring--dynamic--time_frame--duration))
 - `end_time` (String) The end time of the time frame. In a isodate format. For example, `2021-01-01T00:00:00.000`.
 
-<a id="nestedatt--schedule--recurring--dynamic--termination_date--duration"></a>
-### Nested Schema for `schedule.recurring.dynamic.termination_date.duration`
+<a id="nestedatt--schedule--recurring--dynamic--time_frame--duration"></a>
+### Nested Schema for `schedule.recurring.dynamic.time_frame.duration`
 
 Required:
 
 - `for_over` (Number) The number of time units to wait before the alert is triggered. For example, if the frequency is set to `hours` and the value is set to `2`, the alert will be triggered after 2 hours.
 - `frequency` (String) The time unit to wait before the alert is triggered. Can be `minutes`, `hours` or `days`.
-
-### Import
-```sh
-terraform import coralogix_alerts_scheduler.example <alert-scheduler-unique-id>
-```

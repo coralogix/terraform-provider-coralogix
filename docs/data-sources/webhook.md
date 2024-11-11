@@ -12,42 +12,13 @@ Coralogix webhook. For more info please review - https://coralogix.com/docs/cora
 
 ## Example Usage
 
-```hcl
+```terraform
 data "coralogix_webhook" "imported_webhook_by_id" {
-  id = "60f3b3b3d7b3b00001b3b3b3"
+  id = coralogix_webhook.slack_webhook.id
 }
 
 data "coralogix_webhook" "imported_webhook_by_name" {
-  name = "slack-webhook"
-}
-```
-
-## Example Usage of link webhook to alert.
-### **please note that the linkage is done by the external_id (and not by the id)**
-```hcl
-data "coralogix_webhook" "imported_webhook_by_id" {
-  name = "slack-webhook"
-}
-
-resource "coralogix_alert" "standard_alert" {
-  name        = "Standard alert example"
-  description = "Example of standard alert from terraform"
-  severity    = "Critical"
-
-  notifications_group {
-    notification {
-      integration_id              = data.coralogix_webhook.imported_webhook_by_id.external_id
-      retriggering_period_minutes = 60
-      notify_on = "Triggered_only"
-    }
-  }
-
-  standard {
-    search_query = "remote_addr_enriched:/.*/"
-    condition {
-      immediately = true
-    }
-  }
+  name = coralogix_webhook.slack_webhook.name
 }
 ```
 
@@ -80,7 +51,7 @@ resource "coralogix_alert" "standard_alert" {
 Read-Only:
 
 - `headers` (Map of String) Webhook headers. Map of string to string.
-- `method` (String) Webhook method. can be one of: post, put, get
+- `method` (String) Webhook method. can be one of: put, get, post
 - `payload` (String) Webhook payload. JSON string.
 - `url` (String) Webhook URL.
 - `uuid` (String) Webhook UUID. Computed automatically.
@@ -175,7 +146,7 @@ Read-Only:
 Read-Only:
 
 - `attachments` (Attributes List) Slack attachments. (see [below for nested schema](#nestedatt--slack--attachments))
-- `notify_on` (Set of String) Slack notifications. can be one of: flow_anomalies, spike_anomalies, data_usage, error_and_critical_logs
+- `notify_on` (Set of String) Slack notifications. can be one of: error_and_critical_logs, flow_anomalies, spike_anomalies, data_usage
 - `url` (String) Slack URL.
 
 <a id="nestedatt--slack--attachments"></a>

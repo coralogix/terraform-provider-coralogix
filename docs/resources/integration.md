@@ -10,11 +10,9 @@ description: |-
 
 A Coralogix Integration
 
-
-
 ## Example Usage
 
-```hcl
+```terraform
 resource "coralogix_integration" "example" {
   integration_key = "aws-metrics-collector"
   version = "0.1.0"

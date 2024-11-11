@@ -8,11 +8,13 @@ description: |-
 
 # coralogix_recording_rules_groups_set (Data Source)
 
+
+
 ## Example Usage
 
-```hcl
-data "coralogix_recording_rules_groups_set" "example_imported" {
-  id = coralogix_recording_rules_groups_set.example.id
+```terraform
+data "coralogix_recording_rules_groups_set" "imported_recording_rules_groups_set" {
+  id = coralogix_recording_rules_groups_set.recording_rules_groups_set_explicit.id
 }
 ```
 
