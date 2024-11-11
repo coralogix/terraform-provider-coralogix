@@ -113,7 +113,7 @@ func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 		panic(err)
 	}
 	parent := filepath.Dir(wd)
-	filePath := parent + "/examples/resources/coralogix_hosted_dashboard/grafana_acc_updated_dashboard.json"
+	filePath := parent + "/examples/resources/coralogix_dashboard/dashboard.json"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
