@@ -688,3 +688,9 @@ New Features:
 
 ### data-source/coralogix_webhook
 * Added support for searching by webhook name.
+
+## Release 1.18.3
+
+New Features:
+
+* added abbreviated endpoint for `AP3`.
