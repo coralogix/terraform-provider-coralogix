@@ -39,7 +39,7 @@ Read-Only:
 
 - `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 - `lucene` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of severities that we interested in. Can be one of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical" "Unspecified"]
+- `severities` (Set of String) An array of severities that we interested in. Can be one of ["Warning" "Error" "Critical" "Unspecified" "Debug" "Verbose" "Info"]
 - `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on.  Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 

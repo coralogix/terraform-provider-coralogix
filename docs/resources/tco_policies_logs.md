@@ -91,7 +91,7 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
 Required:
 
 - `name` (String) tco-policy name.
-- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"].
+- `priority` (String) The policy priority. Can be one of ["high" "low" "medium" "block"].
 
 Optional:
 
@@ -99,7 +99,7 @@ Optional:
 - `archive_retention_id` (String) Allowing logs with a specific retention to be tagged.
 - `description` (String) The policy description
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
-- `severities` (Set of String) The severities to apply the policy on. Can be few of ["warning" "error" "critical" "debug" "verbose" "info"].
+- `severities` (Set of String) The severities to apply the policy on. Can be few of ["verbose" "info" "warning" "error" "critical" "debug"].
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
 
 Read-Only:
@@ -116,7 +116,7 @@ Required:
 
 Optional:
 
-- `rule_type` (String) The rule type. Can be one of ["starts_with" "includes" "is" "is_not"].
+- `rule_type` (String) The rule type. Can be one of ["is" "is_not" "starts_with" "includes"].
 
 
 <a id="nestedatt--policies--subsystems"></a>

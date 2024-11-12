@@ -51,7 +51,7 @@ data "coralogix_webhook" "imported_webhook_by_name" {
 Read-Only:
 
 - `headers` (Map of String) Webhook headers. Map of string to string.
-- `method` (String) Webhook method. can be one of: put, get, post
+- `method` (String) Webhook method. can be one of: get, post, put
 - `payload` (String) Webhook payload. JSON string.
 - `url` (String) Webhook URL.
 - `uuid` (String) Webhook UUID. Computed automatically.
@@ -146,7 +146,7 @@ Read-Only:
 Read-Only:
 
 - `attachments` (Attributes List) Slack attachments. (see [below for nested schema](#nestedatt--slack--attachments))
-- `notify_on` (Set of String) Slack notifications. can be one of: error_and_critical_logs, flow_anomalies, spike_anomalies, data_usage
+- `notify_on` (Set of String) Slack notifications. can be one of: flow_anomalies, spike_anomalies, data_usage, error_and_critical_logs
 - `url` (String) Slack URL.
 
 <a id="nestedatt--slack--attachments"></a>

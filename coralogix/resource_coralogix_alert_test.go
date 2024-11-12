@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -372,7 +372,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 		name:            acctest.RandomWithPrefix("tf-acc-test"),
 		description:     acctest.RandomWithPrefix("tf-acc-test"),
 		emailRecipients: []string{"user@example.com"},
-		webhookID:       "10761",
+		webhookID:       "691ea5c4-79e1-4ef4-aecc-67a764551a16",
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen:      randActiveWhen(),
 		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
@@ -384,7 +384,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 		name:            acctest.RandomWithPrefix("tf-acc-test"),
 		description:     acctest.RandomWithPrefix("tf-acc-test"),
 		emailRecipients: []string{"user@example.com"},
-		webhookID:       "10761",
+		webhookID:       "691ea5c4-79e1-4ef4-aecc-67a764551a16",
 		severity:        selectRandomlyFromSlice(alertValidSeverities),
 		activeWhen:      randActiveWhen(),
 		notifyEveryMin:  acctest.RandIntRange(1500 /*to avoid notify_every < condition.0.time_window*/, 3600),
@@ -417,7 +417,7 @@ func getRandomAlert() *alertCommonTestParams {
 	return &alertCommonTestParams{
 		name:            acctest.RandomWithPrefix("tf-acc-test"),
 		description:     acctest.RandomWithPrefix("tf-acc-test"),
-		webhookID:       "10761",
+		webhookID:       "691ea5c4-79e1-4ef4-aecc-67a764551a16",
 		emailRecipients: []string{"user@example.com"},
 		searchQuery:     "remote_addr_enriched:/.*/",
 		severity:        selectRandomlyFromSlice(alertValidSeverities),

@@ -111,7 +111,7 @@ resource "coralogix_tco_policies_traces" "tco_policies" {
 Required:
 
 - `name` (String) tco-policy name.
-- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"].
+- `priority` (String) The policy priority. Can be one of ["high" "low" "medium" "block"].
 
 Optional:
 
