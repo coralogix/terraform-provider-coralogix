@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -53,7 +53,7 @@ func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 					resource.TestCheckResourceAttr(events2metricResourceName, "logs_query.lucene", "remote_addr_enriched:/.*/"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "logs_query.applications.0", "nginx"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "logs_query.severities.0", "Debug"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.source_field", "remote_addr_geoip.location_geopoint"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.source_field", "location_geopoint"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.avg.target_metric_name", "cx_avg"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.avg.enable", "true"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.count.target_metric_name", "cx_count"),
@@ -111,7 +111,7 @@ func TestAccCoralogixResourceSpans2Metric(t *testing.T) {
 					resource.TestCheckResourceAttr(events2metricResourceName, "spans_query.applications.0", "nginx"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "spans_query.actions.0", "action-name"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "spans_query.services.0", "service-name"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.source_field", "remote_addr_geoip.location_geopoint"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.source_field", "location_geopoint"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.avg.target_metric_name", "cx_avg"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.avg.enable", "true"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.count.target_metric_name", "cx_count"),
@@ -200,7 +200,7 @@ func testAccCoralogixResourceLogs2Metric(l *events2MetricTestFields) string {
       source_field = "method"
     },
     geo_point = {
-      source_field = "remote_addr_geoip.location_geopoint"
+      source_field = "location_geopoint"
       aggregations = {
         max = {
           enable = false
@@ -244,7 +244,7 @@ func testAccCoralogixResourceSpans2Metric(l *events2MetricTestFields) string {
       source_field = "method"
     },
     geo_point = {
-      source_field = "remote_addr_geoip.location_geopoint"
+      source_field = "location_geopoint"
       aggregations = {
         max = {
           enable = false

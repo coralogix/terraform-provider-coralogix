@@ -699,6 +699,10 @@ Fix:
 
 New Features
 
+New Features:
+
+* new endpoint: `[AP3, APAC3]`.
+
 ### resource/coralogix_dashboard 
 
 * Support for auto generated IDs added
