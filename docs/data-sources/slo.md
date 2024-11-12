@@ -24,13 +24,13 @@ Coralogix SLO.
 - `description` (String) Optional SLO description.
 - `filters` (Attributes Set) (see [below for nested schema](#nestedatt--filters))
 - `name` (String) SLO name.
-- `period` (String) Period. This is the period of the SLO. Valid values are: ["7_days" "14_days" "30_days" "unspecified"]
+- `period` (String) Period. This is the period of the SLO. Valid values are: ["30_days" "unspecified" "7_days" "14_days"]
 - `remaining_error_budget_percentage` (Number)
 - `service_name` (String) Service name. This is the name of the service that the SLO is associated with.
 - `status` (String)
 - `target_percentage` (Number) Target percentage. This is the target percentage of the SLO.
 - `threshold_microseconds` (Number) Threshold in microseconds. Required when `type` is `latency`.
-- `threshold_symbol_type` (String) Threshold symbol type. Required when `type` is `latency`. Valid values are: ["greater" "greater_or_equal" "less" "less_or_equal" "equal"]
+- `threshold_symbol_type` (String) Threshold symbol type. Required when `type` is `latency`. Valid values are: ["less_or_equal" "equal" "greater" "greater_or_equal" "less"]
 - `type` (String) Type. This is the type of the SLO. Valid values are: "error", "latency".
 
 <a id="nestedatt--filters"></a>
@@ -38,6 +38,6 @@ Coralogix SLO.
 
 Read-Only:
 
-- `compare_type` (String) Compare type. This is the compare type of the SLO. Valid values are: ["is" "starts_with" "ends_with" "includes" "unspecified"]
+- `compare_type` (String) Compare type. This is the compare type of the SLO. Valid values are: ["unspecified" "is" "starts_with" "ends_with" "includes"]
 - `field` (String)
 - `field_values` (Set of String)

@@ -3326,7 +3326,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	getDashboardReq := &dashboards.GetDashboardRequest{
-		DashboardId: dashboard.GetId(),
+		DashboardId: createDashboardReq.Dashboard.Id,
 	}
 	getDashboardResp, err := r.client.GetDashboard(ctx, getDashboardReq)
 	if err != nil {

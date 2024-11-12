@@ -43,6 +43,8 @@ var (
 		"AP1":     "ng-api-grpc.app.coralogix.in:443",
 		"APAC2":   "ng-api-grpc.coralogixsg.com:443",
 		"AP2":     "ng-api-grpc.coralogixsg.com:443",
+		"APAC3":   "ng-api-grpc.ap3.coralogix.com:443",
+		"AP3":     "ng-api-grpc.ap3.coralogix.com:443",
 		"EUROPE1": "ng-api-grpc.coralogix.com:443",
 		"EU1":     "ng-api-grpc.coralogix.com:443",
 		"EUROPE2": "ng-api-grpc.eu2.coralogix.com:443",

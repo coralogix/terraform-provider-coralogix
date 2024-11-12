@@ -69,7 +69,18 @@ func testAccCoralogixResourceIntegration() string {
 		parameters = {
 		  ApplicationName = "cxsdk"
 		  SubsystemName = "%v"
-		  MetricNamespaces = ["AWS/S3"]
+		  MetricNamespaces = [
+			"AWS/S3",
+			"AWS/ECR",
+			"AWS/EFS",
+			"AWS/RDS",
+			"AWS/ApplicationELB",
+			"AWS/Lambda",
+			"AWS/Backup",
+			"AWS/EBS",
+			"AWS/SNS",
+			"AWS/EC2"
+		]
 		  AwsRoleArn = "%v"
 		  IntegrationName = "sdk-integration-setup"
 		  AwsRegion = "eu-north-1"

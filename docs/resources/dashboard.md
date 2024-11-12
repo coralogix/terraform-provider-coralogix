@@ -10,7 +10,624 @@ description: |-
 
 
 
+## Example Usage
 
+```terraform
+resource "coralogix_dashboard" dashboard {
+  name        = "portal monitoring"
+  description = "<insert description>"
+  layout      = {
+    sections = [
+      {
+        options = {
+          name = "Status"
+          description = "abc"
+          collapsed = false
+          color = "blue"
+        }
+        rows = [
+          {
+            height  = 15
+            widgets = [
+              {
+                title      = "Avg api response times"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND message:\"HTTP\" AND NOT \"OPTIONS\" AND NOT \"metrics\" AND NOT \"firebase\""
+                            aggregations = [
+                              {
+                                type  = "avg"
+                                field = "meta.responseTime.numeric"
+                              },
+                            ]
+                            group_by = [
+                              "meta.organization.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                        unit               = "milliseconds"
+                        resolution         = {
+                          interval = "seconds:900"
+                        }
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                      columns    = ["avg", "max"]
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+              },
+              {
+                title      = "Avg Snowflake query times"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND \"Successfully executed\""
+                            aggregations = [
+                              {
+                                type    = "percentile"
+                                field   = "sfResponseTime.numeric"
+                                percent = 95.5
+                              },
+                            ]
+                            group_by = [
+                              "sfDatabase.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                        unit               = "milliseconds"
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                      columns    = ["avg"]
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+              },
+              {
+                title      = "Avg RDS query times"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND \"Postgres successfully\""
+                            aggregations = [
+                              {
+                                type  = "avg"
+                                field = "RDSResponseTime.numeric"
+                              },
+                            ]
+                            group_by = [
+                              "RDSDatabase.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                        unit               = "milliseconds"
+                        resolution         = {
+                          buckets_presented = 10
+                        }
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                      columns    = ["avg"]
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 10
+              },
+            ]
+          },
+          {
+            height  = 15
+            widgets = [
+              {
+                title      = "OpenAPI - Avg response times"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/openapi-deployment.*/ AND message:\"HTTP\" AND NOT \"OPTIONS\" AND NOT \"metrics\" AND NOT \"firebase\""
+                            aggregations = [
+                              {
+                                type  = "avg"
+                                field = "meta.responseTime.numeric"
+                              },
+                            ]
+                            group_by = [
+                              "meta.organization.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                        unit               = "milliseconds"
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                      columns    = ["avg", "max"]
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 10
+              },
+              {
+                title      = "gauge"
+                definition = {
+                  gauge = {
+                    unit  = "milliseconds"
+                    query = {
+                      metrics = {
+                        promql_query = "vector(1)"
+                        aggregation  = "unspecified"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          {
+            height  = 15
+            widgets = [
+              {
+                title      = "Open API Requests per organization"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND (service:\"api.eu.name.ai-production\" OR service:\"api.us.name.ai-production\")"
+                            aggregations = [
+                              {
+                                type = "count"
+                              },
+                            ]
+                            group_by = [
+                              "meta.organization.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 0
+              },
+              {
+                title      = "Last failed SF queries DBs"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND \"Failed to execute statement\""
+                            aggregations = [
+                              {
+                                type = "count"
+                              }
+                            ]
+                            group_by = [
+                              "sfDatabase.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+                width = 0
+              },
+              {
+                title      = "Avg configuration service query times"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND \"Configuration Service request\""
+                            aggregations = [
+                              {
+                                type  = "avg"
+                                field = "configResponseTime.numeric"
+                              },
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 100
+                      },
+                    ]
+                    legend = {
+                      is_visible = false
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+              },
+            ]
+            height = 15
+          },
+          {
+            height  = 19
+            widgets = [
+              {
+                title      = "Slowest API requests"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = " kubernetes.namespace_name:\"portal\" AND kubernetes.pod_name.keyword:/api-deployment.*/ AND message:\"http\""
+                            aggregations = [
+                              {
+                                type  = "max"
+                                field = "meta.responseTime.numeric"
+                              },
+                            ]
+                            group_by = [
+                              "meta.req.url.keyword"
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 10
+                        unit               = "milliseconds"
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                      columns    = ["max"]
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+              },
+            ]
+          },
+          {
+            height  = 19
+            widgets = [
+              {
+                title      = "Cache warmer runs"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "kubernetes.namespace_name:\"portal\" AND kubernetes.container_name:\"portal-cache-warmer\" AND message:\"Finish cache warmer run successfully\""
+                            aggregations = [
+                              {
+                                type = "count"
+                              },
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 20
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+              },
+              {
+                title      = "Alerts notification eu runs"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "service:\"portal-eu-notify-alerts-production\" AND \"Finished notify new alerts\""
+                            aggregations = [
+                              {
+                                type = "count"
+                              },
+                            ]
+                          }
+                        }
+                        scale_type         = "linear"
+                        series_count_limit = 20
+                      },
+                    ]
+                    legend = {
+                      is_visible = true
+                    }
+                    tooltip = {
+                      show_labels = false
+                      type        = "all"
+                    }
+                  }
+                }
+              },
+              {
+                title      = "Alerts notification runs"
+                definition = {
+                  line_chart = {
+                    query_definitions = [
+                      {
+                        query = {
+                          logs = {
+                            lucene_query = "service:\"portal-notify-alerts-production\" AND \"Finished notify new alerts\""
+                            aggregations = [
+                              {
+                                type = "count"
+                              },
+                            ]
+                          }
+                        }
+                      },
+                    ]
+                    scale_type         = "linear"
+                    series_count_limit = 20
+                  }
+                  legend = {
+                    is_visible = true
+                  }
+                  tooltip = {
+                    show_labels = false
+                    type        = "all"
+                  }
+                }
+              },
+              {
+                title      = "Alerts notification us runs"
+                definition = {
+                  pie_chart = {
+                    query = {
+                      logs = {
+                        lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
+                        aggregation  = {
+                          type = "count"
+                        }
+                        group_names = [
+                          "service.keyword"
+                        ]
+                      }
+                    }
+                    label_definition = {
+                    }
+                  }
+                }
+              },
+              {
+                title      = "Alerts notification us runs"
+                definition = {
+                  bar_chart = {
+                    query = {
+                      logs = {
+                        lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
+                        aggregation  = {
+                          type = "count"
+                        }
+                        group_names_fields = [
+                          {
+                            keypath = ["logid"]
+                            scope   = "metadata"
+                          },
+                        ]
+                        stacked_group_name_field = {
+                          keypath = ["logid"]
+                          scope   = "metadata"
+                        }
+                      }
+                    }
+                    xaxis = {
+                      time = {
+                        interval          = "1h0m5s"
+                        buckets_presented = 10
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                title      = "Horizontal Bar-Chart"
+                definition = {
+                  horizontal_bar_chart = {
+                    color_scheme   = "cold"
+                    colors_by      = "aggregation"
+                    display_on_bar = true
+                    query          = {
+                      logs = {
+                        lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
+                        aggregation  = {
+                          type = "count"
+                        }
+                        group_names        = ["coralogix.logId.keyword"]
+                        stacked_group_name = "coralogix.metadata.severity"
+                      }
+                    }
+                    y_axis_view_by = "value"
+                  }
+                }
+              },
+              {
+                definition = {
+                  markdown = {
+                    markdown_text = "## Markdown\n\nThis is a markdown widget"
+                    tooltip_text  = "This is a tooltip"
+                  }
+                }
+              },
+              {
+                title      = "Data Table"
+                definition = {
+                  data_table = {
+                    results_per_page = 10
+                    row_style        = "one_line"
+                    query            = {
+                      data_prime = {
+                        query   = "xxx"
+                        filters = [
+                          {
+                            logs = {
+                              lucene_query = "service:\"portal-us-notify-alerts-production\" AND \"Finished notify new alerts\""
+                              aggregation  = {
+                                type = "count"
+                              }
+                              group_names        = ["coralogix.logId.keyword"]
+                              stacked_group_name = "coralogix.metadata.severity"
+                              field              = "coralogix.metadata.applicationName"
+                              operator           = {
+                                type            = "equals"
+                                selected_values = ["staging"]
+                              }
+                            }
+                          },
+                        ]
+                      }
+                    }
+                  }
+                }
+              },
+            ]
+          },
+        ]
+      },
+    ]
+  }
+  variables = [
+    {
+      name         = "test_variable"
+      display_name = "Test Variable"
+      definition   = {
+        multi_select = {
+          selected_values = ["1", "2", "3"]
+          source          = {
+            query ={
+              query = {
+                metrics = {
+                  metric_name = {
+                    metric_regex = "vector(1)"
+                  }
+                }
+              }
+            }
+          }
+          values_order_direction = "asc"
+        }
+      }
+    },
+  ]
+  filters = [
+    {
+      source = {
+        metrics = {
+          metric_name = "http_requests_total"
+          label       = "status"
+          field       = "coralogix.metadata.applicationName"
+          operator    = {
+            type            = "equals"
+            selected_values = ["staging"]
+          }
+        }
+      }
+    },
+  ]
+  annotations = [
+    {
+      name   = "test_annotation"
+      source = {
+        metrics = {
+          promql_query = "vector(1)"
+          strategy     = {
+            start_time = {}
+          }
+          message_template = "test annotation"
+          labels           = ["test"]
+        }
+      }
+    },
+  ]
+  auto_refresh = {
+    type = "two_minutes"
+  }
+  folder = {
+    id = coralogix_dashboards_folder.example.id
+  }
+}
+
+resource "coralogix_dashboards_folder" "example" {
+  name     = "example"
+}
+
+resource "coralogix_dashboard" dashboard_from_json {
+  content_json = file("./dashboard.json")
+}
+```
 
 <!-- schema generated by tfplugindocs -->
 ## Schema
@@ -506,9 +1123,9 @@ Optional:
 - `max_bars_per_chart` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query))
 - `scale_type` (String)
-- `sort_by` (String) The field to sort by. Can be one of unspecified, value, name.
+- `sort_by` (String) The field to sort by. Can be one of name, unspecified, value.
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of gbytes, euro_cents, euro, usd_cents, mbytes, microseconds, bytes, gibytes, unspecified, mibytes, usd, kbytes, seconds, bytes_iec, kibytes, milliseconds.
+- `unit` (String) The unit of the chart. Can be one of mbytes, gbytes, bytes_iec, usd, gibytes, euro_cents, bytes, kbytes, mibytes, usd_cents, unspecified, microseconds, milliseconds, seconds, kibytes, euro.
 - `xaxis` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--xaxis))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query"></a>
@@ -778,8 +1395,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["error_count" "unspecified" "unique_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -875,7 +1492,7 @@ Required:
 
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query))
 - `results_per_page` (Number) The number of results to display per page.
-- `row_style` (String) The style of the rows. Can be one of ["two_line" "condensed" "json" "one_line"].
+- `row_style` (String) The style of the rows. Can be one of ["one_line" "two_line" "condensed" "json"].
 
 Optional:
 
@@ -1200,8 +1817,8 @@ Read-Only:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["error_count" "unspecified" "unique_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1246,7 +1863,7 @@ Optional:
 Required:
 
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query))
-- `unit` (String) The unit of the gauge. Can be one of ["euro_cents" "usd_cents" "none" "microseconds" "milliseconds" "bytes_iec" "kibytes" "gibytes" "euro" "percent" "seconds" "mbytes" "gbytes" "kbytes" "usd" "bytes" "mibytes"].
+- `unit` (String) The unit of the gauge. Can be one of ["percent" "gbytes" "usd" "microseconds" "seconds" "bytes_iec" "kibytes" "gibytes" "usd_cents" "none" "bytes" "mibytes" "euro" "milliseconds" "kbytes" "mbytes" "euro_cents"].
 
 Optional:
 
@@ -1255,7 +1872,7 @@ Optional:
 - `min` (Number)
 - `show_inner_arc` (Boolean)
 - `show_outer_arc` (Boolean)
-- `threshold_by` (String) The threshold by. Can be one of ["unspecified" "value" "background"].
+- `threshold_by` (String) The threshold by. Can be one of ["background" "unspecified" "value"].
 - `thresholds` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--thresholds))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query"></a>
@@ -1452,7 +2069,7 @@ Required:
 
 Optional:
 
-- `aggregation` (String) The type of aggregation. Can be one of ["last" "min" "max" "avg" "sum" "unspecified"].
+- `aggregation` (String) The type of aggregation. Can be one of ["avg" "sum" "unspecified" "last" "min" "max"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters"></a>
@@ -1525,8 +2142,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["error_count" "unspecified" "unique_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1557,7 +2174,7 @@ Optional:
 - `scale_type` (String)
 - `sort_by` (String)
 - `stack_definition` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--stack_definition))
-- `unit` (String) The unit of the chart. Can be one of gbytes, euro_cents, euro, usd_cents, mbytes, microseconds, bytes, gibytes, unspecified, mibytes, usd, kbytes, seconds, bytes_iec, kibytes, milliseconds.
+- `unit` (String) The unit of the chart. Can be one of mbytes, gbytes, bytes_iec, usd, gibytes, euro_cents, bytes, kbytes, mibytes, usd_cents, unspecified, microseconds, milliseconds, seconds, kibytes, euro.
 - `y_axis_view_by` (String)
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query"></a>
@@ -1716,8 +2333,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["error_count" "unspecified" "unique_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -1810,7 +2427,7 @@ Optional:
 - `scale_type` (String) The scale type. Valid values are: unspecified, linear, logarithmic.
 - `series_count_limit` (Number)
 - `series_name_template` (String)
-- `unit` (String) The unit. Valid values are: gbytes, euro_cents, euro, usd_cents, mbytes, microseconds, bytes, gibytes, unspecified, mibytes, usd, kbytes, seconds, bytes_iec, kibytes, milliseconds.
+- `unit` (String) The unit. Valid values are: mbytes, gbytes, bytes_iec, usd, gibytes, euro_cents, bytes, kbytes, mibytes, usd_cents, unspecified, microseconds, milliseconds, seconds, kibytes, euro.
 
 Read-Only:
 
@@ -1948,8 +2565,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["error_count" "unspecified" "unique_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
@@ -2012,7 +2629,7 @@ Optional:
 - `columns` (List of String) The columns to display in the legend. Valid values are: max, sum, avg, last, unspecified, min.
 - `group_by_query` (Boolean)
 - `is_visible` (Boolean) Whether to display the legend. False by default.
-- `placement` (String) The placement of the legend. Valid values are: unspecified, auto, bottom, side, hidden.
+- `placement` (String) The placement of the legend. Valid values are: hidden, unspecified, auto, bottom, side.
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--tooltip"></a>
@@ -2021,7 +2638,7 @@ Optional:
 Optional:
 
 - `show_labels` (Boolean)
-- `type` (String) The tooltip type. Valid values are: all, single, unspecified.
+- `type` (String) The tooltip type. Valid values are: unspecified, all, single.
 
 
 
@@ -2332,8 +2949,8 @@ Optional:
 
 Required:
 
-- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_95" "percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99"]. When the aggregation type is `dimension`, can be one of ["unspecified" "unique_count" "error_count"].
-- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["unspecified" "duration"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["percentile_50" "unspecified" "min" "max" "avg" "sum" "percentile_99" "percentile_95"]. When the aggregation type is `dimension`, can be one of ["error_count" "unspecified" "unique_count"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["unspecified" "trace_id"].
 - `type` (String) Can be one of ["metric" "dimension"]
 
 

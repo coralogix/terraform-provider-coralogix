@@ -12,7 +12,7 @@ resource "coralogix_events2metric" "logs2metric" {
       source_field = "method"
     },
     geo_point = {
-      source_field = "remote_addr_geoip.location_geopoint"
+      source_field = "location_geopoint"
       aggregations = {
         max = {
           enable = false
@@ -53,7 +53,7 @@ resource "coralogix_events2metric" "spans2metric" {
       source_field = "method"
     },
     geo_point = {
-      source_field = "remote_addr_geoip.location_geopoint"
+      source_field = "location_geopoint"
       aggregations = {
         max = {
           enable = false
