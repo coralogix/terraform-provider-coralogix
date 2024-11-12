@@ -72,7 +72,7 @@ func TestAccCoralogixResourceDataSetWithUploadedFile(t *testing.T) {
 		panic(err)
 	}
 	parent := filepath.Dir(wd)
-	filePath := parent + "resources/coralogix_data_set/date-to-day-of-the-week.csv"
+	filePath := parent + "/examples/resources/coralogix_data_set/date-to-day-of-the-week.csv"
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
