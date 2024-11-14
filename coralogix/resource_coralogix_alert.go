@@ -348,8 +348,8 @@ type IncidentsSettingsModel struct {
 }
 
 type NotificationGroupModel struct {
-	GroupByFields         types.List `tfsdk:"group_by_keys"` // []types.String
-	WebhooksSettingsModel types.Set  `tfsdk:"webhooks"`      // WebhooksSettingsModel
+	GroupByFields    types.List `tfsdk:"group_by_keys"`     // []types.String
+	WebhooksSettings types.Set  `tfsdk:"webhooks_settings"` // WebhooksSettingsModel
 }
 
 type WebhooksSettingsModel struct {
@@ -416,14 +416,12 @@ type LogsUniqueCountModel struct {
 }
 
 type LogsUniqueCountRuleModel struct {
-	MaxUniqueCountPerGroupByKey types.Int64  `tfsdk:"max_unique_count_per_group_by_key"`
-	MaxUniqueCount              types.Int64  `tfsdk:"max_unique_count"`
-	TimeWindow                  types.String `tfsdk:"time_window"`
-	UniqueCountKeypath          types.String `tfsdk:"unique_count_keypath"`
+	MaxUniqueCount types.Int64  `tfsdk:"max_unique_count"`
+	TimeWindow     types.String `tfsdk:"time_window"`
 }
 
 type LogsTimeRelativeThresholdModel struct {
-	Rules                      types.List   `tfsdk:"rules"`                        // []RuleLogsTimeRelativeThresholdModel
+	Rules                      types.List   `tfsdk:"rules"`                        // []LogsTimeRelativeRuleModel
 	LogsFilter                 types.Object `tfsdk:"logs_filter"`                  // AlertsLogsFilterModel
 	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
@@ -444,11 +442,10 @@ type MetricAnomalyRuleModel struct {
 }
 
 type MetricThresholdRuleModel struct {
-	Threshold     types.Float64 `tfsdk:"threshold"`
-	ForOverPct    types.Int64   `tfsdk:"for_over_pct"`
-	OfTheLast     types.String  `tfsdk:"of_the_last"`
-	Condition     types.String  `tfsdk:"condition"`
-	MissingValues types.Object  `tfsdk:"missing_values"` // MetricMissingValuesModel
+	Threshold  types.Float64 `tfsdk:"threshold"`
+	ForOverPct types.Int64   `tfsdk:"for_over_pct"`
+	OfTheLast  types.String  `tfsdk:"of_the_last"`
+	Condition  types.String  `tfsdk:"condition"`
 }
 
 type MetricAnomalyModel struct {
@@ -532,28 +529,21 @@ type MetricFilterModel struct {
 	Promql types.String `tfsdk:"promql"`
 }
 
-type MetricMissingValuesModel struct {
-	ReplaceWithZero     types.Bool  `tfsdk:"replace_with_zero"`
-	MinNonNullValuesPct types.Int64 `tfsdk:"min_non_null_values_pct"`
-}
-
 type NewValueRuleModel struct {
 	TimeWindow     types.String `tfsdk:"time_window"`
 	KeypathToTrack types.String `tfsdk:"keypath_to_track"`
 }
 
 type LogsTimeRelativeRuleModel struct {
-	Threshold      types.Float64 `tfsdk:"threshold"`
-	ComparedTo     types.String  `tfsdk:"compared_to"`
-	Condition      types.String  `tfsdk:"condition"`
-	IgnoreInfinity types.Bool    `tfsdk:"ignore_infinity"`
+	Threshold  types.Float64 `tfsdk:"threshold"`
+	ComparedTo types.String  `tfsdk:"compared_to"`
+	Condition  types.String  `tfsdk:"condition"`
 }
 
 type LogsRatioThresholdRuleModel struct {
-	Threshold      types.Float64 `tfsdk:"threshold"`
-	TimeWindow     types.String  `tfsdk:"time_window"`
-	IgnoreInfinity types.Bool    `tfsdk:"ignore_infinity"`
-	Condition      types.String  `tfsdk:"condition"`
+	Threshold  types.Float64 `tfsdk:"threshold"`
+	TimeWindow types.String  `tfsdk:"time_window"`
+	Condition  types.String  `tfsdk:"condition"`
 }
 
 type LogsAnomalyRuleModel struct {
@@ -844,11 +834,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 											},
 											MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", validLogsRatioTimeWindowValues),
 										},
-										"ignore_infinity": schema.BoolAttribute{
-											Optional: true,
-											Computed: true,
-											Default:  booldefault.StaticBool(false),
-										},
 										"condition": schema.StringAttribute{
 											Required: true,
 											Validators: []validator.String{
@@ -933,14 +918,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 											},
 											MarkdownDescription: fmt.Sprintf("Time window to evaluate the threshold with. Valid values: %q.", validLogsUniqueCountTimeWindowValues),
 										},
-										"unique_count_keypath": schema.StringAttribute{Required: true},
-										"max_unique_count":     schema.Int64Attribute{Required: true},
-										"max_unique_count_per_group_by_key": schema.Int64Attribute{
-											Optional: true,
-											Validators: []validator.Int64{
-												int64validator.AlsoRequires(path.MatchRoot("group_by")),
-											},
-										},
+										"max_unique_count": schema.Int64Attribute{Required: true},
 									},
 								},
 							},
@@ -981,11 +959,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 										},
 										"threshold": schema.Float64Attribute{
 											Required: true,
-										},
-										"ignore_infinity": schema.BoolAttribute{
-											Optional: true,
-											Computed: true,
-											Default:  booldefault.StaticBool(false),
 										},
 										"compared_to": schema.StringAttribute{
 											Required: true,
@@ -1038,7 +1011,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 											},
 											MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", validMetricTimeWindowValues),
 										},
-										"missing_values": missingValuesSchema(),
 										"condition": schema.StringAttribute{
 											Required: true,
 											Validators: []validator.String{
@@ -1307,20 +1279,15 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Optional: true,
 				Computed: true,
 				Default: objectdefault.StaticValue(types.ObjectValueMust(notificationGroupAttr(), map[string]attr.Value{
-					"group_by_keys": types.ListNull(types.StringType),
-					"advanced_target_settings": types.SetNull(types.ObjectType{
-						AttrTypes: advancedTargetSettingsAttr(),
-					}),
-					"simple_target_settings": types.SetNull(types.ObjectType{
-						AttrTypes: simpleTargetSettingsAttr(),
-					}),
+					"group_by_keys":     types.ListNull(types.StringType),
+					"webhooks_settings": types.SetNull(types.StringType),
 				})),
 				Attributes: map[string]schema.Attribute{
 					"group_by_keys": schema.ListAttribute{
 						Optional:    true,
 						ElementType: types.StringType,
 					},
-					"advanced_target_settings": schema.SetNestedAttribute{
+					"webooks_settings": schema.SetNestedAttribute{
 						Optional: true,
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
@@ -1359,32 +1326,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 							PlanModifiers: []planmodifier.Object{
 								objectplanmodifier.UseStateForUnknown(),
-							},
-						},
-						Validators: []validator.Set{
-							setvalidator.SizeAtLeast(1),
-							setvalidator.ExactlyOneOf(
-								path.MatchRelative().AtParent().AtName("simple_target_settings"),
-							),
-						},
-					},
-					"simple_target_settings": schema.SetNestedAttribute{
-						Optional: true,
-						Validators: []validator.Set{
-							setvalidator.SizeAtLeast(1),
-						},
-						NestedObject: schema.NestedAttributeObject{
-							Attributes: map[string]schema.Attribute{
-								"integration_id": schema.StringAttribute{
-									Optional: true,
-									Validators: []validator.String{
-										stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("recipients")),
-									},
-								},
-								"recipients": schema.SetAttribute{
-									Optional:    true,
-									ElementType: types.StringType,
-								},
 							},
 						},
 					},
@@ -1770,106 +1711,75 @@ func extractNotificationGroup(ctx context.Context, notificationGroupObject types
 	if diags.HasError() {
 		return nil, diags
 	}
-
+	webhooks, diags := extractWebhooksSettings(ctx, notificationGroupModel.WebhooksSettings)
+	if diags.HasError() {
+		return nil, diags
+	}
 	notificationGroup := &cxsdk.AlertDefNotificationGroup{
 		GroupByKeys: groupByFields,
-		Webhooks:    extractWebhooks(ctx, notificationGroupModel.Webhooks),
+		Webhooks:    webhooks,
 	}
-
-	// &cxsdk.AlertDefNotificationGroup{
-	// 	GroupByKeys: []*wrapperspb.StringValue{},
-	// 	Webhooks: []*cxsdk.AlertDefWebhooksSettings{
-	// 		{
-	// 			RetriggeringPeriod: &cxsdk.AlertDefWebhooksSettingsMinutes{
-	// 				Minutes: wrapperspb.UInt32(5),
-	// 			},
-	// 			NotifyOn: &notifyOn,
-	// 			Integration: &cxsdk.AlertDefIntegrationType{
-	// 				IntegrationType: &cxsdk.AlertDefIntegrationTypeRecipients{
-	// 					Recipients: &cxsdk.AlertDefRecipients{
-	// 						Emails: []*wrapperspb.StringValue{
-	// 							{Value: "example@coralogix.com"},
-	// 						},
-	// 					},
-	// 				},
-	// 			},
-	// 		},
-	// 	},
-	// },
-	// 	notificationGroup, diags = expandNotificationTargetSettings(ctx, notificationGroupModel, notificationGroup)
-	// if diags.HasError() {
-	// 	return nil, diags
-	// }
 
 	return notificationGroup, nil
 }
 
 func expandNotificationTargetSettings(ctx context.Context, notificationGroupModel NotificationGroupModel, notificationGroup *cxsdk.AlertDefNotificationGroup) (*cxsdk.AlertDefNotificationGroup, diag.Diagnostics) {
-	if advancedTargetSettings := notificationGroupModel.AdvancedTargetSettings; !(advancedTargetSettings.IsNull() || advancedTargetSettings.IsUnknown()) {
-		notifications, diags := extractAdvancedTargetSettings(ctx, advancedTargetSettings)
+	notificationGroup.Webhooks = []*cxsdk.AlertDefWebhooksSettings{}
+	if webhooksSettings := notificationGroupModel.WebhooksSettings; !(webhooksSettings.IsNull() || webhooksSettings.IsUnknown()) {
+		notifications, diags := extractWebhooksSettings(ctx, webhooksSettings)
 		if diags.HasError() {
 			return nil, diags
 		}
-		notificationGroup.Targets = notifications
-	} else if simpleTargetSettings := notificationGroupModel.SimpleTargetSettings; !(simpleTargetSettings.IsNull() || simpleTargetSettings.IsUnknown()) {
-		notifications, diags := extractSimpleTargetSettings(ctx, simpleTargetSettings)
-		if diags.HasError() {
-			return nil, diags
-		}
-		notificationGroup.Targets = notifications
+		notificationGroup.Webhooks = notifications
 	}
 
 	return notificationGroup, nil
 }
 
-func extractAdvancedTargetSettings(ctx context.Context, advancedTargetSettings types.Set) (*cxsdk.AlertDefNotificationGroupAdvanced, diag.Diagnostics) {
-	if advancedTargetSettings.IsNull() || advancedTargetSettings.IsUnknown() {
+func extractWebhooksSettings(ctx context.Context, webhooksSettings types.Set) ([]*cxsdk.AlertDefWebhooksSettings, diag.Diagnostics) {
+	if webhooksSettings.IsNull() || webhooksSettings.IsUnknown() {
 		return nil, nil
 	}
 
-	var advancedTargetSettingsObjects []types.Object
-	diags := advancedTargetSettings.ElementsAs(ctx, &advancedTargetSettingsObjects, true)
+	var webhooksSettingsObject []types.Object
+	diags := webhooksSettings.ElementsAs(ctx, &webhooksSettingsObject, true)
 	if diags.HasError() {
 		return nil, diags
 	}
-	var expandedAdvancedTargetSettings []*cxsdk.AlertDefAdvancedTargetSettings
-	for _, ao := range advancedTargetSettingsObjects {
-		var advancedTargetSettingsModel WebhooksSettingsModel
-		if dg := ao.As(ctx, &advancedTargetSettingsModel, basetypes.ObjectAsOptions{}); dg.HasError() {
+	var expandedWebhooksSettings []*cxsdk.AlertDefWebhooksSettings
+	for _, ao := range webhooksSettingsObject {
+		var webhooksSettingsModel WebhooksSettingsModel
+		if dg := ao.As(ctx, &webhooksSettingsModel, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
 		}
-		expandedAdvancedTargetSetting, expandDiags := extractAdvancedTargetSetting(ctx, advancedTargetSettingsModel)
+		expandedAdvancedTargetSetting, expandDiags := extractAdvancedTargetSetting(ctx, webhooksSettingsModel)
 		if expandDiags.HasError() {
 			diags.Append(expandDiags...)
 			continue
 		}
-		expandedAdvancedTargetSettings = append(expandedAdvancedTargetSettings, expandedAdvancedTargetSetting)
+		expandedWebhooksSettings = append(expandedWebhooksSettings, expandedAdvancedTargetSetting)
 	}
 
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.AlertDefNotificationGroupAdvanced{
-		Advanced: &cxsdk.AlertDefAdvancedTargets{
-			AdvancedTargetsSettings: expandedAdvancedTargetSettings,
-		},
-	}, nil
+	return expandedWebhooksSettings, nil
 }
 
-func extractAdvancedTargetSetting(ctx context.Context, advancedTargetSettingsModel WebhooksSettingsModel) (*cxsdk.AlertDefAdvancedTargetSettings, diag.Diagnostics) {
-	notifyOn := notifyOnSchemaToProtoMap[advancedTargetSettingsModel.NotifyOn.ValueString()]
-	advancedTargetSettings := &cxsdk.AlertDefAdvancedTargetSettings{
+func extractAdvancedTargetSetting(ctx context.Context, webhooksSettingsModel WebhooksSettingsModel) (*cxsdk.AlertDefWebhooksSettings, diag.Diagnostics) {
+	notifyOn := notifyOnSchemaToProtoMap[webhooksSettingsModel.NotifyOn.ValueString()]
+	advancedTargetSettings := &cxsdk.AlertDefWebhooksSettings{
 		NotifyOn: &notifyOn,
 	}
-	advancedTargetSettings, diags := expandAlertNotificationByRetriggeringPeriod(ctx, advancedTargetSettings, advancedTargetSettingsModel.RetriggeringPeriod)
+	advancedTargetSettings, diags := expandAlertNotificationByRetriggeringPeriod(ctx, advancedTargetSettings, webhooksSettingsModel.RetriggeringPeriod)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	if !advancedTargetSettingsModel.IntegrationID.IsNull() && !advancedTargetSettingsModel.IntegrationID.IsUnknown() {
-		integrationId, diag := typeStringToWrapperspbUint32(advancedTargetSettingsModel.IntegrationID)
+	if !webhooksSettingsModel.IntegrationID.IsNull() && !webhooksSettingsModel.IntegrationID.IsUnknown() {
+		integrationId, diag := typeStringToWrapperspbUint32(webhooksSettingsModel.IntegrationID)
 		if diag.HasError() {
 			return nil, diag
 		}
@@ -1878,8 +1788,8 @@ func extractAdvancedTargetSetting(ctx context.Context, advancedTargetSettingsMod
 				IntegrationId: integrationId,
 			},
 		}
-	} else if !advancedTargetSettingsModel.Recipients.IsNull() && !advancedTargetSettingsModel.Recipients.IsUnknown() {
-		emails, diags := typeStringSliceToWrappedStringSlice(ctx, advancedTargetSettingsModel.Recipients.Elements())
+	} else if !webhooksSettingsModel.Recipients.IsNull() && !webhooksSettingsModel.Recipients.IsUnknown() {
+		emails, diags := typeStringSliceToWrappedStringSlice(ctx, webhooksSettingsModel.Recipients.Elements())
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -2461,10 +2371,9 @@ func extractRatioRules(ctx context.Context, elements types.List) ([]*cxsdk.LogsR
 		}
 		rules[i] = &cxsdk.LogsRatioRules{
 			Condition: &cxsdk.LogsRatioCondition{
-				Threshold:      typeFloat64ToWrapperspbDouble(rule.Threshold),
-				TimeWindow:     timeWindow,
-				IgnoreInfinity: typeBoolToWrapperspbBool(rule.IgnoreInfinity),
-				ConditionType:  logsRatioConditionSchemaToProtoMap[rule.Condition.ValueString()],
+				Threshold:     typeFloat64ToWrapperspbDouble(rule.Threshold),
+				TimeWindow:    timeWindow,
+				ConditionType: logsRatioConditionSchemaToProtoMap[rule.Condition.ValueString()],
 			},
 		}
 	}
@@ -2616,10 +2525,8 @@ func extractLogsUniqueCountRules(ctx context.Context, elements types.List) ([]*c
 		}
 		rules[i] = &cxsdk.LogsUniqueCountRule{
 			Condition: &cxsdk.LogsUniqueCountCondition{
-				UniqueCountKeypath:          typeStringToWrapperspbString(rule.UniqueCountKeypath),
-				MaxUniqueCount:              typeInt64ToWrappedInt64(rule.MaxUniqueCount),
-				TimeWindow:                  timeWindow,
-				MaxUniqueCountPerGroupByKey: typeInt64ToWrappedInt64(rule.MaxUniqueCountPerGroupByKey),
+				MaxUniqueCount: typeInt64ToWrappedInt64(rule.MaxUniqueCount),
+				TimeWindow:     timeWindow,
 			},
 		}
 	}
@@ -2693,10 +2600,9 @@ func extractTimeRelativeThresholdRules(ctx context.Context, elements types.List)
 		}
 		rules[i] = &cxsdk.LogsTimeRelativeRule{
 			Condition: &cxsdk.LogsTimeRelativeCondition{
-				Threshold:      typeFloat64ToWrapperspbDouble(rule.Threshold),
-				ComparedTo:     logsTimeRelativeComparedToSchemaToProtoMap[rule.ComparedTo.ValueString()],
-				IgnoreInfinity: typeBoolToWrapperspbBool(rule.IgnoreInfinity),
-				ConditionType:  logsTimeRelativeConditionToProtoMap[rule.Condition.ValueString()],
+				Threshold:     typeFloat64ToWrapperspbDouble(rule.Threshold),
+				ComparedTo:    logsTimeRelativeComparedToSchemaToProtoMap[rule.ComparedTo.ValueString()],
+				ConditionType: logsTimeRelativeConditionToProtoMap[rule.Condition.ValueString()],
 			},
 		}
 	}
@@ -2760,18 +2666,11 @@ func extractMetricThresholdRules(ctx context.Context, elements types.List) ([]*c
 			continue
 		}
 
-		missingValues, dg := extractMissingValues(ctx, rule.MissingValues)
-		if dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-
 		rules[i] = &cxsdk.MetricThresholdRule{
 			Condition: &cxsdk.MetricThresholdCondition{
 				Threshold:     typeFloat64ToWrapperspbDouble(rule.Threshold),
 				ForOverPct:    typeInt64ToWrappedUint32(rule.ForOverPct),
 				OfTheLast:     ofTheLast,
-				MissingValues: missingValues,
 				ConditionType: metricsThresholdConditionToProtoMap[rule.Condition.ValueString()],
 			},
 		}
@@ -2813,32 +2712,6 @@ func extractMetricTimeWindow(window types.String) (*cxsdk.MetricTimeWindow, diag
 			MetricTimeWindowSpecificValue: metricTimeWindowValueSchemaToProtoMap[window.ValueString()],
 		},
 	}, nil
-}
-
-func extractMissingValues(ctx context.Context, missingValues types.Object) (*cxsdk.MetricMissingValues, diag.Diagnostics) {
-	if missingValues.IsNull() || missingValues.IsUnknown() {
-		return nil, nil
-	}
-
-	var missingValuesModel MetricMissingValuesModel
-	if diags := missingValues.As(ctx, &missingValuesModel, basetypes.ObjectAsOptions{}); diags.HasError() {
-		return nil, diags
-	}
-
-	metricMissingValues := &cxsdk.MetricMissingValues{}
-	if replaceWithZero := missingValuesModel.ReplaceWithZero; !(replaceWithZero.IsNull() || replaceWithZero.IsUnknown()) {
-		metricMissingValues.MissingValues = &cxsdk.MetricMissingValuesReplaceWithZero{
-			ReplaceWithZero: typeBoolToWrapperspbBool(replaceWithZero),
-		}
-	} else if minNonNullValuesPct := missingValuesModel.MinNonNullValuesPct; !(minNonNullValuesPct.IsNull() || minNonNullValuesPct.IsUnknown()) {
-		metricMissingValues.MissingValues = &cxsdk.MetricMissingValuesMinNonNullValuesPct{
-			MinNonNullValuesPct: typeInt64ToWrappedUint32(minNonNullValuesPct),
-		}
-	} else {
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Missing Values", "Missing Values is not valid")}
-	}
-
-	return metricMissingValues, nil
 }
 
 func expandTracingImmediateTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, tracingImmediate types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
@@ -3353,7 +3226,7 @@ func flattenAlert(ctx context.Context, alert *cxsdk.AlertDef) (*AlertResourceMod
 	if diags.HasError() {
 		return nil, diags
 	}
-	labels, diags := types.MapValueFrom(ctx, types.StringType, alertProperties.GetLabels())
+	labels, diags := types.MapValueFrom(ctx, types.StringType, alertProperties.GetEntityLabels())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3365,7 +3238,7 @@ func flattenAlert(ctx context.Context, alert *cxsdk.AlertDef) (*AlertResourceMod
 		Priority:          types.StringValue(alertPriorityProtoToSchemaMap[alertProperties.GetPriority()]),
 		Schedule:          alertSchedule,
 		TypeDefinition:    alertTypeDefinition,
-		GroupBy:           wrappedStringSliceToTypeStringSet(alertProperties.GetGroupBy()),
+		GroupBy:           wrappedStringSliceToTypeStringSet(alertProperties.GetGroupByKeys()),
 		IncidentsSettings: incidentsSettings,
 		NotificationGroup: notificationGroup,
 		Labels:            labels,
@@ -3379,33 +3252,27 @@ func flattenNotificationGroup(ctx context.Context, notificationGroup *cxsdk.Aler
 		return types.ObjectNull(notificationGroupAttr()), nil
 	}
 
-	advancedTargetSettings, diags := flattenAdvancedTargetSettings(ctx, notificationGroup.GetAdvanced())
-	if diags.HasError() {
-		return types.ObjectNull(notificationGroupAttr()), diags
-	}
-
-	simpleTargetSettings, diags := flattenSimpleTargetSettings(ctx, notificationGroup.GetSimple())
+	webhooksSettings, diags := flattenAdvancedTargetSettings(ctx, notificationGroup.GetWebhooks())
 	if diags.HasError() {
 		return types.ObjectNull(notificationGroupAttr()), diags
 	}
 
 	notificationGroupModel := NotificationGroupModel{
-		GroupByFields:          wrappedStringSliceToTypeStringList(notificationGroup.GetGroupByFields()),
-		AdvancedTargetSettings: advancedTargetSettings,
-		SimpleTargetSettings:   simpleTargetSettings,
+		GroupByFields:    wrappedStringSliceToTypeStringList(notificationGroup.GetGroupByKeys()),
+		WebhooksSettings: webhooksSettings,
 	}
 
 	return types.ObjectValueFrom(ctx, notificationGroupAttr(), notificationGroupModel)
 }
 
-func flattenAdvancedTargetSettings(ctx context.Context, advancedTargetSettings *cxsdk.AlertDefAdvancedTargets) (types.Set, diag.Diagnostics) {
-	if advancedTargetSettings == nil {
-		return types.SetNull(types.ObjectType{AttrTypes: advancedTargetSettingsAttr()}), nil
+func flattenAdvancedTargetSettings(ctx context.Context, webhooksSettings []*cxsdk.AlertDefWebhooksSettings) (types.Set, diag.Diagnostics) {
+	if webhooksSettings == nil {
+		return types.SetNull(types.ObjectType{AttrTypes: webhooksSettingsAttr()}), nil
 	}
 
 	var notificationsModel []*WebhooksSettingsModel
 	var diags diag.Diagnostics
-	for _, notification := range advancedTargetSettings.GetAdvancedTargetsSettings() {
+	for _, notification := range webhooksSettings {
 		retriggeringPeriod, dgs := flattenRetriggeringPeriod(ctx, notification)
 		if dgs.HasError() {
 			diags.Append(dgs...)
@@ -3427,15 +3294,15 @@ func flattenAdvancedTargetSettings(ctx context.Context, advancedTargetSettings *
 	}
 
 	if diags.HasError() {
-		return types.SetNull(types.ObjectType{AttrTypes: advancedTargetSettingsAttr()}), diags
+		return types.SetNull(types.ObjectType{AttrTypes: webhooksSettingsAttr()}), diags
 	}
 
-	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: advancedTargetSettingsAttr()}, notificationsModel)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: webhooksSettingsAttr()}, notificationsModel)
 }
 
-func flattenRetriggeringPeriod(ctx context.Context, notifications *cxsdk.AlertDefAdvancedTargetSettings) (types.Object, diag.Diagnostics) {
+func flattenRetriggeringPeriod(ctx context.Context, notifications *cxsdk.AlertDefWebhooksSettings) (types.Object, diag.Diagnostics) {
 	switch notificationPeriodType := notifications.RetriggeringPeriod.(type) {
-	case *cxsdk.AlertDefAdvancedTargetSettingsMinutes:
+	case *cxsdk.AlertDefWebhooksSettingsMinutes:
 		return types.ObjectValueFrom(ctx, retriggeringPeriodAttr(), RetriggeringPeriodModel{
 			Minutes: wrapperspbUint32ToTypeInt64(notificationPeriodType.Minutes),
 		})
@@ -3444,28 +3311,6 @@ func flattenRetriggeringPeriod(ctx context.Context, notifications *cxsdk.AlertDe
 	default:
 		return types.ObjectNull(retriggeringPeriodAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Retriggering Period", fmt.Sprintf("Retriggering Period %v is not supported", notificationPeriodType))}
 	}
-}
-
-func flattenSimpleTargetSettings(ctx context.Context, simpleTargetSettings *cxsdk.AlertDefTargetSimple) (types.Set, diag.Diagnostics) {
-	if simpleTargetSettings == nil {
-		return types.SetNull(types.ObjectType{AttrTypes: simpleTargetSettingsAttr()}), nil
-	}
-
-	var notificationsModel []SimpleTargetSettingsModel
-	for _, notification := range simpleTargetSettings.GetIntegrations() {
-		notificationModel := SimpleTargetSettingsModel{
-			IntegrationID: types.StringNull(),
-			Recipients:    types.SetNull(types.StringType),
-		}
-		switch notification.GetIntegrationType().(type) {
-		case *cxsdk.AlertDefIntegrationTypeIntegrationID:
-			notificationModel.IntegrationID = types.StringValue(strconv.Itoa(int(notification.GetIntegrationId().GetValue())))
-		case *cxsdk.AlertDefIntegrationTypeRecipients:
-			notificationModel.Recipients = wrappedStringSliceToTypeStringSet(notification.GetRecipients().GetEmails())
-		}
-		notificationsModel = append(notificationsModel, notificationModel)
-	}
-	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: simpleTargetSettingsAttr()}, notificationsModel)
 }
 
 func flattenIncidentsSettings(ctx context.Context, incidentsSettings *cxsdk.AlertDefIncidentSettings) (types.Object, diag.Diagnostics) {
@@ -3782,10 +3627,9 @@ func flattenLogsRatioThreshold(ctx context.Context, ratioThreshold *cxsdk.LogsRa
 	for i, rule := range ratioThreshold.Rules {
 		timeWindow := types.StringValue(logsRatioTimeWindowValueProtoToSchemaMap[rule.Condition.TimeWindow.GetLogsRatioTimeWindowSpecificValue()])
 		rulesRaw[i] = LogsRatioThresholdRuleModel{
-			Threshold:      wrapperspbDoubleToTypeFloat64(rule.Condition.GetThreshold()),
-			TimeWindow:     timeWindow,
-			IgnoreInfinity: wrapperspbBoolToTypeBool(rule.Condition.GetIgnoreInfinity()),
-			Condition:      types.StringValue(logsRatioConditionMap[rule.Condition.GetConditionType()]),
+			Threshold:  wrapperspbDoubleToTypeFloat64(rule.Condition.GetThreshold()),
+			TimeWindow: timeWindow,
+			Condition:  types.StringValue(logsRatioConditionMap[rule.Condition.GetConditionType()]),
 		}
 	}
 
@@ -3819,10 +3663,8 @@ func flattenLogsUniqueCount(ctx context.Context, uniqueCount *cxsdk.LogsUniqueCo
 	for i, rule := range uniqueCount.Rules {
 		timeWindow := types.StringValue(logsUniqueCountTimeWindowValueProtoToSchemaMap[rule.Condition.TimeWindow.GetLogsUniqueValueTimeWindowSpecificValue()])
 		rulesRaw[i] = LogsUniqueCountRuleModel{
-			MaxUniqueCountPerGroupByKey: wrapperspbInt64ToTypeInt64(rule.Condition.GetMaxUniqueCountPerGroupByKey()),
-			MaxUniqueCount:              wrapperspbInt64ToTypeInt64(rule.Condition.GetMaxUniqueCount()),
-			TimeWindow:                  timeWindow,
-			UniqueCountKeypath:          wrapperspbStringToTypeString(rule.Condition.UniqueCountKeypath),
+			MaxUniqueCount: wrapperspbInt64ToTypeInt64(rule.Condition.GetMaxUniqueCount()),
+			TimeWindow:     timeWindow,
 		}
 	}
 
@@ -3950,10 +3792,9 @@ func flattenLogsTimeRelativeThreshold(ctx context.Context, logsTimeRelativeThres
 	rulesRaw := make([]LogsTimeRelativeRuleModel, len(logsTimeRelativeThreshold.Rules))
 	for i, rule := range logsTimeRelativeThreshold.Rules {
 		rulesRaw[i] = LogsTimeRelativeRuleModel{
-			Threshold:      wrapperspbDoubleToTypeFloat64(rule.Condition.GetThreshold()),
-			ComparedTo:     types.StringValue(logsTimeRelativeComparedToProtoToSchemaMap[rule.Condition.ComparedTo]),
-			IgnoreInfinity: wrapperspbBoolToTypeBool(rule.Condition.GetIgnoreInfinity()),
-			Condition:      types.StringValue(logsTimeRelativeConditionMap[rule.Condition.ConditionType]),
+			Threshold:  wrapperspbDoubleToTypeFloat64(rule.Condition.GetThreshold()),
+			ComparedTo: types.StringValue(logsTimeRelativeComparedToProtoToSchemaMap[rule.Condition.ComparedTo]),
+			Condition:  types.StringValue(logsTimeRelativeConditionMap[rule.Condition.ConditionType]),
 		}
 	}
 
@@ -3994,17 +3835,15 @@ func flattenMetricThreshold(ctx context.Context, metricThreshold *cxsdk.MetricTh
 
 	rulesRaw := make([]MetricThresholdRuleModel, len(metricThreshold.Rules))
 	for i, rule := range metricThreshold.Rules {
-		missingValues, diags := flattenMissingValues(ctx, rule.Condition.MissingValues)
 		if diags.HasError() {
 			return types.ObjectNull(metricThresholdAttr()), diags
 		}
 
 		rulesRaw[i] = MetricThresholdRuleModel{
-			Threshold:     wrapperspbDoubleToTypeFloat64(rule.Condition.GetThreshold()),
-			ForOverPct:    wrapperspbUint32ToTypeInt64(rule.Condition.GetForOverPct()),
-			OfTheLast:     types.StringValue(metricFilterOperationTypeProtoToSchemaMap[rule.Condition.OfTheLast.GetMetricTimeWindowSpecificValue()]),
-			Condition:     types.StringValue(metricsThresholdConditionMap[rule.Condition.ConditionType]),
-			MissingValues: missingValues,
+			Threshold:  wrapperspbDoubleToTypeFloat64(rule.Condition.GetThreshold()),
+			ForOverPct: wrapperspbUint32ToTypeInt64(rule.Condition.GetForOverPct()),
+			OfTheLast:  types.StringValue(metricFilterOperationTypeProtoToSchemaMap[rule.Condition.OfTheLast.GetMetricTimeWindowSpecificValue()]),
+			Condition:  types.StringValue(metricsThresholdConditionMap[rule.Condition.ConditionType]),
 		}
 	}
 
@@ -4033,24 +3872,6 @@ func flattenMetricFilter(ctx context.Context, filter *cxsdk.MetricFilter) (types
 	default:
 		return types.ObjectNull(metricFilterAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Metric Filter", fmt.Sprintf("Metric Filter %v is not supported", filterType))}
 	}
-}
-
-func flattenMissingValues(ctx context.Context, missingValues *cxsdk.MetricMissingValues) (types.Object, diag.Diagnostics) {
-	if missingValues == nil {
-		return types.ObjectNull(metricMissingValuesAttr()), nil
-	}
-
-	metricMissingValuesModel := MetricMissingValuesModel{}
-	switch missingValuesType := missingValues.MissingValues.(type) {
-	case *cxsdk.MetricMissingValuesReplaceWithZero:
-		metricMissingValuesModel.ReplaceWithZero = wrapperspbBoolToTypeBool(missingValuesType.ReplaceWithZero)
-	case *cxsdk.MetricMissingValuesMinNonNullValuesPct:
-		metricMissingValuesModel.MinNonNullValuesPct = wrapperspbUint32ToTypeInt64(missingValuesType.MinNonNullValuesPct)
-	default:
-		return types.ObjectNull(metricMissingValuesAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Missing Values", fmt.Sprintf("Missing Values %v is not supported", missingValuesType))}
-	}
-
-	return types.ObjectValueFrom(ctx, metricMissingValuesAttr(), metricMissingValuesModel)
 }
 
 func flattenTracingImmediate(ctx context.Context, tracingImmediate *cxsdk.TracingImmediateType) (types.Object, diag.Diagnostics) {
@@ -4385,20 +4206,15 @@ func notificationGroupAttr() map[string]attr.Type {
 		"group_by_keys": types.ListType{
 			ElemType: types.StringType,
 		},
-		"advanced_target_settings": types.SetType{
+		"webhooks_settings": types.SetType{
 			ElemType: types.ObjectType{
-				AttrTypes: advancedTargetSettingsAttr(),
-			},
-		},
-		"simple_target_settings": types.SetType{
-			ElemType: types.ObjectType{
-				AttrTypes: simpleTargetSettingsAttr(),
+				AttrTypes: webhooksSettingsAttr(),
 			},
 		},
 	}
 }
 
-func advancedTargetSettingsAttr() map[string]attr.Type {
+func webhooksSettingsAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"notify_on": types.StringType,
 		"retriggering_period": types.ObjectType{
