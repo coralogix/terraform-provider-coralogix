@@ -185,6 +185,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
 	state, e := integrationDetail(getIntegrationResp, keys)
+	state.Parameters = plan.Parameters
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
@@ -397,6 +398,7 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 	state, e := integrationDetail(getIntegrationResp, keys)
+	state.Parameters = plan.Parameters
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
@@ -460,6 +462,7 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
 	state, e := integrationDetail(getIntegrationResp, keys)
+	state.Parameters = plan.Parameters
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return

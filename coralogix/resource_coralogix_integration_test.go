@@ -14,33 +14,57 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-var integrationResourceName = "aws-metrics-collector"
+var integrationWithoutSensitiveDataName = "aws-metrics-collector"
+var integrationWithSensitiveDataName = "gcp-metrics-collector"
 var testRoleArn = os.Getenv("AWS_TEST_ROLE")
 
-func TestAccCoralogixResourceIntegration(t *testing.T) {
+func TestAccCoralogixResourceIntegrationWithoutSensitiveData(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckIntegrationDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceIntegration(),
+				Config: testAccCoralogixResourceIntegrationWithoutSensitiveData(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet("coralogix_integration.test", "id"),
-					resource.TestCheckResourceAttr("coralogix_integration.test", "integration_key", integrationResourceName),
-					resource.TestCheckResourceAttr("coralogix_integration.test", "version", "0.1.0"),
-					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.ApplicationName", "cxsdk"),
-					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.SubsystemName", integrationResourceName),
-					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.AwsRegion", "eu-north-1"),
-					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.WithAggregations", "false"),
-					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.EnrichWithTags", "true"),
-					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.IntegrationName", "sdk-integration-setup"),
-					resource.TestCheckResourceAttr("coralogix_integration.test", "parameters.AwsRoleArn", testRoleArn),
+					resource.TestCheckResourceAttrSet("coralogix_integration.no_sensitive_data_test", "id"),
+					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "integration_key", integrationWithoutSensitiveDataName),
+					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "version", "0.1.0"),
+					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "parameters.ApplicationName", "cxsdk"),
+					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "parameters.SubsystemName", integrationWithoutSensitiveDataName),
+					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "parameters.AwsRegion", "eu-north-1"),
+					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "parameters.WithAggregations", "false"),
+					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "parameters.EnrichWithTags", "true"),
+					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "parameters.IntegrationName", "sdk-integration-no-sensitive-data-setup"),
+					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "parameters.AwsRoleArn", testRoleArn),
 				),
 			},
 		},
 	})
 }
+
+
+func TestAccCoralogixResourceIntegrationWithSensitiveData(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckIntegrationDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceIntegrationWithSensitiveData(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coralogix_integration.sensitive_data_test", "id"),
+					resource.TestCheckResourceAttr("coralogix_integration.sensitive_data_test", "integration_key", integrationWithSensitiveDataName),
+					resource.TestCheckResourceAttr("coralogix_integration.sensitive_data_test", "version", "1.0.0"),
+					resource.TestCheckResourceAttr("coralogix_integration.sensitive_data_test", "parameters.ApplicationName", "cxsdk"),
+					resource.TestCheckResourceAttr("coralogix_integration.sensitive_data_test", "parameters.SubsystemName", integrationWithSensitiveDataName),
+					resource.TestCheckResourceAttr("coralogix_integration.sensitive_data_test", "parameters.IntegrationName", "sdk-integration-with-sensitive-data-setup"),
+				),
+			},
+		},
+	})
+}
+
 
 func testAccCheckIntegrationDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*clientset.ClientSet).Integrations()
@@ -61,8 +85,8 @@ func testAccCheckIntegrationDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCoralogixResourceIntegration() string {
-	return fmt.Sprintf(`resource "coralogix_integration" "test" {
+func testAccCoralogixResourceIntegrationWithoutSensitiveData() string {
+	return fmt.Sprintf(`resource "coralogix_integration" "no_sensitive_data_test" {
 		integration_key = "%v"
 		version = "0.1.0"
 	    # Note that the attribute casing is important here
@@ -82,11 +106,27 @@ func testAccCoralogixResourceIntegration() string {
 			"AWS/EC2"
 		]
 		  AwsRoleArn = "%v"
-		  IntegrationName = "sdk-integration-setup"
+		  IntegrationName = "sdk-integration-no-sensitive-data-setup"
 		  AwsRegion = "eu-north-1"
 		  WithAggregations = false
 		  EnrichWithTags = true
 	  }
 	}
-	`, integrationResourceName, integrationResourceName, testRoleArn)
+	`, integrationWithoutSensitiveDataName, integrationWithoutSensitiveDataName, testRoleArn)
+}
+
+
+func testAccCoralogixResourceIntegrationWithSensitiveData() string {
+	return fmt.Sprintf("%40s", `resource "coralogix_integration" "sensitive_data_test" {
+		integration_key = "gcp-metrics-collector"
+		version         = "1.0.0"
+		# Note that the attribute casing is important here
+		parameters = {
+			ApplicationName = "cxsdk"
+			SubsystemName   = "gcp-metrics-collector"
+			IntegrationName   = "sdk-integration-with-sensitive-data-setup"
+			MetricPrefixes    = ["appengine.googleapis.com","cloudfunctions.googleapis.com","cloudkms.googleapis.com","cloudsql.googleapis.com","compute.googleapis.com","container.googleapis.com","datastream.googleapis.com","firestore.googleapis.com","loadbalancing.googleapis.com","network.googleapis.com","run.googleapis.com","storage.googleapis.com"]
+			ServiceAccountKey = "{\"type\": \"service_account\",\"project_id\": \"redacted\",\"private_key_id\": \"redacted\",\"private_key\": \"-----BEGIN PRIVATE KEY-----\\redacted\",\"client_email\": \"redacted@redacted.iam.gserviceaccount.com\",\"client_id\": \"redacted\",\"auth_uri\": \"https://accounts.google.com/o/oauth2/auth\",\"token_uri\": \"https://oauth2.googleapis.com/token\",\"auth_provider_x509_cert_url\": \"https://www.googleapis.com/oauth2/v1/certs\",\"client_x509_cert_url\": \"https://www.googleapis.com/robot/v1/metadata/x509/redacted%40assen-project.iam.gserviceaccount.com\",\"universe_domain\": \"googleapis.com\"}"
+		}
+	}`)
 }
