@@ -20,7 +20,8 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	"terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -41,7 +42,7 @@ func NewWebhookDataSource() datasource.DataSource {
 }
 
 type WebhookDataSource struct {
-	client *clientset.WebhooksClient
+	client *cxsdk.WebhooksClient
 }
 
 func (d *WebhookDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -98,7 +99,7 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	id := data.ID.ValueString()
 	name := data.Name.ValueString()
 
-	var getWebhookResp *webhooks.GetOutgoingWebhookResponse
+	var getWebhookResp *cxsdk.GetOutgoingWebhookResponse
 	var err error
 
 	if id != "" {
@@ -109,14 +110,14 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	} else if name != "" {
 		log.Printf("[INFO] Listing Webhooks to find by name: %s", name)
-		listWebhookReq := &webhooks.ListAllOutgoingWebhooksRequest{}
-		listWebhookResp, err := d.client.ListWebhooks(ctx, listWebhookReq)
+		listWebhookReq := &cxsdk.ListAllOutgoingWebhooksRequest{}
+		listWebhookResp, err := d.client.List(ctx, listWebhookReq)
 		if err != nil {
 			log.Printf("[ERROR] Received error when listing webhooks: %s", err.Error())
 			listWebhookReqStr := protojson.Format(listWebhookReq)
 			resp.Diagnostics.AddError(
 				"Error listing Webhooks",
-				formatRpcErrors(err, "ListWebhooks", listWebhookReqStr),
+				formatRpcErrors(err, "List", listWebhookReqStr),
 			)
 			return
 		}
@@ -164,10 +165,10 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (d *WebhookDataSource) fetchWebhookByID(ctx context.Context, id string, resp *datasource.ReadResponse) (*webhooks.GetOutgoingWebhookResponse, error) {
+func (d *WebhookDataSource) fetchWebhookByID(ctx context.Context, id string, resp *datasource.ReadResponse) (*cxsdk.GetOutgoingWebhookResponse, error) {
 	log.Printf("[INFO] Reading Webhook by ID: %s", id)
-	getWebhookReq := &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(id)}
-	getWebhookResp, err := d.client.GetWebhook(ctx, getWebhookReq)
+	getWebhookReq := &cxsdk.GetOutgoingWebhookRequest{Id: wrapperspb.String(id)}
+	getWebhookResp, err := d.client.Get(ctx, getWebhookReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {

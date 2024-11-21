@@ -8,12 +8,7 @@ description: |-
 
 # coralogix_archive_metrics (Data Source)
 
-# Example Usage
 
-```hcl
-data "coralogix_archive_metrics" example {
-}
-```
 
 
 

@@ -94,6 +94,7 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			"scope_id": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "Scope attached to the group.",
+				Computed:            true,
 			},
 		},
 		MarkdownDescription: "Coralogix group.",

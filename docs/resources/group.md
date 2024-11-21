@@ -10,17 +10,9 @@ description: |-
 
 Coralogix group.
 
-
 ## Example Usage
 
-```hcl
-resource "coralogix_custom_role" "example" {
-  name  = "Example custom role"
-  description = "This role is created with terraform!"
-  parent_role = "Standard User"
-  permissions = ["spans.events2metrics:UpdateConfig"]
-}
-
+```terraform
 resource "coralogix_user" "example" {
   user_name = "example@coralogix.com"
   name      = {
@@ -31,20 +23,20 @@ resource "coralogix_user" "example" {
 
 resource "coralogix_scope" "example" {
   display_name       = "ExampleScope"
-  default_expression = "true"
+  default_expression = "<v1>true"
   filters            = [
     {
       entity_type = "logs"
-      expression  = "(subsystemName == 'purchases') || (subsystemName == 'signups')"
+      expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
     }
   ]
 }
 
 resource "coralogix_group" "example" {
   display_name = "example"
-  role         = coralogix_custom_role.example.name
+  role         = "Read Only"
   members      = [coralogix_user.example.id]
-  scope_id     = data.coralogix_scope.example.id
+  scope_id     = coralogix_scope.example.id
 }
 ```
 
@@ -64,16 +56,3 @@ resource "coralogix_group" "example" {
 ### Read-Only
 
 - `id` (String) Group ID.
-
-### Import
-
-```sh
-terraform import coralogix_group.example <group-id>
-```
-
-to get the group id you can use the following command:
-```sh
-curl --location --request GET 'https://ng-api-http.<region-domain>/scim/Groups' \
---header 'Authorization: Bearer <api-key>' \'  
-```
-[region-domain table](../index.md#region-domain-table)

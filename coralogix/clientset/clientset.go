@@ -4,7 +4,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//	https://www.apache.org/licenses/LICENSE-2.0
+//     https://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,34 +19,34 @@ import (
 )
 
 type ClientSet struct {
-	actions      *cxsdk.ActionsClient
-	alerts       *cxsdk.AlertsClient
-	apikeys      *cxsdk.ApikeysClient
-	integrations *cxsdk.IntegrationsClient
+	actions             *cxsdk.ActionsClient
+	alerts              *cxsdk.AlertsClient
+	apikeys             *cxsdk.ApikeysClient
+	integrations        *cxsdk.IntegrationsClient
+	enrichments         *cxsdk.EnrichmentsClient
+	dataSet             *cxsdk.DataSetClient
+	webhooks            *cxsdk.WebhooksClient
+	slos                *cxsdk.SLOsClient
+	teams               *cxsdk.TeamsClient
+	scopes              *cxsdk.ScopesClient
+	dashboards          *cxsdk.DashboardsClient
+	archiveLogs         *cxsdk.ArchiveLogsClient
+	archiveMetrics      *cxsdk.ArchiveMetricsClient
+	archiveRetentions   *cxsdk.ArchiveRetentionsClient
+	tcoPolicies         *cxsdk.TCOPoliciesClient
+	alertScheduler      *cxsdk.AlertSchedulerClient
+	dahboardsFolders    *cxsdk.DashboardsFoldersClient
+	ruleGroups          *cxsdk.RuleGroupsClient
+	recordingRuleGroups *cxsdk.RecordingRuleGroupSetsClient
+	users               *cxsdk.UsersClient
+	customRole          *cxsdk.RolesClient
+	events2Metrics      *cxsdk.Events2MetricsClient
 
-	ruleGroups          *RuleGroupsClient
-	enrichments         *EnrichmentsClient
-	dataSet             *DataSetClient
-	dashboards          *DashboardsClient
-	grafana             *GrafanaClient
-	recordingRuleGroups *RecordingRulesGroupsSetsClient
-	tcoPolicies         *TCOPoliciesClient
-	webhooks            *WebhooksClient
-	events2Metrics      *Events2MetricsClient
-	archiveRetentions   *ArchiveRetentionsClient
-	archiveMetrics      *ArchiveMetricsClient
-	archiveLogs         *ArchiveLogsClient
-	alertsSchedulers    *AlertsSchedulersClient
-	teams               *TeamsClient
-	slos                *SLOsClient
-	dahboardsFolders    *DashboardsFoldersClient
-	groups              *GroupsClient
-	users               *UsersClient
-	customRole          *RolesClient
-	scopes              *ScopesClient
+	grafana *GrafanaClient
+	groups  *GroupsClient
 }
 
-func (c *ClientSet) RuleGroups() *RuleGroupsClient {
+func (c *ClientSet) RuleGroups() *cxsdk.RuleGroupsClient {
 	return c.ruleGroups
 }
 
@@ -61,15 +61,15 @@ func (c *ClientSet) APIKeys() *cxsdk.ApikeysClient {
 func (c *ClientSet) Actions() *cxsdk.ActionsClient {
 	return c.actions
 }
-func (c *ClientSet) Enrichments() *EnrichmentsClient {
+func (c *ClientSet) Enrichments() *cxsdk.EnrichmentsClient {
 	return c.enrichments
 }
 
-func (c *ClientSet) DataSet() *DataSetClient {
+func (c *ClientSet) DataSet() *cxsdk.DataSetClient {
 	return c.dataSet
 }
 
-func (c *ClientSet) Dashboards() *DashboardsClient {
+func (c *ClientSet) Dashboards() *cxsdk.DashboardsClient {
 	return c.dashboards
 }
 
@@ -77,51 +77,51 @@ func (c *ClientSet) Grafana() *GrafanaClient {
 	return c.grafana
 }
 
-func (c *ClientSet) RecordingRuleGroupsSets() *RecordingRulesGroupsSetsClient {
+func (c *ClientSet) RecordingRuleGroupsSets() *cxsdk.RecordingRuleGroupSetsClient {
 	return c.recordingRuleGroups
 }
 
-func (c *ClientSet) TCOPolicies() *TCOPoliciesClient {
+func (c *ClientSet) TCOPolicies() *cxsdk.TCOPoliciesClient {
 	return c.tcoPolicies
 }
 
-func (c *ClientSet) Webhooks() *WebhooksClient {
+func (c *ClientSet) Webhooks() *cxsdk.WebhooksClient {
 	return c.webhooks
 }
 
-func (c *ClientSet) Events2Metrics() *Events2MetricsClient {
+func (c *ClientSet) Events2Metrics() *cxsdk.Events2MetricsClient {
 	return c.events2Metrics
 }
 
-func (c *ClientSet) ArchiveRetentions() *ArchiveRetentionsClient {
+func (c *ClientSet) ArchiveRetentions() *cxsdk.ArchiveRetentionsClient {
 	return c.archiveRetentions
 }
 
-func (c *ClientSet) ArchiveMetrics() *ArchiveMetricsClient {
+func (c *ClientSet) ArchiveMetrics() *cxsdk.ArchiveMetricsClient {
 	return c.archiveMetrics
 }
 
-func (c *ClientSet) ArchiveLogs() *ArchiveLogsClient {
+func (c *ClientSet) ArchiveLogs() *cxsdk.ArchiveLogsClient {
 	return c.archiveLogs
 }
 
-func (c *ClientSet) AlertSchedulers() *AlertsSchedulersClient {
-	return c.alertsSchedulers
+func (c *ClientSet) AlertSchedulers() *cxsdk.AlertSchedulerClient {
+	return c.alertScheduler
 }
 
-func (c *ClientSet) Teams() *TeamsClient {
+func (c *ClientSet) Teams() *cxsdk.TeamsClient {
 	return c.teams
 }
 
-func (c *ClientSet) CustomRoles() *RolesClient {
+func (c *ClientSet) CustomRoles() *cxsdk.RolesClient {
 	return c.customRole
 }
 
-func (c *ClientSet) SLOs() *SLOsClient {
+func (c *ClientSet) SLOs() *cxsdk.SLOsClient {
 	return c.slos
 }
 
-func (c *ClientSet) DashboardsFolders() *DashboardsFoldersClient {
+func (c *ClientSet) DashboardsFolders() *cxsdk.DashboardsFoldersClient {
 	return c.dahboardsFolders
 }
 
@@ -129,11 +129,11 @@ func (c *ClientSet) Groups() *GroupsClient {
 	return c.groups
 }
 
-func (c *ClientSet) Users() *UsersClient {
+func (c *ClientSet) Users() *cxsdk.UsersClient {
 	return c.users
 }
 
-func (c *ClientSet) Scopes() *ScopesClient {
+func (c *ClientSet) Scopes() *cxsdk.ScopesClient {
 	return c.scopes
 }
 
@@ -143,32 +143,33 @@ func (c *ClientSet) Integrations() *cxsdk.IntegrationsClient {
 
 func NewClientSet(targetUrl, apiKey string) *ClientSet {
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
-	apiKeySdk := cxsdk.NewCallPropertiesCreator(targetUrl, cxsdk.NewAuthContext(apiKey, apiKey))
+	apiKeySdk := cxsdk.NewCallPropertiesCreatorTerraformOperator(targetUrl, cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 
 	return &ClientSet{
 		apikeys:             cxsdk.NewAPIKeysClient(apiKeySdk),
 		actions:             cxsdk.NewActionsClient(apiKeySdk),
 		integrations:        cxsdk.NewIntegrationsClient(apiKeySdk),
-		ruleGroups:          NewRuleGroupsClient(apikeyCPC),
+		enrichments:         cxsdk.NewEnrichmentClient(apiKeySdk),
 		alerts:              cxsdk.NewAlertsClient(apiKeySdk),
-		events2Metrics:      NewEvents2MetricsClient(apikeyCPC),
-		enrichments:         NewEnrichmentClient(apikeyCPC),
-		dataSet:             NewDataSetClient(apikeyCPC),
-		dashboards:          NewDashboardsClient(apikeyCPC),
-		grafana:             NewGrafanaClient(apikeyCPC),
-		recordingRuleGroups: NewRecordingRuleGroupsClient(apikeyCPC),
-		tcoPolicies:         NewTCOPoliciesClient(apikeyCPC),
-		webhooks:            NewWebhooksClient(apikeyCPC),
-		archiveRetentions:   NewArchiveRetentionsClient(apikeyCPC),
-		archiveMetrics:      NewArchiveMetricsClient(apikeyCPC),
-		archiveLogs:         NewArchiveLogsClient(apikeyCPC),
-		alertsSchedulers:    NewAlertsSchedulersClient(apikeyCPC),
-		teams:               NewTeamsClient(apikeyCPC),
-		slos:                NewSLOsClient(apikeyCPC),
-		dahboardsFolders:    NewDashboardsFoldersClient(apikeyCPC),
-		groups:              NewGroupsClient(apikeyCPC),
-		users:               NewUsersClient(apikeyCPC),
-		customRole:          NewRolesClient(apikeyCPC),
-		scopes:              NewScopesClient(apikeyCPC),
+		dataSet:             cxsdk.NewDataSetClient(apiKeySdk),
+		webhooks:            cxsdk.NewWebhooksClient(apiKeySdk),
+		slos:                cxsdk.NewSLOsClient(apiKeySdk),
+		teams:               cxsdk.NewTeamsClient(apiKeySdk),
+		scopes:              cxsdk.NewScopesClient(apiKeySdk),
+		dashboards:          cxsdk.NewDashboardsClient(apiKeySdk),
+		archiveLogs:         cxsdk.NewArchiveLogsClient(apiKeySdk),
+		archiveMetrics:      cxsdk.NewArchiveMetricsClient(apiKeySdk),
+		archiveRetentions:   cxsdk.NewArchiveRetentionsClient(apiKeySdk),
+		tcoPolicies:         cxsdk.NewTCOPoliciesClient(apiKeySdk),
+		alertScheduler:      cxsdk.NewAlertSchedulerClient(apiKeySdk),
+		dahboardsFolders:    cxsdk.NewDashboardsFoldersClient(apiKeySdk),
+		users:               cxsdk.NewUsersClient(apiKeySdk),
+		ruleGroups:          cxsdk.NewRuleGroupsClient(apiKeySdk),
+		recordingRuleGroups: cxsdk.NewRecordingRuleGroupSetsClient(apiKeySdk),
+		customRole:          cxsdk.NewRolesClient(apiKeySdk),
+		events2Metrics:      cxsdk.NewEvents2MetricsClient(apiKeySdk),
+
+		grafana: NewGrafanaClient(apikeyCPC),
+		groups:  NewGroupsClient(apikeyCPC),
 	}
 }

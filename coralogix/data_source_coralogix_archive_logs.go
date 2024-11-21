@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,13 +19,16 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 var _ datasource.DataSourceWithConfigure = &ArchiveLogsDataSource{}
@@ -35,7 +38,7 @@ func NewArchiveLogsDataSource() datasource.DataSource {
 }
 
 type ArchiveLogsDataSource struct {
-	client *clientset.ArchiveLogsClient
+	client *cxsdk.ArchiveLogsClient
 }
 
 func (d *ArchiveLogsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -77,7 +80,7 @@ func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadReq
 	//Get refreshed archive-Logs value from Coralogix
 	id := data.ID.ValueString()
 	log.Print("[INFO] Reading archive-logs")
-	getResp, err := d.client.GetArchiveLogs(ctx)
+	getResp, err := d.client.Get(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -88,7 +91,7 @@ func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadReq
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading archive-logs",
-				formatRpcErrors(err, getArchiveLogsURL, ""),
+				formatRpcErrors(err, cxsdk.ArchiveLogsGetTargetRPC, ""),
 			)
 		}
 		return

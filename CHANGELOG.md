@@ -688,3 +688,25 @@ New Features:
 
 ### data-source/coralogix_webhook
 * Added support for searching by webhook name.
+
+## Release 1.18.12
+
+Fix: 
+
+* coralogix_integration with sensitive data didn't work
+* coralogix_integration with additional default parameters didn't work
+* documentation examples are now automatically generated
+
+New Features
+
+New Features:
+
+* new endpoint: `[AP3, APAC3]`.
+
+### resource/coralogix_dashboard 
+
+* Support for auto generated IDs added
+
+DEVELOPERS:
+
+* go version was update to 1.23.x

@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,10 +22,10 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	dashboard "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -113,7 +113,7 @@ func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 		panic(err)
 	}
 	parent := filepath.Dir(wd)
-	filePath := parent + "/examples/dashboard/dashboard.json"
+	filePath := parent + "/examples/resources/coralogix_dashboard/dashboard.json"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -140,7 +140,7 @@ func testAccCheckDashboardDestroy(s *terraform.State) error {
 		}
 
 		dashboardId := wrapperspb.String(rs.Primary.ID)
-		resp, err := client.GetDashboard(ctx, &dashboard.GetDashboardRequest{DashboardId: dashboardId})
+		resp, err := client.Get(ctx, &cxsdk.GetDashboardRequest{DashboardId: dashboardId})
 		if err == nil {
 			if resp.GetDashboard().GetId().GetValue() == rs.Primary.ID {
 				return fmt.Errorf("dashboard still exists: %s", rs.Primary.ID)

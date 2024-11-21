@@ -12,14 +12,14 @@ Coralogix Scope.
 
 ## Example Usage
 
-```hcl
+```terraform
 resource "coralogix_scope" "example" {
   display_name       = "ExampleScope"
-  default_expression = "true"
+  default_expression = "<v1>true"
   filters            = [
     {
       entity_type = "logs"
-      expression  = "(subsystemName == 'purchases') || (subsystemName == 'signups')"
+      expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
     }
   ]
 }
@@ -30,7 +30,7 @@ resource "coralogix_scope" "example" {
 
 ### Required
 
-- `default_expression` (String) Default expression to use when no filter matches the query. Until further notice, this can is limited to `true` (everything is included) or `false` (nothing is included). Use a version tag (e.g `<v1> true` or `<v1> false`)
+- `default_expression` (String) Default expression to use when no filter matches the query. Until further notice, this can is limited to `true` (everything is included) or `false` (nothing is included). Use a version tag (e.g `<v1>true` or `<v1>false`)
 - `display_name` (String) Scope display name.
 - `filters` (Attributes List) Filters applied to include data in the scope. (see [below for nested schema](#nestedatt--filters))
 

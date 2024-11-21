@@ -21,7 +21,8 @@ import (
 	"regexp"
 	"strings"
 	"terraform-provider-coralogix/coralogix/clientset"
-	scopes "terraform-provider-coralogix/coralogix/clientset/grpc/scopes"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -39,12 +40,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-var (
-	createScopeURL = scopes.ScopesService_CreateScope_FullMethodName
-	deleteScopeURL = scopes.ScopesService_DeleteScope_FullMethodName
-	updateScopeURL = scopes.ScopesService_UpdateScope_FullMethodName
-)
-
 var availableEntityTypes = []string{"logs", "spans", "unspecified"}
 
 func NewScopeResource() resource.Resource {
@@ -52,7 +47,7 @@ func NewScopeResource() resource.Resource {
 }
 
 type ScopeResource struct {
-	client *clientset.ScopesClient
+	client *cxsdk.ScopesClient
 }
 
 func (r *ScopeResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -170,13 +165,13 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Scope",
-			formatRpcErrors(err, createScopeURL, protojson.Format(createScopeReq)),
+			formatRpcErrors(err, cxsdk.CreateScopeRPC, protojson.Format(createScopeReq)),
 		)
 		return
 	}
 	log.Printf("[INFO] Submitted new scope: %s", protojson.Format(createScopeResp))
 
-	getScopeReq := &scopes.GetTeamScopesByIdsRequest{
+	getScopeReq := &cxsdk.GetTeamScopesByIDsRequest{
 		Ids: []string{createScopeResp.Scope.Id},
 	}
 	log.Printf("[INFO] Getting new Scope: %s", protojson.Format(getScopeReq))
@@ -186,7 +181,7 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Scope",
-			formatRpcErrors(err, getScopeURL, protojson.Format(getScopeReq)),
+			formatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
 		)
 		return
 	}
@@ -198,22 +193,26 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 	resp.Diagnostics.Append(diags...)
 }
 
-func extractCreateScope(plan *ScopeResourceModel) (*scopes.CreateScopeRequest, diag.Diagnostics) {
-	var filters []*scopes.Filter
+func EntityType(s string) string {
+	return strings.ToUpper(fmt.Sprintf("ENTITY_TYPE_%v", s))
+}
+
+func extractCreateScope(plan *ScopeResourceModel) (*cxsdk.CreateScopeRequest, diag.Diagnostics) {
+	var filters []*cxsdk.ScopeFilter
 
 	for _, filter := range plan.Filters {
-		entityType := scopes.EntityType_value[strings.ToUpper(filter.EntityType.ValueString())]
+		entityType := cxsdk.EntityTypeValueLookup[EntityType(filter.EntityType.ValueString())]
 
 		if entityType == 0 && filter.EntityType.ValueString() != "unspecified" {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid entity type", fmt.Sprintf("Invalid entity type: %s", filter.EntityType.ValueString()))}
 		}
-		filters = append(filters, &scopes.Filter{
+		filters = append(filters, &cxsdk.ScopeFilter{
 			Expression: filter.Expression.ValueString(),
-			EntityType: scopes.EntityType(entityType),
+			EntityType: cxsdk.EntityType(entityType),
 		})
 	}
 
-	return &scopes.CreateScopeRequest{
+	return &cxsdk.CreateScopeRequest{
 		DisplayName:       plan.DisplayName.ValueString(),
 		Description:       plan.Description.ValueStringPointer(),
 		Filters:           filters,
@@ -221,7 +220,7 @@ func extractCreateScope(plan *ScopeResourceModel) (*scopes.CreateScopeRequest, d
 	}, nil
 }
 
-func flattenScope(resp *scopes.GetScopesResponse) []ScopeResourceModel {
+func flattenScope(resp *cxsdk.GetScopesResponse) []ScopeResourceModel {
 	var scopes []ScopeResourceModel
 	for _, scope := range resp.GetScopes() {
 		description := types.StringNull()
@@ -239,11 +238,11 @@ func flattenScope(resp *scopes.GetScopesResponse) []ScopeResourceModel {
 	return scopes
 }
 
-func flattenScopeFilters(filters []*scopes.Filter) []ScopeFilterModel {
+func flattenScopeFilters(filters []*cxsdk.ScopeFilter) []ScopeFilterModel {
 	var result []ScopeFilterModel
 	for _, filter := range filters {
 		result = append(result, ScopeFilterModel{
-			EntityType: types.StringValue(strings.ToLower(scopes.EntityType_name[int32(filter.GetEntityType())])),
+			EntityType: types.StringValue(strings.ToLower(cxsdk.EntityTypeNameLookup[int32(filter.GetEntityType())])),
 			Expression: types.StringValue(filter.GetExpression()),
 		})
 	}
@@ -258,7 +257,7 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 
-	getScopeReq := &scopes.GetTeamScopesByIdsRequest{
+	getScopeReq := &cxsdk.GetTeamScopesByIDsRequest{
 		Ids: []string{plan.ID.ValueString()},
 	}
 	log.Printf("[INFO] Reading Scope: %s", protojson.Format(getScopeReq))
@@ -274,7 +273,7 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Scope",
-				formatRpcErrors(err, getScopeURL, protojson.Format(getScopeReq)),
+				formatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
 			)
 		}
 		return
@@ -307,14 +306,14 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Scope",
-			formatRpcErrors(err, updateScopeURL, protojson.Format(updateReq)),
+			formatRpcErrors(err, cxsdk.UpdateScopeRPC, protojson.Format(updateReq)),
 		)
 		return
 	}
 
 	log.Printf("[INFO] Updated scope: %s", plan.ID.ValueString())
 
-	getScopeReq := &scopes.GetTeamScopesByIdsRequest{
+	getScopeReq := &cxsdk.GetTeamScopesByIDsRequest{
 		Ids: []string{plan.ID.ValueString()},
 	}
 	getScopeResp, err := r.client.Get(ctx, getScopeReq)
@@ -322,7 +321,7 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Scope",
-			formatRpcErrors(err, getScopeURL, protojson.Format(getScopeReq)),
+			formatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
 		)
 		return
 	}
@@ -334,23 +333,23 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	resp.Diagnostics.Append(diags...)
 }
 
-func extractUpdateScope(plan *ScopeResourceModel) (*scopes.UpdateScopeRequest, diag.Diagnostics) {
+func extractUpdateScope(plan *ScopeResourceModel) (*cxsdk.UpdateScopeRequest, diag.Diagnostics) {
 
-	var filters []*scopes.Filter
+	var filters []*cxsdk.ScopeFilter
 
 	for _, filter := range plan.Filters {
-		entityType := scopes.EntityType_value[strings.ToUpper(filter.EntityType.ValueString())]
+		entityType := cxsdk.EntityTypeValueLookup[EntityType(filter.EntityType.ValueString())]
 
 		if entityType == 0 && filter.EntityType.ValueString() != "unspecified" {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid entity type", fmt.Sprintf("Invalid entity type: %s", filter.EntityType.ValueString()))}
 		}
-		filters = append(filters, &scopes.Filter{
+		filters = append(filters, &cxsdk.ScopeFilter{
 			Expression: filter.Expression.ValueString(),
-			EntityType: scopes.EntityType(entityType),
+			EntityType: cxsdk.EntityType(entityType),
 		})
 	}
 
-	return &scopes.UpdateScopeRequest{
+	return &cxsdk.UpdateScopeRequest{
 		Id:                plan.ID.ValueString(),
 		DisplayName:       plan.DisplayName.ValueString(),
 		Description:       plan.Description.ValueStringPointer(),
@@ -369,14 +368,14 @@ func (r *ScopeResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 
 	log.Printf("[INFO] Deleting Scope: %s", state.ID.ValueString())
 
-	deleteReq := &scopes.DeleteScopeRequest{Id: state.ID.ValueString()}
+	deleteReq := &cxsdk.DeleteScopeRequest{Id: state.ID.ValueString()}
 	log.Printf("[INFO] Deleting Scope: %s", protojson.Format(deleteReq))
 	_, err := r.client.Delete(ctx, deleteReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error deleting Scope",
-			formatRpcErrors(err, deleteScopeURL, protojson.Format(deleteReq)),
+			formatRpcErrors(err, cxsdk.DeleteScopeRPC, protojson.Format(deleteReq)),
 		)
 		return
 	}

@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,11 +20,12 @@ import (
 	"log"
 	"strconv"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"terraform-provider-coralogix/coralogix/clientset"
-	slos "terraform-provider-coralogix/coralogix/clientset/grpc/slo"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -46,41 +47,37 @@ var (
 	_                                resource.ResourceWithConfigure        = &SLOResource{}
 	_                                resource.ResourceWithImportState      = &SLOResource{}
 	_                                resource.ResourceWithConfigValidators = &SLOResource{}
-	protoToSchemaThresholdSymbolType                                       = map[slos.ThresholdSymbol]string{
-		slos.ThresholdSymbol_THRESHOLD_SYMBOL_GREATER:          "greater",
-		slos.ThresholdSymbol_THRESHOLD_SYMBOL_GREATER_OR_EQUAL: "greater_or_equal",
-		slos.ThresholdSymbol_THRESHOLD_SYMBOL_LESS:             "less",
-		slos.ThresholdSymbol_THRESHOLD_SYMBOL_LESS_OR_EQUAL:    "less_or_equal",
-		slos.ThresholdSymbol_THRESHOLD_SYMBOL_EQUAL:            "equal",
+	protoToSchemaThresholdSymbolType                                       = map[cxsdk.ThresholdSymbol]string{
+		cxsdk.SloThresholdSymbolGreater:        "greater_or_equal",
+		cxsdk.SloThresholdSymbolGreaterOrEqual: "greater",
+		cxsdk.SloThresholdSymbolLess:           "less",
+		cxsdk.SloThresholdSymbolLessOrEqual:    "less_or_equal",
+		cxsdk.SloThresholdSymbolEqual:          "equal",
 	}
 	schemaToProtoThresholdSymbolType = ReverseMap(protoToSchemaThresholdSymbolType)
 	validThresholdSymbolTypes        = GetKeys(schemaToProtoThresholdSymbolType)
-	protoToSchemaSLOCompareType      = map[slos.CompareType]string{
-		slos.CompareType_COMPARE_TYPE_UNSPECIFIED: "unspecified",
-		slos.CompareType_COMPARE_TYPE_IS:          "is",
-		slos.CompareType_COMPARE_TYPE_START_WITH:  "starts_with",
-		slos.CompareType_COMPARE_TYPE_ENDS_WITH:   "ends_with",
-		slos.CompareType_COMPARE_TYPE_INCLUDES:    "includes",
+	protoToSchemaSLOCompareType      = map[cxsdk.CompareType]string{
+		cxsdk.SloCompareTypeUnspecified: "unspecified",
+		cxsdk.SloCompareTypeIs:          "is",
+		cxsdk.SloCompareTypeStartsWith:  "starts_with",
+		cxsdk.SloCompareTypeEndsWith:    "ends_with",
+		cxsdk.SloCompareTypeIncludes:    "includes",
 	}
 	schemaToProtoSLOCompareType = ReverseMap(protoToSchemaSLOCompareType)
 	validSLOCompareTypes        = GetKeys(schemaToProtoSLOCompareType)
-	protoToSchemaSLOPeriod      = map[slos.SloPeriod]string{
-		slos.SloPeriod_SLO_PERIOD_UNSPECIFIED: "unspecified",
-		slos.SloPeriod_SLO_PERIOD_7_DAYS:      "7_days",
-		slos.SloPeriod_SLO_PERIOD_14_DAYS:     "14_days",
-		slos.SloPeriod_SLO_PERIOD_30_DAYS:     "30_days",
+	protoToSchemaSLOPeriod      = map[cxsdk.SloPeriod]string{
+		cxsdk.SloPeriodUnspecified: "unspecified",
+		cxsdk.SloPeriod7Days:       "7_days",
+		cxsdk.SloPeriod14Days:      "14_days",
+		cxsdk.SloPeriod30Days:      "30_days",
 	}
 	schemaToProtoSLOPeriod = ReverseMap(protoToSchemaSLOPeriod)
 	validSLOPeriods        = GetKeys(schemaToProtoSLOPeriod)
-	protoToSchemaSLOStatus = map[slos.SloStatus]string{
-		slos.SloStatus_SLO_STATUS_UNSPECIFIED: "unspecified",
-		slos.SloStatus_SLO_STATUS_OK:          "ok",
-		slos.SloStatus_SLO_STATUS_BREACHED:    "breached",
+	protoToSchemaSLOStatus = map[cxsdk.SloStatus]string{
+		cxsdk.SloStatusUnspecified: "unspecified",
+		cxsdk.SloStatusOk:          "ok",
+		cxsdk.SloStatusBreached:    "breached",
 	}
-	createSloUrl = "com.coralogixapis.apm.services.v1.ServiceSloService/CreateServiceSlo"
-	getSloUrl    = "com.coralogixapis.apm.services.v1.ServiceSloService/GetServiceSlo"
-	updateSloUrl = "com.coralogixapis.apm.services.v1.ServiceSloService/ReplaceServiceSlo"
-	deleteSloUrl = "com.coralogixapis.apm.services.v1.ServiceSloService/DeleteServiceSlo"
 )
 
 func NewSLOResource() resource.Resource {
@@ -88,7 +85,7 @@ func NewSLOResource() resource.Resource {
 }
 
 type SLOResource struct {
-	client *clientset.SLOsClient
+	client *cxsdk.SLOsClient
 }
 
 func (r *SLOResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
@@ -284,14 +281,14 @@ func (r *SLOResource) Create(ctx context.Context, req resource.CreateRequest, re
 		resp.Diagnostics = diags
 		return
 	}
-	createSloReq := &slos.CreateServiceSloRequest{Slo: slo}
+	createSloReq := &cxsdk.CreateServiceSloRequest{Slo: slo}
 	log.Printf("[INFO] Creating new SLO: %s", protojson.Format(createSloReq))
-	createResp, err := r.client.CreateSLO(ctx, createSloReq)
+	createResp, err := r.client.Create(ctx, createSloReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating SLO",
-			formatRpcErrors(err, createSloUrl, protojson.Format(createSloReq)),
+			formatRpcErrors(err, cxsdk.SloCreateRPC, protojson.Format(createSloReq)),
 		)
 		return
 	}
@@ -307,7 +304,7 @@ func (r *SLOResource) Create(ctx context.Context, req resource.CreateRequest, re
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenSLO(ctx context.Context, slo *slos.ServiceSlo) (*SLOResourceModel, diag.Diagnostics) {
+func flattenSLO(ctx context.Context, slo *cxsdk.ServiceSlo) (*SLOResourceModel, diag.Diagnostics) {
 	filters, diags := flattenSLOFilters(ctx, slo.GetFilters())
 	if diags != nil {
 		return nil, diags
@@ -330,7 +327,7 @@ func flattenSLO(ctx context.Context, slo *slos.ServiceSlo) (*SLOResourceModel, d
 	return flattenedSlo, nil
 }
 
-func flattenSLOFilters(ctx context.Context, filters []*slos.SliFilter) (types.Set, diag.Diagnostics) {
+func flattenSLOFilters(ctx context.Context, filters []*cxsdk.SliFilter) (types.Set, diag.Diagnostics) {
 	if len(filters) == 0 {
 		return types.SetNull(types.ObjectType{AttrTypes: sloFilterModelAttr()}), nil
 	}
@@ -362,11 +359,11 @@ func sloFilterModelAttr() map[string]attr.Type {
 	}
 }
 
-func flattenSLOType(flattenedSlo *SLOResourceModel, slo *slos.ServiceSlo) (*SLOResourceModel, diag.Diagnostic) {
+func flattenSLOType(flattenedSlo *SLOResourceModel, slo *cxsdk.ServiceSlo) (*SLOResourceModel, diag.Diagnostic) {
 	switch sliType := slo.SliType.(type) {
-	case *slos.ServiceSlo_ErrorSli:
+	case *cxsdk.ServiceSloErrorSli:
 		flattenedSlo.Type = types.StringValue("error")
-	case *slos.ServiceSlo_LatencySli:
+	case *cxsdk.ServiceSloLatencySli:
 		flattenedSlo.Type = types.StringValue("latency")
 		latency, err := strconv.Atoi(sliType.LatencySli.GetThresholdMicroseconds().GetValue())
 		if err != nil {
@@ -378,12 +375,12 @@ func flattenSLOType(flattenedSlo *SLOResourceModel, slo *slos.ServiceSlo) (*SLOR
 	return flattenedSlo, nil
 }
 
-func extractSLO(ctx context.Context, plan *SLOResourceModel) (*slos.ServiceSlo, diag.Diagnostics) {
+func extractSLO(ctx context.Context, plan *SLOResourceModel) (*cxsdk.ServiceSlo, diag.Diagnostics) {
 	filters, diags := extractSLOFilters(ctx, plan.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
-	slo := &slos.ServiceSlo{
+	slo := &cxsdk.ServiceSlo{
 		Id:               typeStringToWrapperspbString(plan.ID),
 		Name:             typeStringToWrapperspbString(plan.Name),
 		ServiceName:      typeStringToWrapperspbString(plan.ServiceName),
@@ -397,14 +394,14 @@ func extractSLO(ctx context.Context, plan *SLOResourceModel) (*slos.ServiceSlo, 
 	return slo, nil
 }
 
-func expandSLIType(slo *slos.ServiceSlo, plan *SLOResourceModel) *slos.ServiceSlo {
+func expandSLIType(slo *cxsdk.ServiceSlo, plan *SLOResourceModel) *cxsdk.ServiceSlo {
 	switch plan.Type.ValueString() {
 	case "error":
-		slo.SliType = &slos.ServiceSlo_ErrorSli{ErrorSli: &slos.ErrorSli{}}
+		slo.SliType = &cxsdk.ServiceSloErrorSli{ErrorSli: &cxsdk.ErrorSli{}}
 	case "latency":
 
-		slo.SliType = &slos.ServiceSlo_LatencySli{
-			LatencySli: &slos.LatencySli{
+		slo.SliType = &cxsdk.ServiceSloLatencySli{
+			LatencySli: &cxsdk.LatencySli{
 				ThresholdMicroseconds: wrapperspb.String(strconv.Itoa(int(plan.ThresholdMicroseconds.ValueInt64()))),
 				ThresholdSymbol:       schemaToProtoThresholdSymbolType[plan.ThresholdSymbolType.ValueString()],
 			},
@@ -414,10 +411,10 @@ func expandSLIType(slo *slos.ServiceSlo, plan *SLOResourceModel) *slos.ServiceSl
 	return slo
 }
 
-func extractSLOFilters(ctx context.Context, filters types.Set) ([]*slos.SliFilter, diag.Diagnostics) {
+func extractSLOFilters(ctx context.Context, filters types.Set) ([]*cxsdk.SliFilter, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var filtersObjects []types.Object
-	var expandedLabels []*slos.SliFilter
+	var expandedLabels []*cxsdk.SliFilter
 	filters.ElementsAs(ctx, &filtersObjects, true)
 
 	for _, fo := range filtersObjects {
@@ -431,7 +428,7 @@ func extractSLOFilters(ctx context.Context, filters types.Set) ([]*slos.SliFilte
 			diags.Append(dgs...)
 			continue
 		}
-		expandedLabel := &slos.SliFilter{
+		expandedLabel := &cxsdk.SliFilter{
 			Field:       typeStringToWrapperspbString(label.Field),
 			CompareType: schemaToProtoSLOCompareType[label.CompareType.ValueString()],
 			FieldValues: fieldValues,
@@ -452,8 +449,8 @@ func (r *SLOResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 
 	//Get refreshed SLO value from Coralogix
 	id := state.ID.ValueString()
-	readSloReq := &slos.GetServiceSloRequest{Id: wrapperspb.String(id)}
-	readSloResp, err := r.client.GetSLO(ctx, readSloReq)
+	readSloReq := &cxsdk.GetServiceSloRequest{Id: wrapperspb.String(id)}
+	readSloResp, err := r.client.Get(ctx, readSloReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -465,7 +462,7 @@ func (r *SLOResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",
-				formatRpcErrors(err, getSloUrl, protojson.Format(readSloReq)),
+				formatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(readSloReq)),
 			)
 		}
 		return
@@ -498,14 +495,14 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		resp.Diagnostics = diags
 		return
 	}
-	updateSloReq := &slos.ReplaceServiceSloRequest{Slo: slo}
+	updateSloReq := &cxsdk.ReplaceServiceSloRequest{Slo: slo}
 	log.Printf("[INFO] Updating SLO: %s", protojson.Format(updateSloReq))
-	updateSloResp, err := r.client.UpdateSLO(ctx, updateSloReq)
+	updateSloResp, err := r.client.Update(ctx, updateSloReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating SLO",
-			formatRpcErrors(err, updateSloUrl, protojson.Format(updateSloReq)),
+			formatRpcErrors(err, cxsdk.SloReplaceRPC, protojson.Format(updateSloReq)),
 		)
 		return
 	}
@@ -513,8 +510,8 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 
 	// Get refreshed SLO value from Coralogix
 	id := plan.ID.ValueString()
-	getSloReq := &slos.GetServiceSloRequest{Id: wrapperspb.String(id)}
-	getSloResp, err := r.client.GetSLO(ctx, getSloReq)
+	getSloReq := &cxsdk.GetServiceSloRequest{Id: wrapperspb.String(id)}
+	getSloResp, err := r.client.Get(ctx, getSloReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -526,7 +523,7 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",
-				formatRpcErrors(err, getSloUrl, protojson.Format(getSloReq)),
+				formatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(getSloReq)),
 			)
 		}
 		return
@@ -555,12 +552,12 @@ func (r *SLOResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting SLO %s\n", id)
-	deleteReq := &slos.DeleteServiceSloRequest{Id: wrapperspb.String(id)}
-	if _, err := r.client.DeleteSLO(ctx, deleteReq); err != nil {
+	deleteReq := &cxsdk.DeleteServiceSloRequest{Id: wrapperspb.String(id)}
+	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
 		reqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting SLO %s", state.ID.ValueString()),
-			formatRpcErrors(err, deleteSloUrl, reqStr),
+			formatRpcErrors(err, cxsdk.SloDeleteRPC, reqStr),
 		)
 		return
 	}

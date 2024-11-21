@@ -10,18 +10,30 @@ description: |-
 
 Rule-group is list of rule-subgroups with 'and' (&&) operation between. For more info please review - https://coralogix.com/docs/log-parsing-rules/ .
 
-
 ## Example Usage
 
-### Rule-Group
+```terraform
+terraform {
+  required_providers {
+    coralogix = {
+      version = "~> 1.5"
+      source  = "coralogix/coralogix"
+    }
+  }
+}
 
-```hcl
+provider "coralogix" {
+  #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+}
+
 resource "coralogix_rules_group" "rules_group_example" {
   name         = "Example rule-group from terraform"
   description  = "rule_group creates by coralogix terraform provider"
   applications = ["nginx"] //change here for existing applications from your account
   subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
   severities   = ["Warning"]
+  order        = 1
 
   rule_subgroups {
     rules {
@@ -38,7 +50,8 @@ resource "coralogix_rules_group" "rules_group_example" {
         name              = "Worker to category"
         description       = "Extracts value from 'worker' and populates 'Category'"
         json_key          = "worker"
-        destination_field = "Category"
+        destination_field = "Text"
+        destination_field_text = "text.free_text"
       }
     }
 
@@ -93,119 +106,70 @@ resource "coralogix_rules_group" "rules_group_example" {
         #for better example look at - https://coralogix.com/docs/log-parsing-rules/#stringify-json-fields
       }
     }
+
+  }
+}
+
+resource "coralogix_rules_group" "extract_timestamp_example" {
+  name         = "Example extract-timestamp rule-group from terraform"
+  description  = "rule_group created by coralogix terraform provider"
+  applications = ["nginx"] //change here for existing applications from your account
+  subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
+  severities   = ["Warning"]
+  order        = 4
+
+  rule_subgroups {
+    rules {
+      extract_timestamp {
+        name                  = "example extract-timestamp rule from terraform"
+        description           = "rule created by coralogix terraform provider"
+        source_field          = "text"
+        field_format_standard = "Strftime"
+        time_format           = "%Y-%m-%dT%H:%M:%S.%f%z"
+      }
+    }
+  }
+}
+
+resource "coralogix_rules_group" "remove_fields_example" {
+  name         = "Example remove-fields rule-group from terraform"
+  description  = "rule_group created by coralogix terraform provider"
+  applications = ["nginx"] //change here for existing applications from your account
+  subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
+  severities   = ["Warning"]
+  order        = 3
+  rule_subgroups {
+    rules {
+      remove_fields {
+        name            = "Example remove-fields rule from terraform"
+        description     = "rule created by coralogix terraform provider"
+        excluded_fields = ["coralogix.metadata.applicationName", "coralogix.metadata.className"]
+      }
+    }
+  }
+}
+
+resource "coralogix_rules_group" "parse_json_field_example" {
+  name         = "Example parse-json-field rule-group from terraform"
+  description  = "rule_group created by coralogix terraform provider"
+  applications = ["nginx"] //change here for existing applications from your account
+  subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
+  severities   = ["Warning"]
+  order = 2
+  rule_subgroups {
+    rules {
+      parse_json_field {
+        name                   = "Example parse-json-field rule from terraform"
+        description            = "rule created by coralogix terraform provider"
+        source_field           = "text"
+        destination_field      = "text"
+        keep_source_field      = "true"
+        keep_destination_field = "true"
+      }
+    }
   }
 }
 ```
-
-The above example wil create the following rule-group:
-![img.png](rules_group-example.png)
-rule_group which contains 2 rule_subgroups, the first rule_subgroups contains 4 rules and the second rule_subgroups contains 3 rules.
-On every rule_group there are rule_subgroups with 'and' (&&) operation between them and on every rule_subgroups there are rules with 'or' (||) operation between them.
-### Extract Rule
-
-```hcl
-extract {
-  name               = "Severity Rule"
-  description        = "Look for default severity text"
-  source_field       = "text"
-  regular_expression = "message\\s*:s*(?P<bytes>\\d+)\\s*.*?status\\sis\\s(?P<status>\\[^\"]+)"
-}
-```
-
-### Json-Extract Rule
-
-```hcl
-json_extract {
-  name              = "Worker to category"
-  description       = "Extracts value from 'worker' and populates 'Category'"
-  json_key          = "worker"
-  destination_field = "Category"
-}
-```
-
-### Replace Rule
-
-```hcl
-replace {
-  name               = "Delete prefix"
-  description        = "Deletes data before Json"
-  source_field       = "text"
-  destination_field  = "text"
-  replacement_string = "{"
-  regular_expression = ".*{"
-}
-```
-
-### Block Rule
-
-```hcl
-block {
-  name               = "Block 28000"
-  description        = "Block 2800 pg error"
-  source_field       = "text"
-  regular_expression = "sql_error_code\\s*=\\s*28000"
-}
-```
-
-### Parse Rule
-
-```hcl
-parse {
-  name               = "HttpRequestParser1"
-  description        = "Parse the fields of the HTTP request"
-  source_field       = "text"
-  destination_field  = "text"
-  regular_expression = "(?P<remote_addr>\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3})\\s*-\\s*(?P<user>[^ ]+)\\s*\\[(?P<timestemp>\\d{4}-\\d{2}\\-\\d{2}T\\d{2}\\:\\d{2}\\:\\d{2}\\.\\d{1,6}Z)\\]\\s*\\\\\\\"(?P<method>[A-z]+)\\s[\\/\\\\]+(?P<request>[^\\s]+)\\s*(?P<protocol>[A-z0-9\\/\\.]+)\\\\\\\"\\s*(?P<status>\\d+)\\s*(?P<body_bytes_sent>\\d+)?\\s*?\\\\\\\"(?P<http_referer>[^\"]+)\\\"\\s*\\\\\\\"(?P<http_user_agent>[^\"]+)\\\"\\s(?P<request_time>\\d{1,6})\\s*(?P<response_time>\\d{1,6})"
-}
-```
-
-### Json-Stringify Rule
-
-```hcl
-json_stringify {
-  name              = "json_stringify rule"
-  source_field      = "text"
-  destination_field = "text"
-  keep_source_field = "false"
-  #for better example look at - https://coralogix.com/docs/log-parsing-rules/#stringify-json-fields
-}
-```
-
-### Extract-Timestamp Rule
-
-```hcl
-extract_timestamp {
-  name                  = "example extract-timestamp rule from terraform"
-  description           = "rule created by coralogix terraform provider"
-  source_field          = "text"
-  field_format_standard = "Strftime"
-  time_format           = "%Y-%m-%dT%H:%M:%S.%f%z"
-}
-```
-
-### Remove-Fields Rule
-
-```hcl
-remove_fields {
-  name            = "Example remove-fields rule from terraform"
-  description     = "rule created by coralogix terraform provider"
-  excluded_fields = ["coralogix.metadata.applicationName", "coralogix.metadata.className"]
-}
-```
-
-### Parse-Json-Field Rule
-
-```hcl
-parse_json_field {
-  name                   = "Example parse-json-field rule from terraform"
-  description            = "rule created by coralogix terraform provider"
-  source_field           = "text"
-  destination_field      = "text"
-  keep_source_field      = "true"
-  keep_destination_field = "true" 
-}
-```
-
 
 <!-- schema generated by tfplugindocs -->
 ## Schema
@@ -223,7 +187,7 @@ parse_json_field {
 - `hidden` (Boolean)
 - `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing).
 - `rule_subgroups` (Block List) List of rule-subgroups. Every rule-subgroup is list of rules with 'or' (||) operation between. (see [below for nested schema](#nestedblock--rule_subgroups))
-- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["Warning" "Error" "Critical" "Debug" "Verbose" "Info"]
+- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["Verbose" "Info" "Warning" "Error" "Critical" "Debug"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
@@ -309,7 +273,7 @@ Read-Only:
 
 Required:
 
-- `field_format_standard` (String) The format standard you want to use. Can be one of ["MilliTS" "MicroTS" "NanoTS" "Strftime" "JavaSDF" "Golang" "SecondTS"]
+- `field_format_standard` (String) The format standard you want to use. Can be one of ["Golang" "SecondTS" "MilliTS" "MicroTS" "NanoTS" "Strftime" "JavaSDF"]
 - `name` (String) The rule name.
 - `source_field` (String) The field on which the Regex will operate on. Accepts lowercase only.
 - `time_format` (String) A time format that matches the field format standard
@@ -330,7 +294,7 @@ Read-Only:
 
 Required:
 
-- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [Method ThreadID Severity Text Category Class].
+- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [Severity Text Category Class Method ThreadID].
 - `json_key` (String) JSON key to extract its value directly into a Coralogix metadata field.
 - `name` (String) The rule name.
 
@@ -462,18 +426,3 @@ Optional:
 - `delete` (String)
 - `read` (String)
 - `update` (String)
-
-## Import
-
-```sh
-terraform import coralogix_rules_group.example <coralogix_rules_group-id>
-```
-
-to get the coralogix_rules_group id run the following command and look for the id of the coralogix_rules_group you want to import:
-```sh
-curl --location --request GET 'https://api.<region-domain>/api/v1/external/rules' \
---header 'Authorization: Bearer <api-key>' \
---data-raw ''
-```
-
-[region-domain table](../index.md#region-domain-table)

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"slices"
 	"terraform-provider-coralogix/coralogix/clientset"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
@@ -127,6 +128,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
 	createReq, diags := extractCreateIntegration(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -176,8 +178,14 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		)
 		return
 	}
+	keys, diags := KeysFromPlan(ctx, plan)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
-	state, e := integrationDetail(getIntegrationResp)
+	state, e := integrationDetail(getIntegrationResp, keys)
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
@@ -185,6 +193,16 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
+}
+
+func KeysFromPlan(ctx context.Context, plan *IntegrationResourceModel) ([]string, diag.Diagnostics) {
+	// extract keys first to filter the returned parameters later
+	parameters, diags := dynamicToParameters(ctx, plan.Parameters)
+	keys := make([]string, len(parameters))
+	for i, parameter := range parameters {
+		keys[i] = parameter.Key
+	}
+	return keys, diags
 }
 
 func extractCreateIntegration(ctx context.Context, plan *IntegrationResourceModel) (*cxsdk.SaveIntegrationRequest, diag.Diagnostics) {
@@ -283,10 +301,10 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 	return parameters, diag.Diagnostics{}
 }
 
-func integrationDetail(resp *cxsdk.GetDeployedIntegrationResponse) (*IntegrationResourceModel, diag.Diagnostics) {
+func integrationDetail(resp *cxsdk.GetDeployedIntegrationResponse, keys []string) (*IntegrationResourceModel, diag.Diagnostics) {
 
 	integration := resp.Integration
-	parameters, diags := parametersToDynamic(integration.GetParameters())
+	parameters, diags := parametersToDynamic(integration.GetParameters(), keys)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -299,38 +317,45 @@ func integrationDetail(resp *cxsdk.GetDeployedIntegrationResponse) (*Integration
 	}, diag.Diagnostics{}
 }
 
-func parametersToDynamic(parameters []*cxsdk.IntegrationParameter) (types.Dynamic, diag.Diagnostics) {
+func parametersToDynamic(parameters []*cxsdk.IntegrationParameter, keys []string) (types.Dynamic, diag.Diagnostics) {
 	obj := make(map[string]attr.Value, len(parameters))
 	t := make(map[string]attr.Type, len(parameters))
 	for _, parameter := range parameters {
-		switch v := parameter.Value.(type) {
-		case *cxsdk.IntegrationParameterStringValue:
-			obj[parameter.Key] = types.StringValue(v.StringValue.Value)
-			t[parameter.Key] = types.StringType
-		case *cxsdk.IntegrationParameterAPIKey:
-			obj[parameter.Key] = types.StringValue(v.ApiKey.Value.Value)
-			t[parameter.Key] = types.StringType
-		case *cxsdk.IntegrationParameterNumericValue:
-			obj[parameter.Key] = types.NumberValue(big.NewFloat(v.NumericValue.Value))
-			t[parameter.Key] = types.NumberType
-		case *cxsdk.IntegrationParameterBooleanValue:
-			obj[parameter.Key] = types.BoolValue(v.BooleanValue.Value)
-			t[parameter.Key] = types.BoolType
-		case *cxsdk.IntegrationParameterStringList:
-			values := make([]attr.Value, len(v.StringList.Values))
-			assignedTypes := make([]attr.Type, len(v.StringList.Values))
-			for i, value := range v.StringList.Values {
-				values[i] = types.StringValue(value.Value)
-				assignedTypes[i] = types.StringType
+		if slices.Contains(keys, parameter.Key) {
+			switch v := parameter.Value.(type) {
+			case *cxsdk.IntegrationParameterStringValue:
+				obj[parameter.Key] = types.StringValue(v.StringValue.Value)
+				t[parameter.Key] = types.StringType
+			case *cxsdk.IntegrationParameterAPIKey:
+				obj[parameter.Key] = types.StringValue(v.ApiKey.Value.Value)
+				t[parameter.Key] = types.StringType
+			case *cxsdk.IntegrationParameterSensitiveData:
+				obj[parameter.Key] = types.StringValue("<redacted>")
+				t[parameter.Key] = types.StringType
+			case *cxsdk.IntegrationParameterNumericValue:
+				obj[parameter.Key] = types.NumberValue(big.NewFloat(v.NumericValue.Value))
+				t[parameter.Key] = types.NumberType
+			case *cxsdk.IntegrationParameterBooleanValue:
+				obj[parameter.Key] = types.BoolValue(v.BooleanValue.Value)
+				t[parameter.Key] = types.BoolType
+			case *cxsdk.IntegrationParameterStringList:
+				values := make([]attr.Value, len(v.StringList.Values))
+				assignedTypes := make([]attr.Type, len(v.StringList.Values))
+				for i, value := range v.StringList.Values {
+					values[i] = types.StringValue(value.Value)
+					assignedTypes[i] = types.StringType
+				}
+				parameters, diags := types.TupleValue(assignedTypes, values)
+				if diags.HasError() {
+					return types.Dynamic{}, diags
+				}
+				obj[parameter.Key] = parameters
+				t[parameter.Key] = types.TupleType{ElemTypes: assignedTypes}
+			default:
+				obj[parameter.Key] = types.StringValue(protojson.Format(parameter))
+				t[parameter.Key] = types.StringType
+				log.Printf("[WARN] Invalid parameter type: %v", v)
 			}
-			parameters, diags := types.TupleValue(assignedTypes, values)
-			if diags.HasError() {
-				return types.Dynamic{}, diags
-			}
-			obj[parameter.Key] = parameters
-			t[parameter.Key] = types.TupleType{ElemTypes: assignedTypes}
-		default:
-			log.Printf("[ERROR] Invalid parameter type: %v", v)
 		}
 	}
 	val, e := types.ObjectValue(t, obj)
@@ -367,8 +392,12 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
-
-	state, e := integrationDetail(getIntegrationResp)
+	keys, diags := KeysFromPlan(ctx, plan)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	state, e := integrationDetail(getIntegrationResp, keys)
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
@@ -425,8 +454,13 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 		)
 		return
 	}
+	keys, diags := KeysFromPlan(ctx, plan)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
-	state, e := integrationDetail(getIntegrationResp)
+	state, e := integrationDetail(getIntegrationResp, keys)
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
