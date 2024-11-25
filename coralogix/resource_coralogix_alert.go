@@ -46,6 +46,7 @@ var (
 		"Warning":  "ALERT_SEVERITY_WARNING",
 		"Critical": "ALERT_SEVERITY_CRITICAL",
 		"Error":    "ALERT_SEVERITY_ERROR",
+		"Low":      "ALERT_SEVERITY_LOW",
 	}
 	alertProtoSeverityToSchemaSeverity       = reverseMapStrings(alertSchemaSeverityToProtoSeverity)
 	alertValidSeverities                     = getKeysStrings(alertSchemaSeverityToProtoSeverity)

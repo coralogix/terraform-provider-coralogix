@@ -467,7 +467,7 @@ resource "coralogix_webhook" "slack_webhook" {
 ### Required
 
 - `name` (String) Alert name.
-- `severity` (String) Determines the alert's severity. Can be one of ["Warning" "Critical" "Error" "Info"]
+- `severity` (String) Determines the alert's severity. Can be one of ["Error" "Low" "Info" "Warning" "Critical"]
 
 ### Optional
 
