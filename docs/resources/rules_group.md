@@ -16,7 +16,7 @@ Rule-group is list of rule-subgroups with 'and' (&&) operation between. For more
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.5"
+      version = "~> 1.8"
       source  = "coralogix/coralogix"
     }
   }
@@ -273,7 +273,7 @@ Read-Only:
 
 Required:
 
-- `field_format_standard` (String) The format standard you want to use. Can be one of ["Golang" "SecondTS" "MilliTS" "MicroTS" "NanoTS" "Strftime" "JavaSDF"]
+- `field_format_standard` (String) The format standard you want to use. Can be one of ["Strftime" "JavaSDF" "Golang" "SecondTS" "MilliTS" "MicroTS" "NanoTS"]
 - `name` (String) The rule name.
 - `source_field` (String) The field on which the Regex will operate on. Accepts lowercase only.
 - `time_format` (String) A time format that matches the field format standard
@@ -294,7 +294,7 @@ Read-Only:
 
 Required:
 
-- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [Severity Text Category Class Method ThreadID].
+- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [Category Class Method ThreadID Severity Text].
 - `json_key` (String) JSON key to extract its value directly into a Coralogix metadata field.
 - `name` (String) The rule name.
 

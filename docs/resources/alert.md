@@ -13,6 +13,20 @@ Coralogix alert. More info: https://coralogix.com/docs/alerts-api/ .
 ## Example Usage
 
 ```terraform
+terraform {
+  required_providers {
+    coralogix = {
+      version = "~> 1.8"
+      source  = "coralogix/coralogix"
+    }
+  }
+}
+
+provider "coralogix" {
+  #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+}
+
 resource "coralogix_alert" "standard_alert" {
   name        = "Standard alert example"
   description = "Example of standard alert from terraform"
@@ -467,7 +481,7 @@ resource "coralogix_webhook" "slack_webhook" {
 ### Required
 
 - `name` (String) Alert name.
-- `severity` (String) Determines the alert's severity. Can be one of ["Error" "Low" "Info" "Warning" "Critical"]
+- `severity` (String) Determines the alert's severity. Can be one of ["Info" "Warning" "Critical" "Error" "Low"]
 
 ### Optional
 
@@ -604,7 +618,7 @@ Required:
 - `metric_field` (String) The name of the metric field to alert on.
 - `sample_threshold_percentage` (Number) The metric value must cross the threshold within this percentage of the timeframe (sum and count arithmetic operators do not use this parameter since they aggregate over the entire requested timeframe), increments of 10, 0 <= value <= 100.
 - `threshold` (Number) The number of log threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["5Min" "10Min" "15Min" "20Min" "30Min" "1H" "4H" "6H" "24H" "1Min" "2H" "12H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["12H" "24H" "15Min" "20Min" "1H" "2H" "4H" "1Min" "5Min" "10Min" "30Min" "6H"]
 
 Optional:
 
@@ -625,7 +639,7 @@ Required:
 
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["10Min" "1H" "2H" "6H" "12H" "24H" "Never" "5Min"]
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["6H" "12H" "24H" "Never" "5Min" "10Min" "1H" "2H"]
 
 
 
@@ -645,7 +659,7 @@ Required:
 
 - `sample_threshold_percentage` (Number)
 - `threshold` (Number) The threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["5Min" "10Min" "15Min" "20Min" "30Min" "1H" "4H" "6H" "24H" "1Min" "2H" "12H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["12H" "24H" "15Min" "20Min" "1H" "2H" "4H" "1Min" "5Min" "10Min" "30Min" "6H"]
 
 Optional:
 
@@ -668,7 +682,7 @@ Required:
 
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["10Min" "1H" "2H" "6H" "12H" "24H" "Never" "5Min"]
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["6H" "12H" "24H" "Never" "5Min" "10Min" "1H" "2H"]
 
 
 
@@ -690,7 +704,7 @@ Optional:
 - `ip_addresses` (Set of String) An array that contains log’s IP addresses that we want to be notified on.
 - `methods` (Set of String) An array that contains log’s method names that we want to be notified on.
 - `search_query` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Critical" "Debug" "Verbose" "Info" "Warning" "Error"]
+- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
 - `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 <a id="nestedblock--new_value--condition"></a>
@@ -699,7 +713,7 @@ Optional:
 Required:
 
 - `key_to_track` (String) Select a key to track. Note, this key needs to have less than 50K unique values in the defined timeframe.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["1Month" "2Month" "3Month" "12H" "24H" "48H" "72H" "1W"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["24H" "48H" "72H" "1W" "1Month" "2Month" "3Month" "12H"]
 
 
 
@@ -738,7 +752,7 @@ Required:
 Required:
 
 - `ratio_threshold` (Number) The ratio(between the queries) threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["15Min" "20Min" "30Min" "4H" "5Min" "10Min" "6H" "12H" "24H" "36H" "1H" "2H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["5Min" "30Min" "4H" "6H" "24H" "36H" "10Min" "15Min" "20Min" "1H" "2H" "12H"]
 
 Optional:
 
@@ -760,7 +774,7 @@ Required:
 
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["10Min" "1H" "2H" "6H" "12H" "24H" "Never" "5Min"]
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["6H" "12H" "24H" "Never" "5Min" "10Min" "1H" "2H"]
 
 
 
@@ -777,7 +791,7 @@ Optional:
 - `ip_addresses` (Set of String) An array that contains log’s IP addresses that we want to be notified on.
 - `methods` (Set of String) An array that contains log’s method names that we want to be notified on.
 - `search_query` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Critical" "Debug" "Verbose" "Info" "Warning" "Error"]
+- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
 - `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 
@@ -789,7 +803,7 @@ Optional:
 - `alias` (String) Query2 alias.
 - `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 - `search_query` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Critical" "Debug" "Verbose" "Info" "Warning" "Error"]
+- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
 - `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 
@@ -810,7 +824,7 @@ Optional:
 
 Required:
 
-- `days_enabled` (Set of String) Days of week. Can be one of ["Saturday" "Sunday" "Monday" "Tuesday" "Wednesday" "Thursday" "Friday"]
+- `days_enabled` (Set of String) Days of week. Can be one of ["Sunday" "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday"]
 - `end_time` (String) Limit the triggering of this alert to end at specific hour.
 - `start_time` (String) Limit the triggering of this alert to start at specific hour.
 
@@ -832,7 +846,7 @@ Optional:
 - `ip_addresses` (Set of String) An array that contains log’s IP addresses that we want to be notified on.
 - `methods` (Set of String) An array that contains log’s method names that we want to be notified on.
 - `search_query` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Critical" "Debug" "Verbose" "Info" "Warning" "Error"]
+- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
 - `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 <a id="nestedblock--standard--condition"></a>
@@ -849,7 +863,7 @@ Optional:
 - `more_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
 - `more_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
 - `threshold` (Number) The number of log occurrences that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["15Min" "20Min" "30Min" "4H" "5Min" "10Min" "6H" "12H" "24H" "36H" "1H" "2H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["5Min" "30Min" "4H" "6H" "24H" "36H" "10Min" "15Min" "20Min" "1H" "2H" "12H"]
 
 <a id="nestedblock--standard--condition--manage_undetected_values"></a>
 ### Nested Schema for `standard.condition.manage_undetected_values`
@@ -860,7 +874,7 @@ Required:
 
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["10Min" "1H" "2H" "6H" "12H" "24H" "Never" "5Min"]
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["6H" "12H" "24H" "Never" "5Min" "10Min" "1H" "2H"]
 
 
 
@@ -881,7 +895,7 @@ Optional:
 - `ip_addresses` (Set of String) An array that contains log’s IP addresses that we want to be notified on.
 - `methods` (Set of String) An array that contains log’s method names that we want to be notified on.
 - `search_query` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Critical" "Debug" "Verbose" "Info" "Warning" "Error"]
+- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
 - `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 <a id="nestedblock--time_relative--condition"></a>
@@ -890,7 +904,7 @@ Optional:
 Required:
 
 - `ratio_threshold` (Number) The ratio threshold that is needed to trigger the alert.
-- `relative_time_window` (String) Time-window to compare with. Can be one of ["Yesterday" "Same_day_last_week" "Same_day_last_month" "Previous_hour" "Same_hour_yesterday" "Same_hour_last_week"].
+- `relative_time_window` (String) Time-window to compare with. Can be one of ["Same_day_last_month" "Previous_hour" "Same_hour_yesterday" "Same_hour_last_week" "Yesterday" "Same_day_last_week"].
 
 Optional:
 
@@ -909,7 +923,7 @@ Required:
 
 Optional:
 
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["10Min" "1H" "2H" "6H" "12H" "24H" "Never" "5Min"]
+- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["6H" "12H" "24H" "Never" "5Min" "10Min" "1H" "2H"]
 
 
 
@@ -949,7 +963,7 @@ Optional:
 - `immediately` (Boolean) Determines the condition operator. Must be one of - immediately or more_than.
 - `more_than` (Boolean) Determines the condition operator. Must be one of - immediately or more_than.
 - `threshold` (Number) The number of log occurrences that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["15Min" "20Min" "30Min" "4H" "5Min" "10Min" "6H" "12H" "24H" "36H" "1H" "2H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["5Min" "30Min" "4H" "6H" "24H" "36H" "10Min" "15Min" "20Min" "1H" "2H" "12H"]
 
 
 <a id="nestedblock--tracing--tag_filter"></a>
@@ -978,7 +992,7 @@ Optional:
 - `ip_addresses` (Set of String) An array that contains log’s IP addresses that we want to be notified on.
 - `methods` (Set of String) An array that contains log’s method names that we want to be notified on.
 - `search_query` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Critical" "Debug" "Verbose" "Info" "Warning" "Error"]
+- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
 - `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 <a id="nestedblock--unique_count--condition"></a>
@@ -987,7 +1001,7 @@ Optional:
 Required:
 
 - `max_unique_values` (Number)
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["10Min" "15Min" "20Min" "1H" "6H" "12H" "1Min" "5Min" "30Min" "2H" "4H" "24H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["4H" "6H" "5Min" "1H" "2H" "20Min" "30Min" "12H" "24H" "1Min" "10Min" "15Min"]
 - `unique_count_key` (String) Defines the key to match to track its unique count.
 
 Optional:

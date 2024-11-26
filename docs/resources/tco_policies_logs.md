@@ -13,6 +13,20 @@ Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/t
 ## Example Usage
 
 ```terraform
+terraform {
+  required_providers {
+    coralogix = {
+      version = "~> 1.8"
+      source  = "coralogix/coralogix"
+    }
+  }
+}
+
+provider "coralogix" {
+  #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+}
+
 resource "coralogix_tco_policies_logs" "tco_policies" {
   policies = [
     {
@@ -91,7 +105,7 @@ resource "coralogix_tco_policies_logs" "tco_policies" {
 Required:
 
 - `name` (String) tco-policy name.
-- `priority` (String) The policy priority. Can be one of ["high" "low" "medium" "block"].
+- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"].
 
 Optional:
 
@@ -99,7 +113,7 @@ Optional:
 - `archive_retention_id` (String) Allowing logs with a specific retention to be tagged.
 - `description` (String) The policy description
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
-- `severities` (Set of String) The severities to apply the policy on. Can be few of ["verbose" "info" "warning" "error" "critical" "debug"].
+- `severities` (Set of String) The severities to apply the policy on. Can be few of ["critical" "debug" "verbose" "info" "warning" "error"].
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
 
 Read-Only:
