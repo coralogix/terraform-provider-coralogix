@@ -187,7 +187,7 @@ resource "coralogix_rules_group" "parse_json_field_example" {
 - `hidden` (Boolean)
 - `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing).
 - `rule_subgroups` (Block List) List of rule-subgroups. Every rule-subgroup is list of rules with 'or' (||) operation between. (see [below for nested schema](#nestedblock--rule_subgroups))
-- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["Verbose" "Info" "Warning" "Error" "Critical" "Debug"]
+- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["Debug" "Verbose" "Info" "Warning" "Error" "Critical"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
@@ -273,7 +273,7 @@ Read-Only:
 
 Required:
 
-- `field_format_standard` (String) The format standard you want to use. Can be one of ["Strftime" "JavaSDF" "Golang" "SecondTS" "MilliTS" "MicroTS" "NanoTS"]
+- `field_format_standard` (String) The format standard you want to use. Can be one of ["JavaSDF" "Golang" "SecondTS" "MilliTS" "MicroTS" "NanoTS" "Strftime"]
 - `name` (String) The rule name.
 - `source_field` (String) The field on which the Regex will operate on. Accepts lowercase only.
 - `time_format` (String) A time format that matches the field format standard
@@ -294,7 +294,7 @@ Read-Only:
 
 Required:
 
-- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [Category Class Method ThreadID Severity Text].
+- `destination_field` (String) The field that will be populated by the results of RegEx operation.Can be one of [Severity Text Category Class Method ThreadID].
 - `json_key` (String) JSON key to extract its value directly into a Coralogix metadata field.
 - `name` (String) The rule name.
 

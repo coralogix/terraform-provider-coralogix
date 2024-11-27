@@ -481,7 +481,7 @@ resource "coralogix_webhook" "slack_webhook" {
 ### Required
 
 - `name` (String) Alert name.
-- `severity` (String) Determines the alert's severity. Can be one of ["Info" "Warning" "Critical" "Error" "Low"]
+- `severity` (String) Determines the alert's severity. Can be one of ["Warning" "Critical" "Error" "Low" "Info"]
 
 ### Optional
 
@@ -614,11 +614,11 @@ Required:
 
 Required:
 
-- `arithmetic_operator` (String) The arithmetic operator to use on the alert. can be one of ["Percentile" "Avg" "Min" "Max" "Sum" "Count"]
+- `arithmetic_operator` (String) The arithmetic operator to use on the alert. can be one of ["Avg" "Min" "Max" "Sum" "Count" "Percentile"]
 - `metric_field` (String) The name of the metric field to alert on.
 - `sample_threshold_percentage` (Number) The metric value must cross the threshold within this percentage of the timeframe (sum and count arithmetic operators do not use this parameter since they aggregate over the entire requested timeframe), increments of 10, 0 <= value <= 100.
 - `threshold` (Number) The number of log threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["12H" "24H" "15Min" "20Min" "1H" "2H" "4H" "1Min" "5Min" "10Min" "30Min" "6H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["12H" "5Min" "1H" "2H" "20Min" "30Min" "4H" "6H" "24H" "1Min" "10Min" "15Min"]
 
 Optional:
 
@@ -659,7 +659,7 @@ Required:
 
 - `sample_threshold_percentage` (Number)
 - `threshold` (Number) The threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["12H" "24H" "15Min" "20Min" "1H" "2H" "4H" "1Min" "5Min" "10Min" "30Min" "6H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["12H" "5Min" "1H" "2H" "20Min" "30Min" "4H" "6H" "24H" "1Min" "10Min" "15Min"]
 
 Optional:
 
@@ -752,7 +752,7 @@ Required:
 Required:
 
 - `ratio_threshold` (Number) The ratio(between the queries) threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["5Min" "30Min" "4H" "6H" "24H" "36H" "10Min" "15Min" "20Min" "1H" "2H" "12H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["2H" "6H" "12H" "24H" "1H" "10Min" "15Min" "20Min" "30Min" "4H" "36H" "5Min"]
 
 Optional:
 
@@ -824,7 +824,7 @@ Optional:
 
 Required:
 
-- `days_enabled` (Set of String) Days of week. Can be one of ["Sunday" "Monday" "Tuesday" "Wednesday" "Thursday" "Friday" "Saturday"]
+- `days_enabled` (Set of String) Days of week. Can be one of ["Wednesday" "Thursday" "Friday" "Saturday" "Sunday" "Monday" "Tuesday"]
 - `end_time` (String) Limit the triggering of this alert to end at specific hour.
 - `start_time` (String) Limit the triggering of this alert to start at specific hour.
 
@@ -863,7 +863,7 @@ Optional:
 - `more_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
 - `more_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
 - `threshold` (Number) The number of log occurrences that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["5Min" "30Min" "4H" "6H" "24H" "36H" "10Min" "15Min" "20Min" "1H" "2H" "12H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["2H" "6H" "12H" "24H" "1H" "10Min" "15Min" "20Min" "30Min" "4H" "36H" "5Min"]
 
 <a id="nestedblock--standard--condition--manage_undetected_values"></a>
 ### Nested Schema for `standard.condition.manage_undetected_values`
@@ -904,7 +904,7 @@ Optional:
 Required:
 
 - `ratio_threshold` (Number) The ratio threshold that is needed to trigger the alert.
-- `relative_time_window` (String) Time-window to compare with. Can be one of ["Same_day_last_month" "Previous_hour" "Same_hour_yesterday" "Same_hour_last_week" "Yesterday" "Same_day_last_week"].
+- `relative_time_window` (String) Time-window to compare with. Can be one of ["Previous_hour" "Same_hour_yesterday" "Same_hour_last_week" "Yesterday" "Same_day_last_week" "Same_day_last_month"].
 
 Optional:
 
@@ -963,7 +963,7 @@ Optional:
 - `immediately` (Boolean) Determines the condition operator. Must be one of - immediately or more_than.
 - `more_than` (Boolean) Determines the condition operator. Must be one of - immediately or more_than.
 - `threshold` (Number) The number of log occurrences that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["5Min" "30Min" "4H" "6H" "24H" "36H" "10Min" "15Min" "20Min" "1H" "2H" "12H"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["2H" "6H" "12H" "24H" "1H" "10Min" "15Min" "20Min" "30Min" "4H" "36H" "5Min"]
 
 
 <a id="nestedblock--tracing--tag_filter"></a>
@@ -1001,7 +1001,7 @@ Optional:
 Required:
 
 - `max_unique_values` (Number)
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["4H" "6H" "5Min" "1H" "2H" "20Min" "30Min" "12H" "24H" "1Min" "10Min" "15Min"]
+- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["6H" "12H" "24H" "10Min" "1H" "15Min" "20Min" "30Min" "2H" "4H" "1Min" "5Min"]
 - `unique_count_key` (String) Defines the key to match to track its unique count.
 
 Optional:
