@@ -146,7 +146,7 @@ Read-Only:
 Read-Only:
 
 - `attachments` (Attributes List) Slack attachments. (see [below for nested schema](#nestedatt--slack--attachments))
-- `notify_on` (Set of String) Slack notifications. can be one of: flow_anomalies, spike_anomalies, data_usage, error_and_critical_logs
+- `notify_on` (Set of String) Slack notifications. can be one of: error_and_critical_logs, flow_anomalies, spike_anomalies, data_usage
 - `url` (String) Slack URL.
 
 <a id="nestedatt--slack--attachments"></a>
@@ -155,4 +155,4 @@ Read-Only:
 Read-Only:
 
 - `active` (Boolean) Determines if the attachment is active. Default is true.
-- `type` (String) Slack attachment type. can be one of: empty, metric_snapshot, logs
+- `type` (String) Slack attachment type. can be one of: metric_snapshot, logs, empty

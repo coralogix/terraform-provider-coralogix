@@ -32,6 +32,6 @@ data "coralogix_action" imported_action {
 - `is_hidden` (Boolean) Determines weather the action will be shown at the action menu.
 - `is_private` (Boolean) Determines weather the action will be shared with the entire team. Can be set to false only by admin.
 - `name` (String) Action name.
-- `source_type` (String) By selecting the data type, you can make sure that the action will be displayed only in the relevant context. Can be one of ["DataMap" "Log"]
+- `source_type` (String) By selecting the data type, you can make sure that the action will be displayed only in the relevant context. Can be one of ["Log" "DataMap"]
 - `subsystems` (Set of String) Applies the action for specific subsystems.
 - `url` (String) URL for the external tool.
