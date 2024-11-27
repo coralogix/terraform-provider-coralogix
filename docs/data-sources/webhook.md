@@ -155,4 +155,4 @@ Read-Only:
 Read-Only:
 
 - `active` (Boolean) Determines if the attachment is active. Default is true.
-- `type` (String) Slack attachment type. can be one of: metric_snapshot, logs, empty
+- `type` (String) Slack attachment type. can be one of: logs, empty, metric_snapshot

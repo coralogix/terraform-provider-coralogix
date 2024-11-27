@@ -279,7 +279,7 @@ Optional:
 
 Required:
 
-- `type` (String) Slack attachment type. can be one of: metric_snapshot, logs, empty
+- `type` (String) Slack attachment type. can be one of: logs, empty, metric_snapshot
 
 Optional:
 

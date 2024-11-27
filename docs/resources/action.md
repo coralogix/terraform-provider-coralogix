@@ -41,7 +41,7 @@ resource "coralogix_action" action {
 ### Required
 
 - `name` (String) Action name.
-- `source_type` (String) By selecting the data type, you can make sure that the action will be displayed only in the relevant context. Can be one of ["Log" "DataMap"]
+- `source_type` (String) By selecting the data type, you can make sure that the action will be displayed only in the relevant context. Can be one of ["DataMap" "Log"]
 - `url` (String) URL for the external tool.
 
 ### Optional
