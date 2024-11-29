@@ -595,6 +595,23 @@ func wrapperspbInt64ToTypeInt64(num *wrapperspb.Int64Value) types.Int64 {
 	return types.Int64Value(num.GetValue())
 }
 
+func wrapperspbUInt64ToNumberType(num *wrapperspb.UInt64Value) types.Number {
+	if num == nil {
+		return types.NumberNull()
+	}
+
+	return types.NumberValue(big.NewFloat(float64(num.GetValue())))
+}
+
+func numberTypeToWrapperspbUInt64(num types.Number) *wrapperspb.UInt64Value {
+	if num.IsNull() {
+		return nil
+	}
+	// types.NumberValue(big.NewFloat(float64(num.GetValue())))
+	val, _ := num.ValueBigFloat().Uint64()
+	return wrapperspb.UInt64(val)
+}
+
 func wrapperspbUint32ToTypeInt64(num *wrapperspb.UInt32Value) types.Int64 {
 	if num == nil {
 		return types.Int64Null()

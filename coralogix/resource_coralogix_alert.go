@@ -563,7 +563,7 @@ type LogsThresholdRuleModel struct {
 }
 
 type TracingFilterModel struct {
-	LatencyThresholdMs  types.Int64  `tfsdk:"latency_threshold_ms"`
+	LatencyThresholdMs  types.Number `tfsdk:"latency_threshold_ms"`
 	TracingLabelFilters types.Object `tfsdk:"tracing_label_filters"` // TracingLabelFiltersModel
 }
 
@@ -2853,7 +2853,7 @@ func expandTracingFilters(ctx context.Context, query types.Object) (*cxsdk.Traci
 				OperationName:   operationName,
 				SpanFields:      spanFields,
 			},
-			LatencyThresholdMs: typeInt64ToWrappedUint32(labelFilterModel.LatencyThresholdMs),
+			LatencyThresholdMs: numberTypeToWrapperspbUInt64(labelFilterModel.LatencyThresholdMs),
 		},
 	}
 
@@ -3924,7 +3924,7 @@ func flattenTracingSimpleFilter(ctx context.Context, tracingQuery *cxsdk.Tracing
 		return types.ObjectNull(tracingQueryAttr()), diags
 	}
 	tracingQueryModel := &TracingFilterModel{
-		LatencyThresholdMs:  wrapperspbUint32ToTypeInt64(tracingQuery.LatencyThresholdMs),
+		LatencyThresholdMs:  wrapperspbUInt64ToNumberType(tracingQuery.LatencyThresholdMs),
 		TracingLabelFilters: labelFilters,
 	}
 	if diags.HasError() {
