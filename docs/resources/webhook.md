@@ -200,10 +200,10 @@ Required:
 - `event_bus_arn` (String) Corresponds to the event bus, which will receive notifications. The policy attached must contain permission to publish.
 - `role_name` (String) Corresponds to the AWS IAM role that will be created in your account.
 - `source` (String) Free text is used to identify the messages Coralogix sends.
+- `detail` (String) Stringified json text that is sent to AWS Event bus
 
-Optional:
+Customisation of the `detail` is same as the generic webhook. More details can be found [here](https://coralogix.com/docs/user-guides/alerting/outbound-webhooks/generic-outbound-webhooks-alert-webhooks/#placeholders).
 
-- `detail` (String)
 
 
 <a id="nestedatt--jira"></a>
