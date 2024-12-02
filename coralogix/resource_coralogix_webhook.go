@@ -716,7 +716,9 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						MarkdownDescription: "Corresponds to the event bus, which will receive notifications. The policy attached must contain permission to publish.",
 					},
 					"detail": schema.StringAttribute{
-						Optional: true,
+						Required:            true,
+						Default:             stringdefault.StaticString(customDefaultPayload),
+						MarkdownDescription: "Event bridge message. JSON string. More details about the token [\"here\"](https://coralogix.com/docs/user-guides/alerting/outbound-webhooks/generic-outbound-webhooks-alert-webhooks/#placeholders)",
 					},
 					"detail_type": schema.StringAttribute{
 						Required:            true,
