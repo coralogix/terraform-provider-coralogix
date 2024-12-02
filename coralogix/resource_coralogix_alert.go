@@ -178,7 +178,7 @@ var (
 
 	logsUniqueCountTimeWindowValueProtoToSchemaMap = map[cxsdk.LogsUniqueValueTimeWindowValue]string{
 		cxsdk.LogsUniqueValueTimeWindowValue1MinuteOrUnspecified: "1_MINUTE",
-		cxsdk.LogsUniqueValueTimeWindowValue15Minutes:            "5_MINUTES",
+		cxsdk.LogsUniqueValueTimeWindowValue15Minutes:            "15_MINUTES",
 		cxsdk.LogsUniqueValueTimeWindowValue20Minutes:            "20_MINUTES",
 		cxsdk.LogsUniqueValueTimeWindowValue30Minutes:            "30_MINUTES",
 		cxsdk.LogsUniqueValueTimeWindowValue1Hour:                "1_HOUR",
