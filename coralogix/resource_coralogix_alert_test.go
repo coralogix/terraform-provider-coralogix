@@ -17,9 +17,8 @@ package coralogix
 import (
 	"context"
 	"fmt"
-	"testing"
-
 	"terraform-provider-coralogix/coralogix/clientset"
+	"testing"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"

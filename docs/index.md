@@ -35,4 +35,4 @@ provider "coralogix" {
 
 - `api_key` (String, Sensitive) A key for using coralogix APIs (Auto Generated), appropriate for the defined environment. environment variable 'CORALOGIX_API_KEY' can be defined instead.
 - `domain` (String) The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.
-- `env` (String) The Coralogix API environment. can be one of ["APAC3" "EUROPE2" "USA1" "US1" "APAC1" "AP1" "AP2" "AP3" "EUROPE1" "USA2" "APAC2" "EU1" "EU2" "US2"]. environment variable 'CORALOGIX_ENV' can be defined instead.
+- `env` (String) The Coralogix API environment. can be one of ["USA1" "APAC1" "AP1" "APAC2" "AP3" "EUROPE2" "AP2" "EUROPE1" "EU2" "US1" "US2" "APAC3" "EU1" "USA2"]. environment variable 'CORALOGIX_ENV' can be defined instead.

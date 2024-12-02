@@ -38,8 +38,8 @@ Read-Only:
 - `id` (String) tco-policy ID.
 - `name` (String) tco-policy name.
 - `order` (Number) The policy's order between the other policies.
-- `priority` (String) The policy priority. Can be one of ["high" "low" "medium" "block"].
-- `severities` (Set of String) The severities to apply the policy on. Can be few of ["verbose" "info" "warning" "error" "critical" "debug"].
+- `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"].
+- `severities` (Set of String) The severities to apply the policy on. Can be few of ["critical" "debug" "error" "info" "verbose" "warning"].
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
 
 <a id="nestedatt--policies--applications"></a>
@@ -48,7 +48,7 @@ Read-Only:
 Read-Only:
 
 - `names` (Set of String)
-- `rule_type` (String) The rule type. Can be one of ["is" "is_not" "starts_with" "includes"].
+- `rule_type` (String) The rule type. Can be one of ["includes" "is" "is_not" "starts_with" "unspecified"].
 
 
 <a id="nestedatt--policies--subsystems"></a>

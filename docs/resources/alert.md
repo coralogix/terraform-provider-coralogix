@@ -3,240 +3,268 @@
 page_title: "coralogix_alert Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix alert. More info: https://coralogix.com/docs/alerts-api/ .
+  Coralogix Alert. For more info please review - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.
 ---
 
 # coralogix_alert (Resource)
 
-Coralogix alert. More info: https://coralogix.com/docs/alerts-api/ .
+Coralogix Alert. For more info please review - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.
 
 ## Example Usage
 
 ```terraform
+<<<<<<< HEAD
+terraform {
+  required_providers {
+    coralogix = {
+      version = "~> 1.8"
+      source  = "coralogix/coralogix"
+    }
+  }
+}
+
+provider "coralogix" {
+  #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+}
+
 resource "coralogix_alert" "standard_alert" {
   name        = "Standard alert example"
   description = "Example of standard alert from terraform"
   severity    = "Critical"
+=======
+resource "coralogix_alert" "immediate_alert" {
+  name        = "logs immediate alert"
+  description = "Example of logs immediate alert from terraform"
+  priority    = "P2"
+>>>>>>> c425949 (feat: terraform to use coraglogix sdk)
 
-  meta_labels = {
+  labels = {
     alert_type        = "security"
     security_severity = "high"
   }
 
-  notifications_group {
-    group_by_fields = ["coralogix.metadata.sdkId", "EventType"]
-    notification {
-      integration_id              = coralogix_webhook.slack_webhook.external_id
-    }
-    notification {
-      email_recipients            = ["example@coralogix.com"]
-    }
-  }
-  notifications_group {
-    notification {
-      email_recipients            = ["example@coralogix.com"]
-    }
+  notification_group = {
+    simple_target_settings = [
+      {
+        recipients = ["example@coralogix.com"]
+      }
+    ]
   }
 
-  incident_settings {
-    notify_on = "Triggered_and_resolved"
-    retriggering_period_minutes = 60
-  }
-
-  scheduling {
-    time_zone = "UTC+2"
-    time_frame {
-      days_enabled = ["Wednesday", "Thursday"]
-      start_time   = "08:30"
-      end_time     = "20:30"
+  incidents_settings = {
+    notify_on = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 10
     }
   }
 
-  standard {
-    applications = ["filter:contains:nginx"] //change here for existing applications from your account
-    subsystems   = ["filter:startsWith:subsystem-name"] //change here for existing subsystems from your account
-    severities   = ["Warning", "Info"]
-    search_query = "remote_addr_enriched:/.*/"
-    condition {
-      more_than         = true
-      threshold         = 5
-      time_window       = "30Min"
-      group_by          = ["coralogix.metadata.sdkId", "EventType"]
-      evaluation_window = "Dynamic"
+  schedule = {
+    active_on = {
+      days_of_week = ["Wednesday", "Thursday"]
+      start_time = {
+        hours   = 8
+        minutes = 30
+      }
+      end_time = {
+        hours   = 20
+        minutes = 30
+      }
     }
   }
-}
-
-data "coralogix_alert" "imported_standard_alert" {
-  id = coralogix_alert.standard_alert.id
-}
-
-resource "coralogix_alert" "ratio_alert" {
-  name        = "Ratio alert example"
-  description = "Example of ratio alert from terraform"
-  severity    = "Critical"
-
-  notifications_group {
-    notification {
-      integration_id              = coralogix_webhook.slack_webhook.external_id
-      retriggering_period_minutes = 1
-      notify_on                   = "Triggered_only"
-    }
-    notification {
-      email_recipients            = ["example@coralogix.com"]
-      retriggering_period_minutes = 1
-      notify_on                   = "Triggered_and_resolved"
-    }
-  }
-
-  scheduling {
-    time_zone = "UTC+2"
-    time_frame {
-      days_enabled = ["Wednesday", "Thursday"]
-      start_time   = "08:30"
-      end_time     = "20:30"
-    }
-  }
-
-  ratio {
-    query_1 {
-
-    }
-    query_2 {
-      applications = ["nginx"] //change here for existing applications from your account
-      subsystems   = ["subsystem-name"] //change here for existing subsystems from your account
-      severities   = ["Warning"]
-    }
-    condition {
-      less_than       = true
-      ratio_threshold = 2
-      time_window     = "10Min"
-      group_by        = ["coralogix.metadata.sdkId"]
-      group_by_q1     = true
-      manage_undetected_values {
-        enable_triggering_on_undetected_values = true
-        auto_retire_ratio                      = "5Min"
+  type_definition = {
+    logs_immediate = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+        }
       }
     }
   }
 }
 
+data "coralogix_alert" "imported_immediate_alert" {
+  id = coralogix_alert.immediate_alert.id
+}
+
+resource "coralogix_alert" "ratio_alert" {
+  name        = "logs-ratio-more-than alert example"
+  description = "Example of logs-ratio-more-than alert from terraform"
+  priority    = "P1"
+  group_by    = ["coralogix.metadata.alert_id", "coralogix.metadata.alert_name"]
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  type_definition = {
+    logs_ratio_threshold = {
+      denominator_alias = "denominator"
+      denominator = {
+        simple_filter = {
+          lucene_query = "mod_date:[20020101 TO 20030101]"
+          label_filters = {
+            application_name = [
+              {
+                operation = "IS"
+                value     = "nginx"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "IS"
+                value     = "subsystem-name"
+              }
+            ]
+            severities = ["Warning"]
+          }
+        }
+      }
+      numerator_alias = "numerator"
+      numerator = {
+        simple_filter = {
+          lucene_query = "mod_date:[20030101 TO 20040101]"
+          label_filters = {
+            application_name = [
+              {
+                operation = "IS"
+                value     = "nginx"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "IS"
+                value     = "subsystem-name"
+              }
+            ]
+            severities = ["Error"]
+          }
+        }
+      }
+      rules = [{
+        threshold   = 2
+        time_window = "10_MINUTES"
+        condition   = "MORE_THAN"
+      }]
+    }
+  }
+}
+
 resource "coralogix_alert" "new_value_alert" {
-  name        = "New value alert example"
-  description = "Example of new value alert from terraform"
-  severity    = "Info"
+  name        = "logs-new-value alert example"
+  description = "Example of logs-new-value alert from terraform"
+  priority    = "P2"
 
-  notifications_group {
-    notification {
-      integration_id              = coralogix_webhook.slack_webhook.external_id
-      retriggering_period_minutes = 1
-      notify_on                   = "Triggered_only"
-    }
-    notification {
-      email_recipients            = ["example@coralogix.com"]
-      retriggering_period_minutes = 1
-      notify_on                   = "Triggered_and_resolved"
-    }
+  notification_group = {
+    advanced_target_settings = [
+      {
+        notify_on      = "Triggered_and_resolved"
+        integration_id = coralogix_webhook.slack_webhook.external_id
+        retriggering_period = {
+          minutes = 1
+        },
+      }
+    ]
   }
 
-  scheduling {
-    time_zone = "UTC+2"
-    time_frame {
-      days_enabled = ["Wednesday", "Thursday"]
-      start_time   = "08:30"
-      end_time     = "20:30"
-    }
-  }
-
-  new_value {
-    severities = ["Info"]
-    condition {
-      key_to_track = "remote_addr_geoip.country_name"
-      time_window  = "12H"
+  type_definition = {
+    logs_new_value = {
+      notification_payload_filter = ["coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"]
+      rules = [
+        {
+          time_window      = "24_HOURS"
+          keypath_to_track = "remote_addr_geoip.country_name"
+        }
+      ]
     }
   }
 }
 
 resource "coralogix_alert" "time_relative_alert" {
-  name        = "Time relative alert example"
-  description = "Example of time relative alert from terraform"
-  severity    = "Critical"
+  name        = "logs-time-relative-more-than alert example"
+  description = "Example of logs-time-relative-more-than alert from terraform"
+  priority    = "P4"
 
-  notifications_group {
-    notification {
-      integration_id              = coralogix_webhook.slack_webhook.external_id
-    }
-    notification {
-      email_recipients            = ["example@coralogix.com"]
-    }
-  }
-
-  incident_settings {
-    notify_on = "Triggered_and_resolved"
-    retriggering_period_minutes = 1
-  }
-
-  scheduling {
-    time_zone = "UTC+2"
-    time_frame {
-      days_enabled = ["Wednesday", "Thursday"]
-      start_time   = "08:30"
-      end_time     = "20:30"
-    }
-  }
-
-  time_relative {
-    severities = ["Error"]
-    condition {
-      more_than            = true
-      ratio_threshold      = 2
-      relative_time_window = "Same_hour_last_week"
+  type_definition = {
+    logs_time_relative_threshold = {
+      rules = [{
+        threshold       = 10
+        compared_to     = "Same Hour Yesterday"
+        ignore_infinity = true
+        condition       = "MORE_THAN"
+      }]
     }
   }
 }
 
 resource "coralogix_alert" "metric_lucene_alert" {
-  name        = "Metric lucene alert example"
-  description = "Example of metric lucene alert from terraform"
-  severity    = "Critical"
+  name        = "logs-less-than alert example"
+  description = "Example of logs-less-than alert example from terraform"
+  priority    = "P2"
 
-  notifications_group {
-    notification {
-      integration_id              = coralogix_webhook.slack_webhook.external_id
-    }
-    notification {
-      email_recipients            = ["example@coralogix.com"]
-    }
+  labels = {
+    alert_type        = "security"
+    security_severity = "high"
   }
 
-  incident_settings {
-    notify_on = "Triggered_and_resolved"
-    retriggering_period_minutes = 60
+  notification_group = {
+    simple_target_settings = [
+      {
+        recipients = ["example@coralogix.com", "example2@coralogix.com"]
+      },
+    ]
   }
 
-  scheduling {
-    time_zone = "UTC+2"
-    time_frame {
-      days_enabled = ["Wednesday", "Thursday"]
-      start_time   = "08:30"
-      end_time     = "20:30"
+  incidents_settings = {
+    notify_on = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
     }
   }
 
-  metric {
-    lucene {
-      search_query = "name:\"Frontend transactions\""
-      condition {
-        metric_field                 = "subsystem"
-        arithmetic_operator          = "Percentile"
-        arithmetic_operator_modifier = 20
-        less_than                    = true
-        group_by                     = ["coralogix.metadata.sdkId"]
-        threshold                    = 60
-        sample_threshold_percentage  = 50
-        time_window                  = "30Min"
-        manage_undetected_values {
-          enable_triggering_on_undetected_values = false
+  schedule = {
+    active_on = {
+      days_of_week = ["Wednesday", "Thursday"]
+      start_time = {
+        hours   = 10
+        minutes = 30
+      }
+      end_time = {
+        hours   = 20
+        minutes = 30
+      }
+    }
+  }
+
+  type_definition = {
+    logs_threshold = {
+      rules = [{
+        threshold   = 2
+        time_window = "10_MINUTES"
+        condition   = "LESS_THAN"
+      }]
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+          label_filters = {
+            application_name = [
+              {
+                operation = "NOT"
+                value     = "application_name"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "STARTS_WITH"
+                value     = "subsystem-name"
+              }
+            ]
+            severities = ["Warning", "Error"]
+          }
         }
       }
     }
@@ -244,211 +272,144 @@ resource "coralogix_alert" "metric_lucene_alert" {
 }
 
 resource "coralogix_alert" "metric_promql_alert" {
-  name        = "Metric promql alert example"
-  description = "Example of metric promql alert from terraform"
-  severity    = "Critical"
+  name        = "metric-more-than alert example"
+  description = "Example of metric-more-than alert from terraform"
+  priority    = "P3"
 
-  notifications_group {
-    notification {
-      notify_on                   = "Triggered_and_resolved"
-      integration_id              = coralogix_webhook.slack_webhook.external_id
-      retriggering_period_minutes = 1
-    }
-    notification {
-      notify_on                   = "Triggered_and_resolved"
-      email_recipients            = ["example@coralogix.com"]
-      retriggering_period_minutes = 24*60
-    }
-  }
-
-  scheduling {
-    time_zone = "UTC-8"
-    time_frame {
-      days_enabled = ["Wednesday", "Thursday"]
-      start_time   = "08:30"
-      end_time     = "20:30"
-    }
-  }
-
-  metric {
-    promql {
-      search_query = "http_requests_total{status!~\"4..\"}"
-      condition {
-        less_than_usual                 = true
-        threshold                       = 3
-        sample_threshold_percentage     = 50
-        time_window                     = "12H"
-        replace_missing_value_with_zero = true
+  type_definition = {
+    metric_threshold = {
+      metric_filter = {
+        promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
       }
+      rules = [{
+        threshold    = 2
+        for_over_pct = 10
+        of_the_last  = "10_MINUTES"
+        missing_values = {
+          min_non_null_values_pct = 50
+        }
+        condition = "MORE_THAN"
+      }]
     }
   }
 }
 
+
 resource "coralogix_alert" "unique_count_alert" {
-  name        = "Unique count alert example"
-  description = "Example of unique count alert from terraform"
-  severity    = "Info"
+  name        = "logs-unique-count alert example"
+  description = "Example of logs-unique-count alert from terraform"
+  priority    = "P2"
 
-  notifications_group {
-    group_by_fields = ["coralogix.metadata.sdkId"]
-    notification {
-      integration_id              = coralogix_webhook.slack_webhook.external_id
-      retriggering_period_minutes = 1
-      notify_on                   = "Triggered_and_resolved"
-    }
-    notification {
-      email_recipients            = ["example@coralogix.com"]
-      retriggering_period_minutes = 1
-      notify_on                   = "Triggered_and_resolved"
-    }
-  }
-
-  scheduling {
-    time_zone = "UTC+2"
-    time_frame {
-      days_enabled = ["Wednesday", "Thursday"]
-      start_time   = "08:30"
-      end_time     = "20:30"
-    }
-  }
-
-  unique_count {
-    severities = ["Info"]
-    condition {
-      unique_count_key               = "remote_addr_geoip.country_name"
-      max_unique_values              = 2
-      time_window                    = "10Min"
-      group_by_key                   = "coralogix.metadata.sdkId"
-      max_unique_values_for_group_by = 500
+  group_by = ["remote_addr_geoip.city_name"]
+  type_definition = {
+    logs_unique_count = {
+      rules = [{
+        unique_count_keypath              = "remote_addr_geoip.country_name"
+        max_unique_count                  = 2
+        time_window                       = "5_MINUTES"
+        max_unique_count_per_group_by_key = 500
+      }]
     }
   }
 }
 
 resource "coralogix_alert" "tracing_alert" {
-  name        = "Tracing alert example"
-  description = "Example of tracing alert from terraform"
-  severity    = "Info"
+  name        = "tracing_more_than alert example"
+  description = "Example of tracing_more_than alert from terraform"
+  priority    = "P2"
 
-  notifications_group {
-    notification {
-      notify_on                   = "Triggered_and_resolved"
-      email_recipients            = ["user@example.com"]
-      retriggering_period_minutes = 1
-    }
-    notification {
-      notify_on                   = "Triggered_and_resolved"
-      integration_id              = coralogix_webhook.slack_webhook.external_id
-      retriggering_period_minutes = 1
-    }
-  }
-
-  scheduling {
-    time_zone = "UTC+2"
-    time_frame {
-      days_enabled = ["Wednesday", "Thursday"]
-      start_time   = "08:30"
-      end_time     = "20:30"
-    }
-  }
-
-  tracing {
-    latency_threshold_milliseconds = 20.5
-    applications                   = [
-      "application_name", "filter:contains:application-name2", "filter:endsWith:application-name3",
-      "filter:startsWith:application-name4"
-    ]
-    subsystems = [
-      "subsystemName", "filter:notEquals:subsystemName2", "filter:contains:subsystemName",
-      "filter:endsWith:subsystemName",
-      "filter:startsWith:subsystemName"
-    ]
-    services = [
-      "serviceName", "filter:contains:serviceName", "filter:endsWith:serviceName", "filter:startsWith:serviceName"
-    ]
-    tag_filter {
-      field  = "status"
-      values = ["filter:contains:400", "500"]
-    }
-    tag_filter {
-      field  = "key"
-      values = ["value"]
-    }
-    condition {
-      more_than   = true
-      time_window = "5Min"
-      threshold   = 2
+  type_definition = {
+    tracing_threshold = {
+      tracing_filter = {
+        latency_threshold_ms = 100
+        tracing_label_filters = {
+          application_name = [
+            {
+              operation = "IS"
+              values    = ["nginx", "apache"]
+            },
+            {
+              operation = "STARTS_WITH"
+              values    = ["application-name:"]
+            }
+          ]
+        }
+      }
+      rules = [{
+        span_amount = 5
+        time_window = "10_MINUTES"
+      }]
     }
   }
 }
 
-resource "coralogix_alert" "flow_alert" {
-  name        = "Flow alert example"
+resource "coralogix_alert" "test_1" {
+  name     = "logs immediate alert 1"
+  priority = "P1"
+  type_definition = {
+    logs_immediate = {
+    }
+  }
+}
+
+resource "coralogix_alert" "test_2" {
+  name     = "logs immediate alert 2"
+  priority = "P2"
+  type_definition = {
+    logs_immediate = {
+    }
+  }
+}
+
+resource "coralogix_alert" "test_3" {
+  name     = "logs immediate alert 3"
+  priority = "P3"
+  type_definition = {
+    logs_immediate = {
+    }
+  }
+}
+
+resource "coralogix_alert" "test" {
+  name        = "flow alert example"
   description = "Example of flow alert from terraform"
-  severity    = "Info"
-
-  notifications_group {
-    notification {
-      notify_on                   = "Triggered_and_resolved"
-      email_recipients            = ["user@example.com"]
-      retriggering_period_minutes = 1
-    }
-    notification {
-      notify_on                   = "Triggered_and_resolved"
-      integration_id              = coralogix_webhook.slack_webhook.external_id
-      retriggering_period_minutes = 1
-    }
-  }
-
-  scheduling {
-    time_zone = "UTC+2"
-    time_frame {
-      days_enabled = ["Wednesday", "Thursday"]
-      start_time   = "08:30"
-      end_time     = "20:30"
-    }
-  }
-
-  flow {
-    stage {
-      group {
-        sub_alerts {
-          operator = "OR"
-          flow_alert {
-            user_alert_id = coralogix_alert.standard_alert.id
-          }
+  priority    = "P3"
+  type_definition = {
+    flow = {
+      enforce_suppression = false
+      stages = [
+        {
+          flow_stages_groups = [
+            {
+              alert_defs = [
+                {
+                  id = coralogix_alert.test_1.id
+                },
+                {
+                  id = coralogix_alert.test_2.id
+                },
+              ]
+              next_op   = "AND"
+              alerts_op = "OR"
+            },
+            {
+              alert_defs = [
+                {
+                  id = coralogix_alert.test_3.id
+                },
+                {
+                  id = coralogix_alert.test_2.id
+                },
+              ]
+              next_op   = "OR"
+              alerts_op = "AND"
+            },
+          ]
+          timeframe_ms   = 10
+          timeframe_type = "Up To"
         }
-        next_operator = "OR"
-      }
-      group {
-        sub_alerts {
-          operator = "AND"
-          flow_alert {
-            not           = true
-            user_alert_id = coralogix_alert.unique_count_alert.id
-          }
-        }
-        next_operator = "AND"
-      }
-      time_window {
-        minutes = 20
-      }
+      ]
     }
-    stage {
-      group {
-        sub_alerts {
-          operator = "AND"
-          flow_alert {
-            user_alert_id = coralogix_alert.standard_alert.id
-          }
-          flow_alert {
-            not           = true
-            user_alert_id = coralogix_alert.unique_count_alert.id
-          }
-        }
-        next_operator = "OR"
-      }
-    }
-    group_by = ["coralogix.metadata.sdkId"]
   }
 }
 
@@ -456,7 +417,7 @@ resource "coralogix_webhook" "slack_webhook" {
   name = "slack-webhook"
   slack = {
     notify_on = ["flow_anomalies"]
-    url = "https://join.slack.com/example"
+    url       = "https://join.slack.com/example"
   }
 }
 ```
@@ -467,86 +428,81 @@ resource "coralogix_webhook" "slack_webhook" {
 ### Required
 
 - `name` (String) Alert name.
-- `severity` (String) Determines the alert's severity. Can be one of ["Warning" "Critical" "Error" "Info"]
+- `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+- `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold flow. (see [below for nested schema](#nestedatt--type_definition))
 
 ### Optional
 
+- `deleted` (Boolean)
 - `description` (String) Alert description.
-- `enabled` (Boolean) Determines whether the alert will be active. True by default.
-- `expiration_date` (Block List, Max: 1) The expiration date of the alert (if declared). (see [below for nested schema](#nestedblock--expiration_date))
-- `flow` (Block List, Max: 1) Alert based on a combination of alerts in a specific timeframe. (see [below for nested schema](#nestedblock--flow))
-- `incident_settings` (Block List, Max: 1) (see [below for nested schema](#nestedblock--incident_settings))
-- `meta_labels` (Map of String) Labels allow you to easily filter by alert type and create views. Insert a new label or use an existing one. You can nest a label using key:value.
-- `metric` (Block List, Max: 1) Alert based on arithmetic operators for metrics. (see [below for nested schema](#nestedblock--metric))
-- `new_value` (Block List, Max: 1) Alert on never before seen log value. (see [below for nested schema](#nestedblock--new_value))
-- `notifications_group` (Block Set) Defines notifications settings over list of group-by keys (or on empty list). (see [below for nested schema](#nestedblock--notifications_group))
-- `payload_filters` (Set of String) A list of log fields out of the log example which will be included with the alert notification.
-- `ratio` (Block List, Max: 1) Alert based on the ratio between queries. (see [below for nested schema](#nestedblock--ratio))
-- `scheduling` (Block List, Max: 1) Limit the triggering of this alert to specific time frames. Active always by default. (see [below for nested schema](#nestedblock--scheduling))
-- `standard` (Block List, Max: 1) Alert based on number of log occurrences. (see [below for nested schema](#nestedblock--standard))
-- `time_relative` (Block List, Max: 1) Alert based on ratio between timeframes. (see [below for nested schema](#nestedblock--time_relative))
-- `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
-- `tracing` (Block List, Max: 1) Alert based on tracing latency. (see [below for nested schema](#nestedblock--tracing))
-- `unique_count` (Block List, Max: 1) Alert based on unique value count per key. (see [below for nested schema](#nestedblock--unique_count))
+- `enabled` (Boolean) Alert enabled status. True by default.
+- `group_by` (Set of String) Group by fields.
+- `incidents_settings` (Attributes) (see [below for nested schema](#nestedatt--incidents_settings))
+- `labels` (Map of String)
+- `notification_group` (Attributes) (see [below for nested schema](#nestedatt--notification_group))
+- `phantom_mode` (Boolean)
+- `schedule` (Attributes) Alert schedule. Will be activated all the time if not specified. (see [below for nested schema](#nestedatt--schedule))
 
 ### Read-Only
 
-- `id` (String) The ID of this resource.
+- `id` (String) Alert ID.
 
-<a id="nestedblock--expiration_date"></a>
-### Nested Schema for `expiration_date`
-
-Required:
-
-- `day` (Number) Day of a month. Must be from 1 to 31 and valid for the year and month.
-- `month` (Number) Month of a year. Must be from 1 to 12.
-- `year` (Number) Year of the date. Must be from 1 to 9999.
-
-
-<a id="nestedblock--flow"></a>
-### Nested Schema for `flow`
-
-Required:
-
-- `stage` (Block List, Min: 1) (see [below for nested schema](#nestedblock--flow--stage))
+<a id="nestedatt--type_definition"></a>
+### Nested Schema for `type_definition`
 
 Optional:
 
-- `group_by` (List of String)
+- `flow` (Attributes) (see [below for nested schema](#nestedatt--type_definition--flow))
+- `logs_anomaly` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly))
+- `logs_immediate` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_immediate))
+- `logs_new_value` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_new_value))
+- `logs_ratio_threshold` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold))
+- `logs_threshold` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold))
+- `logs_time_relative_threshold` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold))
+- `logs_unique_count` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count))
+- `metric_anomaly` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly))
+- `metric_threshold` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold))
+- `tracing_immediate` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate))
+- `tracing_threshold` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold))
 
-<a id="nestedblock--flow--stage"></a>
-### Nested Schema for `flow.stage`
+<a id="nestedatt--type_definition--flow"></a>
+### Nested Schema for `type_definition.flow`
 
 Required:
 
-- `group` (Block List, Min: 1) (see [below for nested schema](#nestedblock--flow--stage--group))
+- `stages` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--flow--stages))
 
 Optional:
 
-- `time_window` (Block List, Max: 1) Timeframe for flow stage. (see [below for nested schema](#nestedblock--flow--stage--time_window))
+- `enforce_suppression` (Boolean)
 
-<a id="nestedblock--flow--stage--group"></a>
-### Nested Schema for `flow.stage.group`
-
-Required:
-
-- `next_operator` (String) The operator to use on the alert. can be one of ["AND" "OR"]
-- `sub_alerts` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--flow--stage--group--sub_alerts))
-
-<a id="nestedblock--flow--stage--group--sub_alerts"></a>
-### Nested Schema for `flow.stage.group.sub_alerts`
+<a id="nestedatt--type_definition--flow--stages"></a>
+### Nested Schema for `type_definition.flow.stages`
 
 Required:
 
-- `flow_alert` (Block List, Min: 1) (see [below for nested schema](#nestedblock--flow--stage--group--sub_alerts--flow_alert))
-- `operator` (String) The operator to use on the alert. can be one of ["AND" "OR"]
+- `flow_stages_groups` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--flow--stages--flow_stages_groups))
+- `timeframe_type` (String)
 
-<a id="nestedblock--flow--stage--group--sub_alerts--flow_alert"></a>
-### Nested Schema for `flow.stage.group.sub_alerts.flow_alert`
+Optional:
+
+- `timeframe_ms` (Number)
+
+<a id="nestedatt--type_definition--flow--stages--flow_stages_groups"></a>
+### Nested Schema for `type_definition.flow.stages.flow_stages_groups`
 
 Required:
 
-- `user_alert_id` (String)
+- `alert_defs` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--flow--stages--flow_stages_groups--alert_defs))
+- `alerts_op` (String) Alerts operation. Valid values: ["AND" "OR"].
+- `next_op` (String) Next operation. Valid values: ["AND" "OR"].
+
+<a id="nestedatt--type_definition--flow--stages--flow_stages_groups--alert_defs"></a>
+### Nested Schema for `type_definition.flow.stages.flow_stages_groups.alert_defs`
+
+Required:
+
+- `id` (String)
 
 Optional:
 
@@ -555,442 +511,952 @@ Optional:
 
 
 
-<a id="nestedblock--flow--stage--time_window"></a>
-### Nested Schema for `flow.stage.time_window`
+
+<a id="nestedatt--type_definition--logs_anomaly"></a>
+### Nested Schema for `type_definition.logs_anomaly`
+
+Required:
+
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--rules))
 
 Optional:
+
+- `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter))
+- `notification_payload_filter` (Set of String)
+
+<a id="nestedatt--type_definition--logs_anomaly--rules"></a>
+### Nested Schema for `type_definition.logs_anomaly.rules`
+
+Required:
+
+- `minimum_threshold` (Number)
+- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
+
+
+<a id="nestedatt--type_definition--logs_anomaly--logs_filter"></a>
+### Nested Schema for `type_definition.logs_anomaly.logs_filter`
+
+Optional:
+
+- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter))
+
+<a id="nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter"></a>
+### Nested Schema for `type_definition.logs_anomaly.logs_filter.simple_filter`
+
+Optional:
+
+- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters))
+- `lucene_query` (String)
+
+<a id="nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters"></a>
+### Nested Schema for `type_definition.logs_anomaly.logs_filter.simple_filter.label_filters`
+
+Optional:
+
+- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters--application_name))
+- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters--subsystem_name))
+
+<a id="nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters--application_name"></a>
+### Nested Schema for `type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.application_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+<a id="nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters--subsystem_name"></a>
+### Nested Schema for `type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.subsystem_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+
+
+
+
+<a id="nestedatt--type_definition--logs_immediate"></a>
+### Nested Schema for `type_definition.logs_immediate`
+
+Optional:
+
+- `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter))
+- `notification_payload_filter` (Set of String)
+
+<a id="nestedatt--type_definition--logs_immediate--logs_filter"></a>
+### Nested Schema for `type_definition.logs_immediate.logs_filter`
+
+Optional:
+
+- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter--simple_filter))
+
+<a id="nestedatt--type_definition--logs_immediate--logs_filter--simple_filter"></a>
+### Nested Schema for `type_definition.logs_immediate.logs_filter.simple_filter`
+
+Optional:
+
+- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters))
+- `lucene_query` (String)
+
+<a id="nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters"></a>
+### Nested Schema for `type_definition.logs_immediate.logs_filter.simple_filter.label_filters`
+
+Optional:
+
+- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters--application_name))
+- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters--subsystem_name))
+
+<a id="nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters--application_name"></a>
+### Nested Schema for `type_definition.logs_immediate.logs_filter.simple_filter.label_filters.application_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+<a id="nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters--subsystem_name"></a>
+### Nested Schema for `type_definition.logs_immediate.logs_filter.simple_filter.label_filters.subsystem_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+
+
+
+
+<a id="nestedatt--type_definition--logs_new_value"></a>
+### Nested Schema for `type_definition.logs_new_value`
+
+Required:
+
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--logs_new_value--rules))
+
+Optional:
+
+- `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter))
+- `notification_payload_filter` (Set of String)
+
+<a id="nestedatt--type_definition--logs_new_value--rules"></a>
+### Nested Schema for `type_definition.logs_new_value.rules`
+
+Required:
+
+- `keypath_to_track` (String)
+- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["12_HOURS" "1_MONTH" "1_WEEK" "24_HOURS" "2_MONTHS" "3_MONTHS" "48_HOURS" "72_HOURS"].
+
+
+<a id="nestedatt--type_definition--logs_new_value--logs_filter"></a>
+### Nested Schema for `type_definition.logs_new_value.logs_filter`
+
+Optional:
+
+- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter--simple_filter))
+
+<a id="nestedatt--type_definition--logs_new_value--logs_filter--simple_filter"></a>
+### Nested Schema for `type_definition.logs_new_value.logs_filter.simple_filter`
+
+Optional:
+
+- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters))
+- `lucene_query` (String)
+
+<a id="nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters"></a>
+### Nested Schema for `type_definition.logs_new_value.logs_filter.simple_filter.label_filters`
+
+Optional:
+
+- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters--application_name))
+- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters--subsystem_name))
+
+<a id="nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters--application_name"></a>
+### Nested Schema for `type_definition.logs_new_value.logs_filter.simple_filter.label_filters.application_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+<a id="nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters--subsystem_name"></a>
+### Nested Schema for `type_definition.logs_new_value.logs_filter.simple_filter.label_filters.subsystem_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+
+
+
+
+<a id="nestedatt--type_definition--logs_ratio_threshold"></a>
+### Nested Schema for `type_definition.logs_ratio_threshold`
+
+Required:
+
+- `denominator_alias` (String)
+- `numerator_alias` (String)
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--rules))
+
+Optional:
+
+- `denominator` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator))
+- `group_by_for` (String) Group by for. Valid values: ["Both" "Denominator Only" "Numerator Only"]. 'Both' by default.
+- `notification_payload_filter` (Set of String)
+- `numerator` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator))
+
+<a id="nestedatt--type_definition--logs_ratio_threshold--rules"></a>
+### Nested Schema for `type_definition.logs_ratio_threshold.rules`
+
+Required:
+
+- `condition` (String) Condition to evaluate the threshold with. Valid values: ["LESS_THAN" "MORE_THAN"].
+- `override` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+- `threshold` (Number)
+- `time_window` (String) Condition to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
+
+
+<a id="nestedatt--type_definition--logs_ratio_threshold--denominator"></a>
+### Nested Schema for `type_definition.logs_ratio_threshold.denominator`
+
+Optional:
+
+- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter))
+
+<a id="nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter"></a>
+### Nested Schema for `type_definition.logs_ratio_threshold.denominator.simple_filter`
+
+Optional:
+
+- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters))
+- `lucene_query` (String)
+
+<a id="nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters"></a>
+### Nested Schema for `type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters`
+
+Optional:
+
+- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters--application_name))
+- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters--subsystem_name))
+
+<a id="nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters--application_name"></a>
+### Nested Schema for `type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.application_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+<a id="nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters--subsystem_name"></a>
+### Nested Schema for `type_definition.logs_ratio_threshold.denominator.simple_filter.label_filters.subsystem_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+
+
+
+<a id="nestedatt--type_definition--logs_ratio_threshold--numerator"></a>
+### Nested Schema for `type_definition.logs_ratio_threshold.numerator`
+
+Optional:
+
+- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter))
+
+<a id="nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter"></a>
+### Nested Schema for `type_definition.logs_ratio_threshold.numerator.simple_filter`
+
+Optional:
+
+- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters))
+- `lucene_query` (String)
+
+<a id="nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters"></a>
+### Nested Schema for `type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters`
+
+Optional:
+
+- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters--application_name))
+- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters--subsystem_name))
+
+<a id="nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters--application_name"></a>
+### Nested Schema for `type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.application_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+<a id="nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters--subsystem_name"></a>
+### Nested Schema for `type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.subsystem_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+
+
+
+
+<a id="nestedatt--type_definition--logs_threshold"></a>
+### Nested Schema for `type_definition.logs_threshold`
+
+Required:
+
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--rules))
+
+Optional:
+
+- `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter))
+- `notification_payload_filter` (Set of String)
+- `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--undetected_values_management))
+
+<a id="nestedatt--type_definition--logs_threshold--rules"></a>
+### Nested Schema for `type_definition.logs_threshold.rules`
+
+Required:
+
+- `condition` (String) Condition to evaluate the threshold with. Valid values: ["LESS_THAN" "MORE_THAN"].
+- `override` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+- `threshold` (Number)
+- `time_window` (String) Condition to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
+
+
+<a id="nestedatt--type_definition--logs_threshold--logs_filter"></a>
+### Nested Schema for `type_definition.logs_threshold.logs_filter`
+
+Optional:
+
+- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter--simple_filter))
+
+<a id="nestedatt--type_definition--logs_threshold--logs_filter--simple_filter"></a>
+### Nested Schema for `type_definition.logs_threshold.logs_filter.simple_filter`
+
+Optional:
+
+- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters))
+- `lucene_query` (String)
+
+<a id="nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters"></a>
+### Nested Schema for `type_definition.logs_threshold.logs_filter.simple_filter.label_filters`
+
+Optional:
+
+- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters--application_name))
+- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters--subsystem_name))
+
+<a id="nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters--application_name"></a>
+### Nested Schema for `type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+<a id="nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters--subsystem_name"></a>
+### Nested Schema for `type_definition.logs_threshold.logs_filter.simple_filter.label_filters.subsystem_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+
+
+
+<a id="nestedatt--type_definition--logs_threshold--undetected_values_management"></a>
+### Nested Schema for `type_definition.logs_threshold.undetected_values_management`
+
+Optional:
+
+- `auto_retire_timeframe` (String) Auto retire timeframe. Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "Never"].
+- `trigger_undetected_values` (Boolean)
+
+
+
+<a id="nestedatt--type_definition--logs_time_relative_threshold"></a>
+### Nested Schema for `type_definition.logs_time_relative_threshold`
+
+Required:
+
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--rules))
+
+Optional:
+
+- `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter))
+- `notification_payload_filter` (Set of String)
+- `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--undetected_values_management))
+
+<a id="nestedatt--type_definition--logs_time_relative_threshold--rules"></a>
+### Nested Schema for `type_definition.logs_time_relative_threshold.rules`
+
+Required:
+
+- `compared_to` (String) Compared to a different time frame. Valid values: ["Previous Hour" "Same Day Last Month" "Same Day Last Week" "Same Hour Last Week" "Same Hour Yesterday" "Yesterday"].
+- `condition` (String) Condition . Valid values: ["LESS_THAN" "MORE_THAN"].
+- `override` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+- `threshold` (Number)
+
+
+<a id="nestedatt--type_definition--logs_time_relative_threshold--logs_filter"></a>
+### Nested Schema for `type_definition.logs_time_relative_threshold.logs_filter`
+
+Optional:
+
+- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter))
+
+<a id="nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter"></a>
+### Nested Schema for `type_definition.logs_time_relative_threshold.logs_filter.simple_filter`
+
+Optional:
+
+- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters))
+- `lucene_query` (String)
+
+<a id="nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters"></a>
+### Nested Schema for `type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters`
+
+Optional:
+
+- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters--application_name))
+- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters--subsystem_name))
+
+<a id="nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters--application_name"></a>
+### Nested Schema for `type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters.application_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+<a id="nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters--subsystem_name"></a>
+### Nested Schema for `type_definition.logs_time_relative_threshold.logs_filter.simple_filter.label_filters.subsystem_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+
+
+
+<a id="nestedatt--type_definition--logs_time_relative_threshold--undetected_values_management"></a>
+### Nested Schema for `type_definition.logs_time_relative_threshold.undetected_values_management`
+
+Optional:
+
+- `auto_retire_timeframe` (String) Auto retire timeframe. Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "Never"].
+- `trigger_undetected_values` (Boolean)
+
+
+
+<a id="nestedatt--type_definition--logs_unique_count"></a>
+### Nested Schema for `type_definition.logs_unique_count`
+
+Required:
+
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--rules))
+
+Optional:
+
+- `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter))
+- `notification_payload_filter` (Set of String)
+
+<a id="nestedatt--type_definition--logs_unique_count--rules"></a>
+### Nested Schema for `type_definition.logs_unique_count.rules`
+
+Required:
+
+- `max_unique_count` (Number)
+- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["12_HOURS" "1_HOUR" "1_MINUTE" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "4_HOURS" "5_MINUTES" "6_HOURS"].
+
+
+<a id="nestedatt--type_definition--logs_unique_count--logs_filter"></a>
+### Nested Schema for `type_definition.logs_unique_count.logs_filter`
+
+Optional:
+
+- `simple_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter))
+
+<a id="nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter"></a>
+### Nested Schema for `type_definition.logs_unique_count.logs_filter.simple_filter`
+
+Optional:
+
+- `label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters))
+- `lucene_query` (String)
+
+<a id="nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters"></a>
+### Nested Schema for `type_definition.logs_unique_count.logs_filter.simple_filter.label_filters`
+
+Optional:
+
+- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters--application_name))
+- `severities` (Set of String) Severities. Valid values: ["Critical" "Debug" "Error" "Info" "Unspecified" "Warning"].
+- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters--subsystem_name))
+
+<a id="nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters--application_name"></a>
+### Nested Schema for `type_definition.logs_unique_count.logs_filter.simple_filter.label_filters.application_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+<a id="nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters--subsystem_name"></a>
+### Nested Schema for `type_definition.logs_unique_count.logs_filter.simple_filter.label_filters.subsystem_name`
+
+Required:
+
+- `value` (String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+
+
+
+
+
+
+<a id="nestedatt--type_definition--metric_anomaly"></a>
+### Nested Schema for `type_definition.metric_anomaly`
+
+Required:
+
+- `metric_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--metric_filter))
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--rules))
+
+<a id="nestedatt--type_definition--metric_anomaly--metric_filter"></a>
+### Nested Schema for `type_definition.metric_anomaly.metric_filter`
+
+Required:
+
+- `promql` (String)
+
+
+<a id="nestedatt--type_definition--metric_anomaly--rules"></a>
+### Nested Schema for `type_definition.metric_anomaly.rules`
+
+Required:
+
+- `condition` (String) Condition to evaluate the threshold with. Valid values: ["LESS_THAN" "MORE_THAN"].
+- `for_over_pct` (Number)
+- `min_non_null_values_pct` (Number)
+- `of_the_last` (String) Condition to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "24_HOURS" "2_HOURS" "30_MINUTES" "4_HOURS" "5_MINUTES" "6_HOURS"].
+- `threshold` (Number)
+
+
+
+<a id="nestedatt--type_definition--metric_threshold"></a>
+### Nested Schema for `type_definition.metric_threshold`
+
+Required:
+
+- `metric_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--metric_filter))
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--rules))
+
+Optional:
+
+- `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--undetected_values_management))
+
+<a id="nestedatt--type_definition--metric_threshold--metric_filter"></a>
+### Nested Schema for `type_definition.metric_threshold.metric_filter`
+
+Required:
+
+- `promql` (String)
+
+
+<a id="nestedatt--type_definition--metric_threshold--rules"></a>
+### Nested Schema for `type_definition.metric_threshold.rules`
+
+Required:
+
+- `condition` (String) Condition to evaluate the threshold with. Valid values: ["LESS_THAN" "LESS_THAN_OR_EQUALS" "MORE_THAN" "MORE_THAN_OR_EQUALS"].
+- `for_over_pct` (Number)
+- `of_the_last` (String) Condition to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "24_HOURS" "2_HOURS" "30_MINUTES" "4_HOURS" "5_MINUTES" "6_HOURS"].
+- `override` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+- `threshold` (Number)
+
+
+<a id="nestedatt--type_definition--metric_threshold--undetected_values_management"></a>
+### Nested Schema for `type_definition.metric_threshold.undetected_values_management`
+
+Optional:
+
+- `auto_retire_timeframe` (String) Auto retire timeframe. Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "Never"].
+- `trigger_undetected_values` (Boolean)
+
+
+
+<a id="nestedatt--type_definition--tracing_immediate"></a>
+### Nested Schema for `type_definition.tracing_immediate`
+
+Required:
+
+- `tracing_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter))
+
+Optional:
+
+- `notification_payload_filter` (Set of String)
+
+<a id="nestedatt--type_definition--tracing_immediate--tracing_filter"></a>
+### Nested Schema for `type_definition.tracing_immediate.tracing_filter`
+
+Required:
+
+- `latency_threshold_ms` (Number)
+- `tracing_label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters))
+
+<a id="nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters"></a>
+### Nested Schema for `type_definition.tracing_immediate.tracing_filter.tracing_label_filters`
+
+Optional:
+
+- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--application_name))
+- `operation_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--operation_name))
+- `service_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--service_name))
+- `span_fields` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--span_fields))
+- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--subsystem_name))
+
+<a id="nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--application_name"></a>
+### Nested Schema for `type_definition.tracing_immediate.tracing_filter.tracing_label_filters.application_name`
+
+Required:
+
+- `values` (Set of String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"]. 'IS' by default.
+
+
+<a id="nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--operation_name"></a>
+### Nested Schema for `type_definition.tracing_immediate.tracing_filter.tracing_label_filters.operation_name`
+
+Required:
+
+- `values` (Set of String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"]. 'IS' by default.
+
+
+<a id="nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--service_name"></a>
+### Nested Schema for `type_definition.tracing_immediate.tracing_filter.tracing_label_filters.service_name`
+
+Required:
+
+- `values` (Set of String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"]. 'IS' by default.
+
+
+<a id="nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--span_fields"></a>
+### Nested Schema for `type_definition.tracing_immediate.tracing_filter.tracing_label_filters.span_fields`
+
+Required:
+
+- `key` (String)
+
+Optional:
+
+- `filter_type` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--span_fields--filter_type))
+
+<a id="nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--span_fields--filter_type"></a>
+### Nested Schema for `type_definition.tracing_immediate.tracing_filter.tracing_label_filters.span_fields.filter_type`
+
+Required:
+
+- `values` (Set of String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"]. 'IS' by default.
+
+
+
+<a id="nestedatt--type_definition--tracing_immediate--tracing_filter--tracing_label_filters--subsystem_name"></a>
+### Nested Schema for `type_definition.tracing_immediate.tracing_filter.tracing_label_filters.subsystem_name`
+
+Required:
+
+- `values` (Set of String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"]. 'IS' by default.
+
+
+
+
+
+<a id="nestedatt--type_definition--tracing_threshold"></a>
+### Nested Schema for `type_definition.tracing_threshold`
+
+Required:
+
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--rules))
+- `tracing_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter))
+
+Optional:
+
+- `notification_payload_filter` (Set of String)
+
+<a id="nestedatt--type_definition--tracing_threshold--rules"></a>
+### Nested Schema for `type_definition.tracing_threshold.rules`
+
+Required:
+
+- `span_amount` (Number)
+- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
+
+
+<a id="nestedatt--type_definition--tracing_threshold--tracing_filter"></a>
+### Nested Schema for `type_definition.tracing_threshold.tracing_filter`
+
+Required:
+
+- `latency_threshold_ms` (Number)
+- `tracing_label_filters` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters))
+
+<a id="nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters"></a>
+### Nested Schema for `type_definition.tracing_threshold.tracing_filter.tracing_label_filters`
+
+Optional:
+
+- `application_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--application_name))
+- `operation_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--operation_name))
+- `service_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--service_name))
+- `span_fields` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--span_fields))
+- `subsystem_name` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--subsystem_name))
+
+<a id="nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--application_name"></a>
+### Nested Schema for `type_definition.tracing_threshold.tracing_filter.tracing_label_filters.application_name`
+
+Required:
+
+- `values` (Set of String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"]. 'IS' by default.
+
+
+<a id="nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--operation_name"></a>
+### Nested Schema for `type_definition.tracing_threshold.tracing_filter.tracing_label_filters.operation_name`
+
+Required:
+
+- `values` (Set of String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"]. 'IS' by default.
+
+
+<a id="nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--service_name"></a>
+### Nested Schema for `type_definition.tracing_threshold.tracing_filter.tracing_label_filters.service_name`
+
+Required:
+
+- `values` (Set of String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"]. 'IS' by default.
+
+
+<a id="nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--span_fields"></a>
+### Nested Schema for `type_definition.tracing_threshold.tracing_filter.tracing_label_filters.span_fields`
+
+Required:
+
+- `key` (String)
+
+Optional:
+
+- `filter_type` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--span_fields--filter_type))
+
+<a id="nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--span_fields--filter_type"></a>
+### Nested Schema for `type_definition.tracing_threshold.tracing_filter.tracing_label_filters.span_fields.filter_type`
+
+Required:
+
+- `values` (Set of String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"]. 'IS' by default.
+
+
+
+<a id="nestedatt--type_definition--tracing_threshold--tracing_filter--tracing_label_filters--subsystem_name"></a>
+### Nested Schema for `type_definition.tracing_threshold.tracing_filter.tracing_label_filters.subsystem_name`
+
+Required:
+
+- `values` (Set of String)
+
+Optional:
+
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"]. 'IS' by default.
+
+
+
+
+
+
+<a id="nestedatt--incidents_settings"></a>
+### Nested Schema for `incidents_settings`
+
+Required:
+
+- `notify_on` (String) Notify on. Valid values: ["Triggered Only" "Triggered and Resolved"].
+- `retriggering_period` (Attributes) (see [below for nested schema](#nestedatt--incidents_settings--retriggering_period))
+
+<a id="nestedatt--incidents_settings--retriggering_period"></a>
+### Nested Schema for `incidents_settings.retriggering_period`
+
+Required:
+
+- `minutes` (Number)
+
+
+
+<a id="nestedatt--notification_group"></a>
+### Nested Schema for `notification_group`
+
+Optional:
+
+- `group_by_keys` (List of String)
+- `webhooks_settings` (Attributes Set) (see [below for nested schema](#nestedatt--notification_group--webhooks_settings))
+
+<a id="nestedatt--notification_group--webhooks_settings"></a>
+### Nested Schema for `notification_group.webhooks_settings`
+
+Optional:
+
+- `integration_id` (String)
+- `notify_on` (String) Notify on. Valid values: ["Triggered Only" "Triggered and Resolved"]. Triggered Only by default.
+- `recipients` (Set of String)
+- `retriggering_period` (Attributes) Retriggering period in minutes. 10 minutes by default. (see [below for nested schema](#nestedatt--notification_group--webhooks_settings--retriggering_period))
+
+<a id="nestedatt--notification_group--webhooks_settings--retriggering_period"></a>
+### Nested Schema for `notification_group.webhooks_settings.retriggering_period`
+
+Required:
+
+- `minutes` (Number)
+
+
+
+
+<a id="nestedatt--schedule"></a>
+### Nested Schema for `schedule`
+
+Required:
+
+- `active_on` (Attributes) (see [below for nested schema](#nestedatt--schedule--active_on))
+
+<a id="nestedatt--schedule--active_on"></a>
+### Nested Schema for `schedule.active_on`
+
+Required:
+
+- `days_of_week` (List of String) Days of the week. Valid values: ["Friday" "Monday" "Saturday" "Sunday" "Thursday" "Tuesday" "Wednesday"].
+- `end_time` (Attributes) (see [below for nested schema](#nestedatt--schedule--active_on--end_time))
+- `start_time` (Attributes) (see [below for nested schema](#nestedatt--schedule--active_on--start_time))
+
+<a id="nestedatt--schedule--active_on--end_time"></a>
+### Nested Schema for `schedule.active_on.end_time`
+
+Required:
 
 - `hours` (Number)
 - `minutes` (Number)
-- `seconds` (Number)
 
 
-
-
-<a id="nestedblock--incident_settings"></a>
-### Nested Schema for `incident_settings`
+<a id="nestedatt--schedule--active_on--start_time"></a>
+### Nested Schema for `schedule.active_on.start_time`
 
 Required:
 
-- `retriggering_period_minutes` (Number)
-
-Optional:
-
-- `notify_on` (String) Defines the alert's triggering logic. Can be one of ["Triggered_only" "Triggered_and_resolved"]. Triggered_and_resolved conflicts with new_value, unique_count and flow alerts, and with immediately and more_than_usual conditions
-
-
-<a id="nestedblock--metric"></a>
-### Nested Schema for `metric`
-
-Optional:
-
-- `lucene` (Block List, Max: 1) (see [below for nested schema](#nestedblock--metric--lucene))
-- `promql` (Block List, Max: 1) (see [below for nested schema](#nestedblock--metric--promql))
-
-<a id="nestedblock--metric--lucene"></a>
-### Nested Schema for `metric.lucene`
-
-Required:
-
-- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--metric--lucene--condition))
-- `search_query` (String) Regular expiration. More info: https://coralogix.com/blog/regex-101/
-
-<a id="nestedblock--metric--lucene--condition"></a>
-### Nested Schema for `metric.lucene.condition`
-
-Required:
-
-- `arithmetic_operator` (String) The arithmetic operator to use on the alert. can be one of ["Percentile" "Avg" "Min" "Max" "Sum" "Count"]
-- `metric_field` (String) The name of the metric field to alert on.
-- `sample_threshold_percentage` (Number) The metric value must cross the threshold within this percentage of the timeframe (sum and count arithmetic operators do not use this parameter since they aggregate over the entire requested timeframe), increments of 10, 0 <= value <= 100.
-- `threshold` (Number) The number of log threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["5Min" "10Min" "15Min" "20Min" "30Min" "1H" "4H" "6H" "24H" "1Min" "2H" "12H"]
-
-Optional:
-
-- `arithmetic_operator_modifier` (Number) When arithmetic_operator = "Percentile" you need to supply the value in this property, 0 < value < 100.
-- `group_by` (List of String) The fields to 'group by' on.
-- `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--metric--lucene--condition--manage_undetected_values))
-- `min_non_null_values_percentage` (Number) The minimum percentage of the timeframe that should have values for this alert to trigger
-- `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `replace_missing_value_with_zero` (Boolean) If set to true, missing data will be considered as 0, otherwise, it will not be considered at all.
-
-<a id="nestedblock--metric--lucene--condition--manage_undetected_values"></a>
-### Nested Schema for `metric.lucene.condition.manage_undetected_values`
-
-Required:
-
-- `enable_triggering_on_undetected_values` (Boolean) Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.
-
-Optional:
-
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["10Min" "1H" "2H" "6H" "12H" "24H" "Never" "5Min"]
-
-
-
-
-<a id="nestedblock--metric--promql"></a>
-### Nested Schema for `metric.promql`
-
-Required:
-
-- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--metric--promql--condition))
-- `search_query` (String) Regular expiration. More info: https://coralogix.com/blog/regex-101/
-
-<a id="nestedblock--metric--promql--condition"></a>
-### Nested Schema for `metric.promql.condition`
-
-Required:
-
-- `sample_threshold_percentage` (Number)
-- `threshold` (Number) The threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["5Min" "10Min" "15Min" "20Min" "30Min" "1H" "4H" "6H" "24H" "1Min" "2H" "12H"]
-
-Optional:
-
-- `less_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.
-- `less_than_or_equal` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.
-- `less_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.
-- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--metric--promql--condition--manage_undetected_values))
-- `min_non_null_values_percentage` (Number)
-- `more_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.
-- `more_than_or_equal` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.
-- `more_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than, more_than_usual, less_than_usual, more_than_or_equal or less_than_or_equal.
-- `replace_missing_value_with_zero` (Boolean) If set to true, missing data will be considered as 0, otherwise, it will not be considered at all.
-
-<a id="nestedblock--metric--promql--condition--manage_undetected_values"></a>
-### Nested Schema for `metric.promql.condition.manage_undetected_values`
-
-Required:
-
-- `enable_triggering_on_undetected_values` (Boolean) Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.
-
-Optional:
-
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["10Min" "1H" "2H" "6H" "12H" "24H" "Never" "5Min"]
-
-
-
-
-
-<a id="nestedblock--new_value"></a>
-### Nested Schema for `new_value`
-
-Required:
-
-- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--new_value--condition))
-
-Optional:
-
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-- `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
-- `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
-- `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
-- `ip_addresses` (Set of String) An array that contains log’s IP addresses that we want to be notified on.
-- `methods` (Set of String) An array that contains log’s method names that we want to be notified on.
-- `search_query` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Critical" "Debug" "Verbose" "Info" "Warning" "Error"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-
-<a id="nestedblock--new_value--condition"></a>
-### Nested Schema for `new_value.condition`
-
-Required:
-
-- `key_to_track` (String) Select a key to track. Note, this key needs to have less than 50K unique values in the defined timeframe.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["1Month" "2Month" "3Month" "12H" "24H" "48H" "72H" "1W"]
-
-
-
-<a id="nestedblock--notifications_group"></a>
-### Nested Schema for `notifications_group`
-
-Optional:
-
-- `group_by_fields` (List of String) List of group-by fields to apply the notification logic on (can be empty). Every notification should contain unique group_by_fields permutation (the order doesn't matter).
-- `notification` (Block Set) Defines notification logic with optional recipients. Can contain single webhook or email recipients list. (see [below for nested schema](#nestedblock--notifications_group--notification))
-
-<a id="nestedblock--notifications_group--notification"></a>
-### Nested Schema for `notifications_group.notification`
-
-Optional:
-
-- `email_recipients` (Set of String) Conflicts with integration_id.
-- `integration_id` (String) Conflicts with emails.
-- `notify_on` (String) Defines the alert's triggering logic. Can be one of ["Triggered_only" "Triggered_and_resolved"]. Triggered_and_resolved conflicts with new_value, unique_count and flow alerts, and with immediately and more_than_usual conditions
-- `retriggering_period_minutes` (Number) By default, retriggering_period_minutes will be populated with min for immediate, more_than and more_than_usual alerts. For less_than alert it will be populated with the chosen time frame for the less_than condition (in minutes). You may choose to change the suppress window so the alert will be suppressed for a longer period.
-
-
-
-<a id="nestedblock--ratio"></a>
-### Nested Schema for `ratio`
-
-Required:
-
-- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--ratio--condition))
-- `query_1` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--ratio--query_1))
-- `query_2` (Block List, Min: 1, Max: 1) (see [below for nested schema](#nestedblock--ratio--query_2))
-
-<a id="nestedblock--ratio--condition"></a>
-### Nested Schema for `ratio.condition`
-
-Required:
-
-- `ratio_threshold` (Number) The ratio(between the queries) threshold that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["15Min" "20Min" "30Min" "4H" "5Min" "10Min" "6H" "12H" "24H" "36H" "1H" "2H"]
-
-Optional:
-
-- `group_by` (List of String) The fields to 'group by' on.
-- `group_by_both` (Boolean)
-- `group_by_q1` (Boolean)
-- `group_by_q2` (Boolean)
-- `ignore_infinity` (Boolean) Not triggered when threshold is infinity (divided by zero).
-- `less_than` (Boolean)
-- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--ratio--condition--manage_undetected_values))
-- `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-
-<a id="nestedblock--ratio--condition--manage_undetected_values"></a>
-### Nested Schema for `ratio.condition.manage_undetected_values`
-
-Required:
-
-- `enable_triggering_on_undetected_values` (Boolean) Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.
-
-Optional:
-
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["10Min" "1H" "2H" "6H" "12H" "24H" "Never" "5Min"]
-
-
-
-<a id="nestedblock--ratio--query_1"></a>
-### Nested Schema for `ratio.query_1`
-
-Optional:
-
-- `alias` (String) Query1 alias.
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-- `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
-- `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
-- `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
-- `ip_addresses` (Set of String) An array that contains log’s IP addresses that we want to be notified on.
-- `methods` (Set of String) An array that contains log’s method names that we want to be notified on.
-- `search_query` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Critical" "Debug" "Verbose" "Info" "Warning" "Error"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-
-
-<a id="nestedblock--ratio--query_2"></a>
-### Nested Schema for `ratio.query_2`
-
-Optional:
-
-- `alias` (String) Query2 alias.
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-- `search_query` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Critical" "Debug" "Verbose" "Info" "Warning" "Error"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-
-
-
-<a id="nestedblock--scheduling"></a>
-### Nested Schema for `scheduling`
-
-Required:
-
-- `time_frame` (Block Set, Min: 1, Max: 1) time_frame is a set of days and hours when the alert will be active. ***Currently, supported only for one time_frame*** (see [below for nested schema](#nestedblock--scheduling--time_frame))
-
-Optional:
-
-- `time_zone` (String) Specifies the time zone to be used in interpreting the schedule. Can be one of ["UTC-11" "UTC-10" "UTC-9" "UTC-8" "UTC-7" "UTC-6" "UTC-5" "UTC-4" "UTC-3" "UTC-2" "UTC-1" "UTC+0" "UTC+1" "UTC+2" "UTC+3" "UTC+4" "UTC+5" "UTC+6" "UTC+7" "UTC+8" "UTC+9" "UTC+10" "UTC+11" "UTC+12" "UTC+13" "UTC+14"]
-
-<a id="nestedblock--scheduling--time_frame"></a>
-### Nested Schema for `scheduling.time_frame`
-
-Required:
-
-- `days_enabled` (Set of String) Days of week. Can be one of ["Saturday" "Sunday" "Monday" "Tuesday" "Wednesday" "Thursday" "Friday"]
-- `end_time` (String) Limit the triggering of this alert to end at specific hour.
-- `start_time` (String) Limit the triggering of this alert to start at specific hour.
-
-
-
-<a id="nestedblock--standard"></a>
-### Nested Schema for `standard`
-
-Required:
-
-- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--standard--condition))
-
-Optional:
-
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-- `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
-- `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
-- `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
-- `ip_addresses` (Set of String) An array that contains log’s IP addresses that we want to be notified on.
-- `methods` (Set of String) An array that contains log’s method names that we want to be notified on.
-- `search_query` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Critical" "Debug" "Verbose" "Info" "Warning" "Error"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-
-<a id="nestedblock--standard--condition"></a>
-### Nested Schema for `standard.condition`
-
-Optional:
-
-- `evaluation_window` (String) Defines the evaluation-window logic to determine if the threshold has been crossed. Relevant only for more_than condition. Can be one of ["Rolling" "Dynamic"].
-- `group_by` (List of String) The fields to 'group by' on. In case of immediately = true switch to group_by_key.
-- `group_by_key` (String) The key to 'group by' on. When immediately = true, 'group_by_key' (single string) can be set instead of 'group_by'.
-- `immediately` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
-- `less_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
-- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--standard--condition--manage_undetected_values))
-- `more_than` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
-- `more_than_usual` (Boolean) Determines the condition operator. Must be one of - immediately, less_than, more_than or more_than_usual.
-- `threshold` (Number) The number of log occurrences that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["15Min" "20Min" "30Min" "4H" "5Min" "10Min" "6H" "12H" "24H" "36H" "1H" "2H"]
-
-<a id="nestedblock--standard--condition--manage_undetected_values"></a>
-### Nested Schema for `standard.condition.manage_undetected_values`
-
-Required:
-
-- `enable_triggering_on_undetected_values` (Boolean) Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.
-
-Optional:
-
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["10Min" "1H" "2H" "6H" "12H" "24H" "Never" "5Min"]
-
-
-
-
-<a id="nestedblock--time_relative"></a>
-### Nested Schema for `time_relative`
-
-Required:
-
-- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--time_relative--condition))
-
-Optional:
-
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-- `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
-- `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
-- `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
-- `ip_addresses` (Set of String) An array that contains log’s IP addresses that we want to be notified on.
-- `methods` (Set of String) An array that contains log’s method names that we want to be notified on.
-- `search_query` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Critical" "Debug" "Verbose" "Info" "Warning" "Error"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-
-<a id="nestedblock--time_relative--condition"></a>
-### Nested Schema for `time_relative.condition`
-
-Required:
-
-- `ratio_threshold` (Number) The ratio threshold that is needed to trigger the alert.
-- `relative_time_window` (String) Time-window to compare with. Can be one of ["Yesterday" "Same_day_last_week" "Same_day_last_month" "Previous_hour" "Same_hour_yesterday" "Same_hour_last_week"].
-
-Optional:
-
-- `group_by` (List of String) The fields to 'group by' on.
-- `ignore_infinity` (Boolean) Not triggered when threshold is infinity (divided by zero).
-- `less_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-- `manage_undetected_values` (Block List, Max: 1) Manage your logs undetected values - when relevant, enable/disable triggering on undetected values and change the auto retire interval. By default (when relevant), triggering is enabled with retire-ratio=NEVER. (see [below for nested schema](#nestedblock--time_relative--condition--manage_undetected_values))
-- `more_than` (Boolean) Determines the condition operator. Must be one of - less_than or more_than.
-
-<a id="nestedblock--time_relative--condition--manage_undetected_values"></a>
-### Nested Schema for `time_relative.condition.manage_undetected_values`
-
-Required:
-
-- `enable_triggering_on_undetected_values` (Boolean) Determines whether the deadman-option is enabled. When set to true, auto_retire_ratio is required otherwise auto_retire_ratio should be omitted.
-
-Optional:
-
-- `auto_retire_ratio` (String) Defines the triggering auto-retire ratio. Can be one of ["10Min" "1H" "2H" "6H" "12H" "24H" "Never" "5Min"]
-
-
-
-
-<a id="nestedblock--timeouts"></a>
-### Nested Schema for `timeouts`
-
-Optional:
-
-- `create` (String)
-- `delete` (String)
-- `read` (String)
-- `update` (String)
-
-
-<a id="nestedblock--tracing"></a>
-### Nested Schema for `tracing`
-
-Required:
-
-- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--tracing--condition))
-
-Optional:
-
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:notEquals:xxx, filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-- `latency_threshold_milliseconds` (Number)
-- `services` (Set of String) An array that contains log’s services names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:notEquals:xxx, filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-- `subsystems` (Set of String) An array that contains log’s subsystems names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:notEquals:xxx, filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-- `tag_filter` (Block Set) (see [below for nested schema](#nestedblock--tracing--tag_filter))
-
-<a id="nestedblock--tracing--condition"></a>
-### Nested Schema for `tracing.condition`
-
-Optional:
-
-- `group_by` (List of String) The fields to 'group by' on.
-- `immediately` (Boolean) Determines the condition operator. Must be one of - immediately or more_than.
-- `more_than` (Boolean) Determines the condition operator. Must be one of - immediately or more_than.
-- `threshold` (Number) The number of log occurrences that is needed to trigger the alert.
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["15Min" "20Min" "30Min" "4H" "5Min" "10Min" "6H" "12H" "24H" "36H" "1H" "2H"]
-
-
-<a id="nestedblock--tracing--tag_filter"></a>
-### Nested Schema for `tracing.tag_filter`
-
-Required:
-
-- `field` (String)
-- `values` (Set of String) Tag filter values can be filtered by prefix, suffix, and contains using the next patterns - filter:notEquals:xxx, filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-
-
-
-<a id="nestedblock--unique_count"></a>
-### Nested Schema for `unique_count`
-
-Required:
-
-- `condition` (Block List, Min: 1, Max: 1) Defines the conditions for triggering and notify by the alert (see [below for nested schema](#nestedblock--unique_count--condition))
-
-Optional:
-
-- `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-- `categories` (Set of String) An array that contains log’s categories that we want to be notified on.
-- `classes` (Set of String) An array that contains log’s class names that we want to be notified on.
-- `computers` (Set of String) An array that contains log’s computer names that we want to be notified on.
-- `ip_addresses` (Set of String) An array that contains log’s IP addresses that we want to be notified on.
-- `methods` (Set of String) An array that contains log’s method names that we want to be notified on.
-- `search_query` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of log severities that we interested in. Can be one of ["Critical" "Debug" "Verbose" "Info" "Warning" "Error"]
-- `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on. Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
-
-<a id="nestedblock--unique_count--condition"></a>
-### Nested Schema for `unique_count.condition`
-
-Required:
-
-- `max_unique_values` (Number)
-- `time_window` (String) The bounded time frame for the threshold to be occurred within, to trigger the alert. Can be one of ["10Min" "15Min" "20Min" "1H" "6H" "12H" "1Min" "5Min" "30Min" "2H" "4H" "24H"]
-- `unique_count_key` (String) Defines the key to match to track its unique count.
-
-Optional:
-
-- `group_by_key` (String) The key to 'group by' on.
-- `max_unique_values_for_group_by` (Number)
+- `hours` (Number)
+- `minutes` (Number)

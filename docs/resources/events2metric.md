@@ -13,6 +13,20 @@ description: |-
 ## Example Usage
 
 ```terraform
+terraform {
+  required_providers {
+    coralogix = {
+      version = "~> 1.8"
+      source  = "coralogix/coralogix"
+    }
+  }
+}
+
+provider "coralogix" {
+  #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+}
+
 resource "coralogix_events2metric" "logs2metric" {
   name        = "logs2metricExample"
   description = "logs2metric from coralogix terraform provider"
@@ -27,7 +41,7 @@ resource "coralogix_events2metric" "logs2metric" {
       source_field = "method"
     },
     geo_point = {
-      source_field = "remote_addr_geoip.location_geopoint"
+      source_field = "location_geopoint"
       aggregations = {
         max = {
           enable = false
@@ -68,7 +82,7 @@ resource "coralogix_events2metric" "spans2metric" {
       source_field = "method"
     },
     geo_point = {
-      source_field = "remote_addr_geoip.location_geopoint"
+      source_field = "location_geopoint"
       aggregations = {
         max = {
           enable = false
@@ -121,7 +135,7 @@ Optional:
 
 - `applications` (Set of String) An array that contains log’s application names that we want to be alerted on. Applications can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 - `lucene` (String) The search_query that we wanted to be notified on.
-- `severities` (Set of String) An array of severities that we interested in. Can be one of ["Warning" "Error" "Critical" "Unspecified" "Debug" "Verbose" "Info"]
+- `severities` (Set of String) An array of severities that we interested in. Can be one of ["critical" "debug" "error" "info" "unspecified" "verbose" "warning"]
 - `subsystems` (Set of String) An array that contains log’s subsystem names that we want to be notified on.  Subsystems can be filtered by prefix, suffix, and contains using the next patterns - filter:startsWith:xxx, filter:endsWith:xxx, filter:contains:xxx
 
 
@@ -218,7 +232,7 @@ Read-Only:
 
 Required:
 
-- `type` (String) Can be one of ["Min" "Max"].
+- `type` (String) Can be one of ["Max" "Min"].
 
 Optional:
 

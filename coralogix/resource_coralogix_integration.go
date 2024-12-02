@@ -129,7 +129,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	createReq, diags := extractCreateIntegration(ctx, plan)
+	createReq, diags := extractCreateIntegration(plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -186,6 +186,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
 	state, e := integrationDetail(getIntegrationResp, keys)
+	state.Parameters = plan.Parameters
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
@@ -197,7 +198,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 
 func KeysFromPlan(ctx context.Context, plan *IntegrationResourceModel) ([]string, diag.Diagnostics) {
 	// extract keys first to filter the returned parameters later
-	parameters, diags := dynamicToParameters(ctx, plan.Parameters)
+	parameters, diags := dynamicToParameters(plan.Parameters)
 	keys := make([]string, len(parameters))
 	for i, parameter := range parameters {
 		keys[i] = parameter.Key
@@ -205,8 +206,8 @@ func KeysFromPlan(ctx context.Context, plan *IntegrationResourceModel) ([]string
 	return keys, diags
 }
 
-func extractCreateIntegration(ctx context.Context, plan *IntegrationResourceModel) (*cxsdk.SaveIntegrationRequest, diag.Diagnostics) {
-	parameters, diags := dynamicToParameters(ctx, plan.Parameters)
+func extractCreateIntegration(plan *IntegrationResourceModel) (*cxsdk.SaveIntegrationRequest, diag.Diagnostics) {
+	parameters, diags := dynamicToParameters(plan.Parameters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -223,9 +224,9 @@ func extractCreateIntegration(ctx context.Context, plan *IntegrationResourceMode
 	}, diag.Diagnostics{}
 }
 
-func extractUpdateIntegration(ctx context.Context, plan *IntegrationResourceModel) (*cxsdk.UpdateIntegrationRequest, diag.Diagnostics) {
+func extractUpdateIntegration(plan *IntegrationResourceModel) (*cxsdk.UpdateIntegrationRequest, diag.Diagnostics) {
 
-	parameters, diags := dynamicToParameters(ctx, plan.Parameters)
+	parameters, diags := dynamicToParameters(plan.Parameters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -243,7 +244,7 @@ func extractUpdateIntegration(ctx context.Context, plan *IntegrationResourceMode
 	}, diag.Diagnostics{}
 }
 
-func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*cxsdk.IntegrationParameter, diag.Diagnostics) {
+func dynamicToParameters(planParameters types.Dynamic) ([]*cxsdk.IntegrationParameter, diag.Diagnostics) {
 	parameters := make([]*cxsdk.IntegrationParameter, 0)
 
 	switch p := planParameters.UnderlyingValue().(type) {
@@ -281,7 +282,6 @@ func dynamicToParameters(ctx context.Context, planParameters types.Dynamic) ([]*
 					default:
 						return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid parameter type", fmt.Sprintf("Invalid parameter type %v: %v", v, p))}
 					}
-
 				}
 
 				parameters = append(parameters, &cxsdk.IntegrationParameter{
@@ -398,6 +398,7 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 	state, e := integrationDetail(getIntegrationResp, keys)
+	state.Parameters = plan.Parameters
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
@@ -415,7 +416,7 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	updateReq, diags := extractUpdateIntegration(ctx, plan)
+	updateReq, diags := extractUpdateIntegration(plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -461,6 +462,7 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 	log.Printf("[INFO] Received Integration: %s", protojson.Format(getIntegrationResp))
 	state, e := integrationDetail(getIntegrationResp, keys)
+	state.Parameters = plan.Parameters
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return

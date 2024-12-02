@@ -13,6 +13,20 @@ Coralogix SLO.
 ## Example Usage
 
 ```terraform
+terraform {
+  required_providers {
+    coralogix = {
+      version = "~> 1.8"
+      source  = "coralogix/coralogix"
+    }
+  }
+}
+
+provider "coralogix" {
+  #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+}
+
 resource "coralogix_slo" "example" {
   name            = "coralogix_slo_example"
   service_name    = "service_name"
@@ -47,7 +61,7 @@ resource "coralogix_slo" "example_2" {
 ### Required
 
 - `name` (String) SLO name.
-- `period` (String) Period. This is the period of the SLO. Valid values are: ["30_days" "unspecified" "7_days" "14_days"]
+- `period` (String) Period. This is the period of the SLO. Valid values are: ["14_days" "30_days" "7_days" "unspecified"]
 - `service_name` (String) Service name. This is the name of the service that the SLO is associated with.
 - `target_percentage` (Number) Target percentage. This is the target percentage of the SLO.
 - `type` (String) Type. This is the type of the SLO. Valid values are: "error", "latency".
@@ -57,7 +71,7 @@ resource "coralogix_slo" "example_2" {
 - `description` (String) Optional SLO description.
 - `filters` (Attributes Set) (see [below for nested schema](#nestedatt--filters))
 - `threshold_microseconds` (Number) Threshold in microseconds. Required when `type` is `latency`.
-- `threshold_symbol_type` (String) Threshold symbol type. Required when `type` is `latency`. Valid values are: ["less_or_equal" "equal" "greater" "greater_or_equal" "less"]
+- `threshold_symbol_type` (String) Threshold symbol type. Required when `type` is `latency`. Valid values are: ["equal" "greater" "greater_or_equal" "less" "less_or_equal"]
 
 ### Read-Only
 
@@ -70,7 +84,7 @@ resource "coralogix_slo" "example_2" {
 
 Required:
 
-- `compare_type` (String) Compare type. This is the compare type of the SLO. Valid values are: ["unspecified" "is" "starts_with" "ends_with" "includes"]
+- `compare_type` (String) Compare type. This is the compare type of the SLO. Valid values are: ["ends_with" "includes" "is" "starts_with" "unspecified"]
 - `field` (String)
 
 Optional:

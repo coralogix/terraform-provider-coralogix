@@ -98,12 +98,12 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	data, diags = integrationDetail(getIntegrationResp, keys)
-	if diags.HasError() {
+	state, e := integrationDetail(getIntegrationResp, keys)
+	if e.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 	// Set state to fully populated data
-	diags = resp.State.Set(ctx, &data)
+	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }

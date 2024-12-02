@@ -13,6 +13,20 @@ Coralogix webhook. For more info please review - https://coralogix.com/docs/cora
 ## Example Usage
 
 ```terraform
+terraform {
+  required_providers {
+    coralogix = {
+      version = "~> 1.8"
+      source  = "coralogix/coralogix"
+    }
+  }
+}
+
+provider "coralogix" {
+  #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+}
+
 resource "coralogix_webhook" "slack_webhook" {
   name  = "slack-webhook"
   slack = {
@@ -257,7 +271,7 @@ Optional:
 Optional:
 
 - `attachments` (Attributes List) Slack attachments. (see [below for nested schema](#nestedatt--slack--attachments))
-- `notify_on` (Set of String) Slack notifications. can be one of: flow_anomalies, spike_anomalies, data_usage, error_and_critical_logs
+- `notify_on` (Set of String) Slack notifications. can be one of: data_usage, error_and_critical_logs, flow_anomalies, spike_anomalies
 - `url` (String) Slack URL.
 
 <a id="nestedatt--slack--attachments"></a>
@@ -265,7 +279,7 @@ Optional:
 
 Required:
 
-- `type` (String) Slack attachment type. can be one of: empty, metric_snapshot, logs
+- `type` (String) Slack attachment type. can be one of: empty, logs, metric_snapshot
 
 Optional:
 
