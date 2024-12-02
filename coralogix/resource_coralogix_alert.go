@@ -674,37 +674,6 @@ func (r *AlertResource) Configure(_ context.Context, req resource.ConfigureReque
 	r.client = clientSet.Alerts()
 }
 
-// type requiredWhenGroupBySet struct {
-// }
-
-// func (r requiredWhenGroupBySet) Description(ctx context.Context) string {
-// 	return "Required when group_by is set."
-// }
-
-// func (r requiredWhenGroupBySet) MarkdownDescription(ctx context.Context) string {
-// 	return "Required when group_by is set."
-// }
-
-// func (r requiredWhenGroupBySet) ValidateInt64(ctx context.Context, req validator.Int64Request, resp *validator.Int64Response) {
-// 	if !req.ConfigValue.IsNull() {
-// 		return
-// 	}
-
-// 	var groupBy types.Set
-// 	diags := req.Config.GetAttribute(ctx, path.Root("group_by"), &groupBy)
-// 	if diags.HasError() {
-// 		resp.Diagnostics.Append(diags...)
-// 		return
-// 	}
-
-// 	if !(groupBy.IsNull() || groupBy.IsUnknown()) {
-// 		resp.Diagnostics.Append(validatordiag.InvalidAttributeCombinationDiagnostic(
-// 			req.Path,
-// 			fmt.Sprintf("Attribute %q must be specified when %q is specified", req.Path, "group_by"),
-// 		))
-// 	}
-// }
-
 func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version:             1,
@@ -1205,6 +1174,10 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				PlanModifiers: []planmodifier.Set{
 					ComputedForMetricAlerts{},
 				},
+				Validators: []validator.Set{
+					//imidiate, new value, tracing-immidiate,
+					GroupByValidator{},
+				},
 				ElementType:         types.StringType,
 				MarkdownDescription: "Group by fields.",
 			},
@@ -1300,6 +1273,37 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				ElementType: types.StringType,
 			},
 		},
+	}
+}
+
+type GroupByValidator struct {
+}
+
+func (g GroupByValidator) Description(ctx context.Context) string {
+	return "Group by validator."
+}
+
+func (g GroupByValidator) MarkdownDescription(ctx context.Context) string {
+	return "Group by validator."
+}
+
+func (g GroupByValidator) ValidateSet(ctx context.Context, request validator.SetRequest, response *validator.SetResponse) {
+	paths, diags := request.Config.PathMatches(ctx, path.MatchRoot("type_definition"))
+	if diags.HasError() {
+		response.Diagnostics.Append(diags...)
+		return
+	}
+	var typeDefinition AlertTypeDefinitionModel
+	diags = request.Config.GetAttribute(ctx, paths[0], &typeDefinition)
+	if diags.HasError() {
+		response.Diagnostics.Append(diags...)
+		return
+	}
+
+	if !objIsNullOrUnknown(typeDefinition.LogsImmediate) || !objIsNullOrUnknown(typeDefinition.LogsNewValue) || !objIsNullOrUnknown(typeDefinition.TracingImmediate) {
+		if !(request.ConfigValue.IsNull() || request.ConfigValue.IsUnknown()) {
+			response.Diagnostics.AddError("group_by", "Group by is not allowed for logs_immediate, logs_new_value, tracing_immediate alert types.")
+		}
 	}
 }
 
