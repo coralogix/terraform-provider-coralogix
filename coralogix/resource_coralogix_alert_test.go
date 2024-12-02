@@ -103,7 +103,7 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "high"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.webhooks_settings.*",
 						map[string]string{
 							"recipients.#": "1",
@@ -206,7 +206,7 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "high"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.webhooks_settings.*",
 						map[string]string{
 							"recipients.#": "1",
@@ -1872,6 +1872,8 @@ func testAccCoralogixResourceAlertLogsMoreThanUsual() string {
 			minimum_threshold   = 2
 			time_window = "10_MINUTES"
 			}
+			override = {
+			}
 		}]
       logs_filter = {
         simple_filter = {
@@ -1945,8 +1947,10 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
 		rules = [
       		{
 				condition = {
-				time_window = "1_HOUR"
-				minimum_threshold = 20
+					time_window = "1_HOUR"
+					minimum_threshold = 20
+				}
+				override = {
 				}
 			}
 	]
@@ -2003,6 +2007,8 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 				threshold   = 2
 				time_window = "10_MINUTES"
 				condition_type   = "LESS_THAN"
+				}
+				override = {
 				}
 			}]
 			logs_filter       = {
@@ -2071,6 +2077,8 @@ func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
 				threshold   = 20
 				time_window = "2_HOURS"
 				condition_type   = "LESS_THAN"
+				}
+				override = {
 				}
 			}]
 			logs_filter       = {
