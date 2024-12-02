@@ -17,8 +17,9 @@ package coralogix
 import (
 	"context"
 	"fmt"
-	"terraform-provider-coralogix/coralogix/clientset"
 	"testing"
+
+	"terraform-provider-coralogix/coralogix/clientset"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -42,11 +43,6 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "high"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
-						map[string]string{
-							"recipients.#": "1",
-							"recipients.0": "example@coralogix.com",
-						}),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
@@ -69,7 +65,7 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs immediate alert updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs immediate alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.advanced_target_settings.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.webhooks_settings.*",
 						map[string]string{
 							"retriggering_period.minutes": "1",
 							"notify_on":                   "Triggered Only",
@@ -108,7 +104,7 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "high"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.webhooks_settings.*",
 						map[string]string{
 							"recipients.#": "1",
 							"recipients.0": "example@coralogix.com",
@@ -158,7 +154,7 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "low"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered Only"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
@@ -211,7 +207,7 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "high"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.webhooks_settings.*",
 						map[string]string{
 							"recipients.#": "1",
 							"recipients.0": "example@coralogix.com",
@@ -314,7 +310,7 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P4"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "high"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.advanced_target_settings.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.webhooks_settings.*",
 						map[string]string{
 							"retriggering_period.minutes": "1",
 							"notify_on":                   "Triggered and Resolved",
@@ -331,30 +327,30 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time.minutes", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.hours", "20"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time.minutes", "30"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_unusual.logs_filter.simple_filter.label_filters.application_name.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.application_name.*",
 						map[string]string{
 							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_unusual.logs_filter.simple_filter.label_filters.subsystem_name.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.subsystem_name.*",
 						map[string]string{
 							"operation": "IS",
 							"value":     "subsystem-name",
 						},
 					),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unusual.logs_filter.simple_filter.lucene_query", "message:\"error\""),
-					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_unusual.logs_filter.simple_filter.label_filters.severities.*", "Warning"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unusual.rules.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_unusual.rules.*",
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_anomaly.logs_filter.simple_filter.lucene_query", "message:\"error\""),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.severities.*", "Warning"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_anomaly.rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_anomaly.rules.*",
 						map[string]string{
 							"minimum_threshold": "2",
 							"time_window":       "10_MINUTES",
 						},
 					),
-					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_unusual.notification_payload_filter.*", "coralogix.metadata.sdkId"),
-					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_unusual.notification_payload_filter.*", "coralogix.metadata.sdkName"),
-					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_unusual.notification_payload_filter.*", "coralogix.metadata.sdkVersion"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_anomaly.notification_payload_filter.*", "coralogix.metadata.sdkId"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_anomaly.notification_payload_filter.*", "coralogix.metadata.sdkName"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_anomaly.notification_payload_filter.*", "coralogix.metadata.sdkVersion"),
 				),
 			},
 			{
@@ -368,26 +364,26 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-more-than-usual alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.#", "0"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.advanced_target_settings.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "1"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unusual.logs_filter.simple_filter.lucene_query", "message:\"updated_error\""),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_unusual.logs_filter.simple_filter.label_filters.application_name.*",
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_anomaly.logs_filter.simple_filter.lucene_query", "message:\"updated_error\""),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.application_name.*",
 						map[string]string{
 							"operation": "IS",
 							"value":     "nginx",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_unusual.logs_filter.simple_filter.label_filters.subsystem_name.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.subsystem_name.*",
 						map[string]string{
 							"operation": "IS",
 							"value":     "subsystem-name",
 						},
 					),
-					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_unusual.logs_filter.simple_filter.label_filters.severities.*", "Warning"),
-					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_unusual.logs_filter.simple_filter.label_filters.severities.*", "Error"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unusual.rules.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_unusual.rules.*",
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.severities.*", "Warning"),
+					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.severities.*", "Error"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_anomaly.rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_anomaly.rules.*",
 						map[string]string{
 							"minimum_threshold": "20",
 							"time_window":       "1_HOUR",
@@ -414,7 +410,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "high"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.webhooks_settings.*",
 						map[string]string{
 							"recipients.#": "2",
 							"recipients.0": "example2@coralogix.com",
@@ -466,7 +462,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-less-than alert example updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-less-than alert example from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered Only"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.retriggering_period.minutes", "10"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
@@ -519,7 +515,7 @@ func TestAccCoralogixResourceAlert_logs_ratio_threshold(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "2"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_id"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_name"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.webhooks_settings.*",
 						map[string]string{
 							"recipients.#": "1",
 							"recipients.0": "example@coralogix.com",
@@ -580,8 +576,8 @@ func TestAccCoralogixResourceAlert_logs_ratio_threshold(t *testing.T) {
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_id"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_name"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_description"),
-					resource.TestCheckResourceAttr(alertResourceName, "notification_group.simple_target_settings.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.simple_target_settings.*",
+					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "notification_group.webhooks_settings.*",
 						map[string]string{
 							"recipients.#": "1",
 							"recipients.0": "example@coralogix.com",
@@ -1010,9 +1006,9 @@ func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "metric-less-than-usual alert example"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of metric-less-than-usual alert from terraform"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_unusual.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_unusual.rules.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_unusual.rules.*",
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_anomaly.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_anomaly.rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_anomaly.rules.*",
 						map[string]string{
 							"threshold":               "20",
 							"for_over_pct":            "10",
@@ -1033,9 +1029,9 @@ func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "metric-less-than-usual alert example updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of metric-less-than-usual alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_unusual.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_unusual.rules.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_unusual.rules.*",
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_anomaly.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_anomaly.rules.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_anomaly.rules.*",
 						map[string]string{
 							"threshold":               "2",
 							"for_over_pct":            "10",
@@ -1489,14 +1485,6 @@ func testAccCoralogixResourceAlertLogsImmediate() string {
     security_severity = "high"
   }
 
-  notification_group = {
-    simple_target_settings = [
-      {
-        recipients = ["example@coralogix.com"]
-      }
-    ]
-  }
-
   incidents_settings = {
     notify_on = "Triggered and Resolved"
     retriggering_period = {
@@ -1542,7 +1530,7 @@ func testAccCoralogixResourceAlertLogsMoreThan() string {
   }
 
   notification_group = {
-    simple_target_settings = [
+    webhooks_settings = [
       {
         recipients = ["example@coralogix.com"]
       }
@@ -1615,7 +1603,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
   }
 
   notification_group = {
-    simple_target_settings = [
+    webhooks_settings = [
       {
         recipients = ["example@coralogix.com"]
       }
@@ -1688,7 +1676,7 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
   }
 
   notification_group = {
-    simple_target_settings = [
+    webhooks_settings = [
       {
         recipients = ["example@coralogix.com"]
       }
@@ -1827,7 +1815,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUsual() string {
   }
 
   notification_group = {
-    advanced_target_settings = [
+    webhooks_settings = [
       {
         retriggering_period = {
           minutes = 1
@@ -1860,7 +1848,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUsual() string {
   }
 
   type_definition = {
-    logs_unusual = {
+    logs_anomaly = {
 		rules = [{
 			minimum_threshold   = 2
 			time_window = "10_MINUTES"
@@ -1901,7 +1889,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
   priority    = "P1"
 
   notification_group = {
-    advanced_target_settings = [
+    webhooks_settings = [
 	{
         retriggering_period = {
           minutes = 1
@@ -1913,7 +1901,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
   }
 
   type_definition = {
-    logs_unusual = {
+    logs_anomaly = {
       logs_filter = {
         simple_filter = {
           lucene_query  = "message:\"updated_error\""
@@ -1958,7 +1946,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 		}
 
 	  notification_group = {
-		simple_target_settings = [
+		webhooks_settings = [
 		{
 			recipients = ["example@coralogix.com", "example2@coralogix.com"]
 		},
@@ -2026,7 +2014,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
 	  priority    = "P3"
 
 	  notification_group = {
-		simple_target_settings = [
+		webhooks_settings = [
 			{ recipients = ["example@coralogix.com"] }
 		]
 	  }
@@ -2090,7 +2078,7 @@ func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
   group_by        = ["coralogix.metadata.alert_id", "coralogix.metadata.alert_name"]
 
   notification_group = {
-    simple_target_settings = [
+    webhooks_settings = [
       {
         recipients = ["example@coralogix.com"]
       }
@@ -2161,7 +2149,7 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
   group_by    = ["coralogix.metadata.alert_id", "coralogix.metadata.alert_name", "coralogix.metadata.alert_description"]
 
   notification_group = {
-    simple_target_settings = [
+    webhooks_settings = [
       {
         recipients = ["example@coralogix.com"]
       }
@@ -2555,7 +2543,7 @@ func testAccCoralogixResourceAlertMetricsLessThanUsual() string {
   priority    = "P1"
 
   type_definition = {
-    metric_unusual = {
+    metric_anomaly = {
       metric_filter = {
         promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
       }
@@ -2581,7 +2569,7 @@ func testAccCoralogixResourceAlertMetricsLessThanUsualUpdated() string {
   priority    = "P1"
 
   type_definition = {
-	metric_unusual = {
+	metric_anomaly = {
 	  metric_filter = {
 		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
 	  }

@@ -20,6 +20,7 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"terraform-provider-coralogix/coralogix/clientset"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
@@ -235,7 +236,7 @@ var (
 
 	tracingFilterOperationProtoToSchemaMap = map[cxsdk.TracingFilterOperationType]string{
 		cxsdk.TracingFilterOperationTypeIsOrUnspecified: "IS",
-		cxsdk.TracingFilterOperationTypeIncludes:        "NOT",
+		cxsdk.TracingFilterOperationTypeIncludes:        "INCLUDES",
 		cxsdk.TracingFilterOperationTypeEndsWith:        "ENDS_WITH",
 		cxsdk.TracingFilterOperationTypeStartsWith:      "STARTS_WITH",
 	}
@@ -299,7 +300,7 @@ var (
 	metricAnomalyConditionValues     = GetValues(metricAnomalyConditionMap)
 	metricAnomalyConditionToProtoMap = ReverseMap(metricAnomalyConditionMap)
 	logsAnomalyConditionMap          = map[cxsdk.LogsAnomalyConditionType]string{
-		cxsdk.LogsAnomalyConditionTypeMoreThanOrUnspecified: "MORE_THAN_USUAL_OR_UNSPECIFIED",
+		cxsdk.LogsAnomalyConditionTypeMoreThanOrUnspecified: "MORE_THAN_USUAL",
 	}
 	logsAnomalyConditionSchemaToProtoMap = ReverseMap(logsAnomalyConditionMap)
 	logsAnomalyConditionValues           = GetValues(logsAnomalyConditionMap)
@@ -706,7 +707,7 @@ func (r *AlertResource) Configure(_ context.Context, req resource.ConfigureReque
 
 func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Version:             2,
+		Version:             1,
 		MarkdownDescription: "Coralogix Alert. For more info please review - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -814,6 +815,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 												},
 											},
 										},
+										"override": overrideAlertSchema(),
 									},
 								},
 							},
@@ -841,7 +843,10 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 												},
 												"condition_type": schema.StringAttribute{
 													Computed: true,
-													Default:  stringdefault.StaticString("MORE_THAN"),
+													Default:  stringdefault.StaticString("MORE_THAN_USUAL"),
+													PlanModifiers: []planmodifier.String{
+														stringplanmodifier.UseStateForUnknown(),
+													},
 												},
 											},
 										},
@@ -1104,6 +1109,9 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 												"condition_type": schema.StringAttribute{
 													Computed: true,
 													Default:  stringdefault.StaticString("MORE_THAN"),
+													PlanModifiers: []planmodifier.String{
+														stringplanmodifier.UseStateForUnknown(),
+													},
 												},
 											},
 										},
@@ -1187,11 +1195,16 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			},
 			"deleted": schema.BoolAttribute{
 				Computed: true,
-				Optional: true,
-				Default:  booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"group_by": schema.SetAttribute{
-				Optional:            true,
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Set{
+					ComputedForMetricAlerts{},
+				},
 				ElementType:         types.StringType,
 				MarkdownDescription: "Group by fields.",
 			},
@@ -1290,6 +1303,71 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 	}
 }
 
+type ComputedForMetricAlerts struct {
+}
+
+func (c ComputedForMetricAlerts) Description(ctx context.Context) string {
+	return "Computed for metric alerts."
+}
+
+func (c ComputedForMetricAlerts) MarkdownDescription(ctx context.Context) string {
+	return "Computed for metric alerts."
+}
+
+func (c ComputedForMetricAlerts) PlanModifySet(ctx context.Context, request planmodifier.SetRequest, response *planmodifier.SetResponse) {
+	paths, diags := request.Plan.PathMatches(ctx, path.MatchRoot("type_definition"))
+	if diags.HasError() {
+		response.Diagnostics.Append(diags...)
+		return
+	}
+	var typeDefinition AlertTypeDefinitionModel
+	diags = request.Plan.GetAttribute(ctx, paths[0], &typeDefinition)
+	if diags.HasError() {
+		response.Diagnostics.Append(diags...)
+		return
+	}
+
+	var typeDefinitionStr string
+	if !objIsNullOrUnknown(typeDefinition.MetricThreshold) {
+		typeDefinitionStr = "metric_threshold"
+	} else if !objIsNullOrUnknown(typeDefinition.MetricAnomaly) {
+		typeDefinitionStr = "metric_anomaly"
+	}
+
+	if typeDefinitionStr != "" {
+		paths, diags = request.Plan.PathMatches(ctx, path.MatchRoot("type_definition").AtName(typeDefinitionStr).AtName("metric_filter").AtName("promql"))
+		if diags.HasError() {
+			response.Diagnostics.Append(diags...)
+			return
+		}
+
+		var promqlPlan types.String
+		diags = request.Plan.GetAttribute(ctx, paths[0], &promqlPlan)
+		if diags.HasError() {
+			response.Diagnostics.Append(diags...)
+			return
+		}
+
+		var promqlState types.String
+		diags = request.State.GetAttribute(ctx, paths[0], &promqlState)
+		if diags.HasError() {
+			response.Diagnostics.Append(diags...)
+			return
+		}
+
+		if request.ConfigValue.IsUnknown() || request.ConfigValue.IsNull() {
+			if !promqlState.Equal(promqlPlan) {
+				response.PlanValue = types.SetUnknown(types.StringType)
+			} else {
+				response.PlanValue = request.StateValue
+			}
+			return
+		}
+	}
+
+	response.PlanValue = request.ConfigValue
+}
+
 func metricTimeWindowSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Required: true,
@@ -1324,9 +1402,13 @@ func overrideAlertSchema() schema.SingleNestedAttribute {
 		Required: true,
 		Attributes: map[string]schema.Attribute{
 			"priority": schema.StringAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(validAlertPriorities...),
+				},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				MarkdownDescription: fmt.Sprintf("Alert priority. Valid values: %q.", validAlertPriorities),
 			},
@@ -1344,27 +1426,6 @@ func logsRatioGroupByForSchema() schema.StringAttribute {
 			stringvalidator.AlsoRequires(path.MatchRoot("group_by")),
 		},
 		MarkdownDescription: fmt.Sprintf("Group by for. Valid values: %q. 'Both' by default.", validLogsRatioGroupByFor),
-	}
-}
-
-func missingValuesSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Optional: true,
-		Computed: true,
-		PlanModifiers: []planmodifier.Object{
-			objectplanmodifier.UseStateForUnknown(),
-		},
-		Attributes: map[string]schema.Attribute{
-			"replace_with_zero": schema.BoolAttribute{
-				Optional: true,
-				Validators: []validator.Bool{
-					boolvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("min_non_null_values_pct")),
-				},
-			},
-			"min_non_null_values_pct": schema.Int64Attribute{
-				Optional: true,
-			},
-		},
 	}
 }
 
@@ -1567,6 +1628,10 @@ func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 				MarkdownDescription: fmt.Sprintf("Auto retire timeframe. Valid values: %q.", validAutoRetireTimeframes),
 			},
 		},
+		Default: objectdefault.StaticValue(types.ObjectValueMust(undetectedValuesManagementAttr(), map[string]attr.Value{
+			"trigger_undetected_values": types.BoolValue(false),
+			"auto_retire_timeframe":     types.StringValue("Never"),
+		})),
 	}
 }
 
@@ -3862,19 +3927,14 @@ func logsTimeWindowAttr() map[string]attr.Type {
 }
 
 func flattenUndetectedValuesManagement(ctx context.Context, undetectedValuesManagement *cxsdk.UndetectedValuesManagement) (types.Object, diag.Diagnostics) {
+	var undetectedValuesManagementModel UndetectedValuesManagementModel
 	if undetectedValuesManagement == nil {
-		undetectedValuesManagementModel := UndetectedValuesManagementModel{
-			TriggerUndetectedValues: types.BoolNull(),
-			AutoRetireTimeframe:     types.StringNull(),
-		}
-		return types.ObjectValueFrom(ctx, undetectedValuesManagementAttr(), undetectedValuesManagementModel)
+		undetectedValuesManagementModel.TriggerUndetectedValues = types.BoolValue(false)
+		undetectedValuesManagementModel.AutoRetireTimeframe = types.StringValue("Never")
+	} else {
+		undetectedValuesManagementModel.TriggerUndetectedValues = wrapperspbBoolToTypeBool(undetectedValuesManagement.GetTriggerUndetectedValues())
+		undetectedValuesManagementModel.AutoRetireTimeframe = types.StringValue(autoRetireTimeframeProtoToSchemaMap[undetectedValuesManagement.GetAutoRetireTimeframe()])
 	}
-
-	undetectedValuesManagementModel := UndetectedValuesManagementModel{
-		TriggerUndetectedValues: wrapperspbBoolToTypeBool(undetectedValuesManagement.GetTriggerUndetectedValues()),
-		AutoRetireTimeframe:     types.StringValue(autoRetireTimeframeProtoToSchemaMap[undetectedValuesManagement.GetAutoRetireTimeframe()]),
-	}
-
 	return types.ObjectValueFrom(ctx, undetectedValuesManagementAttr(), undetectedValuesManagementModel)
 }
 
@@ -4559,6 +4619,21 @@ func flattenTracingThreshold(ctx context.Context, tracingThreshold *cxsdk.Tracin
 	if diags.HasError() {
 		return types.ObjectNull(tracingThresholdAttr()), diags
 	}
+
+	rules, diags := flattenTracingThresholdRules(ctx, tracingThreshold, diags)
+	if diags.HasError() {
+		return types.ObjectNull(tracingThresholdAttr()), diags
+	}
+
+	tracingThresholdModel := TracingThresholdModel{
+		TracingFilter:             tracingQuery,
+		Rules:                     rules,
+		NotificationPayloadFilter: wrappedStringSliceToTypeStringSet(tracingThreshold.GetNotificationPayloadFilter()),
+	}
+	return types.ObjectValueFrom(ctx, tracingThresholdAttr(), tracingThresholdModel)
+}
+
+func flattenTracingThresholdRules(ctx context.Context, tracingThreshold *cxsdk.TracingThresholdType, diags diag.Diagnostics) (basetypes.ListValue, diag.Diagnostics) {
 	rulesRaw := make([]TracingThresholdRuleModel, len(tracingThreshold.Rules))
 	for i, rule := range tracingThreshold.Rules {
 		condition, dgs := flattenTracingThresholdRuleCondition(ctx, rule.Condition)
@@ -4570,17 +4645,7 @@ func flattenTracingThreshold(ctx context.Context, tracingThreshold *cxsdk.Tracin
 			Condition: condition,
 		}
 	}
-
-	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: tracingThresholdRulesAttr()}, rulesRaw)
-	if diags.HasError() {
-		return types.ObjectNull(tracingThresholdAttr()), diags
-	}
-	tracingThresholdModel := TracingThresholdModel{
-		TracingFilter:             tracingQuery,
-		Rules:                     rules,
-		NotificationPayloadFilter: wrappedStringSliceToTypeStringSet(tracingThreshold.GetNotificationPayloadFilter()),
-	}
-	return types.ObjectValueFrom(ctx, tracingThresholdAttr(), tracingThresholdModel)
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: tracingThresholdRulesAttr()}, rulesRaw)
 }
 
 func flattenTracingThresholdRuleCondition(ctx context.Context, condition *cxsdk.TracingThresholdCondition) (types.Object, diag.Diagnostics) {
@@ -4901,6 +4966,7 @@ func logsThresholdAttr() map[string]attr.Type {
 func logsThresholdRulesAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"condition": types.ObjectType{AttrTypes: logsThresholdConditionAttr()},
+		"override":  types.ObjectType{AttrTypes: alertOverrideAttr()},
 	}
 }
 
