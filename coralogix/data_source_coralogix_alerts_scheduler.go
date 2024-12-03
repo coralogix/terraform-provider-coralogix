@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,12 +19,13 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"terraform-provider-coralogix/coralogix/clientset"
-	alertsSchedulers "terraform-provider-coralogix/coralogix/clientset/grpc/alerts-scheduler"
 )
 
 var _ datasource.DataSourceWithConfigure = &AlertsSchedulerDataSource{}
@@ -34,7 +35,7 @@ func NewAlertsSchedulerDataSource() datasource.DataSource {
 }
 
 type AlertsSchedulerDataSource struct {
-	client *clientset.AlertsSchedulersClient
+	client *cxsdk.AlertSchedulerClient
 }
 
 func (d *AlertsSchedulerDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -76,13 +77,13 @@ func (d *AlertsSchedulerDataSource) Read(ctx context.Context, req datasource.Rea
 	//Get refreshed alerts-scheduler value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading alerts-scheduler: %s", id)
-	getAlertsSchedulerReq := &alertsSchedulers.GetAlertSchedulerRuleRequest{AlertSchedulerRuleId: id}
-	getAlertsSchedulerResp, err := d.client.GetAlertScheduler(ctx, getAlertsSchedulerReq)
+	getAlertsSchedulerReq := &cxsdk.GetAlertSchedulerRuleRequest{AlertSchedulerRuleId: id}
+	getAlertsSchedulerResp, err := d.client.Get(ctx, getAlertsSchedulerReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading alerts-scheduler",
-			formatRpcErrors(err, getAlertsSchedulerURL, protojson.Format(getAlertsSchedulerReq)),
+			formatRpcErrors(err, cxsdk.GetAlertSchedulerRuleRPC, protojson.Format(getAlertsSchedulerReq)),
 		)
 		return
 	}

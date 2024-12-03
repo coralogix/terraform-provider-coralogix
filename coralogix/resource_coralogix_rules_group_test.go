@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	rulesgroups "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -675,11 +675,11 @@ func testAccCheckRuleGroupDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &rulesgroups.GetRuleGroupRequest{
+		req := &cxsdk.GetRuleGroupRequest{
 			GroupId: rs.Primary.ID,
 		}
 
-		resp, err := client.GetRuleGroup(ctx, req)
+		resp, err := client.Get(ctx, req)
 		if err == nil {
 			if resp.RuleGroup.Id.Value == rs.Primary.ID {
 				return fmt.Errorf("RuleGroup still exists: %s", rs.Primary.ID)

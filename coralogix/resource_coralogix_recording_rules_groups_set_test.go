@@ -22,8 +22,8 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	recordingrules "terraform-provider-coralogix/coralogix/clientset/grpc/recording-rules-groups-sets/v1"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -105,8 +105,8 @@ func testAccCheckRecordingRulesGroupDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &recordingrules.FetchRuleGroupSet{Id: rs.Primary.ID}
-		resp, err := client.GetRecordingRuleGroupsSet(ctx, req)
+		req := &cxsdk.GetRuleGroupSetRequest{Id: rs.Primary.ID}
+		resp, err := client.Get(ctx, req)
 		if err == nil {
 			if resp != nil && resp.Id == rs.Primary.ID {
 				return fmt.Errorf("coralogix_recording_rules_groups_set still exists: %s", rs.Primary.ID)

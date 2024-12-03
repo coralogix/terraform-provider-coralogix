@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,8 +19,8 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -44,13 +44,13 @@ func dataSourceCoralogixDataSet() *schema.Resource {
 
 func dataSourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Get("id").(string)
-	req := &enrichmentv1.GetCustomEnrichmentRequest{Id: wrapperspb.UInt32(strToUint32(id))}
+	req := &cxsdk.GetDataSetRequest{Id: wrapperspb.UInt32(strToUint32(id))}
 	log.Printf("[INFO] Reading custom-enrichment-data %s", id)
-	enrichmentResp, err := meta.(*clientset.ClientSet).DataSet().GetDataSet(ctx, req)
+	enrichmentResp, err := meta.(*clientset.ClientSet).DataSet().Get(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		reqStr := protojson.Format(req)
-		return diag.Errorf(formatRpcErrors(err, getDataSetURL, reqStr))
+		return diag.Errorf(formatRpcErrors(err, cxsdk.GetDataSetRPC, reqStr))
 	}
 	log.Printf("[INFO] Received custom-enrichment-data: %s", protojson.Format(enrichmentResp))
 
