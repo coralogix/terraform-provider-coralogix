@@ -81,9 +81,11 @@ func testAccCoralogixResourceAlertLogsImmediateForReading() string {
   type_definition = {
     logs_threshold = {
       rules = [ { 
-	      threshold   = 2.0
-        time_window = "10_MINUTES"
-        condition = "MORE_THAN" 
+        condition = {
+          threshold   = 2.0
+          time_window = "10_MINUTES"
+          condition_type = "MORE_THAN" 
+        } 
         override = {
             priority = "P2"
           }
