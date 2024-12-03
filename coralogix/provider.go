@@ -302,9 +302,10 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 		targetUrl = envToGrpcUrl[env]
 	} else {
 		targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
+		env = targetUrl
 	}
 
-	clientSet := clientset.NewClientSet(targetUrl, apiKey)
+	clientSet := clientset.NewClientSet(env, targetUrl, apiKey)
 	resp.DataSourceData = clientSet
 	resp.ResourceData = clientSet
 }
