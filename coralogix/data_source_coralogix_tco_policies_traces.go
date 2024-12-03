@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,9 +20,10 @@ import (
 	"log"
 	"time"
 
-	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"terraform-provider-coralogix/coralogix/clientset"
-	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -38,7 +39,7 @@ func NewTCOPoliciesTracesDataSource() datasource.DataSource {
 }
 
 type TCOPoliciesTracesDataSource struct {
-	client *clientset.TCOPoliciesClient
+	client *cxsdk.TCOPoliciesClient
 }
 
 func (d *TCOPoliciesTracesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -81,14 +82,14 @@ func (d *TCOPoliciesTracesDataSource) Read(ctx context.Context, _ datasource.Rea
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	getPoliciesReq := &tcopolicies.GetCompanyPoliciesRequest{SourceType: &tracesSource}
+	getPoliciesReq := &cxsdk.GetCompanyPoliciesRequest{SourceType: &tracesSource}
 	log.Printf("[INFO] Reading tco-policies-traces")
-	getPoliciesResp, err := d.client.GetTCOPolicies(ctx, getPoliciesReq)
+	getPoliciesResp, err := d.client.List(ctx, getPoliciesReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if retryableStatusCode(status.Code(err)) {
 			log.Print("[INFO] Retrying to read tco-policies-traces")
-			getPoliciesResp, err = d.client.GetTCOPolicies(ctx, getPoliciesReq)
+			getPoliciesResp, err = d.client.List(ctx, getPoliciesReq)
 			continue
 		}
 		resp.Diagnostics.AddError(
