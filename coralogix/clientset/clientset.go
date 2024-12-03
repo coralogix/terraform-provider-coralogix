@@ -15,6 +15,8 @@
 package clientset
 
 import (
+	"strings"
+
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 )
 
@@ -142,7 +144,7 @@ func (c *ClientSet) Integrations() *cxsdk.IntegrationsClient {
 }
 
 func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
-	apiKeySdk := cxsdk.NewCallPropertiesCreatorTerraformOperator(region, cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
+	apiKeySdk := cxsdk.NewCallPropertiesCreatorTerraformOperator(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 
 	return &ClientSet{

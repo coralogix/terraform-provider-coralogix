@@ -136,7 +136,7 @@ func OldProvider() *oldSchema.Provider {
 			if apiKey == "" {
 				return nil, diag.Errorf("At least one of the field 'api_key' or environment variable 'CORALOGIX_API_KEY' have to be defined")
 			}
-			if cxEnv == "" {
+			if cxEnv == "" || len(cxEnv) > 3 {
 				cxEnv = targetUrl
 			}
 			return clientset.NewClientSet(cxEnv, apiKey, targetUrl), nil
@@ -302,6 +302,8 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 		targetUrl = envToGrpcUrl[env]
 	} else {
 		targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
+	}
+	if len(env) > 3 {
 		env = targetUrl
 	}
 
