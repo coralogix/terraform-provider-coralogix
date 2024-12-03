@@ -361,6 +361,21 @@ func typeInt64ToWrappedUint32(v types.Int64) *wrapperspb.UInt32Value {
 	return wrapperspb.UInt32(uint32(v.ValueInt64()))
 }
 
+func typeNumberToWrappedUint64(v types.Number) *wrapperspb.UInt64Value {
+	if v.IsNull() || v.IsUnknown() {
+		return nil
+	}
+	number, _ := v.ValueBigFloat().Uint64()
+	return wrapperspb.UInt64(number)
+}
+
+func wrappedUint64TotypeNumber(v *wrapperspb.UInt64Value) types.Number {
+	if v == nil {
+		return types.NumberNull()
+	}
+	return types.NumberValue(big.NewFloat(float64(v.GetValue())))
+}
+
 func typeBoolToWrapperspbBool(v types.Bool) *wrapperspb.BoolValue {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
