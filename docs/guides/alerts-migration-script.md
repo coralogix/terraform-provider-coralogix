@@ -1,139 +1,142 @@
-## Guide to Using the Migration Script
-
-This guide explains how to use the provided script for automating Terraform resource migrations. The script dynamically generates necessary Terraform configuration files, runs Terraform commands, and cleans up intermediate files. It uses color-coded logging for better visibility.
+Here’s an updated guide based on the latest version of your script:
 
 ---
 
-### Prerequisites
+# **Guide to Using the Terraform Migration Script**
 
-Before using the script, ensure the following tools are installed and accessible in your environment:
-
-1. **Go**:
-    - For running the Go scripts (`generate_imports.go` and `json_to_hcl.go`).
-
-2. **Terraform**:
-    - To manage infrastructure resources.
-
-3. **Python 3**:
-    - To execute the embedded script for cleaning JSON files.
-
-4. **hcl2json**:
-    - A tool for converting HCL to JSON.
-
-5. **tput**:
-    - For colorized terminal output.
+This guide provides step-by-step instructions on how to use the Terraform migration script effectively.
 
 ---
 
-### Script Functionality
-
-1. **Input Handling**:
-    - Accepts either a Terraform directory or a resource type as input.
-    - Automatically detects whether the input is a directory or resource type.
-
-2. **Generates Necessary Files**:
-    - Creates a migration folder (`<input>_migration`) to store all generated files.
-    - Runs `generate_imports.go` to create `imports.tf`.
-    - Creates a `provider.tf` with necessary provider configuration.
-
-3. **Terraform Operations**:
-    - Runs `terraform plan` and outputs a configuration file (`generated.tf`).
-    - Converts `generated.tf` to JSON format using `hcl2json`.
-
-4. **JSON Cleaning**:
-    - Removes null values from the JSON configuration.
-
-5. **Converts JSON Back to HCL**:
-    - Uses `json_to_hcl.go` to generate a cleaned Terraform file (`cleaned_config.tf`).
-
-6. **Applies Terraform Configuration**:
-    - Runs `terraform apply` to apply the migration.
-
-7. **Cleanup**:
-    - Removes temporary files (`imports.tf`, `config.json`, etc.) after completion.
+## **Prerequisites**
+1. **Terraform Installed**:
+   - Ensure you have Terraform installed. You can download it [here](https://www.terraform.io/downloads).
+2. **Go Installed**:
+   - Install Go from [golang.org](https://golang.org/dl/).
+3. **Python Installed**:
+   - The script uses Python for JSON processing.
+4. **`hcl2json` Installed**:
+   - Install the `hcl2json` utility. You can find it [here](https://github.com/tmccombs/hcl2json).
 
 ---
 
-### How to Use the Script
+## **Usage**
 
-#### Step 1: Save the Script
-Save the script as `migration_script.sh` and make it executable:
+### **1. Script Purpose**
+The script allows you to:
+- Migrate Terraform configurations based on:
+   - A folder containing a `terraform.tfstate` file.
+   - A specific resource type (e.g., `alert`, `dashboard`).
+- Generate a migration folder with cleaned and updated configurations.
+- Specify the provider version interactively during the process.
 
+---
+
+### **2. Running the Script**
+Use the script as follows:
 ```bash
-chmod +x migration_script.sh
+./script.sh
 ```
 
-#### Step 2: Run the Script
-Provide either a directory path or a resource type as an argument:
+---
 
-```bash
-# For a Terraform directory
-./migration_script.sh /path/to/terraform_directory
+### **3. Interactive Steps**
 
-# For a resource type
-./migration_script.sh resource-type
-```
+#### **Step 1: Select Migration Type**
+You will be prompted to choose the migration type:
+- **Option 1**: Migrate based on a folder containing a `terraform.tfstate` file.
+   - Provide the path to the folder.
+   - The script ensures that the folder contains a valid `terraform.tfstate` file.
+- **Option 2**: Migrate based on a specific resource type.
+   - A list of resource types will be displayed. Choose from options like:
+      - `alert`, `dashboard`, `archive_logs`, `events2metrics`, etc.
+   - Select the desired resource type from the list.
 
-#### Step 3: Inspect Logs
-The script uses color-coded logs for better readability:
-- **Blue [INFO]**: General progress messages.
-- **Green [DEBUG]**: Debug information.
-- **Yellow [WARNING]**: Non-critical warnings.
-- **Red [ERROR]**: Errors that cause the script to exit.
+#### **Step 2: Specify Provider Version**
+After selecting the migration type, you will be prompted to specify the Terraform provider version:
+- Example: `~>1.19.0`.
+- The script will default to `>=2.0.0` if no input is provided.
 
-Example log snippet:
+---
+
+### **4. What Happens Next**
+
+#### **Step 3: Generate Migration Folder**
+- The script creates a new migration folder based on your input:
+   - For a folder, it appends `_migration` to the folder name.
+   - For a resource type, it creates a folder like `./<resource_type>_migration`.
+
+#### **Step 4: Run `generate_imports.go`**
+- The script runs a Go program (`generate_imports.go`) to generate an `imports.tf` file inside the migration folder.
+
+#### **Step 5: Generate `provider.tf`**
+- A `provider.tf` file is generated in the migration folder with the specified provider version.
+
+#### **Step 6: Run `terraform init`**
+- The script initializes Terraform inside the migration folder using `terraform init`.
+
+#### **Step 7: Run `terraform plan`**
+- The script runs `terraform plan` with the `-generate-config-out` flag to generate a new configuration file (`generated.tf`).
+
+#### **Step 8: Convert Configuration to JSON**
+- The script converts `generated.tf` into a JSON file (`config.json`) using `hcl2json`.
+
+#### **Step 9: Remove Null Values**
+- Python is used to clean the JSON file by removing null values, generating a cleaned JSON file (`cleaned_config.json`).
+
+#### **Step 10: Convert JSON Back to HCL**
+- The cleaned JSON file is converted back to HCL using a Go program (`json_to_hcl.go`).
+- The resulting file (`cleaned_config.tf`) is saved in the migration folder.
+
+#### **Step 11: Replace Original Configuration**
+- The cleaned HCL file (`cleaned_config.tf`) is renamed to `generated.tf` to replace the original configuration.
+
+#### **Step 12: Apply the Configuration**
+- The script applies the cleaned configuration using `terraform apply`.
+
+#### **Step 13: Cleanup**
+- Temporary files such as `imports.tf`, `config.json`, and `cleaned_config.json` are deleted.
+
+---
+
+### **5. Example Outputs**
+
+#### **Migration Type Selection**
 ```plaintext
-2024-12-01 14:23:22 [INFO] Running terraform plan with configuration output...
-2024-12-01 14:23:23 [INFO] Successfully generated imports.tf at /path/to/terraform_directory_migration.
-2024-12-01 14:23:24 [WARNING] Terraform plan might fail; continuing.
-2024-12-01 14:23:25 [ERROR] Failed to convert Terraform file to JSON.
+[INFO] Select the migration type:
+[INFO] 1) Migrate based on a folder containing terraform.tfstate
+[INFO] 2) Migrate based on a specific resource name
+Enter your choice (1 or 2): 2
 ```
 
-#### Step 4: Review Outputs
-The following files will be generated in the `<input>_migration` folder:
-- `imports.tf`: Generated by `generate_imports.go`.
-- `provider.tf`: Provider configuration.
-- `generated.tf`: Output of `terraform plan`.
-- `cleaned_config.tf`: Cleaned and finalized Terraform configuration.
-
-#### Step 5: Cleanup
-The script automatically cleans up intermediate files after successful execution:
-- `imports.tf`
-- `config.json`
-- `cleaned_config.json`
-
----
-
-### Example Usage
-
-#### Input: Terraform Directory
-```bash
-./migration_script.sh /path/to/my_terraform_directory
+#### **Provider Version Prompt**
+```plaintext
+Enter the Terraform provider version to migrate to (e.g., ~>1.19.0): ~>1.19.0
 ```
 
-**Output**:
-- A new folder `/path/to/my_terraform_directory_migration` containing the migration files.
+#### **Logs During Execution**
+```plaintext
+2024-12-01 15:45:22 [INFO] Creating migration folder: ./alert_migration
+2024-12-01 15:45:22 [INFO] Running generate_imports.go with -type...
+2024-12-01 15:45:22 [INFO] Successfully generated imports.tf at ./alert_migration.
+2024-12-01 15:45:22 [INFO] Generating provider configuration in ./alert_migration/provider.tf...
+2024-12-01 15:45:22 [INFO] Provider configuration generated in ./alert_migration/provider.tf.
+2024-12-01 15:45:22 [INFO] Initializing Terraform in ./alert_migration...
+2024-12-01 15:45:22 [INFO] Running terraform plan in ./alert_migration...
+...
+2024-12-01 15:45:22 [INFO] Terraform apply completed.
+2024-12-01 15:45:22 [INFO] Cleanup completed.
+2024-12-01 15:45:22 [INFO] Script completed successfully.
+```
 
 ---
 
-### Troubleshooting
-
-1. **Error: Command Not Found**
-    - Ensure the required tools (`terraform`, `go`, `python3`, `hcl2json`) are installed and accessible in your `PATH`.
-
-2. **Colorless Logs**:
-    - Verify your terminal supports ANSI colors and `tput`.
-
-3. **Go Script Errors**:
-    - Ensure `generate_imports.go` and `json_to_hcl.go` are present and compilable.
-
-4. **Terraform Apply Errors**:
-    - Check your Terraform configuration for syntax or validation issues.
+### **6. Notes**
+- **Customization**:
+   - Update the resource types in the script if new ones are added.
+   - Adjust the default provider version if needed.
+- **Error Handling**:
+   - The script will exit if any step fails (`set -e`).
+   - Logs are color-coded for better visibility (`INFO`, `ERROR`, `WARNING`, etc.).
 
 ---
-
-### Additional Notes
-
-- The script is designed to fail fast (`set -e`), exiting on the first critical error.
-- Logs are enriched with timestamps for better traceability.
-- You can customize the color codes in the `log` function to suit your preferences.

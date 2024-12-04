@@ -115,6 +115,7 @@ var (
 		cxsdk.LogsTimeWindow5MinutesOrUnspecified: "5_MINUTES",
 		cxsdk.LogsTimeWindow10Minutes:             "10_MINUTES",
 		cxsdk.LogsTimeWindow15Minutes:             "15_MINUTES",
+		cxsdk.LogsTimeWindow20Minutes:             "20_MINUTES",
 		cxsdk.LogsTimeWindow30Minutes:             "30_MINUTES",
 		cxsdk.LogsTimeWindow1Hour:                 "1_HOUR",
 		cxsdk.LogsTimeWindow2Hours:                "2_HOURS",
@@ -179,6 +180,8 @@ var (
 
 	logsUniqueCountTimeWindowValueProtoToSchemaMap = map[cxsdk.LogsUniqueValueTimeWindowValue]string{
 		cxsdk.LogsUniqueValueTimeWindowValue1MinuteOrUnspecified: "1_MINUTE",
+		cxsdk.LogsUniqueValueTimeWindowValue5Minutes:             "5_MINUTES",
+		cxsdk.LogsUniqueValueTimeWindowValue10Minutes:            "10_MINUTES",
 		cxsdk.LogsUniqueValueTimeWindowValue15Minutes:            "15_MINUTES",
 		cxsdk.LogsUniqueValueTimeWindowValue20Minutes:            "20_MINUTES",
 		cxsdk.LogsUniqueValueTimeWindowValue30Minutes:            "30_MINUTES",
@@ -188,6 +191,7 @@ var (
 		cxsdk.LogsUniqueValueTimeWindowValue6Hours:               "6_HOURS",
 		cxsdk.LogsUniqueValueTimeWindowValue12Hours:              "12_HOURS",
 		cxsdk.LogsUniqueValueTimeWindowValue24Hours:              "24_HOURS",
+		cxsdk.LogsUniqueValueTimeWindowValue36Hours:              "36_HOURS",
 	}
 	logsUniqueCountTimeWindowValueSchemaToProtoMap = ReverseMap(logsUniqueCountTimeWindowValueProtoToSchemaMap)
 	validLogsUniqueCountTimeWindowValues           = GetKeys(logsUniqueCountTimeWindowValueSchemaToProtoMap)
@@ -208,6 +212,7 @@ var (
 		cxsdk.MetricTimeWindowValue5Minutes:             "5_MINUTES",
 		cxsdk.MetricTimeWindowValue10Minutes:            "10_MINUTES",
 		cxsdk.MetricTimeWindowValue15Minutes:            "15_MINUTES",
+		cxsdk.MetricTimeWindowValue20Minutes:            "20_MINUTES",
 		cxsdk.MetricTimeWindowValue30Minutes:            "30_MINUTES",
 		cxsdk.MetricTimeWindowValue1Hour:                "1_HOUR",
 		cxsdk.MetricTimeWindowValue2Hours:               "2_HOURS",
@@ -215,6 +220,7 @@ var (
 		cxsdk.MetricTimeWindowValue6Hours:               "6_HOURS",
 		cxsdk.MetricTimeWindowValue12Hours:              "12_HOURS",
 		cxsdk.MetricTimeWindowValue24Hours:              "24_HOURS",
+		cxsdk.MetricTimeWindowValue36Hours:              "36_HOURS",
 	}
 	metricTimeWindowValueSchemaToProtoMap = ReverseMap(metricFilterOperationTypeProtoToSchemaMap)
 	validMetricTimeWindowValues           = GetKeys(metricTimeWindowValueSchemaToProtoMap)
@@ -223,6 +229,7 @@ var (
 		cxsdk.TracingTimeWindowValue5MinutesOrUnspecified: "5_MINUTES",
 		cxsdk.TracingTimeWindowValue10Minutes:             "10_MINUTES",
 		cxsdk.TracingTimeWindowValue15Minutes:             "15_MINUTES",
+		cxsdk.TracingTimeWindowValue20Minutes:             "20_MINUTES",
 		cxsdk.TracingTimeWindowValue30Minutes:             "30_MINUTES",
 		cxsdk.TracingTimeWindowValue1Hour:                 "1_HOUR",
 		cxsdk.TracingTimeWindowValue2Hours:                "2_HOURS",
@@ -237,6 +244,7 @@ var (
 
 	tracingFilterOperationProtoToSchemaMap = map[cxsdk.TracingFilterOperationType]string{
 		cxsdk.TracingFilterOperationTypeIsOrUnspecified: "IS",
+		cxsdk.TracingFilterOperationTypeIsNot:           "IS_NOT",
 		cxsdk.TracingFilterOperationTypeIncludes:        "INCLUDES",
 		cxsdk.TracingFilterOperationTypeEndsWith:        "ENDS_WITH",
 		cxsdk.TracingFilterOperationTypeStartsWith:      "STARTS_WITH",
