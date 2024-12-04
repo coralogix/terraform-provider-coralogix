@@ -130,7 +130,7 @@ func (r retentionsValidator) ValidateList(ctx context.Context, req validator.Lis
 	}
 
 	var archiveRetentionResourceModel ArchiveRetentionResourceModel
-	ok := retentionsObjects[0].As(ctx, archiveRetentionResourceModel, basetypes.ObjectAsOptions{})
+	ok := retentionsObjects[0].As(ctx, &archiveRetentionResourceModel, basetypes.ObjectAsOptions{})
 	if ok.HasError() {
 		resp.Diagnostics.Append(ok...)
 		return
@@ -210,7 +210,7 @@ func flattenArchiveRetentions(ctx context.Context, retentions []*cxsdk.Retention
 	var diags diag.Diagnostics
 	var retentionsObjects []types.Object
 	for _, retention := range retentions {
-		retentionModel := ArchiveRetentionResourceModel{
+		retentionModel := &ArchiveRetentionResourceModel{
 			ID:       wrapperspbStringToTypeString(retention.GetId()),
 			Order:    wrapperspbInt32ToTypeInt64(retention.GetOrder()),
 			Name:     wrapperspbStringToTypeString(retention.GetName()),
