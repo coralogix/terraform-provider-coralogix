@@ -35,29 +35,44 @@ colorize_logs() {
 SCRIPT_DIR=$(pwd)
 
 # Ensure the input argument is provided
-if [ -z "$1" ]; then
-  log "$ERROR" "Usage: $0 <path_to_terraform_directory_or_resource_type>"
-  log "$INFO" "Example: $0 /path/to/terraform_directory"
-  log "$INFO" "         $0 resource-type"
-  exit 1
-fi
+log "$INFO" "Select the migration type:"
+log "$INFO" "1) Migrate based on a folder containing terraform.tfstate"
+log "$INFO" "2) Migrate based on a specific resource name"
 
-INPUT="$1"
-MIGRATION_FOLDER=""
+read -rp "Enter your choice (1 or 2): " CHOICE
 
-# Determine if the input is a directory or a resource type
-if [ -d "$INPUT" ]; then
-  log "$INFO" "Detected input as a directory."
+if [[ "$CHOICE" == "1" ]]; then
+  read -rp "Enter the path to the folder containing terraform.tfstate: " INPUT
+  if [ ! -f "$INPUT/terraform.tfstate" ]; then
+    log "$ERROR" "The specified folder does not contain a terraform.tfstate file."
+    exit 1
+  fi
   MIGRATION_FOLDER="${INPUT}_migration"
   GENERATE_FLAG="-folder"
-elif [[ "$INPUT" =~ ^[a-zA-Z_-]+$ ]]; then
-  log "$INFO" "Detected input as a resource type."
-  MIGRATION_FOLDER="./${INPUT}_migration"
-  GENERATE_FLAG="-type"
+elif [[ "$CHOICE" == "2" ]]; then
+  log "$INFO" "Available resource types:"
+  OPTIONS=("alert" "archive_logs" "archive_metrics" "archive_retentions" "custom_role" "dashboard"
+           "dashboards_folder" "events2metrics" "group" "recording_rules_groups_set" "scope"
+           "tco_policies_logs" "tco_policies_traces" "webhook")
+
+  select RESOURCE in "${OPTIONS[@]}"; do
+    if [[ -n "$RESOURCE" ]]; then
+      INPUT="$RESOURCE"
+      MIGRATION_FOLDER="./${RESOURCE}_migration"
+      GENERATE_FLAG="-type"
+      break
+    else
+      log "$WARNING" "Invalid selection. Please choose a valid resource type."
+    fi
+  done
 else
-  log "$ERROR" "Input must be a valid directory or a resource type (alphanumeric)."
+  log "$ERROR" "Invalid choice. Exiting."
   exit 1
 fi
+
+# Ask for Terraform provider version
+read -rp "Enter the Terraform provider version to migrate to (e.g., ~>2.0.0): " PROVIDER_VERSION
+PROVIDER_VERSION="${PROVIDER_VERSION:-~>1.19.0}" # Default to ">=2.0.0" if not provided
 
 CLEANED_JSON_FILE="cleaned_config.json"
 
@@ -80,7 +95,7 @@ cat <<EOL > "$MIGRATION_FOLDER"/provider.tf
 terraform {
   required_providers {
     coralogix = {
-      version = "~>1.19.0"
+      version = "$PROVIDER_VERSION"
       source  = "coralogix/coralogix"
     }
   }
@@ -96,7 +111,16 @@ log "$INFO" "Provider configuration generated in $MIGRATION_FOLDER/provider.tf."
 # Navigate to the migration folder
 cd "$MIGRATION_FOLDER" || exit 1
 
-# Step 4: Run Terraform plan
+# Step 4: Run Terraform init
+log "$INFO" "Initializing Terraform in $MIGRATION_FOLDER..."
+terraform init 2>&1 | colorize_logs
+if [ $? -ne 0 ]; then
+  log "$ERROR" "Failed to initialize Terraform."
+  exit 1
+fi
+log "$INFO" "Terraform initialization completed."
+
+# Step 5: Run Terraform plan
 log "$INFO" "Running terraform plan in $MIGRATION_FOLDER..."
 terraform plan -generate-config-out=generated.tf 2>&1 | colorize_logs
 if [ $? -ne 0 ]; then
@@ -104,7 +128,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Step 5: Convert the Terraform file to JSON
+# Step 6: Convert the Terraform file to JSON
 log "$INFO" "Converting generated.tf to JSON..."
 hcl2json < generated.tf > config.json
 if [ $? -ne 0 ]; then
@@ -112,7 +136,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Step 6: Remove null values from the JSON file
+# Step 7: Remove null values from the JSON file
 log "$INFO" "Removing null values from JSON..."
 python3 <<EOF
 import json
@@ -139,7 +163,7 @@ if [ $? -ne 0 ]; then
 fi
 log "$INFO" "Cleaned JSON saved to $CLEANED_JSON_FILE."
 
-# Step 7: Convert JSON back to HCL
+# Step 8: Convert JSON back to HCL
 log "$INFO" "Navigating back to script's directory: $SCRIPT_DIR"
 cd "$SCRIPT_DIR" || exit 1
 
@@ -150,17 +174,17 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-# Step 8: Replace the original Terraform file
+# Step 9: Replace the original Terraform file
 mv "$MIGRATION_FOLDER/cleaned_config.tf" "$MIGRATION_FOLDER/generated.tf"
 log "$INFO" "Cleaned Terraform file saved as generated.tf"
 
-# Step 9: Run Terraform apply
+# Step 10: Run Terraform apply
 cd "$MIGRATION_FOLDER" || exit 1
 log "$INFO" "Running terraform apply..."
 terraform apply 2>&1 | colorize_logs
 log "$INFO" "Terraform apply completed."
 
-# Step 10: Cleanup
+# Step 11: Cleanup
 log "$INFO" "Cleaning up temporary files..."
 rm -f imports.tf config.json "$CLEANED_JSON_FILE"
 log "$INFO" "Cleanup completed."

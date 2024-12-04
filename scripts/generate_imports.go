@@ -6,9 +6,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
@@ -49,7 +50,7 @@ type TFState struct {
 
 // findStateFile searches for a .tfstate file in the specified folder
 func findStateFile(folderPath string) (string, error) {
-	files, err := ioutil.ReadDir(folderPath)
+	files, err := os.ReadDir(folderPath)
 	if err != nil {
 		return "", fmt.Errorf("error reading folder: %v", err)
 	}
@@ -66,7 +67,7 @@ func findStateFile(folderPath string) (string, error) {
 // generateImports reads a Terraform state file and generates an imports.tf file
 func generateImportsFromState(tfstatePath string, outputPath string) error {
 	// Read the tfstate file
-	tfstateData, err := ioutil.ReadFile(tfstatePath)
+	tfstateData, err := os.ReadFile(tfstatePath)
 	if err != nil {
 		return fmt.Errorf("error reading tfstate file: %v", err)
 	}
@@ -97,7 +98,7 @@ func generateImportsFromState(tfstatePath string, outputPath string) error {
 	}
 
 	// Write the imports.tf file
-	err = ioutil.WriteFile(outputPath, []byte(importsContent), 0644)
+	err = os.WriteFile(outputPath, []byte(importsContent), 0644)
 	if err != nil {
 		return fmt.Errorf("error writing imports.tf file: %v", err)
 	}
@@ -119,11 +120,12 @@ func main() {
 
 	if *resourceType != "" {
 		var idsAndNames []IdAndName
+		apiKey := os.Getenv("CORALOGIX_API_KEY")
+		region := os.Getenv("CORALOGIX_ENV")
+		url := envToGrpcUrl[region]
+
 		switch *resourceType {
 		case "alert":
-			apiKey := os.Getenv("CORALOGIX_API_KEY")
-			region := os.Getenv("CORALOGIX_ENV")
-			url := envToGrpcUrl[region]
 			alertClient := cxsdk.NewAlertsClient(cxsdk.NewCallPropertiesCreator(url, cxsdk.NewAuthContext(apiKey, apiKey)))
 			alerts, err := alertClient.List(context.Background(), &cxsdk.ListAlertDefsRequest{})
 			if err != nil {
@@ -131,10 +133,133 @@ func main() {
 				os.Exit(1)
 			}
 			for _, alert := range alerts.GetAlertDefs() {
-				alertName := toValidResourceName(alert.GetAlertDefProperties().GetName().GetValue())
+				alertName := convertToTerraformResourceName(alert.GetAlertDefProperties().GetName().GetValue())
 				idsAndNames = append(idsAndNames, IdAndName{Id: alert.GetId().GetValue(), Name: alertName})
 			}
+		case "archive_logs":
+			idsAndNames = append(idsAndNames, IdAndName{Id: "", Name: "archive_logs"})
+		case "archive_metrics":
+			idsAndNames = append(idsAndNames, IdAndName{Id: "", Name: "archive_metrics"})
+		case "archive_retentions":
+			idsAndNames = append(idsAndNames, IdAndName{Id: "", Name: "archive_retentions"})
+		case "custom_role":
+			rolesClients := cxsdk.NewRolesClient(cxsdk.NewCallPropertiesCreator(url, cxsdk.NewAuthContext(apiKey, apiKey)))
+			roles, err := rolesClients.List(context.Background(), &cxsdk.ListCustomRolesRequest{})
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			for _, role := range roles.GetRoles() {
+				roleName := convertToTerraformResourceName(role.GetName())
+				idsAndNames = append(idsAndNames, IdAndName{Id: strconv.Itoa(int(role.RoleId)), Name: roleName})
+			}
+		case "dashboard":
+			dashboardClient := cxsdk.NewDashboardsClient(cxsdk.NewCallPropertiesCreator(url, cxsdk.NewAuthContext(apiKey, apiKey)))
+			dashboards, err := dashboardClient.List(context.Background())
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			for _, dashboard := range dashboards.GetItems() {
+				dashboardName := convertToTerraformResourceName(dashboard.GetName().GetValue())
+				idsAndNames = append(idsAndNames, IdAndName{Id: dashboard.GetId().GetValue(), Name: dashboardName})
+			}
+		case "dashboards_folder":
+			dashboardsFolderClient := cxsdk.NewDashboardsFoldersClient(cxsdk.NewCallPropertiesCreator(url, cxsdk.NewAuthContext(apiKey, apiKey)))
+			dashboardsFolders, err := dashboardsFolderClient.List(context.Background())
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			for _, dashboardsFolder := range dashboardsFolders.GetFolder() {
+				dashboardsFolderName := convertToTerraformResourceName(dashboardsFolder.GetName().GetValue())
+				idsAndNames = append(idsAndNames, IdAndName{Id: dashboardsFolder.GetId().GetValue(), Name: dashboardsFolderName})
+			}
+		case "events2metrics":
+			events2metricsClient := cxsdk.NewEvents2MetricsClient(cxsdk.NewCallPropertiesCreator(url, cxsdk.NewAuthContext(apiKey, apiKey)))
+			events2metrics, err := events2metricsClient.List(context.Background())
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			for _, events2metric := range events2metrics.E2M {
+				events2metricName := convertToTerraformResourceName(events2metric.GetName().GetValue())
+				idsAndNames = append(idsAndNames, IdAndName{Id: events2metric.GetId().GetValue(), Name: events2metricName})
+			}
+		case "group":
+			groupClient := cxsdk.NewGroupsClient(cxsdk.NewCallPropertiesCreator(url, cxsdk.NewAuthContext(apiKey, apiKey)))
+			groups, err := groupClient.List(context.Background(), &cxsdk.GetTeamGroupsRequest{})
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			for _, group := range groups.GetGroups() {
+				groupName := convertToTerraformResourceName(group.GetName())
+				idsAndNames = append(idsAndNames, IdAndName{Id: strconv.Itoa(int(group.GroupId.Id)), Name: groupName})
+			}
+		case "recording_rules_groups_set":
+			recordingRulesGroupsSetClient := cxsdk.NewRecordingRuleGroupSetsClient(cxsdk.NewCallPropertiesCreator(url, cxsdk.NewAuthContext(apiKey, apiKey)))
+			recordingRulesGroupsSets, err := recordingRulesGroupsSetClient.List(context.Background())
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			for _, recordingRulesGroupsSet := range recordingRulesGroupsSets.GetSets() {
+				recordingRulesGroupsSetName := convertToTerraformResourceName(recordingRulesGroupsSet.GetName())
+				idsAndNames = append(idsAndNames, IdAndName{Id: recordingRulesGroupsSet.GetId(), Name: recordingRulesGroupsSetName})
+			}
+		case "scope":
+			scopesClient := cxsdk.NewScopesClient(cxsdk.NewCallPropertiesCreator(url, cxsdk.NewAuthContext(apiKey, apiKey)))
+			scopes, err := scopesClient.List(context.Background(), &cxsdk.GetTeamScopesRequest{})
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			for _, scope := range scopes.GetScopes() {
+				scopeName := convertToTerraformResourceName(scope.DisplayName)
+				idsAndNames = append(idsAndNames, IdAndName{Id: scope.GetId(), Name: scopeName})
+			}
+		case "tco_policies_logs":
+			tcoPoliciesLogsClient := cxsdk.NewTCOPoliciesClient(cxsdk.NewCallPropertiesCreator(url, cxsdk.NewAuthContext(apiKey, apiKey)))
+			tcoPolicies, err := tcoPoliciesLogsClient.List(context.Background(), &cxsdk.GetCompanyPoliciesRequest{})
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			for _, tcoPolicy := range tcoPolicies.GetPolicies() {
+				if tcoPolicy.GetLogRules() != nil {
+					tcoPolicyName := convertToTerraformResourceName(tcoPolicy.GetName().GetValue())
+					idsAndNames = append(idsAndNames, IdAndName{Id: tcoPolicy.GetId().GetValue(), Name: tcoPolicyName})
+				}
+			}
+		case "tco_policies_traces":
+			tcoPoliciesTracesClient := cxsdk.NewTCOPoliciesClient(cxsdk.NewCallPropertiesCreator(url, cxsdk.NewAuthContext(apiKey, apiKey)))
+			tcoPolicies, err := tcoPoliciesTracesClient.List(context.Background(), &cxsdk.GetCompanyPoliciesRequest{})
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			for _, tcoPolicy := range tcoPolicies.GetPolicies() {
+				if tcoPolicy.GetSpanRules() != nil {
+					tcoPolicyName := convertToTerraformResourceName(tcoPolicy.GetName().GetValue())
+					idsAndNames = append(idsAndNames, IdAndName{Id: tcoPolicy.GetId().GetValue(), Name: tcoPolicyName})
+				}
+			}
+		case "webhook":
+			webhookClient := cxsdk.NewWebhooksClient(cxsdk.NewCallPropertiesCreator(url, cxsdk.NewAuthContext(apiKey, apiKey)))
+			webhooks, err := webhookClient.List(context.Background(), &cxsdk.ListAllOutgoingWebhooksRequest{})
+			if err != nil {
+				fmt.Printf("Error: %v\n", err)
+				os.Exit(1)
+			}
+			for _, webhook := range webhooks.GetDeployed() {
+				webhookName := convertToTerraformResourceName(webhook.GetName().GetValue())
+				idsAndNames = append(idsAndNames, IdAndName{Id: webhook.GetId().GetValue(), Name: webhookName})
+			}
+		default:
+			fmt.Println("Error: Invalid resource type")
 		}
+
 		err := generateImportsFromIds(*resourceType, *outputPath, idsAndNames)
 		if err != nil {
 			fmt.Printf("Error generating imports.tf: %v\n", err)
@@ -164,8 +289,23 @@ func main() {
 	fmt.Printf("`imports.tf` file has been generated at: %s\n", outputPath)
 }
 
-func toValidResourceName(value string) string {
-	return strings.ReplaceAll(strings.ToLower(value), " ", "_")
+func convertToTerraformResourceName(input string) string {
+	// Convert to lowercase
+	input = strings.ToLower(input)
+
+	// Replace spaces and special characters with underscores
+	re := regexp.MustCompile(`[^a-z0-9_\-]`)
+	input = re.ReplaceAllString(input, "_")
+
+	// Remove leading non-alphabetic characters
+	re = regexp.MustCompile(`^[^a-z]+`)
+	input = re.ReplaceAllString(input, "")
+
+	// Collapse consecutive underscores
+	re = regexp.MustCompile(`_+`)
+	input = re.ReplaceAllString(input, "_")
+
+	return input
 }
 
 func generateImportsFromIds(resourceType, outputFilePath string, idsAndNames []IdAndName) error {
@@ -180,7 +320,7 @@ func generateImportsFromIds(resourceType, outputFilePath string, idsAndNames []I
 `, resourceType, idAndName.Name, idAndName.Id)
 	}
 
-	err := ioutil.WriteFile(outputFilePath, []byte(importsContent), 0644)
+	err := os.WriteFile(outputFilePath, []byte(importsContent), 0644)
 	if err != nil {
 		return fmt.Errorf("error writing imports.tf file: %v", err)
 	}
