@@ -307,7 +307,7 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 		env = targetUrl
 	}
 
-	clientSet := clientset.NewClientSet(env, targetUrl, apiKey)
+	clientSet := clientset.NewClientSet(env, apiKey, targetUrl)
 	resp.DataSourceData = clientSet
 	resp.ResourceData = clientSet
 }
