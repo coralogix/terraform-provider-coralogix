@@ -717,7 +717,6 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"detail": schema.StringAttribute{
 						Required:            true,
-						Default:             stringdefault.StaticString(customDefaultPayload),
 						MarkdownDescription: "Event bridge message. JSON string. More details about the token [\"here\"](https://coralogix.com/docs/user-guides/alerting/outbound-webhooks/generic-outbound-webhooks-alert-webhooks/#placeholders)",
 					},
 					"detail_type": schema.StringAttribute{
