@@ -2947,7 +2947,7 @@ func (c ContentJsonValidator) MarkdownDescription(_ context.Context) string {
 }
 
 func (c ContentJsonValidator) ValidateString(_ context.Context, request validator.StringRequest, response *validator.StringResponse) {
-	if request.ConfigValue.IsNull() {
+	if request.ConfigValue.IsNull() || request.ConfigValue.IsUnknown() {
 		return
 	}
 
