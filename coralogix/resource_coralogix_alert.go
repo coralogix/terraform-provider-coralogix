@@ -128,7 +128,7 @@ var (
 	validLogsTimeWindowValues           = GetKeys(logsTimeWindowValueSchemaToProtoMap)
 
 	autoRetireTimeframeProtoToSchemaMap = map[cxsdk.AutoRetireTimeframe]string{
-		cxsdk.AutoRetireTimeframeNeverOrUnspecified: "Never",
+		cxsdk.AutoRetireTimeframeNeverOrUnspecified: "NEVER",
 		cxsdk.AutoRetireTimeframe5Minutes:           "5_MINUTES",
 		cxsdk.AutoRetireTimeframe10Minutes:          "10_MINUTES",
 		cxsdk.AutoRetireTimeframe1Hour:              "1_HOUR",
@@ -304,7 +304,7 @@ var (
 		cxsdk.LogsAnomalyConditionTypeMoreThanOrUnspecified: "MORE_THAN_USUAL",
 	}
 	logsAnomalyConditionSchemaToProtoMap = ReverseMap(logsAnomalyConditionMap)
-	logsAnomalyConditionValues           = GetValues(logsAnomalyConditionMap)
+	// logsAnomalyConditionValues           = GetValues(logsAnomalyConditionMap)
 )
 
 func NewAlertResource() resource.Resource {
@@ -431,7 +431,7 @@ type LogsUniqueCountRuleModel struct {
 
 type LogsUniqueCountConditionModel struct {
 	MaxUniqueCount types.Int64  `tfsdk:"max_unique_count"`
-	TimeWindow     types.Object `tfsdk:"time_window"` // LogsTimeWindowModel
+	TimeWindow     types.String `tfsdk:"time_window"`
 }
 
 type LogsTimeRelativeThresholdModel struct {
@@ -449,7 +449,7 @@ type MetricAnomalyConditionModel struct {
 	MinNonNullValuesPct types.Int64   `tfsdk:"min_non_null_values_pct"`
 	Threshold           types.Float64 `tfsdk:"threshold"`
 	ForOverPct          types.Int64   `tfsdk:"for_over_pct"`
-	OfTheLast           types.Object  `tfsdk:"of_the_last"` // MetricTimeWindowModel
+	OfTheLast           types.String  `tfsdk:"of_the_last"`
 	ConditionType       types.String  `tfsdk:"condition_type"`
 }
 
@@ -473,12 +473,8 @@ type MetricThresholdRuleModel struct {
 type MetricThresholdConditionModel struct {
 	Threshold     types.Float64 `tfsdk:"threshold"`
 	ForOverPct    types.Int64   `tfsdk:"for_over_pct"`
-	OfTheLast     types.Object  `tfsdk:"of_the_last"` // MetricTimeWindowModel
+	OfTheLast     types.String  `tfsdk:"of_the_last"`
 	ConditionType types.String  `tfsdk:"condition_type"`
-}
-
-type MetricTimeWindowModel struct {
-	SpecificValue types.String `tfsdk:"specific_value"`
 }
 
 type MetricAnomalyModel struct {
@@ -507,13 +503,9 @@ type TracingThresholdRuleModel struct {
 }
 
 type TracingThresholdConditionModel struct {
-	TimeWindow    types.Object  `tfsdk:"time_window"` // TracingTimeWindowModel
+	TimeWindow    types.String  `tfsdk:"time_window"`
 	SpanAmount    types.Float64 `tfsdk:"span_amount"`
 	ConditionType types.String  `tfsdk:"condition_type"`
-}
-
-type TracingTimeWindowModel struct {
-	SpecificValue types.String `tfsdk:"specific_value"`
 }
 
 type FlowModel struct {
@@ -576,7 +568,7 @@ type NewValueRuleModel struct {
 }
 
 type NewValueConditionModel struct {
-	TimeWindow     types.Object `tfsdk:"time_window"` // LogsTimeWindowModel
+	TimeWindow     types.String `tfsdk:"time_window"`
 	KeypathToTrack types.String `tfsdk:"keypath_to_track"`
 }
 
@@ -602,7 +594,7 @@ type AlertOverrideModel struct {
 
 type LogsRatioConditionModel struct {
 	Threshold     types.Float64 `tfsdk:"threshold"`
-	TimeWindow    types.Object  `tfsdk:"time_window"` // LogsTimeWindowModel
+	TimeWindow    types.String  `tfsdk:"time_window"`
 	ConditionType types.String  `tfsdk:"condition_type"`
 }
 
@@ -612,12 +604,8 @@ type LogsAnomalyRuleModel struct {
 
 type LogsAnomalyConditionModel struct {
 	MinimumThreshold types.Float64 `tfsdk:"minimum_threshold"`
-	TimeWindow       types.Object  `tfsdk:"time_window"` // LogsTimeWindowModel
+	TimeWindow       types.String  `tfsdk:"time_window"`
 	ConditionType    types.String  `tfsdk:"condition_type"`
-}
-
-type LogsTimeWindowModel struct {
-	SpecificValue types.String `tfsdk:"specific_value"`
 }
 
 type LogsThresholdRuleModel struct {
@@ -627,7 +615,7 @@ type LogsThresholdRuleModel struct {
 
 type LogsThresholdConditionModel struct {
 	Threshold     types.Float64 `tfsdk:"threshold"`
-	TimeWindow    types.Object  `tfsdk:"time_window"` // LogsTimeWindowModel
+	TimeWindow    types.String  `tfsdk:"time_window"`
 	ConditionType types.String  `tfsdk:"condition_type"`
 }
 
@@ -1064,18 +1052,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 												"span_amount": schema.Float64Attribute{
 													Required: true,
 												},
-												"time_window": schema.SingleNestedAttribute{
-													Required: true,
-													Attributes: map[string]schema.Attribute{
-														"specific_value": schema.StringAttribute{
-															Required: true,
-															Validators: []validator.String{
-																stringvalidator.OneOf(validTracingTimeWindow...),
-															},
-															MarkdownDescription: fmt.Sprintf("Time window to evaluate the threshold with. Valid values: %q.", validTracingTimeWindow),
-														},
-													},
-												},
+												"time_window": logsTimeWindowSchema(validTracingTimeWindow),
 												"condition_type": schema.StringAttribute{
 													Computed: true,
 													Default:  stringdefault.StaticString("MORE_THAN"),
@@ -1388,16 +1365,11 @@ func metricTimeWindowSchema() schema.SingleNestedAttribute {
 	}
 }
 
-func logsTimeWindowSchema(validLogsTimeWindowValues []string) schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
+func logsTimeWindowSchema(validLogsTimeWindowValues []string) schema.StringAttribute {
+	return schema.StringAttribute{
 		Required: true,
-		Attributes: map[string]schema.Attribute{
-			"specific_value": schema.StringAttribute{
-				Required: true,
-				Validators: []validator.String{
-					stringvalidator.OneOf(validLogsTimeWindowValues...),
-				},
-			},
+		Validators: []validator.String{
+			stringvalidator.OneOf(validLogsTimeWindowValues...),
 		},
 	}
 }
@@ -2241,26 +2213,6 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *cxsdk.Al
 	return properties, nil
 }
 
-func extractLogsTimeWindow(ctx context.Context, timeWindow types.Object) (*cxsdk.LogsTimeWindow, diag.Diagnostics) {
-	if timeWindow.IsNull() || timeWindow.IsUnknown() {
-		return nil, nil
-	}
-
-	var timeWindowModel LogsTimeWindowModel
-	if diags := timeWindow.As(ctx, &timeWindowModel, basetypes.ObjectAsOptions{}); diags.HasError() {
-		return nil, diags
-	}
-
-	logsTimeWindow := &cxsdk.LogsTimeWindow{}
-	if specificValue := timeWindowModel.SpecificValue; !(specificValue.IsNull() || specificValue.IsUnknown()) {
-		logsTimeWindow.Type = &cxsdk.LogsTimeWindowSpecificValue{
-			LogsTimeWindowSpecificValue: logsTimeWindowValueSchemaToProtoMap[specificValue.ValueString()],
-		}
-	}
-
-	return logsTimeWindow, nil
-}
-
 func extractThresholdRules(ctx context.Context, elements types.List) ([]*cxsdk.LogsThresholdRule, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 	rules := make([]*cxsdk.LogsThresholdRule, len(elements.Elements()))
@@ -2305,14 +2257,13 @@ func extractLogsThresholdCondition(ctx context.Context, condition types.Object) 
 		return nil, diags
 	}
 
-	timeWindow, diags := extractLogsTimeWindow(ctx, conditionModel.TimeWindow)
-	if diags.HasError() {
-		return nil, diags
-	}
-
 	return &cxsdk.LogsThresholdCondition{
-		Threshold:     typeFloat64ToWrapperspbDouble(conditionModel.Threshold),
-		TimeWindow:    timeWindow,
+		Threshold: typeFloat64ToWrapperspbDouble(conditionModel.Threshold),
+		TimeWindow: &cxsdk.LogsTimeWindow{
+			Type: &cxsdk.LogsTimeWindowSpecificValue{
+				LogsTimeWindowSpecificValue: logsTimeWindowValueSchemaToProtoMap[conditionModel.TimeWindow.ValueString()],
+			},
+		},
 		ConditionType: logsThresholdConditionToProtoMap[conditionModel.ConditionType.ValueString()],
 	}, nil
 }
@@ -2396,16 +2347,15 @@ func extractAnomalyRules(ctx context.Context, elements types.List) ([]*cxsdk.Log
 			continue
 		}
 
-		timeWindow, dg := extractLogsTimeWindow(ctx, condition.TimeWindow)
-		if dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
 		rules[i] = &cxsdk.LogsAnomalyRule{
 			Condition: &cxsdk.LogsAnomalyCondition{
 				MinimumThreshold: typeFloat64ToWrapperspbDouble(condition.MinimumThreshold),
-				TimeWindow:       timeWindow,
-				ConditionType:    logsAnomalyConditionSchemaToProtoMap[condition.ConditionType.ValueString()],
+				TimeWindow: &cxsdk.LogsTimeWindow{
+					Type: &cxsdk.LogsTimeWindowSpecificValue{
+						LogsTimeWindowSpecificValue: logsTimeWindowValueSchemaToProtoMap[condition.TimeWindow.ValueString()],
+					},
+				},
+				ConditionType: logsAnomalyConditionSchemaToProtoMap[condition.ConditionType.ValueString()],
 			},
 		}
 	}
@@ -2516,37 +2466,15 @@ func extractLogsRatioCondition(ctx context.Context, condition types.Object) (*cx
 		return nil, diags
 	}
 
-	timeWindow, diags := extractLogsRatioTimeWindow(ctx, conditionModel.TimeWindow)
-	if diags.HasError() {
-		return nil, diags
-	}
-
 	return &cxsdk.LogsRatioCondition{
-		Threshold:     typeFloat64ToWrapperspbDouble(conditionModel.Threshold),
-		TimeWindow:    timeWindow,
+		Threshold: typeFloat64ToWrapperspbDouble(conditionModel.Threshold),
+		TimeWindow: &cxsdk.LogsRatioTimeWindow{
+			Type: &cxsdk.LogsRatioTimeWindowSpecificValue{
+				LogsRatioTimeWindowSpecificValue: logsRatioTimeWindowValueSchemaToProtoMap[conditionModel.TimeWindow.ValueString()],
+			},
+		},
 		ConditionType: logsRatioConditionSchemaToProtoMap[conditionModel.ConditionType.ValueString()],
 	}, nil
-}
-
-func extractLogsRatioTimeWindow(ctx context.Context, timeWindow types.Object) (*cxsdk.LogsRatioTimeWindow, diag.Diagnostics) {
-	if timeWindow.IsNull() || timeWindow.IsUnknown() {
-		return nil, nil
-	}
-
-	var timeWindowModel LogsTimeWindowModel
-	if diags := timeWindow.As(ctx, &timeWindowModel, basetypes.ObjectAsOptions{}); diags.HasError() {
-		return nil, diags
-	}
-
-	if specificValue := timeWindowModel.SpecificValue; !(specificValue.IsNull() || specificValue.IsUnknown()) {
-		return &cxsdk.LogsRatioTimeWindow{
-			Type: &cxsdk.LogsRatioTimeWindowSpecificValue{
-				LogsRatioTimeWindowSpecificValue: logsRatioTimeWindowValueSchemaToProtoMap[specificValue.ValueString()],
-			},
-		}, nil
-	} else {
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("TimeWindow object is not valid", "TimeWindow object is not valid")}
-	}
 }
 
 func expandLogsNewValueAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, newValue types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
@@ -2582,26 +2510,6 @@ func expandLogsNewValueAlertTypeDefinition(ctx context.Context, properties *cxsd
 	}
 	properties.Type = cxsdk.AlertDefTypeLogsNewValue
 	return properties, nil
-}
-
-func extractLogsNewValueTimeWindow(ctx context.Context, timeWindow types.Object) (*cxsdk.LogsNewValueTimeWindow, diag.Diagnostics) {
-	if timeWindow.IsNull() || timeWindow.IsUnknown() {
-		return nil, nil
-	}
-
-	var timeWindowModel LogsTimeWindowModel
-	if diags := timeWindow.As(ctx, &timeWindowModel, basetypes.ObjectAsOptions{}); diags.HasError() {
-		return nil, diags
-	}
-
-	logsNewValueTimeWindow := &cxsdk.LogsNewValueTimeWindow{}
-	if specificValue := timeWindowModel.SpecificValue; !(specificValue.IsNull() || specificValue.IsUnknown()) {
-		logsNewValueTimeWindow.Type = &cxsdk.LogsNewValueTimeWindowSpecificValue{
-			LogsNewValueTimeWindowSpecificValue: logsNewValueTimeWindowValueSchemaToProtoMap[specificValue.ValueString()],
-		}
-	}
-
-	return logsNewValueTimeWindow, nil
 }
 
 func extractNewValueRules(ctx context.Context, elements types.List) ([]*cxsdk.LogsNewValueRule, diag.Diagnostics) {
@@ -2642,14 +2550,13 @@ func extractNewValueCondition(ctx context.Context, condition types.Object) (*cxs
 		return nil, diags
 	}
 
-	timeWindow, diags := extractLogsNewValueTimeWindow(ctx, conditionModel.TimeWindow)
-	if diags.HasError() {
-		return nil, diags
-	}
-
 	return &cxsdk.LogsNewValueCondition{
 		KeypathToTrack: typeStringToWrapperspbString(conditionModel.KeypathToTrack),
-		TimeWindow:     timeWindow,
+		TimeWindow: &cxsdk.LogsNewValueTimeWindow{
+			Type: &cxsdk.LogsNewValueTimeWindowSpecificValue{
+				LogsNewValueTimeWindowSpecificValue: logsNewValueTimeWindowValueSchemaToProtoMap[conditionModel.TimeWindow.ValueString()],
+			},
+		},
 	}, nil
 }
 
@@ -2727,34 +2634,14 @@ func extractLogsUniqueCountCondition(ctx context.Context, condition types.Object
 		return nil, diags
 	}
 
-	timeWindow, diags := extractLogsUniqueCountTimeWindow(ctx, conditionModel.TimeWindow)
-	if diags.HasError() {
-		return nil, diags
-	}
-
 	return &cxsdk.LogsUniqueCountCondition{
 		MaxUniqueCount: typeInt64ToWrappedInt64(conditionModel.MaxUniqueCount),
-		TimeWindow:     timeWindow,
+		TimeWindow: &cxsdk.LogsUniqueValueTimeWindow{
+			Type: &cxsdk.LogsUniqueValueTimeWindowSpecificValue{
+				LogsUniqueValueTimeWindowSpecificValue: logsUniqueCountTimeWindowValueSchemaToProtoMap[conditionModel.TimeWindow.ValueString()],
+			},
+		},
 	}, nil
-}
-
-func extractLogsUniqueCountTimeWindow(ctx context.Context, timeWindow types.Object) (*cxsdk.LogsUniqueValueTimeWindow, diag.Diagnostics) {
-	if timeWindow.IsNull() || timeWindow.IsUnknown() {
-		return nil, nil
-	}
-
-	var windowModel LogsTimeWindowModel
-	if diags := timeWindow.As(ctx, &windowModel, basetypes.ObjectAsOptions{}); diags.HasError() {
-		return nil, diags
-	}
-
-	logsUniqueValueTimeWindow := &cxsdk.LogsUniqueValueTimeWindow{}
-	if specificValue := windowModel.SpecificValue; !(specificValue.IsNull() || specificValue.IsUnknown()) {
-		logsUniqueValueTimeWindow.Type = &cxsdk.LogsUniqueValueTimeWindowSpecificValue{
-			LogsUniqueValueTimeWindowSpecificValue: logsUniqueCountTimeWindowValueSchemaToProtoMap[specificValue.ValueString()],
-		}
-	}
-	return logsUniqueValueTimeWindow, nil
 }
 
 func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, relativeThreshold types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
@@ -2922,11 +2809,6 @@ func extractMetricThresholdRules(ctx context.Context, elements types.List) ([]*c
 			diags.Append(dg...)
 			continue
 		}
-		ofTheLast, dg := extractMetricTimeWindow(ctx, condition.OfTheLast)
-		if dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
 
 		override, dg := extractAlertOverride(ctx, rule.Override)
 		if dg.HasError() {
@@ -2936,9 +2818,13 @@ func extractMetricThresholdRules(ctx context.Context, elements types.List) ([]*c
 
 		rules[i] = &cxsdk.MetricThresholdRule{
 			Condition: &cxsdk.MetricThresholdCondition{
-				Threshold:     typeFloat64ToWrapperspbDouble(condition.Threshold),
-				ForOverPct:    typeInt64ToWrappedUint32(condition.ForOverPct),
-				OfTheLast:     ofTheLast,
+				Threshold:  typeFloat64ToWrapperspbDouble(condition.Threshold),
+				ForOverPct: typeInt64ToWrappedUint32(condition.ForOverPct),
+				OfTheLast: &cxsdk.MetricTimeWindow{
+					Type: &cxsdk.MetricTimeWindowSpecificValue{
+						MetricTimeWindowSpecificValue: metricTimeWindowValueSchemaToProtoMap[condition.OfTheLast.ValueString()],
+					},
+				},
 				ConditionType: metricsThresholdConditionToProtoMap[condition.ConditionType.ValueString()],
 			},
 			Override: override,
@@ -2969,26 +2855,6 @@ func extractMetricFilter(ctx context.Context, filter types.Object) (*cxsdk.Metri
 	}
 
 	return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Metric Filter", "Metric Filter is not valid")}
-}
-
-func extractMetricTimeWindow(ctx context.Context, timeWindow types.Object) (*cxsdk.MetricTimeWindow, diag.Diagnostics) {
-	if timeWindow.IsNull() || timeWindow.IsUnknown() {
-		return nil, nil
-	}
-
-	var timeWindowModel MetricTimeWindowModel
-	if diags := timeWindow.As(ctx, &timeWindowModel, basetypes.ObjectAsOptions{}); diags.HasError() {
-		return nil, diags
-	}
-
-	metricTimeWindow := &cxsdk.MetricTimeWindow{}
-	if specificValue := timeWindowModel.SpecificValue; !(specificValue.IsNull() || specificValue.IsUnknown()) {
-		metricTimeWindow.Type = &cxsdk.MetricTimeWindowSpecificValue{
-			MetricTimeWindowSpecificValue: metricTimeWindowValueSchemaToProtoMap[specificValue.ValueString()],
-		}
-	}
-
-	return metricTimeWindow, nil
 }
 
 func expandTracingImmediateTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, tracingImmediate types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
@@ -3080,15 +2946,14 @@ func extractTracingThresholdRules(ctx context.Context, elements types.List) ([]*
 			continue
 		}
 
-		timeWindow, dg := extractTracingTimeWindow(ctx, condition.TimeWindow)
-		if dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
 		rules[i] = &cxsdk.TracingThresholdRule{
 			Condition: &cxsdk.TracingThresholdCondition{
-				SpanAmount:    typeFloat64ToWrapperspbDouble(condition.SpanAmount),
-				TimeWindow:    timeWindow,
+				SpanAmount: typeFloat64ToWrapperspbDouble(condition.SpanAmount),
+				TimeWindow: &cxsdk.TracingTimeWindow{
+					Type: &cxsdk.TracingTimeWindowSpecificValue{
+						TracingTimeWindowValue: tracingTimeWindowSchemaToProtoMap[condition.TimeWindow.ValueString()],
+					},
+				},
 				ConditionType: cxsdk.TracingThresholdConditionTypeMoreThanOrUnspecified,
 			},
 		}
@@ -3225,27 +3090,6 @@ func extractTracingSpanFieldsFilterType(ctx context.Context, spanFields types.Se
 	return filters, nil
 }
 
-func extractTracingTimeWindow(ctx context.Context, timeWindow types.Object) (*cxsdk.TracingTimeWindow, diag.Diagnostics) {
-	if timeWindow.IsNull() || timeWindow.IsUnknown() {
-		return nil, nil
-	}
-
-	var timeWindowModel TracingTimeWindowModel
-	if diags := timeWindow.As(ctx, &timeWindowModel, basetypes.ObjectAsOptions{}); diags.HasError() {
-		return nil, diags
-	}
-
-	if specificValue := timeWindowModel.SpecificValue; !(specificValue.IsNull() || specificValue.IsUnknown()) {
-		return &cxsdk.TracingTimeWindow{
-			Type: &cxsdk.TracingTimeWindowSpecificValue{
-				TracingTimeWindowValue: tracingTimeWindowSchemaToProtoMap[specificValue.ValueString()],
-			},
-		}, nil
-	} else {
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Time Window", "Time Window is not valid")}
-	}
-}
-
 func expandMetricAnomalyAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, metricAnomaly types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
 	if objIsNullOrUnknown(metricAnomaly) {
 		return properties, nil
@@ -3295,16 +3139,15 @@ func extractMetricAnomalyRules(ctx context.Context, elements types.List) ([]*cxs
 			continue
 		}
 
-		ofTheLast, dg := extractMetricTimeWindow(ctx, condition.OfTheLast)
-		if dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
 		rules[i] = &cxsdk.MetricAnomalyRule{
 			Condition: &cxsdk.MetricAnomalyCondition{
-				Threshold:           typeFloat64ToWrapperspbDouble(condition.Threshold),
-				ForOverPct:          typeInt64ToWrappedUint32(condition.ForOverPct),
-				OfTheLast:           ofTheLast,
+				Threshold:  typeFloat64ToWrapperspbDouble(condition.Threshold),
+				ForOverPct: typeInt64ToWrappedUint32(condition.ForOverPct),
+				OfTheLast: &cxsdk.MetricTimeWindow{
+					Type: &cxsdk.MetricTimeWindowSpecificValue{
+						MetricTimeWindowSpecificValue: metricTimeWindowValueSchemaToProtoMap[condition.OfTheLast.ValueString()],
+					},
+				},
 				ConditionType:       metricAnomalyConditionToProtoMap[condition.ConditionType.ValueString()],
 				MinNonNullValuesPct: typeInt64ToWrappedUint32(condition.MinNonNullValuesPct),
 			},
@@ -3875,60 +3718,32 @@ func flattenLogsThresholdRuleCondition(ctx context.Context, condition *cxsdk.Log
 		return types.ObjectNull(logsThresholdConditionAttr()), nil
 	}
 
-	timeWindow, diags := flattenLogsTimeWindow(ctx, condition.TimeWindow)
-	if diags.HasError() {
-		return types.ObjectNull(logsThresholdConditionAttr()), diags
-	}
-
 	return types.ObjectValueFrom(ctx, logsThresholdConditionAttr(), LogsThresholdConditionModel{
 		Threshold:     wrapperspbDoubleToTypeFloat64(condition.GetThreshold()),
-		TimeWindow:    timeWindow,
+		TimeWindow:    flattenLogsTimeWindow(condition.TimeWindow),
 		ConditionType: types.StringValue(logsThresholdConditionMap[condition.GetConditionType()]),
 	})
 }
 
-func flattenLogsTimeWindow(ctx context.Context, timeWindow *cxsdk.LogsTimeWindow) (types.Object, diag.Diagnostics) {
+func flattenLogsTimeWindow(timeWindow *cxsdk.LogsTimeWindow) types.String {
 	if timeWindow == nil {
-		return types.ObjectNull(logsTimeWindowAttr()), nil
+		return types.StringNull()
 	}
-	return types.ObjectValueFrom(ctx, logsTimeWindowAttr(), LogsTimeWindowModel{
-		SpecificValue: types.StringValue(logsTimeWindowValueProtoToSchemaMap[timeWindow.GetLogsTimeWindowSpecificValue()]),
-	})
+	return types.StringValue(logsTimeWindowValueProtoToSchemaMap[timeWindow.GetLogsTimeWindowSpecificValue()])
 }
 
-func flattenLogsRatioTimeWindow(ctx context.Context, timeWindow *cxsdk.LogsRatioTimeWindow) (types.Object, diag.Diagnostics) {
+func flattenLogsRatioTimeWindow(timeWindow *cxsdk.LogsRatioTimeWindow) types.String {
 	if timeWindow == nil {
-		return types.ObjectNull(logsTimeWindowAttr()), nil
+		return types.StringNull()
 	}
-
-	switch timeWindowType := timeWindow.Type.(type) {
-	case *cxsdk.LogsRatioTimeWindowSpecificValue:
-		return types.ObjectValueFrom(ctx, logsTimeWindowAttr(), LogsTimeWindowModel{
-			SpecificValue: types.StringValue(logsRatioTimeWindowValueProtoToSchemaMap[timeWindowType.LogsRatioTimeWindowSpecificValue]),
-		})
-	default:
-		return types.ObjectNull(logsTimeWindowAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Time Window", fmt.Sprintf("Time Window %v is not supported", timeWindowType))}
-	}
+	return types.StringValue(logsRatioTimeWindowValueProtoToSchemaMap[timeWindow.GetLogsRatioTimeWindowSpecificValue()])
 }
 
-func flattenLogsNewValueTimeWindow(ctx context.Context, timeWindow *cxsdk.LogsNewValueTimeWindow) (types.Object, diag.Diagnostics) {
+func flattenLogsNewValueTimeWindow(timeWindow *cxsdk.LogsNewValueTimeWindow) types.String {
 	if timeWindow == nil {
-		return types.ObjectNull(logsTimeWindowAttr()), nil
+		return types.StringNull()
 	}
-	switch timeWindowType := timeWindow.Type.(type) {
-	case *cxsdk.LogsNewValueTimeWindowSpecificValue:
-		return types.ObjectValueFrom(ctx, logsTimeWindowAttr(), LogsTimeWindowModel{
-			SpecificValue: types.StringValue(logsNewValueTimeWindowValueProtoToSchemaMap[timeWindowType.LogsNewValueTimeWindowSpecificValue]),
-		})
-	default:
-		return types.ObjectNull(logsTimeWindowAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Time Window", fmt.Sprintf("Time Window %v is not supported", timeWindowType))}
-	}
-}
-
-func logsTimeWindowAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"specific_value": types.StringType,
-	}
+	return types.StringValue(logsNewValueTimeWindowValueProtoToSchemaMap[timeWindow.GetLogsNewValueTimeWindowSpecificValue()])
 }
 
 func flattenUndetectedValuesManagement(ctx context.Context, undetectedValuesManagement *cxsdk.UndetectedValuesManagement) (types.Object, diag.Diagnostics) {
@@ -3984,14 +3799,9 @@ func flattenLogsAnomalyRuleCondition(ctx context.Context, condition *cxsdk.LogsA
 		return types.ObjectNull(logsAnomalyConditionAttr()), nil
 	}
 
-	timeWindow, diags := flattenLogsTimeWindow(ctx, condition.TimeWindow)
-	if diags.HasError() {
-		return types.ObjectNull(logsAnomalyConditionAttr()), diags
-	}
-
 	return types.ObjectValueFrom(ctx, logsAnomalyConditionAttr(), LogsAnomalyConditionModel{
 		MinimumThreshold: wrapperspbDoubleToTypeFloat64(condition.GetMinimumThreshold()),
-		TimeWindow:       timeWindow,
+		TimeWindow:       flattenLogsTimeWindow(condition.TimeWindow),
 		ConditionType:    types.StringValue(logsAnomalyConditionMap[condition.GetConditionType()]),
 	})
 }
@@ -4062,14 +3872,9 @@ func flattenLogsRatioThresholdRuleCondition(ctx context.Context, condition *cxsd
 		return types.ObjectNull(logsRatioThresholdRuleConditionAttr()), nil
 	}
 
-	timeWindow, diags := flattenLogsRatioTimeWindow(ctx, condition.TimeWindow)
-	if diags.HasError() {
-		return types.ObjectNull(logsRatioThresholdRuleConditionAttr()), diags
-	}
-
 	return types.ObjectValueFrom(ctx, logsRatioThresholdRuleConditionAttr(), LogsRatioConditionModel{
 		Threshold:     wrapperspbDoubleToTypeFloat64(condition.GetThreshold()),
-		TimeWindow:    timeWindow,
+		TimeWindow:    flattenLogsRatioTimeWindow(condition.TimeWindow),
 		ConditionType: types.StringValue(logsRatioConditionMap[condition.GetConditionType()]),
 	},
 	)
@@ -4132,24 +3937,17 @@ func flattenLogsUniqueCountRuleCondition(ctx context.Context, condition *cxsdk.L
 		return types.ObjectNull(logsUniqueCountConditionAttr()), nil
 	}
 
-	timeWindow, diags := flattenLogsUniqueTimeWindow(ctx, condition.TimeWindow)
-	if diags.HasError() {
-		return types.ObjectNull(logsUniqueCountConditionAttr()), diags
-	}
-
 	return types.ObjectValueFrom(ctx, logsUniqueCountConditionAttr(), LogsUniqueCountConditionModel{
 		MaxUniqueCount: wrapperspbInt64ToTypeInt64(condition.GetMaxUniqueCount()),
-		TimeWindow:     timeWindow,
+		TimeWindow:     flattenLogsUniqueTimeWindow(condition.TimeWindow),
 	})
 }
 
-func flattenLogsUniqueTimeWindow(ctx context.Context, timeWindow *cxsdk.LogsUniqueValueTimeWindow) (types.Object, diag.Diagnostics) {
+func flattenLogsUniqueTimeWindow(timeWindow *cxsdk.LogsUniqueValueTimeWindow) types.String {
 	if timeWindow == nil {
-		return types.ObjectNull(logsTimeWindowAttr()), nil
+		return types.StringNull()
 	}
-	return types.ObjectValueFrom(ctx, logsTimeWindowAttr(), LogsTimeWindowModel{
-		SpecificValue: types.StringValue(logsUniqueCountTimeWindowValueProtoToSchemaMap[timeWindow.GetLogsUniqueValueTimeWindowSpecificValue()]),
-	})
+	return types.StringValue(logsUniqueCountTimeWindowValueProtoToSchemaMap[timeWindow.GetLogsUniqueValueTimeWindowSpecificValue()])
 }
 
 func flattenLogsNewValue(ctx context.Context, newValue *cxsdk.LogsNewValueType) (types.Object, diag.Diagnostics) {
@@ -4195,12 +3993,8 @@ func flattenLogsNewValueCondition(ctx context.Context, condition *cxsdk.LogsNewV
 		return types.ObjectNull(logsNewValueConditionAttr()), nil
 	}
 
-	timeWindow, diags := flattenLogsNewValueTimeWindow(ctx, condition.TimeWindow)
-	if diags.HasError() {
-		return types.ObjectNull(logsNewValueConditionAttr()), diags
-	}
 	return types.ObjectValueFrom(ctx, logsNewValueConditionAttr(), NewValueConditionModel{
-		TimeWindow:     timeWindow,
+		TimeWindow:     flattenLogsNewValueTimeWindow(condition.TimeWindow),
 		KeypathToTrack: wrapperspbStringToTypeString(condition.GetKeypathToTrack()),
 	})
 }
@@ -4415,33 +4209,20 @@ func flattenMetricThresholdRuleCondition(ctx context.Context, condition *cxsdk.M
 		return types.ObjectNull(metricThresholdConditionAttr()), nil
 	}
 
-	ofTheLast, diags := flattenMetricTimeWindow(ctx, condition.GetOfTheLast())
-	if diags.HasError() {
-		return types.ObjectNull(metricThresholdConditionAttr()), diags
-	}
-
 	return types.ObjectValueFrom(ctx, metricThresholdConditionAttr(), MetricThresholdConditionModel{
 		Threshold:     wrapperspbDoubleToTypeFloat64(condition.GetThreshold()),
 		ForOverPct:    wrapperspbUint32ToTypeInt64(condition.GetForOverPct()),
-		OfTheLast:     ofTheLast,
+		OfTheLast:     flattenMetricTimeWindow(condition.GetOfTheLast()),
 		ConditionType: types.StringValue(metricsThresholdConditionMap[condition.GetConditionType()]),
 	})
 }
 
-func flattenMetricTimeWindow(ctx context.Context, timeWindow *cxsdk.MetricTimeWindow) (types.Object, diag.Diagnostics) {
+func flattenMetricTimeWindow(timeWindow *cxsdk.MetricTimeWindow) types.String {
 	if timeWindow == nil {
-		return types.ObjectNull(metricTimeWindowAttr()), nil
+		return types.StringNull()
 	}
 
-	metricTimeWindow := MetricTimeWindowModel{}
-	switch timeWindowType := timeWindow.Type.(type) {
-	case *cxsdk.MetricTimeWindowSpecificValue:
-		metricTimeWindow.SpecificValue = types.StringValue(metricFilterOperationTypeProtoToSchemaMap[timeWindowType.MetricTimeWindowSpecificValue])
-	default:
-		return types.ObjectNull(metricTimeWindowAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Metric Time Window", fmt.Sprintf("Metric Time Window %v is not supported", timeWindowType))}
-	}
-
-	return types.ObjectValueFrom(ctx, metricTimeWindowAttr(), metricTimeWindow)
+	return types.StringValue(metricFilterOperationTypeProtoToSchemaMap[timeWindow.GetMetricTimeWindowSpecificValue()])
 }
 
 func flattenMetricFilter(ctx context.Context, filter *cxsdk.MetricFilter) (types.Object, diag.Diagnostics) {
@@ -4658,31 +4439,19 @@ func flattenTracingThresholdRuleCondition(ctx context.Context, condition *cxsdk.
 		return types.ObjectNull(tracingThresholdConditionAttr()), nil
 	}
 
-	timeWindow, diags := flattenTracingTimeWindow(ctx, condition.GetTimeWindow())
-	if diags.HasError() {
-		return types.ObjectNull(tracingThresholdConditionAttr()), diags
-	}
-
 	return types.ObjectValueFrom(ctx, tracingThresholdConditionAttr(), TracingThresholdConditionModel{
-		TimeWindow:    timeWindow,
+		TimeWindow:    flattenTracingTimeWindow(condition.GetTimeWindow()),
 		SpanAmount:    wrapperspbDoubleToTypeFloat64(condition.GetSpanAmount()),
 		ConditionType: types.StringValue("MORE_THAN"),
 	})
 }
 
-func flattenTracingTimeWindow(ctx context.Context, timeWindow *cxsdk.TracingTimeWindow) (types.Object, diag.Diagnostics) {
+func flattenTracingTimeWindow(timeWindow *cxsdk.TracingTimeWindow) types.String {
 	if timeWindow == nil {
-		return types.ObjectNull(tracingTimeWindowAttr()), nil
+		return types.StringNull()
 	}
 
-	switch timeWindowType := timeWindow.Type.(type) {
-	case *cxsdk.TracingTimeWindowSpecificValue:
-		return types.ObjectValueFrom(ctx, tracingTimeWindowAttr(), TracingTimeWindowModel{
-			SpecificValue: types.StringValue(tracingTimeWindowProtoToSchemaMap[timeWindowType.TracingTimeWindowValue]),
-		})
-	default:
-		return types.ObjectNull(tracingTimeWindowAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Tracing Time Window", fmt.Sprintf("Tracing Time Window %v is not supported", timeWindowType))}
-	}
+	return types.StringValue(tracingTimeWindowProtoToSchemaMap[timeWindow.GetTracingTimeWindowValue()])
 }
 
 func flattenMetricAnomaly(ctx context.Context, metricMoreThanUsual *cxsdk.MetricAnomalyType) (types.Object, diag.Diagnostics) {
@@ -4726,16 +4495,11 @@ func flattenMetricAnomalyCondition(ctx context.Context, condition *cxsdk.MetricA
 		return types.ObjectNull(metricAnomalyConditionAttr()), nil
 	}
 
-	ofTheLast, diags := flattenMetricTimeWindow(ctx, condition.GetOfTheLast())
-	if diags.HasError() {
-		return types.ObjectNull(metricAnomalyConditionAttr()), diags
-	}
-
 	return types.ObjectValueFrom(ctx, metricAnomalyConditionAttr(), MetricAnomalyConditionModel{
 		MinNonNullValuesPct: wrapperspbUint32ToTypeInt64(condition.GetMinNonNullValuesPct()),
 		Threshold:           wrapperspbDoubleToTypeFloat64(condition.GetThreshold()),
 		ForOverPct:          wrapperspbUint32ToTypeInt64(condition.GetForOverPct()),
-		OfTheLast:           ofTheLast,
+		OfTheLast:           flattenMetricTimeWindow(condition.GetOfTheLast()),
 		ConditionType:       types.StringValue(metricAnomalyConditionMap[condition.GetConditionType()]),
 	},
 	)
@@ -4978,7 +4742,7 @@ func logsThresholdRulesAttr() map[string]attr.Type {
 func logsThresholdConditionAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"threshold":      types.Float64Type,
-		"time_window":    types.ObjectType{AttrTypes: logsTimeWindowAttr()},
+		"time_window":    types.StringType,
 		"condition_type": types.StringType,
 	}
 }
@@ -5000,7 +4764,7 @@ func logsAnomalyRulesAttr() map[string]attr.Type {
 func logsAnomalyConditionAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"minimum_threshold": types.Float64Type,
-		"time_window":       types.ObjectType{AttrTypes: logsTimeWindowAttr()},
+		"time_window":       types.StringType,
 		"condition_type":    types.StringType,
 	}
 }
@@ -5029,7 +4793,7 @@ func logsRatioThresholdRulesAttr() map[string]attr.Type {
 func logsRatioThresholdRuleConditionAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"threshold":      types.Float64Type,
-		"time_window":    types.ObjectType{AttrTypes: logsTimeWindowAttr()},
+		"time_window":    types.StringType,
 		"condition_type": types.StringType,
 	}
 }
@@ -5056,7 +4820,7 @@ func logsNewValueRulesAttr() map[string]attr.Type {
 
 func logsNewValueConditionAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"time_window":      types.ObjectType{AttrTypes: logsTimeWindowAttr()},
+		"time_window":      types.StringType,
 		"keypath_to_track": types.StringType,
 	}
 }
@@ -5087,7 +4851,7 @@ func logsUniqueCountRulesAttr() map[string]attr.Type {
 func logsUniqueCountConditionAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"max_unique_count": types.Int64Type,
-		"time_window":      types.ObjectType{AttrTypes: logsTimeWindowAttr()},
+		"time_window":      types.StringType,
 	}
 }
 
@@ -5242,10 +5006,8 @@ func tracingThresholdRulesAttr() map[string]attr.Type {
 
 func tracingThresholdConditionAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"span_amount": types.Float64Type,
-		"time_window": types.ObjectType{
-			AttrTypes: tracingTimeWindowAttr(),
-		},
+		"span_amount":    types.Float64Type,
+		"time_window":    types.StringType,
 		"condition_type": types.StringType,
 	}
 }
