@@ -105,6 +105,7 @@ func OldProvider() *oldSchema.Provider {
 
 		ConfigureContextFunc: func(context context.Context, d *oldSchema.ResourceData) (interface{}, diag.Diagnostics) {
 			var targetUrl string
+			var cxEnv string
 			if env, ok := d.GetOk("env"); ok && env.(string) != "" {
 				if url, ok := envToGrpcUrl[env.(string)]; !ok {
 					return nil, diag.Errorf("The Coralogix env must be one of %q", validEnvs)
@@ -113,11 +114,13 @@ func OldProvider() *oldSchema.Provider {
 				}
 			} else if domain, ok := d.GetOk("domain"); ok && domain.(string) != "" {
 				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
+				cxEnv = targetUrl
 			} else if env = os.Getenv("CORALOGIX_ENV"); env != "" {
 				if url, ok := envToGrpcUrl[env.(string)]; !ok {
 					return nil, diag.Errorf("The Coralogix env must be one of %q", validEnvs)
 				} else {
 					targetUrl = url
+					cxEnv = env.(string)
 				}
 			} else if domain = os.Getenv("CORALOGIX_DOMAIN"); domain != "" {
 				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
@@ -133,8 +136,10 @@ func OldProvider() *oldSchema.Provider {
 			if apiKey == "" {
 				return nil, diag.Errorf("At least one of the field 'api_key' or environment variable 'CORALOGIX_API_KEY' have to be defined")
 			}
-
-			return clientset.NewClientSet(targetUrl, apiKey), nil
+			if cxEnv == "" || len(cxEnv) > 3 {
+				cxEnv = targetUrl
+			}
+			return clientset.NewClientSet(cxEnv, apiKey, targetUrl), nil
 		},
 	}
 }
@@ -298,8 +303,11 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	} else {
 		targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
 	}
+	if len(env) > 3 {
+		env = targetUrl
+	}
 
-	clientSet := clientset.NewClientSet(targetUrl, apiKey)
+	clientSet := clientset.NewClientSet(env, apiKey, targetUrl)
 	resp.DataSourceData = clientSet
 	resp.ResourceData = clientSet
 }

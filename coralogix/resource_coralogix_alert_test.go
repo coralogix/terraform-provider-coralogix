@@ -1532,20 +1532,18 @@ func testAccCoralogixResourceAlertLogsMoreThan() string {
 
   type_definition = {
     logs_threshold = {
-		rules = [
-			{
-				condition = {
-            		threshold   = 2
-            		time_window = {
-              			specific_value = "10_MINUTES"
-            		}
-            	condition_type = "MORE_THAN"
-          		}
-          		override = {
-            		priority = "P2"
-          		}
-          	}
-		]
+		rules = [{
+			condition = {
+				threshold   = 2
+				time_window = {
+					specific_value = "10_MINUTES"
+				}
+				condition_type = "MORE_THAN"
+			}
+			override = {
+				priority = "P2"
+			}
+		}]
       logs_filter       = {
         simple_filter = {
           lucene_query  = "message:\"error\""
@@ -1719,6 +1717,9 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
           	time_window = "10_MINUTES"
           	condition_type   = "LESS_THAN"
 			}
+		  override = {
+			priority = "P2"
+		  }
         }
       ]
     }
@@ -1768,6 +1769,9 @@ func testAccCoralogixResourceAlertLogsLessThanUpdated() string {
 			time_window = "2_HOURS"
 			condition_type   = "LESS_THAN"
 			}
+		override = {
+			priority = "P2"
+		}
         }
       ]
       logs_filter = {
@@ -1845,6 +1849,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUsual() string {
 			time_window = "10_MINUTES"
 			}
 			override = {
+				priority = "P2"
 			}
 		}]
       logs_filter = {
@@ -1923,6 +1928,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
 					minimum_threshold = 20
 				}
 				override = {
+					priority = "P2"
 				}
 			}
 	]
@@ -1981,6 +1987,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 				condition_type   = "LESS_THAN"
 				}
 				override = {
+					priority = "P2"
 				}
 			}]
 			logs_filter       = {
@@ -2051,6 +2058,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
 				condition_type   = "LESS_THAN"
 				}
 				override = {
+					priority = "P2"
 				}
 			}]
 			logs_filter       = {
@@ -2137,9 +2145,12 @@ func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
         }
 	  rules = [{
 			condition = {
-			threshold         = 2
-			time_window = "10_MINUTES"
-			condition_type		 = "MORE_THAN"
+				threshold         = 2
+				time_window = "10_MINUTES"
+				condition_type		 = "MORE_THAN"
+			}
+			override = {
+				priority = "P2"
 			}
 		}]
     }
@@ -2206,12 +2217,14 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
       }
 	  rules = [ {
 		condition = {
-		time_window = "1_HOUR"
-		threshold = 120
-		condition_type		 = "MORE_THAN"
+			time_window = "1_HOUR"
+			threshold = 120
+			condition_type = "MORE_THAN"
 		}
-	  }
-		]
+		override = {
+			priority = "P2"
+		}
+	  }]
       group_by_for = "Numerator Only"
     }
   }
@@ -2230,15 +2243,16 @@ func testAccCoralogixResourceAlertLogsRatioLessThan() string {
     	logs_ratio_threshold = {
       		numerator_alias   = "numerator"
       		denominator_alias = "denominator"
-			rules       = [
-				{
-					condition = {
-						threshold         = 2
-						time_window       = "10_MINUTES"
-						condition_type		 = "LESS_THAN"
-					}
+			rules = [{
+				condition = {
+					threshold         = 2
+					time_window       = "10_MINUTES"
+					condition_type		 = "LESS_THAN"
 				}
-			]
+				override = {
+					priority = "P2"
+				}
+			}]
       		group_by_for = "Denominator Only"
     	}
   	}
@@ -2256,15 +2270,16 @@ func testAccCoralogixResourceAlertLogsRatioLessThanUpdated() string {
 		logs_ratio_threshold = {
 	  		numerator_alias   = "updated-numerator"
 	  		denominator_alias = "updated-denominator"
-			rules       = [
-				{
-					condition = {
-						threshold         = 20
-						time_window       = "2_HOURS"
-						condition_type		 = "LESS_THAN"
-					}
+			rules = [{
+				condition = {
+					threshold         = 20
+					time_window       = "2_HOURS"
+					condition_type		 = "LESS_THAN"
 				}
-			]
+				override = {
+            		priority = "P2"
+          		}
+			}]
 		}
   	}
 }
@@ -2280,14 +2295,15 @@ func testAccCoralogixResourceAlertLogsNewValue() string {
   type_definition = {
     logs_new_value = {
       notification_payload_filter = ["coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"]
-	  rules = [
-		{
-			condition = {
-				time_window = "24_HOURS"
-				keypath_to_track = "remote_addr_geoip.country_name"
-			}
+	  rules = [{
+		condition = {
+			time_window = "24_HOURS"
+			keypath_to_track = "remote_addr_geoip.country_name"
 		}
-	]
+		override = {
+			priority = "P2"
+		}
+	  }]
     }
   }
 }
@@ -2302,14 +2318,15 @@ func testAccCoralogixResourceAlertLogsNewValueUpdated() string {
 
   type_definition = {
 	logs_new_value = {
-		rules = [
-			{
-				condition = {
-	  			time_window  = "12_HOURS"
-	  			keypath_to_track = "remote_addr_geoip.city_name"
-				}
+		rules = [{
+			condition = {
+				time_window  = "12_HOURS"
+				keypath_to_track = "remote_addr_geoip.city_name"
 			}
-		]
+			override = {
+				priority = "P2"
+			}
+		}]
 	}
   }
 }
@@ -2375,6 +2392,9 @@ func testAccCoralogixResourceAlertLogsTimeRelativeMoreThan() string {
 			ignore_infinity  = true
 			condition_type 	     = "MORE_THAN"
 		}
+		override = {
+			priority = "P2"
+		}
 	}]
     }
   }
@@ -2390,11 +2410,14 @@ func testAccCoralogixResourceAlertLogsTimeRelativeMoreThanUpdated() string {
 
   type_definition = {
 	logs_time_relative_threshold = {
-	rules = [
-	{	condition = {
+	rules = [{	
+		condition = {
 			threshold   = 50
 			compared_to = "Same Day Last Week"
 			condition_type   = "MORE_THAN"
+		}
+		override = {
+			priority = "P2"
 		}
 	}]
 	}
@@ -2419,6 +2442,9 @@ func testAccCoralogixResourceAlertLogsTimeRelativeLessThan() string {
 				ignore_infinity  = true
 				condition_type        = "LESS_THAN"
 			}
+			override = {
+				priority = "P2"
+			}
 		}]
 	}
   }
@@ -2440,6 +2466,9 @@ func testAccCoralogixResourceAlertLogsTimeRelativeLessThanUpdated() string {
 				compared_to                 = "Same Day Last Week"
 				ignore_infinity             = false
 				condition_type                   = "LESS_THAN"
+			}
+			override = {
+				priority = "P2"
 			}
 		}]
 		undetected_values_management = {
