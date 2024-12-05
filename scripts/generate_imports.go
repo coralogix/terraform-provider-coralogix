@@ -310,14 +310,41 @@ func convertToTerraformResourceName(input string) string {
 
 func generateImportsFromIds(resourceType, outputFilePath string, idsAndNames []IdAndName) error {
 	importsContent := ""
+	nameCounts := make(map[string]int)
+	uniqueNames := make(map[string]string)
 
 	for _, idAndName := range idsAndNames {
+		originalName := idAndName.Name
+		name := originalName
+
+		// Ensure uniqueness by appending a suffix if necessary
+		for {
+			if _, exists := uniqueNames[name]; !exists {
+				break
+			}
+			// Check if the name already has a suffix
+			suffixPattern := regexp.MustCompile(`_(\d+)$`)
+			match := suffixPattern.FindStringSubmatch(name)
+			if len(match) > 0 {
+				// Increment the existing numeric suffix
+				num, _ := strconv.Atoi(match[1])
+				name = fmt.Sprintf("%s_%d", strings.TrimSuffix(name, fmt.Sprintf("_%d", num)), num+1)
+			} else {
+				// Add a new numeric suffix
+				name = fmt.Sprintf("%s_2", name)
+			}
+		}
+
+		// Store the unique name to prevent future collisions
+		uniqueNames[name] = idAndName.Id
+		nameCounts[originalName]++ // Increment the counter for the original name
+
 		importsContent += fmt.Sprintf(`import {
   to = coralogix_%s.%s
   id = "%s"
 }
 
-`, resourceType, idAndName.Name, idAndName.Id)
+`, resourceType, name, idAndName.Id)
 	}
 
 	err := os.WriteFile(outputFilePath, []byte(importsContent), 0644)
@@ -326,5 +353,4 @@ func generateImportsFromIds(resourceType, outputFilePath string, idsAndNames []I
 	}
 
 	return nil
-
 }

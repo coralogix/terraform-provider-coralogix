@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// formatValue formats values for Terraform, handling multi-line strings with heredoc syntax.
 func formatValue(value interface{}) string {
 	switch v := value.(type) {
 	case bool:
@@ -18,6 +19,10 @@ func formatValue(value interface{}) string {
 	case float64, int:
 		return fmt.Sprintf("%v", v)
 	case string:
+		// Check for multi-line strings
+		if strings.Contains(v, "\n") {
+			return fmt.Sprintf("<<EOF\n%s\nEOF", v)
+		}
 		// Escape special characters for HCL
 		escaped := strings.ReplaceAll(v, `\`, `\\`)
 		escaped = strings.ReplaceAll(escaped, `"`, `\"`)
@@ -39,6 +44,7 @@ func formatValue(value interface{}) string {
 	}
 }
 
+// processBlock processes key-value pairs, handling lists and maps.
 func processBlock(key string, value interface{}) string {
 	switch v := value.(type) {
 	case map[string]interface{}:
@@ -50,22 +56,27 @@ func processBlock(key string, value interface{}) string {
 				// List of simple values
 				return fmt.Sprintf("  %s = %s", key, formatValue(v))
 			}
-			// List of maps: Process each map as a nested block
-			var items []string
-			for _, item := range v {
-				if itemMap, ok := item.(map[string]interface{}); ok {
-					items = append(items, fmt.Sprintf("  %s %s", key, formatValue(itemMap)))
+
+			// List of maps: Format as a list of maps
+			if _, isMap := v[0].(map[string]interface{}); isMap {
+				var items []string
+				for _, item := range v {
+					if itemMap, ok := item.(map[string]interface{}); ok {
+						items = append(items, formatValue(itemMap))
+					}
 				}
+				return fmt.Sprintf("  %s = [%s]", key, strings.Join(items, ", "))
 			}
-			return strings.Join(items, "\n")
 		}
-		return fmt.Sprintf("  %s = []", key) // Empty list
+		// Empty list
+		return fmt.Sprintf("  %s = []", key)
 	default:
 		// Scalar value: Output as an attribute
 		return fmt.Sprintf("  %s = %s", key, formatValue(v))
 	}
 }
 
+// generateTerraform converts parsed JSON into a Terraform HCL configuration.
 func generateTerraform(jsonData map[string]interface{}) string {
 	var terraformLines []string
 
@@ -99,7 +110,7 @@ func main() {
 	}
 
 	jsonFilePath := os.Args[1]
-	tfFilaePath := os.Args[2]
+	tfFilePath := os.Args[2]
 
 	jsonData, err := ioutil.ReadFile(jsonFilePath)
 	if err != nil {
@@ -116,11 +127,11 @@ func main() {
 
 	terraformOutput := generateTerraform(parsed)
 
-	err = os.WriteFile(tfFilaePath, []byte(terraformOutput), 0644)
+	err = os.WriteFile(tfFilePath, []byte(terraformOutput), 0644)
 	if err != nil {
 		fmt.Printf("Failed to write Terraform file: %v\n", err)
 		return
 	}
 
-	fmt.Printf("Terraform configuration written to %s\n", tfFilaePath)
+	fmt.Printf("Terraform configuration written to %s\n", tfFilePath)
 }

@@ -72,7 +72,7 @@ fi
 
 # Ask for Terraform provider version
 read -rp "Enter the Terraform provider version to migrate to (e.g., ~>2.0.0): " PROVIDER_VERSION
-PROVIDER_VERSION="${PROVIDER_VERSION:-~>1.19.0}" # Default to ">=2.0.0" if not provided
+PROVIDER_VERSION="${PROVIDER_VERSION:->=2.0.0}" # Default to ">=2.0.0" if not provided
 
 CLEANED_JSON_FILE="cleaned_config.json"
 

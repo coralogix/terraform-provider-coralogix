@@ -111,7 +111,7 @@ Enter your choice (1 or 2): 2
 
 #### **Provider Version Prompt**
 ```plaintext
-Enter the Terraform provider version to migrate to (e.g., ~>1.19.0): ~>1.19.0
+Enter the Terraform provider version to migrate to (e.g., ~>1.19.0): >=2.0.0
 ```
 
 #### **Logs During Execution**
