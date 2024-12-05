@@ -87,8 +87,8 @@ var (
 	}
 	tcoPolicySeverityProtoToSchema = ReverseMap(tcoPolicySeveritySchemaToProto)
 	validPolicySeverities          = GetKeys(tcoPolicySeveritySchemaToProto)
-	overrideTCOPoliciesLogsURL     = "com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies"
-	getCompanyPoliciesURL          = "com.coralogix.quota.v1.PoliciesService/GetCompanyPolicies"
+	overrideTCOPoliciesLogsURL     = cxsdk.TCOPoliciesAtomicOverwriteLogPoliciesRPC
+	getCompanyPoliciesURL          = cxsdk.TCOPoliciesGetCompanyPoliciesRPC
 	logSource                      = cxsdk.TCOPolicySourceTypeLogs
 )
 

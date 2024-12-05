@@ -1358,18 +1358,13 @@ func (c ComputedForMetricAlerts) PlanModifySet(ctx context.Context, request plan
 	response.PlanValue = request.ConfigValue
 }
 
-func metricTimeWindowSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
+func metricTimeWindowSchema() schema.StringAttribute {
+	return schema.StringAttribute{
 		Required: true,
-		Attributes: map[string]schema.Attribute{
-			"specific_value": schema.StringAttribute{
-				Required: true,
-				Validators: []validator.String{
-					stringvalidator.OneOf(validMetricTimeWindowValues...),
-				},
-				MarkdownDescription: fmt.Sprintf("Time window to evaluate the threshold with. Valid values: %q.", validMetricTimeWindowValues),
-			},
+		Validators: []validator.String{
+			stringvalidator.OneOf(validMetricTimeWindowValues...),
 		},
+		MarkdownDescription: fmt.Sprintf("Time window to evaluate the threshold with. Valid values: %q.", validMetricTimeWindowValues),
 	}
 }
 
