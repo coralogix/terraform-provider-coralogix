@@ -1413,7 +1413,7 @@ func tracingQuerySchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Required: true,
 		Attributes: map[string]schema.Attribute{
-			"latency_threshold_ms": schema.Int64Attribute{
+			"latency_threshold_ms": schema.NumberAttribute{
 				Required: true,
 			},
 			"tracing_label_filters": tracingLabelFiltersSchema(),
@@ -3753,7 +3753,7 @@ func flattenUndetectedValuesManagement(ctx context.Context, undetectedValuesMana
 	var undetectedValuesManagementModel UndetectedValuesManagementModel
 	if undetectedValuesManagement == nil {
 		undetectedValuesManagementModel.TriggerUndetectedValues = types.BoolValue(false)
-		undetectedValuesManagementModel.AutoRetireTimeframe = types.StringValue("Never")
+		undetectedValuesManagementModel.AutoRetireTimeframe = types.StringValue(autoRetireTimeframeProtoToSchemaMap[cxsdk.AutoRetireTimeframeNeverOrUnspecified])
 	} else {
 		undetectedValuesManagementModel.TriggerUndetectedValues = wrapperspbBoolToTypeBool(undetectedValuesManagement.GetTriggerUndetectedValues())
 		undetectedValuesManagementModel.AutoRetireTimeframe = types.StringValue(autoRetireTimeframeProtoToSchemaMap[undetectedValuesManagement.GetAutoRetireTimeframe()])
@@ -5053,7 +5053,7 @@ func alertDefsAttr() map[string]attr.Type {
 
 func tracingQueryAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"latency_threshold_ms":  types.Int64Type,
+		"latency_threshold_ms":  types.NumberType,
 		"tracing_label_filters": types.ObjectType{AttrTypes: tracingLabelFiltersAttr()},
 	}
 }

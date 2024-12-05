@@ -1086,12 +1086,13 @@ func TestAccCoralogixResourceAlert_metric_more_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "typedefinition.metric_threshold.missing_values.replace_with_zero", "true"),
+					resource.TestCheckResourceAttr(alertResourceName, "typedefinition.metric_threshold.rules.0.override.priority", "P2"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.rules.0.condition", map[string]string{
-						"threshold":                        "2",
-						"for_over_pct":                     "10",
-						"of_the_last":                      "10_MINUTES",
-						"condition_type":                   "MORE_THAN_OR_EQUALS",
-						"missing_values.replace_with_zero": "true",
+						"threshold":      "2",
+						"for_over_pct":   "10",
+						"of_the_last":    "10_MINUTES",
+						"condition_type": "MORE_THAN_OR_EQUALS",
 					}),
 				),
 			},
@@ -1107,12 +1108,13 @@ func TestAccCoralogixResourceAlert_metric_more_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P4"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "typedefinition.metric_threshold.missing_values.replace_with_zero", "true"),
+					resource.TestCheckResourceAttr(alertResourceName, "typedefinition.metric_threshold.rules.0.override.priority", "P2"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.rules.0.condition", map[string]string{
-						"threshold":                        "10",
-						"for_over_pct":                     "15",
-						"of_the_last":                      "1_HOUR",
-						"condition_type":                   "MORE_THAN_OR_EQUALS",
-						"missing_values.replace_with_zero": "true",
+						"threshold":      "10",
+						"for_over_pct":   "15",
+						"of_the_last":    "1_HOUR",
+						"condition_type": "MORE_THAN_OR_EQUALS",
 					}),
 				),
 			},
@@ -2727,20 +2729,23 @@ func testAccCoralogixResourceAlertMetricMoreThanOrEquals() string {
 
   type_definition = {
 	metric_threshold = {
-	  metric_filter = {
-		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
-	  }
+		metric_filter = {
+			promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+		}
 		rules = [{
 			condition = {
 				threshold    = 2
 				for_over_pct = 10
 				of_the_last = "10_MINUTES"
 				condition_type = "MORE_THAN_OR_EQUALS"
-				missing_values = {
-					replace_with_zero = true
-				}
+			}
+			override = {
+				priority = "P2"
 			}
 		}]
+		missing_values = {
+			replace_with_zero = true
+		}
 	}
   }
 }
@@ -2755,20 +2760,23 @@ func testAccCoralogixResourceAlertMetricMoreThanOrEqualsUpdated() string {
 
   type_definition = {
 	metric_threshold = {
-	  metric_filter = {
-		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
-	  }
+		metric_filter = {
+			promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+		}
 		rules = [{
 			condition = {
 				threshold    = 10
 				for_over_pct = 15
 				of_the_last = "1_HOUR"
 				condition_type = "MORE_THAN_OR_EQUALS"
-				missing_values = {
-					replace_with_zero = true
-				}
+			}
+			override = {
+				priority = "P2"
 			}
 		}]
+		missing_values = {
+			replace_with_zero = true
+		}
 	}
   }
 }
@@ -2900,25 +2908,27 @@ func testAccCoralogixResourceAlertTracingMoreThan() string {
 
   type_definition = {
     tracing_threshold = {
-      tracing_filter = {
-        latency_threshold_ms  = 100
-        tracing_label_filters = {
-          application_name = [
-            {
-              operation = "IS"
-              values    = ["nginx", "apache"]
-            },
-            {
-              operation = "STARTS_WITH"
-              values    = ["application-name:"]
-            }
-          ]
-        }
-      }
-	rules = [{
-      span_amount = 5
-      time_window = "10_MINUTES"
-	}]
+		tracing_filter = {
+			latency_threshold_ms  = 100
+			tracing_label_filters = {
+				application_name = [
+					{
+						operation = "IS"
+						values    = ["nginx", "apache"]
+					},
+					{
+						operation = "STARTS_WITH"
+						values    = ["application-name:"]
+					}
+				]
+			}
+		}
+		rules = [{
+			condition = {
+				time_window = "10_MINUTES"
+				span_amount = 5
+			}
+		}]
     }
   }
 }
@@ -2947,10 +2957,12 @@ func testAccCoralogixResourceAlertTracingMoreThanUpdated() string {
 		  ]
 		}
 	  }
-	  rules = [{
-      span_amount = 5
-      time_window = "1_HOUR"
-	}]
+		rules = [{
+			condition = {
+				span_amount = 5
+				time_window = "1_HOUR"
+			}
+		}]
 	}
   }
 }
