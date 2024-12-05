@@ -50,13 +50,13 @@ import (
 
 var (
 	severitySchemaToProto = map[string]cxsdk.L2MSeverity{
-		"unspecified": cxsdk.L2MSeverityUnspecified,
-		"debug":       cxsdk.L2MSeverityDebug,
-		"verbose":     cxsdk.L2MSeverityVerbose,
-		"info":        cxsdk.L2MSeverityInfo,
-		"warning":     cxsdk.L2MSeverityWarning,
-		"error":       cxsdk.L2MSeverityError,
-		"critical":    cxsdk.L2MSeverityCritical,
+		"Unspecified": cxsdk.L2MSeverityUnspecified,
+		"Debug":       cxsdk.L2MSeverityDebug,
+		"Verbose":     cxsdk.L2MSeverityVerbose,
+		"Info":        cxsdk.L2MSeverityInfo,
+		"Warning":     cxsdk.L2MSeverityWarning,
+		"Error":       cxsdk.L2MSeverityError,
+		"Critical":    cxsdk.L2MSeverityCritical,
 	}
 	severityProtoToSchema = ReverseMap(severitySchemaToProto)
 	validSeverities       = GetKeys(severitySchemaToProto)
