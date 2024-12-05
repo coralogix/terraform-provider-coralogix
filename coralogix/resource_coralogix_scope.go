@@ -243,7 +243,7 @@ func flattenScopeFilters(filters []*cxsdk.ScopeFilter) []ScopeFilterModel {
 	for _, filter := range filters {
 
 		entityTypeRaw := strings.ToLower(cxsdk.EntityTypeNameLookup[int32(filter.GetEntityType())])
-		entityType, _ := strings.CutPrefix(entityTypeRaw, "ENTITY_TYPE_")
+		entityType, _ := strings.CutPrefix(entityTypeRaw, "entity_type_")
 		result = append(result, ScopeFilterModel{
 			EntityType: types.StringValue(entityType),
 			Expression: types.StringValue(filter.GetExpression()),
