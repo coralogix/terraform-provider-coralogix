@@ -1,7 +1,3 @@
-Here’s an updated guide based on the latest version of your script:
-
----
-
 # **Guide to Using the Terraform Migration Script**
 
 This guide provides step-by-step instructions on how to use the Terraform migration script effectively.
@@ -78,24 +74,14 @@ After selecting the migration type, you will be prompted to specify the Terrafor
 #### **Step 7: Run `terraform plan`**
 - The script runs `terraform plan` with the `-generate-config-out` flag to generate a new configuration file (`generated.tf`).
 
-#### **Step 8: Convert Configuration to JSON**
-- The script converts `generated.tf` into a JSON file (`config.json`) using `hcl2json`.
-
-#### **Step 9: Remove Null Values**
+#### **Step 8: Remove Null Values**
 - Python is used to clean the JSON file by removing null values, generating a cleaned JSON file (`cleaned_config.json`).
 
-#### **Step 10: Convert JSON Back to HCL**
-- The cleaned JSON file is converted back to HCL using a Go program (`json_to_hcl.go`).
-- The resulting file (`cleaned_config.tf`) is saved in the migration folder.
-
-#### **Step 11: Replace Original Configuration**
-- The cleaned HCL file (`cleaned_config.tf`) is renamed to `generated.tf` to replace the original configuration.
-
-#### **Step 12: Apply the Configuration**
+#### **Step 9: Apply the Configuration**
 - The script applies the cleaned configuration using `terraform apply`.
 
-#### **Step 13: Cleanup**
-- Temporary files such as `imports.tf`, `config.json`, and `cleaned_config.json` are deleted.
+#### **Step 10: Cleanup**
+- Temporary files are deleted.
 
 ---
 
