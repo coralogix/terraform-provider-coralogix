@@ -69,11 +69,11 @@ var (
 	tcoPoliciesPriorityProtoToSchema = ReverseMap(tcoPoliciesPrioritySchemaToProto)
 	tcoPoliciesValidPriorities       = GetKeys(tcoPoliciesPrioritySchemaToProto)
 	tcoPoliciesRuleTypeSchemaToProto = map[string]cxsdk.TCOPolicyRuleTypeID{
-		"is":          cxsdk.TCOPolicyRuleTypeIDUnspecified,
-		"is_not":      cxsdk.TCOPolicyRuleTypeIDIs,
-		"starts_with": cxsdk.TCOPolicyRuleTypeIDIsNot,
-		"includes":    cxsdk.TCOPolicyRuleTypeIDStartWith,
-		"unspecified": cxsdk.TCOPolicyRuleTypeIDIncludes,
+		"is":          cxsdk.TCOPolicyRuleTypeIDIs,
+		"is_not":      cxsdk.TCOPolicyRuleTypeIDIsNot,
+		"starts_with": cxsdk.TCOPolicyRuleTypeIDStartWith,
+		"includes":    cxsdk.TCOPolicyRuleTypeIDIncludes,
+		"unspecified": cxsdk.TCOPolicyRuleTypeIDUnspecified,
 	}
 	tcoPoliciesRuleTypeProtoToSchema = ReverseMap(tcoPoliciesRuleTypeSchemaToProto)
 	tcoPoliciesValidRuleTypes        = GetKeys(tcoPoliciesRuleTypeSchemaToProto)
@@ -87,8 +87,8 @@ var (
 	}
 	tcoPolicySeverityProtoToSchema = ReverseMap(tcoPolicySeveritySchemaToProto)
 	validPolicySeverities          = GetKeys(tcoPolicySeveritySchemaToProto)
-	overrideTCOPoliciesLogsURL     = "com.coralogix.quota.v1.PoliciesService/AtomicOverwriteLogPolicies"
-	getCompanyPoliciesURL          = "com.coralogix.quota.v1.PoliciesService/GetCompanyPolicies"
+	overrideTCOPoliciesLogsURL     = cxsdk.TCOPoliciesAtomicOverwriteLogPoliciesRPC
+	getCompanyPoliciesURL          = cxsdk.TCOPoliciesGetCompanyPoliciesRPC
 	logSource                      = cxsdk.TCOPolicySourceTypeLogs
 )
 

@@ -129,6 +129,27 @@ func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceDashboardFromJsonWithVar(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	parent := filepath.Dir(wd)
+	filePath := parent + "/examples/resources/coralogix_dashboard/dashboard_with_var_path.json"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardFromJsonWithVar(filePath),
+				Check:  resource.ComposeAggregateTestCheckFunc(),
+			},
+		},
+	})
+}
+
 func testAccCheckDashboardDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*clientset.ClientSet).Dashboards()
 
@@ -327,6 +348,19 @@ func testAccCoralogixResourceDashboardFromJson(jsonFilePath string) string {
 	return fmt.Sprintf(`resource "coralogix_dashboard" test {
    		content_json = file("%s")
 	}
+`, jsonFilePath)
+}
+
+func testAccCoralogixResourceDashboardFromJsonWithVar(jsonFilePath string) string {
+	return fmt.Sprintf(`
+variable "dashboard_json_path" {
+  type    = string
+  default = "%s"
+}
+
+resource "coralogix_dashboard" test {
+  content_json = file(var.dashboard_json_path)
+}
 `, jsonFilePath)
 }
 

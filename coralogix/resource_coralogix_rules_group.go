@@ -37,12 +37,12 @@ import (
 
 var (
 	rulesSchemaSeverityToProtoSeverity = map[string]cxsdk.SeverityConstraintValue{
-		"debug":    cxsdk.SeverityConstraintValueDebugOrUnspecified,
-		"verbose":  cxsdk.SeverityConstraintValueVerbose,
-		"info":     cxsdk.SeverityConstraintValueInfo,
-		"warning":  cxsdk.SeverityConstraintValueWarning,
-		"error":    cxsdk.SeverityConstraintValueError,
-		"critical": cxsdk.SeverityConstraintValueCritical,
+		"Debug":    cxsdk.SeverityConstraintValueDebugOrUnspecified,
+		"Verbose":  cxsdk.SeverityConstraintValueVerbose,
+		"Info":     cxsdk.SeverityConstraintValueInfo,
+		"Warning":  cxsdk.SeverityConstraintValueWarning,
+		"Error":    cxsdk.SeverityConstraintValueError,
+		"Critical": cxsdk.SeverityConstraintValueCritical,
 	}
 	rulesProtoSeverityToSchemaSeverity                 = ReverseMap(rulesSchemaSeverityToProtoSeverity)
 	rulesValidSeverities                               = GetKeys(rulesSchemaSeverityToProtoSeverity)
@@ -57,13 +57,13 @@ var (
 	rulesProtoDestinationFieldToSchemaDestinationField = ReverseMap(rulesSchemaDestinationFieldToProtoDestinationField)
 	rulesValidDestinationFields                        = GetKeys(rulesSchemaDestinationFieldToProtoDestinationField)
 	rulesSchemaFormatStandardToProtoFormatStandard     = map[string]cxsdk.ExtractTimestampParametersFormatStandard{
-		"strftime": cxsdk.ExtractTimestampParametersFormatStandardStrftimeOrUnspecified,
-		"javaSDF":  cxsdk.ExtractTimestampParametersFormatStandardJavasdf,
-		"golang":   cxsdk.ExtractTimestampParametersFormatStandardGolang,
-		"secondTS": cxsdk.ExtractTimestampParametersFormatStandardSecondsTS,
-		"milliTS":  cxsdk.ExtractTimestampParametersFormatStandardMilliTS,
-		"microTS":  cxsdk.ExtractTimestampParametersFormatStandardMicroTS,
-		"nanoTS":   cxsdk.ExtractTimestampParametersFormatStandardNanoTS,
+		"Strftime": cxsdk.ExtractTimestampParametersFormatStandardStrftimeOrUnspecified,
+		"JavaSDF":  cxsdk.ExtractTimestampParametersFormatStandardJavasdf,
+		"Golang":   cxsdk.ExtractTimestampParametersFormatStandardGolang,
+		"SecondTS": cxsdk.ExtractTimestampParametersFormatStandardSecondsTS,
+		"MilliTS":  cxsdk.ExtractTimestampParametersFormatStandardMilliTS,
+		"MicroTS":  cxsdk.ExtractTimestampParametersFormatStandardMicroTS,
+		"NanoTS":   cxsdk.ExtractTimestampParametersFormatStandardNanoTS,
 	}
 	rulesProtoFormatStandardToSchemaFormatStandard = ReverseMap(rulesSchemaFormatStandardToProtoFormatStandard)
 	rulesValidFormatStandards                      = GetKeys(rulesSchemaFormatStandardToProtoFormatStandard)

@@ -1358,18 +1358,13 @@ func (c ComputedForMetricAlerts) PlanModifySet(ctx context.Context, request plan
 	response.PlanValue = request.ConfigValue
 }
 
-func metricTimeWindowSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
+func metricTimeWindowSchema() schema.StringAttribute {
+	return schema.StringAttribute{
 		Required: true,
-		Attributes: map[string]schema.Attribute{
-			"specific_value": schema.StringAttribute{
-				Required: true,
-				Validators: []validator.String{
-					stringvalidator.OneOf(validMetricTimeWindowValues...),
-				},
-				MarkdownDescription: fmt.Sprintf("Time window to evaluate the threshold with. Valid values: %q.", validMetricTimeWindowValues),
-			},
+		Validators: []validator.String{
+			stringvalidator.OneOf(validMetricTimeWindowValues...),
 		},
+		MarkdownDescription: fmt.Sprintf("Time window to evaluate the threshold with. Valid values: %q.", validMetricTimeWindowValues),
 	}
 }
 
@@ -4951,7 +4946,7 @@ func metricThresholdConditionAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"threshold":      types.Float64Type,
 		"for_over_pct":   types.Int64Type,
-		"of_the_last":    types.ObjectType{AttrTypes: metricTimeWindowAttr()},
+		"of_the_last":    types.StringType,
 		"condition_type": types.StringType,
 	}
 }
@@ -4980,14 +4975,8 @@ func metricAnomalyConditionAttr() map[string]attr.Type {
 		"min_non_null_values_pct": types.Int64Type,
 		"threshold":               types.Float64Type,
 		"for_over_pct":            types.Int64Type,
-		"of_the_last":             types.ObjectType{AttrTypes: metricTimeWindowAttr()},
+		"of_the_last":             types.StringType,
 		"condition_type":          types.StringType,
-	}
-}
-
-func metricTimeWindowAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"specific_value": types.StringType,
 	}
 }
 
@@ -5017,12 +5006,6 @@ func tracingThresholdConditionAttr() map[string]attr.Type {
 		"span_amount":    types.Float64Type,
 		"time_window":    types.StringType,
 		"condition_type": types.StringType,
-	}
-}
-
-func tracingTimeWindowAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"specific_value": types.StringType,
 	}
 }
 
