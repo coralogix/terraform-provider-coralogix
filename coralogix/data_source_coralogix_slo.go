@@ -20,7 +20,8 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	slos "terraform-provider-coralogix/coralogix/clientset/grpc/slo"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -35,7 +36,7 @@ func NewSLODataSource() datasource.DataSource {
 }
 
 type SLODataSource struct {
-	client *clientset.SLOsClient
+	client *cxsdk.SLOsClient
 }
 
 func (d *SLODataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -77,8 +78,8 @@ func (d *SLODataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 	//Get refreshed sli value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading SLO: %s", id)
-	getSLOReq := &slos.GetServiceSloRequest{Id: wrapperspb.String(id)}
-	getSLOResp, err := d.client.GetSLO(ctx, getSLOReq)
+	getSLOReq := &cxsdk.GetServiceSloRequest{Id: wrapperspb.String(id)}
+	getSLOResp, err := d.client.Get(ctx, getSLOReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -89,7 +90,7 @@ func (d *SLODataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",
-				formatRpcErrors(err, getSloUrl, protojson.Format(getSLOReq)),
+				formatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(getSLOReq)),
 			)
 		}
 		return
