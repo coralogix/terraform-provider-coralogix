@@ -1336,7 +1336,7 @@ func expandLogsQuerySeverities(ctx context.Context, severities []attr.Value) ([]
 				err.Error())
 			continue
 		}
-		severity := cxsdk.L2MSeverity(severitySchemaToProto[strings.ToLower(str)])
+		severity := cxsdk.L2MSeverity(severitySchemaToProto[strings.ToTitle(str)])
 		result = append(result, severity)
 	}
 
