@@ -939,7 +939,7 @@ func testAccCoralogixResourceRuleRulesCombination(r *ruleGroupParams) string {
       description        	= "description"
       source_field 			= "text"
       time_format        	= "2006-01-02T15:04:05.999999999Z07:00"
-      field_format_standard = "golang"
+      field_format_standard = "Golang"
     }
    }
   }
@@ -990,7 +990,7 @@ func testAccCoralogixResourceRuleRulesCombinationDifferentOrders(r *ruleGroupPar
       description        	= "description"
       source_field 			= "text"
       time_format        	= "2006-01-02T15:04:05.999999999Z07:00"
-      field_format_standard = "golang"
+      field_format_standard = "Golang"
     }
    }
   }

@@ -873,12 +873,12 @@ func TestAccCoralogixResourceAlert_metric_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.missing_values.min_non_null_values_pct", "50"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.rules.0.condition",
 						map[string]string{
-							"threshold":                              "2",
-							"for_over_pct":                           "10",
-							"of_the_last":                            "10_MINUTES",
-							"missing_values.min_non_null_values_pct": "50",
+							"threshold":    "2",
+							"for_over_pct": "10",
+							"of_the_last":  "10_MINUTES",
 						},
 					),
 				),
@@ -895,12 +895,13 @@ func TestAccCoralogixResourceAlert_metric_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P4"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.missing_values.replace_with_zero", "true"),
+
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.rules.0.condition",
 						map[string]string{
-							"threshold":                        "10",
-							"for_over_pct":                     "15",
-							"of_the_last":                      "1_HOUR",
-							"missing_values.replace_with_zero": "true",
+							"threshold":    "10",
+							"for_over_pct": "15",
+							"of_the_last":  "1_HOUR",
 						},
 					),
 				),
@@ -925,12 +926,13 @@ func TestAccCoralogixResourceAlert_metric_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.missing_values.replace_with_zero", "true"),
+
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.rules.0.condition",
 						map[string]string{
-							"threshold":                        "2",
-							"for_over_pct":                     "10",
-							"of_the_last":                      "10_MINUTES",
-							"missing_values.replace_with_zero": "true",
+							"threshold":    "2",
+							"for_over_pct": "10",
+							"of_the_last":  "10_MINUTES",
 						},
 					),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.trigger_undetected_values", "true"),
@@ -950,14 +952,14 @@ func TestAccCoralogixResourceAlert_metric_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.trigger_undetected_values", "true"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.auto_retire_timeframe", "5_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.missing_values.min_non_null_values_pct", "50"),
 
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.rules.0.condition",
 						map[string]string{
-							"threshold":                              "5",
-							"for_over_pct":                           "15",
-							"of_the_last":                            "10_MINUTES",
-							"missing_values.min_non_null_values_pct": "50",
+							"threshold":    "5",
+							"for_over_pct": "15",
+							"of_the_last":  "10_MINUTES",
 						},
 					),
 				),
@@ -1035,12 +1037,12 @@ func TestAccCoralogixResourceAlert_metric_less_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.rules.0.condition", map[string]string{
-						"threshold":                        "2",
-						"for_over_pct":                     "10",
-						"of_the_last":                      "10_MINUTES",
-						"condition_type":                   "LESS_THAN_OR_EQUALS",
-						"missing_values.replace_with_zero": "true",
+						"threshold":      "2",
+						"for_over_pct":   "10",
+						"of_the_last":    "10_MINUTES",
+						"condition_type": "LESS_THAN_OR_EQUALS",
 					}),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.missing_values.replace_with_zero", "true"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.trigger_undetected_values", "true"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.auto_retire_timeframe", "5_MINUTES"),
 				),
@@ -1058,12 +1060,12 @@ func TestAccCoralogixResourceAlert_metric_less_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.rules.0.condition", map[string]string{
-						"threshold":                              "5",
-						"for_over_pct":                           "15",
-						"of_the_last":                            "10_MINUTES",
-						"condition_type":                         "LESS_THAN_OR_EQUALS",
-						"missing_values.min_non_null_values_pct": "50",
+						"threshold":      "5",
+						"for_over_pct":   "15",
+						"of_the_last":    "10_MINUTES",
+						"condition_type": "LESS_THAN_OR_EQUALS",
 					}),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.missing_values.min_non_null_values_pct", "50"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.trigger_undetected_values", "true"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.undetected_values_management.auto_retire_timeframe", "5_MINUTES"),
 				),
@@ -1087,8 +1089,8 @@ func TestAccCoralogixResourceAlert_metric_more_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
-					resource.TestCheckResourceAttr(alertResourceName, "typedefinition.metric_threshold.missing_values.replace_with_zero", "true"),
-					resource.TestCheckResourceAttr(alertResourceName, "typedefinition.metric_threshold.rules.0.override.priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.missing_values.replace_with_zero", "true"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.override.priority", "P2"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.rules.0.condition", map[string]string{
 						"threshold":      "2",
 						"for_over_pct":   "10",
@@ -1109,8 +1111,8 @@ func TestAccCoralogixResourceAlert_metric_more_than_or_equals(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P4"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
-					resource.TestCheckResourceAttr(alertResourceName, "typedefinition.metric_threshold.missing_values.replace_with_zero", "true"),
-					resource.TestCheckResourceAttr(alertResourceName, "typedefinition.metric_threshold.rules.0.override.priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.missing_values.replace_with_zero", "true"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.override.priority", "P2"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.metric_threshold.rules.0.condition", map[string]string{
 						"threshold":      "10",
 						"for_over_pct":   "15",
@@ -1535,16 +1537,16 @@ func testAccCoralogixResourceAlertLogsMoreThan() string {
 
   type_definition = {
     logs_threshold = {
-		rules = [{
-			condition = {
-				threshold   = 2
-				time_window = "10_MINUTES"
-				condition_type = "MORE_THAN"
-			}
-			override = {
-				priority = "P2"
-			}
-		}]
+        rules = [{
+            condition = {
+                threshold   = 2
+                time_window = "10_MINUTES"
+                condition_type = "MORE_THAN"
+            }
+            override = {
+                priority = "P2"
+            }
+        }]
       logs_filter       = {
         simple_filter = {
           lucene_query  = "message:\"error\""
@@ -1587,7 +1589,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
       {
         recipients = ["example@coralogix.com"]
       }
-	]
+    ]
   }
 
   incidents_settings = {
@@ -1616,13 +1618,13 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
       rules = [
         {
           condition = {
-			threshold   = 20
-          	time_window = "2_HOURS"
-          	condition_type = "MORE_THAN"
-			}
+            threshold   = 20
+              time_window = "2_HOURS"
+              condition_type = "MORE_THAN"
+            }
           override = {
-          	priority = "P2"
-			}
+              priority = "P2"
+            }
         }
       ]
 
@@ -1713,14 +1715,14 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
       }
       rules = [
         {
-		 condition = {
-          	threshold   = 2
-          	time_window = "10_MINUTES"
-          	condition_type   = "LESS_THAN"
-			}
-		  override = {
-			priority = "P2"
-		  }
+         condition = {
+              threshold   = 2
+              time_window = "10_MINUTES"
+              condition_type   = "LESS_THAN"
+            }
+          override = {
+            priority = "P2"
+          }
         }
       ]
     }
@@ -1765,14 +1767,14 @@ func testAccCoralogixResourceAlertLogsLessThanUpdated() string {
     logs_threshold = {
       rules = [
         {
-		condition = {
-			threshold   = 20
-			time_window = "2_HOURS"
-			condition_type   = "LESS_THAN"
-			}
-		override = {
-			priority = "P2"
-		}
+        condition = {
+            threshold   = 20
+            time_window = "2_HOURS"
+            condition_type   = "LESS_THAN"
+            }
+        override = {
+            priority = "P2"
+        }
         }
       ]
       logs_filter = {
@@ -1844,15 +1846,15 @@ func testAccCoralogixResourceAlertLogsMoreThanUsual() string {
 
   type_definition = {
     logs_anomaly = {
-		rules = [{
-			condition = {
-			minimum_threshold   = 2
-			time_window = "10_MINUTES"
-			}
-			override = {
-				priority = "P2"
-			}
-		}]
+        rules = [{
+            condition = {
+            minimum_threshold   = 2
+            time_window = "10_MINUTES"
+            }
+            override = {
+                priority = "P2"
+            }
+        }]
       logs_filter = {
         simple_filter = {
           lucene_query  = "message:\"error\""
@@ -1890,7 +1892,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
 
   notification_group = {
     webhooks_settings = [
-	{
+    {
         retriggering_period = {
           minutes = 1
         }
@@ -1922,17 +1924,17 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
           }
         }
       }
-		rules = [
-      		{
-				condition = {
-					time_window = "1_HOUR"
-					minimum_threshold = 20
-				}
-				override = {
-					priority = "P2"
-				}
-			}
-	]
+        rules = [
+              {
+                condition = {
+                    time_window = "1_HOUR"
+                    minimum_threshold = 20
+                }
+                override = {
+                    priority = "P2"
+                }
+            }
+    ]
     }
   }
 }
@@ -1941,148 +1943,148 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
 
 func testAccCoralogixResourceAlertLogsLessThanUsual() string {
 	return `resource "coralogix_alert" "test" {
-	  name        = "logs-less-than alert example"
-	  description = "Example of logs-less-than alert example from terraform"
-	  priority    = "P2"
+      name        = "logs-less-than alert example"
+      description = "Example of logs-less-than alert example from terraform"
+      priority    = "P2"
 
-	  labels = {
-		alert_type        = "security"
-		security_severity = "high"
-		}
+      labels = {
+        alert_type        = "security"
+        security_severity = "high"
+        }
 
-	  notification_group = {
-		webhooks_settings = [
-		{
-			recipients = ["example@coralogix.com", "example2@coralogix.com"]
-		},
-		]
-	 }
+      notification_group = {
+        webhooks_settings = [
+        {
+            recipients = ["example@coralogix.com", "example2@coralogix.com"]
+        },
+        ]
+     }
 
-	  incidents_settings = {
-		notify_on           = "Triggered and Resolved"
-		retriggering_period = {
-			minutes = 1
-		}
-	  }
+      incidents_settings = {
+        notify_on           = "Triggered and Resolved"
+        retriggering_period = {
+            minutes = 1
+        }
+      }
 
-	  schedule = {
-		active_on = {
-			days_of_week = ["Wednesday", "Thursday"]
-			start_time   = {
-				hours   = 10
-				minutes = 30
-			}
-			end_time = {
-				hours   = 20
-				minutes = 30
-			}
-		}
-	  }
+      schedule = {
+        active_on = {
+            days_of_week = ["Wednesday", "Thursday"]
+            start_time   = {
+                hours   = 10
+                minutes = 30
+            }
+            end_time = {
+                hours   = 20
+                minutes = 30
+            }
+        }
+      }
 
-	  type_definition = {
-		logs_threshold = {
-			rules = [{
-				condition = {
-				threshold   = 2
-				time_window = "10_MINUTES"
-				condition_type   = "LESS_THAN"
-				}
-				override = {
-					priority = "P2"
-				}
-			}]
-			logs_filter       = {
-				simple_filter = {
-					lucene_query  = "message:\"error\""
-					label_filters = {
-						application_name = [
-							{
-								operation = "NOT"
-								value     = "application_name"
-							}
-						]
-						subsystem_name = [
-							{
-								operation = "STARTS_WITH"
-								value     = "subsystem-name"
-							}
-						]
-						severities = ["Warning", "Error"]
-					}
-				}
-			}
-		}
-	  }
-	}
-	`
+      type_definition = {
+        logs_threshold = {
+            rules = [{
+                condition = {
+                threshold   = 2
+                time_window = "10_MINUTES"
+                condition_type   = "LESS_THAN"
+                }
+                override = {
+                    priority = "P2"
+                }
+            }]
+            logs_filter       = {
+                simple_filter = {
+                    lucene_query  = "message:\"error\""
+                    label_filters = {
+                        application_name = [
+                            {
+                                operation = "NOT"
+                                value     = "application_name"
+                            }
+                        ]
+                        subsystem_name = [
+                            {
+                                operation = "STARTS_WITH"
+                                value     = "subsystem-name"
+                            }
+                        ]
+                        severities = ["Warning", "Error"]
+                    }
+                }
+            }
+        }
+      }
+    }
+    `
 }
 
 func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
 	return `resource "coralogix_alert" "test" {
-	  name        = "logs-less-than alert example updated"
-	  description = "Example of logs-less-than alert example from terraform updated"
-	  priority    = "P3"
+      name        = "logs-less-than alert example updated"
+      description = "Example of logs-less-than alert example from terraform updated"
+      priority    = "P3"
 
-	  notification_group = {
-		webhooks_settings = [
-			{ recipients = ["example@coralogix.com"] }
-		]
-	  }
+      notification_group = {
+        webhooks_settings = [
+            { recipients = ["example@coralogix.com"] }
+        ]
+      }
 
-	  incidents_settings = {
-		notify_on           = "Triggered Only"
-		retriggering_period = {
-			minutes = 10
-		}
-	  }
+      incidents_settings = {
+        notify_on           = "Triggered Only"
+        retriggering_period = {
+            minutes = 10
+        }
+      }
 
-	  schedule = {
-		active_on = {
-			days_of_week = ["Monday", "Thursday"]
-			start_time   = {
-				hours   = 8
-				minutes = 30
-			}
-			end_time = {
-				hours   = 20
-				minutes = 30
-			}
-		}
-	  }
+      schedule = {
+        active_on = {
+            days_of_week = ["Monday", "Thursday"]
+            start_time   = {
+                hours   = 8
+                minutes = 30
+            }
+            end_time = {
+                hours   = 20
+                minutes = 30
+            }
+        }
+      }
 
-	  type_definition = {
-		logs_threshold = {
-			rules = [{
-				condition = {
-				threshold   = 20
-				time_window = "2_HOURS"
-				condition_type   = "LESS_THAN"
-				}
-				override = {
-					priority = "P2"
-				}
-			}]
-			logs_filter       = {
-				simple_filter = {
-					lucene_query  = "message:\"error\""
-					label_filters = {
-						application_name = [
-							{
-								operation = "IS"
-								value     = "nginx"
-							},
-							{
-								operation = "NOT"
-								value     = "application_name"
-							}
-						]
-					}
-				}
-			}
-		}
-	  }
-	}
-	`
+      type_definition = {
+        logs_threshold = {
+            rules = [{
+                condition = {
+                threshold   = 20
+                time_window = "2_HOURS"
+                condition_type   = "LESS_THAN"
+                }
+                override = {
+                    priority = "P2"
+                }
+            }]
+            logs_filter       = {
+                simple_filter = {
+                    lucene_query  = "message:\"error\""
+                    label_filters = {
+                        application_name = [
+                            {
+                                operation = "IS"
+                                value     = "nginx"
+                            },
+                            {
+                                operation = "NOT"
+                                value     = "application_name"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+      }
+    }
+    `
 }
 
 func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
@@ -2144,16 +2146,16 @@ func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
             }
             }
         }
-	  rules = [{
-			condition = {
-				threshold         = 2
-				time_window = "10_MINUTES"
-				condition_type		 = "MORE_THAN"
-			}
-			override = {
-				priority = "P2"
-			}
-		}]
+      rules = [{
+            condition = {
+                threshold         = 2
+                time_window = "10_MINUTES"
+                condition_type		 = "MORE_THAN"
+            }
+            override = {
+                priority = "P2"
+            }
+        }]
     }
   }
 }
@@ -2216,16 +2218,16 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
           }
         }
       }
-	  rules = [ {
-		condition = {
-			time_window = "1_HOUR"
-			threshold = 120
-			condition_type = "MORE_THAN"
-		}
-		override = {
-			priority = "P2"
-		}
-	  }]
+      rules = [ {
+        condition = {
+            time_window = "1_HOUR"
+            threshold = 120
+            condition_type = "MORE_THAN"
+        }
+        override = {
+            priority = "P2"
+        }
+      }]
       group_by_for = "Numerator Only"
     }
   }
@@ -2235,54 +2237,54 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
 
 func testAccCoralogixResourceAlertLogsRatioLessThan() string {
 	return `resource "coralogix_alert" "test" {
-	name        = "logs-ratio-less-than alert example"
-  	description = "Example of logs-ratio-less-than alert from terraform"
-  	priority    = "P3"
+    name        = "logs-ratio-less-than alert example"
+      description = "Example of logs-ratio-less-than alert from terraform"
+      priority    = "P3"
 
-  	group_by        = ["coralogix.metadata.alert_id", "coralogix.metadata.alert_name"]
-  	type_definition = {
-    	logs_ratio_threshold = {
-      		numerator_alias   = "numerator"
-      		denominator_alias = "denominator"
-			rules = [{
-				condition = {
-					threshold         = 2
-					time_window       = "10_MINUTES"
-					condition_type		 = "LESS_THAN"
-				}
-				override = {
-					priority = "P2"
-				}
-			}]
-      		group_by_for = "Denominator Only"
-    	}
-  	}
+      group_by        = ["coralogix.metadata.alert_id", "coralogix.metadata.alert_name"]
+      type_definition = {
+        logs_ratio_threshold = {
+              numerator_alias   = "numerator"
+              denominator_alias = "denominator"
+            rules = [{
+                condition = {
+                    threshold         = 2
+                    time_window       = "10_MINUTES"
+                    condition_type		 = "LESS_THAN"
+                }
+                override = {
+                    priority = "P2"
+                }
+            }]
+              group_by_for = "Denominator Only"
+        }
+      }
 }
 `
 }
 
 func testAccCoralogixResourceAlertLogsRatioLessThanUpdated() string {
 	return `resource "coralogix_alert" "test" {
-	name        = "logs-ratio-less-than alert example updated"
-  	description = "Example of logs-ratio-less-than alert from terraform updated"
-  	priority    = "P2"
+    name        = "logs-ratio-less-than alert example updated"
+      description = "Example of logs-ratio-less-than alert from terraform updated"
+      priority    = "P2"
 
-  	type_definition = {
-		logs_ratio_threshold = {
-	  		numerator_alias   = "updated-numerator"
-	  		denominator_alias = "updated-denominator"
-			rules = [{
-				condition = {
-					threshold         = 20
-					time_window       = "2_HOURS"
-					condition_type		 = "LESS_THAN"
-				}
-				override = {
-            		priority = "P2"
-          		}
-			}]
-		}
-  	}
+      type_definition = {
+        logs_ratio_threshold = {
+              numerator_alias   = "updated-numerator"
+              denominator_alias = "updated-denominator"
+            rules = [{
+                condition = {
+                    threshold         = 20
+                    time_window       = "2_HOURS"
+                    condition_type		 = "LESS_THAN"
+                }
+                override = {
+                    priority = "P2"
+                  }
+            }]
+        }
+      }
 }
 `
 }
@@ -2296,15 +2298,15 @@ func testAccCoralogixResourceAlertLogsNewValue() string {
   type_definition = {
     logs_new_value = {
       notification_payload_filter = ["coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"]
-	  rules = [{
-		condition = {
-			time_window = "24_HOURS"
-			keypath_to_track = "remote_addr_geoip.country_name"
-		}
-		override = {
-			priority = "P2"
-		}
-	  }]
+      rules = [{
+        condition = {
+            time_window = "24_HOURS"
+            keypath_to_track = "remote_addr_geoip.country_name"
+        }
+        override = {
+            priority = "P2"
+        }
+      }]
     }
   }
 }
@@ -2318,17 +2320,17 @@ func testAccCoralogixResourceAlertLogsNewValueUpdated() string {
   priority    = "P3"
 
   type_definition = {
-	logs_new_value = {
-		rules = [{
-			condition = {
-				time_window  = "12_HOURS"
-				keypath_to_track = "remote_addr_geoip.city_name"
-			}
-			override = {
-				priority = "P2"
-			}
-		}]
-	}
+    logs_new_value = {
+        rules = [{
+            condition = {
+                time_window  = "12_HOURS"
+                keypath_to_track = "remote_addr_geoip.city_name"
+            }
+            override = {
+                priority = "P2"
+            }
+        }]
+    }
   }
 }
 `
@@ -2343,14 +2345,14 @@ func testAccCoralogixResourceAlertLogsUniqueCount() string {
   group_by        = ["remote_addr_geoip.city_name"]
   type_definition = {
     logs_unique_count = {
-		unique_count_keypath = "remote_addr_geoip.country_name"
-		max_unique_count_per_group_by_key = 500
-	  	rules = [ {
-			condition = {
-				max_unique_count     = 2
-				time_window          = "5_MINUTES"
-			}
-		}]
+        unique_count_keypath = "remote_addr_geoip.country_name"
+        max_unique_count_per_group_by_key = 500
+          rules = [ {
+            condition = {
+                max_unique_count     = 2
+                time_window          = "5_MINUTES"
+            }
+        }]
     }
   }
 }
@@ -2365,14 +2367,14 @@ func testAccCoralogixResourceAlertLogsUniqueCountUpdated() string {
 
   type_definition = {
     logs_unique_count = {
-		unique_count_keypath = "remote_addr_geoip.city_name"
-		max_unique_count_per_group_by_key = 500
-		rules = [{
-			condition ={
-				max_unique_count     = 5
-				time_window          = "20_MINUTES"
-			}
-		}]
+        unique_count_keypath = "remote_addr_geoip.city_name"
+        max_unique_count_per_group_by_key = 500
+        rules = [{
+            condition ={
+                max_unique_count     = 5
+                time_window          = "20_MINUTES"
+            }
+        }]
     }
   }
 }
@@ -2387,17 +2389,17 @@ func testAccCoralogixResourceAlertLogsTimeRelativeMoreThan() string {
 
   type_definition = {
     logs_time_relative_threshold = {
-	rules = [ {
-		condition = {
-			threshold        = 10
-			compared_to      = "Same Hour Yesterday"
-			ignore_infinity  = true
-			condition_type 	     = "MORE_THAN"
-		}
-		override = {
-			priority = "P2"
-		}
-	}]
+    rules = [ {
+        condition = {
+            threshold        = 10
+            compared_to      = "Same Hour Yesterday"
+            ignore_infinity  = true
+            condition_type 	     = "MORE_THAN"
+        }
+        override = {
+            priority = "P2"
+        }
+    }]
     }
   }
 }
@@ -2411,18 +2413,18 @@ func testAccCoralogixResourceAlertLogsTimeRelativeMoreThanUpdated() string {
   priority    = "P3"
 
   type_definition = {
-	logs_time_relative_threshold = {
-	rules = [{	
-		condition = {
-			threshold   = 50
-			compared_to = "Same Day Last Week"
-			condition_type   = "MORE_THAN"
-		}
-		override = {
-			priority = "P2"
-		}
-	}]
-	}
+    logs_time_relative_threshold = {
+    rules = [{	
+        condition = {
+            threshold   = 50
+            compared_to = "Same Day Last Week"
+            condition_type   = "MORE_THAN"
+        }
+        override = {
+            priority = "P2"
+        }
+    }]
+    }
   }
 }
 `
@@ -2435,20 +2437,20 @@ func testAccCoralogixResourceAlertLogsTimeRelativeLessThan() string {
   priority    = "P4"
 
   type_definition = {
-	logs_time_relative_threshold = {
-		rules = [
-		{
-			condition = {
-				threshold        = 10
-				compared_to      = "Same Hour Yesterday"
-				ignore_infinity  = true
-				condition_type        = "LESS_THAN"
-			}
-			override = {
-				priority = "P2"
-			}
-		}]
-	}
+    logs_time_relative_threshold = {
+        rules = [
+        {
+            condition = {
+                threshold        = 10
+                compared_to      = "Same Hour Yesterday"
+                ignore_infinity  = true
+                condition_type        = "LESS_THAN"
+            }
+            override = {
+                priority = "P2"
+            }
+        }]
+    }
   }
 }
 `
@@ -2461,23 +2463,23 @@ func testAccCoralogixResourceAlertLogsTimeRelativeLessThanUpdated() string {
   priority    = "P3"
 
   type_definition = {
-	logs_time_relative_threshold = {
-		rules = [{
-			condition = {
-				threshold                   = 50
-				compared_to                 = "Same Day Last Week"
-				ignore_infinity             = false
-				condition_type                   = "LESS_THAN"
-			}
-			override = {
-				priority = "P2"
-			}
-		}]
-		undetected_values_management = {
-			trigger_undetected_values = true
-			auto_retire_timeframe     = "6_HOURS"
-	  	}
-	}
+    logs_time_relative_threshold = {
+        rules = [{
+            condition = {
+                threshold                   = 50
+                compared_to                 = "Same Day Last Week"
+                ignore_infinity             = false
+                condition_type                   = "LESS_THAN"
+            }
+            override = {
+                priority = "P2"
+            }
+        }]
+        undetected_values_management = {
+            trigger_undetected_values = true
+            auto_retire_timeframe     = "6_HOURS"
+          }
+    }
   }
 }
 `
@@ -2491,20 +2493,20 @@ func testAccCoralogixResourceAlertMetricMoreThan() string {
 
   type_definition = {
     metric_threshold = {
-		metric_filter = {
-			promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
-		}
-		rules = [{
-			condition =	{
-				threshold    = 2
-				for_over_pct = 10
-				of_the_last  = "10_MINUTES"
-				missing_values = {
-					min_non_null_values_pct = 50
-				}
-				condition_type = "MORE_THAN"
-			}
-		}]
+        metric_filter = {
+            promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+        }
+        missing_values = {
+            min_non_null_values_pct = 50
+        }
+        rules = [{
+            condition =	{
+                threshold    = 2
+                for_over_pct = 10
+                of_the_last  = "10_MINUTES"
+                condition_type = "MORE_THAN"
+            }
+        }]
     }
   }
 }
@@ -2522,17 +2524,17 @@ func testAccCoralogixResourceAlertMetricMoreThanUpdated() string {
       metric_filter = {
         promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
       }
-		rules = [{
-			condition = {
-				threshold    = 10
-				for_over_pct = 15
-				of_the_last  = "1_HOUR"
-				missing_values = {
-					replace_with_zero = true
-				}
-				condition_type = "MORE_THAN"
-			}
-		}]
+        rules = [{
+            condition = {
+                threshold    = 10
+                for_over_pct = 15
+                of_the_last  = "1_HOUR"
+                missing_values = {
+                    replace_with_zero = true
+                }
+                condition_type = "MORE_THAN"
+            }
+        }]
     }
   }
 }
@@ -2547,24 +2549,24 @@ func testAccCoralogixResourceAlertMetricLessThan() string {
 
   type_definition = {
     metric_threshold = {
-      metric_filter = {
-        promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
-	}
-		rules = [{
-			condition = {
-				threshold    = 2
-				for_over_pct = 10
-				of_the_last  = "10_MINUTES"
-				missing_values = {
-					replace_with_zero = true
-				}
-				condition_type = "LESS_THAN"
-			}
-		}]
-      undetected_values_management = {
-        trigger_undetected_values = true
-        auto_retire_timeframe     = "5_MINUTES"
-      }
+        metric_filter = {
+            promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+        }
+        missing_values = {
+            replace_with_zero = true
+        }
+        rules = [{
+            condition = {
+                threshold    = 2
+                for_over_pct = 10
+                of_the_last  = "10_MINUTES"
+                condition_type = "LESS_THAN"
+            }
+        }]
+        undetected_values_management = {
+            trigger_undetected_values = true
+            auto_retire_timeframe     = "5_MINUTES"
+        }
     }
   }
 }
@@ -2579,20 +2581,20 @@ func testAccCoralogixResourceAlertMetricLessThanUpdated() string {
 
   type_definition = {
     metric_threshold = {
-      metric_filter = {
-        promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
-      }
-	  rules = [{
-		condition = {
-			threshold    = 5
-			for_over_pct = 15
-			of_the_last  = "10_MINUTES"
-			missing_values = {
-				min_non_null_values_pct = 50
-			}
-			condition_type = "LESS_THAN"
-		}
-	  }]
+        metric_filter = {
+            promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+        }
+        missing_values = {
+            min_non_null_values_pct = 50
+        }
+        rules = [{
+            condition = {
+                threshold    = 5
+                for_over_pct = 15
+                of_the_last  = "10_MINUTES"
+                condition_type = "LESS_THAN"
+            }
+        }]
       undetected_values_management = {
         trigger_undetected_values = true
         auto_retire_timeframe     = "5_MINUTES"
@@ -2605,119 +2607,119 @@ func testAccCoralogixResourceAlertMetricLessThanUpdated() string {
 
 func testAccCoralogixResourceAlertMetricsLessThanUsual() string {
 	return `resource "coralogix_alert" "test" {
-  name        = "metric-less-than-usual alert example"
-  description = "Example of metric-less-than-usual alert from terraform"
-  priority    = "P1"
+name        = "metric-less-than-usual alert example"
+description = "Example of metric-less-than-usual alert from terraform"
+priority    = "P1"
 
-  type_definition = {
+type_definition = {
     metric_anomaly = {
-      metric_filter = {
-        promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
-      }
-  	  rules = [
-	  {
-		condition = {
-			threshold    = 20
-			for_over_pct = 10
-			of_the_last = "12_HOURS"
-			condition_type = "LESS_THAN"
-			min_non_null_values_pct = 50
-		}
-	  }
-		]
+        metric_filter = {
+            promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+        }
+        rules = [{
+            condition = {
+                threshold    = 20
+                for_over_pct = 10
+                of_the_last = "12_HOURS"
+                condition_type = "LESS_THAN"
+                min_non_null_values_pct = 50
+            }
+        }]
     }
-  }
-}
+}}
 `
 }
 
 func testAccCoralogixResourceAlertMetricsLessThanUsualUpdated() string {
 	return `resource "coralogix_alert" "test" {
-  name        = "metric-less-than-usual alert example updated"
-  description = "Example of metric-less-than-usual alert from terraform updated"
-  priority    = "P1"
+name        = "metric-less-than-usual alert example updated"
+description = "Example of metric-less-than-usual alert from terraform updated"
+priority    = "P1"
 
-  type_definition = {
-	metric_anomaly = {
-	  metric_filter = {
-		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
-	  }
-  	  rules = [{
-		condition = {
-			threshold    = 2
-			for_over_pct = 10
-			of_the_last = "10_MINUTES"
-			condition_type = "LESS_THAN"
-			min_non_null_values_pct = 50
-		}
-      }]
-	}
-  }
-}
+type_definition = {
+    metric_anomaly = {
+        metric_filter = {
+            promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+        }
+        rules = [{
+            condition = {
+                threshold    = 2
+                for_over_pct = 10
+                of_the_last = "10_MINUTES"
+                condition_type = "LESS_THAN"
+                min_non_null_values_pct = 50
+            }
+        }]
+    }
+}}
 `
 }
 
 func testAccCoralogixResourceAlertMetricLessThanOrEquals() string {
 	return `resource "coralogix_alert" "test" {
-  name        = "metric-less-than-or-equals alert example"
-  description = "Example of metric-less-than-or-equals alert from terraform"
-  priority    = "P1"
+name        = "metric-less-than-or-equals alert example"
+description = "Example of metric-less-than-or-equals alert from terraform"
+priority    = "P1"
 
-  type_definition = {
-	metric_threshold = {
-	  metric_filter = {
-		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
-	  }
-		rules = [{
-			condition = {
-				threshold    = 2
-				for_over_pct = 10
-				of_the_last = "10_MINUTES"
-				condition_type = "LESS_THAN_OR_EQUALS"
-				missing_values = {
-			  	replace_with_zero = true
-				}
-		}]
-	  undetected_values_management = {
-		trigger_undetected_values = true
-		auto_retire_timeframe     = "5_MINUTES"
-	  }
-	}
-  }
-}
+type_definition = {
+    metric_threshold = {
+        metric_filter = {
+            promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+        }
+        missing_values = {
+            replace_with_zero = true
+        }
+        rules = [{
+            condition = {
+                threshold    = 2
+                for_over_pct = 10
+                of_the_last = "10_MINUTES"
+                condition_type = "LESS_THAN_OR_EQUALS"
+            }
+            override = {
+                priority = "P2"
+            }
+        }]
+        undetected_values_management = {
+            trigger_undetected_values = true
+            auto_retire_timeframe     = "5_MINUTES"
+        }
+    }
+}}
 `
 }
 
 func testAccCoralogixResourceAlertMetricLessThanOrEqualsUpdated() string {
 	return `resource "coralogix_alert" "test" {
-  name        = "metric-less-than-or-equals alert example updated"
-  description = "Example of metric-less-than-or-equals alert from terraform updated"
-  priority    = "P2"
+name        = "metric-less-than-or-equals alert example updated"
+description = "Example of metric-less-than-or-equals alert from terraform updated"
+priority    = "P2"
 
-  type_definition = {
-	metric_threshold = {
-	  metric_filter = {
-		promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
-	  }
-	  
-		rules = [{
-			condition = {
-				threshold    = 5
-	  			for_over_pct = 15
-				of_the_last = "10_MINUTES"
-				condition_type = "LESS_THAN_OR_EQUALS"
-				missing_values = {
-					min_non_null_values_pct = 50
-				}
-			}
-		}]
-	  undetected_values_management = {
-		trigger_undetected_values = true
-		auto_retire_timeframe     = "5_MINUTES"
-	  }
-	}
-  }
-}
+type_definition = {
+    metric_threshold = {
+        metric_filter = {
+            promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+        }  
+        missing_values = {
+            min_non_null_values_pct = 50
+        }
+        rules = [{
+            condition = {
+                threshold    = 5
+                for_over_pct = 15
+                of_the_last = "10_MINUTES"
+                condition_type = "LESS_THAN_OR_EQUALS"
+            }
+            override = {
+                priority = "P2"
+            }
+        }]
+        undetected_values_management = {
+            trigger_undetected_values = true
+            auto_retire_timeframe     = "5_MINUTES"
+        }
+    }
+}}
 `
 }
 
@@ -2728,25 +2730,25 @@ func testAccCoralogixResourceAlertMetricMoreThanOrEquals() string {
   priority    = "P3"
 
   type_definition = {
-	metric_threshold = {
-		metric_filter = {
-			promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
-		}
-		rules = [{
-			condition = {
-				threshold    = 2
-				for_over_pct = 10
-				of_the_last = "10_MINUTES"
-				condition_type = "MORE_THAN_OR_EQUALS"
-			}
-			override = {
-				priority = "P2"
-			}
-		}]
-		missing_values = {
-			replace_with_zero = true
-		}
-	}
+    metric_threshold = {
+        metric_filter = {
+            promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+        }
+        rules = [{
+            condition = {
+                threshold    = 2
+                for_over_pct = 10
+                of_the_last = "10_MINUTES"
+                condition_type = "MORE_THAN_OR_EQUALS"
+            }
+            override = {
+                priority = "P2"
+            }
+        }]
+        missing_values = {
+            replace_with_zero = true
+        }
+    }
   }
 }
 `
@@ -2759,25 +2761,25 @@ func testAccCoralogixResourceAlertMetricMoreThanOrEqualsUpdated() string {
   priority    = "P4"
 
   type_definition = {
-	metric_threshold = {
-		metric_filter = {
-			promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
-		}
-		rules = [{
-			condition = {
-				threshold    = 10
-				for_over_pct = 15
-				of_the_last = "1_HOUR"
-				condition_type = "MORE_THAN_OR_EQUALS"
-			}
-			override = {
-				priority = "P2"
-			}
-		}]
-		missing_values = {
-			replace_with_zero = true
-		}
-	}
+    metric_threshold = {
+        metric_filter = {
+            promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+        }
+        rules = [{
+            condition = {
+                threshold    = 10
+                for_over_pct = 15
+                of_the_last = "1_HOUR"
+                condition_type = "MORE_THAN_OR_EQUALS"
+            }
+            override = {
+                priority = "P2"
+            }
+        }]
+        missing_values = {
+            replace_with_zero = true
+        }
+    }
   }
 }
 `
@@ -2844,46 +2846,46 @@ func testAccCoralogixResourceAlertTracingImmediateUpdated() string {
   priority    = "P2"
 
   type_definition = {
-	tracing_immediate = {
-	  tracing_filter = {
-		latency_threshold_ms  = 200
-		tracing_label_filters = {
-		  application_name = [
-			{
-			  operation = "IS"
-			  values    = ["nginx", "apache"]
-			},
-			{
-				operation = "STARTS_WITH"
-				values    = ["application-name:"]
-			}
-		  ]
-		  subsystem_name = [
-			{
-			  operation = "IS"
-			  values    = ["subsystem-name"]
-			}
-		  ]
-		  operation_name        = [
+    tracing_immediate = {
+      tracing_filter = {
+        latency_threshold_ms  = 200
+        tracing_label_filters = {
+          application_name = [
+            {
+              operation = "IS"
+              values    = ["nginx", "apache"]
+            },
+            {
+                operation = "STARTS_WITH"
+                values    = ["application-name:"]
+            }
+          ]
+          subsystem_name = [
+            {
+              operation = "IS"
+              values    = ["subsystem-name"]
+            }
+          ]
+          operation_name        = [
             {
               operation = "IS"
               values    = ["operation-name"]
             }
           ]
-		  span_fields = [
-			{
-			  key         = "status"
-			  filter_type = {
-				values    = ["200"]
-			  }
-			},
-			{
-			  key         = "status"
-			  filter_type = {
-				operation = "STARTS_WITH"
-				values    = ["40", "50"]
-			  }
-			},
+          span_fields = [
+            {
+              key         = "status"
+              filter_type = {
+                values    = ["200"]
+              }
+            },
+            {
+              key         = "status"
+              filter_type = {
+                operation = "STARTS_WITH"
+                values    = ["40", "50"]
+              }
+            },
             {
               key         = "status"
               filter_type = {
@@ -2891,10 +2893,10 @@ func testAccCoralogixResourceAlertTracingImmediateUpdated() string {
                 values    = ["500", "404"]
               }
             },
-		  ]
-		}
-	  }
-	}
+          ]
+        }
+      }
+    }
   }
 }
 `
@@ -2908,27 +2910,27 @@ func testAccCoralogixResourceAlertTracingMoreThan() string {
 
   type_definition = {
     tracing_threshold = {
-		tracing_filter = {
-			latency_threshold_ms  = 100
-			tracing_label_filters = {
-				application_name = [
-					{
-						operation = "IS"
-						values    = ["nginx", "apache"]
-					},
-					{
-						operation = "STARTS_WITH"
-						values    = ["application-name:"]
-					}
-				]
-			}
-		}
-		rules = [{
-			condition = {
-				time_window = "10_MINUTES"
-				span_amount = 5
-			}
-		}]
+        tracing_filter = {
+            latency_threshold_ms  = 100
+            tracing_label_filters = {
+                application_name = [
+                    {
+                        operation = "IS"
+                        values    = ["nginx", "apache"]
+                    },
+                    {
+                        operation = "STARTS_WITH"
+                        values    = ["application-name:"]
+                    }
+                ]
+            }
+        }
+        rules = [{
+            condition = {
+                time_window = "10_MINUTES"
+                span_amount = 5
+            }
+        }]
     }
   }
 }
@@ -2942,28 +2944,28 @@ func testAccCoralogixResourceAlertTracingMoreThanUpdated() string {
   priority    = "P3"
 
   type_definition = {
-	tracing_threshold = {
-	  tracing_filter = {
-		latency_threshold_ms  = 200
-		tracing_label_filters = {
-		  application_name = [
-			{
-			  values    = ["nginx", "apache"]
-			},
-			{
-				operation = "STARTS_WITH"	
-				values    = ["application-name:"]
-			}
-		  ]
-		}
-	  }
-		rules = [{
-			condition = {
-				span_amount = 5
-				time_window = "1_HOUR"
-			}
-		}]
-	}
+    tracing_threshold = {
+      tracing_filter = {
+        latency_threshold_ms  = 200
+        tracing_label_filters = {
+          application_name = [
+            {
+              values    = ["nginx", "apache"]
+            },
+            {
+                operation = "STARTS_WITH"	
+                values    = ["application-name:"]
+            }
+          ]
+        }
+      }
+        rules = [{
+            condition = {
+                span_amount = 5
+                time_window = "1_HOUR"
+            }
+        }]
+    }
   }
 }
 `
@@ -3003,7 +3005,7 @@ resource "coralogix_alert" "test" {
   priority    = "P3"
   type_definition = {
     flow = {
-	  enforce_suppression = false
+      enforce_suppression = false
       stages = [
         {
           flow_stages_groups = [
@@ -3107,7 +3109,7 @@ resource "coralogix_alert" "test" {
           timeframe_ms   = 10
           timeframe_type = "Up To"
         },
-		{
+        {
           flow_stages_groups = [
             {
               alert_defs = [
