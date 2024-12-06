@@ -845,7 +845,7 @@ func expandParameters(ruleType string, m map[string]interface{}) *cxsdk.RulePara
 }
 
 func expandFieldFormatStandard(formatStandard string) cxsdk.ExtractTimestampParametersFormatStandard {
-	formatStandardVal := rulesSchemaFormatStandardToProtoFormatStandard[strings.ToLower(formatStandard)]
+	formatStandardVal := rulesSchemaFormatStandardToProtoFormatStandard[formatStandard]
 	return cxsdk.ExtractTimestampParametersFormatStandard(formatStandardVal)
 }
 
