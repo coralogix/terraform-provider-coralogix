@@ -730,12 +730,11 @@ func TestAccCoralogixResourceAlert_logs_unique_count(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "1"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "remote_addr_geoip.city_name"),
-
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.0.condition.time_window", "5_MINUTES"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.0.condition.max_unique_count_per_group_by_key", "500"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.0.condition.max_unique_count", "2"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.0.condition.unique_count_keypath", "remote_addr_geoip.country_name"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.0.condition.max_unique_count", "5"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.unique_count_keypath", "remote_addr_geoip.country_name"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.max_unique_count_per_group_by_key", "500"),
 				),
 			},
 			{
@@ -749,10 +748,12 @@ func TestAccCoralogixResourceAlert_logs_unique_count(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-unique-count alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
 					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "0"),
+
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.0.condition.time_window", "20_MINUTES"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.0.condition.max_unique_count", "5"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.0.condition.unique_count_keypath", "remote_addr_geoip.city_name"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.max_unique_count_per_group_by_key", "500"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.unique_count_keypath", "remote_addr_geoip.city_name"),
 				),
 			},
 		},
@@ -1537,9 +1538,7 @@ func testAccCoralogixResourceAlertLogsMoreThan() string {
 		rules = [{
 			condition = {
 				threshold   = 2
-				time_window = {
-					specific_value = "10_MINUTES"
-				}
+				time_window = "10_MINUTES"
 				condition_type = "MORE_THAN"
 			}
 			override = {
@@ -2344,14 +2343,14 @@ func testAccCoralogixResourceAlertLogsUniqueCount() string {
   group_by        = ["remote_addr_geoip.city_name"]
   type_definition = {
     logs_unique_count = {
-	  rules = [ {
-		condition = {
-			unique_count_keypath = "remote_addr_geoip.country_name"
-			max_unique_count     = 2
-			time_window          = "5_MINUTES"
-			max_unique_count_per_group_by_key = 500
-		}
-	  }]
+		unique_count_keypath = "remote_addr_geoip.country_name"
+		max_unique_count_per_group_by_key = 500
+	  	rules = [ {
+			condition = {
+				max_unique_count     = 2
+				time_window          = "5_MINUTES"
+			}
+		}]
     }
   }
 }
@@ -2366,13 +2365,14 @@ func testAccCoralogixResourceAlertLogsUniqueCountUpdated() string {
 
   type_definition = {
     logs_unique_count = {
-	rules = [{
-		condition ={
-			unique_count_keypath = "remote_addr_geoip.city_name"
-			max_unique_count     = 5
-			time_window          = "20_MINUTES"
-		}
-	}]
+		unique_count_keypath = "remote_addr_geoip.city_name"
+		max_unique_count_per_group_by_key = 500
+		rules = [{
+			condition ={
+				max_unique_count     = 5
+				time_window          = "20_MINUTES"
+			}
+		}]
     }
   }
 }

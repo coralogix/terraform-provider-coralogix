@@ -1601,7 +1601,7 @@ func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 			"auto_retire_timeframe": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
-				Default:  stringdefault.StaticString("Never"),
+				Default:  stringdefault.StaticString(autoRetireTimeframeProtoToSchemaMap[cxsdk.AutoRetireTimeframeNeverOrUnspecified]),
 				Validators: []validator.String{
 					stringvalidator.OneOf(validAutoRetireTimeframes...),
 				},
@@ -1610,7 +1610,7 @@ func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 		},
 		Default: objectdefault.StaticValue(types.ObjectValueMust(undetectedValuesManagementAttr(), map[string]attr.Value{
 			"trigger_undetected_values": types.BoolValue(false),
-			"auto_retire_timeframe":     types.StringValue("Never"),
+			"auto_retire_timeframe":     types.StringValue(autoRetireTimeframeProtoToSchemaMap[cxsdk.AutoRetireTimeframeNeverOrUnspecified]),
 		})),
 	}
 }
