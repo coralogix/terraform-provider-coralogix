@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"strings"
 
 	"terraform-provider-coralogix/coralogix/clientset"
 
@@ -801,6 +800,7 @@ func e2mSchemaV0() schema.Schema {
 						},
 						"severities": schema.SetAttribute{
 							Optional:    true,
+							Computed:    true,
 							ElementType: types.StringType,
 						},
 					},
@@ -1336,7 +1336,7 @@ func expandLogsQuerySeverities(ctx context.Context, severities []attr.Value) ([]
 				err.Error())
 			continue
 		}
-		severity := cxsdk.L2MSeverity(severitySchemaToProto[strings.ToTitle(str)])
+		severity := cxsdk.L2MSeverity(severitySchemaToProto[str])
 		result = append(result, severity)
 	}
 
@@ -1490,6 +1490,7 @@ func flattenLogQuerySeverities(severities []cxsdk.L2MSeverity) types.Set {
 	}
 	elements := make([]attr.Value, 0, len(severities))
 	for _, v := range severities {
+		log.Println("severity: ", severityProtoToSchema[cxsdk.L2MSeverity(v)])
 		severity := types.StringValue(severityProtoToSchema[cxsdk.L2MSeverity(v)])
 		elements = append(elements, severity)
 	}
