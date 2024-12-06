@@ -28,7 +28,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -376,7 +375,7 @@ type WebhooksSettingsModel struct {
 }
 
 type ActiveOnModel struct {
-	DaysOfWeek types.List   `tfsdk:"days_of_week"` // []types.String
+	DaysOfWeek types.Set    `tfsdk:"days_of_week"` // []types.String
 	StartTime  types.Object `tfsdk:"start_time"`   // TimeOfDayModel
 	EndTime    types.Object `tfsdk:"end_time"`     // TimeOfDayModel
 }
@@ -397,20 +396,20 @@ type LogsImmediateModel struct {
 }
 
 type LogsThresholdModel struct {
-	Rules                      types.List   `tfsdk:"rules"`                        // [] LogsThresholdRuleModel
+	Rules                      types.Set    `tfsdk:"rules"`                        // [] LogsThresholdRuleModel
 	LogsFilter                 types.Object `tfsdk:"logs_filter"`                  // AlertsLogsFilterModel
 	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
 }
 
 type LogsAnomalyModel struct {
-	Rules                     types.List   `tfsdk:"rules"`                       // [] LogsAnomalyRuleModel
+	Rules                     types.Set    `tfsdk:"rules"`                       // [] LogsAnomalyRuleModel
 	LogsFilter                types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
 	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
 }
 
 type LogsRatioThresholdModel struct {
-	Rules                     types.List   `tfsdk:"rules"`     // []LogsRatioThresholdRuleModel
+	Rules                     types.Set    `tfsdk:"rules"`     // []LogsRatioThresholdRuleModel
 	Numerator                 types.Object `tfsdk:"numerator"` // AlertsLogsFilterModel
 	NumeratorAlias            types.String `tfsdk:"numerator_alias"`
 	Denominator               types.Object `tfsdk:"denominator"` // AlertsLogsFilterModel
@@ -420,13 +419,13 @@ type LogsRatioThresholdModel struct {
 }
 
 type LogsNewValueModel struct {
-	Rules                     types.List   `tfsdk:"rules"`                       // []NewValueRuleModel
+	Rules                     types.Set    `tfsdk:"rules"`                       // []NewValueRuleModel
 	LogsFilter                types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
 	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
 }
 
 type LogsUniqueCountModel struct {
-	Rules                       types.List   `tfsdk:"rules"`                       // [] LogsUniqueCountRuleModel
+	Rules                       types.Set    `tfsdk:"rules"`                       // [] LogsUniqueCountRuleModel
 	LogsFilter                  types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
 	NotificationPayloadFilter   types.Set    `tfsdk:"notification_payload_filter"` // []types.String
 	MaxUniqueCountPerGroupByKey types.Int64  `tfsdk:"max_unique_count_per_group_by_key"`
@@ -443,7 +442,7 @@ type LogsUniqueCountConditionModel struct {
 }
 
 type LogsTimeRelativeThresholdModel struct {
-	Rules                      types.List   `tfsdk:"rules"`                        // [] LogsTimeRelativeRuleModel
+	Rules                      types.Set    `tfsdk:"rules"`                        // [] LogsTimeRelativeRuleModel
 	LogsFilter                 types.Object `tfsdk:"logs_filter"`                  // AlertsLogsFilterModel
 	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
@@ -462,7 +461,7 @@ type MetricAnomalyConditionModel struct {
 }
 
 type MetricThresholdModel struct {
-	Rules                      types.List   `tfsdk:"rules"`                        // [] MetricThresholdRuleModel
+	Rules                      types.Set    `tfsdk:"rules"`                        // [] MetricThresholdRuleModel
 	MetricFilter               types.Object `tfsdk:"metric_filter"`                // MetricFilterModel
 	MissingValues              types.Object `tfsdk:"missing_values"`               // MissingValuesModel
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
@@ -487,7 +486,7 @@ type MetricThresholdConditionModel struct {
 
 type MetricAnomalyModel struct {
 	MetricFilter types.Object `tfsdk:"metric_filter"` // MetricFilterModel
-	Rules        types.List   `tfsdk:"rules"`         // [] MetricAnomalyRuleModel
+	Rules        types.Set    `tfsdk:"rules"`         // [] MetricAnomalyRuleModel
 }
 
 type MetricImmediateModel struct {
@@ -503,7 +502,7 @@ type TracingImmediateModel struct {
 type TracingThresholdModel struct {
 	TracingFilter             types.Object `tfsdk:"tracing_filter"`              // TracingFilterModel
 	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
-	Rules                     types.List   `tfsdk:"rules"`                       // [] TracingThresholdRuleModel
+	Rules                     types.Set    `tfsdk:"rules"`                       // [] TracingThresholdRuleModel
 }
 
 type TracingThresholdRuleModel struct {
@@ -517,18 +516,18 @@ type TracingThresholdConditionModel struct {
 }
 
 type FlowModel struct {
-	Stages             types.List `tfsdk:"stages"` // FlowStageModel
+	Stages             types.Set  `tfsdk:"stages"` // FlowStageModel
 	EnforceSuppression types.Bool `tfsdk:"enforce_suppression"`
 }
 
 type FlowStageModel struct {
-	FlowStagesGroups types.List   `tfsdk:"flow_stages_groups"` // FlowStagesGroupModel
+	FlowStagesGroups types.Set    `tfsdk:"flow_stages_groups"` // FlowStagesGroupModel
 	TimeframeMs      types.Int64  `tfsdk:"timeframe_ms"`
 	TimeframeType    types.String `tfsdk:"timeframe_type"`
 }
 
 type FlowStagesGroupModel struct {
-	AlertDefs types.List   `tfsdk:"alert_defs"` // FlowStagesGroupsAlertDefsModel
+	AlertDefs types.Set    `tfsdk:"alert_defs"` // FlowStagesGroupsAlertDefsModel
 	NextOp    types.String `tfsdk:"next_op"`
 	AlertsOp  types.String `tfsdk:"alerts_op"`
 }
@@ -713,11 +712,11 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					"active_on": schema.SingleNestedAttribute{
 						Required: true,
 						Attributes: map[string]schema.Attribute{
-							"days_of_week": schema.ListAttribute{
+							"days_of_week": schema.SetAttribute{
 								Required:    true,
 								ElementType: types.StringType,
-								Validators: []validator.List{
-									listvalidator.ValueStringsAre(
+								Validators: []validator.Set{
+									setvalidator.ValueStringsAre(
 										stringvalidator.OneOf(validDaysOfWeek...),
 									),
 								},
@@ -760,9 +759,9 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					"logs_threshold": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"rules": schema.ListNestedAttribute{
+							"rules": schema.SetNestedAttribute{
 								Required:   true,
-								Validators: []validator.List{listvalidator.SizeAtLeast(1)},
+								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
 										"condition": schema.SingleNestedAttribute{
@@ -795,9 +794,9 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						Attributes: map[string]schema.Attribute{
 							"logs_filter":                 logsFilterSchema(),
 							"notification_payload_filter": notificationPayloadFilterSchema(),
-							"rules": schema.ListNestedAttribute{
+							"rules": schema.SetNestedAttribute{
 								Required:   true,
-								Validators: []validator.List{listvalidator.SizeAtLeast(1)},
+								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
 										"condition": schema.SingleNestedAttribute{
@@ -824,9 +823,9 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					"logs_ratio_threshold": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"rules": schema.ListNestedAttribute{
+							"rules": schema.SetNestedAttribute{
 								Required:   true,
-								Validators: []validator.List{listvalidator.SizeAtLeast(1)},
+								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
 										"condition": schema.SingleNestedAttribute{
@@ -864,9 +863,9 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					"logs_new_value": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"rules": schema.ListNestedAttribute{
+							"rules": schema.SetNestedAttribute{
 								Required:   true,
-								Validators: []validator.List{listvalidator.SizeAtLeast(1)},
+								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
 										"condition": schema.SingleNestedAttribute{
@@ -888,9 +887,9 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						Attributes: map[string]schema.Attribute{
 							"logs_filter":                 logsFilterSchema(),
 							"notification_payload_filter": notificationPayloadFilterSchema(),
-							"rules": schema.ListNestedAttribute{
+							"rules": schema.SetNestedAttribute{
 								Required:   true,
-								Validators: []validator.List{listvalidator.SizeAtLeast(1)},
+								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
 										"condition": schema.SingleNestedAttribute{
@@ -917,9 +916,9 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"logs_filter":                  logsFilterSchema(),
 							"notification_payload_filter":  notificationPayloadFilterSchema(),
 							"undetected_values_management": undetectedValuesManagementSchema(),
-							"rules": schema.ListNestedAttribute{
+							"rules": schema.SetNestedAttribute{
 								Required:   true,
-								Validators: []validator.List{listvalidator.SizeAtLeast(1)},
+								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
 										"condition": schema.SingleNestedAttribute{
@@ -956,9 +955,9 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						Attributes: map[string]schema.Attribute{
 							"metric_filter":                metricFilterSchema(),
 							"undetected_values_management": undetectedValuesManagementSchema(),
-							"rules": schema.ListNestedAttribute{
+							"rules": schema.SetNestedAttribute{
 								Required:   true,
-								Validators: []validator.List{listvalidator.SizeAtLeast(1)},
+								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
 										"condition": schema.SingleNestedAttribute{
@@ -1004,9 +1003,9 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
 							"metric_filter": metricFilterSchema(),
-							"rules": schema.ListNestedAttribute{
+							"rules": schema.SetNestedAttribute{
 								Required:   true,
-								Validators: []validator.List{listvalidator.SizeAtLeast(1)},
+								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
 										"condition": schema.SingleNestedAttribute{
@@ -1049,9 +1048,9 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						Attributes: map[string]schema.Attribute{
 							"tracing_filter":              tracingQuerySchema(),
 							"notification_payload_filter": notificationPayloadFilterSchema(),
-							"rules": schema.ListNestedAttribute{
+							"rules": schema.SetNestedAttribute{
 								Required:   true,
-								Validators: []validator.List{listvalidator.SizeAtLeast(1)},
+								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
 										"condition": schema.SingleNestedAttribute{
@@ -1080,15 +1079,15 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					"flow": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"stages": schema.ListNestedAttribute{
+							"stages": schema.SetNestedAttribute{
 								Required: true,
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
-										"flow_stages_groups": schema.ListNestedAttribute{
+										"flow_stages_groups": schema.SetNestedAttribute{
 											Required: true,
 											NestedObject: schema.NestedAttributeObject{
 												Attributes: map[string]schema.Attribute{
-													"alert_defs": schema.ListNestedAttribute{
+													"alert_defs": schema.SetNestedAttribute{
 														Required: true,
 														NestedObject: schema.NestedAttributeObject{
 															Attributes: map[string]schema.Attribute{
@@ -1939,7 +1938,7 @@ func extractTimeOfDay(ctx context.Context, timeObject types.Object) (*cxsdk.Aler
 
 }
 
-func extractDaysOfWeek(ctx context.Context, daysOfWeek types.List) ([]cxsdk.AlertDayOfWeek, diag.Diagnostics) {
+func extractDaysOfWeek(ctx context.Context, daysOfWeek types.Set) ([]cxsdk.AlertDayOfWeek, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	daysOfWeekElements := daysOfWeek.Elements()
 	result := make([]cxsdk.AlertDayOfWeek, 0, len(daysOfWeekElements))
@@ -2216,7 +2215,7 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *cxsdk.Al
 	return properties, nil
 }
 
-func extractThresholdRules(ctx context.Context, elements types.List) ([]*cxsdk.LogsThresholdRule, diag.Diagnostics) {
+func extractThresholdRules(ctx context.Context, elements types.Set) ([]*cxsdk.LogsThresholdRule, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 	rules := make([]*cxsdk.LogsThresholdRule, len(elements.Elements()))
 	var objs []types.Object
@@ -2297,7 +2296,7 @@ func extractUndetectedValuesManagement(ctx context.Context, management types.Obj
 }
 
 func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, anomaly types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
-	if anomaly.IsNull() || anomaly.IsUnknown() {
+	if objIsNullOrUnknown(anomaly) {
 		return properties, nil
 	}
 
@@ -2332,7 +2331,7 @@ func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *cxsdk
 	return properties, nil
 }
 
-func extractAnomalyRules(ctx context.Context, elements types.List) ([]*cxsdk.LogsAnomalyRule, diag.Diagnostics) {
+func extractAnomalyRules(ctx context.Context, elements types.Set) ([]*cxsdk.LogsAnomalyRule, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 	rules := make([]*cxsdk.LogsAnomalyRule, len(elements.Elements()))
 	var objs []types.Object
@@ -2369,7 +2368,7 @@ func extractAnomalyRules(ctx context.Context, elements types.List) ([]*cxsdk.Log
 }
 
 func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, ratioThreshold types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
-	if ratioThreshold.IsNull() || ratioThreshold.IsUnknown() {
+	if objIsNullOrUnknown(ratioThreshold) {
 		return properties, nil
 	}
 
@@ -2412,7 +2411,7 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *cxs
 	return properties, nil
 }
 
-func extractRatioRules(ctx context.Context, elements types.List) ([]*cxsdk.LogsRatioRules, diag.Diagnostics) {
+func extractRatioRules(ctx context.Context, elements types.Set) ([]*cxsdk.LogsRatioRules, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 	rules := make([]*cxsdk.LogsRatioRules, len(elements.Elements()))
 	var objs []types.Object
@@ -2515,7 +2514,7 @@ func expandLogsNewValueAlertTypeDefinition(ctx context.Context, properties *cxsd
 	return properties, nil
 }
 
-func extractNewValueRules(ctx context.Context, elements types.List) ([]*cxsdk.LogsNewValueRule, diag.Diagnostics) {
+func extractNewValueRules(ctx context.Context, elements types.Set) ([]*cxsdk.LogsNewValueRule, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 	rules := make([]*cxsdk.LogsNewValueRule, len(elements.Elements()))
 	var objs []types.Object
@@ -2601,7 +2600,7 @@ func expandLogsUniqueCountAlertTypeDefinition(ctx context.Context, properties *c
 	return properties, nil
 }
 
-func extractLogsUniqueCountRules(ctx context.Context, elements types.List) ([]*cxsdk.LogsUniqueCountRule, diag.Diagnostics) {
+func extractLogsUniqueCountRules(ctx context.Context, elements types.Set) ([]*cxsdk.LogsUniqueCountRule, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 	rules := make([]*cxsdk.LogsUniqueCountRule, len(elements.Elements()))
 	var objs []types.Object
@@ -2687,7 +2686,7 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 	return properties, nil
 }
 
-func extractTimeRelativeThresholdRules(ctx context.Context, elements types.List) ([]*cxsdk.LogsTimeRelativeRule, diag.Diagnostics) {
+func extractTimeRelativeThresholdRules(ctx context.Context, elements types.Set) ([]*cxsdk.LogsTimeRelativeRule, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 	rules := make([]*cxsdk.LogsTimeRelativeRule, len(elements.Elements()))
 	var objs []types.Object
@@ -2795,7 +2794,7 @@ func extractMetricThresholdMissingValues(ctx context.Context, values types.Objec
 	}
 }
 
-func extractMetricThresholdRules(ctx context.Context, elements types.List) ([]*cxsdk.MetricThresholdRule, diag.Diagnostics) {
+func extractMetricThresholdRules(ctx context.Context, elements types.Set) ([]*cxsdk.MetricThresholdRule, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 	rules := make([]*cxsdk.MetricThresholdRule, len(elements.Elements()))
 	var objs []types.Object
@@ -2931,7 +2930,7 @@ func expandTracingThresholdTypeDefinition(ctx context.Context, properties *cxsdk
 	return properties, nil
 }
 
-func extractTracingThresholdRules(ctx context.Context, elements types.List) ([]*cxsdk.TracingThresholdRule, diag.Diagnostics) {
+func extractTracingThresholdRules(ctx context.Context, elements types.Set) ([]*cxsdk.TracingThresholdRule, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 	rules := make([]*cxsdk.TracingThresholdRule, len(elements.Elements()))
 	var objs []types.Object
@@ -3124,7 +3123,7 @@ func expandMetricAnomalyAlertTypeDefinition(ctx context.Context, properties *cxs
 	return properties, nil
 }
 
-func extractMetricAnomalyRules(ctx context.Context, elements types.List) ([]*cxsdk.MetricAnomalyRule, diag.Diagnostics) {
+func extractMetricAnomalyRules(ctx context.Context, elements types.Set) ([]*cxsdk.MetricAnomalyRule, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 	rules := make([]*cxsdk.MetricAnomalyRule, len(elements.Elements()))
 	var objs []types.Object
@@ -3187,7 +3186,7 @@ func expandFlowAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertD
 	return properties, nil
 }
 
-func extractFlowStages(ctx context.Context, stages types.List) ([]*cxsdk.FlowStages, diag.Diagnostics) {
+func extractFlowStages(ctx context.Context, stages types.Set) ([]*cxsdk.FlowStages, diag.Diagnostics) {
 	if stages.IsNull() || stages.IsUnknown() {
 		return nil, nil
 	}
@@ -3232,7 +3231,7 @@ func extractFlowStage(ctx context.Context, object types.Object) (*cxsdk.FlowStag
 	return flowStage, nil
 }
 
-func extractFlowStagesGroups(ctx context.Context, groups types.List) (*cxsdk.FlowStagesGroups, diag.Diagnostics) {
+func extractFlowStagesGroups(ctx context.Context, groups types.Set) (*cxsdk.FlowStagesGroups, diag.Diagnostics) {
 	if groups.IsNull() || groups.IsUnknown() {
 		return nil, nil
 	}
@@ -3278,7 +3277,7 @@ func extractFlowStagesGroup(ctx context.Context, object types.Object) (*cxsdk.Fl
 
 }
 
-func extractAlertDefs(ctx context.Context, defs types.List) ([]*cxsdk.FlowStagesGroupsAlertDefs, diag.Diagnostics) {
+func extractAlertDefs(ctx context.Context, defs types.Set) ([]*cxsdk.FlowStagesGroupsAlertDefs, diag.Diagnostics) {
 	if defs.IsNull() || defs.IsUnknown() {
 		return nil, nil
 	}
@@ -3686,9 +3685,9 @@ func flattenLogsThreshold(ctx context.Context, threshold *cxsdk.LogsThresholdTyp
 	return types.ObjectValueFrom(ctx, logsThresholdAttr(), logsMoreThanModel)
 }
 
-func flattenLogsThresholdRules(ctx context.Context, rules []*cxsdk.LogsThresholdRule) (types.List, diag.Diagnostics) {
+func flattenLogsThresholdRules(ctx context.Context, rules []*cxsdk.LogsThresholdRule) (types.Set, diag.Diagnostics) {
 	if rules == nil {
-		return types.ListNull(types.ObjectType{AttrTypes: flowStageAttr()}), nil
+		return types.SetNull(types.ObjectType{AttrTypes: flowStageAttr()}), nil
 	}
 	convertedRules := make([]*LogsThresholdRuleModel, len(rules))
 	var diags diag.Diagnostics
@@ -3711,9 +3710,9 @@ func flattenLogsThresholdRules(ctx context.Context, rules []*cxsdk.LogsThreshold
 		}
 	}
 	if diags.HasError() {
-		return types.ListNull(types.ObjectType{AttrTypes: logsThresholdRulesAttr()}), diags
+		return types.SetNull(types.ObjectType{AttrTypes: logsThresholdRulesAttr()}), diags
 	}
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsThresholdRulesAttr()}, convertedRules)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: logsThresholdRulesAttr()}, convertedRules)
 }
 
 func flattenLogsThresholdRuleCondition(ctx context.Context, condition *cxsdk.LogsThresholdCondition) (types.Object, diag.Diagnostics) {
@@ -3785,7 +3784,7 @@ func flattenLogsAnomaly(ctx context.Context, anomaly *cxsdk.LogsAnomalyType) (ty
 	if diags.HasError() {
 		return types.ObjectNull(logsAnomalyAttr()), diags
 	}
-	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsAnomalyRulesAttr()}, rulesRaw)
+	rules, diags := types.SetValueFrom(ctx, types.ObjectType{AttrTypes: logsAnomalyRulesAttr()}, rulesRaw)
 	if diags.HasError() {
 		return types.ObjectNull(logsAnomalyAttr()), diags
 	}
@@ -3841,7 +3840,7 @@ func flattenLogsRatioThreshold(ctx context.Context, ratioThreshold *cxsdk.LogsRa
 	return types.ObjectValueFrom(ctx, logsRatioThresholdAttr(), logsRatioMoreThanModel)
 }
 
-func flattenRatioThresholdRules(ctx context.Context, ratioThreshold *cxsdk.LogsRatioThresholdType) (types.List, diag.Diagnostics) {
+func flattenRatioThresholdRules(ctx context.Context, ratioThreshold *cxsdk.LogsRatioThresholdType) (types.Set, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	rulesRaw := make([]LogsRatioThresholdRuleModel, len(ratioThreshold.Rules))
 	for i, rule := range ratioThreshold.Rules {
@@ -3864,10 +3863,10 @@ func flattenRatioThresholdRules(ctx context.Context, ratioThreshold *cxsdk.LogsR
 	}
 
 	if diags.HasError() {
-		return types.ListNull(types.ObjectType{AttrTypes: logsRatioThresholdRulesAttr()}), diags
+		return types.SetNull(types.ObjectType{AttrTypes: logsRatioThresholdRulesAttr()}), diags
 	}
 
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsRatioThresholdRulesAttr()}, rulesRaw)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: logsRatioThresholdRulesAttr()}, rulesRaw)
 }
 
 func flattenLogsRatioThresholdRuleCondition(ctx context.Context, condition *cxsdk.LogsRatioCondition) (types.Object, diag.Diagnostics) {
@@ -3918,7 +3917,7 @@ func flattenLogsUniqueCount(ctx context.Context, uniqueCount *cxsdk.LogsUniqueCo
 	return types.ObjectValueFrom(ctx, logsUniqueCountAttr(), logsUniqueCountModel)
 }
 
-func flattenLogsUniqueCountRules(ctx context.Context, uniqueCount *cxsdk.LogsUniqueCountType) (types.List, diag.Diagnostics) {
+func flattenLogsUniqueCountRules(ctx context.Context, uniqueCount *cxsdk.LogsUniqueCountType) (types.Set, diag.Diagnostics) {
 	rulesRaw := make([]LogsUniqueCountRuleModel, len(uniqueCount.Rules))
 	var diags diag.Diagnostics
 	for i, rule := range uniqueCount.Rules {
@@ -3932,7 +3931,7 @@ func flattenLogsUniqueCountRules(ctx context.Context, uniqueCount *cxsdk.LogsUni
 		}
 	}
 
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsUniqueCountRulesAttr()}, rulesRaw)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: logsUniqueCountRulesAttr()}, rulesRaw)
 }
 
 func flattenLogsUniqueCountRuleCondition(ctx context.Context, condition *cxsdk.LogsUniqueCountCondition) (types.Object, diag.Diagnostics) {
@@ -3978,7 +3977,7 @@ func flattenLogsNewValue(ctx context.Context, newValue *cxsdk.LogsNewValueType) 
 		return types.ObjectNull(logsNewValueAttr()), diags
 	}
 
-	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsNewValueRulesAttr()}, rulesRaw)
+	rules, diags := types.SetValueFrom(ctx, types.ObjectType{AttrTypes: logsNewValueRulesAttr()}, rulesRaw)
 	if diags.HasError() {
 		return types.ObjectNull(logsNewValueAttr()), diags
 	}
@@ -4051,12 +4050,12 @@ func flattenActiveOn(ctx context.Context, activeOn *cxsdk.AlertDefActivitySchedu
 	return types.ObjectValueFrom(ctx, alertScheduleActiveOnAttr(), activeOnModel)
 }
 
-func flattenDaysOfWeek(ctx context.Context, daysOfWeek []cxsdk.AlertDayOfWeek) (types.List, diag.Diagnostics) {
+func flattenDaysOfWeek(ctx context.Context, daysOfWeek []cxsdk.AlertDayOfWeek) (types.Set, diag.Diagnostics) {
 	var daysOfWeekStrings []types.String
 	for _, dow := range daysOfWeek {
 		daysOfWeekStrings = append(daysOfWeekStrings, types.StringValue(daysOfWeekProtoToSchemaMap[dow]))
 	}
-	return types.ListValueFrom(ctx, types.StringType, daysOfWeekStrings)
+	return types.SetValueFrom(ctx, types.StringType, daysOfWeekStrings)
 }
 
 func flattenTimeOfDay(ctx context.Context, time *cxsdk.AlertTimeOfDay) (types.Object, diag.Diagnostics) {
@@ -4103,7 +4102,7 @@ func flattenLogsTimeRelativeThreshold(ctx context.Context, logsTimeRelativeThres
 		return types.ObjectNull(logsTimeRelativeAttr()), diags
 	}
 
-	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: logsTimeRelativeRulesAttr()}, rulesRaw)
+	rules, diags := types.SetValueFrom(ctx, types.ObjectType{AttrTypes: logsTimeRelativeRulesAttr()}, rulesRaw)
 	if diags.HasError() {
 		return types.ObjectNull(logsTimeRelativeAttr()), diags
 	}
@@ -4169,7 +4168,7 @@ func flattenMetricThreshold(ctx context.Context, metricThreshold *cxsdk.MetricTh
 			Override:  override,
 		}
 	}
-	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: metricThresholdRulesAttr()}, rulesRaw)
+	rules, diags := types.SetValueFrom(ctx, types.ObjectType{AttrTypes: metricThresholdRulesAttr()}, rulesRaw)
 	if diags.HasError() {
 		return types.ObjectNull(metricThresholdAttr()), diags
 	}
@@ -4422,7 +4421,7 @@ func flattenTracingThreshold(ctx context.Context, tracingThreshold *cxsdk.Tracin
 	return types.ObjectValueFrom(ctx, tracingThresholdAttr(), tracingThresholdModel)
 }
 
-func flattenTracingThresholdRules(ctx context.Context, tracingThreshold *cxsdk.TracingThresholdType, diags diag.Diagnostics) (basetypes.ListValue, diag.Diagnostics) {
+func flattenTracingThresholdRules(ctx context.Context, tracingThreshold *cxsdk.TracingThresholdType, diags diag.Diagnostics) (basetypes.SetValue, diag.Diagnostics) {
 	rulesRaw := make([]TracingThresholdRuleModel, len(tracingThreshold.Rules))
 	for i, rule := range tracingThreshold.Rules {
 		condition, dgs := flattenTracingThresholdRuleCondition(ctx, rule.Condition)
@@ -4434,7 +4433,7 @@ func flattenTracingThresholdRules(ctx context.Context, tracingThreshold *cxsdk.T
 			Condition: condition,
 		}
 	}
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: tracingThresholdRulesAttr()}, rulesRaw)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: tracingThresholdRulesAttr()}, rulesRaw)
 }
 
 func flattenTracingThresholdRuleCondition(ctx context.Context, condition *cxsdk.TracingThresholdCondition) (types.Object, diag.Diagnostics) {
@@ -4482,7 +4481,7 @@ func flattenMetricAnomaly(ctx context.Context, metricMoreThanUsual *cxsdk.Metric
 		return types.ObjectNull(metricAnomalyAttr()), diags
 	}
 
-	rules, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: metricAnomalyRulesAttr()}, rulesRaw)
+	rules, diags := types.SetValueFrom(ctx, types.ObjectType{AttrTypes: metricAnomalyRulesAttr()}, rulesRaw)
 	if diags.HasError() {
 		return types.ObjectNull(metricAnomalyAttr()), diags
 	}
@@ -4525,16 +4524,16 @@ func flattenFlow(ctx context.Context, flow *cxsdk.FlowType) (types.Object, diag.
 	return types.ObjectValueFrom(ctx, flowAttr(), flowModel)
 }
 
-func flattenFlowStages(ctx context.Context, stages []*cxsdk.FlowStages) (types.List, diag.Diagnostics) {
+func flattenFlowStages(ctx context.Context, stages []*cxsdk.FlowStages) (types.Set, diag.Diagnostics) {
 	var flowStages []*FlowStageModel
 	for _, stage := range stages {
 		flowStage, diags := flattenFlowStage(ctx, stage)
 		if diags.HasError() {
-			return types.ListNull(types.ObjectType{AttrTypes: flowStageAttr()}), diags
+			return types.SetNull(types.ObjectType{AttrTypes: flowStageAttr()}), diags
 		}
 		flowStages = append(flowStages, flowStage)
 	}
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: flowStageAttr()}, flowStages)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: flowStageAttr()}, flowStages)
 
 }
 
@@ -4557,16 +4556,16 @@ func flattenFlowStage(ctx context.Context, stage *cxsdk.FlowStages) (*FlowStageM
 
 }
 
-func flattenFlowStagesGroups(ctx context.Context, stage *cxsdk.FlowStages) (types.List, diag.Diagnostics) {
+func flattenFlowStagesGroups(ctx context.Context, stage *cxsdk.FlowStages) (types.Set, diag.Diagnostics) {
 	var flowStagesGroups []*FlowStagesGroupModel
 	for _, group := range stage.GetFlowStagesGroups().GetGroups() {
 		flowStageGroup, diags := flattenFlowStageGroup(ctx, group)
 		if diags.HasError() {
-			return types.ListNull(types.ObjectType{AttrTypes: flowStageGroupAttr()}), diags
+			return types.SetNull(types.ObjectType{AttrTypes: flowStageGroupAttr()}), diags
 		}
 		flowStagesGroups = append(flowStagesGroups, flowStageGroup)
 	}
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: flowStageGroupAttr()}, flowStagesGroups)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: flowStageGroupAttr()}, flowStagesGroups)
 
 }
 
@@ -4588,7 +4587,7 @@ func flattenFlowStageGroup(ctx context.Context, group *cxsdk.FlowStagesGroup) (*
 	return flowStageGroupModel, nil
 }
 
-func flattenAlertDefs(ctx context.Context, defs []*cxsdk.FlowStagesGroupsAlertDefs) (types.List, diag.Diagnostics) {
+func flattenAlertDefs(ctx context.Context, defs []*cxsdk.FlowStagesGroupsAlertDefs) (types.Set, diag.Diagnostics) {
 	var alertDefs []*FlowStagesGroupsAlertDefsModel
 	for _, def := range defs {
 		alertDef := &FlowStagesGroupsAlertDefsModel{
@@ -4597,7 +4596,7 @@ func flattenAlertDefs(ctx context.Context, defs []*cxsdk.FlowStagesGroupsAlertDe
 		}
 		alertDefs = append(alertDefs, alertDef)
 	}
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: alertDefsAttr()}, alertDefs)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: alertDefsAttr()}, alertDefs)
 }
 
 func retriggeringPeriodAttr() map[string]attr.Type {
@@ -4730,7 +4729,7 @@ func logsThresholdAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"logs_filter":                  types.ObjectType{AttrTypes: logsFilterAttr()},
 		"notification_payload_filter":  types.SetType{ElemType: types.StringType},
-		"rules":                        types.ListType{ElemType: types.ObjectType{AttrTypes: logsThresholdRulesAttr()}},
+		"rules":                        types.SetType{ElemType: types.ObjectType{AttrTypes: logsThresholdRulesAttr()}},
 		"undetected_values_management": types.ObjectType{AttrTypes: undetectedValuesManagementAttr()},
 	}
 }
@@ -4753,7 +4752,7 @@ func logsThresholdConditionAttr() map[string]attr.Type {
 func logsAnomalyAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"logs_filter":                 types.ObjectType{AttrTypes: logsFilterAttr()},
-		"rules":                       types.ListType{ElemType: types.ObjectType{AttrTypes: logsAnomalyRulesAttr()}},
+		"rules":                       types.SetType{ElemType: types.ObjectType{AttrTypes: logsAnomalyRulesAttr()}},
 		"notification_payload_filter": types.SetType{ElemType: types.StringType},
 	}
 }
@@ -4778,7 +4777,7 @@ func logsRatioThresholdAttr() map[string]attr.Type {
 		"numerator_alias":   types.StringType,
 		"denominator":       types.ObjectType{AttrTypes: logsFilterAttr()},
 		"denominator_alias": types.StringType,
-		"rules":             types.ListType{ElemType: types.ObjectType{AttrTypes: logsRatioThresholdRulesAttr()}},
+		"rules":             types.SetType{ElemType: types.ObjectType{AttrTypes: logsRatioThresholdRulesAttr()}},
 		"notification_payload_filter": types.SetType{
 			ElemType: types.StringType,
 		},
@@ -4810,7 +4809,7 @@ func alertOverrideAttr() map[string]attr.Type {
 func logsNewValueAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"logs_filter":                 types.ObjectType{AttrTypes: logsFilterAttr()},
-		"rules":                       types.ListType{ElemType: types.ObjectType{AttrTypes: logsNewValueRulesAttr()}},
+		"rules":                       types.SetType{ElemType: types.ObjectType{AttrTypes: logsNewValueRulesAttr()}},
 		"notification_payload_filter": types.SetType{ElemType: types.StringType},
 	}
 }
@@ -4839,7 +4838,7 @@ func logsUniqueCountAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"logs_filter":                       types.ObjectType{AttrTypes: logsFilterAttr()},
 		"notification_payload_filter":       types.SetType{ElemType: types.StringType},
-		"rules":                             types.ListType{ElemType: types.ObjectType{AttrTypes: logsUniqueCountRulesAttr()}},
+		"rules":                             types.SetType{ElemType: types.ObjectType{AttrTypes: logsUniqueCountRulesAttr()}},
 		"unique_count_keypath":              types.StringType,
 		"max_unique_count_per_group_by_key": types.Int64Type,
 	}
@@ -4868,7 +4867,7 @@ func alertScheduleAttr() map[string]attr.Type {
 
 func alertScheduleActiveOnAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"days_of_week": types.ListType{
+		"days_of_week": types.SetType{
 			ElemType: types.StringType,
 		},
 		"start_time": types.ObjectType{
@@ -4892,7 +4891,7 @@ func logsTimeRelativeAttr() map[string]attr.Type {
 		"logs_filter":                  types.ObjectType{AttrTypes: logsFilterAttr()},
 		"notification_payload_filter":  types.SetType{ElemType: types.StringType},
 		"undetected_values_management": types.ObjectType{AttrTypes: undetectedValuesManagementAttr()},
-		"rules":                        types.ListType{ElemType: types.ObjectType{AttrTypes: logsTimeRelativeRulesAttr()}},
+		"rules":                        types.SetType{ElemType: types.ObjectType{AttrTypes: logsTimeRelativeRulesAttr()}},
 	}
 }
 
@@ -4919,7 +4918,7 @@ func metricThresholdAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"metric_filter":                types.ObjectType{AttrTypes: metricFilterAttr()},
 		"undetected_values_management": types.ObjectType{AttrTypes: undetectedValuesManagementAttr()},
-		"rules":                        types.ListType{ElemType: types.ObjectType{AttrTypes: metricThresholdRulesAttr()}},
+		"rules":                        types.SetType{ElemType: types.ObjectType{AttrTypes: metricThresholdRulesAttr()}},
 		"missing_values":               types.ObjectType{AttrTypes: missingValuesAttr()},
 	}
 }
@@ -4960,7 +4959,7 @@ func metricFilterAttr() map[string]attr.Type {
 func metricAnomalyAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"metric_filter": types.ObjectType{AttrTypes: metricFilterAttr()},
-		"rules":         types.ListType{ElemType: types.ObjectType{AttrTypes: metricAnomalyRulesAttr()}},
+		"rules":         types.SetType{ElemType: types.ObjectType{AttrTypes: metricAnomalyRulesAttr()}},
 	}
 }
 
@@ -4991,7 +4990,7 @@ func tracingThresholdAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"tracing_filter":              types.ObjectType{AttrTypes: tracingQueryAttr()},
 		"notification_payload_filter": types.SetType{ElemType: types.StringType},
-		"rules":                       types.ListType{ElemType: types.ObjectType{AttrTypes: tracingThresholdRulesAttr()}},
+		"rules":                       types.SetType{ElemType: types.ObjectType{AttrTypes: tracingThresholdRulesAttr()}},
 	}
 }
 
@@ -5011,7 +5010,7 @@ func tracingThresholdConditionAttr() map[string]attr.Type {
 
 func flowAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"stages": types.ListType{
+		"stages": types.SetType{
 			ElemType: types.ObjectType{
 				AttrTypes: flowStageAttr(),
 			},
@@ -5022,7 +5021,7 @@ func flowAttr() map[string]attr.Type {
 
 func flowStageAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"flow_stages_groups": types.ListType{
+		"flow_stages_groups": types.SetType{
 			ElemType: types.ObjectType{
 				AttrTypes: flowStageGroupAttr(),
 			},
@@ -5034,7 +5033,7 @@ func flowStageAttr() map[string]attr.Type {
 
 func flowStageGroupAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"alert_defs": types.ListType{
+		"alert_defs": types.SetType{
 			ElemType: types.ObjectType{
 				AttrTypes: alertDefsAttr(),
 			},

@@ -792,10 +792,10 @@ rule_subgroups {
                 source_field          = "text"
                 time_format        	  = "%s"
                 field_format_standard = "%s"
+            }
         }
     }
 }
- }
 `, r.name, r.description, r.creator, r.ruleParams.name, r.ruleParams.description, timeFormat, fieldFormatStandard)
 }
 
