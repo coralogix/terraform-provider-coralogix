@@ -41,7 +41,7 @@ func TestAccCoralogixResourceGeoIpeEnrichment(t *testing.T) {
 				Config: testAccCoralogixResourceGeoIpEnrichment(fieldName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(enrichmentResourceName, "id"),
-					resource.TestCheckResourceAttr(enrichmentResourceName, "geo_ip.0.fields.0.name", fieldName),
+					resource.TestCheckResourceAttr(enrichmentResourceName, "geo_ip.fields.name", fieldName),
 				),
 			},
 			{
@@ -128,24 +128,24 @@ func TestAccCoralogixResourceCustomEnrichment(t *testing.T) {
 
 func testAccCoralogixResourceGeoIpEnrichment(fieldName string) string {
 	return fmt.Sprintf(`resource "coralogix_enrichment" test {
-  			geo_ip {
-    			fields {
-      				name = "%s"
-    			}
-			}
-		}
-		`, fieldName)
+              geo_ip {
+                fields {
+                      name = "%s"
+                }
+            }
+        }
+        `, fieldName)
 }
 
 func testAccCoralogixResourceSuspiciousIpEnrichment(fieldName string) string {
 	return fmt.Sprintf(`resource "coralogix_enrichment" test {
-			suspicious_ip {
-				fields {
-      				name = "%s"
-    			}
-			}
-		}
-		`, fieldName)
+            suspicious_ip {
+                fields {
+                      name = "%s"
+                }
+            }
+        }
+        `, fieldName)
 }
 
 //func testAccCoralogixResourceAwsEnrichment(fieldName, resourceType string) string {
@@ -162,20 +162,20 @@ func testAccCoralogixResourceSuspiciousIpEnrichment(fieldName string) string {
 
 func testAccCoralogixResourceCustomEnrichment(fieldName string) string {
 	return fmt.Sprintf(`resource "coralogix_data_set" test {
-		name         = "custom enrichment"
-		description  = "description"
-		file_content = "local_id,instance_type\nfoo1,t2.micro\nfoo2,t2.micro\nfoo3,t2.micro\nbar1,m3.large\n"
-	}
+        name         = "custom enrichment"
+        description  = "description"
+        file_content = "local_id,instance_type\nfoo1,t2.micro\nfoo2,t2.micro\nfoo3,t2.micro\nbar1,m3.large\n"
+    }
 
-	resource "coralogix_enrichment" test{
-		custom{
-			custom_enrichment_id = coralogix_data_set.test.id
-			fields {
-					name = "%s"
-				}
-		}
-	}
-	`, fieldName)
+    resource "coralogix_enrichment" test{
+        custom {
+            custom_enrichment_id = coralogix_data_set.test.id
+            fields {
+                    name = "%s"
+                }
+        }
+    }
+    `, fieldName)
 }
 
 func testAccCheckEnrichmentDestroy(s *terraform.State) error {
