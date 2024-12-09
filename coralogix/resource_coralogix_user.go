@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,6 +20,9 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -35,7 +38,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 func NewUserResource() resource.Resource {
@@ -43,7 +45,7 @@ func NewUserResource() resource.Resource {
 }
 
 type UserResource struct {
-	client *clientset.UsersClient
+	client *cxsdk.UsersClient
 }
 
 func (r *UserResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -164,12 +166,12 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	}
 	userStr, _ := json.Marshal(createUserRequest)
 	log.Printf("[INFO] Creating new User: %s", string(userStr))
-	createResp, err := r.client.CreateUser(ctx, createUserRequest)
+	createResp, err := r.client.Create(ctx, createUserRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating User",
-			formatRpcErrors(err, r.client.TargetUrl, string(userStr)),
+			formatRpcErrors(err, r.client.BaseURL(), string(userStr)),
 		)
 		return
 	}
@@ -187,7 +189,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenSCIMUser(ctx context.Context, user *clientset.SCIMUser) (*UserResourceModel, diag.Diagnostics) {
+func flattenSCIMUser(ctx context.Context, user *cxsdk.SCIMUser) (*UserResourceModel, diag.Diagnostics) {
 	name, diags := flattenSCIMUserName(ctx, user.Name)
 	if diags.HasError() {
 		return nil, diags
@@ -213,7 +215,7 @@ func flattenSCIMUser(ctx context.Context, user *clientset.SCIMUser) (*UserResour
 	}, nil
 }
 
-func flattenSCIMUserEmails(ctx context.Context, emails []clientset.SCIMUserEmail) (types.Set, diag.Diagnostics) {
+func flattenSCIMUserEmails(ctx context.Context, emails []cxsdk.SCIMUserEmail) (types.Set, diag.Diagnostics) {
 	emailsIDs := make([]UserEmailModel, 0, len(emails))
 	for _, email := range emails {
 		emailModel := UserEmailModel{
@@ -234,7 +236,7 @@ func SCIMUserEmailAttr() map[string]attr.Type {
 	}
 }
 
-func flattenSCIMUserName(ctx context.Context, name *clientset.SCIMUserName) (types.Object, diag.Diagnostics) {
+func flattenSCIMUserName(ctx context.Context, name *cxsdk.SCIMUserName) (types.Object, diag.Diagnostics) {
 	if name == nil {
 		return types.ObjectNull(sCIMUserNameAttr()), nil
 	}
@@ -251,7 +253,7 @@ func sCIMUserNameAttr() map[string]attr.Type {
 	}
 }
 
-func flattenSCIMUserGroups(ctx context.Context, groups []clientset.SCIMUserGroup) (types.Set, diag.Diagnostics) {
+func flattenSCIMUserGroups(ctx context.Context, groups []cxsdk.SCIMUserGroup) (types.Set, diag.Diagnostics) {
 	groupsIDs := make([]string, 0, len(groups))
 	for _, group := range groups {
 		groupsIDs = append(groupsIDs, group.Value)
@@ -269,7 +271,7 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	//Get refreshed User value from Coralogix
 	id := state.ID.ValueString()
-	getUserResp, err := r.client.GetUser(ctx, id)
+	getUserResp, err := r.client.Get(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -281,7 +283,7 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading User",
-				formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), ""),
+				formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), ""),
 			)
 		}
 		return
@@ -331,12 +333,12 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 	userStr, _ := json.Marshal(userUpdateReq)
 	log.Printf("[INFO] Updating User: %s", string(userStr))
 	userID := plan.ID.ValueString()
-	userUpdateResp, err := r.client.UpdateUser(ctx, userID, userUpdateReq)
+	userUpdateResp, err := r.client.Update(ctx, userID, userUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating User",
-			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, userID), string(userStr)),
+			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), userID), string(userStr)),
 		)
 		return
 	}
@@ -345,7 +347,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 
 	// Get refreshed User value from Coralogix
 	id := plan.ID.ValueString()
-	getUserResp, err := r.client.GetUser(ctx, id)
+	getUserResp, err := r.client.Get(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -357,7 +359,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading User",
-				formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), string(userStr)),
+				formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), string(userStr)),
 			)
 		}
 		return
@@ -386,10 +388,10 @@ func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting User %s", id)
-	if err := r.client.DeleteUser(ctx, id); err != nil {
+	if err := r.client.Delete(ctx, id); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting User %s", id),
-			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), ""),
+			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), ""),
 		)
 		return
 	}
@@ -416,7 +418,7 @@ type UserEmailModel struct {
 	Type    types.String `tfsdk:"type"`
 }
 
-func extractCreateUser(ctx context.Context, plan *UserResourceModel) (*clientset.SCIMUser, diag.Diagnostics) {
+func extractCreateUser(ctx context.Context, plan *UserResourceModel) (*cxsdk.SCIMUser, diag.Diagnostics) {
 	name, diags := extractUserSCIMName(ctx, plan.Name)
 	if diags.HasError() {
 		return nil, diags
@@ -430,7 +432,7 @@ func extractCreateUser(ctx context.Context, plan *UserResourceModel) (*clientset
 		return nil, diags
 	}
 
-	return &clientset.SCIMUser{
+	return &cxsdk.SCIMUser{
 		Schemas:  []string{},
 		UserName: plan.UserName.ValueString(),
 		Name:     name,
@@ -440,9 +442,9 @@ func extractCreateUser(ctx context.Context, plan *UserResourceModel) (*clientset
 	}, nil
 }
 
-func extractUserGroups(ctx context.Context, groups types.Set) ([]clientset.SCIMUserGroup, diag.Diagnostics) {
+func extractUserGroups(ctx context.Context, groups types.Set) ([]cxsdk.SCIMUserGroup, diag.Diagnostics) {
 	groupsElements := groups.Elements()
-	userGroups := make([]clientset.SCIMUserGroup, 0, len(groupsElements))
+	userGroups := make([]cxsdk.SCIMUserGroup, 0, len(groupsElements))
 	var diags diag.Diagnostics
 	for _, group := range groupsElements {
 		val, err := group.ToTerraformValue(ctx)
@@ -456,7 +458,7 @@ func extractUserGroups(ctx context.Context, groups types.Set) ([]clientset.SCIMU
 			diags.AddError("Failed to convert value to string", err.Error())
 			continue
 		}
-		userGroups = append(userGroups, clientset.SCIMUserGroup{Value: str})
+		userGroups = append(userGroups, cxsdk.SCIMUserGroup{Value: str})
 	}
 	if diags.HasError() {
 		return nil, diags
@@ -464,7 +466,7 @@ func extractUserGroups(ctx context.Context, groups types.Set) ([]clientset.SCIMU
 	return userGroups, nil
 }
 
-func extractUserSCIMName(ctx context.Context, name types.Object) (*clientset.SCIMUserName, diag.Diagnostics) {
+func extractUserSCIMName(ctx context.Context, name types.Object) (*cxsdk.SCIMUserName, diag.Diagnostics) {
 	if name.IsNull() || name.IsUnknown() {
 		return nil, nil
 	}
@@ -474,16 +476,16 @@ func extractUserSCIMName(ctx context.Context, name types.Object) (*clientset.SCI
 		return nil, diags
 	}
 
-	return &clientset.SCIMUserName{
+	return &cxsdk.SCIMUserName{
 		GivenName:  nameModel.GivenName.ValueString(),
 		FamilyName: nameModel.FamilyName.ValueString(),
 	}, nil
 }
 
-func extractUserEmails(ctx context.Context, emails types.Set) ([]clientset.SCIMUserEmail, diag.Diagnostics) {
+func extractUserEmails(ctx context.Context, emails types.Set) ([]cxsdk.SCIMUserEmail, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var emailsObjects []types.Object
-	var expandedEmails []clientset.SCIMUserEmail
+	var expandedEmails []cxsdk.SCIMUserEmail
 	emails.ElementsAs(ctx, &emailsObjects, true)
 
 	for _, eo := range emailsObjects {
@@ -492,7 +494,7 @@ func extractUserEmails(ctx context.Context, emails types.Set) ([]clientset.SCIMU
 			diags.Append(dg...)
 			continue
 		}
-		expandedEmail := clientset.SCIMUserEmail{
+		expandedEmail := cxsdk.SCIMUserEmail{
 			Value:   email.Value.ValueString(),
 			Primary: email.Primary.ValueBool(),
 			Type:    email.Type.ValueString(),

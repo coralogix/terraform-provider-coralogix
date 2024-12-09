@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"log"
 
-	archiveRetention "terraform-provider-coralogix/coralogix/clientset/grpc/archive-retentions"
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -36,7 +36,7 @@ func NewArchiveRetentionsDataSource() datasource.DataSource {
 }
 
 type ArchiveRetentionsDataSource struct {
-	client *clientset.ArchiveRetentionsClient
+	client *cxsdk.ArchiveRetentionsClient
 }
 
 func (d *ArchiveRetentionsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -77,13 +77,13 @@ func (d *ArchiveRetentionsDataSource) Read(ctx context.Context, req datasource.R
 
 	//Get refreshed archive-retentions value from Coralogix
 	log.Print("[INFO] Reading archive-retentions:")
-	getArchiveRetentionsReq := &archiveRetention.GetRetentionsRequest{}
-	getArchiveRetentionsResp, err := d.client.GetRetentions(ctx, getArchiveRetentionsReq)
+	getArchiveRetentionsReq := &cxsdk.GetRetentionsRequest{}
+	getArchiveRetentionsResp, err := d.client.Get(ctx, getArchiveRetentionsReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading archive-retentions",
-			formatRpcErrors(err, getArchiveRetentionsURL, protojson.Format(getArchiveRetentionsReq)),
+			formatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq)),
 		)
 
 		return
