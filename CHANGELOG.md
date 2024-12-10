@@ -710,3 +710,15 @@ New Features:
 DEVELOPERS:
 
 * go version was update to 1.23.x
+
+# Release 1.18.13
+
+New features:
+
+* added low severity alerts
+
+# Release 1.18.14
+
+Fix:
+
+* Fixed geo_ip enrichments

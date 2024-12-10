@@ -2563,7 +2563,7 @@ func extractNewValueCondition(ctx context.Context, condition types.Object) (*cxs
 }
 
 func expandLogsUniqueCountAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, uniqueCount types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
-	if uniqueCount.IsNull() || uniqueCount.IsUnknown() {
+	if objIsNullOrUnknown(uniqueCount) {
 		return properties, nil
 	}
 
@@ -2627,7 +2627,7 @@ func extractLogsUniqueCountRules(ctx context.Context, elements types.Set) ([]*cx
 }
 
 func extractLogsUniqueCountCondition(ctx context.Context, condition types.Object) (*cxsdk.LogsUniqueCountCondition, diag.Diagnostics) {
-	if condition.IsNull() || condition.IsUnknown() {
+	if objIsNullOrUnknown(condition) {
 		return nil, nil
 	}
 
@@ -2647,7 +2647,7 @@ func extractLogsUniqueCountCondition(ctx context.Context, condition types.Object
 }
 
 func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, relativeThreshold types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
-	if relativeThreshold.IsNull() || relativeThreshold.IsUnknown() {
+	if objIsNullOrUnknown(relativeThreshold) {
 		return properties, nil
 	}
 
@@ -2768,7 +2768,7 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *c
 }
 
 func extractMetricThresholdMissingValues(ctx context.Context, values types.Object) (*cxsdk.MetricMissingValues, diag.Diagnostics) {
-	if values.IsNull() || values.IsUnknown() {
+	if objIsNullOrUnknown(values) {
 		return nil, nil
 	}
 
@@ -2839,7 +2839,7 @@ func extractMetricThresholdRules(ctx context.Context, elements types.Set) ([]*cx
 }
 
 func extractMetricFilter(ctx context.Context, filter types.Object) (*cxsdk.MetricFilter, diag.Diagnostics) {
-	if filter.IsNull() || filter.IsUnknown() {
+	if objIsNullOrUnknown(filter) {
 		return nil, nil
 	}
 
@@ -3070,11 +3070,11 @@ func extractTracingSpanFieldsFilterType(ctx context.Context, spanFields types.Se
 	}
 
 	var spanFieldsObjects []types.Object
-	diags := spanFields.ElementsAs(ctx, &spanFieldsObjects, true)
+	_ = spanFields.ElementsAs(ctx, &spanFieldsObjects, true)
 	var filters []*cxsdk.TracingSpanFieldsFilterType
 	for _, element := range spanFieldsObjects {
 		var filterModel TracingSpanFieldsFilterModel
-		if diags = element.As(ctx, &filterModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		if diags := element.As(ctx, &filterModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 			return nil, diags
 		}
 

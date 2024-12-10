@@ -29,6 +29,9 @@ The script allows you to:
 ---
 
 ### **2. Running the Script**
+Before running the script, ensure you defined the required environment variables -  
+`CORALOGIX_API_KEY` and `CORALOGIX_ENV` or `CORALOGIX_DOMAIN`.
+
 Use the script as follows:
 ```bash
 ./script.sh
@@ -79,6 +82,8 @@ After selecting the migration type, you will be prompted to specify the Terrafor
 
 #### **Step 9: Apply the Configuration**
 - The script applies the cleaned configuration using `terraform apply`.
+**Note**: The script will prompt you to confirm the apply action and will override your existing resources with the new configuration. 
+If you choose not to apply, the script will exit.
 
 #### **Step 10: Cleanup**
 - Temporary files are deleted.
