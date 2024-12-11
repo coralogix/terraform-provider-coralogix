@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -162,11 +162,11 @@ func testAccCheckEvents2MetricDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &e2m.GetE2MRequest{
+		req := &cxsdk.GetE2MRequest{
 			Id: wrapperspb.String(rs.Primary.ID),
 		}
 
-		resp, err := client.GetEvents2Metric(ctx, req)
+		resp, err := client.Get(ctx, req)
 		if err == nil {
 			if resp.GetE2M().GetId().GetValue() == rs.Primary.ID {
 				return fmt.Errorf("events2metric still exists: %s", rs.Primary.ID)
@@ -187,42 +187,42 @@ func getRandomEvents2Metric() *events2MetricTestFields {
 
 func testAccCoralogixResourceLogs2Metric(l *events2MetricTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_events2metric" "test" {
-  name        = "%s"
-  description = "%s"
-  logs_query = {
+name        = "%s"
+description = "%s"
+logs_query = {
     lucene       = "remote_addr_enriched:/.*/"
     applications = ["nginx"]
     severities   = ["Debug"]
-  }
+}
 
-  metric_fields = {
+metric_fields = {
     method = {
-      source_field = "method"
+        source_field = "method"
     },
     geo_point = {
-      source_field = "location_geopoint"
-      aggregations = {
-        max = {
-          enable = false
+        source_field = "location_geopoint"
+        aggregations = {
+            max = {
+                enable = false
+            }
+            min = {
+                enable = false
+            }
+            avg = {
+                enable = true
+            }
         }
-        min = {
-          enable = false
-        }
-        avg = {
-          enable = true
-        }
-      }
     }
-  }
+}
 
-  metric_labels = {
+metric_labels = {
     Status = "status"
     Path   = "http_referer"
-  }
+}
 
-  permutations = {
+permutations = {
     limit = %d
-  }
+}
 }
 `,
 		l.name, l.description, l.limit)
@@ -236,7 +236,7 @@ func testAccCoralogixResourceSpans2Metric(l *events2MetricTestFields) string {
     lucene       = "remote_addr_enriched:/.*/"
     applications = ["nginx"]
     actions = ["action-name"]
-	services = ["service-name"]
+    services = ["service-name"]
   }
 
   metric_fields = {

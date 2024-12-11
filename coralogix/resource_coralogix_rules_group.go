@@ -18,11 +18,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	rulesv1 "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"google.golang.org/grpc/codes"
@@ -35,41 +36,37 @@ import (
 )
 
 var (
-	rulesSchemaSeverityToProtoSeverity = map[string]string{
-		"Debug":    "VALUE_DEBUG_OR_UNSPECIFIED",
-		"Verbose":  "VALUE_VERBOSE",
-		"Info":     "VALUE_INFO",
-		"Warning":  "VALUE_WARNING",
-		"Error":    "VALUE_ERROR",
-		"Critical": "VALUE_CRITICAL",
+	rulesSchemaSeverityToProtoSeverity = map[string]cxsdk.SeverityConstraintValue{
+		"Debug":    cxsdk.SeverityConstraintValueDebugOrUnspecified,
+		"Verbose":  cxsdk.SeverityConstraintValueVerbose,
+		"Info":     cxsdk.SeverityConstraintValueInfo,
+		"Warning":  cxsdk.SeverityConstraintValueWarning,
+		"Error":    cxsdk.SeverityConstraintValueError,
+		"Critical": cxsdk.SeverityConstraintValueCritical,
 	}
-	rulesProtoSeverityToSchemaSeverity                 = reverseMapStrings(rulesSchemaSeverityToProtoSeverity)
-	rulesValidSeverities                               = getKeysStrings(rulesSchemaSeverityToProtoSeverity)
-	rulesSchemaDestinationFieldToProtoDestinationField = map[string]rulesv1.JsonExtractParameters_DestinationField{
-		"Category": rulesv1.JsonExtractParameters_DESTINATION_FIELD_CATEGORY_OR_UNSPECIFIED,
-		"Class":    rulesv1.JsonExtractParameters_DESTINATION_FIELD_CLASSNAME,
-		"Method":   rulesv1.JsonExtractParameters_DESTINATION_FIELD_METHODNAME,
-		"ThreadID": rulesv1.JsonExtractParameters_DESTINATION_FIELD_THREADID,
-		"Severity": rulesv1.JsonExtractParameters_DESTINATION_FIELD_SEVERITY,
-		"Text":     rulesv1.JsonExtractParameters_DESTINATION_FIELD_TEXT,
+	rulesProtoSeverityToSchemaSeverity                 = ReverseMap(rulesSchemaSeverityToProtoSeverity)
+	rulesValidSeverities                               = GetKeys(rulesSchemaSeverityToProtoSeverity)
+	rulesSchemaDestinationFieldToProtoDestinationField = map[string]cxsdk.JSONExtractParametersDestinationField{
+		"Category": cxsdk.JSONExtractParametersDestinationFieldCategoryOrUnspecified,
+		"Class":    cxsdk.JSONExtractParametersDestinationFieldClassName,
+		"Method":   cxsdk.JSONExtractParametersDestinationFieldMethodName,
+		"ThreadID": cxsdk.JSONExtractParametersDestinationFieldThreadID,
+		"Severity": cxsdk.JSONExtractParametersDestinationFieldSeverity,
+		"Text":     cxsdk.JSONExtractParametersDestinationFieldText,
 	}
 	rulesProtoDestinationFieldToSchemaDestinationField = ReverseMap(rulesSchemaDestinationFieldToProtoDestinationField)
 	rulesValidDestinationFields                        = GetKeys(rulesSchemaDestinationFieldToProtoDestinationField)
-	rulesSchemaFormatStandardToProtoFormatStandard     = map[string]string{
-		"Strftime": "FORMAT_STANDARD_STRFTIME_OR_UNSPECIFIED",
-		"JavaSDF":  "FORMAT_STANDARD_JAVASDF",
-		"Golang":   "FORMAT_STANDARD_GOLANG",
-		"SecondTS": "FORMAT_STANDARD_SECONDSTS",
-		"MilliTS":  "FORMAT_STANDARD_MILLITS",
-		"MicroTS":  "FORMAT_STANDARD_MICROTS",
-		"NanoTS":   "FORMAT_STANDARD_NANOTS",
+	rulesSchemaFormatStandardToProtoFormatStandard     = map[string]cxsdk.ExtractTimestampParametersFormatStandard{
+		"Strftime": cxsdk.ExtractTimestampParametersFormatStandardStrftimeOrUnspecified,
+		"JavaSDF":  cxsdk.ExtractTimestampParametersFormatStandardJavasdf,
+		"Golang":   cxsdk.ExtractTimestampParametersFormatStandardGolang,
+		"SecondTS": cxsdk.ExtractTimestampParametersFormatStandardSecondsTS,
+		"MilliTS":  cxsdk.ExtractTimestampParametersFormatStandardMilliTS,
+		"MicroTS":  cxsdk.ExtractTimestampParametersFormatStandardMicroTS,
+		"NanoTS":   cxsdk.ExtractTimestampParametersFormatStandardNanoTS,
 	}
-	rulesProtoFormatStandardToSchemaFormatStandard = reverseMapStrings(rulesSchemaFormatStandardToProtoFormatStandard)
-	rulesValidFormatStandards                      = getKeysStrings(rulesSchemaFormatStandardToProtoFormatStandard)
-	createParsingRuleURL                           = "com.coralogix.rules.v1.RuleGroupsService/CreateRuleGroup"
-	getParsingRuleURL                              = "com.coralogix.rules.v1.RuleGroupsService/GetRuleGroup"
-	updateParsingRuleURL                           = "com.coralogix.rules.v1.RuleGroupsService/UpdateRuleGroup"
-	deleteParsingRuleURL                           = "com.coralogix.rules.v1.RuleGroupsService/DeleteRuleGroup"
+	rulesProtoFormatStandardToSchemaFormatStandard = ReverseMap(rulesSchemaFormatStandardToProtoFormatStandard)
+	rulesValidFormatStandards                      = GetKeys(rulesSchemaFormatStandardToProtoFormatStandard)
 )
 
 func resourceCoralogixRulesGroup() *schema.Resource {
@@ -483,10 +480,10 @@ func resourceCoralogixRulesGroupCreate(ctx context.Context, d *schema.ResourceDa
 	}
 
 	log.Printf("[INFO] Creating new rule-group: %s", protojson.Format(createRuleGroupRequest))
-	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().CreateRuleGroup(ctx, createRuleGroupRequest)
+	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().Create(ctx, createRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, createParsingRuleURL, protojson.Format(createRuleGroupRequest)))
+		return diag.Errorf(formatRpcErrors(err, cxsdk.RuleGroupsCreateRuleGroupRPC, protojson.Format(createRuleGroupRequest)))
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
 	log.Printf("[INFO] Submitted new rule-group: %s", protojson.Format(ruleGroup))
@@ -497,12 +494,12 @@ func resourceCoralogixRulesGroupCreate(ctx context.Context, d *schema.ResourceDa
 
 func resourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
-	getRuleGroupRequest := &rulesv1.GetRuleGroupRequest{
+	getRuleGroupRequest := &cxsdk.GetRuleGroupRequest{
 		GroupId: id,
 	}
 
 	log.Printf("[INFO] Reading rule-group %s", id)
-	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().GetRuleGroup(ctx, getRuleGroupRequest)
+	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().Get(ctx, getRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -513,7 +510,7 @@ func resourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceData
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		return diag.Errorf(formatRpcErrors(err, getParsingRuleURL, protojson.Format(getRuleGroupRequest)))
+		return diag.Errorf(formatRpcErrors(err, cxsdk.RuleGroupsGetRuleGroupRPC, protojson.Format(getRuleGroupRequest)))
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
 	log.Printf("[INFO] Received rule-group: %s", protojson.Format(ruleGroup))
@@ -528,16 +525,16 @@ func resourceCoralogixRulesGroupUpdate(ctx context.Context, d *schema.ResourceDa
 	}
 
 	id := d.Id()
-	updateRuleGroupRequest := &rulesv1.UpdateRuleGroupRequest{
+	updateRuleGroupRequest := &cxsdk.UpdateRuleGroupRequest{
 		GroupId:   wrapperspb.String(id),
 		RuleGroup: req,
 	}
 
 	log.Printf("[INFO] Updating rule-group %s to %s", id, protojson.Format(updateRuleGroupRequest))
-	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().UpdateRuleGroup(ctx, updateRuleGroupRequest)
+	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().Update(ctx, updateRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, updateParsingRuleURL, protojson.Format(updateRuleGroupRequest)))
+		return diag.Errorf(formatRpcErrors(err, cxsdk.RuleGroupsUpdateRuleGroupRPC, protojson.Format(updateRuleGroupRequest)))
 	}
 	log.Printf("[INFO] Submitted updated rule-group: %s", protojson.Format(ruleGroupResp))
 
@@ -546,15 +543,15 @@ func resourceCoralogixRulesGroupUpdate(ctx context.Context, d *schema.ResourceDa
 
 func resourceCoralogixRulesGroupDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
-	deleteRuleGroupRequest := &rulesv1.DeleteRuleGroupRequest{
+	deleteRuleGroupRequest := &cxsdk.DeleteRuleGroupRequest{
 		GroupId: id,
 	}
 
 	log.Printf("[INFO] Deleting rule-group %s", id)
-	_, err := meta.(*clientset.ClientSet).RuleGroups().DeleteRuleGroup(ctx, deleteRuleGroupRequest)
+	_, err := meta.(*clientset.ClientSet).RuleGroups().Delete(ctx, deleteRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, deleteParsingRuleURL, protojson.Format(deleteRuleGroupRequest)))
+		return diag.Errorf(formatRpcErrors(err, cxsdk.RuleGroupsDeleteRuleGroupRPC, protojson.Format(deleteRuleGroupRequest)))
 	}
 	log.Printf("[INFO] rule-group %s deleted", id)
 
@@ -562,7 +559,7 @@ func resourceCoralogixRulesGroupDelete(ctx context.Context, d *schema.ResourceDa
 	return nil
 }
 
-func extractCreateRuleGroupRequest(d *schema.ResourceData) (*rulesv1.CreateRuleGroupRequest, error) {
+func extractCreateRuleGroupRequest(d *schema.ResourceData) (*cxsdk.CreateRuleGroupRequest, error) {
 	name := wrapperspb.String(d.Get("name").(string))
 	description := wrapperspb.String(d.Get("description").(string))
 	creator := wrapperspb.String(d.Get("creator").(string))
@@ -574,7 +571,7 @@ func extractCreateRuleGroupRequest(d *schema.ResourceData) (*rulesv1.CreateRuleG
 		return nil, err
 	}
 	order := wrapperspb.UInt32(uint32(d.Get("order").(int)))
-	createRuleGroupRequest := &rulesv1.CreateRuleGroupRequest{
+	createRuleGroupRequest := &cxsdk.CreateRuleGroupRequest{
 		Name:          name,
 		Description:   description,
 		Creator:       creator,
@@ -587,7 +584,7 @@ func extractCreateRuleGroupRequest(d *schema.ResourceData) (*rulesv1.CreateRuleG
 	return createRuleGroupRequest, nil
 }
 
-func setRuleGroup(d *schema.ResourceData, ruleGroup *rulesv1.RuleGroup) diag.Diagnostics {
+func setRuleGroup(d *schema.ResourceData, ruleGroup *cxsdk.RuleGroup) diag.Diagnostics {
 	if err := d.Set("active", ruleGroup.GetEnabled().GetValue()); err != nil {
 		return diag.FromErr(err)
 	}
@@ -635,44 +632,43 @@ func setRuleGroup(d *schema.ResourceData, ruleGroup *rulesv1.RuleGroup) diag.Dia
 	return nil
 }
 
-func expandRuleMatcher(d *schema.ResourceData) []*rulesv1.RuleMatcher {
+func expandRuleMatcher(d *schema.ResourceData) []*cxsdk.RuleMatcher {
 	applications := d.Get("applications").(*schema.Set).List()
 	subsystems := d.Get("subsystems").(*schema.Set).List()
 	severities := d.Get("severities").(*schema.Set).List()
-	ruleMatchers := make([]*rulesv1.RuleMatcher, 0, len(applications)+len(subsystems)+len(severities))
+	ruleMatchers := make([]*cxsdk.RuleMatcher, 0, len(applications)+len(subsystems)+len(severities))
 
 	for _, app := range applications {
 		constraintStr := wrapperspb.String(app.(string))
-		applicationNameConstraint := rulesv1.ApplicationNameConstraint{Value: constraintStr}
-		ruleMatcherApplicationName := rulesv1.RuleMatcher_ApplicationName{ApplicationName: &applicationNameConstraint}
-		ruleMatchers = append(ruleMatchers, &rulesv1.RuleMatcher{Constraint: &ruleMatcherApplicationName})
+		applicationNameConstraint := cxsdk.ApplicationNameConstraint{Value: constraintStr}
+		ruleMatcherApplicationName := cxsdk.RuleMatcherApplicationName{ApplicationName: &applicationNameConstraint}
+		ruleMatchers = append(ruleMatchers, &cxsdk.RuleMatcher{Constraint: &ruleMatcherApplicationName})
 	}
 
 	for _, subSys := range subsystems {
 		constraintStr := wrapperspb.String(subSys.(string))
-		subsystemNameConstraint := rulesv1.SubsystemNameConstraint{Value: constraintStr}
-		ruleMatcherApplicationName := rulesv1.RuleMatcher_SubsystemName{SubsystemName: &subsystemNameConstraint}
-		ruleMatchers = append(ruleMatchers, &rulesv1.RuleMatcher{Constraint: &ruleMatcherApplicationName})
+		subsystemNameConstraint := cxsdk.SubsystemNameConstraint{Value: constraintStr}
+		ruleMatcherApplicationName := cxsdk.RuleMatcherSubsystemName{SubsystemName: &subsystemNameConstraint}
+		ruleMatchers = append(ruleMatchers, &cxsdk.RuleMatcher{Constraint: &ruleMatcherApplicationName})
 	}
 
 	for _, sev := range severities {
 		constraintEnum := expandRuledSeverity(sev.(string))
-		severityConstraint := rulesv1.SeverityConstraint{Value: constraintEnum}
-		ruleMatcherSeverity := rulesv1.RuleMatcher_Severity{Severity: &severityConstraint}
-		ruleMatchers = append(ruleMatchers, &rulesv1.RuleMatcher{Constraint: &ruleMatcherSeverity})
+		severityConstraint := cxsdk.SeverityConstraint{Value: constraintEnum}
+		ruleMatcherSeverity := cxsdk.RuleMatcherSeverity{Severity: &severityConstraint}
+		ruleMatchers = append(ruleMatchers, &cxsdk.RuleMatcher{Constraint: &ruleMatcherSeverity})
 	}
 
 	return ruleMatchers
 }
 
-func expandRuledSeverity(severity string) rulesv1.SeverityConstraint_Value {
-	sevStr := rulesSchemaSeverityToProtoSeverity[severity]
-	return rulesv1.SeverityConstraint_Value(rulesv1.SeverityConstraint_Value_value[sevStr])
+func expandRuledSeverity(severity string) cxsdk.SeverityConstraintValue {
+	return cxsdk.SeverityConstraintValue(rulesSchemaSeverityToProtoSeverity[strings.ToLower(severity)])
 }
 
-func expandRuleSubgroups(v interface{}) ([]*rulesv1.CreateRuleGroupRequest_CreateRuleSubgroup, error) {
+func expandRuleSubgroups(v interface{}) ([]*cxsdk.CreateRuleGroupRequestCreateRuleSubgroup, error) {
 	s := v.([]interface{})
-	ruleSubgroups := make([]*rulesv1.CreateRuleGroupRequest_CreateRuleSubgroup, 0, len(s))
+	ruleSubgroups := make([]*cxsdk.CreateRuleGroupRequestCreateRuleSubgroup, 0, len(s))
 	for i, o := range s {
 		m := o.(map[string]interface{})
 		rsg, err := expandRuleSubgroup(m)
@@ -690,7 +686,7 @@ func expandRuleSubgroups(v interface{}) ([]*rulesv1.CreateRuleGroupRequest_Creat
 	return ruleSubgroups, nil
 }
 
-func expandRuleSubgroup(m map[string]interface{}) (*rulesv1.CreateRuleGroupRequest_CreateRuleSubgroup, error) {
+func expandRuleSubgroup(m map[string]interface{}) (*cxsdk.CreateRuleGroupRequestCreateRuleSubgroup, error) {
 	rules, err := expandRules(m["rules"].([]interface{}))
 	if err != nil {
 		return nil, err
@@ -703,15 +699,15 @@ func expandRuleSubgroup(m map[string]interface{}) (*rulesv1.CreateRuleGroupReque
 		order = wrapperspb.UInt32(uint32(o))
 	}
 
-	return &rulesv1.CreateRuleGroupRequest_CreateRuleSubgroup{
+	return &cxsdk.CreateRuleGroupRequestCreateRuleSubgroup{
 		Rules:   rules,
 		Enabled: active,
 		Order:   order,
 	}, nil
 }
 
-func expandRules(s []interface{}) ([]*rulesv1.CreateRuleGroupRequest_CreateRuleSubgroup_CreateRule, error) {
-	rules := make([]*rulesv1.CreateRuleGroupRequest_CreateRuleSubgroup_CreateRule, 0)
+func expandRules(s []interface{}) ([]*cxsdk.CreateRuleGroupRequestCreateRuleSubgroupCreateRule, error) {
+	rules := make([]*cxsdk.CreateRuleGroupRequestCreateRuleSubgroupCreateRule, 0)
 	for i, v := range s {
 		rule, err := expandRule(v)
 		if err != nil {
@@ -727,9 +723,9 @@ func expandRules(s []interface{}) ([]*rulesv1.CreateRuleGroupRequest_CreateRuleS
 	return rules, nil
 }
 
-func expandRule(i interface{}) (*rulesv1.CreateRuleGroupRequest_CreateRuleSubgroup_CreateRule, error) {
+func expandRule(i interface{}) (*cxsdk.CreateRuleGroupRequestCreateRuleSubgroupCreateRule, error) {
 	m := i.(map[string]interface{})
-	var rule *rulesv1.CreateRuleGroupRequest_CreateRuleSubgroup_CreateRule
+	var rule *cxsdk.CreateRuleGroupRequestCreateRuleSubgroupCreateRule
 	for k, v := range m {
 		if r, ok := v.([]interface{}); ok && len(r) > 0 {
 			if rule == nil {
@@ -745,7 +741,7 @@ func expandRule(i interface{}) (*rulesv1.CreateRuleGroupRequest_CreateRuleSubgro
 	return rule, nil
 }
 
-func expandRuleForSpecificRuleType(rulesType string, i interface{}) *rulesv1.CreateRuleGroupRequest_CreateRuleSubgroup_CreateRule {
+func expandRuleForSpecificRuleType(rulesType string, i interface{}) *cxsdk.CreateRuleGroupRequestCreateRuleSubgroupCreateRule {
 	m := i.(map[string]interface{})
 
 	var order *wrapperspb.UInt32Value
@@ -753,7 +749,7 @@ func expandRuleForSpecificRuleType(rulesType string, i interface{}) *rulesv1.Cre
 		order = wrapperspb.UInt32(uint32(o))
 	}
 
-	return &rulesv1.CreateRuleGroupRequest_CreateRuleSubgroup_CreateRule{
+	return &cxsdk.CreateRuleGroupRequestCreateRuleSubgroupCreateRule{
 		Name:        wrapperspb.String(m["name"].(string)),
 		Description: wrapperspb.String(m["description"].(string)),
 		SourceField: func() *wrapperspb.StringValue {
@@ -768,78 +764,78 @@ func expandRuleForSpecificRuleType(rulesType string, i interface{}) *rulesv1.Cre
 	}
 }
 
-func expandParameters(ruleType string, m map[string]interface{}) *rulesv1.RuleParameters {
-	var ruleParameters rulesv1.RuleParameters
+func expandParameters(ruleType string, m map[string]interface{}) *cxsdk.RuleParameters {
+	var ruleParameters cxsdk.RuleParameters
 
 	switch ruleType {
 	case "parse":
 		destinationField := wrapperspb.String(m["destination_field"].(string))
 		rule := wrapperspb.String(m["regular_expression"].(string))
-		parseParameters := rulesv1.ParseParameters{DestinationField: destinationField, Rule: rule}
-		ruleParametersParseParameters := rulesv1.RuleParameters_ParseParameters{ParseParameters: &parseParameters}
+		parseParameters := cxsdk.ParseParameters{DestinationField: destinationField, Rule: rule}
+		ruleParametersParseParameters := cxsdk.RuleParametersParseParameters{ParseParameters: &parseParameters}
 		ruleParameters.RuleParameters = &ruleParametersParseParameters
 	case "extract":
 		rule := wrapperspb.String(m["regular_expression"].(string))
-		extractParameters := rulesv1.ExtractParameters{Rule: rule}
-		ruleParametersExtractParameters := rulesv1.RuleParameters_ExtractParameters{ExtractParameters: &extractParameters}
+		extractParameters := cxsdk.ExtractParameters{Rule: rule}
+		ruleParametersExtractParameters := cxsdk.RuleParametersExtractParameters{ExtractParameters: &extractParameters}
 		ruleParameters.RuleParameters = &ruleParametersExtractParameters
 	case "json_extract":
 		destinationField := rulesSchemaDestinationFieldToProtoDestinationField[m["destination_field"].(string)]
 		rule := wrapperspb.String(m["json_key"].(string))
-		jsonExtractParameters := rulesv1.JsonExtractParameters{DestinationFieldType: destinationField, Rule: rule}
-		if destinationField == rulesv1.JsonExtractParameters_DESTINATION_FIELD_TEXT {
+		jsonExtractParameters := cxsdk.JSONExtractParameters{DestinationFieldType: destinationField, Rule: rule}
+		if destinationField == cxsdk.JSONExtractParametersDestinationFieldText {
 			jsonExtractParameters.DestinationFieldText = wrapperspb.String(m["destination_field_text"].(string))
 		}
-		ruleParametersJsonExtractParameters := rulesv1.RuleParameters_JsonExtractParameters{JsonExtractParameters: &jsonExtractParameters}
+		ruleParametersJsonExtractParameters := cxsdk.RuleParametersJSONExtractParameters{JsonExtractParameters: &jsonExtractParameters}
 		ruleParameters.RuleParameters = &ruleParametersJsonExtractParameters
 	case "replace":
 		destinationField := wrapperspb.String(m["destination_field"].(string))
 		replaceNewVal := wrapperspb.String(m["replacement_string"].(string))
 		rule := wrapperspb.String(m["regular_expression"].(string))
-		replaceParameters := rulesv1.ReplaceParameters{DestinationField: destinationField, ReplaceNewVal: replaceNewVal, Rule: rule}
-		ruleParametersReplaceParameters := rulesv1.RuleParameters_ReplaceParameters{ReplaceParameters: &replaceParameters}
+		replaceParameters := cxsdk.ReplaceParameters{DestinationField: destinationField, ReplaceNewVal: replaceNewVal, Rule: rule}
+		ruleParametersReplaceParameters := cxsdk.RuleParametersReplaceParameters{ReplaceParameters: &replaceParameters}
 		ruleParameters.RuleParameters = &ruleParametersReplaceParameters
 	case "block":
 		keepBlockedLogs := wrapperspb.Bool(m["keep_blocked_logs"].(bool))
 		rule := wrapperspb.String(m["regular_expression"].(string))
 		if m["blocking_all_matching_blocks"].(bool) {
-			blockParameters := rulesv1.BlockParameters{KeepBlockedLogs: keepBlockedLogs, Rule: rule}
-			ruleParametersBlockParameters := rulesv1.RuleParameters_BlockParameters{BlockParameters: &blockParameters}
+			blockParameters := cxsdk.BlockParameters{KeepBlockedLogs: keepBlockedLogs, Rule: rule}
+			ruleParametersBlockParameters := cxsdk.RuleParametersBlockParameters{BlockParameters: &blockParameters}
 			ruleParameters.RuleParameters = &ruleParametersBlockParameters
 		} else {
-			allowParameters := rulesv1.AllowParameters{KeepBlockedLogs: keepBlockedLogs, Rule: rule}
-			ruleParametersAllowParameters := rulesv1.RuleParameters_AllowParameters{AllowParameters: &allowParameters}
+			allowParameters := cxsdk.AllowParameters{KeepBlockedLogs: keepBlockedLogs, Rule: rule}
+			ruleParametersAllowParameters := cxsdk.RuleParametersAllowParameters{AllowParameters: &allowParameters}
 			ruleParameters.RuleParameters = &ruleParametersAllowParameters
 		}
 	case "extract_timestamp":
 		standard := expandFieldFormatStandard(m["field_format_standard"].(string))
 		format := wrapperspb.String(m["time_format"].(string))
-		extractTimestampParameters := rulesv1.ExtractTimestampParameters{Format: format, Standard: standard}
-		ruleParametersExtractTimestampParameters := rulesv1.RuleParameters_ExtractTimestampParameters{ExtractTimestampParameters: &extractTimestampParameters}
+		extractTimestampParameters := cxsdk.ExtractTimestampParameters{Format: format, Standard: standard}
+		ruleParametersExtractTimestampParameters := cxsdk.RuleParametersExtractTimestampParameters{ExtractTimestampParameters: &extractTimestampParameters}
 		ruleParameters.RuleParameters = &ruleParametersExtractTimestampParameters
 	case "remove_fields":
 		excludedFields := interfaceSliceToStringSlice(m["excluded_fields"].([]interface{}))
-		removeFieldsParameters := rulesv1.RemoveFieldsParameters{Fields: excludedFields}
-		ruleParametersRemoveFieldsParameters := rulesv1.RuleParameters_RemoveFieldsParameters{RemoveFieldsParameters: &removeFieldsParameters}
+		removeFieldsParameters := cxsdk.RemoveFieldsParameters{Fields: excludedFields}
+		ruleParametersRemoveFieldsParameters := cxsdk.RuleParametersRemoveFieldsParameters{RemoveFieldsParameters: &removeFieldsParameters}
 		ruleParameters.RuleParameters = &ruleParametersRemoveFieldsParameters
 	case "json_stringify":
 		destinationField := wrapperspb.String(m["destination_field"].(string))
 		deleteSource := wrapperspb.Bool(!m["keep_source_field"].(bool))
-		jsonStringifyParameters := rulesv1.JsonStringifyParameters{DestinationField: destinationField, DeleteSource: deleteSource}
-		ruleParametersJsonStringifyParameters := rulesv1.RuleParameters_JsonStringifyParameters{JsonStringifyParameters: &jsonStringifyParameters}
+		jsonStringifyParameters := cxsdk.JSONStringifyParameters{DestinationField: destinationField, DeleteSource: deleteSource}
+		ruleParametersJsonStringifyParameters := cxsdk.RuleParametersJSONStringifyParameters{JsonStringifyParameters: &jsonStringifyParameters}
 		ruleParameters.RuleParameters = &ruleParametersJsonStringifyParameters
 	case "parse_json_field":
 		destinationField := wrapperspb.String(m["destination_field"].(string))
 		deleteSource := wrapperspb.Bool(!m["keep_source_field"].(bool))
 		overrideDest := wrapperspb.Bool(!m["keep_destination_field"].(bool))
 		escapedValue := wrapperspb.Bool(true)
-		jsonParseParameters := rulesv1.JsonParseParameters{
+		jsonParseParameters := cxsdk.JSONParseParameters{
 			DestinationField: destinationField,
 			DeleteSource:     deleteSource,
 			EscapedValue:     escapedValue,
 			OverrideDest:     overrideDest,
 		}
-		ruleParametersJsonStringifyParameters := rulesv1.RuleParameters_JsonParseParameters{JsonParseParameters: &jsonParseParameters}
+		ruleParametersJsonStringifyParameters := cxsdk.RuleParametersJSONParseParameters{JsonParseParameters: &jsonParseParameters}
 		ruleParameters.RuleParameters = &ruleParametersJsonStringifyParameters
 	default:
 		panic(ruleType)
@@ -848,24 +844,23 @@ func expandParameters(ruleType string, m map[string]interface{}) *rulesv1.RulePa
 	return &ruleParameters
 }
 
-func expandFieldFormatStandard(formatStandard string) rulesv1.ExtractTimestampParameters_FormatStandard {
-	formatStandardStr := rulesSchemaFormatStandardToProtoFormatStandard[formatStandard]
-	formatStandardVal := rulesv1.ExtractTimestampParameters_FormatStandard_value[formatStandardStr]
-	return rulesv1.ExtractTimestampParameters_FormatStandard(formatStandardVal)
+func expandFieldFormatStandard(formatStandard string) cxsdk.ExtractTimestampParametersFormatStandard {
+	formatStandardVal := rulesSchemaFormatStandardToProtoFormatStandard[formatStandard]
+	return cxsdk.ExtractTimestampParametersFormatStandard(formatStandardVal)
 }
 
-func flattenRuleMatcher(ruleMatchers []*rulesv1.RuleMatcher) (map[string][]string, error) {
+func flattenRuleMatcher(ruleMatchers []*cxsdk.RuleMatcher) (map[string][]string, error) {
 	ruleMatcherMap := map[string][]string{"applications": {}, "subsystems": {}, "severities": {}}
 	for _, ruleMatcher := range ruleMatchers {
 		switch ruleMatcher.Constraint.(type) {
-		case *rulesv1.RuleMatcher_ApplicationName:
+		case *cxsdk.RuleMatcherApplicationName:
 			ruleMatcherMap["applications"] = append(ruleMatcherMap["applications"], ruleMatcher.GetApplicationName().
 				GetValue().GetValue())
-		case *rulesv1.RuleMatcher_SubsystemName:
+		case *cxsdk.RuleMatcherSubsystemName:
 			ruleMatcherMap["subsystems"] = append(ruleMatcherMap["subsystems"], ruleMatcher.GetSubsystemName().
 				GetValue().GetValue())
-		case *rulesv1.RuleMatcher_Severity:
-			severityStr := ruleMatcher.GetSeverity().GetValue().String()
+		case *cxsdk.RuleMatcherSeverity:
+			severityStr := ruleMatcher.GetSeverity().GetValue()
 			ruleMatcherMap["severities"] = append(ruleMatcherMap["severities"], rulesProtoSeverityToSchemaSeverity[severityStr])
 		default:
 			return nil, fmt.Errorf("unexpected type %T for rule matcher", ruleMatcher)
@@ -874,7 +869,7 @@ func flattenRuleMatcher(ruleMatchers []*rulesv1.RuleMatcher) (map[string][]strin
 	return ruleMatcherMap, nil
 }
 
-func flattenRuleSubgroups(ruleSubgroups []*rulesv1.RuleSubgroup) ([]interface{}, error) {
+func flattenRuleSubgroups(ruleSubgroups []*cxsdk.RuleSubgroup) ([]interface{}, error) {
 	result := make([]interface{}, 0, len(ruleSubgroups))
 	for _, ruleSubgroup := range ruleSubgroups {
 		if rsg, err := flattenRuleGroup(ruleSubgroup); err != nil {
@@ -886,7 +881,7 @@ func flattenRuleSubgroups(ruleSubgroups []*rulesv1.RuleSubgroup) ([]interface{},
 	return result, nil
 }
 
-func flattenRuleGroup(ruleSubgroup *rulesv1.RuleSubgroup) (map[string]interface{}, error) {
+func flattenRuleGroup(ruleSubgroup *cxsdk.RuleSubgroup) (map[string]interface{}, error) {
 	rules, err := flattenRules(ruleSubgroup)
 	if err != nil {
 		return nil, err
@@ -902,7 +897,7 @@ func flattenRuleGroup(ruleSubgroup *rulesv1.RuleSubgroup) (map[string]interface{
 	return rsg, nil
 }
 
-func flattenRules(ruleSubgroup *rulesv1.RuleSubgroup) ([]interface{}, error) {
+func flattenRules(ruleSubgroup *cxsdk.RuleSubgroup) ([]interface{}, error) {
 	rs := ruleSubgroup.GetRules()
 	rules := make([]interface{}, 0, len(rs))
 	for _, r := range rs {
@@ -916,68 +911,68 @@ func flattenRules(ruleSubgroup *rulesv1.RuleSubgroup) ([]interface{}, error) {
 	return rules, nil
 }
 
-func flattenRule(r *rulesv1.Rule) (map[string]interface{}, error) {
+func flattenRule(r *cxsdk.Rule) (map[string]interface{}, error) {
 	rule := flattenCommonRulesParams(r)
 	var ruleType string
 	ruleParams := r.GetParameters().GetRuleParameters()
 	switch ruleParams := ruleParams.(type) {
-	case *rulesv1.RuleParameters_ExtractParameters:
+	case *cxsdk.RuleParametersExtractParameters:
 		ruleType = "extract"
 		extractParameters := ruleParams.ExtractParameters
 		rule["regular_expression"] = extractParameters.GetRule().GetValue()
 		rule["source_field"] = r.GetSourceField().GetValue()
-	case *rulesv1.RuleParameters_JsonExtractParameters:
+	case *cxsdk.RuleParametersJSONExtractParameters:
 		ruleType = "json_extract"
 		jsonExtractParameters := ruleParams.JsonExtractParameters
 		rule["json_key"] = jsonExtractParameters.GetRule().GetValue()
 		rule["destination_field"] = rulesProtoDestinationFieldToSchemaDestinationField[jsonExtractParameters.GetDestinationFieldType()]
-		if jsonExtractParameters.GetDestinationFieldType() == rulesv1.JsonExtractParameters_DESTINATION_FIELD_TEXT {
+		if jsonExtractParameters.GetDestinationFieldType() == cxsdk.JSONExtractParametersDestinationFieldText {
 			rule["destination_field_text"] = jsonExtractParameters.GetDestinationFieldText().GetValue()
 		}
-	case *rulesv1.RuleParameters_ReplaceParameters:
+	case *cxsdk.RuleParametersReplaceParameters:
 		ruleType = "replace"
 		replaceParameters := ruleParams.ReplaceParameters
 		rule["source_field"] = r.GetSourceField().GetValue()
 		rule["destination_field"] = replaceParameters.GetDestinationField().GetValue()
 		rule["regular_expression"] = replaceParameters.GetRule().GetValue()
 		rule["replacement_string"] = replaceParameters.GetReplaceNewVal().GetValue()
-	case *rulesv1.RuleParameters_ParseParameters:
+	case *cxsdk.RuleParametersParseParameters:
 		ruleType = "parse"
 		parseParameters := ruleParams.ParseParameters
 		rule["source_field"] = r.GetSourceField().GetValue()
 		rule["destination_field"] = parseParameters.GetDestinationField().GetValue()
 		rule["regular_expression"] = parseParameters.GetRule().GetValue()
-	case *rulesv1.RuleParameters_AllowParameters:
+	case *cxsdk.RuleParametersAllowParameters:
 		ruleType = "block"
 		allowParameters := ruleParams.AllowParameters
 		rule["source_field"] = r.GetSourceField().GetValue()
 		rule["regular_expression"] = allowParameters.GetRule().GetValue()
 		rule["keep_blocked_logs"] = allowParameters.GetKeepBlockedLogs().GetValue()
 		rule["blocking_all_matching_blocks"] = false
-	case *rulesv1.RuleParameters_BlockParameters:
+	case *cxsdk.RuleParametersBlockParameters:
 		ruleType = "block"
 		blockParameters := ruleParams.BlockParameters
 		rule["source_field"] = r.GetSourceField().GetValue()
 		rule["regular_expression"] = blockParameters.GetRule().GetValue()
 		rule["keep_blocked_logs"] = blockParameters.GetKeepBlockedLogs().GetValue()
 		rule["blocking_all_matching_blocks"] = true
-	case *rulesv1.RuleParameters_ExtractTimestampParameters:
+	case *cxsdk.RuleParametersExtractTimestampParameters:
 		ruleType = "extract_timestamp"
 		extractTimestampParameters := ruleParams.ExtractTimestampParameters
 		rule["source_field"] = r.GetSourceField().GetValue()
 		rule["time_format"] = extractTimestampParameters.GetFormat().GetValue()
-		rule["field_format_standard"] = rulesProtoFormatStandardToSchemaFormatStandard[extractTimestampParameters.GetStandard().String()]
-	case *rulesv1.RuleParameters_RemoveFieldsParameters:
+		rule["field_format_standard"] = rulesProtoFormatStandardToSchemaFormatStandard[extractTimestampParameters.GetStandard()]
+	case *cxsdk.RuleParametersRemoveFieldsParameters:
 		ruleType = "remove_fields"
 		removeFieldsParameters := ruleParams.RemoveFieldsParameters
 		rule["excluded_fields"] = removeFieldsParameters.GetFields()
-	case *rulesv1.RuleParameters_JsonStringifyParameters:
+	case *cxsdk.RuleParametersJSONStringifyParameters:
 		ruleType = "json_stringify"
 		jsonStringifyParameters := ruleParams.JsonStringifyParameters
 		rule["source_field"] = r.GetSourceField().GetValue()
 		rule["destination_field"] = jsonStringifyParameters.GetDestinationField().GetValue()
 		rule["keep_source_field"] = !(jsonStringifyParameters.GetDeleteSource().GetValue())
-	case *rulesv1.RuleParameters_JsonParseParameters:
+	case *cxsdk.RuleParametersJSONParseParameters:
 		ruleType = "parse_json_field"
 		jsonParseParameters := ruleParams.JsonParseParameters
 		rule["source_field"] = r.GetSourceField().GetValue()
@@ -991,7 +986,7 @@ func flattenRule(r *rulesv1.Rule) (map[string]interface{}, error) {
 	return map[string]interface{}{ruleType: []interface{}{rule}}, nil
 }
 
-func flattenCommonRulesParams(rule *rulesv1.Rule) map[string]interface{} {
+func flattenCommonRulesParams(rule *cxsdk.Rule) map[string]interface{} {
 	return map[string]interface{}{
 		"id":          rule.GetId().GetValue(),
 		"description": rule.GetDescription().GetValue(),

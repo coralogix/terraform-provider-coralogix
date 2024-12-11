@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,11 +18,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"terraform-provider-coralogix/coralogix/clientset"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"terraform-provider-coralogix/coralogix/clientset"
-	actions "terraform-provider-coralogix/coralogix/clientset/grpc/actions/v2"
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -39,7 +39,7 @@ func NewActionDataSource() datasource.DataSource {
 }
 
 type ActionDataSource struct {
-	client *clientset.ActionsClient
+	client *cxsdk.ActionsClient
 }
 
 func (d *ActionDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -81,8 +81,8 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	//Get refreshed Action value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading Action: %s", id)
-	getActionReq := &actions.GetActionRequest{Id: wrapperspb.String(id)}
-	getActionResp, err := d.client.GetAction(ctx, getActionReq)
+	getActionReq := &cxsdk.GetActionRequest{Id: wrapperspb.String(id)}
+	getActionResp, err := d.client.Get(ctx, getActionReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -91,7 +91,7 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				formatRpcErrors(err, getActionURL, protojson.Format(getActionReq)),
+				formatRpcErrors(err, cxsdk.GetActionRPC, protojson.Format(getActionReq)),
 			)
 		}
 		return
