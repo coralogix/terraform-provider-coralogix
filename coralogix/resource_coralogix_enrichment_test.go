@@ -27,7 +27,7 @@ import (
 
 var enrichmentResourceName = "coralogix_enrichment.test"
 
-func TestAccCoralogixResourceGeoIpeEnrichment(t *testing.T) {
+func TestAccCoralogixResourceGeoIpEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { testAccPreCheck(t) },

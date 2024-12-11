@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
@@ -59,7 +60,9 @@ func EnrichmentsByType(ctx context.Context, client *cxsdk.EnrichmentsClient, enr
 
 	result := make([]*cxsdk.Enrichment, 0)
 	for _, enrichment := range resp.GetEnrichments() {
-		if enrichment.GetEnrichmentType().String() == enrichmentType+":{}" {
+		log.Printf("[INFO] Checking %v", enrichment.GetEnrichmentType().String())
+
+		if strings.Split(enrichment.GetEnrichmentType().String(), ":")[0] == enrichmentType {
 			result = append(result, enrichment)
 		}
 	}
