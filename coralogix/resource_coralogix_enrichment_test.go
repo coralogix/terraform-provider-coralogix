@@ -21,10 +21,8 @@ import (
 
 	"terraform-provider-coralogix/coralogix/clientset"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var enrichmentResourceName = "coralogix_enrichment.test"
@@ -41,7 +39,7 @@ func TestAccCoralogixResourceGeoIpeEnrichment(t *testing.T) {
 				Config: testAccCoralogixResourceGeoIpEnrichment(fieldName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(enrichmentResourceName, "id"),
-					resource.TestCheckResourceAttr(enrichmentResourceName, "geo_ip.fields.name", fieldName),
+					resource.TestCheckResourceAttr(enrichmentResourceName, "geo_ip.0.fields.0.name", fieldName),
 				),
 			},
 			{
@@ -168,7 +166,7 @@ func testAccCoralogixResourceCustomEnrichment(fieldName string) string {
     }
 
     resource "coralogix_enrichment" test{
-        custom {
+        custom{
             custom_enrichment_id = coralogix_data_set.test.id
             fields {
                     name = "%s"
@@ -188,7 +186,8 @@ func testAccCheckEnrichmentDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := EnrichmentsByType(ctx, client, rs.Primary.ID)
+		resp, err := EnrichmentsByID(ctx, client, strToUint32(rs.Primary.ID))
+
 		if err == nil {
 			if len(resp) != 0 {
 				return fmt.Errorf("enrichment still exists: %s", rs.Primary.ID)
@@ -200,7 +199,7 @@ func testAccCheckEnrichmentDestroy(s *terraform.State) error {
 }
 
 func testAccCheckCustomEnrichmentDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).DataSet()
+	client := testAccProvider.Meta().(*clientset.ClientSet).Enrichments()
 
 	ctx := context.TODO()
 
@@ -209,9 +208,9 @@ func testAccCheckCustomEnrichmentDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.Get(ctx, &cxsdk.GetDataSetRequest{Id: wrapperspb.UInt32(strToUint32(rs.Primary.ID))})
+		resp, err := EnrichmentsByID(ctx, client, strToUint32(rs.Primary.ID))
 		if err == nil {
-			if resp.CustomEnrichment != nil {
+			if len(resp) != 0 {
 				return fmt.Errorf("enrichment still exists: %s", rs.Primary.ID)
 			}
 		}
