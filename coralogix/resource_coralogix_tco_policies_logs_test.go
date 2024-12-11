@@ -130,7 +130,7 @@ policies = [{
 	severities      = ["error", "warning", "critical"]
 	applications    = {
 		rule_type   = "starts_with"
-			names   = ["PROD"]
+			names   = ["prod"]
 	}
 	subsystems      = {
 		rule_type   = "is"

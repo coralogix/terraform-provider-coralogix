@@ -173,6 +173,8 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 									ElementType: types.StringType,
 									Validators: []validator.Set{
 										setvalidator.SizeAtLeast(1),
+										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
+											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
 									},
 								},
 								"rule_type": schema.StringAttribute{
@@ -194,6 +196,8 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 									ElementType: types.StringType,
 									Validators: []validator.Set{
 										setvalidator.SizeAtLeast(1),
+										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
+											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
 									},
 								},
 								"rule_type": schema.StringAttribute{
@@ -215,6 +219,8 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 									ElementType: types.StringType,
 									Validators: []validator.Set{
 										setvalidator.SizeAtLeast(1),
+										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
+											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
 									},
 								},
 								"rule_type": schema.StringAttribute{

@@ -39,6 +39,8 @@ import (
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
+	"regexp"
+
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
@@ -216,6 +218,8 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 									ElementType: types.StringType,
 									Validators: []validator.Set{
 										setvalidator.SizeAtLeast(1),
+										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
+											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
 									},
 								},
 								"rule_type": schema.StringAttribute{
@@ -238,6 +242,8 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 									ElementType: types.StringType,
 									Validators: []validator.Set{
 										setvalidator.SizeAtLeast(1),
+										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
+											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
 									},
 								},
 								"rule_type": schema.StringAttribute{
