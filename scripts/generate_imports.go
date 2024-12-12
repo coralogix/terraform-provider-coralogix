@@ -220,31 +220,9 @@ func main() {
 				idsAndNames = append(idsAndNames, IdAndName{Id: scope.GetId(), Name: scopeName})
 			}
 		case "tco_policies_logs":
-			tcoPoliciesLogsClient := cxsdk.NewTCOPoliciesClient(cxsdk.NewCallPropertiesCreator(url, cxsdk.NewAuthContext(apiKey, apiKey)))
-			tcoPolicies, err := tcoPoliciesLogsClient.List(context.Background(), &cxsdk.GetCompanyPoliciesRequest{})
-			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
-			}
-			for _, tcoPolicy := range tcoPolicies.GetPolicies() {
-				if tcoPolicy.GetLogRules() != nil {
-					tcoPolicyName := convertToTerraformResourceName(tcoPolicy.GetName().GetValue())
-					idsAndNames = append(idsAndNames, IdAndName{Id: tcoPolicy.GetId().GetValue(), Name: tcoPolicyName})
-				}
-			}
+			idsAndNames = []IdAndName{{Id: " ", Name: "tco_policies_logs"}}
 		case "tco_policies_traces":
-			tcoPoliciesTracesClient := cxsdk.NewTCOPoliciesClient(cxsdk.NewCallPropertiesCreator(url, cxsdk.NewAuthContext(apiKey, apiKey)))
-			tcoPolicies, err := tcoPoliciesTracesClient.List(context.Background(), &cxsdk.GetCompanyPoliciesRequest{})
-			if err != nil {
-				fmt.Printf("Error: %v\n", err)
-				os.Exit(1)
-			}
-			for _, tcoPolicy := range tcoPolicies.GetPolicies() {
-				if tcoPolicy.GetSpanRules() != nil {
-					tcoPolicyName := convertToTerraformResourceName(tcoPolicy.GetName().GetValue())
-					idsAndNames = append(idsAndNames, IdAndName{Id: tcoPolicy.GetId().GetValue(), Name: tcoPolicyName})
-				}
-			}
+			idsAndNames = []IdAndName{{Id: " ", Name: "tco_policies_traces"}}
 		case "webhook":
 			webhookClient := cxsdk.NewWebhooksClient(cxsdk.NewCallPropertiesCreator(url, cxsdk.NewAuthContext(apiKey, apiKey)))
 			webhooks, err := webhookClient.List(context.Background(), &cxsdk.ListAllOutgoingWebhooksRequest{})
