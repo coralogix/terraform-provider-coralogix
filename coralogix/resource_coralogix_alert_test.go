@@ -2936,6 +2936,15 @@ resource "coralogix_alert" "test_3"{
     }
 }
 
+resource "coralogix_alert" "test_4"{
+    name        = "logs immediate alert 4"
+    priority    = "P4"
+    type_definition = {
+        logs_immediate = {
+        }
+    }
+}
+
 resource "coralogix_alert" "test" {
     name        = "flow alert example"
     description = "Example of flow alert from terraform"
@@ -2962,7 +2971,7 @@ resource "coralogix_alert" "test" {
                             id = coralogix_alert.test_3.id
                         },
                         {
-                            id = coralogix_alert.test_2.id
+                            id = coralogix_alert.test_4.id
                         },
                     ]
                     next_op   = "OR"
@@ -3005,6 +3014,15 @@ resource "coralogix_alert" "test_3"{
   }
 }
 
+resource "coralogix_alert" "test_4"{
+    name        = "logs immediate alert 4"
+    priority    = "P4"
+    type_definition = {
+        logs_immediate = {
+        }
+    }
+}
+
 resource "coralogix_alert" "test" {
   name        = "flow alert example updated"
   description = "Example of flow alert from terraform updated"
@@ -3029,7 +3047,7 @@ resource "coralogix_alert" "test" {
             {
               alert_defs = [
                 {
-                  id = coralogix_alert.test_2.id
+                  id = coralogix_alert.test_4.id
                 },
                 {
                   id = coralogix_alert.test_3.id
