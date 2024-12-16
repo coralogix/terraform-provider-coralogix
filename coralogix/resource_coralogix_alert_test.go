@@ -2988,30 +2988,30 @@ resource "coralogix_alert" "test" {
 
 func testAccCoralogixResourceAlertFlowUpdated() string {
 	return `resource "coralogix_alert" "test_1"{
-  name        = "logs immediate alert 1"
-  priority    = "P1"
-  type_definition = {
-    logs_immediate = {
+    name        = "logs immediate alert 1"
+    priority    = "P1"
+    type_definition = {
+        logs_immediate = {
+        }
     }
-  }
 }
 
 resource "coralogix_alert" "test_2"{
-  name        = "logs immediate alert 2"
-  priority    = "P2"
-  type_definition = {
-    logs_immediate = {
+    name        = "logs immediate alert 2"
+    priority    = "P2"
+    type_definition = {
+        logs_immediate = {
+        }
     }
-  }
 }
 
 resource "coralogix_alert" "test_3"{
-  name        = "logs immediate alert 3"
-  priority    = "P3"
-  type_definition = {
-    logs_immediate = {
+    name        = "logs immediate alert 3"
+    priority    = "P3"
+    type_definition = {
+        logs_immediate = {
+        }
     }
-  }
 }
 
 resource "coralogix_alert" "test_4"{
@@ -3023,61 +3023,70 @@ resource "coralogix_alert" "test_4"{
     }
 }
 
-resource "coralogix_alert" "test" {
-  name        = "flow alert example updated"
-  description = "Example of flow alert from terraform updated"
-  priority    = "P3"
-  type_definition = {
-    flow = {
-      stages = [
-        {
-          flow_stages_groups = [
-            {
-              alert_defs = [
-                {
-                  id = coralogix_alert.test_2.id
-                },
-                {
-                  id = coralogix_alert.test_1.id
-                },
-              ]
-              next_op   = "OR"
-              alerts_op = "AND"
-            },
-            {
-              alert_defs = [
-                {
-                  id = coralogix_alert.test_4.id
-                },
-                {
-                  id = coralogix_alert.test_3.id
-                },
-              ]
-              next_op   = "AND"
-              alerts_op = "OR"
-            },
-          ]
-          timeframe_ms   = 10
-          timeframe_type = "Up To"
-        },
-        {
-          flow_stages_groups = [
-            {
-              alert_defs = [
-                {
-                  id = coralogix_alert.test_2.id
-                },
-              ]
-              next_op   = "OR"
-              alerts_op = "AND"
-            },
-          ]
-          timeframe_ms   = 20
-          timeframe_type = "Up To"
+resource "coralogix_alert" "test_5"{
+    name        = "logs immediate alert 5"
+    priority    = "P5"
+    type_definition = {
+        logs_immediate = {
         }
-      ]
     }
-  }
+}
+
+resource "coralogix_alert" "test" {
+    name        = "flow alert example updated"
+    description = "Example of flow alert from terraform updated"
+    priority    = "P3"
+    type_definition = {
+        flow = {
+            stages = [
+            {
+                flow_stages_groups = [
+                {
+                    alert_defs = [
+                    {
+                        id = coralogix_alert.test_2.id
+                    },
+                    {
+                        id = coralogix_alert.test_1.id
+                    },
+                    ]
+                    next_op   = "OR"
+                    alerts_op = "AND"
+                },
+                {
+                    alert_defs = [
+                    {
+                        id = coralogix_alert.test_4.id
+                    },
+                    {
+                        id = coralogix_alert.test_3.id
+                    },
+                    ]
+                    next_op   = "AND"
+                    alerts_op = "OR"
+                },
+                ]
+                timeframe_ms   = 10
+                timeframe_type = "Up To"
+            },
+            {
+                flow_stages_groups = [
+                {
+                    alert_defs = [
+                    {
+                        id = coralogix_alert.test_5.id
+                    },
+                    ]
+                    next_op   = "OR"
+                    alerts_op = "AND"
+                },
+                ]
+                timeframe_ms   = 20
+                timeframe_type = "Up To"
+            }
+            ]
+        }
+    }
 }
 `
 }
