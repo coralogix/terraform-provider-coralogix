@@ -34,7 +34,7 @@ func TestAccCoralogixDataSourceEnrichment_basic(t *testing.T) {
 					testAccCoralogixDataSourceEnrichment_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(enrichmentDataSourceName, "id"),
-					resource.TestCheckResourceAttr(enrichmentDataSourceName, "geo_ip.fields.name", fieldName),
+					resource.TestCheckResourceAttr(enrichmentDataSourceName, "geo_ip.0.fields.0.name", fieldName),
 				),
 			},
 		},
