@@ -32,7 +32,7 @@ func TestAccCoralogixDataSourceArchiveMetrics_basic(t *testing.T) {
 					testAccCoralogixDataSourceArchiveMetrics_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(archiveMetricsDataSourceName, "s3.region", "eu-north-1"),
-					resource.TestCheckResourceAttr(archiveMetricsDataSourceName, "s3.bucket", "coralogix-c4c-eu2-prometheus-data"),
+					resource.TestCheckResourceAttr(archiveMetricsDataSourceName, "s3.bucket", "yak-coralogix-bucket"),
 				),
 			},
 		},
