@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,10 +19,11 @@ import (
 	"fmt"
 	"testing"
 
-	"google.golang.org/protobuf/encoding/protojson"
 	"terraform-provider-coralogix/coralogix/clientset"
-	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -95,7 +96,7 @@ func testAccTCOPoliciesLogsCheckDestroy(s *terraform.State) error {
 			continue
 		}
 
-		if resp, err := client.GetTCOPolicies(ctx, &tcopolicies.GetCompanyPoliciesRequest{SourceType: &logSource}); err == nil {
+		if resp, err := client.List(ctx, &cxsdk.GetCompanyPoliciesRequest{SourceType: &logSource}); err == nil {
 			if err == nil {
 				if len(resp.GetPolicies()) != 0 {
 					return fmt.Errorf("tco-policies still exist: %s", protojson.Format(resp))
@@ -109,48 +110,46 @@ func testAccTCOPoliciesLogsCheckDestroy(s *terraform.State) error {
 
 func testAccCoralogixResourceTCOPoliciesLogs() string {
 	return `resource "coralogix_tco_policies_logs" test {
-					policies = [
-					{
- 						name       = "Example tco_policy from terraform 1"
-  						priority   = "low"
-						severities = ["debug", "verbose", "info"]
- 						applications = {
- 					  		rule_type = "starts_with"
- 					  		names        = ["prod"]
- 						}
- 						subsystems = {
- 					  		rule_type = "is"
- 					  		names = ["mobile", "web"]
- 						}
- 						archive_retention_id = "e1c980d0-c910-4c54-8326-67f3cf95645a"
-					},
-					{
-						name     = "Example tco_policy from terraform 2"
-						priority = "medium"
-                      	severities = ["error", "warning", "critical"]
-  					 	applications = {
-   						 	rule_type = "starts_with"
-    						 names        = ["prod"]
-					  	}
-						subsystems = {
-							rule_type = "is"
-    						names = ["mobile", "web"]
-						}
-					},
-					{
- 						name     = "Example tco_policy from terraform 3"
-  						priority = "high"
-  						severities = ["debug", "verbose", "info"]
-  						applications = {
-   						 	rule_type = "starts_with"
-							names        = ["prod"]
-  						}
-  						subsystems = {
-    						rule_type = "is"
-    						names = ["mobile", "web"]
-						}
-					}
-			]
+policies = [{
+	name                 = "Example tco_policy from terraform 1"
+	priority             = "low"
+	severities           = ["debug", "verbose", "info"]
+	applications         = {
+		rule_type        = "starts_with"
+		names            = ["prod"]
 	}
+	subsystems           = {
+		rule_type        = "is"
+		names            = ["mobile", "web"]
+	}
+	archive_retention_id = "e1c980d0-c910-4c54-8326-67f3cf95645a"
+},
+{
+	name            = "Example tco_policy from terraform 2"
+	priority        = "medium"
+	severities      = ["error", "warning", "critical"]
+	applications    = {
+		rule_type   = "starts_with"
+			names   = ["prod"]
+	}
+	subsystems      = {
+		rule_type   = "is"
+		names       = ["mobile", "web"]
+	}
+},
+{
+	name            = "Example tco_policy from terraform 3"
+	priority        = "high"
+	severities      = ["debug", "verbose", "info"]
+	applications    = {
+		rule_type   = "starts_with"
+		names       = ["prod"]
+	}
+	subsystems      = {
+		rule_type   = "is"
+		names       = ["mobile", "web"]
+	}
+}]
+}
 	`
 }

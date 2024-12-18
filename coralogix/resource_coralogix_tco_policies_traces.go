@@ -12,6 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Copyright 2024 Coralogix Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package coralogix
 
 import (
@@ -23,8 +37,8 @@ import (
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -46,11 +60,10 @@ import (
 )
 
 var (
-	_                            resource.ResourceWithConfigure      = &TCOPoliciesTracesResource{}
-	_                            resource.ResourceWithValidateConfig = &TCOPoliciesTracesResource{}
-	_                            resource.ResourceWithImportState    = &TCOPoliciesTracesResource{}
-	tracesSource                                                     = tcopolicies.SourceType_SOURCE_TYPE_SPANS
-	overrideTCOPoliciesTracesURL                                     = "com.coralogix.quota.v1.PoliciesService/AtomicOverwriteSpanPolicies"
+	_            resource.ResourceWithConfigure      = &TCOPoliciesTracesResource{}
+	_            resource.ResourceWithValidateConfig = &TCOPoliciesTracesResource{}
+	_            resource.ResourceWithImportState    = &TCOPoliciesTracesResource{}
+	tracesSource                                     = cxsdk.TCOPolicySourceTypeSpans
 )
 
 func NewTCOPoliciesTracesResource() resource.Resource {
@@ -58,7 +71,7 @@ func NewTCOPoliciesTracesResource() resource.Resource {
 }
 
 type TCOPoliciesTracesResource struct {
-	client *clientset.TCOPoliciesClient
+	client *cxsdk.TCOPoliciesClient
 }
 
 func (r *TCOPoliciesTracesResource) ImportState(ctx context.Context, request resource.ImportStateRequest, response *resource.ImportStateResponse) {
@@ -160,6 +173,8 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 									ElementType: types.StringType,
 									Validators: []validator.Set{
 										setvalidator.SizeAtLeast(1),
+										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
+											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
 									},
 								},
 								"rule_type": schema.StringAttribute{
@@ -181,6 +196,8 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 									ElementType: types.StringType,
 									Validators: []validator.Set{
 										setvalidator.SizeAtLeast(1),
+										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
+											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
 									},
 								},
 								"rule_type": schema.StringAttribute{
@@ -202,6 +219,8 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 									ElementType: types.StringType,
 									Validators: []validator.Set{
 										setvalidator.SizeAtLeast(1),
+										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
+											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
 									},
 								},
 								"rule_type": schema.StringAttribute{
@@ -342,14 +361,14 @@ func (r *TCOPoliciesTracesResource) Read(ctx context.Context, _ resource.ReadReq
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	getPoliciesReq := &tcopolicies.GetCompanyPoliciesRequest{SourceType: &tracesSource}
+	getPoliciesReq := &cxsdk.GetCompanyPoliciesRequest{SourceType: &tracesSource}
 	log.Printf("[INFO] Reading tco-policies-traces")
-	getPoliciesResp, err := r.client.GetTCOPolicies(ctx, getPoliciesReq)
+	getPoliciesResp, err := r.client.List(ctx, getPoliciesReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if retryableStatusCode(status.Code(err)) {
 			log.Print("[INFO] Retrying to read tco-policies-traces")
-			getPoliciesResp, err = r.client.GetTCOPolicies(ctx, getPoliciesReq)
+			getPoliciesResp, err = r.client.List(ctx, getPoliciesReq)
 			continue
 		}
 		resp.Diagnostics.AddError(
@@ -415,7 +434,7 @@ func (r *TCOPoliciesTracesResource) Delete(ctx context.Context, _ resource.Delet
 	ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
 	defer cancel()
 
-	overwriteReq := &tcopolicies.AtomicOverwriteSpanPoliciesRequest{}
+	overwriteReq := &cxsdk.AtomicOverwriteSpanPoliciesRequest{}
 	log.Printf("[INFO] Overwriting tco-policies-traces list: %s", protojson.Format(overwriteReq))
 	overwriteResp, err := r.client.OverwriteTCOTracesPolicies(ctx, overwriteReq)
 	for err != nil {
@@ -442,8 +461,8 @@ func (r *TCOPoliciesTracesResource) Delete(ctx context.Context, _ resource.Delet
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
-func extractOverwriteTcoPoliciesTraces(ctx context.Context, plan *TCOPoliciesListModel) (*tcopolicies.AtomicOverwriteSpanPoliciesRequest, diag.Diagnostics) {
-	var policies []*tcopolicies.CreateSpanPolicyRequest
+func extractOverwriteTcoPoliciesTraces(ctx context.Context, plan *TCOPoliciesListModel) (*cxsdk.AtomicOverwriteSpanPoliciesRequest, diag.Diagnostics) {
+	var policies []*cxsdk.CreateSpanPolicyRequest
 	var policiesObjects []types.Object
 	diags := plan.Policies.ElementsAs(ctx, &policiesObjects, true)
 	if diags.HasError() {
@@ -467,10 +486,10 @@ func extractOverwriteTcoPoliciesTraces(ctx context.Context, plan *TCOPoliciesLis
 		return nil, diags
 	}
 
-	return &tcopolicies.AtomicOverwriteSpanPoliciesRequest{Policies: policies}, nil
+	return &cxsdk.AtomicOverwriteSpanPoliciesRequest{Policies: policies}, nil
 }
 
-func extractTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesModel) (*tcopolicies.CreateSpanPolicyRequest, diag.Diagnostics) {
+func extractTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesModel) (*cxsdk.CreateSpanPolicyRequest, diag.Diagnostics) {
 	name := typeStringToWrapperspbString(plan.Name)
 	description := typeStringToWrapperspbString(plan.Description)
 	priority := tcoPoliciesPrioritySchemaToProto[plan.Priority.ValueString()]
@@ -496,8 +515,8 @@ func extractTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesModel) (*tc
 		return nil, diags
 	}
 
-	return &tcopolicies.CreateSpanPolicyRequest{
-		Policy: &tcopolicies.CreateGenericPolicyRequest{
+	return &cxsdk.CreateSpanPolicyRequest{
+		Policy: &cxsdk.CreateGenericPolicyRequest{
 			Name:             name,
 			Description:      description,
 			Priority:         priority,
@@ -505,7 +524,7 @@ func extractTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesModel) (*tc
 			SubsystemRule:    subsystemRule,
 			ArchiveRetention: archiveRetention,
 		},
-		SpanRules: &tcopolicies.SpanRules{
+		SpanRules: &cxsdk.TCOSpanRules{
 			ServiceRule: services,
 			ActionRule:  actions,
 			TagRules:    tagRules,
@@ -513,7 +532,7 @@ func extractTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesModel) (*tc
 	}, nil
 }
 
-func flattenOverwriteTCOPoliciesTracesList(ctx context.Context, overwriteResp *tcopolicies.AtomicOverwriteSpanPoliciesResponse) (*TCOPoliciesListModel, diag.Diagnostics) {
+func flattenOverwriteTCOPoliciesTracesList(ctx context.Context, overwriteResp *cxsdk.AtomicOverwriteSpanPoliciesResponse) (*TCOPoliciesListModel, diag.Diagnostics) {
 	var policies []*TCOPolicyTracesModel
 	var diags diag.Diagnostics
 	for _, policy := range overwriteResp.GetCreateResponses() {
@@ -553,7 +572,7 @@ func policiesTracesAttr() map[string]attr.Type {
 	}
 }
 
-func flattenGetTCOTracesPoliciesList(ctx context.Context, resp *tcopolicies.GetCompanyPoliciesResponse) (TCOPoliciesListModel, diag.Diagnostics) {
+func flattenGetTCOTracesPoliciesList(ctx context.Context, resp *cxsdk.GetCompanyPoliciesResponse) (TCOPoliciesListModel, diag.Diagnostics) {
 	var policies []*TCOPolicyTracesModel
 	var diags diag.Diagnostics
 	for _, policy := range resp.GetPolicies() {
@@ -577,8 +596,8 @@ func flattenGetTCOTracesPoliciesList(ctx context.Context, resp *tcopolicies.GetC
 
 }
 
-func flattenTCOTracesPolicy(ctx context.Context, policy *tcopolicies.Policy) (*TCOPolicyTracesModel, diag.Diagnostics) {
-	traceRules := policy.GetSourceTypeRules().(*tcopolicies.Policy_SpanRules).SpanRules
+func flattenTCOTracesPolicy(ctx context.Context, policy *cxsdk.TCOPolicy) (*TCOPolicyTracesModel, diag.Diagnostics) {
+	traceRules := policy.GetSourceTypeRules().(*cxsdk.TCOPolicySpanRules).SpanRules
 	applications, diags := flattenTCOPolicyRule(ctx, policy.GetApplicationRule())
 	if diags.HasError() {
 		return nil, diags
@@ -635,7 +654,7 @@ func validateTCORuleModelModel(rule types.Object, root string, resp *resource.Va
 	}
 }
 
-func flattenTCOPolicyTags(ctx context.Context, tags []*tcopolicies.TagRule) types.Map {
+func flattenTCOPolicyTags(ctx context.Context, tags []*cxsdk.TCOPolicyTagRule) types.Map {
 	if len(tags) == 0 {
 		return types.MapNull(types.ObjectType{AttrTypes: tcoRuleModelAttr()})
 	}
@@ -658,7 +677,7 @@ func flattenTCOPolicyTags(ctx context.Context, tags []*tcopolicies.TagRule) type
 	return types.MapValueMust(types.ObjectType{AttrTypes: tcoRuleModelAttr()}, elements)
 }
 
-func expandTagsRules(ctx context.Context, tags types.Map) ([]*tcopolicies.TagRule, diag.Diagnostics) {
+func expandTagsRules(ctx context.Context, tags types.Map) ([]*cxsdk.TCOPolicyTagRule, diag.Diagnostics) {
 	var tagsMap map[string]types.Object
 	d := tags.ElementsAs(ctx, &tagsMap, true)
 	if d != nil {
@@ -666,7 +685,7 @@ func expandTagsRules(ctx context.Context, tags types.Map) ([]*tcopolicies.TagRul
 	}
 
 	var diags diag.Diagnostics
-	result := make([]*tcopolicies.TagRule, 0, len(tagsMap))
+	result := make([]*cxsdk.TCOPolicyTagRule, 0, len(tagsMap))
 	for tagName, tagElement := range tagsMap {
 		tagRule, digs := expandTagRule(ctx, tagName, tagElement)
 		if digs.HasError() {
@@ -691,12 +710,12 @@ func tcoRuleModelAttr() map[string]attr.Type {
 	}
 }
 
-func expandTagRule(ctx context.Context, name string, tag types.Object) (*tcopolicies.TagRule, diag.Diagnostics) {
+func expandTagRule(ctx context.Context, name string, tag types.Object) (*cxsdk.TCOPolicyTagRule, diag.Diagnostics) {
 	rule, diags := expandTCOPolicyRule(ctx, tag)
 	if diags.HasError() {
 		return nil, diags
 	}
-	return &tcopolicies.TagRule{
+	return &cxsdk.TCOPolicyTagRule{
 		TagName:    wrapperspb.String(name),
 		RuleTypeId: rule.GetRuleTypeId(),
 		TagValue:   rule.GetName(),

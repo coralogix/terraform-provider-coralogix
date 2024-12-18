@@ -28,23 +28,24 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-var _ datasource.DataSourceWithConfigure = &RecordingRuleGroupSetDataSource{}
+var _ datasource.DataSourceWithConfigure = &Events2MetricDataSource{}
 
-func NewRecordingRuleGroupSetDataSource() datasource.DataSource {
-	return &RecordingRuleGroupSetDataSource{}
+func NewEvents2MetricDataSource() datasource.DataSource {
+	return &Events2MetricDataSource{}
 }
 
-type RecordingRuleGroupSetDataSource struct {
-	client *cxsdk.RecordingRuleGroupSetsClient
+type Events2MetricDataSource struct {
+	client *cxsdk.Events2MetricsClient
 }
 
-func (d *RecordingRuleGroupSetDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_recording_rules_groups_set"
+func (d *Events2MetricDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_events2metric"
 }
 
-func (d *RecordingRuleGroupSetDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *Events2MetricDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -58,51 +59,48 @@ func (d *RecordingRuleGroupSetDataSource) Configure(_ context.Context, req datas
 		return
 	}
 
-	d.client = clientSet.RecordingRuleGroupsSets()
+	d.client = clientSet.Events2Metrics()
 }
 
-func (d *RecordingRuleGroupSetDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r RecordingRuleGroupSetResource
+func (d *Events2MetricDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	var r Events2MetricResource
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
-func (d *RecordingRuleGroupSetDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *RecordingRuleGroupSetResourceModel
+func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data Events2MetricResourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	//Get refreshed recording-rule-group-set value from Coralogix
+	//Get refreshed Events2Metric value from Coralogix
 	id := data.ID.ValueString()
-	log.Printf("[INFO] Reading recording-rule-group-set: %s", id)
-	getReq := &cxsdk.GetRuleGroupSetRequest{Id: id}
-	getResp, err := d.client.Get(ctx, getReq)
+	log.Printf("[INFO] Reading Events2metric: %s", id)
+	getE2MReq := &cxsdk.GetE2MRequest{Id: wrapperspb.String(id)}
+	getE2MResp, err := d.client.Get(ctx, getE2MReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				err.Error(),
-				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("Events2Metric %q is in state, but no longer exists in Coralogix backend", id),
 			)
 		} else {
 			resp.Diagnostics.AddError(
-				"Error reading recording-rule-group-set",
-				formatRpcErrors(err, getRuleGroupURL, protojson.Format(getReq)),
+				"Error reading Events2Metric",
+				formatRpcErrors(err, cxsdk.E2MGetRPC, protojson.Format(getE2MReq)),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received recording-rule-group-set: %s", protojson.Format(getResp))
+	log.Printf("[INFO] Received Events2metric: %s", protojson.Format(getE2MResp))
 
-	data, diags := flattenRecordingRuleGroupSet(ctx, &RecordingRuleGroupSetResourceModel{}, getResp)
-	if diags.HasError() {
-		resp.Diagnostics = diags
-		return
-	}
+	data = flattenE2M(ctx, getE2MResp.GetE2M())
+
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

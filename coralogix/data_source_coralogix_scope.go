@@ -20,16 +20,15 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	scopes "terraform-provider-coralogix/coralogix/clientset/grpc/scopes"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
-	_           datasource.DataSourceWithConfigure = &ScopeDataSource{}
-	getScopeURL                                    = scopes.ScopesService_GetTeamScopesByIds_FullMethodName
+	_ datasource.DataSourceWithConfigure = &ScopeDataSource{}
 )
 
 func NewScopeDataSource() datasource.DataSource {
@@ -37,7 +36,7 @@ func NewScopeDataSource() datasource.DataSource {
 }
 
 type ScopeDataSource struct {
-	client *clientset.ScopesClient
+	client *cxsdk.ScopesClient
 }
 
 func (d *ScopeDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -77,7 +76,7 @@ func (d *ScopeDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		return
 	}
 
-	getScopeReq := &scopes.GetTeamScopesByIdsRequest{
+	getScopeReq := &cxsdk.GetTeamScopesByIDsRequest{
 		Ids: []string{data.ID.ValueString()},
 	}
 	log.Printf("[INFO] Reading Scopes: %s", protojson.Format(getScopeReq))
@@ -86,7 +85,7 @@ func (d *ScopeDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Scope",
-			formatRpcErrors(err, getScopeURL, protojson.Format(getScopeReq)),
+			formatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
 		)
 		return
 	}

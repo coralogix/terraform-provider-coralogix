@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,7 +20,8 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	archiveRetention "terraform-provider-coralogix/coralogix/clientset/grpc/archive-retentions"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -38,10 +39,8 @@ import (
 )
 
 var (
-	_                          resource.ResourceWithConfigure   = &ArchiveRetentionsResource{}
-	_                          resource.ResourceWithImportState = &ArchiveRetentionsResource{}
-	getArchiveRetentionsURL                                     = "com.coralogix.archive.v1.RetentionsService/GetRetentions"
-	updateArchiveRetentionsURL                                  = "com.coralogix.archive.v1.RetentionsService/UpdateRetentions"
+	_ resource.ResourceWithConfigure   = &ArchiveRetentionsResource{}
+	_ resource.ResourceWithImportState = &ArchiveRetentionsResource{}
 )
 
 func NewArchiveRetentionsResource() resource.Resource {
@@ -49,7 +48,7 @@ func NewArchiveRetentionsResource() resource.Resource {
 }
 
 type ArchiveRetentionsResource struct {
-	client *clientset.ArchiveRetentionsClient
+	client *cxsdk.ArchiveRetentionsClient
 }
 
 func (r *ArchiveRetentionsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -131,7 +130,11 @@ func (r retentionsValidator) ValidateList(ctx context.Context, req validator.Lis
 	}
 
 	var archiveRetentionResourceModel ArchiveRetentionResourceModel
-	retentionsObjects[0].As(ctx, &archiveRetentionResourceModel, basetypes.ObjectAsOptions{})
+	ok := retentionsObjects[0].As(ctx, &archiveRetentionResourceModel, basetypes.ObjectAsOptions{})
+	if ok.HasError() {
+		resp.Diagnostics.Append(ok...)
+		return
+	}
 	if !archiveRetentionResourceModel.Name.IsNull() {
 		resp.Diagnostics.AddError("error on validating retentions", "first retention's name can't be set")
 	}
@@ -158,11 +161,11 @@ func (r *ArchiveRetentionsResource) Create(ctx context.Context, req resource.Cre
 	}
 
 	log.Print("[INFO] Reading archive-retentions")
-	getArchiveRetentionsReq := &archiveRetention.GetRetentionsRequest{}
-	getArchiveRetentionsResp, err := r.client.GetRetentions(ctx, getArchiveRetentionsReq)
+	getArchiveRetentionsReq := &cxsdk.GetRetentionsRequest{}
+	getArchiveRetentionsResp, err := r.client.Get(ctx, getArchiveRetentionsReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		formatRpcErrors(err, getArchiveRetentionsURL, protojson.Format(getArchiveRetentionsReq))
+		formatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq))
 		return
 	}
 	log.Printf("[INFO] Received archive-retentions: %s", protojson.Format(getArchiveRetentionsResp))
@@ -172,14 +175,14 @@ func (r *ArchiveRetentionsResource) Create(ctx context.Context, req resource.Cre
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	archiveRetentionsStr := protojson.Format(createArchiveRetentions)
-	log.Printf("[INFO] Updating archive-retentions: %s", archiveRetentionsStr)
-	updateResp, err := r.client.UpdateRetentions(ctx, createArchiveRetentions)
+	archiveRetentionStr := protojson.Format(createArchiveRetentions)
+	log.Printf("[INFO] Updating archive-retentions: %s", archiveRetentionStr)
+	updateResp, err := r.client.Update(ctx, createArchiveRetentions)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		diags.AddError(
 			"Error creating archive-retentions",
-			formatRpcErrors(err, updateArchiveRetentionsURL, archiveRetentionsStr),
+			formatRpcErrors(err, cxsdk.ArchiveRetentionUpdateRetentionsRPC, archiveRetentionStr),
 		)
 		return
 	}
@@ -195,7 +198,7 @@ func (r *ArchiveRetentionsResource) Create(ctx context.Context, req resource.Cre
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenArchiveRetentions(ctx context.Context, retentions []*archiveRetention.Retention) (*ArchiveRetentionsResourceModel, diag.Diagnostics) {
+func flattenArchiveRetentions(ctx context.Context, retentions []*cxsdk.Retention) (*ArchiveRetentionsResourceModel, diag.Diagnostics) {
 	if len(retentions) == 0 {
 		r, _ := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: archiveRetentionAttributes()}, []types.Object{})
 		return &ArchiveRetentionsResourceModel{
@@ -207,7 +210,7 @@ func flattenArchiveRetentions(ctx context.Context, retentions []*archiveRetentio
 	var diags diag.Diagnostics
 	var retentionsObjects []types.Object
 	for _, retention := range retentions {
-		retentionModel := ArchiveRetentionResourceModel{
+		retentionModel := &ArchiveRetentionResourceModel{
 			ID:       wrapperspbStringToTypeString(retention.GetId()),
 			Order:    wrapperspbInt32ToTypeInt64(retention.GetOrder()),
 			Name:     wrapperspbStringToTypeString(retention.GetName()),
@@ -244,9 +247,9 @@ func archiveRetentionAttributes() map[string]attr.Type {
 	}
 }
 
-func extractCreateArchiveRetentions(ctx context.Context, plan *ArchiveRetentionsResourceModel, exitingRetentions []*archiveRetention.Retention) (*archiveRetention.UpdateRetentionsRequest, diag.Diagnostics) {
+func extractCreateArchiveRetentions(ctx context.Context, plan *ArchiveRetentionsResourceModel, exitingRetentions []*cxsdk.Retention) (*cxsdk.UpdateRetentionsRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	var retentions []*archiveRetention.RetentionUpdateElement
+	var retentions []*cxsdk.RetentionUpdateElement
 	var retentionsObjects []types.Object
 	plan.Retentions.ElementsAs(ctx, &retentionsObjects, true)
 	for i, retentionObject := range retentionsObjects {
@@ -255,25 +258,25 @@ func extractCreateArchiveRetentions(ctx context.Context, plan *ArchiveRetentions
 			diags.Append(dg...)
 			continue
 		}
-		retentions = append(retentions, &archiveRetention.RetentionUpdateElement{
+		retentions = append(retentions, &cxsdk.RetentionUpdateElement{
 			Id:   wrapperspb.String(exitingRetentions[i].GetId().GetValue()),
 			Name: typeStringToWrapperspbString(retentionModel.Name),
 		})
 
 	}
 	retentions[0].Name = wrapperspb.String("Default")
-	return &archiveRetention.UpdateRetentionsRequest{
+	return &cxsdk.UpdateRetentionsRequest{
 		RetentionUpdateElements: retentions,
 	}, diags
 }
 
-func extractUpdateArchiveRetentions(ctx context.Context, plan, state *ArchiveRetentionsResourceModel) (*archiveRetention.UpdateRetentionsRequest, diag.Diagnostics) {
+func extractUpdateArchiveRetentions(ctx context.Context, plan, state *ArchiveRetentionsResourceModel) (*cxsdk.UpdateRetentionsRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var planRetentionsObjects, stateRetentionsObjects []types.Object
 	plan.Retentions.ElementsAs(ctx, &planRetentionsObjects, true)
 	state.Retentions.ElementsAs(ctx, &stateRetentionsObjects, true)
 
-	var retentions []*archiveRetention.RetentionUpdateElement
+	var retentions []*cxsdk.RetentionUpdateElement
 	for i := range planRetentionsObjects {
 		var planRetentionModel, stateRetentionModel ArchiveRetentionResourceModel
 		if dg := planRetentionsObjects[i].As(ctx, &planRetentionModel, basetypes.ObjectAsOptions{}); dg.HasError() {
@@ -284,13 +287,13 @@ func extractUpdateArchiveRetentions(ctx context.Context, plan, state *ArchiveRet
 			diags.Append(dg...)
 			continue
 		}
-		retentions = append(retentions, &archiveRetention.RetentionUpdateElement{
+		retentions = append(retentions, &cxsdk.RetentionUpdateElement{
 			Id:   typeStringToWrapperspbString(stateRetentionModel.ID),
 			Name: typeStringToWrapperspbString(planRetentionModel.Name),
 		})
 	}
 	retentions[0].Name = wrapperspb.String("Default")
-	return &archiveRetention.UpdateRetentionsRequest{
+	return &cxsdk.UpdateRetentionsRequest{
 		RetentionUpdateElements: retentions,
 	}, diags
 }
@@ -304,11 +307,11 @@ func (r *ArchiveRetentionsResource) Read(ctx context.Context, req resource.ReadR
 	}
 
 	log.Print("[INFO] Reading archive-retentions")
-	getArchiveRetentionsReq := &archiveRetention.GetRetentionsRequest{}
-	getArchiveRetentionsResp, err := r.client.GetRetentions(ctx, getArchiveRetentionsReq)
+	getArchiveRetentionsReq := &cxsdk.GetRetentionsRequest{}
+	getArchiveRetentionsResp, err := r.client.Get(ctx, getArchiveRetentionsReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		formatRpcErrors(err, getArchiveRetentionsURL, protojson.Format(getArchiveRetentionsReq))
+		formatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq))
 		return
 	}
 	log.Printf("[INFO] Received archive-retentions: %s", protojson.Format(getArchiveRetentionsResp))
@@ -344,25 +347,25 @@ func (r *ArchiveRetentionsResource) Update(ctx context.Context, req resource.Upd
 		return
 	}
 	log.Printf("[INFO] Updating archive-retentions: %s", protojson.Format(archiveRetentionsUpdateReq))
-	archiveRetentionsUpdateResp, err := r.client.UpdateRetentions(ctx, archiveRetentionsUpdateReq)
+	archiveRetentionsUpdateResp, err := r.client.Update(ctx, archiveRetentionsUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating archive-retentions",
-			formatRpcErrors(err, updateArchiveRetentionsURL, protojson.Format(archiveRetentionsUpdateReq)),
+			formatRpcErrors(err, cxsdk.ArchiveRetentionUpdateRetentionsRPC, protojson.Format(archiveRetentionsUpdateResp)),
 		)
 		return
 	}
 	log.Printf("[INFO] Submitted updated archive-retentions: %s", protojson.Format(archiveRetentionsUpdateResp))
 
 	// Get refreshed archive-retentions value from Coralogix
-	getArchiveRetentionsReq := &archiveRetention.GetRetentionsRequest{}
-	getArchiveRetentionsResp, err := r.client.GetRetentions(ctx, getArchiveRetentionsReq)
+	getArchiveRetentionsReq := &cxsdk.GetRetentionsRequest{}
+	getArchiveRetentionsResp, err := r.client.Get(ctx, getArchiveRetentionsReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading archive-retentions",
-			formatRpcErrors(err, getArchiveRetentionsURL, protojson.Format(getArchiveRetentionsReq)),
+			formatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq)),
 		)
 		return
 	}
@@ -387,11 +390,11 @@ func (r *ArchiveRetentionsResource) Delete(ctx context.Context, req resource.Del
 	}
 
 	log.Print("[INFO] Deleting archive-retentions")
-	deleteReq := &archiveRetention.UpdateRetentionsRequest{}
-	if _, err := r.client.UpdateRetentions(ctx, deleteReq); err != nil {
+	deleteReq := &cxsdk.UpdateRetentionsRequest{}
+	if _, err := r.client.Update(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting archive-retentions",
-			formatRpcErrors(err, updateArchiveRetentionsURL, protojson.Format(deleteReq)),
+			formatRpcErrors(err, cxsdk.ArchiveRetentionUpdateRetentionsRPC, protojson.Format(deleteReq)),
 		)
 		return
 	}
