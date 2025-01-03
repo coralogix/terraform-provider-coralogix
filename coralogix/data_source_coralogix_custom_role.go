@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,15 +20,15 @@ import (
 	"log"
 	"strconv"
 
-	roles "terraform-provider-coralogix/coralogix/clientset/grpc/roles"
-
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"terraform-provider-coralogix/coralogix/clientset"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 var _ datasource.DataSourceWithConfigure = &CustomRoleDataSource{}
@@ -38,7 +38,7 @@ func NewCustomRoleDataSource() datasource.DataSource {
 }
 
 type CustomRoleDataSource struct {
-	client *clientset.RolesClient
+	client *cxsdk.RolesClient
 }
 
 func (d *CustomRoleDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -86,11 +86,11 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 	log.Printf("[INFO] Reading Custom Role: %v", roleId)
-	getCustomRoleReuest := &roles.GetCustomRoleRequest{
+	getCustomRoleReuest := &cxsdk.GetCustomRoleRequest{
 		RoleId: uint32(roleId),
 	}
 
-	createCustomRoleResponse, err := d.client.GetRole(ctx, getCustomRoleReuest)
+	createCustomRoleResponse, err := d.client.Get(ctx, getCustomRoleReuest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -101,7 +101,7 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading custom role",
-				formatRpcErrors(err, getRolePath, protojson.Format(getCustomRoleReuest)),
+				formatRpcErrors(err, cxsdk.RolesGetCustomRoleRPC, protojson.Format(getCustomRoleReuest)),
 			)
 		}
 		return

@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,6 +19,9 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -27,17 +30,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	dashboards "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards"
 )
 
 var (
-	createDashboardsFolderURL                                  = "com.coralogixapis.dashboards.v1.services.DashboardFoldersService/CreateDashboardFolder"
-	listDashboardsFoldersURL                                   = "com.coralogixapis.dashboards.v1.services.DashboardFoldersService/ListDashboardFolders"
-	deleteDashboardsFolderURL                                  = "com.coralogixapis.dashboards.v1.services.DashboardFoldersService/DeleteDashboardFolder"
-	updateDashboardsFolderURL                                  = "com.coralogixapis.dashboards.v1.services.DashboardFoldersService/ReplaceDashboardFolder"
-	_                         resource.ResourceWithConfigure   = &DashboardsFolderResource{}
-	_                         resource.ResourceWithImportState = &DashboardsFolderResource{}
+	_ resource.ResourceWithConfigure   = &DashboardsFolderResource{}
+	_ resource.ResourceWithImportState = &DashboardsFolderResource{}
 )
 
 func NewDashboardsFolderResource() resource.Resource {
@@ -45,7 +42,7 @@ func NewDashboardsFolderResource() resource.Resource {
 }
 
 type DashboardsFolderResource struct {
-	client *clientset.DashboardsFoldersClient
+	client *cxsdk.DashboardsFoldersClient
 }
 
 func (r *DashboardsFolderResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -100,7 +97,6 @@ func (r *DashboardsFolderResource) Schema(ctx context.Context, req resource.Sche
 			},
 		},
 	}
-	return
 }
 
 func (r *DashboardsFolderResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -115,19 +111,19 @@ func (r *DashboardsFolderResource) Create(ctx context.Context, req resource.Crea
 	id := dashboardsFolder.GetId().GetValue()
 	dashboardsFolderStr := protojson.Format(dashboardsFolder)
 	log.Printf("[INFO] Creating new Dashboards Folder: %s", dashboardsFolderStr)
-	_, err := r.client.CreateDashboardsFolder(ctx, &dashboards.CreateDashboardFolderRequest{Folder: dashboardsFolder})
+	_, err := r.client.Create(ctx, &cxsdk.CreateDashboardFolderRequest{Folder: dashboardsFolder})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError("Error Creating Dashboards Folder",
-			formatRpcErrors(err, createDashboardsFolderURL, dashboardsFolderStr),
+			formatRpcErrors(err, cxsdk.DashboardFoldersCreateDashboardFolderRPC, dashboardsFolderStr),
 		)
 		return
 	}
-	listResp, err := r.client.GetDashboardsFolders(ctx, &dashboards.ListDashboardFoldersRequest{})
+	listResp, err := r.client.List(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError("Error Listing Dashboards Folders",
-			formatRpcErrors(err, listDashboardsFoldersURL, protojson.Format(&dashboards.ListDashboardFoldersRequest{})),
+			formatRpcErrors(err, cxsdk.DashboardFoldersListDashboardFoldersRPC, ""),
 		)
 		return
 	}
@@ -155,7 +151,7 @@ func (r *DashboardsFolderResource) Create(ctx context.Context, req resource.Crea
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenDashboardsFolder(folder *dashboards.DashboardFolder) DashboardsFolderResourceModel {
+func flattenDashboardsFolder(folder *cxsdk.DashboardFolder) DashboardsFolderResourceModel {
 	return DashboardsFolderResourceModel{
 		ID:       wrapperspbStringToTypeString(folder.GetId()),
 		Name:     wrapperspbStringToTypeString(folder.GetName()),
@@ -163,8 +159,8 @@ func flattenDashboardsFolder(folder *dashboards.DashboardFolder) DashboardsFolde
 	}
 }
 
-func extractCreateDashboardsFolder(plan DashboardsFolderResourceModel) *dashboards.DashboardFolder {
-	return &dashboards.DashboardFolder{
+func extractCreateDashboardsFolder(plan DashboardsFolderResourceModel) *cxsdk.DashboardFolder {
+	return &cxsdk.DashboardFolder{
 		Id:       expandUuid(plan.ID),
 		Name:     typeStringToWrapperspbString(plan.Name),
 		ParentId: typeStringToWrapperspbString(plan.ParentId),
@@ -179,13 +175,13 @@ func (r *DashboardsFolderResource) Read(ctx context.Context, req resource.ReadRe
 		return
 	}
 
-	listResp, err := r.client.GetDashboardsFolders(ctx, &dashboards.ListDashboardFoldersRequest{})
+	listResp, err := r.client.List(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		formatRpcErrors(err, listDashboardsFoldersURL, protojson.Format(&dashboards.ListDashboardFoldersRequest{}))
+		formatRpcErrors(err, cxsdk.DashboardFoldersListDashboardFoldersRPC, "")
 		return
 	}
-	var dashboardsFolder *dashboards.DashboardFolder
+	var dashboardsFolder *cxsdk.DashboardFolder
 	for _, folder := range listResp.GetFolder() {
 		if folder.GetId().GetValue() == state.ID.ValueString() {
 			dashboardsFolder = folder
@@ -221,19 +217,19 @@ func (r *DashboardsFolderResource) Update(ctx context.Context, req resource.Upda
 	dashboardsFolder := extractCreateDashboardsFolder(plan)
 	dashboardsFolderStr := protojson.Format(dashboardsFolder)
 	log.Printf("[INFO] Creating new Dashboards Folder: %s", dashboardsFolderStr)
-	_, err := r.client.UpdateDashboardsFolder(ctx, &dashboards.ReplaceDashboardFolderRequest{Folder: dashboardsFolder})
+	_, err := r.client.Replace(ctx, &cxsdk.ReplaceDashboardFolderRequest{Folder: dashboardsFolder})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError("Error Creating Dashboards Folder",
-			formatRpcErrors(err, updateDashboardsFolderURL, dashboardsFolderStr),
+			formatRpcErrors(err, cxsdk.DashboardFoldersReplaceDashboardFolderRPC, dashboardsFolderStr),
 		)
 		return
 	}
-	listResp, err := r.client.GetDashboardsFolders(ctx, &dashboards.ListDashboardFoldersRequest{})
+	listResp, err := r.client.List(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError("Error Listing Dashboards Folders",
-			formatRpcErrors(err, listDashboardsFoldersURL, protojson.Format(&dashboards.ListDashboardFoldersRequest{})),
+			formatRpcErrors(err, cxsdk.DashboardFoldersListDashboardFoldersRPC, ""),
 		)
 		return
 	}
@@ -271,11 +267,11 @@ func (r *DashboardsFolderResource) Delete(ctx context.Context, req resource.Dele
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting Dashboards Folder %s", id)
-	deleteReq := &dashboards.DeleteDashboardFolderRequest{FolderId: wrapperspb.String(id)}
-	if _, err := r.client.DeleteDashboardsFolder(ctx, deleteReq); err != nil {
+	deleteReq := &cxsdk.DeleteDashboardFolderRequest{FolderId: wrapperspb.String(id)}
+	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Dashboard %s", id),
-			formatRpcErrors(err, deleteDashboardsFolderURL, protojson.Format(deleteReq)),
+			formatRpcErrors(err, cxsdk.DashboardFoldersDeleteDashboardFolderRPC, protojson.Format(deleteReq)),
 		)
 		return
 	}
