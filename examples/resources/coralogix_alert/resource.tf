@@ -15,7 +15,7 @@ provider "coralogix" {
 resource "coralogix_alert" "standard_alert" {
   name        = "Standard alert example"
   description = "Example of standard alert from terraform"
-  severity    = "Critical"
+  severity    = "Error"
 
   meta_labels = {
     alert_type        = "security"
@@ -64,10 +64,6 @@ resource "coralogix_alert" "standard_alert" {
       evaluation_window = "Dynamic"
     }
   }
-}
-
-data "coralogix_alert" "imported_standard_alert" {
-  id = coralogix_alert.standard_alert.id
 }
 
 resource "coralogix_alert" "ratio_alert" {
@@ -194,53 +190,53 @@ resource "coralogix_alert" "time_relative_alert" {
   }
 }
 
-resource "coralogix_alert" "metric_lucene_alert" {
-  name        = "Metric lucene alert example"
-  description = "Example of metric lucene alert from terraform"
-  severity    = "Critical"
-
-  notifications_group {
-    notification {
-      integration_id              = coralogix_webhook.slack_webhook.external_id
-    }
-    notification {
-      email_recipients            = ["example@coralogix.com"]
-    }
-  }
-
-  incident_settings {
-    notify_on = "Triggered_and_resolved"
-    retriggering_period_minutes = 60
-  }
-
-  scheduling {
-    time_zone = "UTC+2"
-    time_frame {
-      days_enabled = ["Wednesday", "Thursday"]
-      start_time   = "08:30"
-      end_time     = "20:30"
-    }
-  }
-
-  metric {
-    lucene {
-      search_query = "name:\"Frontend transactions\""
-      condition {
-        metric_field                 = "subsystem"
-        arithmetic_operator          = "Percentile"
-        arithmetic_operator_modifier = 20
-        less_than                    = true
-        group_by                     = ["coralogix.metadata.sdkId"]
-        threshold                    = 60
-        sample_threshold_percentage  = 50
-        time_window                  = "30Min"
-        manage_undetected_values {
-          enable_triggering_on_undetected_values = false
-        }
-      }
-    }
-  }
-}
+#resource "coralogix_alert" "metric_lucene_alert" {
+#  name        = "Metric lucene alert example"
+#  description = "Example of metric lucene alert from terraform"
+#  severity    = "Critical"
+#
+#  notifications_group {
+#    notification {
+#      integration_id              = coralogix_webhook.slack_webhook.external_id
+#    }
+#    notification {
+#      email_recipients            = ["example@coralogix.com"]
+#    }
+#  }
+#
+#  incident_settings {
+#    notify_on = "Triggered_and_resolved"
+#    retriggering_period_minutes = 60
+#  }
+#
+#  scheduling {
+#    time_zone = "UTC+2"
+#    time_frame {
+#      days_enabled = ["Wednesday", "Thursday"]
+#      start_time   = "08:30"
+#      end_time     = "20:30"
+#    }
+#  }
+#
+#  metric {
+#    lucene {
+#      search_query = "name:\"Frontend transactions\""
+#      condition {
+#        metric_field                 = "subsystem"
+#        arithmetic_operator          = "Percentile"
+#        arithmetic_operator_modifier = 20
+#        less_than                    = true
+#        group_by                     = ["coralogix.metadata.sdkId"]
+#        threshold                    = 60
+#        sample_threshold_percentage  = 50
+#        time_window                  = "30Min"
+#        manage_undetected_values {
+#          enable_triggering_on_undetected_values = false
+#        }
+#      }
+#    }
+#  }
+#}
 
 resource "coralogix_alert" "metric_promql_alert" {
   name        = "Metric promql alert example"
@@ -316,7 +312,7 @@ resource "coralogix_alert" "unique_count_alert" {
     condition {
       unique_count_key               = "remote_addr_geoip.country_name"
       max_unique_values              = 2
-      time_window                    = "10Min"
+      time_window                    = "15Min"
       group_by_key                   = "coralogix.metadata.sdkId"
       max_unique_values_for_group_by = 500
     }
@@ -357,7 +353,7 @@ resource "coralogix_alert" "tracing_alert" {
       "filter:startsWith:application-name4"
     ]
     subsystems = [
-      "subsystemName", "filter:notEquals:subsystemName2", "filter:contains:subsystemName",
+      "subsystemName", "filter:contains:subsystemName",
       "filter:endsWith:subsystemName",
       "filter:startsWith:subsystemName"
     ]

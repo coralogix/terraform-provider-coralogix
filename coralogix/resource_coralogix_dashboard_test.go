@@ -22,10 +22,10 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	dashboard "terraform-provider-coralogix/coralogix/clientset/grpc/dashboards"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -161,7 +161,7 @@ func testAccCheckDashboardDestroy(s *terraform.State) error {
 		}
 
 		dashboardId := wrapperspb.String(rs.Primary.ID)
-		resp, err := client.GetDashboard(ctx, &dashboard.GetDashboardRequest{DashboardId: dashboardId})
+		resp, err := client.Get(ctx, &cxsdk.GetDashboardRequest{DashboardId: dashboardId})
 		if err == nil {
 			if resp.GetDashboard().GetId().GetValue() == rs.Primary.ID {
 				return fmt.Errorf("dashboard still exists: %s", rs.Primary.ID)

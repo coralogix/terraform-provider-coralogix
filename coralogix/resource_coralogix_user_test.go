@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -62,7 +62,7 @@ func testAccCheckUserDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.GetUser(ctx, rs.Primary.ID)
+		resp, err := client.Get(ctx, rs.Primary.ID)
 		if err == nil && resp != nil {
 			if *resp.ID == rs.Primary.ID && resp.Active {
 				return fmt.Errorf("user still exists and active: %s", rs.Primary.ID)
