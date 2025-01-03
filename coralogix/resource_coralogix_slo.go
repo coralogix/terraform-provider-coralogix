@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -115,28 +115,28 @@ func (S SLOResourceValidator) ValidateResource(ctx context.Context, req resource
 		resp.Diagnostics = diags
 		return
 	}
-	if config.Type.ValueString() == "latency" && (config.ThresholdMicroseconds.IsNull() || config.ThresholdMicroseconds.IsUnknown()) {
+	if config.Type.ValueString() == "latency" && config.ThresholdMicroseconds.IsNull() {
 		resp.Diagnostics.AddError(
 			"ThresholdMicroseconds is required when type is latency",
 			"ThresholdMicroseconds is required when type is latency",
 		)
 		return
 	}
-	if config.Type.ValueString() == "latency" && (config.ThresholdSymbolType.IsNull() || config.ThresholdSymbolType.IsUnknown()) {
+	if config.Type.ValueString() == "latency" && config.ThresholdSymbolType.IsNull() {
 		resp.Diagnostics.AddError(
 			"ThresholdSymbolType is required when type is latency",
 			"ThresholdSymbolType is required when type is latency",
 		)
 		return
 	}
-	if config.Type.ValueString() == "error" && !(config.ThresholdMicroseconds.IsNull() || config.ThresholdMicroseconds.IsUnknown()) {
+	if config.Type.ValueString() == "error" && !config.ThresholdMicroseconds.IsNull() {
 		resp.Diagnostics.AddError(
 			"ThresholdMicroseconds is not allowed when type is error",
 			"ThresholdMicroseconds is not allowed when type is error",
 		)
 		return
 	}
-	if config.Type.ValueString() == "error" && !(config.ThresholdSymbolType.IsNull() || config.ThresholdSymbolType.IsUnknown()) {
+	if config.Type.ValueString() == "error" && !config.ThresholdSymbolType.IsNull() {
 		resp.Diagnostics.AddError(
 			"ThresholdSymbolType is not allowed when type is error",
 			"ThresholdSymbolType is not allowed when type is error",
