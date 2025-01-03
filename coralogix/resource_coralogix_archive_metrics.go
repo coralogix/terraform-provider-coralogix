@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-
 	"terraform-provider-coralogix/coralogix/clientset"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
