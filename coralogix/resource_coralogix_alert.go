@@ -521,7 +521,7 @@ type FlowModel struct {
 }
 
 type FlowStageModel struct {
-	FlowStagesGroups types.Set    `tfsdk:"flow_stages_groups"` // FlowStagesGroupModel
+	FlowStagesGroups types.List   `tfsdk:"flow_stages_groups"` // FlowStagesGroupModel
 	TimeframeMs      types.Int64  `tfsdk:"timeframe_ms"`
 	TimeframeType    types.String `tfsdk:"timeframe_type"`
 }
@@ -1083,7 +1083,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								Required: true,
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
-										"flow_stages_groups": schema.SetNestedAttribute{
+										"flow_stages_groups": schema.ListNestedAttribute{
 											Required: true,
 											NestedObject: schema.NestedAttributeObject{
 												Attributes: map[string]schema.Attribute{
@@ -3231,7 +3231,7 @@ func extractFlowStage(ctx context.Context, object types.Object) (*cxsdk.FlowStag
 	return flowStage, nil
 }
 
-func extractFlowStagesGroups(ctx context.Context, groups types.Set) (*cxsdk.FlowStagesGroups, diag.Diagnostics) {
+func extractFlowStagesGroups(ctx context.Context, groups types.List) (*cxsdk.FlowStagesGroups, diag.Diagnostics) {
 	if groups.IsNull() || groups.IsUnknown() {
 		return nil, nil
 	}
@@ -4556,16 +4556,16 @@ func flattenFlowStage(ctx context.Context, stage *cxsdk.FlowStages) (*FlowStageM
 
 }
 
-func flattenFlowStagesGroups(ctx context.Context, stage *cxsdk.FlowStages) (types.Set, diag.Diagnostics) {
+func flattenFlowStagesGroups(ctx context.Context, stage *cxsdk.FlowStages) (types.List, diag.Diagnostics) {
 	var flowStagesGroups []*FlowStagesGroupModel
 	for _, group := range stage.GetFlowStagesGroups().GetGroups() {
 		flowStageGroup, diags := flattenFlowStageGroup(ctx, group)
 		if diags.HasError() {
-			return types.SetNull(types.ObjectType{AttrTypes: flowStageGroupAttr()}), diags
+			return types.ListNull(types.ObjectType{AttrTypes: flowStageGroupAttr()}), diags
 		}
 		flowStagesGroups = append(flowStagesGroups, flowStageGroup)
 	}
-	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: flowStageGroupAttr()}, flowStagesGroups)
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: flowStageGroupAttr()}, flowStagesGroups)
 
 }
 
@@ -5021,7 +5021,7 @@ func flowAttr() map[string]attr.Type {
 
 func flowStageAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"flow_stages_groups": types.SetType{
+		"flow_stages_groups": types.ListType{
 			ElemType: types.ObjectType{
 				AttrTypes: flowStageGroupAttr(),
 			},
