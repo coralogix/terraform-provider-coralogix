@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
-	github.com/coralogix/coralogix-management-sdk v0.12.1-0.20241213171158-f7579a623b5a
+	github.com/coralogix/coralogix-management-sdk v0.12.2-0.20250102193132-7580da4f82fa
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
