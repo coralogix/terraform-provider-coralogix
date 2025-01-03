@@ -516,7 +516,7 @@ type TracingThresholdConditionModel struct {
 }
 
 type FlowModel struct {
-	Stages             types.Set  `tfsdk:"stages"` // FlowStageModel
+	Stages             types.List `tfsdk:"stages"` // FlowStageModel
 	EnforceSuppression types.Bool `tfsdk:"enforce_suppression"`
 }
 
@@ -1079,7 +1079,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					"flow": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"stages": schema.SetNestedAttribute{
+							"stages": schema.ListNestedAttribute{
 								Required: true,
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
@@ -3186,7 +3186,7 @@ func expandFlowAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertD
 	return properties, nil
 }
 
-func extractFlowStages(ctx context.Context, stages types.Set) ([]*cxsdk.FlowStages, diag.Diagnostics) {
+func extractFlowStages(ctx context.Context, stages types.List) ([]*cxsdk.FlowStages, diag.Diagnostics) {
 	if stages.IsNull() || stages.IsUnknown() {
 		return nil, nil
 	}
@@ -4524,16 +4524,16 @@ func flattenFlow(ctx context.Context, flow *cxsdk.FlowType) (types.Object, diag.
 	return types.ObjectValueFrom(ctx, flowAttr(), flowModel)
 }
 
-func flattenFlowStages(ctx context.Context, stages []*cxsdk.FlowStages) (types.Set, diag.Diagnostics) {
+func flattenFlowStages(ctx context.Context, stages []*cxsdk.FlowStages) (types.List, diag.Diagnostics) {
 	var flowStages []*FlowStageModel
 	for _, stage := range stages {
 		flowStage, diags := flattenFlowStage(ctx, stage)
 		if diags.HasError() {
-			return types.SetNull(types.ObjectType{AttrTypes: flowStageAttr()}), diags
+			return types.ListNull(types.ObjectType{AttrTypes: flowStageAttr()}), diags
 		}
 		flowStages = append(flowStages, flowStage)
 	}
-	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: flowStageAttr()}, flowStages)
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: flowStageAttr()}, flowStages)
 
 }
 
@@ -5010,7 +5010,7 @@ func tracingThresholdConditionAttr() map[string]attr.Type {
 
 func flowAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"stages": types.SetType{
+		"stages": types.ListType{
 			ElemType: types.ObjectType{
 				AttrTypes: flowStageAttr(),
 			},
