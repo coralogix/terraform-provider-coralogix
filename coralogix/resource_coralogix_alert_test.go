@@ -1374,7 +1374,7 @@ func testAccCoralogixResourceAlertLogsImmediate() string {
   schedule = {
     active_on = {
       days_of_week = ["Wednesday", "Thursday"]
-      start_time = "8:30"
+      start_time = "08:30"
       end_time = "20:30"
     }
   }
@@ -1420,7 +1420,7 @@ func testAccCoralogixResourceAlertLogsMoreThan() string {
   schedule = {
     active_on = {
       days_of_week = ["Wednesday", "Thursday"]
-      start_time = "8:30"
+      start_time = "08:30"
       end_time = "20:30"
     }
   }
@@ -1492,7 +1492,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
   schedule = {
     active_on = {
       days_of_week = ["Monday", "Thursday"]
-      start_time = "8:30"
+      start_time = "08:30"
       end_time = "20:30"
     }
   }
@@ -1564,7 +1564,7 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
   schedule = {
     active_on = {
       days_of_week = ["Wednesday", "Thursday"]
-      start_time = "8:30"
+      start_time = "08:30"
       end_time = "20:30"
     }
   }
@@ -1630,7 +1630,7 @@ func testAccCoralogixResourceAlertLogsLessThanUpdated() string {
   schedule = {
     active_on = {
       days_of_week = ["Monday", "Thursday"]
-      start_time = "8:30"
+      start_time = "08:30"
       end_time = "20:30"
     }
   }
@@ -1705,7 +1705,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUsual() string {
   schedule = {
     active_on = {
       days_of_week = ["Wednesday", "Thursday"]
-      start_time = "8:30"
+      start_time = "08:30"
       end_time = "20:30"
     }
   }
@@ -1901,7 +1901,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
       schedule = {
         active_on = {
             days_of_week = ["Monday", "Thursday"]
-            start_time = "8:30"
+            start_time = "08:30"
             end_time = "20:30"
         }
       }

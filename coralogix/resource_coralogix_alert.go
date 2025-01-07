@@ -731,7 +731,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								Required: true,
 								Validators: []validator.String{
 									stringvalidator.RegexMatches(
-										regexp.MustCompile(`^[0-9]{1,2}:[0-9]{1,2}$`),
+										regexp.MustCompile(`^[0-9]{2}:[0-9]{2}$`),
 										"Use 24h time formats like 15:04 or 9:04",
 									),
 								},
@@ -740,7 +740,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								Required: true,
 								Validators: []validator.String{
 									stringvalidator.RegexMatches(
-										regexp.MustCompile(`^[0-9]{1,2}:[0-9]{1,2}$`),
+										regexp.MustCompile(`^[0-9]{2}:[0-9]{2}$`),
 										"Use 24h time formats like 15:04 or 9:04",
 									),
 								},

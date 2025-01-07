@@ -67,7 +67,7 @@ func testAccCoralogixResourceAlertLogsImmediateForReading() string {
   schedule = {
     active_on = {
       days_of_week = ["Wednesday", "Thursday"]
-      start_time = "8:30"
+      start_time = "08:30"
       end_time = "20:30"
     }
   }
