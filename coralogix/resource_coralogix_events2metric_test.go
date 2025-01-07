@@ -197,6 +197,7 @@ logs_query = {
 
 metric_fields = {
     method = {
+        target_base_metric_name = "methodtwo"
         source_field = "duration"
     },
     geo_point = {
@@ -230,34 +231,35 @@ permutations = {
 
 func testAccCoralogixResourceSpans2Metric(l *events2MetricTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_events2metric" "test" {
-  name        = "%s"
-  description = "%s"
-  spans_query = {
+name        = "%s"
+description = "%s"
+spans_query = {
     lucene       = "remote_addr_enriched:/.*/"
     applications = ["nginx"]
-    actions = ["action-name"]
-    services = ["service-name"]
-  }
+    actions      = ["action-name"]
+    services     = ["service-name"]
+}
 
-  metric_fields = {
+metric_fields = {
     method = {
-      source_field = "duration"
+        target_base_metric_name = "methodtwo"
+        source_field = "duration"
     },
     geo_point = {
-      source_field = "location_geopoint"
-      aggregations = {
-        max = {
-          enable = false
+        source_field = "location_geopoint"
+        aggregations = {
+            max = {
+                enable = false
+            }
+            min = {
+                enable = false
+            }
+            avg = {
+                enable = true
+            }
         }
-        min = {
-          enable = false
-        }
-        avg = {
-          enable = true
-        }
-      }
     }
-  }
+}
 
   metric_labels = {
     Status = "status"
