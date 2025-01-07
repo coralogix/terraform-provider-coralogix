@@ -28,6 +28,7 @@ import (
 	"regexp"
 	"slices"
 	"strconv"
+	"strings"
 
 	gouuid "github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -518,6 +519,12 @@ func (u urlValidationFuncFramework) ValidateString(ctx context.Context, req vali
 			),
 		)
 	}
+}
+
+func flattenUtc(timeZone string) int32 {
+	utcStr := strings.Split(timeZone, "UTC")[1]
+	utc, _ := strconv.Atoi(utcStr)
+	return int32(utc)
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"

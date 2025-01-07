@@ -18,7 +18,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"strconv"
+	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
 
@@ -27,7 +29,6 @@ import (
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -52,6 +53,12 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
+
+// Format to parse time from and format to
+const TIME_FORMAT = "15:03"
+
+// Format to parse offset from and format to
+const OFFSET_FORMAT = "Z0700"
 
 var (
 	_              resource.ResourceWithConfigure   = &AlertResource{}
@@ -376,13 +383,9 @@ type WebhooksSettingsModel struct {
 
 type ActiveOnModel struct {
 	DaysOfWeek types.Set    `tfsdk:"days_of_week"` // []types.String
-	StartTime  types.Object `tfsdk:"start_time"`   // TimeOfDayModel
-	EndTime    types.Object `tfsdk:"end_time"`     // TimeOfDayModel
-}
-
-type TimeOfDayModel struct {
-	Hours   types.Int64 `tfsdk:"hours"`
-	Minutes types.Int64 `tfsdk:"minutes"`
+	StartTime  types.String `tfsdk:"start_time"`
+	EndTime    types.String `tfsdk:"end_time"`
+	UtcOffset  types.String `tfsdk:"utc_offset"`
 }
 
 type RetriggeringPeriodModel struct {
@@ -722,8 +725,34 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								},
 								MarkdownDescription: fmt.Sprintf("Days of the week. Valid values: %q.", validDaysOfWeek),
 							},
-							"start_time": timeOfDaySchema(),
-							"end_time":   timeOfDaySchema(),
+							"start_time": schema.StringAttribute{
+								Required: true,
+								Validators: []validator.String{
+									stringvalidator.RegexMatches(
+										regexp.MustCompile(`^[0-9]{1,2}:[0-9]{1,2}$`),
+										"Use 24h time formats like 15:04 or 9:04",
+									),
+								},
+							},
+							"end_time": schema.StringAttribute{
+								Required: true,
+								Validators: []validator.String{
+									stringvalidator.RegexMatches(
+										regexp.MustCompile(`^[0-9]{1,2}:[0-9]{1,2}$`),
+										"Use 24h time formats like 15:04 or 9:04",
+									),
+								},
+							},
+							"utc_offset": schema.StringAttribute{
+								Optional: true,
+								Default:  stringdefault.StaticString("0000"),
+								Validators: []validator.String{
+									stringvalidator.RegexMatches(
+										regexp.MustCompile(`^[-+][0-9]{4}$`),
+										"Time zone to interpret the start/end times in, using a UTC offset like -0700",
+									),
+								},
+							},
 						},
 					},
 				},
@@ -1261,6 +1290,10 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 	}
 }
 
+func timeZoneSchema() {
+	panic("todo")
+}
+
 type GroupByValidator struct {
 }
 
@@ -1564,26 +1597,6 @@ func notificationPayloadFilterSchema() schema.SetAttribute {
 	}
 }
 
-func timeOfDaySchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Required: true,
-		Attributes: map[string]schema.Attribute{
-			"hours": schema.Int64Attribute{
-				Required: true,
-				Validators: []validator.Int64{
-					int64validator.Between(0, 23),
-				},
-			},
-			"minutes": schema.Int64Attribute{
-				Required: true,
-				Validators: []validator.Int64{
-					int64validator.Between(0, 59),
-				},
-			},
-		},
-	}
-}
-
 func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
@@ -1642,7 +1655,7 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 	alert := createResp.GetAlertDef()
 	log.Printf("[INFO] Submitted new alert: %s", protojson.Format(alert))
 
-	plan, diags = flattenAlert(ctx, alert)
+	plan, diags = flattenAlert(ctx, alert, &plan.Schedule)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -1874,7 +1887,7 @@ func expandAlertsSchedule(ctx context.Context, alertProperties *cxsdk.AlertDefPr
 	}
 
 	var diags diag.Diagnostics
-	if activeOn := scheduleModel.ActiveOn; !(activeOn.IsNull() || activeOn.IsUnknown()) {
+	if activeOn := scheduleModel.ActiveOn; !objIsNullOrUnknown(activeOn) {
 		alertProperties.Schedule, diags = expandActiveOnSchedule(ctx, activeOn)
 	} else {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Schedule object is not valid", "Schedule object is not valid")}
@@ -1902,40 +1915,49 @@ func expandActiveOnSchedule(ctx context.Context, activeOnObject types.Object) (*
 		return nil, diags
 	}
 
-	startTime, diags := extractTimeOfDay(ctx, activeOnModel.StartTime)
-	if diags.HasError() {
-		return nil, diags
+	locationTime, e := time.Parse(OFFSET_FORMAT, activeOnModel.UtcOffset.ValueString())
+	if e != nil {
+		diags.AddError("Failed to parse start time", e.Error())
+	}
+	_, offset := locationTime.Zone()
+	if e != nil {
+		diags.AddError("Failed to parse start time", e.Error())
+	}
+	location := time.FixedZone("", offset)
+
+	startTimeUtc, e := time.ParseInLocation(TIME_FORMAT, activeOnModel.StartTime.ValueString(), time.UTC)
+	if e != nil {
+		diags.AddError("Failed to parse start time", e.Error())
 	}
 
-	endTime, diags := extractTimeOfDay(ctx, activeOnModel.EndTime)
+	endTimeUtc, e := time.ParseInLocation(TIME_FORMAT, activeOnModel.EndTime.ValueString(), time.UTC)
+	if e != nil {
+		diags.AddError("Failed to parse end time", e.Error())
+	}
+	if endTimeUtc.Before(startTimeUtc) {
+		diags.AddError("End time is before start time", "End time is before start time")
+	}
+
 	if diags.HasError() {
 		return nil, diags
 	}
+	// shift the clock
+	startTime := startTimeUtc.In(location)
+	endTime := endTimeUtc.In(location)
 
 	return &cxsdk.AlertDefScheduleActiveOn{
 		ActiveOn: &cxsdk.AlertDefActivitySchedule{
 			DayOfWeek: daysOfWeek,
-			StartTime: startTime,
-			EndTime:   endTime,
+			StartTime: &cxsdk.AlertTimeOfDay{
+				Hours:   int32(startTime.UTC().Hour()),
+				Minutes: int32(startTime.UTC().Minute()),
+			},
+			EndTime: &cxsdk.AlertTimeOfDay{
+				Hours:   int32(endTime.UTC().Hour()),
+				Minutes: int32(endTime.UTC().Minute()),
+			},
 		},
 	}, nil
-}
-
-func extractTimeOfDay(ctx context.Context, timeObject types.Object) (*cxsdk.AlertTimeOfDay, diag.Diagnostics) {
-	if timeObject.IsNull() || timeObject.IsUnknown() {
-		return nil, nil
-	}
-
-	var timeOfDayModel TimeOfDayModel
-	if diags := timeObject.As(ctx, &timeOfDayModel, basetypes.ObjectAsOptions{}); diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.AlertTimeOfDay{
-		Hours:   int32(timeOfDayModel.Hours.ValueInt64()),
-		Minutes: int32(timeOfDayModel.Minutes.ValueInt64()),
-	}, nil
-
 }
 
 func extractDaysOfWeek(ctx context.Context, daysOfWeek types.Set) ([]cxsdk.AlertDayOfWeek, diag.Diagnostics) {
@@ -3346,7 +3368,7 @@ func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	alert := getAlertResp.GetAlertDef()
 	log.Printf("[INFO] Received Alert: %s", protojson.Format(alert))
 
-	state, diags = flattenAlert(ctx, alert)
+	state, diags = flattenAlert(ctx, alert, &state.Schedule)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -3355,10 +3377,10 @@ func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func flattenAlert(ctx context.Context, alert *cxsdk.AlertDef) (*AlertResourceModel, diag.Diagnostics) {
+func flattenAlert(ctx context.Context, alert *cxsdk.AlertDef, currentSchedule *types.Object) (*AlertResourceModel, diag.Diagnostics) {
 	alertProperties := alert.GetAlertDefProperties()
 
-	alertSchedule, diags := flattenAlertSchedule(ctx, alertProperties)
+	alertSchedule, diags := flattenAlertSchedule(ctx, alertProperties, currentSchedule)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4001,7 +4023,7 @@ func flattenLogsNewValueCondition(ctx context.Context, condition *cxsdk.LogsNewV
 	})
 }
 
-func flattenAlertSchedule(ctx context.Context, alertProperties *cxsdk.AlertDefProperties) (types.Object, diag.Diagnostics) {
+func flattenAlertSchedule(ctx context.Context, alertProperties *cxsdk.AlertDefProperties, currentSchedule *types.Object) (types.Object, diag.Diagnostics) {
 	if alertProperties.Schedule == nil {
 		return types.ObjectNull(alertScheduleAttr()), nil
 	}
@@ -4010,7 +4032,12 @@ func flattenAlertSchedule(ctx context.Context, alertProperties *cxsdk.AlertDefPr
 	var diags diag.Diagnostics
 	switch alertScheduleType := alertProperties.Schedule.(type) {
 	case *cxsdk.AlertDefPropertiesActiveOn:
-		alertScheduleModel.ActiveOn, diags = flattenActiveOn(ctx, alertScheduleType.ActiveOn)
+		var activeOnModel ActiveOnModel
+		if diags := currentSchedule.As(ctx, &activeOnModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return types.ObjectNull(alertScheduleAttr()), diags
+		}
+
+		alertScheduleModel.ActiveOn, diags = flattenActiveOn(ctx, alertScheduleType.ActiveOn, activeOnModel.UtcOffset.ValueString())
 	default:
 		return types.ObjectNull(alertScheduleAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Alert Schedule", fmt.Sprintf("Alert Schedule %v is not supported", alertScheduleType))}
 	}
@@ -4022,7 +4049,7 @@ func flattenAlertSchedule(ctx context.Context, alertProperties *cxsdk.AlertDefPr
 	return types.ObjectValueFrom(ctx, alertScheduleAttr(), alertScheduleModel)
 }
 
-func flattenActiveOn(ctx context.Context, activeOn *cxsdk.AlertDefActivitySchedule) (types.Object, diag.Diagnostics) {
+func flattenActiveOn(ctx context.Context, activeOn *cxsdk.AlertDefActivitySchedule, utcOffset string) (types.Object, diag.Diagnostics) {
 	if activeOn == nil {
 		return types.ObjectNull(alertScheduleActiveOnAttr()), nil
 	}
@@ -4031,21 +4058,22 @@ func flattenActiveOn(ctx context.Context, activeOn *cxsdk.AlertDefActivitySchedu
 	if diags.HasError() {
 		return types.ObjectNull(alertScheduleActiveOnAttr()), diags
 	}
+	offset, err := time.Parse(OFFSET_FORMAT, utcOffset)
 
-	startTime, diags := flattenTimeOfDay(ctx, activeOn.GetStartTime())
-	if diags.HasError() {
-		return types.ObjectNull(alertScheduleActiveOnAttr()), diags
+	if err != nil {
+		return types.ObjectNull(alertScheduleActiveOnAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid UTC Offset", fmt.Sprintf("UTC Offset %v is not valid", utcOffset))}
 	}
+	zoneName, offsetSecs := offset.Zone() // Name is probably empty
+	zone := time.FixedZone(zoneName, offsetSecs)
+	startTime := time.Date(2021, 2, 1, int(activeOn.StartTime.Hours), int(activeOn.StartTime.Minutes), 0, 0, zone)
 
-	endTime, diags := flattenTimeOfDay(ctx, activeOn.GetEndTime())
-	if diags.HasError() {
-		return types.ObjectNull(alertScheduleActiveOnAttr()), diags
-	}
+	endTime := time.Date(2021, 2, 1, int(activeOn.EndTime.Hours), int(activeOn.EndTime.Minutes), 0, 0, zone)
 
 	activeOnModel := ActiveOnModel{
 		DaysOfWeek: daysOfWeek,
-		StartTime:  startTime,
-		EndTime:    endTime,
+		StartTime:  types.StringValue(startTime.UTC().Format(TIME_FORMAT)),
+		EndTime:    types.StringValue(endTime.UTC().Format(TIME_FORMAT)),
+		UtcOffset:  types.StringValue(utcOffset),
 	}
 	return types.ObjectValueFrom(ctx, alertScheduleActiveOnAttr(), activeOnModel)
 }
@@ -4056,16 +4084,6 @@ func flattenDaysOfWeek(ctx context.Context, daysOfWeek []cxsdk.AlertDayOfWeek) (
 		daysOfWeekStrings = append(daysOfWeekStrings, types.StringValue(daysOfWeekProtoToSchemaMap[dow]))
 	}
 	return types.SetValueFrom(ctx, types.StringType, daysOfWeekStrings)
-}
-
-func flattenTimeOfDay(ctx context.Context, time *cxsdk.AlertTimeOfDay) (types.Object, diag.Diagnostics) {
-	if time == nil {
-		return types.ObjectNull(timeOfDayAttr()), nil
-	}
-	return types.ObjectValueFrom(ctx, timeOfDayAttr(), TimeOfDayModel{
-		Hours:   types.Int64Value(int64(time.GetHours())),
-		Minutes: types.Int64Value(int64(time.GetMinutes())),
-	})
 }
 
 func flattenLogsTimeRelativeThreshold(ctx context.Context, logsTimeRelativeThreshold *cxsdk.LogsTimeRelativeThresholdType) (types.Object, diag.Diagnostics) {
@@ -4870,12 +4888,9 @@ func alertScheduleActiveOnAttr() map[string]attr.Type {
 		"days_of_week": types.SetType{
 			ElemType: types.StringType,
 		},
-		"start_time": types.ObjectType{
-			AttrTypes: timeOfDayAttr(),
-		},
-		"end_time": types.ObjectType{
-			AttrTypes: timeOfDayAttr(),
-		},
+		"start_time": types.StringType,
+		"end_time":   types.StringType,
+		"utc_offset": types.StringType,
 	}
 }
 
@@ -5138,7 +5153,7 @@ func (r *AlertResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	}
 	log.Printf("[INFO] Received Alert: %s", protojson.Format(getAlertResp))
 
-	plan, diags = flattenAlert(ctx, getAlertResp.GetAlertDef())
+	plan, diags = flattenAlert(ctx, getAlertResp.GetAlertDef(), &plan.Schedule)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
