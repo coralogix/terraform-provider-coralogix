@@ -704,9 +704,6 @@ func e2mSchemaV0() schema.Schema {
 			"metric_fields": schema.SetNestedBlock{
 				NestedObject: schema.NestedBlockObject{
 					Attributes: map[string]schema.Attribute{
-						"target_base_metric_name": schema.StringAttribute{
-							Required: true,
-						},
 						"source_field": schema.StringAttribute{
 							Required: true,
 						},
@@ -1137,8 +1134,8 @@ func expandE2MFields(ctx context.Context, fields types.Map) ([]*cxsdk.MetricFiel
 		panic(d)
 	}
 	result := make([]*cxsdk.MetricField, 0, len(fieldsMap))
-	for sourceFiled, metricFieldValue := range fieldsMap {
-		field, dgs := expandE2MField(ctx, sourceFiled, metricFieldValue)
+	for sourceField, metricFieldValue := range fieldsMap {
+		field, dgs := expandE2MField(ctx, sourceField, metricFieldValue)
 		if dgs.HasError() {
 			diags = append(diags, dgs...)
 			continue
