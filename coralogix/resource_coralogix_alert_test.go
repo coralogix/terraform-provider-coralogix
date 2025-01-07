@@ -704,7 +704,7 @@ func TestAccCoralogixResourceAlert_logs_unique_count(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-unique-count alert example updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-unique-count alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
-					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "0"),
+					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "1"),
 
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.0.condition.time_window", "20_MINUTES"),
@@ -1335,7 +1335,7 @@ func testAccCoralogixResourceAlertLogsImmediateUpdated() string {
   schedule = {
     active_on = {
       days_of_week = ["Wednesday", "Thursday"]
-      start_time = "9:30"
+      start_time = "09:30"
       end_time   = "21:30"
     }
   }
