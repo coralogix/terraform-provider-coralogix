@@ -2218,6 +2218,7 @@ func testAccCoralogixResourceAlertLogsUniqueCountUpdated() string {
   name        = "logs-unique-count alert example updated"
   description = "Example of logs-unique-count alert from terraform updated"
   priority    = "P2"
+  group_by        = ["remote_addr_geoip.city_name"]
 
   type_definition = {
     logs_unique_count = {
