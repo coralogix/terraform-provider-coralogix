@@ -55,7 +55,7 @@ import (
 )
 
 // Format to parse time from and format to
-const TIME_FORMAT = "15:03"
+const TIME_FORMAT = "15:04"
 
 // Format to parse offset from and format to
 const OFFSET_FORMAT = "Z0700"
