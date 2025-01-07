@@ -48,7 +48,7 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Wednesday"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "8:30"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "08:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time", "20:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_immediate.logs_filter.simple_filter.lucene_query", "message:\"error\""),
 				),
@@ -111,7 +111,7 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Wednesday"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "8:30"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "08:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time", "20:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.#", "1"),
 
@@ -153,7 +153,7 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Monday"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "8:30"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "08:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time", "20:30"),
 
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.#", "1"),
@@ -207,7 +207,7 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Wednesday"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "8:30"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "08:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time", "20:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.#", "1"),
 
@@ -247,7 +247,7 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Monday"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "8:30"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "08:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time", "20:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.0.condition.threshold", "20"),
@@ -301,7 +301,7 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Wednesday"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "8:30"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "08:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time", "20:30"),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_anomaly.logs_filter.simple_filter.label_filters.application_name.*",
 						map[string]string{
@@ -432,7 +432,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Monday"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "8:30"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "08:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time", "20:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.rules.#", "1"),
 
