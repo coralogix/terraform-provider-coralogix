@@ -66,7 +66,7 @@ func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.min.enable", "false"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.sum.target_metric_name", "cx_sum"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.sum.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.source_field", "method"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.source_field", "duration"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.count.target_metric_name", "cx_count"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.count.enable", "true"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.histogram.target_metric_name", "cx_bucket"),
@@ -124,7 +124,7 @@ func TestAccCoralogixResourceSpans2Metric(t *testing.T) {
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.min.enable", "false"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.sum.target_metric_name", "cx_sum"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.sum.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.source_field", "method"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.source_field", "duration"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.count.target_metric_name", "cx_count"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.count.enable", "true"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.histogram.target_metric_name", "cx_bucket"),
@@ -197,7 +197,7 @@ logs_query = {
 
 metric_fields = {
     method = {
-        source_field = "method"
+        source_field = "duration"
     },
     geo_point = {
         source_field = "location_geopoint"
@@ -241,7 +241,7 @@ func testAccCoralogixResourceSpans2Metric(l *events2MetricTestFields) string {
 
   metric_fields = {
     method = {
-      source_field = "method"
+      source_field = "duration"
     },
     geo_point = {
       source_field = "location_geopoint"
