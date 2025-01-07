@@ -745,7 +745,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 							"utc_offset": schema.StringAttribute{
 								Optional: true,
-								Default:  stringdefault.StaticString("0000"),
+								Default:  stringdefault.StaticString("+0000"),
 								Computed: true,
 								Validators: []validator.String{
 									stringvalidator.RegexMatches(
