@@ -76,7 +76,7 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.days_of_week.#", "2"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Wednesday"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
-					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "9:30"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "09:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time", "21:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_immediate.logs_filter.simple_filter.lucene_query", "message:\"error\""),
 				),
