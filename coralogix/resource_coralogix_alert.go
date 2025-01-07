@@ -60,6 +60,8 @@ const TIME_FORMAT = "15:04"
 // Format to parse offset from and format to
 const OFFSET_FORMAT = "Z0700"
 
+const DEFAULT_TIMEZONE_OFFSET = "+0000"
+
 var (
 	_              resource.ResourceWithConfigure   = &AlertResource{}
 	_              resource.ResourceWithImportState = &AlertResource{}
@@ -745,7 +747,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 							"utc_offset": schema.StringAttribute{
 								Optional: true,
-								Default:  stringdefault.StaticString("+0000"),
+								Default:  stringdefault.StaticString(DEFAULT_TIMEZONE_OFFSET),
 								Computed: true,
 								Validators: []validator.String{
 									stringvalidator.RegexMatches(
@@ -4033,12 +4035,20 @@ func flattenAlertSchedule(ctx context.Context, alertProperties *cxsdk.AlertDefPr
 	var diags diag.Diagnostics
 	switch alertScheduleType := alertProperties.Schedule.(type) {
 	case *cxsdk.AlertDefPropertiesActiveOn:
-		var activeOnModel ActiveOnModel
-		if diags := currentSchedule.As(ctx, &activeOnModel, basetypes.ObjectAsOptions{}); diags.HasError() {
-			return types.ObjectNull(alertScheduleAttr()), diags
+		utcOffset := DEFAULT_TIMEZONE_OFFSET
+		// Set the offset according to the previous state, if possible
+		// Note that there is a default value set on the schema so it should work for new resources, but old/generated states could run into this
+		var scheduleModel AlertScheduleModel
+		if diags := currentSchedule.As(ctx, &scheduleModel, basetypes.ObjectAsOptions{}); !diags.HasError() {
+			if !objIsNullOrUnknown(scheduleModel.ActiveOn) {
+				var activeOnModel ActiveOnModel
+				if diags := scheduleModel.ActiveOn.As(ctx, &activeOnModel, basetypes.ObjectAsOptions{}); !diags.HasError() {
+					utcOffset = activeOnModel.UtcOffset.ValueString()
+				}
+			}
 		}
 
-		alertScheduleModel.ActiveOn, diags = flattenActiveOn(ctx, alertScheduleType.ActiveOn, activeOnModel.UtcOffset.ValueString())
+		alertScheduleModel.ActiveOn, diags = flattenActiveOn(ctx, alertScheduleType.ActiveOn, utcOffset)
 	default:
 		return types.ObjectNull(alertScheduleAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Alert Schedule", fmt.Sprintf("Alert Schedule %v is not supported", alertScheduleType))}
 	}
