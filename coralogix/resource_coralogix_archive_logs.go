@@ -115,6 +115,7 @@ func (r ArchiveLogsResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 			"region": schema.StringAttribute{
+				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
