@@ -729,6 +729,11 @@ Fix:
 
 * SLO issue when using variables
 
+# Release 1.18.16
+
+Feature:
+
+* Add analytics header to requests
 
 # Release 2.0.0
 

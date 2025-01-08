@@ -16,7 +16,7 @@ Coralogix Api keys.
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.8"
+      version = "~> 2.0"
       source  = "coralogix/coralogix"
     }
   }
@@ -44,7 +44,7 @@ resource "coralogix_api_key" "example" {
 ### Required
 
 - `name` (String) Api Key name.
-- `owner` (Attributes) Api Key Owner.It can either be a team_id or a user_id (see [below for nested schema](#nestedatt--owner))
+- `owner` (Attributes) Api Key Owner. It can either be a team_id or a user_id (see [below for nested schema](#nestedatt--owner))
 - `permissions` (Set of String) Api Key Permissions
 - `presets` (Set of String) Api Key Presets
 

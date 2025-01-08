@@ -3,12 +3,12 @@
 page_title: "coralogix_custom_role Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Custom roles.
+  Coralogix Custom cxsdk.
 ---
 
 # coralogix_custom_role (Resource)
 
-Coralogix Custom roles.
+Coralogix Custom cxsdk.
 
 ## Example Usage
 
@@ -16,7 +16,7 @@ Coralogix Custom roles.
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.8"
+      version = "~> 2.0"
       source  = "coralogix/coralogix"
     }
   }
