@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,8 +18,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"runtime"
 	"time"
 
+	"github.com/google/uuid"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -27,8 +29,9 @@ import (
 )
 
 type CallPropertiesCreator struct {
-	targetUrl string
-	apiKey    string
+	targetUrl     string
+	apiKey        string
+	correlationID string
 	//allowRetry bool
 }
 
@@ -39,7 +42,7 @@ type CallProperties struct {
 }
 
 func (c CallPropertiesCreator) GetCallProperties(ctx context.Context) (*CallProperties, error) {
-	ctx = createAuthContext(ctx, c.apiKey)
+	ctx = createAuthContext(ctx, c.apiKey, c.correlationID)
 
 	conn, err := createSecureConnection(c.targetUrl)
 	if err != nil {
@@ -63,15 +66,22 @@ func createSecureConnection(targetUrl string) (*grpc.ClientConn, error) {
 		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
 }
 
-func createAuthContext(ctx context.Context, apiKey string) context.Context {
-	md := metadata.New(map[string]string{"Authorization": fmt.Sprintf("Bearer %s", apiKey)})
+func createAuthContext(ctx context.Context, apiKey string, correlationID string) context.Context {
+	md := metadata.New(map[string]string{
+		"Authorization":       fmt.Sprintf("Bearer %s", apiKey),
+		"x-cx-sdk-language":   "go",
+		"x-cx-go-version":     runtime.Version(),
+		"x-cx-sdk-version":    "terraform-1.18.16",
+		"x-cx-correlation-id": correlationID,
+	})
 	ctx = metadata.NewOutgoingContext(ctx, md)
 	return ctx
 }
 
 func NewCallPropertiesCreator(targetUrl, apiKey string) *CallPropertiesCreator {
 	return &CallPropertiesCreator{
-		targetUrl: targetUrl,
-		apiKey:    apiKey,
+		targetUrl:     targetUrl,
+		apiKey:        apiKey,
+		correlationID: uuid.NewString(),
 	}
 }
