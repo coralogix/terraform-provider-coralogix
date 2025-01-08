@@ -722,3 +722,21 @@ New features:
 Fix:
 
 * Fixed geo_ip enrichments
+
+# Release 1.18.15
+
+Fix:
+
+* SLO issue when using variables
+
+
+# Release 2.0.0
+
+The provider is now based on the Coralogix Management SDK with the latest APIs. This fixes a variety of issues and should be mostly transparent to the user. 
+
+Breaking Changes:
+
+#### resource/coralogix_alert
+
+Revamped the structure of alerts in general. Please consult the guide v1-v2-migration-guide on how to migrate.
+

@@ -1,16 +1,18 @@
 # **Guide to Using the Terraform Migration Script**
 
-This guide provides step-by-step instructions on how to use the Terraform migration script effectively.
+This guide provides step-by-step instructions on how to use the Terraform migration scripts effectively. 
 
 ---
 
 ## **Prerequisites**
+0. **Get the scripts**:
+   - Download from [https://github.com/coralogix/coralogix-management-sdk/tree/master/tools/terraform-importer]()
 1. **Terraform Installed**:
    - Ensure you have Terraform installed. You can download it [here](https://www.terraform.io/downloads).
 2. **Go Installed**:
    - Install Go from [golang.org](https://golang.org/dl/).
 3. **Python Installed**:
-   - The script uses Python for JSON processing.
+   - The script uses Python 3 for JSON processing, so make sure you have Python 3 installed.
 4. **`hcl2json` Installed**:
    - Install the `hcl2json` utility. You can find it [here](https://github.com/tmccombs/hcl2json).
 
@@ -34,7 +36,7 @@ Before running the script, ensure you defined the required environment variables
 
 Use the script as follows:
 ```bash
-./script.sh
+./generate_and_migrate.sh
 ```
 
 ---
