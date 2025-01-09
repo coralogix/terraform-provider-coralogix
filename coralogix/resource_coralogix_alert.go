@@ -341,7 +341,7 @@ type AlertResourceModel struct {
 	TypeDefinition    types.Object `tfsdk:"type_definition"` // AlertTypeDefinitionModel
 	PhantomMode       types.Bool   `tfsdk:"phantom_mode"`
 	Deleted           types.Bool   `tfsdk:"deleted"`
-	GroupBy           types.Set    `tfsdk:"group_by"`           // []types.String
+	GroupBy           types.List   `tfsdk:"group_by"`           // []types.String
 	IncidentsSettings types.Object `tfsdk:"incidents_settings"` // IncidentsSettingsModel
 	NotificationGroup types.Object `tfsdk:"notification_group"` // NotificationGroupModel
 	Labels            types.Map    `tfsdk:"labels"`             // map[string]string
@@ -372,8 +372,8 @@ type IncidentsSettingsModel struct {
 }
 
 type NotificationGroupModel struct {
-	GroupByKeys      types.Set `tfsdk:"group_by_keys"`     // []types.String
-	WebhooksSettings types.Set `tfsdk:"webhooks_settings"` // WebhooksSettingsModel
+	GroupByKeys      types.List `tfsdk:"group_by_keys"`     // []types.String
+	WebhooksSettings types.Set  `tfsdk:"webhooks_settings"` // WebhooksSettingsModel
 }
 
 type WebhooksSettingsModel struct {
@@ -1185,13 +1185,13 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"group_by": schema.SetAttribute{
+			"group_by": schema.ListAttribute{
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []planmodifier.Set{
+				PlanModifiers: []planmodifier.List{
 					ComputedForMetricAlerts{},
 				},
-				Validators: []validator.Set{
+				Validators: []validator.List{
 					//imidiate, new value, tracing-immidiate,
 					GroupByValidator{},
 				},
@@ -1226,7 +1226,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Optional: true,
 				Computed: true,
 				Default: objectdefault.StaticValue(types.ObjectValueMust(notificationGroupAttr(), map[string]attr.Value{
-					"group_by_keys": types.SetNull(types.StringType),
+					"group_by_keys": types.ListNull(types.StringType),
 					"webhooks_settings": types.SetNull(types.ObjectType{AttrTypes: map[string]attr.Type{
 						"retriggering_period": types.ObjectType{AttrTypes: map[string]attr.Type{
 							"minutes": types.Int64Type,
@@ -1237,7 +1237,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					}}),
 				})),
 				Attributes: map[string]schema.Attribute{
-					"group_by_keys": schema.SetAttribute{
+					"group_by_keys": schema.ListAttribute{
 						Optional:    true,
 						ElementType: types.StringType,
 					},
@@ -1308,7 +1308,7 @@ func (g GroupByValidator) MarkdownDescription(ctx context.Context) string {
 	return "Group by validator."
 }
 
-func (g GroupByValidator) ValidateSet(ctx context.Context, request validator.SetRequest, response *validator.SetResponse) {
+func (g GroupByValidator) ValidateList(ctx context.Context, request validator.ListRequest, response *validator.ListResponse) {
 	paths, diags := request.Config.PathMatches(ctx, path.MatchRoot("type_definition"))
 	if diags.HasError() {
 		response.Diagnostics.Append(diags...)
@@ -1339,7 +1339,7 @@ func (c ComputedForMetricAlerts) MarkdownDescription(ctx context.Context) string
 	return "Computed for metric alerts."
 }
 
-func (c ComputedForMetricAlerts) PlanModifySet(ctx context.Context, request planmodifier.SetRequest, response *planmodifier.SetResponse) {
+func (c ComputedForMetricAlerts) PlanModifyList(ctx context.Context, request planmodifier.ListRequest, response *planmodifier.ListResponse) {
 	paths, diags := request.Plan.PathMatches(ctx, path.MatchRoot("type_definition"))
 	if diags.HasError() {
 		response.Diagnostics.Append(diags...)
@@ -1382,7 +1382,7 @@ func (c ComputedForMetricAlerts) PlanModifySet(ctx context.Context, request plan
 
 		if request.ConfigValue.IsUnknown() || request.ConfigValue.IsNull() {
 			if !promqlState.Equal(promqlPlan) {
-				response.PlanValue = types.SetUnknown(types.StringType)
+				response.PlanValue = types.ListUnknown(types.StringType)
 			} else {
 				response.PlanValue = request.StateValue
 			}
@@ -3411,7 +3411,7 @@ func flattenAlert(ctx context.Context, alert *cxsdk.AlertDef, currentSchedule *t
 		Priority:          types.StringValue(alertPriorityProtoToSchemaMap[alertProperties.GetPriority()]),
 		Schedule:          alertSchedule,
 		TypeDefinition:    alertTypeDefinition,
-		GroupBy:           wrappedStringSliceToTypeStringSet(alertProperties.GetGroupByKeys()),
+		GroupBy:           wrappedStringSliceToTypeStringList(alertProperties.GetGroupByKeys()),
 		IncidentsSettings: incidentsSettings,
 		NotificationGroup: notificationGroup,
 		Labels:            labels,
@@ -3431,7 +3431,7 @@ func flattenNotificationGroup(ctx context.Context, notificationGroup *cxsdk.Aler
 	}
 
 	notificationGroupModel := NotificationGroupModel{
-		GroupByKeys:      wrappedStringSliceToTypeStringSet(notificationGroup.GetGroupByKeys()),
+		GroupByKeys:      wrappedStringSliceToTypeStringList(notificationGroup.GetGroupByKeys()),
 		WebhooksSettings: webhooksSettings,
 	}
 
@@ -4645,7 +4645,7 @@ func incidentsSettingsAttr() map[string]attr.Type {
 
 func notificationGroupAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"group_by_keys": types.SetType{
+		"group_by_keys": types.ListType{
 			ElemType: types.StringType,
 		},
 		"webhooks_settings": types.SetType{
