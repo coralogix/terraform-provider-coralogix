@@ -1,0 +1,28 @@
+---
+page_title: "Provider: Coralogix"
+description: |-
+  The Coralogix provider for configuring Coralogix.
+---
+
+# Coralogix Provider
+
+Coralogix is a cloud-based, SaaS analytics and monitoring platform that combines logs, metrics, and traces to gain full observability into your system using one tool. The platform ingests data from any digital source and transforms it using our core features, allowing you to fully understand your system, analyze that data efficiently, and respond to incidents before they become problems.
+
+Manage your Coralogix account from Terraform, including alerts, dashboards, and more. First, sign up for an account at [Coralogix.com](https://coralogix.com/) and create an API key. With that key and your region you can then configure the provider as follows:
+
+{{ tffile "examples/provider/provider.tf" }}
+
+## Schema
+
+{{- .SchemaMarkdown | trimspace -}}
+
+# Getting Started
+
+Check out our examples for how to configure the various resources offered by the provider. If you already have Coralogix set up and want to import any existing resources, check out our migration script: [https://github.com/coralogix/coralogix-management-sdk/tree/master/tools/terraform-importer]().
+
+# Additional Notes
+
+## Upgrading from V1.x.x to V2.x.x 
+
+In this version upgrade we changed the schema of our alerts, which are now incompatible to previous versions. You can ease the transition process by using the importer tool mentioned above so your state is safely upgraded. Note that for existing Coralogix users an additional process is required for upgrading your account. Please reach out to customer support to receive more guidance. 
+

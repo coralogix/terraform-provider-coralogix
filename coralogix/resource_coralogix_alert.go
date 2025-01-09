@@ -1388,9 +1388,8 @@ func (c ComputedForSomeAlerts) PlanModifyList(ctx context.Context, request planm
 			}
 			return
 		}
-	case "logs_new_value":
-		rulesRootExpr := path.MatchRoot("type_definition").AtName(typeDefinitionStr).AtName("rules")
-		paths, diags = request.Plan.PathMatches(ctx, rulesRootExpr)
+	case "logs_new_value": // keypath_to_track values end up in the group_by attribute
+		paths, diags = request.Plan.PathMatches(ctx, path.MatchRoot("type_definition").AtName(typeDefinitionStr).AtName("rules"))
 		if diags.HasError() {
 			response.Diagnostics.Append(diags...)
 			return
