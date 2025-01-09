@@ -510,7 +510,7 @@ resource "coralogix_alert" "test" {
 
 - `description` (String) Alert description.
 - `enabled` (Boolean) Alert enabled status. True by default.
-- `group_by` (Set of String) Group by fields.
+- `group_by` (List of String) Group by fields.
 - `incidents_settings` (Attributes) (see [below for nested schema](#nestedatt--incidents_settings))
 - `labels` (Map of String)
 - `notification_group` (Attributes) (see [below for nested schema](#nestedatt--notification_group))
@@ -1604,7 +1604,7 @@ Required:
 
 Optional:
 
-- `group_by_keys` (Set of String)
+- `group_by_keys` (List of String)
 - `webhooks_settings` (Attributes Set) (see [below for nested schema](#nestedatt--notification_group--webhooks_settings))
 
 <a id="nestedatt--notification_group--webhooks_settings"></a>

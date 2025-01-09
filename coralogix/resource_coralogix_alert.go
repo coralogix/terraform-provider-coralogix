@@ -1189,7 +1189,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.List{
-					ComputedForMetricAlerts{},
+					ComputedForSomeAlerts{},
 				},
 				Validators: []validator.List{
 					//imidiate, new value, tracing-immidiate,
@@ -1293,10 +1293,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 	}
 }
 
-func timeZoneSchema() {
-	panic("todo")
-}
-
 type GroupByValidator struct {
 }
 
@@ -1328,18 +1324,18 @@ func (g GroupByValidator) ValidateList(ctx context.Context, request validator.Li
 	}
 }
 
-type ComputedForMetricAlerts struct {
+type ComputedForSomeAlerts struct {
 }
 
-func (c ComputedForMetricAlerts) Description(ctx context.Context) string {
+func (c ComputedForSomeAlerts) Description(ctx context.Context) string {
 	return "Computed for metric alerts."
 }
 
-func (c ComputedForMetricAlerts) MarkdownDescription(ctx context.Context) string {
+func (c ComputedForSomeAlerts) MarkdownDescription(ctx context.Context) string {
 	return "Computed for metric alerts."
 }
 
-func (c ComputedForMetricAlerts) PlanModifyList(ctx context.Context, request planmodifier.ListRequest, response *planmodifier.ListResponse) {
+func (c ComputedForSomeAlerts) PlanModifyList(ctx context.Context, request planmodifier.ListRequest, response *planmodifier.ListResponse) {
 	paths, diags := request.Plan.PathMatches(ctx, path.MatchRoot("type_definition"))
 	if diags.HasError() {
 		response.Diagnostics.Append(diags...)
@@ -1352,14 +1348,18 @@ func (c ComputedForMetricAlerts) PlanModifyList(ctx context.Context, request pla
 		return
 	}
 
+	// special case for metric alerts
 	var typeDefinitionStr string
 	if !objIsNullOrUnknown(typeDefinition.MetricThreshold) {
 		typeDefinitionStr = "metric_threshold"
 	} else if !objIsNullOrUnknown(typeDefinition.MetricAnomaly) {
 		typeDefinitionStr = "metric_anomaly"
+	} else if !objIsNullOrUnknown(typeDefinition.LogsNewValue) {
+		typeDefinitionStr = "logs_new_value"
 	}
 
-	if typeDefinitionStr != "" {
+	switch typeDefinitionStr {
+	case "metric_threshold", "metric_anomaly":
 		paths, diags = request.Plan.PathMatches(ctx, path.MatchRoot("type_definition").AtName(typeDefinitionStr).AtName("metric_filter").AtName("promql"))
 		if diags.HasError() {
 			response.Diagnostics.Append(diags...)
@@ -1388,8 +1388,36 @@ func (c ComputedForMetricAlerts) PlanModifyList(ctx context.Context, request pla
 			}
 			return
 		}
-	}
+	case "logs_new_value": // keypath_to_track values end up in the group_by attribute
+		paths, diags = request.Plan.PathMatches(ctx, path.MatchRoot("type_definition").AtName(typeDefinitionStr).AtName("rules"))
+		if diags.HasError() {
+			response.Diagnostics.Append(diags...)
+			return
+		}
 
+		var rulesPlan types.Set
+		diags = request.Plan.GetAttribute(ctx, paths[0], &rulesPlan)
+		if diags.HasError() {
+			response.Diagnostics.Append(diags...)
+			return
+		}
+
+		var rulesState types.Set
+		diags = request.State.GetAttribute(ctx, paths[0], &rulesState)
+		if diags.HasError() {
+			response.Diagnostics.Append(diags...)
+			return
+		}
+
+		if request.ConfigValue.IsUnknown() || request.ConfigValue.IsNull() {
+			if !rulesState.Equal(rulesPlan) {
+				response.PlanValue = types.ListUnknown(types.StringType)
+			} else {
+				response.PlanValue = request.StateValue
+			}
+			return
+		}
+	}
 	response.PlanValue = request.ConfigValue
 }
 
@@ -1773,19 +1801,6 @@ func extractNotificationGroup(ctx context.Context, notificationGroupObject types
 	notificationGroup := &cxsdk.AlertDefNotificationGroup{
 		GroupByKeys: groupByFields,
 		Webhooks:    webhooks,
-	}
-
-	return notificationGroup, nil
-}
-
-func expandNotificationTargetSettings(ctx context.Context, notificationGroupModel NotificationGroupModel, notificationGroup *cxsdk.AlertDefNotificationGroup) (*cxsdk.AlertDefNotificationGroup, diag.Diagnostics) {
-	notificationGroup.Webhooks = []*cxsdk.AlertDefWebhooksSettings{}
-	if webhooksSettings := notificationGroupModel.WebhooksSettings; !(webhooksSettings.IsNull() || webhooksSettings.IsUnknown()) {
-		notifications, diags := extractWebhooksSettings(ctx, webhooksSettings)
-		if diags.HasError() {
-			return nil, diags
-		}
-		notificationGroup.Webhooks = notifications
 	}
 
 	return notificationGroup, nil
@@ -3342,14 +3357,14 @@ func extractAlertDef(ctx context.Context, def types.Object) (*cxsdk.FlowStagesGr
 func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state *AlertResourceModel
 	diags := req.State.Get(ctx, &state)
+	//Get refreshed Alert value from Coralogix
+	id := state.ID.ValueString()
+	log.Printf("[INFO] Reading Alert: %s", id)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	//Get refreshed Alert value from Coralogix
-	id := state.ID.ValueString()
-	log.Printf("[INFO] Reading Alert: %s", id)
 	getAlertReq := &cxsdk.GetAlertDefRequest{Id: wrapperspb.String(id)}
 	getAlertResp, err := r.client.Get(ctx, getAlertReq)
 	if err != nil {
@@ -4902,13 +4917,6 @@ func alertScheduleActiveOnAttr() map[string]attr.Type {
 		"start_time": types.StringType,
 		"end_time":   types.StringType,
 		"utc_offset": types.StringType,
-	}
-}
-
-func timeOfDayAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"hours":   types.Int64Type,
-		"minutes": types.Int64Type,
 	}
 }
 
