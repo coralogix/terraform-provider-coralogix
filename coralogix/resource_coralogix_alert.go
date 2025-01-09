@@ -1189,7 +1189,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.List{
-					ComputedForMetricAlerts{},
+					ComputedForSomeAlerts{},
 				},
 				Validators: []validator.List{
 					//imidiate, new value, tracing-immidiate,
@@ -1239,7 +1239,6 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Attributes: map[string]schema.Attribute{
 					"group_by_keys": schema.ListAttribute{
 						Optional:    true,
-						Computed:    true,
 						ElementType: types.StringType,
 					},
 					"webhooks_settings": schema.SetNestedAttribute{
@@ -1325,18 +1324,18 @@ func (g GroupByValidator) ValidateList(ctx context.Context, request validator.Li
 	}
 }
 
-type ComputedForMetricAlerts struct {
+type ComputedForSomeAlerts struct {
 }
 
-func (c ComputedForMetricAlerts) Description(ctx context.Context) string {
+func (c ComputedForSomeAlerts) Description(ctx context.Context) string {
 	return "Computed for metric alerts."
 }
 
-func (c ComputedForMetricAlerts) MarkdownDescription(ctx context.Context) string {
+func (c ComputedForSomeAlerts) MarkdownDescription(ctx context.Context) string {
 	return "Computed for metric alerts."
 }
 
-func (c ComputedForMetricAlerts) PlanModifyList(ctx context.Context, request planmodifier.ListRequest, response *planmodifier.ListResponse) {
+func (c ComputedForSomeAlerts) PlanModifyList(ctx context.Context, request planmodifier.ListRequest, response *planmodifier.ListResponse) {
 	paths, diags := request.Plan.PathMatches(ctx, path.MatchRoot("type_definition"))
 	if diags.HasError() {
 		response.Diagnostics.Append(diags...)
@@ -1665,7 +1664,6 @@ func (r *AlertResource) ImportState(ctx context.Context, req resource.ImportStat
 }
 
 func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	log.Printf("[INFO] Creating new Alert")
 	var plan *AlertResourceModel
 	if diags := req.Plan.Get(ctx, &plan); diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -1698,7 +1696,6 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 	log.Printf("[INFO] Created Alert: %s", protojson.Format(alert))
 	// Set state to fully populated data
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-	log.Printf("[INFO] Done Creating new alert")
 }
 
 func extractAlertProperties(ctx context.Context, plan *AlertResourceModel) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
