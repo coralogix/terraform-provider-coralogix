@@ -4921,13 +4921,6 @@ func alertScheduleActiveOnAttr() map[string]attr.Type {
 	}
 }
 
-func timeOfDayAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"hours":   types.Int64Type,
-		"minutes": types.Int64Type,
-	}
-}
-
 func logsTimeRelativeAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"logs_filter":                  types.ObjectType{AttrTypes: logsFilterAttr()},
