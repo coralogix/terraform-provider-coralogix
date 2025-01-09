@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,10 +19,11 @@ import (
 	"fmt"
 	"testing"
 
-	"google.golang.org/protobuf/encoding/protojson"
 	"terraform-provider-coralogix/coralogix/clientset"
-	tcopolicies "terraform-provider-coralogix/coralogix/clientset/grpc/tco-policies"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -118,7 +119,7 @@ func testAccTCOPoliciesTracesCheckDestroy(s *terraform.State) error {
 			continue
 		}
 
-		if resp, err := client.GetTCOPolicies(ctx, &tcopolicies.GetCompanyPoliciesRequest{SourceType: &tracesSource}); err == nil {
+		if resp, err := client.List(ctx, &cxsdk.GetCompanyPoliciesRequest{SourceType: &tracesSource}); err == nil {
 			if err == nil && len(resp.Policies) > 0 {
 				return fmt.Errorf("tco-policies still exists: %s", protojson.Format(resp))
 			}

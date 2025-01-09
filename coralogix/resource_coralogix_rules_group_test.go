@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	rulesgroups "terraform-provider-coralogix/coralogix/clientset/grpc/rules-groups/v1"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -30,26 +30,26 @@ import (
 
 /*
 func TestAccCoralogixResourceRuleGroup_minimal(t *testing.T) {
-	name := acctest.RandomWithPrefix("tf-acc-test")
-	alertResourceName := "coralogix_rules_group.test"
+    name := acctest.RandomWithPrefix("tf-acc-test")
+    alertResourceName := "coralogix_rules_group.test"
 
-	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckRuleGroupDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccCoralogixResourceRuleGroupMinimal(name),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrSet(alertResourceName, "id"),
-				),
-			},
-			{
-				Config:   testAccCoralogixResourceRuleGroupMinimal(name),
-				PlanOnly: true,
-			},
-		},
-	})
+    resource.Test(t, resource.TestCase{
+        PreCheck:          func() { testAccPreCheck(t) },
+        ProviderFactories: testAccProviderFactories,
+        CheckDestroy:      testAccCheckRuleGroupDestroy,
+        Steps: []resource.TestStep{
+            {
+                Config: testAccCoralogixResourceRuleGroupMinimal(name),
+                Check: resource.ComposeAggregateTestCheckFunc(
+                    resource.TestCheckResourceAttrSet(alertResourceName, "id"),
+                ),
+            },
+            {
+                Config:   testAccCoralogixResourceRuleGroupMinimal(name),
+                PlanOnly: true,
+            },
+        },
+    })
 }*/
 
 var rulesGroupResourceName = "coralogix_rules_group.test"
@@ -675,11 +675,11 @@ func testAccCheckRuleGroupDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &rulesgroups.GetRuleGroupRequest{
+		req := &cxsdk.GetRuleGroupRequest{
 			GroupId: rs.Primary.ID,
 		}
 
-		resp, err := client.GetRuleGroup(ctx, req)
+		resp, err := client.Get(ctx, req)
 		if err == nil {
 			if resp.RuleGroup.Id.Value == rs.Primary.ID {
 				return fmt.Errorf("RuleGroup still exists: %s", rs.Primary.ID)
@@ -691,7 +691,7 @@ func testAccCheckRuleGroupDestroy(s *terraform.State) error {
 }
 
 /*func testAccCoralogixResourceRuleGroupMinimal(name string) string {
-	return fmt.Sprintf(`resource "coralogix_rules_group" "test" {
+    return fmt.Sprintf(`resource "coralogix_rules_group" "test" {
   name         = "%s"
   description  = "rule group from terraform provider"
  }
@@ -705,14 +705,14 @@ func testAccCoralogixResourceRuleGroupBlock(r *ruleGroupParams, regEx, keepBlock
   creator      = "%s"
   rule_subgroups {
     rules{
-	 block {
-     	name               	= "%s"
-	    description        	= "%s"
+     block {
+         name               	= "%s"
+        description        	= "%s"
         source_field 		= "text"
         regular_expression	= "%s"
         keep_blocked_logs  	= "%s"
-    	}
-	}
+        }
+    }
   }
  }
 `, r.name, r.description, r.creator, r.ruleParams.name, r.ruleParams.description, regEx, keepBlockedLogs)
@@ -724,14 +724,14 @@ func testAccCoralogixResourceRuleGroupJsonExtract(r *ruleGroupParams, jsonKey, d
   description  = "%s"
   creator      = "%s"
   rule_subgroups {
-	rules{
+    rules{
      json_extract {
        name               	= "%s"
        description        	= "%s"
        json_key     		= "%s"
        destination_field  	= "%s"
      }
-	}
+    }
   }
  }
 `, r.name, r.description, r.creator, r.ruleParams.name, r.ruleParams.description, jsonKey, destinationField)
@@ -747,12 +747,12 @@ func testAccCoralogixResourceRuleGroupReplace(r *ruleGroupParams, regEx, replace
       replace {
       name               	= "%s"
       description        	= "%s"
-	  source_field       	= "text"
+      source_field       	= "text"
       destination_field  	= "text"
       regular_expression	= "%s"
       replacement_string     = "%s"
      }
-	}
+    }
   }
  }
 `, r.name, r.description, r.creator, r.ruleParams.name, r.ruleParams.description, regEx, replacementString)
@@ -781,21 +781,21 @@ func testAccCoralogixResourceRuleGroupAllow(r *ruleGroupParams, regEx, keepBlock
 
 func testAccCoralogixResourceRuleGroupExtractTimestamp(r *ruleGroupParams, timeFormat, fieldFormatStandard string) string {
 	return fmt.Sprintf(`resource "coralogix_rules_group" "test" {
-  name         = "%s"
-  description  = "%s"
-  creator      = "%s"
-  rule_subgroups {
-    rules{
-       extract_timestamp {
-      name               	= "%s"
-      description        	= "%s"
-      source_field 			= "text"
-      time_format        	= "%s"
-      field_format_standard = "%s"
+name         = "%s"
+description  = "%s"
+creator      = "%s"
+rule_subgroups {
+        rules {
+            extract_timestamp {
+                name                  = "%s"
+                description           = "%s"
+                source_field          = "text"
+                time_format        	  = "%s"
+                field_format_standard = "%s"
+            }
+        }
     }
-   }
-  }
- }
+}
 `, r.name, r.description, r.creator, r.ruleParams.name, r.ruleParams.description, timeFormat, fieldFormatStandard)
 }
 
@@ -805,7 +805,7 @@ func testAccCoralogixResourceRuleGroupRemoveFields(r *ruleGroupParams, excludedF
   description  = "%s"
   creator      = "%s"
   rule_subgroups {
-	rules{
+    rules{
      remove_fields {
        name               = "%s"
        description        = "%s"
@@ -864,12 +864,12 @@ func testAccCoralogixResourceRuleGroupParse(r *ruleGroupParams, regEx string) st
   rule_subgroups {
     rules{
       parse {
-		name               = "%s"
-		description        = "%s"
-		source_field       = "text"
-		destination_field  = "text"
-		regular_expression  = "%s"
-	  }
+        name               = "%s"
+        description        = "%s"
+        source_field       = "text"
+        destination_field  = "text"
+        regular_expression  = "%s"
+      }
     }
   }
  }
@@ -884,13 +884,13 @@ func testAccCoralogixResourceRuleGroupParseJsonField(r *ruleGroupParams, keepSou
   rule_subgroups {
     rules{
       parse_json_field {
-		name               = "%s"
-		description        = "%s"
-		source_field       = "text"
-		destination_field  = "text"
-		keep_source_field  = "%s"
-		keep_destination_field = "%s"
-	  }
+        name               = "%s"
+        description        = "%s"
+        source_field       = "text"
+        destination_field  = "text"
+        keep_source_field  = "%s"
+        keep_destination_field = "%s"
+      }
     }
   }
  }
@@ -903,16 +903,16 @@ func testAccCoralogixResourceRuleRulesCombination(r *ruleGroupParams) string {
   description  = "%s"
   creator      = "%s"
   rule_subgroups {
-	rules{
+    rules{
     parse {
       name               = "rule1"
       description        = "description"
       source_field       = "text"
- 	  destination_field  = "text"
+       destination_field  = "text"
       regular_expression  = "(?P<remote_addr>\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3})\\s*-\\s*(?P<user>[^ ]+)\\s*\\[(?P<timestemp>\\d{4}-\\d{2}\\-\\d{2}T\\d{2}\\:\\d{2}\\:\\d{2}\\.\\d{1,6}Z)\\]\\s*\\\\\\\"(?P<method>[A-z]+)\\s[\\/\\\\]+(?P<request>[^\\s]+)\\s*(?P<protocol>[A-z0-9\\/\\.]+)\\\\\\\"\\s*(?P<status>\\d+)\\s*(?P<body_bytes_sent>\\d+)?\\s*?\\\\\\\"(?P<http_referer>[^\"]+)\\\"\\s*\\\\\\\"(?P<http_user_agent>[^\"]+)\\\"\\s(?P<request_time>\\d{1,6})\\s*(?P<response_time>\\d{1,6})"
      }
     }
-	rules{
+    rules{
      extract {
        name               = "rule2"
        description        = "description"
@@ -921,20 +921,20 @@ func testAccCoralogixResourceRuleRulesCombination(r *ruleGroupParams) string {
      }
     }
 
-	rules{
-	 parse {
+    rules{
+     parse {
        name               = "rule3"
        description        = "description"
        source_field       = "text"
- 	   destination_field  = "text"
+        destination_field  = "text"
        regular_expression  = "(?P<remote_addr>\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3})\\s*-\\s*(?P<user>[^ ]+)\\s*\\[(?P<timestemp>\\d{4}-\\d{2}\\-\\d{2}T\\d{2}\\:\\d{2}\\:\\d{2}\\.\\d{1,6}Z)\\]\\s*\\\\\\\"(?P<method>[A-z]+)\\s[\\/\\\\]+(?P<request>[^\\s]+)\\s*(?P<protocol>[A-z0-9\\/\\.]+)\\\\\\\"\\s*(?P<status>\\d+)\\s*(?P<body_bytes_sent>\\d+)?\\s*?\\\\\\\"(?P<http_referer>[^\"]+)\\\"\\s*\\\\\\\"(?P<http_user_agent>[^\"]+)\\\"\\s(?P<request_time>\\d{1,6})\\s*(?P<response_time>\\d{1,6})"
      }
-	} 
+    } 
   }
 
   rule_subgroups {
    rules{
-	extract_timestamp {
+    extract_timestamp {
       name               	= "rule1"
       description        	= "description"
       source_field 			= "text"
@@ -953,7 +953,7 @@ func testAccCoralogixResourceRuleRulesCombinationDifferentOrders(r *ruleGroupPar
   description  = "%s"
   creator      = "%s"
   rule_subgroups {
-	rules{
+    rules{
      extract {
        name               = "rule2"
        description        = "description"
@@ -962,22 +962,22 @@ func testAccCoralogixResourceRuleRulesCombinationDifferentOrders(r *ruleGroupPar
      }
     }
 
-	rules{
-	 parse {
+    rules{
+     parse {
        name               = "rule3"
        description        = "description"
        source_field       = "text"
- 	   destination_field  = "text"
+        destination_field  = "text"
        regular_expression  = "(?P<remote_addr>\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3})\\s*-\\s*(?P<user>[^ ]+)\\s*\\[(?P<timestemp>\\d{4}-\\d{2}\\-\\d{2}T\\d{2}\\:\\d{2}\\:\\d{2}\\.\\d{1,6}Z)\\]\\s*\\\\\\\"(?P<method>[A-z]+)\\s[\\/\\\\]+(?P<request>[^\\s]+)\\s*(?P<protocol>[A-z0-9\\/\\.]+)\\\\\\\"\\s*(?P<status>\\d+)\\s*(?P<body_bytes_sent>\\d+)?\\s*?\\\\\\\"(?P<http_referer>[^\"]+)\\\"\\s*\\\\\\\"(?P<http_user_agent>[^\"]+)\\\"\\s(?P<request_time>\\d{1,6})\\s*(?P<response_time>\\d{1,6})"
       }
     }
 
-	rules{
+    rules{
      parse {
       name               = "rule1"
       description        = "description"
       source_field       = "text"
- 	  destination_field  = "text"
+       destination_field  = "text"
       regular_expression  = "(?P<remote_addr>\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3})\\s*-\\s*(?P<user>[^ ]+)\\s*\\[(?P<timestemp>\\d{4}-\\d{2}\\-\\d{2}T\\d{2}\\:\\d{2}\\:\\d{2}\\.\\d{1,6}Z)\\]\\s*\\\\\\\"(?P<method>[A-z]+)\\s[\\/\\\\]+(?P<request>[^\\s]+)\\s*(?P<protocol>[A-z0-9\\/\\.]+)\\\\\\\"\\s*(?P<status>\\d+)\\s*(?P<body_bytes_sent>\\d+)?\\s*?\\\\\\\"(?P<http_referer>[^\"]+)\\\"\\s*\\\\\\\"(?P<http_user_agent>[^\"]+)\\\"\\s(?P<request_time>\\d{1,6})\\s*(?P<response_time>\\d{1,6})"
      }
     }
@@ -985,7 +985,7 @@ func testAccCoralogixResourceRuleRulesCombinationDifferentOrders(r *ruleGroupPar
 
   rule_subgroups {
    rules{
-	extract_timestamp {
+    extract_timestamp {
       name               	= "rule1"
       description        	= "description"
       source_field 			= "text"
@@ -1005,7 +1005,7 @@ func testAccCoralogixResourceRuleRulesGroupsOrders(firstRuleGroupOrder, secondRu
   creator      = "creator1"
  order = %d
   rule_subgroups {
-	rules{
+    rules{
      extract {
        name               = "rule2"
        description        = "description"
@@ -1021,7 +1021,7 @@ resource "coralogix_rules_group" "test2" {
   creator      = "creator2"
   order = %d
   rule_subgroups {
-	rules{
+    rules{
      extract {
        name               = "rule2"
        description        = "description"

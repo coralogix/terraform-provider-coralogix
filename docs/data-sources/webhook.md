@@ -80,7 +80,7 @@ Read-Only:
 
 Read-Only:
 
-- `detail` (String)
+- `detail` (String) Event bridge message. JSON string. More details about the token ["here"](https://coralogix.com/docs/user-guides/alerting/outbound-webhooks/generic-outbound-webhooks-alert-webhooks/#placeholders)
 - `detail_type` (String) Free text to be included in the event.
 - `event_bus_arn` (String) Corresponds to the event bus, which will receive notifications. The policy attached must contain permission to publish.
 - `role_name` (String) Corresponds to the AWS IAM role that will be created in your account.
@@ -146,7 +146,7 @@ Read-Only:
 Read-Only:
 
 - `attachments` (Attributes List) Slack attachments. (see [below for nested schema](#nestedatt--slack--attachments))
-- `notify_on` (Set of String) Slack notifications. can be one of: error_and_critical_logs, flow_anomalies, spike_anomalies, data_usage
+- `notify_on` (Set of String) Slack notifications. can be one of: data_usage, error_and_critical_logs, flow_anomalies, spike_anomalies
 - `url` (String) Slack URL.
 
 <a id="nestedatt--slack--attachments"></a>
@@ -155,4 +155,4 @@ Read-Only:
 Read-Only:
 
 - `active` (Boolean) Determines if the attachment is active. Default is true.
-- `type` (String) Slack attachment type. can be one of: logs, empty, metric_snapshot
+- `type` (String) Slack attachment type. can be one of: empty, logs, metric_snapshot

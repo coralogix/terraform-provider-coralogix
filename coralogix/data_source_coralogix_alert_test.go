@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,39 +17,100 @@ package coralogix
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var alertDataSourceName = "data." + alertResourceName
 
-func TestAccCoralogixDataSourceAlert_basic(t *testing.T) {
-	alert := standardAlertTestParams{
-		alertCommonTestParams: *getRandomAlert(),
-		groupBy:               []string{"EventType"},
-		occurrencesThreshold:  acctest.RandIntRange(1, 1000),
-		timeWindow:            selectRandomlyFromSlice(alertValidTimeFrames),
-		deadmanRatio:          selectRandomlyFromSlice(alertValidDeadmanRatioValues),
-	}
-
+func TestAccCoralogixDataSourceAlert(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckActionDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertStandard(&alert) +
-					testAccCoralogixDataSourceAlert_read(),
+				Config: testAccCoralogixResourceAlertLogsImmediateForReading(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(alertDataSourceName, "name", alert.name),
+					resource.TestCheckResourceAttr(alertDataSourceName, "name", "logs-more-than alert example"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCoralogixDataSourceAlert_read() string {
-	return `data "coralogix_alert" "test" {
-	id = coralogix_alert.test.id
+func testAccCoralogixResourceAlertLogsImmediateForReading() string {
+	return `resource "coralogix_alert" "dstest" {
+  name        = "logs-more-than alert example"
+  description = "Example of logs-more-than alert example from terraform"
+  priority    = "P2"
+
+  labels = {
+    alert_type        = "security"
+    security_severity = "high"
+  }
+
+  notification_group = {
+    simple_target_settings = [
+      {
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  schedule = {
+    active_on = {
+      days_of_week = ["Wednesday", "Thursday"]
+      start_time = "08:30"
+      end_time = "20:30"
+    }
+  }
+
+  type_definition = {
+    logs_threshold = {
+      rules = [ { 
+        condition = {
+          threshold   = 2.0
+          time_window = "10_MINUTES"
+          condition_type = "MORE_THAN" 
+        } 
+        override = {
+            priority = "P2"
+          }
+        }
+      ]
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+          label_filters = {
+            application_name = [
+              {
+                operation = "IS"
+                value     = "nginx"
+              }
+            ]
+            subsystem_name = [
+              {
+                operation = "IS"
+                value     = "subsystem-name"
+              }
+            ]
+            severities = ["Warning"]
+          }
+        }
+      }
+    }
+  }
+}
+
+data "coralogix_alert" "test" {
+	id = coralogix_alert.dstest.id
 }
 `
 }

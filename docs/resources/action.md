@@ -16,7 +16,7 @@ Coralogix action. For more info please review - https://coralogix.com/docs/coral
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.8"
+      version = "~> 2.0"
       source  = "coralogix/coralogix"
     }
   }

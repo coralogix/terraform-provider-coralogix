@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	e2m "terraform-provider-coralogix/coralogix/clientset/grpc/events2metrics/v2"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -53,32 +53,20 @@ func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 					resource.TestCheckResourceAttr(events2metricResourceName, "logs_query.lucene", "remote_addr_enriched:/.*/"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "logs_query.applications.0", "nginx"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "logs_query.severities.0", "Debug"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.source_field", "location_geopoint"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.avg.target_metric_name", "cx_avg"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.avg.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.count.target_metric_name", "cx_count"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.count.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.histogram.target_metric_name", "cx_bucket"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.histogram.enable", "false"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.max.target_metric_name", "cx_max"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.max.enable", "false"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.min.target_metric_name", "cx_min"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.min.enable", "false"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.sum.target_metric_name", "cx_sum"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.sum.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.source_field", "method"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.count.target_metric_name", "cx_count"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.count.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.histogram.target_metric_name", "cx_bucket"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.histogram.enable", "false"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.max.target_metric_name", "cx_max"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.max.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.min.target_metric_name", "cx_min"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.min.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.sum.target_metric_name", "cx_sum"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.sum.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.avg.target_metric_name", "cx_avg"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.avg.enable", "true"),
+
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.source_field", "duration"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.count.target_metric_name", "cx_count"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.count.enable", "true"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.histogram.target_metric_name", "cx_bucket"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.histogram.enable", "false"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.max.target_metric_name", "cx_max"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.max.enable", "false"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.min.target_metric_name", "cx_min"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.min.enable", "false"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.sum.target_metric_name", "cx_sum"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.sum.enable", "true"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.avg.target_metric_name", "cx_avg"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.avg.enable", "true"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_labels.Status", "status"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_labels.Path", "http_referer"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "permutations.limit", strconv.Itoa(events2Metric.limit)),
@@ -111,32 +99,20 @@ func TestAccCoralogixResourceSpans2Metric(t *testing.T) {
 					resource.TestCheckResourceAttr(events2metricResourceName, "spans_query.applications.0", "nginx"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "spans_query.actions.0", "action-name"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "spans_query.services.0", "service-name"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.source_field", "location_geopoint"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.avg.target_metric_name", "cx_avg"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.avg.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.count.target_metric_name", "cx_count"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.count.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.histogram.target_metric_name", "cx_bucket"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.histogram.enable", "false"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.max.target_metric_name", "cx_max"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.max.enable", "false"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.min.target_metric_name", "cx_min"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.min.enable", "false"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.sum.target_metric_name", "cx_sum"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.geo_point.aggregations.sum.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.source_field", "method"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.count.target_metric_name", "cx_count"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.count.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.histogram.target_metric_name", "cx_bucket"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.histogram.enable", "false"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.max.target_metric_name", "cx_max"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.max.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.min.target_metric_name", "cx_min"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.min.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.sum.target_metric_name", "cx_sum"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.sum.enable", "true"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.avg.target_metric_name", "cx_avg"),
-					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.method.aggregations.avg.enable", "true"),
+
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.source_field", "duration"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.count.target_metric_name", "cx_count"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.count.enable", "true"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.histogram.target_metric_name", "cx_bucket"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.histogram.enable", "false"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.max.target_metric_name", "cx_max"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.max.enable", "false"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.min.target_metric_name", "cx_min"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.min.enable", "false"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.sum.target_metric_name", "cx_sum"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.sum.enable", "true"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.avg.target_metric_name", "cx_avg"),
+					resource.TestCheckResourceAttr(events2metricResourceName, "metric_fields.methodtwo.aggregations.avg.enable", "true"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_labels.Status", "status"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "metric_labels.Path", "http_referer"),
 					resource.TestCheckResourceAttr(events2metricResourceName, "permutations.limit", strconv.Itoa(events2Metric.limit)),
@@ -162,11 +138,11 @@ func testAccCheckEvents2MetricDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &e2m.GetE2MRequest{
+		req := &cxsdk.GetE2MRequest{
 			Id: wrapperspb.String(rs.Primary.ID),
 		}
 
-		resp, err := client.GetEvents2Metric(ctx, req)
+		resp, err := client.Get(ctx, req)
 		if err == nil {
 			if resp.GetE2M().GetId().GetValue() == rs.Primary.ID {
 				return fmt.Errorf("events2metric still exists: %s", rs.Primary.ID)
@@ -187,42 +163,39 @@ func getRandomEvents2Metric() *events2MetricTestFields {
 
 func testAccCoralogixResourceLogs2Metric(l *events2MetricTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_events2metric" "test" {
-  name        = "%s"
-  description = "%s"
-  logs_query = {
+name        = "%s"
+description = "%s"
+logs_query = {
     lucene       = "remote_addr_enriched:/.*/"
     applications = ["nginx"]
     severities   = ["Debug"]
-  }
+}
 
-  metric_fields = {
-    method = {
-      source_field = "method"
-    },
-    geo_point = {
-      source_field = "location_geopoint"
-      aggregations = {
-        max = {
-          enable = false
+metric_fields = {
+    methodtwo = {
+        source_field = "duration"
+        aggregations = {
+            max = {
+                enable = false
+            }
+            min = {
+                enable = false
+            }
+            avg = {
+                enable = true
+            }
         }
-        min = {
-          enable = false
-        }
-        avg = {
-          enable = true
-        }
-      }
     }
-  }
+}
 
-  metric_labels = {
+metric_labels = {
     Status = "status"
     Path   = "http_referer"
-  }
+}
 
-  permutations = {
+permutations = {
     limit = %d
-  }
+}
 }
 `,
 		l.name, l.description, l.limit)
@@ -230,34 +203,31 @@ func testAccCoralogixResourceLogs2Metric(l *events2MetricTestFields) string {
 
 func testAccCoralogixResourceSpans2Metric(l *events2MetricTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_events2metric" "test" {
-  name        = "%s"
-  description = "%s"
-  spans_query = {
+name        = "%s"
+description = "%s"
+spans_query = {
     lucene       = "remote_addr_enriched:/.*/"
     applications = ["nginx"]
-    actions = ["action-name"]
-	services = ["service-name"]
-  }
+    actions      = ["action-name"]
+    services     = ["service-name"]
+}
 
-  metric_fields = {
-    method = {
-      source_field = "method"
-    },
-    geo_point = {
-      source_field = "location_geopoint"
-      aggregations = {
-        max = {
-          enable = false
+metric_fields = {
+    methodtwo = {
+        source_field = "duration"
+        aggregations = {
+            max = {
+                enable = false
+            }
+            min = {
+                enable = false
+            }
+            avg = {
+                enable = true
+            }
         }
-        min = {
-          enable = false
-        }
-        avg = {
-          enable = true
-        }
-      }
     }
-  }
+}
 
   metric_labels = {
     Status = "status"

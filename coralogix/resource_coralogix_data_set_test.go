@@ -23,8 +23,8 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	enrichmentv1 "terraform-provider-coralogix/coralogix/clientset/grpc/enrichment/v1"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -170,7 +170,7 @@ func testAccCheckDataSetDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.GetDataSet(ctx, &enrichmentv1.GetCustomEnrichmentRequest{Id: wrapperspb.UInt32(strToUint32(rs.Primary.ID))})
+		resp, err := client.Get(ctx, &cxsdk.GetDataSetRequest{Id: wrapperspb.UInt32(strToUint32(rs.Primary.ID))})
 		if err == nil {
 			if uint32ToStr(resp.GetCustomEnrichment().GetId()) == rs.Primary.ID {
 				return fmt.Errorf("enrichment still exists: %s", rs.Primary.ID)

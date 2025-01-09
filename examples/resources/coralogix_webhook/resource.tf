@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.8"
+      version = "~> 2.0"
       source  = "coralogix/coralogix"
     }
   }
@@ -15,13 +15,12 @@ provider "coralogix" {
 resource "coralogix_webhook" "slack_webhook" {
   name  = "slack-webhook"
   slack = {
-    notify_on = ["flow_anomalies"]
+    notify_on    = ["flow_anomalies"]
     url          = "https://join.slack.com/example"
-    attachments  = [
-      {
-        type  = "metric_snapshot"
-        active = true
-      }]
+    attachments  = [{
+      type  = "metric_snapshot"
+      active = true
+    }]
   }
 }
 
@@ -98,23 +97,24 @@ resource "coralogix_webhook" "event_bridge_webhook" {
 }
 
 //example of how to use webhooks that was created via terraform
-resource "coralogix_alert" "standard_alert" {
-  name        = "Standard alert example"
-  description = "Example of standard alert from terraform"
-  severity    = "Critical"
+resource "coralogix_alert" "alert_with_webhook" {
+  name        = "alert example with webhook"
+  description = "Example of logs_immediate alert from terraform"
+  priority    = "P2"
 
-  notifications_group {
-    notification {
+  notification_group {
+    webhooks_settings {
       integration_id              = coralogix_webhook.slack_webhook.external_id
-      retriggering_period_minutes = 60
-      notify_on = "Triggered_only"
     }
   }
 
-  standard {
-    search_query = "remote_addr_enriched:/.*/"
-    condition {
-      immediately = true
+  type_definition = {
+    logs_immediate = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"error\""
+        }
+      }
     }
   }
 }

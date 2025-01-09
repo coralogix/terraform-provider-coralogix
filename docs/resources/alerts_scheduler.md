@@ -16,7 +16,7 @@ Coralogix alerts-scheduler.
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.8"
+      version = "~> 2.0"
       source  = "coralogix/coralogix"
     }
   }

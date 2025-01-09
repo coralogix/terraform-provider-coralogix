@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,12 +18,10 @@ import (
 	"context"
 	"fmt"
 	"log"
-
-	apikeys "terraform-provider-coralogix/coralogix/clientset/grpc/apikeys"
-
-	"google.golang.org/protobuf/encoding/protojson"
-
 	"terraform-provider-coralogix/coralogix/clientset"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -38,7 +36,7 @@ func NewApiKeyDataSource() datasource.DataSource {
 }
 
 type ApiKeyDataSource struct {
-	client *clientset.ApikeysClient
+	client *cxsdk.ApikeysClient
 }
 
 func (d *ApiKeyDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -54,12 +52,12 @@ func (d *ApiKeyDataSource) Configure(_ context.Context, req datasource.Configure
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *cxsdk.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
 
-	d.client = clientSet.ApiKeys()
+	d.client = clientSet.APIKeys()
 }
 
 func (d *ApiKeyDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -82,11 +80,11 @@ func (d *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	//Get refreshed API Keys value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading ApiKey: %s", id)
-	getApiKey := &apikeys.GetApiKeyRequest{
+	getApiKey := &cxsdk.GetAPIKeyRequest{
 		KeyId: id,
 	}
 
-	getApiKeyResponse, err := d.client.GetApiKey(ctx, getApiKey)
+	getApiKeyResponse, err := d.client.Get(ctx, getApiKey)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if status.Code(err) == codes.NotFound {
@@ -96,7 +94,7 @@ func (d *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading API Keys",
-				formatRpcErrors(err, getApiKeyPath, protojson.Format(getApiKey)),
+				formatRpcErrors(err, cxsdk.GetAPIKeyRPC, protojson.Format(getApiKey)),
 			)
 		}
 		return

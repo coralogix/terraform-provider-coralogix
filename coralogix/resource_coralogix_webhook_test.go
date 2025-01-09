@@ -20,7 +20,8 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	webhooks "terraform-provider-coralogix/coralogix/clientset/grpc/webhooks"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -377,7 +378,7 @@ func testAccCheckWebhookDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.GetWebhook(ctx, &webhooks.GetOutgoingWebhookRequest{Id: wrapperspb.String(rs.Primary.ID)})
+		resp, err := client.Get(ctx, &cxsdk.GetOutgoingWebhookRequest{Id: wrapperspb.String(rs.Primary.ID)})
 		if err == nil {
 			if resp.GetWebhook().GetId().GetValue() == rs.Primary.ID {
 				return fmt.Errorf("webhook still exists: %s", rs.Primary.ID)
@@ -397,16 +398,15 @@ func getRandomWebhook() *webhookTestFields {
 
 func testAccCoralogixResourceSlackWebhook(w *slackWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	name    = "%s"
-	slack = {
-        url  = "%s"
-		notify_on = ["flow_anomalies"]
-    	attachments  = [
-      	{
-        	type  = "metric_snapshot"
-        	active = true
-      	}]
-  	}
+name    = "%s"
+slack = {
+	url  = "%s"
+	notify_on = ["flow_anomalies"]
+	attachments  = [{
+		type  = "metric_snapshot"
+		active = true
+	}]
+}
 }
 `,
 		w.name, w.url)
@@ -414,13 +414,13 @@ func testAccCoralogixResourceSlackWebhook(w *slackWebhookTestFields) string {
 
 func testAccCoralogixResourceCustomWebhook(w *customWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	 name    = "%s"
-     custom = {
-    	url     = "%s"
-    	method  = "%s"
-    	headers = { "Content-Type" : "application/json" }
-  		payload = jsonencode({ "custom" : "payload" })
-  	}
+name    = "%s"
+custom = {
+	url     = "%s"
+	method  = "%s"
+	headers = { "Content-Type" : "application/json" }
+	payload = jsonencode({ "custom" : "payload" })
+}
 }
 `,
 		w.name, w.url, w.method)
@@ -428,10 +428,10 @@ func testAccCoralogixResourceCustomWebhook(w *customWebhookTestFields) string {
 
 func testAccCoralogixResourcePagerdutyWebhook(w *pagerDutyWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	name    = "%s"
-	pager_duty = {
-        service_key  = "%s"
-  	}
+name       = "%s"
+pager_duty = {
+	service_key  = "%s"
+}
 }
 `,
 		w.name, w.serviceKey)
@@ -439,10 +439,10 @@ func testAccCoralogixResourcePagerdutyWebhook(w *pagerDutyWebhookTestFields) str
 
 func testAccCoralogixResourceEmailGroupWebhook(w *emailGroupWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	name = "%s"
-	email_group = {
-        emails  = %s
-  	}
+name = "%s"
+email_group = {
+	emails  = %s
+}
 }
 `,
 		w.name, sliceToString(w.emails))
@@ -450,11 +450,11 @@ func testAccCoralogixResourceEmailGroupWebhook(w *emailGroupWebhookTestFields) s
 
 func testAccCoralogixResourceSendLogWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" test {
-	name    = "%s"
-	sendlog = {
-    payload  = jsonencode({ "custom" : "payload" })
+name    = "%s"
+sendlog = {
+	payload  = jsonencode({ "custom" : "payload" })
 	url      = "%s"
-  	}
+}
 }
 `,
 		w.name, w.url)
@@ -462,10 +462,10 @@ func testAccCoralogixResourceSendLogWebhook(w *webhookTestFields) string {
 
 func testAccCoralogixResourceMicrosoftTeamsWorkflowWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	name = "%s"
-	microsoft_teams_workflow = {
-        url  = "%s"
-  	}
+name = "%s"
+microsoft_teams_workflow = {
+	url  = "%s"
+}
 }
 `,
 		w.name, w.url)
@@ -473,13 +473,13 @@ func testAccCoralogixResourceMicrosoftTeamsWorkflowWebhook(w *webhookTestFields)
 
 func testAccCoralogixResourceJiraWebhook(w *jiraWebhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	name        = "%s"
-	jira = {
-    url         = "%s"
-    api_token   = "%s"
-    email       = "%s"
-    project_key = "%s"
-  }
+name        = "%s"
+jira = {
+	url         = "%s"
+	api_token   = "%s"
+	email       = "%s"
+	project_key = "%s"
+}
 }
 `,
 		w.name, w.url, w.apiToken, w.email, w.projectKey)
@@ -487,10 +487,10 @@ func testAccCoralogixResourceJiraWebhook(w *jiraWebhookTestFields) string {
 
 func testAccCoralogixResourceOpsgenieWebhook(w *webhookTestFields) string {
 	return fmt.Sprintf(`resource "coralogix_webhook" "test" {
-  	name = "%s"
-	opsgenie = {
-        url  = "%s"
-  	}
+name = "%s"
+opsgenie = {
+	url  = "%s"
+}
 }
 `,
 		w.name, w.url)

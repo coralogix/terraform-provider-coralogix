@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
-	slos "terraform-provider-coralogix/coralogix/clientset/grpc/slo"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -66,7 +66,7 @@ func testAccSLOCheckDestroy(s *terraform.State) error {
 			continue
 		}
 
-		if resp, err := client.GetSLO(ctx, &slos.GetServiceSloRequest{Id: wrapperspb.String(rs.Primary.ID)}); err == nil {
+		if resp, err := client.Get(ctx, &cxsdk.GetServiceSloRequest{Id: wrapperspb.String(rs.Primary.ID)}); err == nil {
 			if resp.GetSlo().GetId().GetValue() == rs.Primary.ID {
 				return fmt.Errorf("slo still exists: %s", rs.Primary.ID)
 			}
@@ -77,18 +77,13 @@ func testAccSLOCheckDestroy(s *terraform.State) error {
 }
 
 func testAccCoralogixResourceSLO() string {
-	return `variable "test" {
-  				type = number
-  				default = 1000000
-			}
-
-			resource "coralogix_slo" "test" {
+	return `resource "coralogix_slo" "test" {
   				name            = "coralogix_slo_example"
   				service_name    = "service_name"
   				description     = "description"
   				target_percentage = 30
   				type            = "latency"
-  				threshold_microseconds = var.test
+  				threshold_microseconds = 1000000
   				threshold_symbol_type = "greater"
   				period          = "7_days"
   				filters = [

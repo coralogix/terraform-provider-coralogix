@@ -16,7 +16,7 @@ description: |-
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 1.8"
+      version = "~> 2.0"
       source  = "coralogix/coralogix"
     }
   }
@@ -42,10 +42,10 @@ resource "coralogix_archive_logs" example {
 ### Optional
 
 - `active` (Boolean)
+- `region` (String) The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions
 
 ### Read-Only
 
 - `archiving_format_id` (String)
 - `enable_tags` (Boolean)
 - `id` (String) The ID of this resource.
-- `region` (String) The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions
