@@ -25,7 +25,6 @@ type CallPropertiesCreator struct {
 	targetUrl     string
 	apiKey        string
 	correlationID string
-	//allowRetry bool
 }
 
 type CallProperties struct {
