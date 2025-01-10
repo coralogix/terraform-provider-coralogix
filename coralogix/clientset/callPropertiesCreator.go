@@ -16,16 +16,9 @@ package clientset
 
 import (
 	"context"
-	"crypto/tls"
-	"fmt"
-	"runtime"
-	"time"
 
 	"github.com/google/uuid"
-	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/metadata"
 )
 
 type CallPropertiesCreator struct {
@@ -39,43 +32,6 @@ type CallProperties struct {
 	Ctx         context.Context
 	Connection  *grpc.ClientConn
 	CallOptions []grpc.CallOption
-}
-
-func (c CallPropertiesCreator) GetCallProperties(ctx context.Context) (*CallProperties, error) {
-	ctx = createAuthContext(ctx, c.apiKey, c.correlationID)
-
-	conn, err := createSecureConnection(c.targetUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	callOptions := createCallOptions()
-
-	return &CallProperties{Ctx: ctx, Connection: conn, CallOptions: callOptions}, nil
-}
-
-func createCallOptions() []grpc.CallOption {
-	var callOptions []grpc.CallOption
-	callOptions = append(callOptions, grpc_retry.WithMax(5))
-	callOptions = append(callOptions, grpc_retry.WithBackoff(grpc_retry.BackoffLinear(time.Second)))
-	return callOptions
-}
-
-func createSecureConnection(targetUrl string) (*grpc.ClientConn, error) {
-	return grpc.Dial(targetUrl,
-		grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})))
-}
-
-func createAuthContext(ctx context.Context, apiKey string, correlationID string) context.Context {
-	md := metadata.New(map[string]string{
-		"Authorization":       fmt.Sprintf("Bearer %s", apiKey),
-		"x-cx-sdk-language":   "go",
-		"x-cx-go-version":     runtime.Version(),
-		"x-cx-sdk-version":    "terraform-1.18.16",
-		"x-cx-correlation-id": correlationID,
-	})
-	ctx = metadata.NewOutgoingContext(ctx, md)
-	return ctx
 }
 
 func NewCallPropertiesCreator(targetUrl, apiKey string) *CallPropertiesCreator {
