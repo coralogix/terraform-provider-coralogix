@@ -19,11 +19,11 @@ jobs:
         uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
         with:
           go-version: ${{ matrix.go-version }}
-      - name: Acceptance Tests
+      - name: Clean up any resources
         env:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
           TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}          
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
         run: |
-          go run scripts/delete-all-cx-resources.go
+          go run scripts/cx-test-resource-cleanup.go
