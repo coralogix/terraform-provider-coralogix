@@ -1710,6 +1710,7 @@ func extractAlertProperties(ctx context.Context, plan *AlertResourceModel) (*cxs
 	if diags.HasError() {
 		return nil, diags
 	}
+
 	labels, diags := typeMapToStringMap(ctx, plan.Labels)
 
 	if diags.HasError() {
@@ -1724,6 +1725,7 @@ func extractAlertProperties(ctx context.Context, plan *AlertResourceModel) (*cxs
 		IncidentsSettings: incidentsSettings,
 		NotificationGroup: notificationGroup,
 		EntityLabels:      labels,
+		// Schedule is set in the next step
 	}
 
 	alertProperties, diags = expandAlertsSchedule(ctx, alertProperties, plan.Schedule)
