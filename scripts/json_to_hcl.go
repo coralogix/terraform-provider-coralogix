@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -112,7 +111,7 @@ func main() {
 	jsonFilePath := os.Args[1]
 	tfFilePath := os.Args[2]
 
-	jsonData, err := ioutil.ReadFile(jsonFilePath)
+	jsonData, err := os.ReadFile(jsonFilePath)
 	if err != nil {
 		fmt.Printf("Failed to read JSON file: %v\n", err)
 		return
