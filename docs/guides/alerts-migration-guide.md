@@ -12,7 +12,7 @@ This guide provides step-by-step instructions on how to use the Terraform migrat
 
 ## Prerequisites
 0. **Get the scripts**:
-   - Download from [https://github.com/coralogix/coralogix-management-sdk/tree/master/tools/terraform-importer]()
+   - Download from https://github.com/coralogix/coralogix-management-sdk/tree/master/tools/terraform-importer
 1. **Terraform Installed**:
    - Ensure you have Terraform installed. You can download it [here](https://www.terraform.io/downloads).
 2. **Go Installed**:

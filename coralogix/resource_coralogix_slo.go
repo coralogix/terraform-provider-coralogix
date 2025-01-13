@@ -112,28 +112,28 @@ func (S SLOResourceValidator) ValidateResource(ctx context.Context, req resource
 		resp.Diagnostics = diags
 		return
 	}
-	if config.Type.ValueString() == "latency" && (config.ThresholdMicroseconds.IsNull() || config.ThresholdMicroseconds.IsUnknown()) {
+	if config.Type.ValueString() == "latency" && config.ThresholdMicroseconds.IsNull() {
 		resp.Diagnostics.AddError(
 			"ThresholdMicroseconds is required when type is latency",
 			"ThresholdMicroseconds is required when type is latency",
 		)
 		return
 	}
-	if config.Type.ValueString() == "latency" && (config.ThresholdSymbolType.IsNull() || config.ThresholdSymbolType.IsUnknown()) {
+	if config.Type.ValueString() == "latency" && config.ThresholdSymbolType.IsNull() {
 		resp.Diagnostics.AddError(
 			"ThresholdSymbolType is required when type is latency",
 			"ThresholdSymbolType is required when type is latency",
 		)
 		return
 	}
-	if config.Type.ValueString() == "error" && !(config.ThresholdMicroseconds.IsNull() || config.ThresholdMicroseconds.IsUnknown()) {
+	if config.Type.ValueString() == "error" && !config.ThresholdMicroseconds.IsNull() {
 		resp.Diagnostics.AddError(
 			"ThresholdMicroseconds is not allowed when type is error",
 			"ThresholdMicroseconds is not allowed when type is error",
 		)
 		return
 	}
-	if config.Type.ValueString() == "error" && !(config.ThresholdSymbolType.IsNull() || config.ThresholdSymbolType.IsUnknown()) {
+	if config.Type.ValueString() == "error" && !config.ThresholdSymbolType.IsNull() {
 		resp.Diagnostics.AddError(
 			"ThresholdSymbolType is not allowed when type is error",
 			"ThresholdSymbolType is not allowed when type is error",
