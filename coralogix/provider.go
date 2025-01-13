@@ -139,6 +139,7 @@ func OldProvider() *oldSchema.Provider {
 			if cxEnv == "" || len(cxEnv) > 3 {
 				cxEnv = targetUrl
 			}
+
 			return clientset.NewClientSet(cxEnv, apiKey, targetUrl), nil
 		},
 	}
@@ -303,7 +304,7 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	} else {
 		targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
 	}
-	if len(env) > 3 {
+	if domain != "" {
 		env = targetUrl
 	}
 
