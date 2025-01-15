@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -30,7 +31,7 @@ import (
 )
 
 func dataSourceCoralogixEnrichment() *schema.Resource {
-	enrichmentSchema := datasourceSchemaFromResourceSchema(EnrichmentSchema())
+	enrichmentSchema := utils.DatasourceSchemaFromResourceSchema(EnrichmentSchema())
 	enrichmentSchema["id"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Required: true,
@@ -54,12 +55,12 @@ func dataSourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceDa
 		enrichmentResp, err = EnrichmentsByType(ctx, meta.(*clientset.ClientSet).Enrichments(), id)
 	} else {
 		enrichmentType = "custom"
-		enrichmentResp, err = EnrichmentsByID(ctx, meta.(*clientset.ClientSet).Enrichments(), strToUint32(id))
+		enrichmentResp, err = EnrichmentsByID(ctx, meta.(*clientset.ClientSet).Enrichments(), utils.StrToUint32(id))
 	}
 	if err != nil {
 		reqStr := protojson.Format(&cxsdk.GetEnrichmentsRequest{})
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, cxsdk.GetEnrichmentsRPC, reqStr))
+		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.GetEnrichmentsRPC, reqStr))
 	}
 
 	var enrichmentStr string

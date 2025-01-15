@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -67,7 +68,7 @@ func (d *ArchiveLogsDataSource) Schema(ctx context.Context, _ datasource.SchemaR
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = convertSchemaWithoutID(resourceResp.Schema)
+	resp.Schema = utils.ConvertSchemaWithoutID(resourceResp.Schema)
 }
 
 func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -91,7 +92,7 @@ func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadReq
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading archive-logs",
-				formatRpcErrors(err, cxsdk.ArchiveLogsGetTargetRPC, ""),
+				utils.FormatRpcErrors(err, cxsdk.ArchiveLogsGetTargetRPC, ""),
 			)
 		}
 		return

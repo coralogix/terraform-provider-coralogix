@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -423,8 +424,8 @@ func TestAccCoralogixResourceRuleGroup_parse(t *testing.T) {
 
 func TestAccCoralogixResourceRuleGroup_parseJsonField(t *testing.T) {
 	r := getRandomRuleGroup()
-	keepSourceField := selectRandomlyFromSlice([]string{"true", "false"})
-	keepDestinationField := selectRandomlyFromSlice([]string{"true", "false"})
+	keepSourceField := utils.SelectRandomlyFromSlice([]string{"true", "false"})
+	keepDestinationField := utils.SelectRandomlyFromSlice([]string{"true", "false"})
 	resourceName := "coralogix_rules_group.test"
 
 	resource.Test(t, resource.TestCase{

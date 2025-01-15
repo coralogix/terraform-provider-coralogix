@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -202,7 +203,7 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating archive-metrics",
-			formatRpcErrors(err, cxsdk.ArchiveMetricsConfigureTenantRPC, protojson.Format(createReq)),
+			utils.FormatRpcErrors(err, cxsdk.ArchiveMetricsConfigureTenantRPC, protojson.Format(createReq)),
 		)
 		return
 	}
@@ -213,7 +214,7 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading archive-metrics",
-			formatRpcErrors(err, cxsdk.ArchiveMetricsGetTenantConfigRPC, ""),
+			utils.FormatRpcErrors(err, cxsdk.ArchiveMetricsGetTenantConfigRPC, ""),
 		)
 		return
 	}
@@ -390,7 +391,7 @@ func (r *ArchiveMetricsResource) Read(ctx context.Context, req resource.ReadRequ
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading archive-metrics",
-				formatRpcErrors(err, cxsdk.ArchiveMetricsGetTenantConfigRPC, ""),
+				utils.FormatRpcErrors(err, cxsdk.ArchiveMetricsGetTenantConfigRPC, ""),
 			)
 		}
 		return
@@ -427,7 +428,7 @@ func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.Update
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating archive-metrics",
-			formatRpcErrors(err, cxsdk.E2MCreateRPC, protojson.Format(updateReq)),
+			utils.FormatRpcErrors(err, cxsdk.E2MCreateRPC, protojson.Format(updateReq)),
 		)
 		return
 	}
@@ -438,7 +439,7 @@ func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.Update
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading archive-metrics",
-			formatRpcErrors(err, cxsdk.ArchiveMetricsGetTenantConfigRPC, ""),
+			utils.FormatRpcErrors(err, cxsdk.ArchiveMetricsGetTenantConfigRPC, ""),
 		)
 		return
 	}

@@ -22,6 +22,7 @@ import (
 	"strconv"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
@@ -136,7 +137,7 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Team",
-			formatRpcErrors(err, cxsdk.CreateTeamInOrgRPC, protojson.Format(createTeamReq)),
+			utils.FormatRpcErrors(err, cxsdk.CreateTeamInOrgRPC, protojson.Format(createTeamReq)),
 		)
 
 		return
@@ -151,7 +152,7 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Team",
-			formatRpcErrors(err, cxsdk.GetTeamRPC, protojson.Format(getTeamReq)),
+			utils.FormatRpcErrors(err, cxsdk.GetTeamRPC, protojson.Format(getTeamReq)),
 		)
 		return
 	}
@@ -215,7 +216,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Team",
-				formatRpcErrors(err, cxsdk.GetTeamRPC, protojson.Format(getTeamReq)),
+				utils.FormatRpcErrors(err, cxsdk.GetTeamRPC, protojson.Format(getTeamReq)),
 			)
 		}
 		return
@@ -253,7 +254,7 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Team",
-			formatRpcErrors(err, cxsdk.UpdateTeamRPC, protojson.Format(updateReq)),
+			utils.FormatRpcErrors(err, cxsdk.UpdateTeamRPC, protojson.Format(updateReq)),
 		)
 
 		return
@@ -269,7 +270,7 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Team",
-			formatRpcErrors(err, cxsdk.GetTeamRPC, protojson.Format(getTeamReq)),
+			utils.FormatRpcErrors(err, cxsdk.GetTeamRPC, protojson.Format(getTeamReq)),
 		)
 		return
 	}
@@ -331,7 +332,7 @@ func (r *TeamResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error deleting Team",
-			formatRpcErrors(err, cxsdk.DeleteTeamRPC, protojson.Format(deleteReq)),
+			utils.FormatRpcErrors(err, cxsdk.DeleteTeamRPC, protojson.Format(deleteReq)),
 		)
 		return
 	}

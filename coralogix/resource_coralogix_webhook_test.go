@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -111,7 +112,7 @@ func TestAccCoralogixResourceCustomWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := &customWebhookTestFields{
 		webhookTestFields: *getRandomWebhook(),
-		method:            selectRandomlyFromSlice(webhooksValidMethods),
+		method:            utils.SelectRandomlyFromSlice(webhooksValidMethods),
 	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -445,7 +446,7 @@ email_group = {
 }
 }
 `,
-		w.name, sliceToString(w.emails))
+		w.name, utils.SliceToString(w.emails))
 }
 
 func testAccCoralogixResourceSendLogWebhook(w *webhookTestFields) string {

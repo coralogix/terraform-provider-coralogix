@@ -12,20 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright 2024 Coralogix Ltd.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package coralogix
 
 import (
@@ -33,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -60,8 +47,8 @@ var (
 		"Log":     cxsdk.SourceTypeLog,
 		"DataMap": cxsdk.SourceTypeDataMap,
 	}
-	actionProtoSourceTypeToSchemaSourceType = ReverseMap(actionSchemaSourceTypeToProtoSourceType)
-	actionValidSourceTypes                  = GetKeys(actionSchemaSourceTypeToProtoSourceType)
+	actionProtoSourceTypeToSchemaSourceType = utils.ReverseMap(actionSchemaSourceTypeToProtoSourceType)
+	actionValidSourceTypes                  = utils.GetKeys(actionSchemaSourceTypeToProtoSourceType)
 )
 
 func NewActionResource() resource.Resource {
@@ -114,7 +101,7 @@ func (r *ActionResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			"url": schema.StringAttribute{
 				Required: true,
 				Validators: []validator.String{
-					urlValidationFuncFramework{},
+					utils.UrlValidationFuncFramework{},
 				},
 				MarkdownDescription: "URL for the external tool.",
 			},
@@ -188,7 +175,7 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err)
 		resp.Diagnostics.AddError("Error creating Action",
-			formatRpcErrors(err, cxsdk.CreateActionRPC, actionStr),
+			utils.FormatRpcErrors(err, cxsdk.CreateActionRPC, actionStr),
 		)
 		return
 	}
@@ -209,8 +196,8 @@ func flattenAction(action *cxsdk.Action) ActionResourceModel {
 		URL:          types.StringValue(action.GetUrl().GetValue()),
 		IsPrivate:    types.BoolValue(action.GetIsPrivate().GetValue()),
 		SourceType:   types.StringValue(actionProtoSourceTypeToSchemaSourceType[action.GetSourceType()]),
-		Applications: wrappedStringSliceToTypeStringSet(action.GetApplicationNames()),
-		Subsystems:   wrappedStringSliceToTypeStringSet(action.GetSubsystemNames()),
+		Applications: utils.WrappedStringSliceToTypeStringSet(action.GetApplicationNames()),
+		Subsystems:   utils.WrappedStringSliceToTypeStringSet(action.GetSubsystemNames()),
 		CreatedBy:    types.StringValue(action.GetCreatedBy().GetValue()),
 		IsHidden:     types.BoolValue(action.GetIsHidden().GetValue()),
 	}
@@ -240,7 +227,7 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				formatRpcErrors(err, cxsdk.GetActionRPC, protojson.Format(getActionReq)),
+				utils.FormatRpcErrors(err, cxsdk.GetActionRPC, protojson.Format(getActionReq)),
 			)
 		}
 		return
@@ -274,7 +261,7 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Action",
-			formatRpcErrors(err, cxsdk.ReplaceActionRPC, protojson.Format(actionUpdateReq)),
+			utils.FormatRpcErrors(err, cxsdk.ReplaceActionRPC, protojson.Format(actionUpdateReq)),
 		)
 		return
 	}
@@ -295,7 +282,7 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				formatRpcErrors(err, cxsdk.GetActionRPC, protojson.Format(getActionReq)),
+				utils.FormatRpcErrors(err, cxsdk.GetActionRPC, protojson.Format(getActionReq)),
 			)
 		}
 		return
@@ -323,7 +310,7 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Action %s", id),
-			formatRpcErrors(err, cxsdk.DeleteActionRPC, protojson.Format(deleteReq)),
+			utils.FormatRpcErrors(err, cxsdk.DeleteActionRPC, protojson.Format(deleteReq)),
 		)
 		return
 	}
@@ -344,13 +331,13 @@ type ActionResourceModel struct {
 
 func extractCreateAction(ctx context.Context, plan ActionResourceModel) (*cxsdk.CreateActionRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	name := typeStringToWrapperspbString(plan.Name)
-	url := typeStringToWrapperspbString(plan.URL)
+	name := utils.TypeStringToWrapperspbString(plan.Name)
+	url := utils.TypeStringToWrapperspbString(plan.URL)
 	isPrivate := wrapperspb.Bool(plan.IsPrivate.ValueBool())
 	sourceType := actionSchemaSourceTypeToProtoSourceType[plan.SourceType.ValueString()]
-	applicationNames, dgs := typeStringSliceToWrappedStringSlice(ctx, plan.Applications.Elements())
+	applicationNames, dgs := utils.TypeStringSliceToWrappedStringSlice(ctx, plan.Applications.Elements())
 	diags = append(diags, dgs...)
-	subsystemNames, dgs := typeStringSliceToWrappedStringSlice(ctx, plan.Subsystems.Elements())
+	subsystemNames, dgs := utils.TypeStringSliceToWrappedStringSlice(ctx, plan.Subsystems.Elements())
 	diags = append(diags, dgs...)
 
 	return &cxsdk.CreateActionRequest{
@@ -366,15 +353,15 @@ func extractCreateAction(ctx context.Context, plan ActionResourceModel) (*cxsdk.
 func extractUpdateAction(ctx context.Context, plan ActionResourceModel) (*cxsdk.ReplaceActionRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	id := wrapperspb.String(plan.ID.ValueString())
-	name := typeStringToWrapperspbString(plan.Name)
-	url := typeStringToWrapperspbString(plan.URL)
+	name := utils.TypeStringToWrapperspbString(plan.Name)
+	url := utils.TypeStringToWrapperspbString(plan.URL)
 	isPrivate := wrapperspb.Bool(plan.IsPrivate.ValueBool())
 	sourceType := actionSchemaSourceTypeToProtoSourceType[plan.SourceType.ValueString()]
-	applicationNames, dgs := typeStringSliceToWrappedStringSlice(ctx, plan.Applications.Elements())
+	applicationNames, dgs := utils.TypeStringSliceToWrappedStringSlice(ctx, plan.Applications.Elements())
 	if dgs.HasError() {
 		diags = append(diags, dgs...)
 	}
-	subsystemNames, dgs := typeStringSliceToWrappedStringSlice(ctx, plan.Subsystems.Elements())
+	subsystemNames, dgs := utils.TypeStringSliceToWrappedStringSlice(ctx, plan.Subsystems.Elements())
 	if dgs.HasError() {
 		diags = append(diags, dgs...)
 	}

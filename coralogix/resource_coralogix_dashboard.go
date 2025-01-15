@@ -20,9 +20,12 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"terraform-provider-coralogix/coralogix/clientset"
+	dashboardwidgets "terraform-provider-coralogix/coralogix/dashboard_widgets"
+	"terraform-provider-coralogix/coralogix/utils"
 	"time"
 
-	"terraform-provider-coralogix/coralogix/clientset"
+	_ "github.com/coralogix/terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -54,208 +57,6 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-)
-
-var (
-	dashboardLegendPlacementSchemaToProto = map[string]cxsdk.LegendPlacement{
-		"unspecified": cxsdk.LegendPlacementUnspecified,
-		"auto":        cxsdk.LegendPlacementAuto,
-		"bottom":      cxsdk.LegendPlacementBottom,
-		"side":        cxsdk.LegendPlacementSide,
-		"hidden":      cxsdk.LegendPlacementHidden,
-	}
-	dashboardLegendPlacementProtoToSchema = ReverseMap(dashboardLegendPlacementSchemaToProto)
-	dashboardValidLegendPlacements        = GetKeys(dashboardLegendPlacementSchemaToProto)
-
-	dashboardRowStyleSchemaToProto = map[string]cxsdk.RowStyle{
-		"unspecified": cxsdk.RowStyleUnspecified,
-		"one_line":    cxsdk.RowStyleOneLine,
-		"two_line":    cxsdk.RowStyleTwoLine,
-		"condensed":   cxsdk.RowStyleCondensed,
-		"json":        cxsdk.RowStyleJSON,
-		"list":        cxsdk.RowStyleList,
-	}
-	dashboardRowStyleProtoToSchema     = ReverseMap(dashboardRowStyleSchemaToProto)
-	dashboardValidRowStyles            = GetKeys(dashboardRowStyleSchemaToProto)
-	dashboardLegendColumnSchemaToProto = map[string]cxsdk.DashboardLegendColumn{
-		"unspecified": cxsdk.LegendColumnUnspecified,
-		"min":         cxsdk.LegendColumnMin,
-		"max":         cxsdk.LegendColumnMax,
-		"sum":         cxsdk.LegendColumnSum,
-		"avg":         cxsdk.LegendColumnAvg,
-		"last":        cxsdk.LegendColumnLast,
-		"name":        cxsdk.LegendColumnName,
-	}
-	dashboardLegendColumnProtoToSchema   = ReverseMap(dashboardLegendColumnSchemaToProto)
-	dashboardValidLegendColumns          = GetKeys(dashboardLegendColumnSchemaToProto)
-	dashboardOrderDirectionSchemaToProto = map[string]cxsdk.OrderDirection{
-		"unspecified": cxsdk.OrderDirectionUnspecified,
-		"asc":         cxsdk.OrderDirectionAsc,
-		"desc":        cxsdk.OrderDirectionDesc,
-	}
-	dashboardOrderDirectionProtoToSchema = ReverseMap(dashboardOrderDirectionSchemaToProto)
-	dashboardValidOrderDirections        = GetKeys(dashboardOrderDirectionSchemaToProto)
-	dashboardSchemaToProtoTooltipType    = map[string]cxsdk.LineChartTooltipType{
-		"unspecified": cxsdk.LineChartToolTipTypeUnspecified,
-		"all":         cxsdk.LineChartToolTipTypeAll,
-		"single":      cxsdk.LineChartToolTipTypeSingle,
-	}
-	dashboardProtoToSchemaTooltipType = ReverseMap(dashboardSchemaToProtoTooltipType)
-	dashboardValidTooltipTypes        = GetKeys(dashboardSchemaToProtoTooltipType)
-	dashboardSchemaToProtoScaleType   = map[string]cxsdk.ScaleType{
-		"unspecified": cxsdk.ScaleTypeUnspecified,
-		"linear":      cxsdk.ScaleTypeLinear,
-		"logarithmic": cxsdk.ScaleTypeLogarithmic,
-	}
-	dashboardProtoToSchemaScaleType = ReverseMap(dashboardSchemaToProtoScaleType)
-	dashboardValidScaleTypes        = GetKeys(dashboardSchemaToProtoScaleType)
-	dashboardSchemaToProtoUnit      = map[string]cxsdk.Unit{
-		"unspecified":  cxsdk.UnitUnspecified,
-		"microseconds": cxsdk.UnitMicroseconds,
-		"milliseconds": cxsdk.UnitMilliseconds,
-		"nanoseconds":  cxsdk.UnitNanoseconds,
-		"seconds":      cxsdk.UnitSeconds,
-		"bytes":        cxsdk.UnitBytes,
-		"kbytes":       cxsdk.UnitKbytes,
-		"mbytes":       cxsdk.UnitMbytes,
-		"gbytes":       cxsdk.UnitGbytes,
-		"bytes_iec":    cxsdk.UnitBytesIec,
-		"kibytes":      cxsdk.UnitKibytes,
-		"mibytes":      cxsdk.UnitMibytes,
-		"gibytes":      cxsdk.UnitGibytes,
-		"euro_cents":   cxsdk.UnitEurCents,
-		"euro":         cxsdk.UnitEur,
-		"usd_cents":    cxsdk.UnitUsdCents,
-		"usd":          cxsdk.UnitUsd,
-		"custom":       cxsdk.UnitCustom,
-		"percent01":    cxsdk.UnitPercent01,
-		"percent100":   cxsdk.UnitPercent100,
-	}
-	dashboardProtoToSchemaUnit      = ReverseMap(dashboardSchemaToProtoUnit)
-	dashboardValidUnits             = GetKeys(dashboardSchemaToProtoUnit)
-	dashboardSchemaToProtoGaugeUnit = map[string]cxsdk.GaugeUnit{
-		"unspecified":  cxsdk.GaugeUnitUnspecified,
-		"none":         cxsdk.GaugeUnitMicroseconds,
-		"percent":      cxsdk.GaugeUnitMilliseconds,
-		"microseconds": cxsdk.GaugeUnitNanoseconds,
-		"milliseconds": cxsdk.GaugeUnitNumber,
-		"nanoseconds":  cxsdk.GaugeUnitPercent,
-		"seconds":      cxsdk.GaugeUnitSeconds,
-		"bytes":        cxsdk.GaugeUnitBytes,
-		"kbytes":       cxsdk.GaugeUnitKbytes,
-		"mbytes":       cxsdk.GaugeUnitMbytes,
-		"gbytes":       cxsdk.GaugeUnitGbytes,
-		"bytes_iec":    cxsdk.GaugeUnitBytesIec,
-		"kibytes":      cxsdk.GaugeUnitKibytes,
-		"mibytes":      cxsdk.GaugeUnitMibytes,
-		"gibytes":      cxsdk.GaugeUnitGibytes,
-		"euro_cents":   cxsdk.GaugeUnitEurCents,
-		"euro":         cxsdk.GaugeUnitEur,
-		"usd_cents":    cxsdk.GaugeUnitUsdCents,
-		"usd":          cxsdk.GaugeUnitUsd,
-		"custom":       cxsdk.GaugeUnitCustom,
-		"percent01":    cxsdk.GaugeUnitPercent01,
-		"percent100":   cxsdk.GaugeUnitPercent100,
-	}
-	dashboardProtoToSchemaGaugeUnit           = ReverseMap(dashboardSchemaToProtoGaugeUnit)
-	dashboardValidGaugeUnits                  = GetKeys(dashboardSchemaToProtoGaugeUnit)
-	dashboardSchemaToProtoPieChartLabelSource = map[string]cxsdk.PieChartLabelSource{
-		"unspecified": cxsdk.PieChartLabelSourceUnspecified,
-		"inner":       cxsdk.PieChartLabelSourceInner,
-		"stack":       cxsdk.PieChartLabelSourceStack,
-	}
-	dashboardProtoToSchemaPieChartLabelSource = ReverseMap(dashboardSchemaToProtoPieChartLabelSource)
-	dashboardValidPieChartLabelSources        = GetKeys(dashboardSchemaToProtoPieChartLabelSource)
-	dashboardSchemaToProtoGaugeAggregation    = map[string]cxsdk.GaugeAggregation{
-		"unspecified": cxsdk.GaugeAggregationUnspecified,
-		"last":        cxsdk.GaugeAggregationLast,
-		"min":         cxsdk.GaugeAggregationMin,
-		"max":         cxsdk.GaugeAggregationMax,
-		"avg":         cxsdk.GaugeAggregationAvg,
-		"sum":         cxsdk.GaugeAggregationSum,
-	}
-	dashboardProtoToSchemaGaugeAggregation            = ReverseMap(dashboardSchemaToProtoGaugeAggregation)
-	dashboardValidGaugeAggregations                   = GetKeys(dashboardSchemaToProtoGaugeAggregation)
-	dashboardSchemaToProtoSpansAggregationMetricField = map[string]cxsdk.SpansAggregationMetricAggregationMetricField{
-		"unspecified": cxsdk.SpansAggregationMetricAggregationMetricFieldUnspecified,
-		"duration":    cxsdk.SpansAggregationMetricAggregationMetricFieldDuration,
-	}
-	dashboardProtoToSchemaSpansAggregationMetricField           = ReverseMap(dashboardSchemaToProtoSpansAggregationMetricField)
-	dashboardValidSpansAggregationMetricFields                  = GetKeys(dashboardSchemaToProtoSpansAggregationMetricField)
-	dashboardSchemaToProtoSpansAggregationMetricAggregationType = map[string]cxsdk.SpansAggregationMetricAggregationMetricAggregationType{
-		"unspecified":   cxsdk.SpansAggregationMetricAggregationMetricTypeUnspecified,
-		"min":           cxsdk.SpansAggregationMetricAggregationMetricTypeMin,
-		"max":           cxsdk.SpansAggregationMetricAggregationMetricTypeMax,
-		"avg":           cxsdk.SpansAggregationMetricAggregationMetricTypeAverage,
-		"sum":           cxsdk.SpansAggregationMetricAggregationMetricTypeSum,
-		"percentile_99": cxsdk.SpansAggregationMetricAggregationMetricTypePercentile99,
-		"percentile_95": cxsdk.SpansAggregationMetricAggregationMetricTypePercentile95,
-		"percentile_50": cxsdk.SpansAggregationMetricAggregationMetricTypePercentile50,
-	}
-	dashboardProtoToSchemaSpansAggregationMetricAggregationType = ReverseMap(dashboardSchemaToProtoSpansAggregationMetricAggregationType)
-	dashboardValidSpansAggregationMetricAggregationTypes        = GetKeys(dashboardSchemaToProtoSpansAggregationMetricAggregationType)
-	dashboardProtoToSchemaSpansAggregationDimensionField        = map[string]cxsdk.SpansAggregationDimensionAggregationDimensionField{
-		"unspecified": cxsdk.SpansAggregationDimensionAggregationDimensionFieldUnspecified,
-		"trace_id":    cxsdk.SpansAggregationDimensionAggregationDimensionFieldTraceID,
-	}
-	dashboardSchemaToProtoSpansAggregationDimensionField           = ReverseMap(dashboardProtoToSchemaSpansAggregationDimensionField)
-	dashboardValidSpansAggregationDimensionFields                  = GetKeys(dashboardProtoToSchemaSpansAggregationDimensionField)
-	dashboardSchemaToProtoSpansAggregationDimensionAggregationType = map[string]cxsdk.SpansAggregationDimensionAggregationType{
-		"unspecified":  cxsdk.SpansAggregationDimensionAggregationTypeUnspecified,
-		"unique_count": cxsdk.SpansAggregationDimensionAggregationTypeUniqueCount,
-		"error_count":  cxsdk.SpansAggregationDimensionAggregationTypeErrorCount,
-	}
-	dashboardProtoToSchemaSpansAggregationDimensionAggregationType = ReverseMap(dashboardSchemaToProtoSpansAggregationDimensionAggregationType)
-	dashboardValidSpansAggregationDimensionAggregationTypes        = GetKeys(dashboardSchemaToProtoSpansAggregationDimensionAggregationType)
-	dashboardSchemaToProtoSpanFieldMetadataField                   = map[string]cxsdk.SpanFieldMetadataFieldInner{
-		"unspecified":      cxsdk.SpanFieldMetadataFieldUnspecified,
-		"application_name": cxsdk.SpanFieldMetadataFieldApplicationName,
-		"subsystem_name":   cxsdk.SpanFieldMetadataFieldSubsystemName,
-		"service_name":     cxsdk.SpanFieldMetadataFieldServiceName,
-		"operation_name":   cxsdk.SpanFieldMetadataFieldOperationName,
-	}
-	dashboardProtoToSchemaSpanFieldMetadataField = ReverseMap(dashboardSchemaToProtoSpanFieldMetadataField)
-	dashboardValidSpanFieldMetadataFields        = GetKeys(dashboardSchemaToProtoSpanFieldMetadataField)
-	dashboardSchemaToProtoSortBy                 = map[string]cxsdk.SortByType{
-		"unspecified": cxsdk.SortByTypeUnspecified,
-		"value":       cxsdk.SortByTypeValue,
-		"name":        cxsdk.SortByTypeName,
-	}
-	dashboardProtoToSchemaSortBy                = ReverseMap(dashboardSchemaToProtoSortBy)
-	dashboardValidSortBy                        = GetKeys(dashboardSchemaToProtoSortBy)
-	dashboardSchemaToProtoObservationFieldScope = map[string]cxsdk.DatasetScope{
-		"unspecified": cxsdk.DatasetScopeUnspecified,
-		"user_data":   cxsdk.DatasetScopeUserData,
-		"label":       cxsdk.DatasetScopeLabel,
-		"metadata":    cxsdk.DatasetScopeMetadata,
-	}
-	dashboardProtoToSchemaObservationFieldScope = ReverseMap(dashboardSchemaToProtoObservationFieldScope)
-	dashboardValidObservationFieldScope         = GetKeys(dashboardSchemaToProtoObservationFieldScope)
-	dashboardSchemaToProtoDataModeType          = map[string]cxsdk.DataModeType{
-		"unspecified": cxsdk.DataModeTypeHighUnspecified,
-		"archive":     cxsdk.DataModeTypeArchive,
-	}
-	dashboardProtoToSchemaDataModeType     = ReverseMap(dashboardSchemaToProtoDataModeType)
-	dashboardValidDataModeTypes            = GetKeys(dashboardSchemaToProtoDataModeType)
-	dashboardSchemaToProtoGaugeThresholdBy = map[string]cxsdk.GaugeThresholdBy{
-		"unspecified": cxsdk.GaugeThresholdByUnspecified,
-		"value":       cxsdk.GaugeThresholdByValue,
-		"background":  cxsdk.GaugeThresholdByBackground,
-	}
-	dashboardProtoToSchemaGaugeThresholdBy = ReverseMap(dashboardSchemaToProtoGaugeThresholdBy)
-	dashboardValidGaugeThresholdBy         = GetKeys(dashboardSchemaToProtoGaugeThresholdBy)
-	dashboardSchemaToProtoRefreshStrategy  = map[string]cxsdk.MultiSelectRefreshStrategy{
-		"unspecified":          cxsdk.MultiSelectRefreshStrategyUnspecified,
-		"on_dashboard_load":    cxsdk.MultiSelectRefreshStrategyOnDashboardLoad,
-		"on_time_frame_change": cxsdk.MultiSelectRefreshStrategyOnTimeFrameChange,
-	}
-	dashboardProtoToSchemaRefreshStrategy = ReverseMap(dashboardSchemaToProtoRefreshStrategy)
-	dashboardValidRefreshStrategies       = GetKeys(dashboardSchemaToProtoRefreshStrategy)
-	dashboardValidLogsAggregationTypes    = []string{"count", "count_distinct", "sum", "avg", "min", "max", "percentile"}
-	dashboardValidSpanFieldTypes          = []string{"metadata", "tag", "process_tag"}
-	dashboardValidSpanAggregationTypes    = []string{"metric", "dimension"}
-	dashboardValidColorSchemes            = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
-	sectionValidColors                    = []string{"unspecified", "cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
 )
 
 var (
@@ -312,6 +113,7 @@ type WidgetModel struct {
 
 type WidgetDefinitionModel struct {
 	LineChart          *LineChartModel          `tfsdk:"line_chart"`
+	Hexagon            *HexagonModel            `tfsdk:"hexagon"`
 	DataTable          *DataTableModel          `tfsdk:"data_table"`
 	Gauge              *GaugeModel              `tfsdk:"gauge"`
 	PieChart           *PieChartModel           `tfsdk:"pie_chart"`
@@ -324,13 +126,6 @@ type LineChartModel struct {
 	Legend           *LegendModel  `tfsdk:"legend"`
 	Tooltip          *TooltipModel `tfsdk:"tooltip"`
 	QueryDefinitions types.List    `tfsdk:"query_definitions"` //LineChartQueryDefinitionModel
-}
-
-type LegendModel struct {
-	IsVisible    types.Bool   `tfsdk:"is_visible"`
-	Columns      types.List   `tfsdk:"columns"` //types.String (dashboardValidLegendColumns)
-	GroupByQuery types.Bool   `tfsdk:"group_by_query"`
-	Placement    types.String `tfsdk:"placement"`
 }
 
 type TooltipModel struct {
@@ -1148,10 +943,10 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																				ElementType: types.StringType,
 																				Optional:    true,
 																				Validators: []validator.List{
-																					listvalidator.ValueStringsAre(stringvalidator.OneOf(dashboardValidLegendColumns...)),
+																					listvalidator.ValueStringsAre(stringvalidator.OneOf(dashboardwidgets.DashboardValidLegendColumns...)),
 																					listvalidator.SizeAtLeast(1),
 																				},
-																				MarkdownDescription: fmt.Sprintf("The columns to display in the legend. Valid values are: %s.", strings.Join(dashboardValidLegendColumns, ", ")),
+																				MarkdownDescription: fmt.Sprintf("The columns to display in the legend. Valid values are: %s.", strings.Join(dashboardwidgets.DashboardValidLegendColumns, ", ")),
 																			},
 																			"group_by_query": schema.BoolAttribute{
 																				Optional: true,
@@ -1162,9 +957,9 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																				Optional: true,
 																				Computed: true,
 																				Validators: []validator.String{
-																					stringvalidator.OneOf(dashboardValidLegendPlacements...),
+																					stringvalidator.OneOf(dashboardwidgets.DashboardValidLegendPlacements...),
 																				},
-																				MarkdownDescription: fmt.Sprintf("The placement of the legend. Valid values are: %s.", strings.Join(dashboardValidLegendPlacements, ", ")),
+																				MarkdownDescription: fmt.Sprintf("The placement of the legend. Valid values are: %s.", strings.Join(dashboardwidgets.DashboardValidLegendPlacements, ", ")),
 																			},
 																		},
 																		Optional: true,
@@ -1179,9 +974,9 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																			"type": schema.StringAttribute{
 																				Optional: true,
 																				Validators: []validator.String{
-																					stringvalidator.OneOf(dashboardValidTooltipTypes...),
+																					stringvalidator.OneOf(dashboardwidgets.DashboardValidTooltipTypes...),
 																				},
-																				MarkdownDescription: fmt.Sprintf("The tooltip type. Valid values are: %s.", strings.Join(dashboardValidTooltipTypes, ", ")),
+																				MarkdownDescription: fmt.Sprintf("The tooltip type. Valid values are: %s.", strings.Join(dashboardwidgets.DashboardValidTooltipTypes, ", ")),
 																			},
 																		},
 																		Optional: true,
@@ -1288,10 +1083,10 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																				Optional: true,
 																				Computed: true,
 																				Validators: []validator.String{
-																					stringvalidator.OneOf(dashboardValidScaleTypes...),
+																					stringvalidator.OneOf(dashboardwidgets.DashboardValidScaleTypes...),
 																				},
 																				Default:             stringdefault.StaticString("unspecified"),
-																				MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(dashboardValidScaleTypes, ", ")),
+																				MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(dashboardwidgets.DashboardValidScaleTypes, ", ")),
 																			},
 																			"name": schema.StringAttribute{
 																				Optional: true,
@@ -1304,7 +1099,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																			"color_scheme": schema.StringAttribute{
 																				Optional: true,
 																				Validators: []validator.String{
-																					stringvalidator.OneOf(dashboardValidColorSchemes...),
+																					stringvalidator.OneOf(dashboardwidgets.DashboardValidColorSchemes...),
 																				},
 																			},
 																			"resolution": schema.SingleNestedAttribute{
@@ -1332,7 +1127,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																				Optional: true,
 																				Computed: true,
 																				Validators: []validator.String{
-																					stringvalidator.OneOf(dashboardValidDataModeTypes...),
+																					stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																				},
 																				Default: stringdefault.StaticString("unspecified"),
 																			},
@@ -1356,181 +1151,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																},
 																Optional: true,
 															},
-															"hexagon": schema.SingleNestedAttribute{
-																Attributes: map[string]schema.Attribute{
-																	"legend": legendSchema(),
-																	"tooltip": schema.SingleNestedAttribute{
-																		Attributes: map[string]schema.Attribute{
-																			"show_labels": schema.BoolAttribute{
-																				Optional: true,
-																				Computed: true,
-																				Default:  booldefault.StaticBool(false),
-																			},
-																			"type": schema.StringAttribute{
-																				Optional: true,
-																				Validators: []validator.String{
-																					stringvalidator.OneOf(dashboardValidTooltipTypes...),
-																				},
-																				MarkdownDescription: fmt.Sprintf("The tooltip type. Valid values are: %s.", strings.Join(dashboardValidTooltipTypes, ", ")),
-																			},
-																		},
-																		Optional: true,
-																	},
-																	"query": schema.ListNestedAttribute{
-																		NestedObject: schema.NestedAttributeObject{
-																			Attributes: map[string]schema.Attribute{
-																				"id": schema.StringAttribute{
-																					Computed: true, PlanModifiers: []planmodifier.String{
-																						stringplanmodifier.UseStateForUnknown(),
-																					},
-																				},
-																				"query": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"logs": schema.SingleNestedAttribute{
-																							Attributes: map[string]schema.Attribute{
-																								"lucene_query": schema.StringAttribute{
-																									Optional: true,
-																								},
-																								"group_by": schema.ListAttribute{
-																									ElementType: types.StringType,
-																									Optional:    true,
-																								},
-																								"filters":      logsFiltersSchema(),
-																								"aggregations": logsAggregationsSchema(),
-																							},
-																							Optional: true,
-																							Validators: []validator.Object{
-																								objectvalidator.ExactlyOneOf(
-																									path.MatchRelative().AtParent().AtName("metrics"),
-																									path.MatchRelative().AtParent().AtName("spans"),
-																								),
-																							},
-																						},
-																						"metrics": schema.SingleNestedAttribute{
-																							Attributes: map[string]schema.Attribute{
-																								"promql_query": schema.StringAttribute{
-																									Required: true,
-																								},
-																								"filters": metricFiltersSchema(),
-																							},
-																							Optional: true,
-																							Validators: []validator.Object{
-																								objectvalidator.ExactlyOneOf(
-																									path.MatchRelative().AtParent().AtName("logs"),
-																									path.MatchRelative().AtParent().AtName("spans"),
-																								),
-																							},
-																						},
-																						"spans": schema.SingleNestedAttribute{
-																							Attributes: map[string]schema.Attribute{
-																								"lucene_query": schema.StringAttribute{
-																									Optional: true,
-																								},
-																								"group_by":     spansFieldsSchema(),
-																								"aggregations": spansAggregationsSchema(),
-																								"filters":      spansFilterSchema(),
-																							},
-																							Optional: true,
-																							Validators: []validator.Object{
-																								objectvalidator.ExactlyOneOf(
-																									path.MatchRelative().AtParent().AtName("metrics"),
-																									path.MatchRelative().AtParent().AtName("logs"),
-																								),
-																							},
-																						},
-																					},
-																					Required: true,
-																				},
-																				"series_name_template": schema.StringAttribute{
-																					Optional: true,
-																				},
-																				"series_count_limit": schema.Int64Attribute{
-																					Optional: true,
-																				},
-																				"unit": schema.StringAttribute{
-																					Optional: true,
-																					Computed: true,
-																					Default:  stringdefault.StaticString("unspecified"),
-																					Validators: []validator.String{
-																						stringvalidator.OneOf(dashboardValidUnits...),
-																					},
-																					MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(dashboardValidUnits, ", ")),
-																				},
-																				"scale_type": schema.StringAttribute{
-																					Optional: true,
-																					Computed: true,
-																					Validators: []validator.String{
-																						stringvalidator.OneOf(dashboardValidScaleTypes...),
-																					},
-																					Default:             stringdefault.StaticString("unspecified"),
-																					MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(dashboardValidScaleTypes, ", ")),
-																				},
-																				"name": schema.StringAttribute{
-																					Optional: true,
-																				},
-																				"is_visible": schema.BoolAttribute{
-																					Optional: true,
-																					Computed: true,
-																					Default:  booldefault.StaticBool(true),
-																				},
-																				"color_scheme": schema.StringAttribute{
-																					Optional: true,
-																					Validators: []validator.String{
-																						stringvalidator.OneOf(dashboardValidColorSchemes...),
-																					},
-																				},
-																				"resolution": schema.SingleNestedAttribute{
-																					Attributes: map[string]schema.Attribute{
-																						"interval": schema.StringAttribute{
-																							Optional: true,
-																							Validators: []validator.String{
-																								stringvalidator.ExactlyOneOf(
-																									path.MatchRelative().AtParent().AtName("buckets_presented"),
-																								),
-																							},
-																						},
-																						"buckets_presented": schema.Int64Attribute{
-																							Optional: true,
-																							Validators: []validator.Int64{
-																								int64validator.ExactlyOneOf(
-																									path.MatchRelative().AtParent().AtName("interval"),
-																								),
-																							},
-																						},
-																					},
-																					Optional: true,
-																				},
-																				"data_mode_type": schema.StringAttribute{
-																					Optional: true,
-																					Computed: true,
-																					Validators: []validator.String{
-																						stringvalidator.OneOf(dashboardValidDataModeTypes...),
-																					},
-																					Default: stringdefault.StaticString("unspecified"),
-																				},
-																			},
-																		},
-																		Required: true,
-																		Validators: []validator.List{
-																			listvalidator.SizeAtLeast(1),
-																		},
-																	},
-																},
-																Validators: []validator.Object{
-																	objectvalidator.ExactlyOneOf(
-																		path.MatchRelative().AtParent().AtName("data_table"),
-																		path.MatchRelative().AtParent().AtName("gauge"),
-																		path.MatchRelative().AtParent().AtName("pie_chart"),
-																		path.MatchRelative().AtParent().AtName("bar_chart"),
-																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
-																		path.MatchRelative().AtParent().AtName("markdown"),
-																	),
-																	objectvalidator.AlsoRequires(
-																		path.MatchRelative().AtParent().AtParent().AtName("title"),
-																	),
-																},
-																Optional: true,
-															},
+															"hexagon": dashboardwidgets.HexagonSchema(),
 															"data_table": schema.SingleNestedAttribute{
 																Attributes: map[string]schema.Attribute{
 																	"query": schema.SingleNestedAttribute{
@@ -1685,9 +1306,9 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"row_style": schema.StringAttribute{
 																		Required: true,
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidRowStyles...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidRowStyles...),
 																		},
-																		MarkdownDescription: fmt.Sprintf("The style of the rows. Can be one of %q.", dashboardValidRowStyles),
+																		MarkdownDescription: fmt.Sprintf("The style of the rows. Can be one of %q.", dashboardwidgets.DashboardValidRowStyles),
 																	},
 																	"columns": schema.ListNestedAttribute{
 																		NestedObject: schema.NestedAttributeObject{
@@ -1714,9 +1335,9 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																			},
 																			"order_direction": schema.StringAttribute{
 																				Validators: []validator.String{
-																					stringvalidator.OneOf(dashboardValidOrderDirections...),
+																					stringvalidator.OneOf(dashboardwidgets.DashboardValidOrderDirections...),
 																				},
-																				MarkdownDescription: fmt.Sprintf("The order direction. Can be one of %q.", dashboardValidOrderDirections),
+																				MarkdownDescription: fmt.Sprintf("The order direction. Can be one of %q.", dashboardwidgets.DashboardValidOrderDirections),
 																				Optional:            true,
 																				Computed:            true,
 																				Default:             stringdefault.StaticString("unspecified"),
@@ -1728,10 +1349,10 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																		Optional: true,
 																		Computed: true,
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidDataModeTypes...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
 																		Default:             stringdefault.StaticString("unspecified"),
-																		MarkdownDescription: fmt.Sprintf("The data mode type. Can be one of %q.", dashboardValidDataModeTypes),
+																		MarkdownDescription: fmt.Sprintf("The data mode type. Can be one of %q.", dashboardwidgets.DashboardValidDataModeTypes),
 																	},
 																},
 																Validators: []validator.Object{
@@ -1777,9 +1398,9 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"aggregation": schema.StringAttribute{
 																						Validators: []validator.String{
-																							stringvalidator.OneOf(dashboardValidGaugeAggregations...),
+																							stringvalidator.OneOf(dashboardwidgets.DashboardValidGaugeAggregations...),
 																						},
-																						MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardValidGaugeAggregations),
+																						MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardwidgets.DashboardValidGaugeAggregations),
 																						Optional:            true,
 																						Computed:            true,
 																						Default:             stringdefault.StaticString("unspecified"),
@@ -1859,9 +1480,9 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"unit": schema.StringAttribute{
 																		Required: true,
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidGaugeUnits...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidGaugeUnits...),
 																		},
-																		MarkdownDescription: fmt.Sprintf("The unit of the gauge. Can be one of %q.", dashboardValidGaugeUnits),
+																		MarkdownDescription: fmt.Sprintf("The unit of the gauge. Can be one of %q.", dashboardwidgets.DashboardValidGaugeUnits),
 																	},
 																	"thresholds": schema.ListNestedAttribute{
 																		NestedObject: schema.NestedAttributeObject{
@@ -1881,18 +1502,18 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																		Computed: true,
 																		Default:  stringdefault.StaticString("unspecified"),
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidDataModeTypes...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
-																		MarkdownDescription: fmt.Sprintf("The data mode type. Can be one of %q.", dashboardValidDataModeTypes),
+																		MarkdownDescription: fmt.Sprintf("The data mode type. Can be one of %q.", dashboardwidgets.DashboardValidDataModeTypes),
 																	},
 																	"threshold_by": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
 																		Default:  stringdefault.StaticString("unspecified"),
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidGaugeThresholdBy...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidGaugeThresholdBy...),
 																		},
-																		MarkdownDescription: fmt.Sprintf("The threshold by. Can be one of %q.", dashboardValidGaugeThresholdBy),
+																		MarkdownDescription: fmt.Sprintf("The threshold by. Can be one of %q.", dashboardwidgets.DashboardValidGaugeThresholdBy),
 																	},
 																},
 																Validators: []validator.Object{
@@ -2048,9 +1669,9 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																				Computed: true,
 																				Default:  stringdefault.StaticString("unspecified"),
 																				Validators: []validator.String{
-																					stringvalidator.OneOf(dashboardValidPieChartLabelSources...),
+																					stringvalidator.OneOf(dashboardwidgets.DashboardValidPieChartLabelSources...),
 																				},
-																				MarkdownDescription: fmt.Sprintf("The source of the label. Valid values are: %s", strings.Join(dashboardValidPieChartLabelSources, ", ")),
+																				MarkdownDescription: fmt.Sprintf("The source of the label. Valid values are: %s", strings.Join(dashboardwidgets.DashboardValidPieChartLabelSources, ", ")),
 																			},
 																			"is_visible": schema.BoolAttribute{
 																				Optional: true,
@@ -2091,16 +1712,16 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"color_scheme": schema.StringAttribute{
 																		Optional: true,
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidColorSchemes...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidColorSchemes...),
 																		},
-																		Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardValidColorSchemes, ", ")),
+																		Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardwidgets.DashboardValidColorSchemes, ", ")),
 																	},
 																	"data_mode_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
 																		Default:  stringdefault.StaticString("unspecified"),
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidDataModeTypes...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
 																	},
 																},
@@ -2291,32 +1912,32 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																		Computed: true,
 																		Default:  stringdefault.StaticString("unspecified"),
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidUnits...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidUnits...),
 																		},
-																		MarkdownDescription: fmt.Sprintf("The unit of the chart. Can be one of %s.", strings.Join(dashboardValidUnits, ", ")),
+																		MarkdownDescription: fmt.Sprintf("The unit of the chart. Can be one of %s.", strings.Join(dashboardwidgets.DashboardValidUnits, ", ")),
 																	},
 																	"sort_by": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
 																		Default:  stringdefault.StaticString("unspecified"),
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidSortBy...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidSortBy...),
 																		},
-																		Description: fmt.Sprintf("The field to sort by. Can be one of %s.", strings.Join(dashboardValidSortBy, ", ")),
+																		Description: fmt.Sprintf("The field to sort by. Can be one of %s.", strings.Join(dashboardwidgets.DashboardValidSortBy, ", ")),
 																	},
 																	"color_scheme": schema.StringAttribute{
 																		Optional: true,
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidColorSchemes...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidColorSchemes...),
 																		},
-																		Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardValidColorSchemes, ", ")),
+																		Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardwidgets.DashboardValidColorSchemes, ", ")),
 																	},
 																	"data_mode_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
 																		Default:  stringdefault.StaticString("unspecified"),
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidDataModeTypes...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
 																	},
 																},
@@ -2430,9 +2051,9 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																		Computed: true,
 																		Default:  stringdefault.StaticString("unspecified"),
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidUnits...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidUnits...),
 																		},
-																		MarkdownDescription: fmt.Sprintf("The unit of the chart. Can be one of %s.", strings.Join(dashboardValidUnits, ", ")),
+																		MarkdownDescription: fmt.Sprintf("The unit of the chart. Can be one of %s.", strings.Join(dashboardwidgets.DashboardValidUnits, ", ")),
 																	},
 																	"display_on_bar": schema.BoolAttribute{
 																		Optional: true,
@@ -2450,22 +2071,22 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																		Computed: true,
 																		Default:  stringdefault.StaticString("unspecified"),
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidSortBy...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidSortBy...),
 																		},
 																	},
 																	"color_scheme": schema.StringAttribute{
 																		Optional: true,
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidColorSchemes...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidColorSchemes...),
 																		},
-																		Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardValidColorSchemes, ", ")),
+																		Description: fmt.Sprintf("The color scheme. Can be one of %s.", strings.Join(dashboardwidgets.DashboardValidColorSchemes, ", ")),
 																	},
 																	"data_mode_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
 																		Default:  stringdefault.StaticString("unspecified"),
 																		Validators: []validator.String{
-																			stringvalidator.OneOf(dashboardValidDataModeTypes...),
+																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
 																	},
 																},
@@ -2499,6 +2120,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																		path.MatchRelative().AtParent().AtName("gauge"),
 																		path.MatchRelative().AtParent().AtName("pie_chart"),
 																		path.MatchRelative().AtParent().AtName("line_chart"),
+																		path.MatchRelative().AtParent().AtName("hexagon"),
 																		path.MatchRelative().AtParent().AtName("bar_chart"),
 																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
 																	),
@@ -2542,9 +2164,9 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 									"color": schema.StringAttribute{
 										Optional: true,
 										Validators: []validator.String{
-											stringvalidator.OneOf(sectionValidColors...),
+											stringvalidator.OneOf(dashboardwidgets.SectionValidColors...),
 										},
-										MarkdownDescription: fmt.Sprintf("Section color, valid values: %v", sectionValidColors),
+										MarkdownDescription: fmt.Sprintf("Section color, valid values: %v", dashboardwidgets.SectionValidColors),
 									},
 									"collapsed": schema.BoolAttribute{
 										Optional: true,
@@ -2588,9 +2210,9 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 									"values_order_direction": schema.StringAttribute{
 										Required: true,
 										Validators: []validator.String{
-											stringvalidator.OneOf(dashboardValidOrderDirections...),
+											stringvalidator.OneOf(dashboardwidgets.DashboardValidOrderDirections...),
 										},
-										MarkdownDescription: fmt.Sprintf("The order direction of the values. Can be one of `%s`.", strings.Join(dashboardValidOrderDirections, "`, `")),
+										MarkdownDescription: fmt.Sprintf("The order direction of the values. Can be one of `%s`.", strings.Join(dashboardwidgets.DashboardValidOrderDirections, "`, `")),
 									},
 									"source": schema.SingleNestedAttribute{
 										Attributes: map[string]schema.Attribute{
@@ -2747,7 +2369,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 														Computed: true,
 														Default:  stringdefault.StaticString("unspecified"),
 														Validators: []validator.String{
-															stringvalidator.OneOf(dashboardValidRefreshStrategies...),
+															stringvalidator.OneOf(dashboardwidgets.DashboardValidRefreshStrategies...),
 														},
 													},
 													"value_display_options": schema.SingleNestedAttribute{
@@ -3076,7 +2698,7 @@ func observationFieldSchemaAttributes() map[string]schema.Attribute {
 		"scope": schema.StringAttribute{
 			Required: true,
 			Validators: []validator.String{
-				stringvalidator.OneOf(dashboardValidObservationFieldScope...),
+				stringvalidator.OneOf(dashboardwidgets.DashboardValidObservationFieldScope...),
 			},
 		},
 	}
@@ -3088,45 +2710,9 @@ func unitSchema() schema.StringAttribute {
 		Computed: true,
 		Default:  stringdefault.StaticString("unspecified"),
 		Validators: []validator.String{
-			stringvalidator.OneOf(dashboardValidUnits...),
+			stringvalidator.OneOf(dashboardwidgets.DashboardValidUnits...),
 		},
-		MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(dashboardValidUnits, ", ")),
-	}
-}
-
-func legendSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Attributes: map[string]schema.Attribute{
-			"is_visible": schema.BoolAttribute{
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(true),
-				MarkdownDescription: "Whether to display the legend. True by default.",
-			},
-			"columns": schema.ListAttribute{
-				ElementType: types.StringType,
-				Optional:    true,
-				Validators: []validator.List{
-					listvalidator.ValueStringsAre(stringvalidator.OneOf(dashboardValidLegendColumns...)),
-					listvalidator.SizeAtLeast(1),
-				},
-				MarkdownDescription: fmt.Sprintf("The columns to display in the legend. Valid values are: %s.", strings.Join(dashboardValidLegendColumns, ", ")),
-			},
-			"group_by_query": schema.BoolAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  booldefault.StaticBool(false),
-			},
-			"placement": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidLegendPlacements...),
-				},
-				MarkdownDescription: fmt.Sprintf("The placement of the legend. Valid values are: %s.", strings.Join(dashboardValidLegendPlacements, ", ")),
-			},
-		},
-		Optional: true,
+		MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(dashboardwidgets.DashboardValidUnits, ", ")),
 	}
 }
 
@@ -3380,9 +2966,9 @@ func logsAggregationAttributes() map[string]schema.Attribute {
 		"type": schema.StringAttribute{
 			Required: true,
 			Validators: []validator.String{
-				stringvalidator.OneOf(dashboardValidLogsAggregationTypes...),
+				stringvalidator.OneOf(dashboardwidgets.DashboardValidLogsAggregationTypes...),
 			},
-			MarkdownDescription: fmt.Sprintf("The type of the aggregation. Can be one of %q", dashboardValidLogsAggregationTypes),
+			MarkdownDescription: fmt.Sprintf("The type of the aggregation. Can be one of %q", dashboardwidgets.DashboardValidLogsAggregationTypes),
 		},
 		"field": schema.StringAttribute{
 			Optional: true,
@@ -3422,8 +3008,8 @@ func (s spansFieldValidator) ValidateObject(ctx context.Context, request validat
 		response.Diagnostics.Append(diags...)
 		return
 	}
-	if field.Type.ValueString() == "metadata" && !slices.Contains(dashboardValidSpanFieldMetadataFields, field.Value.ValueString()) {
-		response.Diagnostics.Append(diag.NewErrorDiagnostic("spans field validation failed", fmt.Sprintf("when type is `metadata`, `value` must be one of %q", dashboardValidSpanFieldMetadataFields)))
+	if field.Type.ValueString() == "metadata" && !slices.Contains(dashboardwidgets.DashboardValidSpanFieldMetadataFields, field.Value.ValueString()) {
+		response.Diagnostics.Append(diag.NewErrorDiagnostic("spans field validation failed", fmt.Sprintf("when type is `metadata`, `value` must be one of %q", dashboardwidgets.DashboardValidSpanFieldMetadataFields)))
 	}
 }
 
@@ -3454,13 +3040,13 @@ func spansFieldAttributes() map[string]schema.Attribute {
 		"type": schema.StringAttribute{
 			Required: true,
 			Validators: []validator.String{
-				stringvalidator.OneOf(dashboardValidSpanFieldTypes...),
+				stringvalidator.OneOf(dashboardwidgets.DashboardValidSpanFieldTypes...),
 			},
-			MarkdownDescription: fmt.Sprintf("The type of the field. Can be one of %q", dashboardValidSpanFieldTypes),
+			MarkdownDescription: fmt.Sprintf("The type of the field. Can be one of %q", dashboardwidgets.DashboardValidSpanFieldTypes),
 		},
 		"value": schema.StringAttribute{
 			Required:            true,
-			MarkdownDescription: fmt.Sprintf("The value of the field. When the field type is `metadata`, can be one of %q", dashboardValidSpanFieldMetadataFields),
+			MarkdownDescription: fmt.Sprintf("The value of the field. When the field type is `metadata`, can be one of %q", dashboardwidgets.DashboardValidSpanFieldMetadataFields),
 		},
 	}
 }
@@ -3487,11 +3073,11 @@ func (s spansAggregationValidator) ValidateObject(ctx context.Context, request v
 		return
 	}
 
-	if aggregation.Type.ValueString() == "metrics" && !slices.Contains(dashboardValidSpansAggregationMetricAggregationTypes, aggregation.AggregationType.ValueString()) {
-		response.Diagnostics.Append(diag.NewErrorDiagnostic("spans aggregation validation failed", fmt.Sprintf("when type is `metrics`, `aggregation_type` must be one of %q", dashboardValidSpansAggregationMetricAggregationTypes)))
+	if aggregation.Type.ValueString() == "metrics" && !slices.Contains(dashboardwidgets.DashboardValidSpansAggregationMetricAggregationTypes, aggregation.AggregationType.ValueString()) {
+		response.Diagnostics.Append(diag.NewErrorDiagnostic("spans aggregation validation failed", fmt.Sprintf("when type is `metrics`, `aggregation_type` must be one of %q", dashboardwidgets.DashboardValidSpansAggregationMetricAggregationTypes)))
 	}
-	if aggregation.Type.ValueString() == "dimension" && !slices.Contains(dashboardValidSpansAggregationDimensionAggregationTypes, aggregation.AggregationType.ValueString()) {
-		response.Diagnostics.Append(diag.NewErrorDiagnostic("spans aggregation validation failed", fmt.Sprintf("when type is `dimension`, `aggregation_type` must be one of %q", dashboardValidSpansAggregationDimensionAggregationTypes)))
+	if aggregation.Type.ValueString() == "dimension" && !slices.Contains(dashboardwidgets.DashboardValidSpansAggregationDimensionAggregationTypes, aggregation.AggregationType.ValueString()) {
+		response.Diagnostics.Append(diag.NewErrorDiagnostic("spans aggregation validation failed", fmt.Sprintf("when type is `dimension`, `aggregation_type` must be one of %q", dashboardwidgets.DashboardValidSpansAggregationDimensionAggregationTypes)))
 	}
 }
 
@@ -3521,17 +3107,17 @@ func spansAggregationAttributes() map[string]schema.Attribute {
 		"type": schema.StringAttribute{
 			Required: true,
 			Validators: []validator.String{
-				stringvalidator.OneOf(dashboardValidSpanAggregationTypes...),
+				stringvalidator.OneOf(dashboardwidgets.DashboardValidSpanAggregationTypes...),
 			},
-			MarkdownDescription: fmt.Sprintf("Can be one of %q", dashboardValidSpanAggregationTypes),
+			MarkdownDescription: fmt.Sprintf("Can be one of %q", dashboardwidgets.DashboardValidSpanAggregationTypes),
 		},
 		"aggregation_type": schema.StringAttribute{
 			Required:            true,
-			MarkdownDescription: fmt.Sprintf("The type of the aggregation. When the aggregation type is `metrics`, can be one of %q. When the aggregation type is `dimension`, can be one of %q.", dashboardValidSpansAggregationMetricAggregationTypes, dashboardValidSpansAggregationDimensionAggregationTypes),
+			MarkdownDescription: fmt.Sprintf("The type of the aggregation. When the aggregation type is `metrics`, can be one of %q. When the aggregation type is `dimension`, can be one of %q.", dashboardwidgets.DashboardValidSpansAggregationMetricAggregationTypes, dashboardwidgets.DashboardValidSpansAggregationDimensionAggregationTypes),
 		},
 		"field": schema.StringAttribute{
 			Required:            true,
-			MarkdownDescription: fmt.Sprintf("The field to aggregate on. When the aggregation type is `metrics`, can be one of %q. When the aggregation type is `dimension`, can be one of %q.", dashboardValidSpansAggregationMetricFields, dashboardValidSpansAggregationDimensionFields),
+			MarkdownDescription: fmt.Sprintf("The field to aggregate on. When the aggregation type is `metrics`, can be one of %q. When the aggregation type is `dimension`, can be one of %q.", dashboardwidgets.DashboardValidSpansAggregationMetricFields, dashboardwidgets.DashboardValidSpansAggregationDimensionFields),
 		},
 	}
 }
@@ -3576,7 +3162,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Dashboard",
-			formatRpcErrors(err, cxsdk.CreateDashboardRPC, dashboardStr),
+			utils.FormatRpcErrors(err, cxsdk.CreateDashboardRPC, dashboardStr),
 		)
 		return
 	}
@@ -3590,7 +3176,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		reqStr := protojson.Format(getDashboardReq)
 		resp.Diagnostics.AddError(
 			"Error getting Dashboard",
-			formatRpcErrors(err, cxsdk.GetDashboardRPC, reqStr),
+			utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, reqStr),
 		)
 		return
 	}
@@ -3642,8 +3228,8 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*cxsdk.
 	id := wrapperspb.String(expand21LengthUUID(plan.ID).GetValue())
 	dashboard := &cxsdk.Dashboard{
 		Id:          id,
-		Name:        typeStringToWrapperspbString(plan.Name),
-		Description: typeStringToWrapperspbString(plan.Description),
+		Name:        utils.TypeStringToWrapperspbString(plan.Name),
+		Description: utils.TypeStringToWrapperspbString(plan.Description),
 		Layout:      layout,
 		Variables:   variables,
 		Filters:     filters,
@@ -3669,7 +3255,7 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*cxsdk.
 }
 
 func expandDashboardAutoRefresh(ctx context.Context, dashboard *cxsdk.Dashboard, refresh types.Object) (*cxsdk.Dashboard, diag.Diagnostics) {
-	if objIsNullOrUnknown(refresh) {
+	if utils.ObjIsNullOrUnknown(refresh) {
 		return dashboard, nil
 	}
 	var refreshObject DashboardAutoRefreshModel
@@ -3729,8 +3315,8 @@ func expandAnnotation(ctx context.Context, annotation DashboardAnnotationModel) 
 
 	return &cxsdk.Annotation{
 		Id:      expandDashboardIDs(annotation.ID),
-		Name:    typeStringToWrapperspbString(annotation.Name),
-		Enabled: typeBoolToWrapperspbBool(annotation.Enabled),
+		Name:    utils.TypeStringToWrapperspbString(annotation.Name),
+		Enabled: utils.TypeBoolToWrapperspbBool(annotation.Enabled),
 		Source:  source,
 	}, nil
 
@@ -3794,7 +3380,7 @@ func expandLogsSource(ctx context.Context, logs types.Object) (*cxsdk.Annotation
 		Logs: &cxsdk.AnnotationLogsSource{
 			LuceneQuery:     expandLuceneQuery(logsObject.LuceneQuery),
 			Strategy:        strategy,
-			MessageTemplate: typeStringToWrapperspbString(logsObject.MessageTemplate),
+			MessageTemplate: utils.TypeStringToWrapperspbString(logsObject.MessageTemplate),
 			LabelFields:     labels,
 		},
 	}, nil
@@ -3808,11 +3394,11 @@ func expandLogsSourceStrategy(ctx context.Context, strategy types.Object) (*cxsd
 	}
 
 	switch {
-	case !objIsNullOrUnknown(strategyObject.Instant):
+	case !utils.ObjIsNullOrUnknown(strategyObject.Instant):
 		return expandLogsSourceInstantStrategy(ctx, strategyObject.Instant)
-	case !objIsNullOrUnknown(strategyObject.Range):
+	case !utils.ObjIsNullOrUnknown(strategyObject.Range):
 		return expandLogsSourceRangeStrategy(ctx, strategyObject.Range)
-	case !objIsNullOrUnknown(strategyObject.Duration):
+	case !utils.ObjIsNullOrUnknown(strategyObject.Duration):
 		return expandLogsSourceDurationStrategy(ctx, strategyObject.Duration)
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Logs Source Strategy", "Logs Source Strategy must be either Instant, Range or Duration")}
@@ -4008,7 +3594,7 @@ func expandSpansSource(ctx context.Context, spans types.Object) (*cxsdk.Annotati
 		Spans: &cxsdk.AnnotationSpansSource{
 			LuceneQuery:     expandLuceneQuery(spansObject.LuceneQuery),
 			Strategy:        strategy,
-			MessageTemplate: typeStringToWrapperspbString(spansObject.MessageTemplate),
+			MessageTemplate: utils.TypeStringToWrapperspbString(spansObject.MessageTemplate),
 			LabelFields:     labels,
 		},
 	}, nil
@@ -4029,7 +3615,7 @@ func expandMetricSource(ctx context.Context, metric types.Object) (*cxsdk.Annota
 		return nil, diags
 	}
 
-	labels, diags := typeStringSliceToWrappedStringSlice(ctx, metricObject.Labels.Elements())
+	labels, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, metricObject.Labels.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4038,7 +3624,7 @@ func expandMetricSource(ctx context.Context, metric types.Object) (*cxsdk.Annota
 		Metrics: &cxsdk.AnnotationMetricsSource{
 			PromqlQuery:     expandPromqlQuery(metricObject.PromqlQuery),
 			Strategy:        strategy,
-			MessageTemplate: typeStringToWrapperspbString(metricObject.MessageTemplate),
+			MessageTemplate: utils.TypeStringToWrapperspbString(metricObject.MessageTemplate),
 			Labels:          labels,
 		},
 	}, nil
@@ -4059,7 +3645,7 @@ func expandMetricSourceStrategy(ctx context.Context, strategy types.Object) (*cx
 }
 
 func expandDashboardTimeFrame(ctx context.Context, dashboard *cxsdk.Dashboard, timeFrame types.Object) (*cxsdk.Dashboard, diag.Diagnostics) {
-	if objIsNullOrUnknown(timeFrame) {
+	if utils.ObjIsNullOrUnknown(timeFrame) {
 		return dashboard, nil
 	}
 	var timeFrameObject DashboardTimeFrameModel
@@ -4068,9 +3654,9 @@ func expandDashboardTimeFrame(ctx context.Context, dashboard *cxsdk.Dashboard, t
 		return nil, diags
 	}
 	switch {
-	case !objIsNullOrUnknown(timeFrameObject.Relative):
+	case !utils.ObjIsNullOrUnknown(timeFrameObject.Relative):
 		dashboard.TimeFrame, diags = expandRelativeDashboardTimeFrame(ctx, timeFrameObject.Relative)
-	case !objIsNullOrUnknown(timeFrameObject.Absolute):
+	case !utils.ObjIsNullOrUnknown(timeFrameObject.Absolute):
 		dashboard.TimeFrame, diags = expandAbsoluteDashboardTimeFrame(ctx, timeFrameObject.Absolute)
 	default:
 		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Time Frame", "Dashboard TimeFrame must be either Relative or Absolute")}
@@ -4079,7 +3665,7 @@ func expandDashboardTimeFrame(ctx context.Context, dashboard *cxsdk.Dashboard, t
 }
 
 func expandDashboardLayout(ctx context.Context, layout types.Object) (*cxsdk.DashboardLayout, diag.Diagnostics) {
-	if objIsNullOrUnknown(layout) {
+	if utils.ObjIsNullOrUnknown(layout) {
 		return nil, nil
 	}
 	var layoutObject DashboardLayoutModel
@@ -4255,8 +3841,8 @@ func expandDashboardWidgets(ctx context.Context, widgets types.List) ([]*cxsdk.D
 
 func expandWidget(ctx context.Context, widget WidgetModel) (*cxsdk.DashboardWidget, diag.Diagnostics) {
 	id := expandDashboardUUID(widget.ID)
-	title := typeStringToWrapperspbString(widget.Title)
-	description := typeStringToWrapperspbString(widget.Description)
+	title := utils.TypeStringToWrapperspbString(widget.Title)
+	description := utils.TypeStringToWrapperspbString(widget.Description)
 	appearance := &cxsdk.DashboardWidgetAppearance{
 		Width: wrapperspb.Int32(int32(widget.Width.ValueInt64())),
 	}
@@ -4304,8 +3890,8 @@ func expandMarkdown(markdown *MarkdownModel) (*cxsdk.WidgetDefinition, diag.Diag
 	return &cxsdk.WidgetDefinition{
 		Value: &cxsdk.WidgetDefinitionMarkdown{
 			Markdown: &cxsdk.Markdown{
-				MarkdownText: typeStringToWrapperspbString(markdown.MarkdownText),
-				TooltipText:  typeStringToWrapperspbString(markdown.TooltipText),
+				MarkdownText: utils.TypeStringToWrapperspbString(markdown.MarkdownText),
+				TooltipText:  utils.TypeStringToWrapperspbString(markdown.TooltipText),
 			},
 		},
 	}, nil
@@ -4324,16 +3910,16 @@ func expandHorizontalBarChart(ctx context.Context, chart *HorizontalBarChartMode
 			HorizontalBarChart: &cxsdk.HorizontalBarChart{
 				Query:             query,
 				StackDefinition:   expandHorizontalBarChartStackDefinition(chart.StackDefinition),
-				MaxBarsPerChart:   typeInt64ToWrappedInt32(chart.MaxBarsPerChart),
-				ScaleType:         dashboardSchemaToProtoScaleType[chart.ScaleType.ValueString()],
-				GroupNameTemplate: typeStringToWrapperspbString(chart.GroupNameTemplate),
-				Unit:              dashboardSchemaToProtoUnit[chart.Unit.ValueString()],
+				MaxBarsPerChart:   utils.TypeInt64ToWrappedInt32(chart.MaxBarsPerChart),
+				ScaleType:         dashboardwidgets.DashboardSchemaToProtoScaleType[chart.ScaleType.ValueString()],
+				GroupNameTemplate: utils.TypeStringToWrapperspbString(chart.GroupNameTemplate),
+				Unit:              dashboardwidgets.DashboardSchemaToProtoUnit[chart.Unit.ValueString()],
 				ColorsBy:          expandColorsBy(chart.ColorsBy),
-				DisplayOnBar:      typeBoolToWrapperspbBool(chart.DisplayOnBar),
+				DisplayOnBar:      utils.TypeBoolToWrapperspbBool(chart.DisplayOnBar),
 				YAxisViewBy:       expandYAxisViewBy(chart.YAxisViewBy),
-				SortBy:            dashboardSchemaToProtoSortBy[chart.SortBy.ValueString()],
-				ColorScheme:       typeStringToWrapperspbString(chart.ColorScheme),
-				DataModeType:      dashboardSchemaToProtoDataModeType[chart.DataModeType.ValueString()],
+				SortBy:            dashboardwidgets.DashboardSchemaToProtoSortBy[chart.SortBy.ValueString()],
+				ColorScheme:       utils.TypeStringToWrapperspbString(chart.ColorScheme),
+				DataModeType:      dashboardwidgets.DashboardSchemaToProtoDataModeType[chart.DataModeType.ValueString()],
 			},
 		},
 	}, nil
@@ -4366,15 +3952,15 @@ func expandPieChart(ctx context.Context, pieChart *PieChartModel) (*cxsdk.Widget
 		Value: &cxsdk.WidgetDefinitionPieChart{
 			PieChart: &cxsdk.PieChart{
 				Query:              query,
-				MaxSlicesPerChart:  typeInt64ToWrappedInt32(pieChart.MaxSlicesPerChart),
-				MinSlicePercentage: typeInt64ToWrappedInt32(pieChart.MinSlicePercentage),
+				MaxSlicesPerChart:  utils.TypeInt64ToWrappedInt32(pieChart.MaxSlicesPerChart),
+				MinSlicePercentage: utils.TypeInt64ToWrappedInt32(pieChart.MinSlicePercentage),
 				StackDefinition:    expandPieChartStackDefinition(pieChart.StackDefinition),
 				LabelDefinition:    expandLabelDefinition(pieChart.LabelDefinition),
-				ShowLegend:         typeBoolToWrapperspbBool(pieChart.ShowLegend),
-				GroupNameTemplate:  typeStringToWrapperspbString(pieChart.GroupNameTemplate),
-				Unit:               dashboardSchemaToProtoUnit[pieChart.Unit.ValueString()],
-				ColorScheme:        typeStringToWrapperspbString(pieChart.ColorScheme),
-				DataModeType:       dashboardSchemaToProtoDataModeType[pieChart.DataModeType.ValueString()],
+				ShowLegend:         utils.TypeBoolToWrapperspbBool(pieChart.ShowLegend),
+				GroupNameTemplate:  utils.TypeStringToWrapperspbString(pieChart.GroupNameTemplate),
+				Unit:               dashboardwidgets.DashboardSchemaToProtoUnit[pieChart.Unit.ValueString()],
+				ColorScheme:        utils.TypeStringToWrapperspbString(pieChart.ColorScheme),
+				DataModeType:       dashboardwidgets.DashboardSchemaToProtoDataModeType[pieChart.DataModeType.ValueString()],
 			},
 		},
 	}, nil
@@ -4386,8 +3972,8 @@ func expandPieChartStackDefinition(stackDefinition *PieChartStackDefinitionModel
 	}
 
 	return &cxsdk.PieChartStackDefinition{
-		MaxSlicesPerStack: typeInt64ToWrappedInt32(stackDefinition.MaxSlicesPerStack),
-		StackNameTemplate: typeStringToWrapperspbString(stackDefinition.StackNameTemplate),
+		MaxSlicesPerStack: utils.TypeInt64ToWrappedInt32(stackDefinition.MaxSlicesPerStack),
+		StackNameTemplate: utils.TypeStringToWrapperspbString(stackDefinition.StackNameTemplate),
 	}
 }
 
@@ -4397,8 +3983,8 @@ func expandBarChartStackDefinition(stackDefinition *BarChartStackDefinitionModel
 	}
 
 	return &cxsdk.BarChartStackDefinition{
-		MaxSlicesPerBar:   typeInt64ToWrappedInt32(stackDefinition.MaxSlicesPerBar),
-		StackNameTemplate: typeStringToWrapperspbString(stackDefinition.StackNameTemplate),
+		MaxSlicesPerBar:   utils.TypeInt64ToWrappedInt32(stackDefinition.MaxSlicesPerBar),
+		StackNameTemplate: utils.TypeStringToWrapperspbString(stackDefinition.StackNameTemplate),
 	}
 }
 
@@ -4408,8 +3994,8 @@ func expandHorizontalBarChartStackDefinition(stackDefinition *BarChartStackDefin
 	}
 
 	return &cxsdk.HorizontalBarChartStackDefinition{
-		MaxSlicesPerBar:   typeInt64ToWrappedInt32(stackDefinition.MaxSlicesPerBar),
-		StackNameTemplate: typeStringToWrapperspbString(stackDefinition.StackNameTemplate),
+		MaxSlicesPerBar:   utils.TypeInt64ToWrappedInt32(stackDefinition.MaxSlicesPerBar),
+		StackNameTemplate: utils.TypeStringToWrapperspbString(stackDefinition.StackNameTemplate),
 	}
 }
 
@@ -4420,10 +4006,10 @@ func expandLabelDefinition(labelDefinition *LabelDefinitionModel) *cxsdk.PieChar
 
 	return &cxsdk.PieChartLabelDefinition{
 		LabelSource:    dashboardSchemaToProtoPieChartLabelSource[labelDefinition.LabelSource.ValueString()],
-		IsVisible:      typeBoolToWrapperspbBool(labelDefinition.IsVisible),
-		ShowName:       typeBoolToWrapperspbBool(labelDefinition.ShowName),
-		ShowValue:      typeBoolToWrapperspbBool(labelDefinition.ShowValue),
-		ShowPercentage: typeBoolToWrapperspbBool(labelDefinition.ShowPercentage),
+		IsVisible:      utils.TypeBoolToWrapperspbBool(labelDefinition.IsVisible),
+		ShowName:       utils.TypeBoolToWrapperspbBool(labelDefinition.ShowName),
+		ShowValue:      utils.TypeBoolToWrapperspbBool(labelDefinition.ShowValue),
+		ShowPercentage: utils.TypeBoolToWrapperspbBool(labelDefinition.ShowPercentage),
 	}
 }
 
@@ -4446,11 +4032,11 @@ func expandGauge(ctx context.Context, gauge *GaugeModel) (*cxsdk.WidgetDefinitio
 				Query:        query,
 				Min:          typeFloat64ToWrapperspbDouble(gauge.Min),
 				Max:          typeFloat64ToWrapperspbDouble(gauge.Max),
-				ShowInnerArc: typeBoolToWrapperspbBool(gauge.ShowInnerArc),
-				ShowOuterArc: typeBoolToWrapperspbBool(gauge.ShowOuterArc),
+				ShowInnerArc: utils.TypeBoolToWrapperspbBool(gauge.ShowInnerArc),
+				ShowOuterArc: utils.TypeBoolToWrapperspbBool(gauge.ShowOuterArc),
 				Unit:         dashboardSchemaToProtoGaugeUnit[gauge.Unit.ValueString()],
 				Thresholds:   thresholds,
-				DataModeType: dashboardSchemaToProtoDataModeType[gauge.DataModeType.ValueString()],
+				DataModeType: dashboardwidgets.DashboardSchemaToProtoDataModeType[gauge.DataModeType.ValueString()],
 				ThresholdBy:  dashboardSchemaToProtoGaugeThresholdBy[gauge.ThresholdBy.ValueString()],
 			},
 		},
@@ -4483,7 +4069,7 @@ func expandGaugeThreshold(gaugeThresholds *GaugeThresholdModel) *cxsdk.GaugeThre
 	}
 	return &cxsdk.GaugeThreshold{
 		From:  typeFloat64ToWrapperspbDouble(gaugeThresholds.From),
-		Color: typeStringToWrapperspbString(gaugeThresholds.Color),
+		Color: utils.TypeStringToWrapperspbString(gaugeThresholds.Color),
 	}
 }
 
@@ -4654,13 +4240,13 @@ func expandSpansField(spansFilterField *SpansFieldModel) (*cxsdk.SpanField, diag
 	case "tag":
 		return &cxsdk.SpanField{
 			Value: &cxsdk.SpanFieldTagField{
-				TagField: typeStringToWrapperspbString(spansFilterField.Value),
+				TagField: utils.TypeStringToWrapperspbString(spansFilterField.Value),
 			},
 		}, nil
 	case "process_tag":
 		return &cxsdk.SpanField{
 			Value: &cxsdk.SpanFieldProcessTagField{
-				ProcessTagField: typeStringToWrapperspbString(spansFilterField.Value),
+				ProcessTagField: utils.TypeStringToWrapperspbString(spansFilterField.Value),
 			},
 		}, nil
 	default:
@@ -4730,7 +4316,7 @@ func expandMultiSelectQuery(ctx context.Context, query types.Object) (*cxsdk.Mul
 }
 
 func expandMultiSelectValueDisplayOptions(ctx context.Context, options types.Object) (*cxsdk.MultiSelectValueDisplayOptions, diag.Diagnostics) {
-	if objIsNullOrUnknown(options) {
+	if utils.ObjIsNullOrUnknown(options) {
 		return nil, nil
 	}
 
@@ -4741,8 +4327,8 @@ func expandMultiSelectValueDisplayOptions(ctx context.Context, options types.Obj
 	}
 
 	return &cxsdk.MultiSelectValueDisplayOptions{
-		ValueRegex: typeStringToWrapperspbString(optionsObject.ValueRegex),
-		LabelRegex: typeStringToWrapperspbString(optionsObject.LabelRegex),
+		ValueRegex: utils.TypeStringToWrapperspbString(optionsObject.ValueRegex),
+		LabelRegex: utils.TypeStringToWrapperspbString(optionsObject.LabelRegex),
 	}, nil
 }
 
@@ -4778,7 +4364,7 @@ func expandMultiSelectLogsQuery(ctx context.Context, logs types.Object) (*cxsdk.
 }
 
 func expandMultiSelectLogsQueryTypeFieldName(ctx context.Context, name types.Object) (*cxsdk.MultiSelectQueryLogsQueryTypeFieldName, diag.Diagnostics) {
-	if objIsNullOrUnknown(name) {
+	if utils.ObjIsNullOrUnknown(name) {
 		return nil, nil
 	}
 
@@ -4790,13 +4376,13 @@ func expandMultiSelectLogsQueryTypeFieldName(ctx context.Context, name types.Obj
 
 	return &cxsdk.MultiSelectQueryLogsQueryTypeFieldName{
 		FieldName: &cxsdk.MultiSelectQueryLogsQueryTypeFieldNameInner{
-			LogRegex: typeStringToWrapperspbString(nameObject.LogRegex),
+			LogRegex: utils.TypeStringToWrapperspbString(nameObject.LogRegex),
 		},
 	}, nil
 }
 
 func expandMultiSelectLogsQueryTypFieldValue(ctx context.Context, value types.Object) (*cxsdk.MultiSelectQueryLogsQueryTypeFieldValue, diag.Diagnostics) {
-	if objIsNullOrUnknown(value) {
+	if utils.ObjIsNullOrUnknown(value) {
 		return nil, nil
 	}
 
@@ -4819,7 +4405,7 @@ func expandMultiSelectLogsQueryTypFieldValue(ctx context.Context, value types.Ob
 }
 
 func expandMultiSelectMetricsQuery(ctx context.Context, metrics types.Object) (*cxsdk.MultiSelectQueryMetricsQuery, diag.Diagnostics) {
-	if objIsNullOrUnknown(metrics) {
+	if utils.ObjIsNullOrUnknown(metrics) {
 		return nil, nil
 	}
 
@@ -4864,7 +4450,7 @@ func expandMultiSelectMetricsQueryTypeMetricName(ctx context.Context, name types
 
 	return &cxsdk.MultiSelectQueryMetricsQueryTypeMetricName{
 		MetricName: &cxsdk.MultiSelectQueryMetricsQueryTypeMetricNameInner{
-			MetricRegex: typeStringToWrapperspbString(nameObject.MetricRegex),
+			MetricRegex: utils.TypeStringToWrapperspbString(nameObject.MetricRegex),
 		},
 	}, nil
 }
@@ -4882,7 +4468,7 @@ func expandMultiSelectMetricsQueryTypeLabelName(ctx context.Context, name types.
 
 	return &cxsdk.MultiSelectQueryMetricsQueryTypeLabelName{
 		LabelName: &cxsdk.MultiSelectQueryMetricsQueryTypeLabelNameInner{
-			MetricRegex: typeStringToWrapperspbString(nameObject.MetricRegex),
+			MetricRegex: utils.TypeStringToWrapperspbString(nameObject.MetricRegex),
 		},
 	}, nil
 }
@@ -4947,7 +4533,7 @@ func expandStringOrVariables(ctx context.Context, name types.List) ([]*cxsdk.Mul
 }
 
 func expandStringOrVariable(ctx context.Context, name types.Object) (*cxsdk.MultiSelectQueryMetricsQueryStringOrVariable, diag.Diagnostics) {
-	if objIsNullOrUnknown(name) {
+	if utils.ObjIsNullOrUnknown(name) {
 		return nil, nil
 	}
 
@@ -4961,13 +4547,13 @@ func expandStringOrVariable(ctx context.Context, name types.Object) (*cxsdk.Mult
 	case !(nameObject.VariableName.IsNull() || nameObject.VariableName.IsUnknown()):
 		return &cxsdk.MultiSelectQueryMetricsQueryStringOrVariable{
 			Value: &cxsdk.MultiSelectQueryMetricsQueryStringOrVariableVariable{
-				VariableName: typeStringToWrapperspbString(nameObject.VariableName),
+				VariableName: utils.TypeStringToWrapperspbString(nameObject.VariableName),
 			},
 		}, nil
 	case !(nameObject.StringValue.IsNull() || nameObject.StringValue.IsUnknown()):
 		return &cxsdk.MultiSelectQueryMetricsQueryStringOrVariable{
 			Value: &cxsdk.MultiSelectQueryMetricsQueryStringOrVariableString{
-				StringValue: typeStringToWrapperspbString(nameObject.StringValue),
+				StringValue: utils.TypeStringToWrapperspbString(nameObject.StringValue),
 			},
 		}, nil
 	default:
@@ -5028,7 +4614,7 @@ func expandMetricLabelFilter(ctx context.Context, filter MetricLabelFilterModel)
 }
 
 func expandMetricLabelFilterOperator(ctx context.Context, operator types.Object) (*cxsdk.MultiSelectQueryMetricsQueryOperator, diag.Diagnostics) {
-	if objIsNullOrUnknown(operator) {
+	if utils.ObjIsNullOrUnknown(operator) {
 		return nil, nil
 	}
 
@@ -5073,7 +4659,7 @@ func expandMetricLabelFilterOperator(ctx context.Context, operator types.Object)
 }
 
 func expandMultiSelectSpansQuery(ctx context.Context, spans types.Object) (*cxsdk.MultiSelectQuerySpansQuery, diag.Diagnostics) {
-	if objIsNullOrUnknown(spans) {
+	if utils.ObjIsNullOrUnknown(spans) {
 		return nil, nil
 	}
 
@@ -5090,9 +4676,9 @@ func expandMultiSelectSpansQuery(ctx context.Context, spans types.Object) (*cxsd
 	}
 
 	switch {
-	case !objIsNullOrUnknown(spansObject.FieldName):
+	case !utils.ObjIsNullOrUnknown(spansObject.FieldName):
 		spansQuery.SpansQuery.Type.Value, diags = expandMultiSelectSpansQueryTypeFieldName(ctx, spansObject.FieldName)
-	case !objIsNullOrUnknown(spansObject.FieldValue):
+	case !utils.ObjIsNullOrUnknown(spansObject.FieldValue):
 		spansQuery.SpansQuery.Type.Value, diags = expandMultiSelectSpansQueryTypeFieldValue(ctx, spansObject.FieldValue)
 	default:
 		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand MultiSelect Spans Query", "MultiSelect Spans Query must be either FieldName or FieldValue")}
@@ -5106,7 +4692,7 @@ func expandMultiSelectSpansQuery(ctx context.Context, spans types.Object) (*cxsd
 }
 
 func expandMultiSelectSpansQueryTypeFieldName(ctx context.Context, name types.Object) (*cxsdk.MultiSelectQuerySpansQueryTypeFieldName, diag.Diagnostics) {
-	if objIsNullOrUnknown(name) {
+	if utils.ObjIsNullOrUnknown(name) {
 		return nil, nil
 	}
 
@@ -5118,13 +4704,13 @@ func expandMultiSelectSpansQueryTypeFieldName(ctx context.Context, name types.Ob
 
 	return &cxsdk.MultiSelectQuerySpansQueryTypeFieldName{
 		FieldName: &cxsdk.MultiSelectQuerySpansQueryTypeFieldNameInner{
-			SpanRegex: typeStringToWrapperspbString(nameObject.SpanRegex),
+			SpanRegex: utils.TypeStringToWrapperspbString(nameObject.SpanRegex),
 		},
 	}, nil
 }
 
 func expandMultiSelectSpansQueryTypeFieldValue(ctx context.Context, value types.Object) (*cxsdk.MultiSelectQuerySpansQueryTypeFieldValue, diag.Diagnostics) {
-	if objIsNullOrUnknown(value) {
+	if utils.ObjIsNullOrUnknown(value) {
 		return nil, nil
 	}
 
@@ -5190,8 +4776,8 @@ func expandMetricFilter(ctx context.Context, metricFilter MetricsFilterModel) (*
 	}
 
 	return &cxsdk.DashboardMetricsFilter{
-		Metric:   typeStringToWrapperspbString(metricFilter.Metric),
-		Label:    typeStringToWrapperspbString(metricFilter.Label),
+		Metric:   utils.TypeStringToWrapperspbString(metricFilter.Metric),
+		Label:    utils.TypeStringToWrapperspbString(metricFilter.Label),
 		Operator: operator,
 	}, nil
 }
@@ -5201,7 +4787,7 @@ func expandFilterOperator(ctx context.Context, operator *FilterOperatorModel) (*
 		return nil, nil
 	}
 
-	selectedValues, diags := typeStringSliceToWrappedStringSlice(ctx, operator.SelectedValues.Elements())
+	selectedValues, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, operator.SelectedValues.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5329,7 +4915,7 @@ func expandLogsAggregation(ctx context.Context, logsAggregation *LogsAggregation
 		return &cxsdk.LogsAggregation{
 			Value: &cxsdk.LogsAggregationCountDistinct{
 				CountDistinct: &cxsdk.LogsAggregationCountDistinctInner{
-					Field:            typeStringToWrapperspbString(logsAggregation.Field),
+					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
 					ObservationField: observationField,
 				},
 			},
@@ -5342,7 +4928,7 @@ func expandLogsAggregation(ctx context.Context, logsAggregation *LogsAggregation
 		return &cxsdk.LogsAggregation{
 			Value: &cxsdk.LogsAggregationSum{
 				Sum: &cxsdk.LogsAggregationSumInner{
-					Field:            typeStringToWrapperspbString(logsAggregation.Field),
+					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
 					ObservationField: observationField,
 				},
 			},
@@ -5355,7 +4941,7 @@ func expandLogsAggregation(ctx context.Context, logsAggregation *LogsAggregation
 		return &cxsdk.LogsAggregation{
 			Value: &cxsdk.LogsAggregationAverage{
 				Average: &cxsdk.LogsAggregationAverageInner{
-					Field:            typeStringToWrapperspbString(logsAggregation.Field),
+					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
 					ObservationField: observationField,
 				},
 			},
@@ -5368,7 +4954,7 @@ func expandLogsAggregation(ctx context.Context, logsAggregation *LogsAggregation
 		return &cxsdk.LogsAggregation{
 			Value: &cxsdk.LogsAggregationMin{
 				Min: &cxsdk.LogsAggregationMinInner{
-					Field:            typeStringToWrapperspbString(logsAggregation.Field),
+					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
 					ObservationField: observationField,
 				},
 			},
@@ -5381,7 +4967,7 @@ func expandLogsAggregation(ctx context.Context, logsAggregation *LogsAggregation
 		return &cxsdk.LogsAggregation{
 			Value: &cxsdk.LogsAggregationMax{
 				Max: &cxsdk.LogsAggregationMaxInner{
-					Field:            typeStringToWrapperspbString(logsAggregation.Field),
+					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
 					ObservationField: observationField,
 				},
 			},
@@ -5394,7 +4980,7 @@ func expandLogsAggregation(ctx context.Context, logsAggregation *LogsAggregation
 		return &cxsdk.LogsAggregation{
 			Value: &cxsdk.LogsAggregationPercentile{
 				Percentile: &cxsdk.LogsAggregationPercentileInner{
-					Field:            typeStringToWrapperspbString(logsAggregation.Field),
+					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
 					Percent:          typeFloat64ToWrapperspbDouble(logsAggregation.Percent),
 					ObservationField: observationField,
 				},
@@ -5442,7 +5028,7 @@ func expandLogsFilter(ctx context.Context, logsFilter LogsFilterModel) (*cxsdk.D
 	}
 
 	return &cxsdk.DashboardFilterLogsFilter{
-		Field:            typeStringToWrapperspbString(logsFilter.Field),
+		Field:            utils.TypeStringToWrapperspbString(logsFilter.Field),
 		Operator:         operator,
 		ObservationField: observationField,
 	}, nil
@@ -5465,16 +5051,16 @@ func expandBarChart(ctx context.Context, chart *BarChartModel) (*cxsdk.WidgetDef
 		Value: &cxsdk.WidgetDefinitionBarChart{
 			BarChart: &cxsdk.BarChart{
 				Query:             query,
-				MaxBarsPerChart:   typeInt64ToWrappedInt32(chart.MaxBarsPerChart),
-				GroupNameTemplate: typeStringToWrapperspbString(chart.GroupNameTemplate),
+				MaxBarsPerChart:   utils.TypeInt64ToWrappedInt32(chart.MaxBarsPerChart),
+				GroupNameTemplate: utils.TypeStringToWrapperspbString(chart.GroupNameTemplate),
 				StackDefinition:   expandBarChartStackDefinition(chart.StackDefinition),
-				ScaleType:         dashboardSchemaToProtoScaleType[chart.ScaleType.ValueString()],
+				ScaleType:         dashboardwidgets.DashboardSchemaToProtoScaleType[chart.ScaleType.ValueString()],
 				ColorsBy:          expandColorsBy(chart.ColorsBy),
 				XAxis:             xaxis,
-				Unit:              dashboardSchemaToProtoUnit[chart.Unit.ValueString()],
-				SortBy:            dashboardSchemaToProtoSortBy[chart.SortBy.ValueString()],
-				ColorScheme:       typeStringToWrapperspbString(chart.ColorScheme),
-				DataModeType:      dashboardSchemaToProtoDataModeType[chart.DataModeType.ValueString()],
+				Unit:              dashboardwidgets.DashboardSchemaToProtoUnit[chart.Unit.ValueString()],
+				SortBy:            dashboardwidgets.DashboardSchemaToProtoSortBy[chart.SortBy.ValueString()],
+				ColorScheme:       utils.TypeStringToWrapperspbString(chart.ColorScheme),
+				DataModeType:      dashboardwidgets.DashboardSchemaToProtoDataModeType[chart.DataModeType.ValueString()],
 			},
 		},
 	}, nil
@@ -5520,7 +5106,7 @@ func expandXAis(xaxis *BarChartXAxisModel) (*cxsdk.BarChartXAxis, diag.Diagnosti
 			Type: &cxsdk.BarChartXAxisTime{
 				Time: &cxsdk.BarChartXAxisByTime{
 					Interval:         durationpb.New(duration),
-					BucketsPresented: typeInt64ToWrappedInt32(xaxis.Time.BucketsPresented),
+					BucketsPresented: utils.TypeInt64ToWrappedInt32(xaxis.Time.BucketsPresented),
 				},
 			},
 		}, nil
@@ -5625,7 +5211,7 @@ func expandHorizontalBarChartQuery(ctx context.Context, query *HorizontalBarChar
 }
 
 func expandHorizontalBarChartLogsQuery(ctx context.Context, logs types.Object) (*cxsdk.HorizontalBarChartLogsQuery, diag.Diagnostics) {
-	if objIsNullOrUnknown(logs) {
+	if utils.ObjIsNullOrUnknown(logs) {
 		return nil, nil
 	}
 
@@ -5645,7 +5231,7 @@ func expandHorizontalBarChartLogsQuery(ctx context.Context, logs types.Object) (
 		return nil, diags
 	}
 
-	groupNames, diags := typeStringSliceToWrappedStringSlice(ctx, logsObject.GroupNames.Elements())
+	groupNames, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, logsObject.GroupNames.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5655,12 +5241,12 @@ func expandHorizontalBarChartLogsQuery(ctx context.Context, logs types.Object) (
 		Aggregation:      aggregation,
 		Filters:          filters,
 		GroupNames:       groupNames,
-		StackedGroupName: typeStringToWrapperspbString(logsObject.StackedGroupName),
+		StackedGroupName: utils.TypeStringToWrapperspbString(logsObject.StackedGroupName),
 	}, nil
 }
 
 func expandHorizontalBarChartMetricsQuery(ctx context.Context, metrics types.Object) (*cxsdk.HorizontalBarChartMetricsQuery, diag.Diagnostics) {
-	if objIsNullOrUnknown(metrics) {
+	if utils.ObjIsNullOrUnknown(metrics) {
 		return nil, nil
 	}
 
@@ -5675,7 +5261,7 @@ func expandHorizontalBarChartMetricsQuery(ctx context.Context, metrics types.Obj
 		return nil, diags
 	}
 
-	groupNames, diags := typeStringSliceToWrappedStringSlice(ctx, metricsObject.GroupNames.Elements())
+	groupNames, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, metricsObject.GroupNames.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5684,12 +5270,12 @@ func expandHorizontalBarChartMetricsQuery(ctx context.Context, metrics types.Obj
 		PromqlQuery:      expandPromqlQuery(metricsObject.PromqlQuery),
 		Filters:          filters,
 		GroupNames:       groupNames,
-		StackedGroupName: typeStringToWrapperspbString(metricsObject.StackedGroupName),
+		StackedGroupName: utils.TypeStringToWrapperspbString(metricsObject.StackedGroupName),
 	}, nil
 }
 
 func expandHorizontalBarChartSpansQuery(ctx context.Context, spans types.Object) (*cxsdk.HorizontalBarChartSpansQuery, diag.Diagnostics) {
-	if objIsNullOrUnknown(spans) {
+	if utils.ObjIsNullOrUnknown(spans) {
 		return nil, nil
 	}
 
@@ -5749,7 +5335,7 @@ func expandBarChartLogsQuery(ctx context.Context, barChartQueryLogs types.Object
 		return nil, diags
 	}
 
-	groupNames, diags := typeStringSliceToWrappedStringSlice(ctx, barChartQueryLogsObject.GroupNames.Elements())
+	groupNames, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, barChartQueryLogsObject.GroupNames.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5769,7 +5355,7 @@ func expandBarChartLogsQuery(ctx context.Context, barChartQueryLogs types.Object
 		Aggregation:           aggregation,
 		Filters:               filters,
 		GroupNames:            groupNames,
-		StackedGroupName:      typeStringToWrapperspbString(barChartQueryLogsObject.StackedGroupName),
+		StackedGroupName:      utils.TypeStringToWrapperspbString(barChartQueryLogsObject.StackedGroupName),
 		GroupNamesFields:      groupNamesFields,
 		StackedGroupNameField: stackedGroupNameField,
 	}, nil
@@ -5813,7 +5399,7 @@ func expandObservationFieldObject(ctx context.Context, field types.Object) (*cxs
 }
 
 func expandObservationField(ctx context.Context, observationField ObservationFieldModel) (*cxsdk.ObservationField, diag.Diagnostics) {
-	keypath, dg := typeStringSliceToWrappedStringSlice(ctx, observationField.Keypath.Elements())
+	keypath, dg := utils.TypeStringSliceToWrappedStringSlice(ctx, observationField.Keypath.Elements())
 	if dg.HasError() {
 		return nil, dg
 	}
@@ -5842,7 +5428,7 @@ func expandBarChartMetricsQuery(ctx context.Context, barChartQueryMetrics types.
 		return nil, diags
 	}
 
-	groupNames, diags := typeStringSliceToWrappedStringSlice(ctx, barChartQueryMetricsObject.GroupNames.Elements())
+	groupNames, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, barChartQueryMetricsObject.GroupNames.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5851,7 +5437,7 @@ func expandBarChartMetricsQuery(ctx context.Context, barChartQueryMetrics types.
 		PromqlQuery:      expandPromqlQuery(barChartQueryMetricsObject.PromqlQuery),
 		Filters:          filters,
 		GroupNames:       groupNames,
-		StackedGroupName: typeStringToWrapperspbString(barChartQueryMetricsObject.StackedGroupName),
+		StackedGroupName: utils.TypeStringToWrapperspbString(barChartQueryMetricsObject.StackedGroupName),
 	}, nil
 }
 
@@ -5935,7 +5521,7 @@ func expandBarChartDataPrimeQuery(ctx context.Context, dataPrime types.Object) (
 		return nil, diags
 	}
 
-	groupNames, diags := typeStringSliceToWrappedStringSlice(ctx, dataPrimeObject.GroupNames.Elements())
+	groupNames, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, dataPrimeObject.GroupNames.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5947,7 +5533,7 @@ func expandBarChartDataPrimeQuery(ctx context.Context, dataPrime types.Object) (
 		Filters:          filters,
 		DataprimeQuery:   dataPrimeQuery,
 		GroupNames:       groupNames,
-		StackedGroupName: typeStringToWrapperspbString(dataPrimeObject.StackedGroupName),
+		StackedGroupName: utils.TypeStringToWrapperspbString(dataPrimeObject.StackedGroupName),
 	}, nil
 }
 
@@ -5966,11 +5552,11 @@ func expandDataTable(ctx context.Context, table *DataTableModel) (*cxsdk.WidgetD
 		Value: &cxsdk.WidgetDefinitionDataTable{
 			DataTable: &cxsdk.DashboardDataTable{
 				Query:          query,
-				ResultsPerPage: typeInt64ToWrappedInt32(table.ResultsPerPage),
+				ResultsPerPage: utils.TypeInt64ToWrappedInt32(table.ResultsPerPage),
 				RowStyle:       dashboardRowStyleSchemaToProto[table.RowStyle.ValueString()],
 				Columns:        columns,
 				OrderBy:        expandOrderBy(table.OrderBy),
-				DataModeType:   dashboardSchemaToProtoDataModeType[table.DataModeType.ValueString()],
+				DataModeType:   dashboardwidgets.DashboardSchemaToProtoDataModeType[table.DataModeType.ValueString()],
 			},
 		},
 	}, nil
@@ -6124,7 +5710,7 @@ func expandDataTableLogsGrouping(ctx context.Context, grouping *DataTableLogsQue
 		return nil, nil
 	}
 
-	groupBy, diags := typeStringSliceToWrappedStringSlice(ctx, grouping.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, grouping.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -6182,9 +5768,9 @@ func expandDataTableLogsAggregation(ctx context.Context, aggregation *DataTableL
 	}
 
 	return &cxsdk.DashboardDataTableLogsQueryAggregation{
-		Id:          typeStringToWrapperspbString(aggregation.ID),
-		Name:        typeStringToWrapperspbString(aggregation.Name),
-		IsVisible:   typeBoolToWrapperspbBool(aggregation.IsVisible),
+		Id:          utils.TypeStringToWrapperspbString(aggregation.ID),
+		Name:        utils.TypeStringToWrapperspbString(aggregation.Name),
+		IsVisible:   utils.TypeBoolToWrapperspbBool(aggregation.IsVisible),
 		Aggregation: logsAggregation,
 	}, nil
 }
@@ -6269,9 +5855,9 @@ func expandDataTableSpansAggregation(aggregation *DataTableSpansAggregationModel
 	}
 
 	return &cxsdk.DashboardDataTableSpansQueryAggregation{
-		Id:          typeStringToWrapperspbString(aggregation.ID),
-		Name:        typeStringToWrapperspbString(aggregation.Name),
-		IsVisible:   typeBoolToWrapperspbBool(aggregation.IsVisible),
+		Id:          utils.TypeStringToWrapperspbString(aggregation.ID),
+		Name:        utils.TypeStringToWrapperspbString(aggregation.Name),
+		IsVisible:   utils.TypeBoolToWrapperspbBool(aggregation.IsVisible),
 		Aggregation: spansAggregation,
 	}, nil
 }
@@ -6298,8 +5884,8 @@ func expandDataTableColumns(ctx context.Context, columns types.List) ([]*cxsdk.D
 
 func expandDataTableColumn(column DataTableColumnModel) *cxsdk.DashboardDataTableColumn {
 	return &cxsdk.DashboardDataTableColumn{
-		Field: typeStringToWrapperspbString(column.Field),
-		Width: typeInt64ToWrappedInt32(column.Width),
+		Field: utils.TypeStringToWrapperspbString(column.Field),
+		Width: utils.TypeInt64ToWrappedInt32(column.Width),
 	}
 }
 
@@ -6308,7 +5894,7 @@ func expandOrderBy(orderBy *OrderByModel) *cxsdk.DashboardOrderingField {
 		return nil
 	}
 	return &cxsdk.DashboardOrderingField{
-		Field:          typeStringToWrapperspbString(orderBy.Field),
+		Field:          utils.TypeStringToWrapperspbString(orderBy.Field),
 		OrderDirection: dashboardOrderDirectionSchemaToProto[orderBy.OrderDirection.ValueString()],
 	}
 }
@@ -6349,9 +5935,9 @@ func expandLineChartLegend(ctx context.Context, legend *LegendModel) (*cxsdk.Das
 	}
 
 	return &cxsdk.DashboardLegend{
-		IsVisible:    typeBoolToWrapperspbBool(legend.IsVisible),
+		IsVisible:    utils.TypeBoolToWrapperspbBool(legend.IsVisible),
 		Columns:      columns,
-		GroupByQuery: typeBoolToWrapperspbBool(legend.GroupByQuery),
+		GroupByQuery: utils.TypeBoolToWrapperspbBool(legend.GroupByQuery),
 		Placement:    dashboardLegendPlacementSchemaToProto[legend.Placement.ValueString()],
 	}, nil
 }
@@ -6384,7 +5970,7 @@ func expandLineChartTooltip(tooltip *TooltipModel) *cxsdk.LineChartTooltip {
 	}
 
 	return &cxsdk.LineChartTooltip{
-		ShowLabels: typeBoolToWrapperspbBool(tooltip.ShowLabels),
+		ShowLabels: utils.TypeBoolToWrapperspbBool(tooltip.ShowLabels),
 		Type:       dashboardSchemaToProtoTooltipType[tooltip.Type.ValueString()],
 	}
 }
@@ -6430,15 +6016,15 @@ func expandLineChartQueryDefinition(ctx context.Context, queryDefinition *LineCh
 	return &cxsdk.LineChartQueryDefinition{
 		Id:                 expandDashboardIDs(queryDefinition.ID),
 		Query:              query,
-		SeriesNameTemplate: typeStringToWrapperspbString(queryDefinition.SeriesNameTemplate),
+		SeriesNameTemplate: utils.TypeStringToWrapperspbString(queryDefinition.SeriesNameTemplate),
 		SeriesCountLimit:   typeInt64ToWrappedInt64(queryDefinition.SeriesCountLimit),
-		Unit:               dashboardSchemaToProtoUnit[queryDefinition.Unit.ValueString()],
-		ScaleType:          dashboardSchemaToProtoScaleType[queryDefinition.ScaleType.ValueString()],
-		Name:               typeStringToWrapperspbString(queryDefinition.Name),
-		IsVisible:          typeBoolToWrapperspbBool(queryDefinition.IsVisible),
-		ColorScheme:        typeStringToWrapperspbString(queryDefinition.ColorScheme),
+		Unit:               dashboardwidgets.DashboardSchemaToProtoUnit[queryDefinition.Unit.ValueString()],
+		ScaleType:          dashboardwidgets.DashboardSchemaToProtoScaleType[queryDefinition.ScaleType.ValueString()],
+		Name:               utils.TypeStringToWrapperspbString(queryDefinition.Name),
+		IsVisible:          utils.TypeBoolToWrapperspbBool(queryDefinition.IsVisible),
+		ColorScheme:        utils.TypeStringToWrapperspbString(queryDefinition.ColorScheme),
 		Resolution:         resolution,
-		DataModeType:       dashboardSchemaToProtoDataModeType[queryDefinition.DataModeType.ValueString()],
+		DataModeType:       dashboardwidgets.DashboardSchemaToProtoDataModeType[queryDefinition.DataModeType.ValueString()],
 	}, nil
 }
 
@@ -6464,7 +6050,7 @@ func expandResolution(ctx context.Context, resolution types.Object) (*cxsdk.Line
 	}
 
 	return &cxsdk.LineChartResolution{
-		BucketsPresented: typeInt64ToWrappedInt32(resolutionModel.BucketsPresented),
+		BucketsPresented: utils.TypeInt64ToWrappedInt32(resolutionModel.BucketsPresented),
 	}, nil
 }
 
@@ -6508,7 +6094,7 @@ func expandLineChartLogsQuery(ctx context.Context, logs *LineChartQueryLogsModel
 		return nil, nil
 	}
 
-	groupBy, diags := typeStringSliceToWrappedStringSlice(ctx, logs.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, logs.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -6639,7 +6225,7 @@ func expandPieChartLogsQuery(ctx context.Context, pieChartQueryLogs *PieChartQue
 		return nil, diags
 	}
 
-	groupNames, diags := typeStringSliceToWrappedStringSlice(ctx, pieChartQueryLogs.GroupNames.Elements())
+	groupNames, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, pieChartQueryLogs.GroupNames.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -6660,7 +6246,7 @@ func expandPieChartLogsQuery(ctx context.Context, pieChartQueryLogs *PieChartQue
 			Aggregation:           aggregation,
 			Filters:               filters,
 			GroupNames:            groupNames,
-			StackedGroupName:      typeStringToWrapperspbString(pieChartQueryLogs.StackedGroupName),
+			StackedGroupName:      utils.TypeStringToWrapperspbString(pieChartQueryLogs.StackedGroupName),
 			GroupNamesFields:      groupNamesFields,
 			StackedGroupNameField: stackedGroupNameField,
 		},
@@ -6677,7 +6263,7 @@ func expandPieChartMetricsQuery(ctx context.Context, pieChartQueryMetrics *PieCh
 		return nil, diags
 	}
 
-	groupNames, diags := typeStringSliceToWrappedStringSlice(ctx, pieChartQueryMetrics.GroupNames.Elements())
+	groupNames, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, pieChartQueryMetrics.GroupNames.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -6687,7 +6273,7 @@ func expandPieChartMetricsQuery(ctx context.Context, pieChartQueryMetrics *PieCh
 			PromqlQuery:      expandPromqlQuery(pieChartQueryMetrics.PromqlQuery),
 			GroupNames:       groupNames,
 			Filters:          filters,
-			StackedGroupName: typeStringToWrapperspbString(pieChartQueryMetrics.StackedGroupName),
+			StackedGroupName: utils.TypeStringToWrapperspbString(pieChartQueryMetrics.StackedGroupName),
 		},
 	}, nil
 }
@@ -6738,7 +6324,7 @@ func expandPieChartDataPrimeQuery(ctx context.Context, dataPrime *PieChartQueryD
 		return nil, diags
 	}
 
-	groupNames, diags := typeStringSliceToWrappedStringSlice(ctx, dataPrime.GroupNames.Elements())
+	groupNames, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, dataPrime.GroupNames.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -6750,7 +6336,7 @@ func expandPieChartDataPrimeQuery(ctx context.Context, dataPrime *PieChartQueryD
 			},
 			Filters:          filters,
 			GroupNames:       groupNames,
-			StackedGroupName: typeStringToWrapperspbString(dataPrime.StackedGroupName),
+			StackedGroupName: utils.TypeStringToWrapperspbString(dataPrime.StackedGroupName),
 		},
 	}, nil
 }
@@ -6785,8 +6371,8 @@ func expandDashboardVariable(ctx context.Context, variable DashboardVariableMode
 		return nil, diags
 	}
 	return &cxsdk.DashboardVariable{
-		Name:        typeStringToWrapperspbString(variable.Name),
-		DisplayName: typeStringToWrapperspbString(variable.DisplayName),
+		Name:        utils.TypeStringToWrapperspbString(variable.Name),
+		DisplayName: utils.TypeStringToWrapperspbString(variable.DisplayName),
 		Definition:  definition,
 	}, nil
 }
@@ -6803,7 +6389,7 @@ func expandDashboardVariableDefinition(ctx context.Context, definition *Dashboar
 		return &cxsdk.DashboardVariableDefinition{
 			Value: &cxsdk.DashboardVariableDefinitionConstant{
 				Constant: &cxsdk.DashboardConstant{
-					Value: typeStringToWrapperspbString(definition.ConstantValue),
+					Value: utils.TypeStringToWrapperspbString(definition.ConstantValue),
 				},
 			},
 		}, nil
@@ -6847,7 +6433,7 @@ func expandMultiSelectSelection(ctx context.Context, selectedValues []attr.Value
 		}, nil
 	}
 
-	selections, diags := typeStringSliceToWrappedStringSlice(ctx, selectedValues)
+	selections, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, selectedValues)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -6870,12 +6456,12 @@ func expandMultiSelectSource(ctx context.Context, source *VariableMultiSelectSou
 		return &cxsdk.MultiSelectSource{
 			Value: &cxsdk.MultiSelectSourceLogsPath{
 				LogsPath: &cxsdk.MultiSelectLogsPathSource{
-					Value: typeStringToWrapperspbString(source.LogsPath),
+					Value: utils.TypeStringToWrapperspbString(source.LogsPath),
 				},
 			},
 		}, nil
 	case !source.ConstantList.IsNull():
-		constantList, diags := typeStringSliceToWrappedStringSlice(ctx, source.ConstantList.Elements())
+		constantList, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, source.ConstantList.Elements())
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -6890,8 +6476,8 @@ func expandMultiSelectSource(ctx context.Context, source *VariableMultiSelectSou
 		return &cxsdk.MultiSelectSource{
 			Value: &cxsdk.MultiSelectSourceMetricLabel{
 				MetricLabel: &cxsdk.MultiSelectMetricLabelSource{
-					MetricName: typeStringToWrapperspbString(source.MetricLabel.MetricName),
-					Label:      typeStringToWrapperspbString(source.MetricLabel.Label),
+					MetricName: utils.TypeStringToWrapperspbString(source.MetricLabel.MetricName),
+					Label:      utils.TypeStringToWrapperspbString(source.MetricLabel.Label),
 				},
 			},
 		}, nil
@@ -6950,8 +6536,8 @@ func expandDashboardFilter(ctx context.Context, filter *DashboardFilterModel) (*
 
 	return &cxsdk.DashboardFilter{
 		Source:    source,
-		Enabled:   typeBoolToWrapperspbBool(filter.Enabled),
-		Collapsed: typeBoolToWrapperspbBool(filter.Collapsed),
+		Enabled:   utils.TypeBoolToWrapperspbBool(filter.Enabled),
+		Collapsed: utils.TypeBoolToWrapperspbBool(filter.Collapsed),
 	}, nil
 }
 
@@ -6990,7 +6576,7 @@ func expandFilterSourceLogs(ctx context.Context, logs *FilterSourceLogsModel) (*
 	return &cxsdk.DashboardFilterSource{
 		Value: &cxsdk.DashboardFilterSourceLogs{
 			Logs: &cxsdk.DashboardFilterLogsFilter{
-				Field:            typeStringToWrapperspbString(logs.Field),
+				Field:            utils.TypeStringToWrapperspbString(logs.Field),
 				Operator:         operator,
 				ObservationField: observationField,
 			},
@@ -7011,8 +6597,8 @@ func expandFilterSourceMetrics(ctx context.Context, metrics *FilterSourceMetrics
 	return &cxsdk.DashboardFilterSource{
 		Value: &cxsdk.DashboardFilterSourceMetrics{
 			Metrics: &cxsdk.DashboardFilterMetricsFilter{
-				Metric:   typeStringToWrapperspbString(metrics.MetricName),
-				Label:    typeStringToWrapperspbString(metrics.MetricLabel),
+				Metric:   utils.TypeStringToWrapperspbString(metrics.MetricName),
+				Label:    utils.TypeStringToWrapperspbString(metrics.MetricLabel),
 				Operator: operator,
 			},
 		},
@@ -7045,7 +6631,7 @@ func expandFilterSourceSpans(ctx context.Context, spans *FilterSourceSpansModel)
 }
 
 func expandDashboardFolder(ctx context.Context, dashboard *cxsdk.Dashboard, folder types.Object) (*cxsdk.Dashboard, diag.Diagnostics) {
-	if objIsNullOrUnknown(folder) {
+	if utils.ObjIsNullOrUnknown(folder) {
 		return dashboard, nil
 	}
 	var folderModel DashboardFolderModel
@@ -7219,8 +6805,8 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 
 	return &DashboardResourceModel{
 		ID:          types.StringValue(dashboard.GetId().GetValue()),
-		Name:        wrapperspbStringToTypeString(dashboard.GetName()),
-		Description: wrapperspbStringToTypeString(dashboard.GetDescription()),
+		Name:        utils.WrapperspbStringToTypeString(dashboard.GetName()),
+		Description: utils.WrapperspbStringToTypeString(dashboard.GetDescription()),
 		Layout:      layout,
 		Variables:   variables,
 		Filters:     filters,
@@ -8346,7 +7932,7 @@ func flattenDashboardRow(ctx context.Context, row *cxsdk.DashboardRow) (*RowMode
 	}
 	return &RowModel{
 		ID:      types.StringValue(row.GetId().GetValue()),
-		Height:  wrapperspbInt32ToTypeInt64(row.GetAppearance().GetHeight()),
+		Height:  utils.WrapperspbInt32ToTypeInt64(row.GetAppearance().GetHeight()),
 		Widgets: widgets,
 	}, nil
 }
@@ -8387,9 +7973,9 @@ func flattenDashboardWidget(ctx context.Context, widget *cxsdk.DashboardWidget) 
 
 	return &WidgetModel{
 		ID:          types.StringValue(widget.GetId().GetValue()),
-		Title:       wrapperspbStringToTypeString(widget.GetTitle()),
-		Description: wrapperspbStringToTypeString(widget.GetDescription()),
-		Width:       wrapperspbInt32ToTypeInt64(widget.GetAppearance().GetWidth()),
+		Title:       utils.WrapperspbStringToTypeString(widget.GetTitle()),
+		Description: utils.WrapperspbStringToTypeString(widget.GetDescription()),
+		Width:       utils.WrapperspbInt32ToTypeInt64(widget.GetAppearance().GetWidth()),
 		Definition:  definition,
 	}, nil
 }
@@ -8422,8 +8008,8 @@ func flattenDashboardWidgetDefinition(ctx context.Context, definition *cxsdk.Wid
 func flattenMarkdown(markdown *cxsdk.Markdown) *WidgetDefinitionModel {
 	return &WidgetDefinitionModel{
 		Markdown: &MarkdownModel{
-			MarkdownText: wrapperspbStringToTypeString(markdown.GetMarkdownText()),
-			TooltipText:  wrapperspbStringToTypeString(markdown.GetTooltipText()),
+			MarkdownText: utils.WrapperspbStringToTypeString(markdown.GetMarkdownText()),
+			TooltipText:  utils.WrapperspbStringToTypeString(markdown.GetTooltipText()),
 		},
 	}
 }
@@ -8446,16 +8032,16 @@ func flattenHorizontalBarChart(ctx context.Context, chart *cxsdk.HorizontalBarCh
 	return &WidgetDefinitionModel{
 		HorizontalBarChart: &HorizontalBarChartModel{
 			Query:             query,
-			MaxBarsPerChart:   wrapperspbInt32ToTypeInt64(chart.GetMaxBarsPerChart()),
-			GroupNameTemplate: wrapperspbStringToTypeString(chart.GetGroupNameTemplate()),
+			MaxBarsPerChart:   utils.WrapperspbInt32ToTypeInt64(chart.GetMaxBarsPerChart()),
+			GroupNameTemplate: utils.WrapperspbStringToTypeString(chart.GetGroupNameTemplate()),
 			StackDefinition:   flattenHorizontalBarChartStackDefinition(chart.GetStackDefinition()),
 			ScaleType:         types.StringValue(dashboardProtoToSchemaScaleType[chart.GetScaleType()]),
 			ColorsBy:          colorsBy,
 			Unit:              types.StringValue(dashboardProtoToSchemaUnit[chart.GetUnit()]),
-			DisplayOnBar:      wrapperspbBoolToTypeBool(chart.GetDisplayOnBar()),
+			DisplayOnBar:      utils.WrapperspbBoolToTypeBool(chart.GetDisplayOnBar()),
 			YAxisViewBy:       flattenYAxisViewBy(chart.GetYAxisViewBy()),
 			SortBy:            types.StringValue(dashboardProtoToSchemaSortBy[chart.GetSortBy()]),
-			ColorScheme:       wrapperspbStringToTypeString(chart.GetColorScheme()),
+			ColorScheme:       utils.WrapperspbStringToTypeString(chart.GetColorScheme()),
 			DataModeType:      types.StringValue(dashboardProtoToSchemaDataModeType[chart.GetDataModeType()]),
 		},
 	}, nil
@@ -8515,11 +8101,11 @@ func flattenHorizontalBarChartQueryLogs(ctx context.Context, logs *cxsdk.Horizon
 	}
 
 	logsModel := &BarChartQueryLogsModel{
-		LuceneQuery:           wrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
+		LuceneQuery:           utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
 		Aggregation:           aggregation,
 		Filters:               filters,
-		GroupNames:            wrappedStringSliceToTypeStringList(logs.GetGroupNames()),
-		StackedGroupName:      wrapperspbStringToTypeString(logs.GetStackedGroupName()),
+		GroupNames:            utils.WrappedStringSliceToTypeStringList(logs.GetGroupNames()),
+		StackedGroupName:      utils.WrapperspbStringToTypeString(logs.GetStackedGroupName()),
 		GroupNamesFields:      groupNamesFields,
 		StackedGroupNameField: stackedGroupNameField,
 	}
@@ -8547,10 +8133,10 @@ func flattenHorizontalBarChartQueryMetrics(ctx context.Context, metrics *cxsdk.H
 	}
 
 	flattenedMetrics := &BarChartQueryMetricsModel{
-		PromqlQuery:      wrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
+		PromqlQuery:      utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 		Filters:          filters,
-		GroupNames:       wrappedStringSliceToTypeStringList(metrics.GetGroupNames()),
-		StackedGroupName: wrapperspbStringToTypeString(metrics.GetStackedGroupName()),
+		GroupNames:       utils.WrappedStringSliceToTypeStringList(metrics.GetGroupNames()),
+		StackedGroupName: utils.WrapperspbStringToTypeString(metrics.GetStackedGroupName()),
 	}
 
 	metricsObject, diags := types.ObjectValueFrom(ctx, barChartMetricsQueryAttr(), flattenedMetrics)
@@ -8591,7 +8177,7 @@ func flattenHorizontalBarChartQuerySpans(ctx context.Context, spans *cxsdk.Horiz
 	}
 
 	flattenedSpans := &BarChartQuerySpansModel{
-		LuceneQuery:      wrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
+		LuceneQuery:      utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
 		Aggregation:      aggregation,
 		Filters:          filters,
 		GroupNames:       groupNames,
@@ -8635,8 +8221,8 @@ func flattenLegend(legend *cxsdk.DashboardLegend) *LegendModel {
 	}
 
 	return &LegendModel{
-		IsVisible:    wrapperspbBoolToTypeBool(legend.GetIsVisible()),
-		GroupByQuery: wrapperspbBoolToTypeBool(legend.GetGroupByQuery()),
+		IsVisible:    utils.WrapperspbBoolToTypeBool(legend.GetIsVisible()),
+		GroupByQuery: utils.WrapperspbBoolToTypeBool(legend.GetGroupByQuery()),
 		Columns:      flattenLegendColumns(legend.GetColumns()),
 		Placement:    types.StringValue(dashboardLegendPlacementProtoToSchema[legend.GetPlacement()]),
 	}
@@ -8662,7 +8248,7 @@ func flattenTooltip(tooltip *cxsdk.LineChartTooltip) *TooltipModel {
 		return nil
 	}
 	return &TooltipModel{
-		ShowLabels: wrapperspbBoolToTypeBool(tooltip.GetShowLabels()),
+		ShowLabels: utils.WrapperspbBoolToTypeBool(tooltip.GetShowLabels()),
 		Type:       types.StringValue(dashboardProtoToSchemaTooltipType[tooltip.GetType()]),
 	}
 }
@@ -8707,15 +8293,15 @@ func flattenLineChartQueryDefinition(ctx context.Context, definition *cxsdk.Line
 	}
 
 	return &LineChartQueryDefinitionModel{
-		ID:                 wrapperspbStringToTypeString(definition.GetId()),
+		ID:                 utils.WrapperspbStringToTypeString(definition.GetId()),
 		Query:              query,
-		SeriesNameTemplate: wrapperspbStringToTypeString(definition.GetSeriesNameTemplate()),
+		SeriesNameTemplate: utils.WrapperspbStringToTypeString(definition.GetSeriesNameTemplate()),
 		SeriesCountLimit:   wrapperspbInt64ToTypeInt64(definition.GetSeriesCountLimit()),
 		Unit:               types.StringValue(dashboardProtoToSchemaUnit[definition.GetUnit()]),
 		ScaleType:          types.StringValue(dashboardProtoToSchemaScaleType[definition.GetScaleType()]),
-		Name:               wrapperspbStringToTypeString(definition.GetName()),
-		IsVisible:          wrapperspbBoolToTypeBool(definition.GetIsVisible()),
-		ColorScheme:        wrapperspbStringToTypeString(definition.GetColorScheme()),
+		Name:               utils.WrapperspbStringToTypeString(definition.GetName()),
+		IsVisible:          utils.WrapperspbBoolToTypeBool(definition.GetIsVisible()),
+		ColorScheme:        utils.WrapperspbStringToTypeString(definition.GetColorScheme()),
 		Resolution:         resolution,
 		DataModeType:       types.StringValue(dashboardProtoToSchemaDataModeType[definition.GetDataModeType()]),
 	}, nil
@@ -8730,7 +8316,7 @@ func flattenLineChartQueryResolution(ctx context.Context, resolution *cxsdk.Line
 	if resolution.GetInterval() != nil {
 		interval = types.StringValue(resolution.GetInterval().String())
 	}
-	bucketsPresented := wrapperspbInt32ToTypeInt64(resolution.GetBucketsPresented())
+	bucketsPresented := utils.WrapperspbInt32ToTypeInt64(resolution.GetBucketsPresented())
 
 	resolutionModel := LineChartResolutionModel{
 		Interval:         interval,
@@ -8780,8 +8366,8 @@ func flattenLineChartQueryLogs(ctx context.Context, logs *cxsdk.LineChartLogsQue
 
 	return &LineChartQueryModel{
 		Logs: &LineChartQueryLogsModel{
-			LuceneQuery:  wrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
-			GroupBy:      wrappedStringSliceToTypeStringList(logs.GetGroupBy()),
+			LuceneQuery:  utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
+			GroupBy:      utils.WrappedStringSliceToTypeStringList(logs.GetGroupBy()),
 			Aggregations: aggregations,
 			Filters:      filters,
 		},
@@ -8830,7 +8416,7 @@ func flattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregat
 		}
 		return &LogsAggregationModel{
 			Type:             types.StringValue("count_distinct"),
-			Field:            wrapperspbStringToTypeString(aggregationValue.CountDistinct.GetField()),
+			Field:            utils.WrapperspbStringToTypeString(aggregationValue.CountDistinct.GetField()),
 			ObservationField: observationField,
 		}, nil
 	case *cxsdk.LogsAggregationSum:
@@ -8840,7 +8426,7 @@ func flattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregat
 		}
 		return &LogsAggregationModel{
 			Type:             types.StringValue("sum"),
-			Field:            wrapperspbStringToTypeString(aggregationValue.Sum.GetField()),
+			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Sum.GetField()),
 			ObservationField: observationField,
 		}, nil
 	case *cxsdk.LogsAggregationAverage:
@@ -8850,7 +8436,7 @@ func flattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregat
 		}
 		return &LogsAggregationModel{
 			Type:             types.StringValue("avg"),
-			Field:            wrapperspbStringToTypeString(aggregationValue.Average.GetField()),
+			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Average.GetField()),
 			ObservationField: observationField,
 		}, nil
 	case *cxsdk.LogsAggregationMin:
@@ -8860,7 +8446,7 @@ func flattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregat
 		}
 		return &LogsAggregationModel{
 			Type:             types.StringValue("min"),
-			Field:            wrapperspbStringToTypeString(aggregationValue.Min.GetField()),
+			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Min.GetField()),
 			ObservationField: observationField,
 		}, nil
 	case *cxsdk.LogsAggregationMax:
@@ -8870,7 +8456,7 @@ func flattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregat
 		}
 		return &LogsAggregationModel{
 			Type:             types.StringValue("max"),
-			Field:            wrapperspbStringToTypeString(aggregationValue.Max.GetField()),
+			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Max.GetField()),
 			ObservationField: observationField,
 		}, nil
 	case *cxsdk.LogsAggregationPercentile:
@@ -8880,7 +8466,7 @@ func flattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregat
 		}
 		return &LogsAggregationModel{
 			Type:             types.StringValue("percentile"),
-			Field:            wrapperspbStringToTypeString(aggregationValue.Percentile.GetField()),
+			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Percentile.GetField()),
 			Percent:          wrapperspbDoubleToTypeFloat64(aggregationValue.Percentile.GetPercent()),
 			ObservationField: observationField,
 		}, nil
@@ -8929,7 +8515,7 @@ func flattenLogsFilter(ctx context.Context, filter *cxsdk.DashboardFilterLogsFil
 	}
 
 	return &LogsFilterModel{
-		Field:            wrapperspbStringToTypeString(filter.GetField()),
+		Field:            utils.WrapperspbStringToTypeString(filter.GetField()),
 		Operator:         operator,
 		ObservationField: observationField,
 	}, nil
@@ -8947,7 +8533,7 @@ func flattenFilterOperator(operator *cxsdk.DashboardFilterOperator) (*FilterOper
 		case *cxsdk.DashboardFilterEqualsSelectionList:
 			return &FilterOperatorModel{
 				Type:           types.StringValue("equals"),
-				SelectedValues: wrappedStringSliceToTypeStringList(operator.GetEquals().GetSelection().GetList().GetValues()),
+				SelectedValues: utils.WrappedStringSliceToTypeStringList(operator.GetEquals().GetSelection().GetList().GetValues()),
 			}, nil
 		default:
 			return nil, diag.NewErrorDiagnostic("Error Flatten Logs Filter Operator Equals", "unknown logs filter operator equals selection type")
@@ -8957,7 +8543,7 @@ func flattenFilterOperator(operator *cxsdk.DashboardFilterOperator) (*FilterOper
 		case *cxsdk.DashboardFilterNotEqualsSelectionList:
 			return &FilterOperatorModel{
 				Type:           types.StringValue("not_equals"),
-				SelectedValues: wrappedStringSliceToTypeStringList(operator.GetNotEquals().GetSelection().GetList().GetValues()),
+				SelectedValues: utils.WrappedStringSliceToTypeStringList(operator.GetNotEquals().GetSelection().GetList().GetValues()),
 			}, nil
 		default:
 			return nil, diag.NewErrorDiagnostic("Error Flatten Logs Filter Operator NotEquals", "unknown logs filter operator not_equals selection type")
@@ -8979,7 +8565,7 @@ func flattenLineChartQueryMetrics(ctx context.Context, metrics *cxsdk.LineChartM
 
 	return &LineChartQueryModel{
 		Metrics: &LineChartQueryMetricsModel{
-			PromqlQuery: wrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
+			PromqlQuery: utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 			Filters:     filters,
 		},
 	}, nil
@@ -9020,8 +8606,8 @@ func flattenMetricsFilter(filter *cxsdk.DashboardFilterMetricsFilter) (*MetricsF
 	}
 
 	return &MetricsFilterModel{
-		Metric:   wrapperspbStringToTypeString(filter.GetMetric()),
-		Label:    wrapperspbStringToTypeString(filter.GetLabel()),
+		Metric:   utils.WrapperspbStringToTypeString(filter.GetMetric()),
+		Label:    utils.WrapperspbStringToTypeString(filter.GetLabel()),
 		Operator: operator,
 	}, nil
 }
@@ -9043,7 +8629,7 @@ func flattenLineChartQuerySpans(ctx context.Context, spans *cxsdk.LineChartSpans
 
 	return &LineChartQueryModel{
 		Spans: &LineChartQuerySpansModel{
-			LuceneQuery: wrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
+			LuceneQuery: utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
 			GroupBy:     groupBy,
 			Filters:     filters,
 		},
@@ -9145,12 +8731,12 @@ func flattenSpansField(field *cxsdk.SpanField) (*SpansFieldModel, diag.Diagnosti
 	case *cxsdk.SpanFieldTagField:
 		return &SpansFieldModel{
 			Type:  types.StringValue("tag"),
-			Value: wrapperspbStringToTypeString(field.GetTagField()),
+			Value: utils.WrapperspbStringToTypeString(field.GetTagField()),
 		}, nil
 	case *cxsdk.SpanFieldProcessTagField:
 		return &SpansFieldModel{
 			Type:  types.StringValue("process_tag"),
-			Value: wrapperspbStringToTypeString(field.GetProcessTagField()),
+			Value: utils.WrapperspbStringToTypeString(field.GetProcessTagField()),
 		}, nil
 
 	default:
@@ -9176,7 +8762,7 @@ func flattenDataTable(ctx context.Context, table *cxsdk.DashboardDataTable) (*Wi
 	return &WidgetDefinitionModel{
 		DataTable: &DataTableModel{
 			Query:          query,
-			ResultsPerPage: wrapperspbInt32ToTypeInt64(table.GetResultsPerPage()),
+			ResultsPerPage: utils.WrapperspbInt32ToTypeInt64(table.GetResultsPerPage()),
 			RowStyle:       types.StringValue(dashboardRowStyleProtoToSchema[table.GetRowStyle()]),
 			Columns:        columns,
 			OrderBy:        flattenOrderBy(table.GetOrderBy()),
@@ -9244,7 +8830,7 @@ func flattenDataTableLogsQuery(ctx context.Context, logs *cxsdk.DashboardDataTab
 
 	return &DataTableQueryModel{
 		Logs: &DataTableQueryLogsModel{
-			LuceneQuery: wrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
+			LuceneQuery: utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
 			Filters:     filters,
 			Grouping:    grouping,
 		},
@@ -9268,7 +8854,7 @@ func flattenDataTableLogsQueryGrouping(ctx context.Context, grouping *cxsdk.Dash
 
 	return &DataTableLogsQueryGroupingModel{
 		Aggregations: aggregations,
-		GroupBy:      wrappedStringSliceToTypeStringList(grouping.GetGroupBy()),
+		GroupBy:      utils.WrappedStringSliceToTypeStringList(grouping.GetGroupBy()),
 		GroupBys:     groupBys,
 	}, nil
 }
@@ -9304,9 +8890,9 @@ func flattenGroupingAggregation(ctx context.Context, dataTableAggregation *cxsdk
 	}
 
 	return &DataTableLogsAggregationModel{
-		ID:          wrapperspbStringToTypeString(dataTableAggregation.GetId()),
-		Name:        wrapperspbStringToTypeString(dataTableAggregation.GetName()),
-		IsVisible:   wrapperspbBoolToTypeBool(dataTableAggregation.GetIsVisible()),
+		ID:          utils.WrapperspbStringToTypeString(dataTableAggregation.GetId()),
+		Name:        utils.WrapperspbStringToTypeString(dataTableAggregation.GetName()),
+		IsVisible:   utils.WrapperspbBoolToTypeBool(dataTableAggregation.GetIsVisible()),
 		Aggregation: aggregation,
 	}, nil
 }
@@ -9323,7 +8909,7 @@ func flattenDataTableMetricsQuery(ctx context.Context, metrics *cxsdk.DashboardD
 
 	return &DataTableQueryModel{
 		Metrics: &DataTableQueryMetricsModel{
-			PromqlQuery:     wrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
+			PromqlQuery:     utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 			Filters:         filters,
 			PromqlQueryType: types.StringValue(metrics.GetPromqlQueryType().String()),
 		},
@@ -9347,7 +8933,7 @@ func flattenDataTableSpansQuery(ctx context.Context, spans *cxsdk.DashboardDataT
 
 	return &DataTableQueryModel{
 		Spans: &DataTableQuerySpansModel{
-			LuceneQuery: wrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
+			LuceneQuery: utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
 			Filters:     filters,
 			Grouping:    grouping,
 		},
@@ -9407,9 +8993,9 @@ func flattenDataTableSpansQueryAggregation(spanAggregation *cxsdk.DashboardDataT
 	}
 
 	return &DataTableSpansAggregationModel{
-		ID:          wrapperspbStringToTypeString(spanAggregation.GetId()),
-		Name:        wrapperspbStringToTypeString(spanAggregation.GetName()),
-		IsVisible:   wrapperspbBoolToTypeBool(spanAggregation.GetIsVisible()),
+		ID:          utils.WrapperspbStringToTypeString(spanAggregation.GetId()),
+		Name:        utils.WrapperspbStringToTypeString(spanAggregation.GetName()),
+		IsVisible:   utils.WrapperspbBoolToTypeBool(spanAggregation.GetIsVisible()),
 		Aggregation: aggregation,
 	}, nil
 }
@@ -9461,8 +9047,8 @@ func flattenDataTableColumn(column *cxsdk.DashboardDataTableColumn) *DataTableCo
 		return nil
 	}
 	return &DataTableColumnModel{
-		Field: wrapperspbStringToTypeString(column.GetField()),
-		Width: wrapperspbInt32ToTypeInt64(column.GetWidth()),
+		Field: utils.WrapperspbStringToTypeString(column.GetField()),
+		Width: utils.WrapperspbInt32ToTypeInt64(column.GetWidth()),
 	}
 }
 
@@ -9471,7 +9057,7 @@ func flattenOrderBy(orderBy *cxsdk.DashboardOrderingField) *OrderByModel {
 		return nil
 	}
 	return &OrderByModel{
-		Field:          wrapperspbStringToTypeString(orderBy.GetField()),
+		Field:          utils.WrapperspbStringToTypeString(orderBy.GetField()),
 		OrderDirection: types.StringValue(dashboardOrderDirectionProtoToSchema[orderBy.GetOrderDirection()]),
 	}
 }
@@ -9496,8 +9082,8 @@ func flattenGauge(ctx context.Context, gauge *cxsdk.Gauge) (*WidgetDefinitionMod
 			Query:        query,
 			Min:          wrapperspbDoubleToTypeFloat64(gauge.GetMin()),
 			Max:          wrapperspbDoubleToTypeFloat64(gauge.GetMax()),
-			ShowInnerArc: wrapperspbBoolToTypeBool(gauge.GetShowInnerArc()),
-			ShowOuterArc: wrapperspbBoolToTypeBool(gauge.GetShowOuterArc()),
+			ShowInnerArc: utils.WrapperspbBoolToTypeBool(gauge.GetShowInnerArc()),
+			ShowOuterArc: utils.WrapperspbBoolToTypeBool(gauge.GetShowOuterArc()),
 			Unit:         types.StringValue(dashboardProtoToSchemaGaugeUnit[gauge.GetUnit()]),
 			Thresholds:   thresholds,
 			DataModeType: types.StringValue(dashboardProtoToSchemaDataModeType[gauge.GetDataModeType()]),
@@ -9532,7 +9118,7 @@ func flattenGaugeThreshold(threshold *cxsdk.GaugeThreshold) *GaugeThresholdModel
 	}
 	return &GaugeThresholdModel{
 		From:  wrapperspbDoubleToTypeFloat64(threshold.GetFrom()),
-		Color: wrapperspbStringToTypeString(threshold.GetColor()),
+		Color: utils.WrapperspbStringToTypeString(threshold.GetColor()),
 	}
 }
 
@@ -9561,7 +9147,7 @@ func flattenGaugeQueryMetrics(ctx context.Context, metrics *cxsdk.GaugeMetricsQu
 
 	return &GaugeQueryModel{
 		Metrics: &GaugeQueryMetricsModel{
-			PromqlQuery: wrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
+			PromqlQuery: utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 			Aggregation: types.StringValue(dashboardProtoToSchemaGaugeAggregation[metrics.GetAggregation()]),
 			Filters:     filters,
 		},
@@ -9585,7 +9171,7 @@ func flattenGaugeQueryLogs(ctx context.Context, logs *cxsdk.GaugeLogsQuery) (*Ga
 
 	return &GaugeQueryModel{
 		Logs: &GaugeQueryLogsModel{
-			LuceneQuery:     wrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
+			LuceneQuery:     utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
 			LogsAggregation: logsAggregation,
 			Filters:         filters,
 		},
@@ -9609,7 +9195,7 @@ func flattenGaugeQuerySpans(ctx context.Context, spans *cxsdk.GaugeSpansQuery) (
 
 	return &GaugeQueryModel{
 		Spans: &GaugeQuerySpansModel{
-			LuceneQuery:      wrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
+			LuceneQuery:      utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
 			Filters:          filters,
 			SpansAggregation: spansAggregation,
 		},
@@ -9629,14 +9215,14 @@ func flattenPieChart(ctx context.Context, pieChart *cxsdk.PieChart) (*WidgetDefi
 	return &WidgetDefinitionModel{
 		PieChart: &PieChartModel{
 			Query:              query,
-			MaxSlicesPerChart:  wrapperspbInt32ToTypeInt64(pieChart.GetMaxSlicesPerChart()),
-			MinSlicePercentage: wrapperspbInt32ToTypeInt64(pieChart.GetMinSlicePercentage()),
+			MaxSlicesPerChart:  utils.WrapperspbInt32ToTypeInt64(pieChart.GetMaxSlicesPerChart()),
+			MinSlicePercentage: utils.WrapperspbInt32ToTypeInt64(pieChart.GetMinSlicePercentage()),
 			StackDefinition:    flattenPieChartStackDefinition(pieChart.GetStackDefinition()),
 			LabelDefinition:    flattenPieChartLabelDefinition(pieChart.GetLabelDefinition()),
-			ShowLegend:         wrapperspbBoolToTypeBool(pieChart.GetShowLegend()),
-			GroupNameTemplate:  wrapperspbStringToTypeString(pieChart.GetGroupNameTemplate()),
+			ShowLegend:         utils.WrapperspbBoolToTypeBool(pieChart.GetShowLegend()),
+			GroupNameTemplate:  utils.WrapperspbStringToTypeString(pieChart.GetGroupNameTemplate()),
 			Unit:               types.StringValue(dashboardProtoToSchemaUnit[pieChart.GetUnit()]),
-			ColorScheme:        wrapperspbStringToTypeString(pieChart.GetColorScheme()),
+			ColorScheme:        utils.WrapperspbStringToTypeString(pieChart.GetColorScheme()),
 			DataModeType:       types.StringValue(dashboardProtoToSchemaDataModeType[pieChart.GetDataModeType()]),
 		},
 	}, nil
@@ -9667,8 +9253,8 @@ func flattenPieChartStackDefinition(stackDefinition *cxsdk.PieChartStackDefiniti
 	}
 
 	return &PieChartStackDefinitionModel{
-		MaxSlicesPerStack: wrapperspbInt32ToTypeInt64(stackDefinition.GetMaxSlicesPerStack()),
-		StackNameTemplate: wrapperspbStringToTypeString(stackDefinition.GetStackNameTemplate()),
+		MaxSlicesPerStack: utils.WrapperspbInt32ToTypeInt64(stackDefinition.GetMaxSlicesPerStack()),
+		StackNameTemplate: utils.WrapperspbStringToTypeString(stackDefinition.GetStackNameTemplate()),
 	}
 }
 
@@ -9678,10 +9264,10 @@ func flattenPieChartLabelDefinition(labelDefinition *cxsdk.PieChartLabelDefiniti
 	}
 	return &LabelDefinitionModel{
 		LabelSource:    types.StringValue(dashboardProtoToSchemaPieChartLabelSource[labelDefinition.GetLabelSource()]),
-		IsVisible:      wrapperspbBoolToTypeBool(labelDefinition.GetIsVisible()),
-		ShowName:       wrapperspbBoolToTypeBool(labelDefinition.GetShowName()),
-		ShowValue:      wrapperspbBoolToTypeBool(labelDefinition.GetShowValue()),
-		ShowPercentage: wrapperspbBoolToTypeBool(labelDefinition.GetShowPercentage()),
+		IsVisible:      utils.WrapperspbBoolToTypeBool(labelDefinition.GetIsVisible()),
+		ShowName:       utils.WrapperspbBoolToTypeBool(labelDefinition.GetShowName()),
+		ShowValue:      utils.WrapperspbBoolToTypeBool(labelDefinition.GetShowValue()),
+		ShowPercentage: utils.WrapperspbBoolToTypeBool(labelDefinition.GetShowPercentage()),
 	}
 }
 
@@ -9697,10 +9283,10 @@ func flattenPieChartQueryMetrics(ctx context.Context, metrics *cxsdk.PieChartMet
 
 	return &PieChartQueryModel{
 		Metrics: &PieChartQueryMetricsModel{
-			PromqlQuery:      wrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
+			PromqlQuery:      utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 			Filters:          filters,
-			GroupNames:       wrappedStringSliceToTypeStringList(metrics.GetGroupNames()),
-			StackedGroupName: wrapperspbStringToTypeString(metrics.GetStackedGroupName()),
+			GroupNames:       utils.WrappedStringSliceToTypeStringList(metrics.GetGroupNames()),
+			StackedGroupName: utils.WrapperspbStringToTypeString(metrics.GetStackedGroupName()),
 		},
 	}, nil
 }
@@ -9732,11 +9318,11 @@ func flattenPieChartQueryLogs(ctx context.Context, logs *cxsdk.PieChartLogsQuery
 
 	return &PieChartQueryModel{
 		Logs: &PieChartQueryLogsModel{
-			LuceneQuery:           wrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
+			LuceneQuery:           utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
 			Aggregation:           aggregation,
 			Filters:               filters,
-			GroupNames:            wrappedStringSliceToTypeStringList(logs.GetGroupNames()),
-			StackedGroupName:      wrapperspbStringToTypeString(logs.GetStackedGroupName()),
+			GroupNames:            utils.WrappedStringSliceToTypeStringList(logs.GetGroupNames()),
+			StackedGroupName:      utils.WrapperspbStringToTypeString(logs.GetStackedGroupName()),
 			GroupNamesFields:      groupNamesFields,
 			StackedGroupNameField: stackedGroupNameField,
 		},
@@ -9770,7 +9356,7 @@ func flattenPieChartQuerySpans(ctx context.Context, spans *cxsdk.PieChartSpansQu
 
 	return &PieChartQueryModel{
 		Spans: &PieChartQuerySpansModel{
-			LuceneQuery:      wrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
+			LuceneQuery:      utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
 			Filters:          filters,
 			Aggregation:      aggregation,
 			GroupNames:       groupNames,
@@ -9793,8 +9379,8 @@ func flattenPieChartDataPrimeQuery(ctx context.Context, dataPrime *cxsdk.PieChar
 		DataPrime: &PieChartQueryDataPrimeModel{
 			Query:            types.StringValue(dataPrime.GetDataprimeQuery().GetText()),
 			Filters:          filters,
-			GroupNames:       wrappedStringSliceToTypeStringList(dataPrime.GetGroupNames()),
-			StackedGroupName: wrapperspbStringToTypeString(dataPrime.GetStackedGroupName()),
+			GroupNames:       utils.WrappedStringSliceToTypeStringList(dataPrime.GetGroupNames()),
+			StackedGroupName: utils.WrapperspbStringToTypeString(dataPrime.GetStackedGroupName()),
 		},
 	}, nil
 }
@@ -9822,15 +9408,15 @@ func flattenBarChart(ctx context.Context, barChart *cxsdk.BarChart) (*WidgetDefi
 	return &WidgetDefinitionModel{
 		BarChart: &BarChartModel{
 			Query:             query,
-			MaxBarsPerChart:   wrapperspbInt32ToTypeInt64(barChart.GetMaxBarsPerChart()),
-			GroupNameTemplate: wrapperspbStringToTypeString(barChart.GetGroupNameTemplate()),
+			MaxBarsPerChart:   utils.WrapperspbInt32ToTypeInt64(barChart.GetMaxBarsPerChart()),
+			GroupNameTemplate: utils.WrapperspbStringToTypeString(barChart.GetGroupNameTemplate()),
 			StackDefinition:   flattenBarChartStackDefinition(barChart.GetStackDefinition()),
 			ScaleType:         types.StringValue(dashboardProtoToSchemaScaleType[barChart.GetScaleType()]),
 			ColorsBy:          colorsBy,
 			XAxis:             xAxis,
 			Unit:              types.StringValue(dashboardProtoToSchemaUnit[barChart.GetUnit()]),
 			SortBy:            types.StringValue(dashboardProtoToSchemaSortBy[barChart.GetSortBy()]),
-			ColorScheme:       wrapperspbStringToTypeString(barChart.GetColorScheme()),
+			ColorScheme:       utils.WrapperspbStringToTypeString(barChart.GetColorScheme()),
 			DataModeType:      types.StringValue(dashboardProtoToSchemaDataModeType[barChart.GetDataModeType()]),
 		},
 	}, nil
@@ -9846,7 +9432,7 @@ func flattenBarChartXAxis(axis *cxsdk.BarChartXAxis) (*BarChartXAxisModel, diag.
 		return &BarChartXAxisModel{
 			Time: &BarChartXAxisTimeModel{
 				Interval:         types.StringValue(axis.GetTime().GetInterval().AsDuration().String()),
-				BucketsPresented: wrapperspbInt32ToTypeInt64(axis.GetTime().GetBucketsPresented()),
+				BucketsPresented: utils.WrapperspbInt32ToTypeInt64(axis.GetTime().GetBucketsPresented()),
 			},
 		}, nil
 	case *cxsdk.BarChartXAxisValue:
@@ -9904,11 +9490,11 @@ func flattenBarChartQueryLogs(ctx context.Context, logs *cxsdk.BarChartLogsQuery
 	}
 
 	flattenedLogs := &BarChartQueryLogsModel{
-		LuceneQuery:           wrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
+		LuceneQuery:           utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
 		Filters:               filters,
 		Aggregation:           aggregation,
-		GroupNames:            wrappedStringSliceToTypeStringList(logs.GetGroupNames()),
-		StackedGroupName:      wrapperspbStringToTypeString(logs.GetStackedGroupName()),
+		GroupNames:            utils.WrappedStringSliceToTypeStringList(logs.GetGroupNames()),
+		StackedGroupName:      utils.WrapperspbStringToTypeString(logs.GetStackedGroupName()),
 		GroupNamesFields:      groupNamesFields,
 		StackedGroupNameField: stackedGroupNameField,
 	}
@@ -9963,7 +9549,7 @@ func flattenObservationField(ctx context.Context, field *cxsdk.ObservationField)
 
 func flattenLogsFieldModel(field *cxsdk.ObservationField) *ObservationFieldModel {
 	return &ObservationFieldModel{
-		Keypath: wrappedStringSliceToTypeStringList(field.GetKeypath()),
+		Keypath: utils.WrappedStringSliceToTypeStringList(field.GetKeypath()),
 		Scope:   types.StringValue(dashboardProtoToSchemaObservationFieldScope[field.GetScope()]),
 	}
 }
@@ -9994,7 +9580,7 @@ func flattenBarChartQuerySpans(ctx context.Context, spans *cxsdk.BarChartSpansQu
 	}
 
 	flattenedSpans := &BarChartQuerySpansModel{
-		LuceneQuery:      wrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
+		LuceneQuery:      utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
 		Aggregation:      aggregation,
 		Filters:          filters,
 		GroupNames:       groupNames,
@@ -10024,10 +9610,10 @@ func flattenBarChartQueryMetrics(ctx context.Context, metrics *cxsdk.BarChartMet
 	}
 
 	flattenedMetric := &BarChartQueryMetricsModel{
-		PromqlQuery:      wrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
+		PromqlQuery:      utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 		Filters:          filters,
-		GroupNames:       wrappedStringSliceToTypeStringList(metrics.GetGroupNames()),
-		StackedGroupName: wrapperspbStringToTypeString(metrics.GetStackedGroupName()),
+		GroupNames:       utils.WrappedStringSliceToTypeStringList(metrics.GetGroupNames()),
+		StackedGroupName: utils.WrapperspbStringToTypeString(metrics.GetStackedGroupName()),
 	}
 
 	metricObject, diags := types.ObjectValueFrom(ctx, barChartMetricsQueryAttr(), flattenedMetric)
@@ -10055,8 +9641,8 @@ func flattenBarChartQueryDataPrime(ctx context.Context, dataPrime *cxsdk.BarChar
 	flattenedDataPrime := &BarChartQueryDataPrimeModel{
 		Query:            types.StringValue(dataPrime.GetDataprimeQuery().GetText()),
 		Filters:          filters,
-		GroupNames:       wrappedStringSliceToTypeStringList(dataPrime.GetGroupNames()),
-		StackedGroupName: wrapperspbStringToTypeString(dataPrime.GetStackedGroupName()),
+		GroupNames:       utils.WrappedStringSliceToTypeStringList(dataPrime.GetGroupNames()),
+		StackedGroupName: utils.WrapperspbStringToTypeString(dataPrime.GetStackedGroupName()),
 	}
 
 	dataPrimeObject, diags := types.ObjectValueFrom(ctx, barChartDataPrimeQueryAttr(), flattenedDataPrime)
@@ -10077,8 +9663,8 @@ func flattenBarChartStackDefinition(stackDefinition *cxsdk.BarChartStackDefiniti
 	}
 
 	return &BarChartStackDefinitionModel{
-		MaxSlicesPerBar:   wrapperspbInt32ToTypeInt64(stackDefinition.GetMaxSlicesPerBar()),
-		StackNameTemplate: wrapperspbStringToTypeString(stackDefinition.GetStackNameTemplate()),
+		MaxSlicesPerBar:   utils.WrapperspbInt32ToTypeInt64(stackDefinition.GetMaxSlicesPerBar()),
+		StackNameTemplate: utils.WrapperspbStringToTypeString(stackDefinition.GetStackNameTemplate()),
 	}
 }
 
@@ -10088,8 +9674,8 @@ func flattenHorizontalBarChartStackDefinition(stackDefinition *cxsdk.HorizontalB
 	}
 
 	return &BarChartStackDefinitionModel{
-		MaxSlicesPerBar:   wrapperspbInt32ToTypeInt64(stackDefinition.GetMaxSlicesPerBar()),
-		StackNameTemplate: wrapperspbStringToTypeString(stackDefinition.GetStackNameTemplate()),
+		MaxSlicesPerBar:   utils.WrapperspbInt32ToTypeInt64(stackDefinition.GetMaxSlicesPerBar()),
+		StackNameTemplate: utils.WrapperspbStringToTypeString(stackDefinition.GetStackNameTemplate()),
 	}
 }
 
@@ -10145,8 +9731,8 @@ func flattenDashboardVariable(ctx context.Context, variable *cxsdk.DashboardVari
 	}
 
 	return &DashboardVariableModel{
-		Name:        wrapperspbStringToTypeString(variable.GetName()),
-		DisplayName: wrapperspbStringToTypeString(variable.GetDisplayName()),
+		Name:        utils.WrapperspbStringToTypeString(variable.GetName()),
+		DisplayName: utils.WrapperspbStringToTypeString(variable.GetDisplayName()),
 		Definition:  definition,
 	}, nil
 }
@@ -10159,7 +9745,7 @@ func flattenDashboardVariableDefinition(ctx context.Context, variableDefinition 
 	switch variableDefinition.GetValue().(type) {
 	case *cxsdk.DashboardVariableDefinitionConstant:
 		return &DashboardVariableDefinitionModel{
-			ConstantValue: wrapperspbStringToTypeString(variableDefinition.GetConstant().GetValue()),
+			ConstantValue: utils.WrapperspbStringToTypeString(variableDefinition.GetConstant().GetValue()),
 		}, nil
 	case *cxsdk.DashboardVariableDefinitionMultiSelect:
 		return flattenDashboardVariableDefinitionMultiSelect(ctx, variableDefinition.GetMultiSelect())
@@ -10206,14 +9792,14 @@ func flattenDashboardVariableSource(ctx context.Context, source *cxsdk.MultiSele
 
 	switch source.GetValue().(type) {
 	case *cxsdk.MultiSelectSourceLogsPath:
-		result.LogsPath = wrapperspbStringToTypeString(source.GetLogsPath().GetValue())
+		result.LogsPath = utils.WrapperspbStringToTypeString(source.GetLogsPath().GetValue())
 	case *cxsdk.MultiSelectSourceMetricLabel:
 		result.MetricLabel = &MetricMultiSelectSourceModel{
-			MetricName: wrapperspbStringToTypeString(source.GetMetricLabel().GetMetricName()),
-			Label:      wrapperspbStringToTypeString(source.GetMetricLabel().GetLabel()),
+			MetricName: utils.WrapperspbStringToTypeString(source.GetMetricLabel().GetMetricName()),
+			Label:      utils.WrapperspbStringToTypeString(source.GetMetricLabel().GetLabel()),
 		}
 	case *cxsdk.MultiSelectSourceConstantList:
-		result.ConstantList = wrappedStringSliceToTypeStringList(source.GetConstantList().GetValues())
+		result.ConstantList = utils.WrappedStringSliceToTypeStringList(source.GetConstantList().GetValues())
 	case *cxsdk.MultiSelectSourceSpanField:
 		spansField, dg := flattenSpansField(source.GetSpanField().GetValue())
 		if dg != nil {
@@ -10313,7 +9899,7 @@ func flattenDashboardVariableDefinitionMultiSelectQueryLogsFieldNameModel(ctx co
 	}
 
 	return types.ObjectValueFrom(ctx, multiSelectQueryLogsQueryFieldNameModelAttr(), &LogFieldNameModel{
-		LogRegex: wrapperspbStringToTypeString(name.GetLogRegex()),
+		LogRegex: utils.WrapperspbStringToTypeString(name.GetLogRegex()),
 	})
 }
 
@@ -10366,7 +9952,7 @@ func flattenDashboardVariableDefinitionMultiSelectQueryMetricsMetricNameModel(ct
 	}
 
 	return types.ObjectValueFrom(ctx, multiSelectQueryMetricsNameAttr(), &MetricAndLabelNameModel{
-		MetricRegex: wrapperspbStringToTypeString(name.GetMetricRegex()),
+		MetricRegex: utils.WrapperspbStringToTypeString(name.GetMetricRegex()),
 	})
 }
 
@@ -10376,7 +9962,7 @@ func flattenDashboardVariableDefinitionMultiSelectQueryMetricsLabelNameModel(ctx
 	}
 
 	return types.ObjectValueFrom(ctx, multiSelectQueryMetricsNameAttr(), &MetricAndLabelNameModel{
-		MetricRegex: wrapperspbStringToTypeString(name.GetMetricRegex()),
+		MetricRegex: utils.WrapperspbStringToTypeString(name.GetMetricRegex()),
 	})
 }
 
@@ -10516,9 +10102,9 @@ func flattenMultiSelectQueryMetricsQueryStringOrVariable(ctx context.Context, st
 
 	switch stringOrVariableType := stringOrVariable.GetValue().(type) {
 	case *cxsdk.MultiSelectQueryMetricsQueryStringOrVariableString:
-		metricLabelFilterOperatorSelectedValuesModel.StringValue = wrapperspbStringToTypeString(stringOrVariableType.StringValue)
+		metricLabelFilterOperatorSelectedValuesModel.StringValue = utils.WrapperspbStringToTypeString(stringOrVariableType.StringValue)
 	case *cxsdk.MultiSelectQueryMetricsQueryStringOrVariableVariable:
-		metricLabelFilterOperatorSelectedValuesModel.VariableName = wrapperspbStringToTypeString(stringOrVariableType.VariableName)
+		metricLabelFilterOperatorSelectedValuesModel.VariableName = utils.WrapperspbStringToTypeString(stringOrVariableType.VariableName)
 	}
 
 	return types.ObjectValueFrom(ctx, multiSelectQueryStringOrValueAttr(), metricLabelFilterOperatorSelectedValuesModel)
@@ -10556,7 +10142,7 @@ func flattenMultiSelectQuerySpansFieldName(ctx context.Context, name *cxsdk.Mult
 	}
 
 	return types.ObjectValueFrom(ctx, multiSelectQuerySpansQueryModelAttr(), &SpanFieldNameModel{
-		SpanRegex: wrapperspbStringToTypeString(name.GetSpanRegex()),
+		SpanRegex: utils.WrapperspbStringToTypeString(name.GetSpanRegex()),
 	})
 }
 
@@ -10579,8 +10165,8 @@ func flattenDashboardVariableDefinitionMultiSelectValueDisplayOptions(ctx contex
 	}
 
 	return types.ObjectValueFrom(ctx, multiSelectValueDisplayOptionsModelAttr(), &MultiSelectValueDisplayOptionsModel{
-		ValueRegex: wrapperspbStringToTypeString(options.GetValueRegex()),
-		LabelRegex: wrapperspbStringToTypeString(options.GetLabelRegex()),
+		ValueRegex: utils.WrapperspbStringToTypeString(options.GetValueRegex()),
+		LabelRegex: utils.WrapperspbStringToTypeString(options.GetLabelRegex()),
 	})
 }
 
@@ -10704,7 +10290,7 @@ func spansQueryFieldNameAttr() map[string]attr.Type {
 func flattenDashboardVariableSelectedValues(selection *cxsdk.DashboardMultiSelectSelection) (types.List, diag.Diagnostics) {
 	switch selection.GetValue().(type) {
 	case *cxsdk.DashboardMultiSelectSelectionList:
-		return wrappedStringSliceToTypeStringList(selection.GetList().GetValues()), nil
+		return utils.WrappedStringSliceToTypeStringList(selection.GetList().GetValues()), nil
 	case *cxsdk.DashboardMultiSelectSelectionAll:
 		return types.ListNull(types.StringType), nil
 	default:
@@ -10748,8 +10334,8 @@ func flattenDashboardFilter(ctx context.Context, filter *cxsdk.DashboardFilter) 
 
 	return &DashboardFilterModel{
 		Source:    source,
-		Enabled:   wrapperspbBoolToTypeBool(filter.GetEnabled()),
-		Collapsed: wrapperspbBoolToTypeBool(filter.GetCollapsed()),
+		Enabled:   utils.WrapperspbBoolToTypeBool(filter.GetEnabled()),
+		Collapsed: utils.WrapperspbBoolToTypeBool(filter.GetCollapsed()),
 	}, nil
 }
 
@@ -10822,7 +10408,7 @@ func flattenDashboardFilterSourceLogs(ctx context.Context, logs *cxsdk.Dashboard
 	}
 
 	return &FilterSourceLogsModel{
-		Field:            wrapperspbStringToTypeString(logs.GetField()),
+		Field:            utils.WrapperspbStringToTypeString(logs.GetField()),
 		Operator:         operator,
 		ObservationField: observationField,
 	}, nil
@@ -10860,8 +10446,8 @@ func flattenDashboardFilterSourceMetrics(metrics *cxsdk.DashboardFilterMetricsFi
 	}
 
 	return &FilterSourceMetricsModel{
-		MetricName:  wrapperspbStringToTypeString(metrics.GetMetric()),
-		MetricLabel: wrapperspbStringToTypeString(metrics.GetLabel()),
+		MetricName:  utils.WrapperspbStringToTypeString(metrics.GetMetric()),
+		MetricLabel: utils.WrapperspbStringToTypeString(metrics.GetLabel()),
 		Operator:    operator,
 	}, nil
 }
@@ -10965,9 +10551,9 @@ func flattenDashboardAnnotation(ctx context.Context, annotation *cxsdk.Annotatio
 	}
 
 	return &DashboardAnnotationModel{
-		ID:      wrapperspbStringToTypeString(annotation.GetId()),
-		Name:    wrapperspbStringToTypeString(annotation.GetName()),
-		Enabled: wrapperspbBoolToTypeBool(annotation.GetEnabled()),
+		ID:      utils.WrapperspbStringToTypeString(annotation.GetId()),
+		Name:    utils.WrapperspbStringToTypeString(annotation.GetName()),
+		Enabled: utils.WrapperspbBoolToTypeBool(annotation.GetEnabled()),
 		Source:  source,
 	}, nil
 }
@@ -11019,9 +10605,9 @@ func flattenDashboardAnnotationSpansSourceModel(ctx context.Context, spans *cxsd
 	}
 
 	spansObject := &DashboardAnnotationSpansOrLogsSourceModel{
-		LuceneQuery:     wrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
+		LuceneQuery:     utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
 		Strategy:        strategy,
-		MessageTemplate: wrapperspbStringToTypeString(spans.GetMessageTemplate()),
+		MessageTemplate: utils.WrapperspbStringToTypeString(spans.GetMessageTemplate()),
 		LabelFields:     labelFields,
 	}
 
@@ -11201,9 +10787,9 @@ func flattenDashboardAnnotationLogsSourceModel(ctx context.Context, logs *cxsdk.
 	}
 
 	logsObject := &DashboardAnnotationSpansOrLogsSourceModel{
-		LuceneQuery:     wrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
+		LuceneQuery:     utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
 		Strategy:        strategy,
-		MessageTemplate: wrapperspbStringToTypeString(logs.GetMessageTemplate()),
+		MessageTemplate: utils.WrapperspbStringToTypeString(logs.GetMessageTemplate()),
 		LabelFields:     labelFields,
 	}
 
@@ -11252,10 +10838,10 @@ func flattenDashboardAnnotationMetricSourceModel(ctx context.Context, metricSour
 	}
 
 	metricSourceObject := &DashboardAnnotationMetricSourceModel{
-		PromqlQuery:     wrapperspbStringToTypeString(metricSource.GetPromqlQuery().GetValue()),
+		PromqlQuery:     utils.WrapperspbStringToTypeString(metricSource.GetPromqlQuery().GetValue()),
 		Strategy:        strategy,
-		MessageTemplate: wrapperspbStringToTypeString(metricSource.GetMessageTemplate()),
-		Labels:          wrappedStringSliceToTypeStringList(metricSource.GetLabels()),
+		MessageTemplate: utils.WrapperspbStringToTypeString(metricSource.GetMessageTemplate()),
+		Labels:          utils.WrappedStringSliceToTypeStringList(metricSource.GetLabels()),
 	}
 
 	return types.ObjectValueFrom(ctx, annotationsMetricsSourceModelAttr(), metricSourceObject)
@@ -11357,7 +10943,7 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Dashboard",
-				formatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(getDashboardReq)),
+				utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(getDashboardReq)),
 			)
 		}
 		return
@@ -11398,7 +10984,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Dashboard",
-			formatRpcErrors(err, cxsdk.ReplaceDashboardRPC, reqStr),
+			utils.FormatRpcErrors(err, cxsdk.ReplaceDashboardRPC, reqStr),
 		)
 		return
 	}
@@ -11411,7 +10997,7 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error getting Dashboard",
-			formatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(getDashboardReq)),
+			utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(getDashboardReq)),
 		)
 		return
 	}
@@ -11445,7 +11031,7 @@ func (r *DashboardResource) Delete(ctx context.Context, req resource.DeleteReque
 	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Dashboard %s", id),
-			formatRpcErrors(err, cxsdk.DeleteDashboardRPC, protojson.Format(deleteReq)),
+			utils.FormatRpcErrors(err, cxsdk.DeleteDashboardRPC, protojson.Format(deleteReq)),
 		)
 		return
 	}

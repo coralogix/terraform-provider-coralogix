@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -166,7 +167,7 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Scope",
-			formatRpcErrors(err, cxsdk.CreateScopeRPC, protojson.Format(createScopeReq)),
+			utils.FormatRpcErrors(err, cxsdk.CreateScopeRPC, protojson.Format(createScopeReq)),
 		)
 		return
 	}
@@ -182,7 +183,7 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Scope",
-			formatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
+			utils.FormatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
 		)
 		return
 	}
@@ -278,7 +279,7 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Scope",
-				formatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
+				utils.FormatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
 			)
 		}
 		return
@@ -312,7 +313,7 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Scope",
-			formatRpcErrors(err, cxsdk.UpdateScopeRPC, protojson.Format(updateReq)),
+			utils.FormatRpcErrors(err, cxsdk.UpdateScopeRPC, protojson.Format(updateReq)),
 		)
 		return
 	}
@@ -327,7 +328,7 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Scope",
-			formatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
+			utils.FormatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
 		)
 		return
 	}
@@ -381,7 +382,7 @@ func (r *ScopeResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error deleting Scope",
-			formatRpcErrors(err, cxsdk.DeleteScopeRPC, protojson.Format(deleteReq)),
+			utils.FormatRpcErrors(err, cxsdk.DeleteScopeRPC, protojson.Format(deleteReq)),
 		)
 		return
 	}

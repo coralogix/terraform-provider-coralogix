@@ -24,6 +24,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -67,7 +68,7 @@ func (d *CustomRoleDataSource) Schema(ctx context.Context, _ datasource.SchemaRe
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -101,7 +102,7 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading custom role",
-				formatRpcErrors(err, cxsdk.RolesGetCustomRoleRPC, protojson.Format(getCustomRoleReuest)),
+				utils.FormatRpcErrors(err, cxsdk.RolesGetCustomRoleRPC, protojson.Format(getCustomRoleReuest)),
 			)
 		}
 		return

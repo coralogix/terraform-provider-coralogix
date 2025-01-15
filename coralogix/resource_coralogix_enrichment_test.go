@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -186,7 +187,7 @@ func testAccCheckEnrichmentDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := EnrichmentsByID(ctx, client, strToUint32(rs.Primary.ID))
+		resp, err := EnrichmentsByID(ctx, client, utils.StrToUint32(rs.Primary.ID))
 
 		if err == nil {
 			if len(resp) != 0 {
@@ -208,7 +209,7 @@ func testAccCheckCustomEnrichmentDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := EnrichmentsByID(ctx, client, strToUint32(rs.Primary.ID))
+		resp, err := EnrichmentsByID(ctx, client, utils.StrToUint32(rs.Primary.ID))
 		if err == nil {
 			if len(resp) != 0 {
 				return fmt.Errorf("enrichment still exists: %s", rs.Primary.ID)

@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -115,7 +116,7 @@ func (r *DashboardsFolderResource) Create(ctx context.Context, req resource.Crea
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError("Error Creating Dashboards Folder",
-			formatRpcErrors(err, cxsdk.DashboardFoldersCreateDashboardFolderRPC, dashboardsFolderStr),
+			utils.FormatRpcErrors(err, cxsdk.DashboardFoldersCreateDashboardFolderRPC, dashboardsFolderStr),
 		)
 		return
 	}
@@ -123,7 +124,7 @@ func (r *DashboardsFolderResource) Create(ctx context.Context, req resource.Crea
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError("Error Listing Dashboards Folders",
-			formatRpcErrors(err, cxsdk.DashboardFoldersListDashboardFoldersRPC, ""),
+			utils.FormatRpcErrors(err, cxsdk.DashboardFoldersListDashboardFoldersRPC, ""),
 		)
 		return
 	}
@@ -153,17 +154,17 @@ func (r *DashboardsFolderResource) Create(ctx context.Context, req resource.Crea
 
 func flattenDashboardsFolder(folder *cxsdk.DashboardFolder) DashboardsFolderResourceModel {
 	return DashboardsFolderResourceModel{
-		ID:       wrapperspbStringToTypeString(folder.GetId()),
-		Name:     wrapperspbStringToTypeString(folder.GetName()),
-		ParentId: wrapperspbStringToTypeString(folder.GetParentId()),
+		ID:       utils.WrapperspbStringToTypeString(folder.GetId()),
+		Name:     utils.WrapperspbStringToTypeString(folder.GetName()),
+		ParentId: utils.WrapperspbStringToTypeString(folder.GetParentId()),
 	}
 }
 
 func extractCreateDashboardsFolder(plan DashboardsFolderResourceModel) *cxsdk.DashboardFolder {
 	return &cxsdk.DashboardFolder{
-		Id:       expandUuid(plan.ID),
-		Name:     typeStringToWrapperspbString(plan.Name),
-		ParentId: typeStringToWrapperspbString(plan.ParentId),
+		Id:       utils.ExpandUuid(plan.ID),
+		Name:     utils.TypeStringToWrapperspbString(plan.Name),
+		ParentId: utils.TypeStringToWrapperspbString(plan.ParentId),
 	}
 }
 
@@ -178,7 +179,7 @@ func (r *DashboardsFolderResource) Read(ctx context.Context, req resource.ReadRe
 	listResp, err := r.client.List(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		formatRpcErrors(err, cxsdk.DashboardFoldersListDashboardFoldersRPC, "")
+		utils.FormatRpcErrors(err, cxsdk.DashboardFoldersListDashboardFoldersRPC, "")
 		return
 	}
 	var dashboardsFolder *cxsdk.DashboardFolder
@@ -221,7 +222,7 @@ func (r *DashboardsFolderResource) Update(ctx context.Context, req resource.Upda
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError("Error Creating Dashboards Folder",
-			formatRpcErrors(err, cxsdk.DashboardFoldersReplaceDashboardFolderRPC, dashboardsFolderStr),
+			utils.FormatRpcErrors(err, cxsdk.DashboardFoldersReplaceDashboardFolderRPC, dashboardsFolderStr),
 		)
 		return
 	}
@@ -229,7 +230,7 @@ func (r *DashboardsFolderResource) Update(ctx context.Context, req resource.Upda
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError("Error Listing Dashboards Folders",
-			formatRpcErrors(err, cxsdk.DashboardFoldersListDashboardFoldersRPC, ""),
+			utils.FormatRpcErrors(err, cxsdk.DashboardFoldersListDashboardFoldersRPC, ""),
 		)
 		return
 	}
@@ -271,7 +272,7 @@ func (r *DashboardsFolderResource) Delete(ctx context.Context, req resource.Dele
 	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Dashboard %s", id),
-			formatRpcErrors(err, cxsdk.DashboardFoldersDeleteDashboardFolderRPC, protojson.Format(deleteReq)),
+			utils.FormatRpcErrors(err, cxsdk.DashboardFoldersDeleteDashboardFolderRPC, protojson.Format(deleteReq)),
 		)
 		return
 	}

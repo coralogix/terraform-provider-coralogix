@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 	"testing"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
@@ -40,7 +41,7 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 	action := actionTestParams{
 		name:         "google search action",
 		url:          "https://www.google.com/",
-		sourceType:   selectRandomlyFromSlice(actionValidSourceTypes),
+		sourceType:   utils.SelectRandomlyFromSlice(actionValidSourceTypes),
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
 		isPrivate:    false,
@@ -50,7 +51,7 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 	updatedAction := actionTestParams{
 		name:         "bing search action",
 		url:          "https://www.bing.com/search?q={{$p.selected_value}}",
-		sourceType:   selectRandomlyFromSlice(actionValidSourceTypes),
+		sourceType:   utils.SelectRandomlyFromSlice(actionValidSourceTypes),
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
 		isPrivate:    false,
@@ -135,5 +136,5 @@ func testAccCoralogixResourceAction(action actionTestParams) string {
   						subsystems 		   =  %s
   						is_private         =  %t
 }
-`, action.name, action.url, action.sourceType, sliceToString(action.applications), sliceToString(action.subsystems), action.isPrivate)
+`, action.name, action.url, action.sourceType, utils.SliceToString(action.applications), utils.SliceToString(action.subsystems), action.isPrivate)
 }

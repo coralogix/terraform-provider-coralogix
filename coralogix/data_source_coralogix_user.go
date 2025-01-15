@@ -21,6 +21,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -65,7 +66,7 @@ func (d *UserDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest,
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -89,7 +90,7 @@ func (d *UserDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading User",
-				formatRpcErrors(err, fmt.Sprintf("%s/%s", d.client.BaseURL(), id), ""),
+				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", d.client.BaseURL(), id), ""),
 			)
 		}
 		return

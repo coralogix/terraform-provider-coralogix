@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -68,7 +69,7 @@ func (d *ActionDataSource) Schema(ctx context.Context, _ datasource.SchemaReques
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -91,7 +92,7 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Action",
-				formatRpcErrors(err, cxsdk.GetActionRPC, protojson.Format(getActionReq)),
+				utils.FormatRpcErrors(err, cxsdk.GetActionRPC, protojson.Format(getActionReq)),
 			)
 		}
 		return

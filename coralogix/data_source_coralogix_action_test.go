@@ -15,6 +15,7 @@
 package coralogix
 
 import (
+	"terraform-provider-coralogix/coralogix/utils"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -27,7 +28,7 @@ func TestAccCoralogixDataSourceAction(t *testing.T) {
 	action := actionTestParams{
 		name:         acctest.RandomWithPrefix("tf-acc-test"),
 		url:          "https://www.google.com/",
-		sourceType:   selectRandomlyFromSlice(actionValidSourceTypes),
+		sourceType:   utils.SelectRandomlyFromSlice(actionValidSourceTypes),
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
 		isPrivate:    false,

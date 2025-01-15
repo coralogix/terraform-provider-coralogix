@@ -19,6 +19,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -29,7 +30,7 @@ import (
 )
 
 func dataSourceCoralogixDataSet() *schema.Resource {
-	dataSetSchema := datasourceSchemaFromResourceSchema(DataSetSchema())
+	dataSetSchema := utils.DatasourceSchemaFromResourceSchema(DataSetSchema())
 	dataSetSchema["id"] = &schema.Schema{
 		Type:     schema.TypeString,
 		Required: true,
@@ -44,17 +45,17 @@ func dataSourceCoralogixDataSet() *schema.Resource {
 
 func dataSourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Get("id").(string)
-	req := &cxsdk.GetDataSetRequest{Id: wrapperspb.UInt32(strToUint32(id))}
+	req := &cxsdk.GetDataSetRequest{Id: wrapperspb.UInt32(utils.StrToUint32(id))}
 	log.Printf("[INFO] Reading custom-enrichment-data %s", id)
 	enrichmentResp, err := meta.(*clientset.ClientSet).DataSet().Get(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		reqStr := protojson.Format(req)
-		return diag.Errorf(formatRpcErrors(err, cxsdk.GetDataSetRPC, reqStr))
+		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.GetDataSetRPC, reqStr))
 	}
 	log.Printf("[INFO] Received custom-enrichment-data: %s", protojson.Format(enrichmentResp))
 
-	d.SetId(uint32ToStr(enrichmentResp.GetCustomEnrichment().GetId()))
+	d.SetId(utils.Uint32ToStr(enrichmentResp.GetCustomEnrichment().GetId()))
 
 	return setDataSet(d, enrichmentResp.GetCustomEnrichment())
 }

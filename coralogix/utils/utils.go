@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package coralogix
+package utils
 
 import (
 	"bytes"
@@ -45,7 +45,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func formatRpcErrors(err error, url, requestStr string) string {
+func FormatRpcErrors(err error, url, requestStr string) string {
 	switch status.Code(err) {
 	case codes.Internal:
 		return fmt.Sprintf("internal error in Coralogix backend.\nerror - %s\nurl - %s\nrequest - %s", err, url, requestStr)
@@ -62,7 +62,7 @@ func formatRpcErrors(err error, url, requestStr string) string {
 // - all attributes have Computed = true
 // - all attributes have ForceNew, Required = false
 // - Validation funcs and attributes (e.g. MaxItems) are not copied
-func datasourceSchemaFromResourceSchema(rs map[string]*schema.Schema) map[string]*schema.Schema {
+func DatasourceSchemaFromResourceSchema(rs map[string]*schema.Schema) map[string]*schema.Schema {
 	ds := make(map[string]*schema.Schema, len(rs))
 	for k, v := range rs {
 		dv := &schema.Schema{
@@ -84,7 +84,7 @@ func datasourceSchemaFromResourceSchema(rs map[string]*schema.Schema) map[string
 			if elem, ok := v.Elem.(*schema.Resource); ok {
 				// handle the case where the Element is a sub-resource
 				dv.Elem = &schema.Resource{
-					Schema: datasourceSchemaFromResourceSchema(elem.Schema),
+					Schema: DatasourceSchemaFromResourceSchema(elem.Schema),
 				}
 			} else {
 				// handle simple primitive case
@@ -102,8 +102,8 @@ func datasourceSchemaFromResourceSchema(rs map[string]*schema.Schema) map[string
 	return ds
 }
 
-func frameworkDatasourceSchemaFromFrameworkResourceSchema(rs resourceschema.Schema) datasourceschema.Schema {
-	attributes := convertAttributes(rs.Attributes)
+func FrameworkDatasourceSchemaFromFrameworkResourceSchema(rs resourceschema.Schema) datasourceschema.Schema {
+	attributes := ConvertAttributes(rs.Attributes)
 	if idSchema, ok := rs.Attributes["id"]; ok {
 		attributes["id"] = datasourceschema.StringAttribute{
 			Required:            true,
@@ -121,15 +121,15 @@ func frameworkDatasourceSchemaFromFrameworkResourceSchema(rs resourceschema.Sche
 	}
 }
 
-func convertAttributes(attributes map[string]resourceschema.Attribute) map[string]datasourceschema.Attribute {
+func ConvertAttributes(attributes map[string]resourceschema.Attribute) map[string]datasourceschema.Attribute {
 	result := make(map[string]datasourceschema.Attribute, len(attributes))
 	for k, v := range attributes {
-		result[k] = convertAttribute(v)
+		result[k] = ConvertAttribute(v)
 	}
 	return result
 }
 
-func convertAttribute(resourceAttribute resourceschema.Attribute) datasourceschema.Attribute {
+func ConvertAttribute(resourceAttribute resourceschema.Attribute) datasourceschema.Attribute {
 	switch attr := resourceAttribute.(type) {
 	case resourceschema.BoolAttribute:
 		return datasourceschema.BoolAttribute{
@@ -188,7 +188,7 @@ func convertAttribute(resourceAttribute resourceschema.Attribute) datasourcesche
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			NestedObject: datasourceschema.NestedAttributeObject{
-				Attributes: convertAttributes(attr.NestedObject.Attributes),
+				Attributes: ConvertAttributes(attr.NestedObject.Attributes),
 			},
 		}
 	case resourceschema.ListAttribute:
@@ -204,7 +204,7 @@ func convertAttribute(resourceAttribute resourceschema.Attribute) datasourcesche
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			NestedObject: datasourceschema.NestedAttributeObject{
-				Attributes: convertAttributes(attr.NestedObject.Attributes),
+				Attributes: ConvertAttributes(attr.NestedObject.Attributes),
 			},
 		}
 	case resourceschema.SetNestedAttribute:
@@ -213,7 +213,7 @@ func convertAttribute(resourceAttribute resourceschema.Attribute) datasourcesche
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 			NestedObject: datasourceschema.NestedAttributeObject{
-				Attributes: convertAttributes(attr.NestedObject.Attributes),
+				Attributes: ConvertAttributes(attr.NestedObject.Attributes),
 			},
 		}
 	case resourceschema.SingleNestedAttribute:
@@ -221,7 +221,7 @@ func convertAttribute(resourceAttribute resourceschema.Attribute) datasourcesche
 			Computed:            true,
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
-			Attributes:          convertAttributes(attr.Attributes),
+			Attributes:          ConvertAttributes(attr.Attributes),
 		}
 	case resourceschema.DynamicAttribute:
 		return datasourceschema.DynamicAttribute{
@@ -234,7 +234,7 @@ func convertAttribute(resourceAttribute resourceschema.Attribute) datasourcesche
 	}
 }
 
-func interfaceSliceToStringSlice(s []interface{}) []string {
+func InterfaceSliceToStringSlice(s []interface{}) []string {
 	result := make([]string, 0, len(s))
 	for _, v := range s {
 		result = append(result, v.(string))
@@ -242,7 +242,7 @@ func interfaceSliceToStringSlice(s []interface{}) []string {
 	return result
 }
 
-func attrSliceToFloat32Slice(ctx context.Context, arr []attr.Value) ([]float32, diag2.Diagnostics) {
+func AttrSliceToFloat32Slice(ctx context.Context, arr []attr.Value) ([]float32, diag2.Diagnostics) {
 	var diags diag2.Diagnostics
 	result := make([]float32, 0, len(arr))
 	for _, v := range arr {
@@ -262,7 +262,7 @@ func attrSliceToFloat32Slice(ctx context.Context, arr []attr.Value) ([]float32, 
 	return result, diags
 }
 
-func float32SliceTypeList(ctx context.Context, arr []float32) (types.List, diag2.Diagnostics) {
+func Float32SliceTypeList(ctx context.Context, arr []float32) (types.List, diag2.Diagnostics) {
 	if len(arr) == 0 {
 		return types.ListNull(types.Float64Type), nil
 	}
@@ -277,7 +277,7 @@ func float32SliceTypeList(ctx context.Context, arr []float32) (types.List, diag2
 	return types.ListValueFrom(ctx, types.Float64Type, result)
 }
 
-func wrappedStringSliceToTypeStringSet(s []*wrapperspb.StringValue) types.Set {
+func WrappedStringSliceToTypeStringSet(s []*wrapperspb.StringValue) types.Set {
 	if len(s) == 0 {
 		return types.SetNull(types.StringType)
 	}
@@ -288,7 +288,7 @@ func wrappedStringSliceToTypeStringSet(s []*wrapperspb.StringValue) types.Set {
 	return types.SetValueMust(types.StringType, elements)
 }
 
-func stringSliceToTypeStringSet(s []string) types.Set {
+func StringSliceToTypeStringSet(s []string) types.Set {
 	if len(s) == 0 {
 		return types.SetNull(types.StringType)
 	}
@@ -299,7 +299,7 @@ func stringSliceToTypeStringSet(s []string) types.Set {
 	return types.SetValueMust(types.StringType, elements)
 }
 
-func int32SliceToTypeInt64Set(arr []int32) types.Set {
+func Int32SliceToTypeInt64Set(arr []int32) types.Set {
 	if len(arr) == 0 {
 		return types.SetNull(types.Int64Type)
 	}
@@ -310,7 +310,7 @@ func int32SliceToTypeInt64Set(arr []int32) types.Set {
 	return types.SetValueMust(types.StringType, elements)
 }
 
-func wrappedStringSliceToTypeStringList(s []*wrapperspb.StringValue) types.List {
+func WrappedStringSliceToTypeStringList(s []*wrapperspb.StringValue) types.List {
 	if len(s) == 0 {
 		return types.ListNull(types.StringType)
 	}
@@ -321,7 +321,7 @@ func wrappedStringSliceToTypeStringList(s []*wrapperspb.StringValue) types.List 
 	return types.ListValueMust(types.StringType, elements)
 }
 
-func typeStringSliceToWrappedStringSlice(ctx context.Context, s []attr.Value) ([]*wrapperspb.StringValue, diag2.Diagnostics) {
+func TypeStringSliceToWrappedStringSlice(ctx context.Context, s []attr.Value) ([]*wrapperspb.StringValue, diag2.Diagnostics) {
 	var diags diag2.Diagnostics
 	result := make([]*wrapperspb.StringValue, 0, len(s))
 	for _, v := range s {
@@ -341,28 +341,28 @@ func typeStringSliceToWrappedStringSlice(ctx context.Context, s []attr.Value) ([
 	return result, diags
 }
 
-func typeInt64ToWrappedInt64(v types.Int64) *wrapperspb.Int64Value {
+func TypeInt64ToWrappedInt64(v types.Int64) *wrapperspb.Int64Value {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
 	}
 	return wrapperspb.Int64(v.ValueInt64())
 }
 
-func typeInt64ToWrappedInt32(v types.Int64) *wrapperspb.Int32Value {
+func TypeInt64ToWrappedInt32(v types.Int64) *wrapperspb.Int32Value {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
 	}
 	return wrapperspb.Int32(int32(v.ValueInt64()))
 }
 
-func typeInt64ToWrappedUint32(v types.Int64) *wrapperspb.UInt32Value {
+func TypeInt64ToWrappedUint32(v types.Int64) *wrapperspb.UInt32Value {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
 	}
 	return wrapperspb.UInt32(uint32(v.ValueInt64()))
 }
 
-func typeNumberToWrappedUint64(v types.Number) *wrapperspb.UInt64Value {
+func TypeNumberToWrappedUint64(v types.Number) *wrapperspb.UInt64Value {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
 	}
@@ -370,21 +370,21 @@ func typeNumberToWrappedUint64(v types.Number) *wrapperspb.UInt64Value {
 	return wrapperspb.UInt64(number)
 }
 
-func wrappedUint64TotypeNumber(v *wrapperspb.UInt64Value) types.Number {
+func WrappedUint64TotypeNumber(v *wrapperspb.UInt64Value) types.Number {
 	if v == nil {
 		return types.NumberNull()
 	}
 	return types.NumberValue(big.NewFloat(float64(v.GetValue())))
 }
 
-func typeBoolToWrapperspbBool(v types.Bool) *wrapperspb.BoolValue {
+func TypeBoolToWrapperspbBool(v types.Bool) *wrapperspb.BoolValue {
 	if v.IsNull() || v.IsUnknown() {
 		return nil
 	}
 	return wrapperspb.Bool(v.ValueBool())
 }
 
-func typeStringSliceToStringSlice(ctx context.Context, s []attr.Value) ([]string, diag2.Diagnostics) {
+func TypeStringSliceToStringSlice(ctx context.Context, s []attr.Value) ([]string, diag2.Diagnostics) {
 	result := make([]string, 0, len(s))
 	var diags diag2.Diagnostics
 	for _, v := range s {
@@ -406,7 +406,7 @@ func typeStringSliceToStringSlice(ctx context.Context, s []attr.Value) ([]string
 	return result, nil
 }
 
-func typeInt64SliceToInt32Slice(ctx context.Context, s []attr.Value) ([]int32, diag2.Diagnostics) {
+func TypeInt64SliceToInt32Slice(ctx context.Context, s []attr.Value) ([]int32, diag2.Diagnostics) {
 	result := make([]int32, 0, len(s))
 	var diags diag2.Diagnostics
 	for _, v := range s {
@@ -428,7 +428,7 @@ func typeInt64SliceToInt32Slice(ctx context.Context, s []attr.Value) ([]int32, d
 	return result, nil
 }
 
-func timeInDaySchema(description string) *schema.Schema {
+func TimeInDaySchema(description string) *schema.Schema {
 	timeRegex := regexp.MustCompile(`^(0\d|1\d|2[0-3]):[0-5]\d$`)
 	return &schema.Schema{
 		Type:         schema.TypeString,
@@ -438,25 +438,25 @@ func timeInDaySchema(description string) *schema.Schema {
 	}
 }
 
-func objIsNullOrUnknown(obj types.Object) bool {
+func ObjIsNullOrUnknown(obj types.Object) bool {
 	return obj.IsNull() || obj.IsUnknown()
 }
 
-func sliceToString(data []string) string {
+func SliceToString(data []string) string {
 	b, _ := json.Marshal(data)
 	return fmt.Sprintf("%v", string(b))
 }
 
-func randFloat() float64 {
+func RandFloat() float64 {
 	r := rand.New(rand.NewSource(99))
 	return r.Float64()
 }
 
-func selectRandomlyFromSlice(s []string) string {
+func SelectRandomlyFromSlice(s []string) string {
 	return s[acctest.RandIntRange(0, len(s))]
 }
 
-func selectManyRandomlyFromSlice(s []string) []string {
+func SelectManyRandomlyFromSlice(s []string) []string {
 	r := rand.New(rand.NewSource(99))
 	indexPerms := r.Perm(len(s))
 	itemsToSelect := acctest.RandIntRange(0, len(s)+1)
@@ -467,43 +467,27 @@ func selectManyRandomlyFromSlice(s []string) []string {
 	return result
 }
 
-func getKeysStrings(m map[string]string) []string {
-	result := make([]string, 0)
-	for k := range m {
-		result = append(result, k)
-	}
-	return result
-}
-
-func getKeysInterface(m map[string]interface{}) []string {
-	result := make([]string, 0)
-	for k := range m {
-		result = append(result, k)
-	}
-	return result
-}
-
-func strToUint32(str string) uint32 {
+func StrToUint32(str string) uint32 {
 	n, _ := strconv.ParseUint(str, 10, 32)
 	return uint32(n)
 }
 
-func uint32ToStr(n uint32) string {
+func Uint32ToStr(n uint32) string {
 	return strconv.FormatUint(uint64(n), 10)
 }
 
-type urlValidationFuncFramework struct {
+type UrlValidationFuncFramework struct {
 }
 
-func (u urlValidationFuncFramework) Description(_ context.Context) string {
+func (u UrlValidationFuncFramework) Description(_ context.Context) string {
 	return "string must be a valid url format"
 }
 
-func (u urlValidationFuncFramework) MarkdownDescription(ctx context.Context) string {
+func (u UrlValidationFuncFramework) MarkdownDescription(ctx context.Context) string {
 	return u.Description(ctx)
 }
 
-func (u urlValidationFuncFramework) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+func (u UrlValidationFuncFramework) ValidateString(ctx context.Context, req validator.StringRequest, resp *validator.StringResponse) {
 	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 		return
 	}
@@ -521,7 +505,7 @@ func (u urlValidationFuncFramework) ValidateString(ctx context.Context, req vali
 	}
 }
 
-func flattenUtc(timeZone string) int32 {
+func FlattenUtc(timeZone string) int32 {
 	utcStr := strings.Split(timeZone, "UTC")[1]
 	utc, _ := strconv.Atoi(utcStr)
 	return int32(utc)
@@ -565,11 +549,11 @@ func JSONBytesEqual(b1, b2 []byte) bool {
 	return reflect.DeepEqual(o1, o2)
 }
 
-func randBool() bool {
+func RandBool() bool {
 	return rand.Int()%2 == 0
 }
 
-func typeStringToWrapperspbString(str types.String) *wrapperspb.StringValue {
+func TypeStringToWrapperspbString(str types.String) *wrapperspb.StringValue {
 	if str.IsNull() || str.IsUnknown() {
 		return nil
 
@@ -577,7 +561,7 @@ func typeStringToWrapperspbString(str types.String) *wrapperspb.StringValue {
 	return wrapperspb.String(str.ValueString())
 }
 
-func typeStringToStringPointer(str types.String) *string {
+func TypeStringToStringPointer(str types.String) *string {
 	if str.IsNull() || str.IsUnknown() {
 		return nil
 	}
@@ -586,14 +570,14 @@ func typeStringToStringPointer(str types.String) *string {
 	return result
 }
 
-func stringPointerToTypeString(str *string) types.String {
+func StringPointerToTypeString(str *string) types.String {
 	if str == nil {
 		return types.StringNull()
 	}
 	return types.StringValue(*str)
 }
 
-func typeFloat64ToWrapperspbDouble(num types.Float64) *wrapperspb.DoubleValue {
+func TypeFloat64ToWrapperspbDouble(num types.Float64) *wrapperspb.DoubleValue {
 	if num.IsNull() {
 		return nil
 	}
@@ -601,7 +585,7 @@ func typeFloat64ToWrapperspbDouble(num types.Float64) *wrapperspb.DoubleValue {
 	return wrapperspb.Double(num.ValueFloat64())
 }
 
-func wrapperspbStringToTypeString(str *wrapperspb.StringValue) types.String {
+func WrapperspbStringToTypeString(str *wrapperspb.StringValue) types.String {
 	if str == nil {
 		return types.StringNull()
 	}
@@ -609,7 +593,7 @@ func wrapperspbStringToTypeString(str *wrapperspb.StringValue) types.String {
 	return types.StringValue(str.GetValue())
 }
 
-func wrapperspbInt64ToTypeInt64(num *wrapperspb.Int64Value) types.Int64 {
+func WrapperspbInt64ToTypeInt64(num *wrapperspb.Int64Value) types.Int64 {
 	if num == nil {
 		return types.Int64Null()
 	}
@@ -617,7 +601,7 @@ func wrapperspbInt64ToTypeInt64(num *wrapperspb.Int64Value) types.Int64 {
 	return types.Int64Value(num.GetValue())
 }
 
-func wrapperspbUInt64ToNumberType(num *wrapperspb.UInt64Value) types.Number {
+func WrapperspbUInt64ToNumberType(num *wrapperspb.UInt64Value) types.Number {
 	if num == nil {
 		return types.NumberNull()
 	}
@@ -625,7 +609,7 @@ func wrapperspbUInt64ToNumberType(num *wrapperspb.UInt64Value) types.Number {
 	return types.NumberValue(big.NewFloat(float64(num.GetValue())))
 }
 
-func numberTypeToWrapperspbUInt64(num types.Number) *wrapperspb.UInt64Value {
+func NumberTypeToWrapperspbUInt64(num types.Number) *wrapperspb.UInt64Value {
 	if num.IsNull() {
 		return nil
 	}
@@ -634,7 +618,7 @@ func numberTypeToWrapperspbUInt64(num types.Number) *wrapperspb.UInt64Value {
 	return wrapperspb.UInt64(val)
 }
 
-func wrapperspbUint32ToTypeInt64(num *wrapperspb.UInt32Value) types.Int64 {
+func WrapperspbUint32ToTypeInt64(num *wrapperspb.UInt32Value) types.Int64 {
 	if num == nil {
 		return types.Int64Null()
 	}
@@ -642,7 +626,7 @@ func wrapperspbUint32ToTypeInt64(num *wrapperspb.UInt32Value) types.Int64 {
 	return types.Int64Value(int64(num.GetValue()))
 }
 
-func wrapperspbDoubleToTypeFloat64(num *wrapperspb.DoubleValue) types.Float64 {
+func WrapperspbDoubleToTypeFloat64(num *wrapperspb.DoubleValue) types.Float64 {
 	if num == nil {
 		return types.Float64Null()
 	}
@@ -650,7 +634,7 @@ func wrapperspbDoubleToTypeFloat64(num *wrapperspb.DoubleValue) types.Float64 {
 	return types.Float64Value(num.GetValue())
 }
 
-func wrapperspbBoolToTypeBool(b *wrapperspb.BoolValue) types.Bool {
+func WrapperspbBoolToTypeBool(b *wrapperspb.BoolValue) types.Bool {
 	if b == nil {
 		return types.BoolNull()
 	}
@@ -658,7 +642,7 @@ func wrapperspbBoolToTypeBool(b *wrapperspb.BoolValue) types.Bool {
 	return types.BoolValue(b.GetValue())
 }
 
-func wrapperspbInt32ToTypeInt64(num *wrapperspb.Int32Value) types.Int64 {
+func WrapperspbInt32ToTypeInt64(num *wrapperspb.Int32Value) types.Int64 {
 	if num == nil {
 		return types.Int64Null()
 	}
@@ -682,7 +666,7 @@ func GetValues[K, V cmp.Ordered](m map[K]V) []V {
 	return slices.Sorted(maps.Values(m))
 }
 
-func parseNumInt32(desired string) int32 {
+func ParseNumInt32(desired string) int32 {
 	parsed, err := strconv.ParseInt(desired, 10, 32)
 	if err != nil {
 		return 0
@@ -690,7 +674,7 @@ func parseNumInt32(desired string) int32 {
 	return int32(parsed)
 }
 
-func parseNumUint32(desired string) uint32 {
+func ParseNumUint32(desired string) uint32 {
 	parsed, err := strconv.ParseUint(desired, 10, 32)
 	if err != nil {
 		return 0
@@ -698,20 +682,20 @@ func parseNumUint32(desired string) uint32 {
 	return uint32(parsed)
 }
 
-func typeMapToStringMap(ctx context.Context, m types.Map) (map[string]string, diag2.Diagnostics) {
+func TypeMapToStringMap(ctx context.Context, m types.Map) (map[string]string, diag2.Diagnostics) {
 	var result map[string]string
 	diags := m.ElementsAs(ctx, &result, true)
 	return result, diags
 }
 
-func expandUuid(uuid types.String) *wrapperspb.StringValue {
+func ExpandUuid(uuid types.String) *wrapperspb.StringValue {
 	if uuid.IsNull() || uuid.IsUnknown() {
 		return &wrapperspb.StringValue{Value: gouuid.NewString()}
 	}
 	return &wrapperspb.StringValue{Value: uuid.ValueString()}
 }
 
-func retryableStatusCode(statusCode codes.Code) bool {
+func RetryableStatusCode(statusCode codes.Code) bool {
 	switch statusCode {
 	case codes.Unavailable, codes.DeadlineExceeded, codes.Aborted:
 		return true
@@ -720,7 +704,7 @@ func retryableStatusCode(statusCode codes.Code) bool {
 	}
 }
 
-func uint32SliceToWrappedUint32Slice(s []uint32) []*wrapperspb.UInt32Value {
+func Uint32SliceToWrappedUint32Slice(s []uint32) []*wrapperspb.UInt32Value {
 	result := make([]*wrapperspb.UInt32Value, 0, len(s))
 	for _, n := range s {
 		result = append(result, wrapperspb.UInt32(n))
@@ -728,8 +712,8 @@ func uint32SliceToWrappedUint32Slice(s []uint32) []*wrapperspb.UInt32Value {
 	return result
 }
 
-func convertSchemaWithoutID(rs resourceschema.Schema) datasourceschema.Schema {
-	attributes := convertAttributes(rs.Attributes)
+func ConvertSchemaWithoutID(rs resourceschema.Schema) datasourceschema.Schema {
+	attributes := ConvertAttributes(rs.Attributes)
 	return datasourceschema.Schema{
 		Attributes:          attributes,
 		Description:         rs.Description,
@@ -738,7 +722,7 @@ func convertSchemaWithoutID(rs resourceschema.Schema) datasourceschema.Schema {
 	}
 }
 
-func typeStringToWrapperspbUint32(str types.String) (*wrapperspb.UInt32Value, diag2.Diagnostics) {
+func TypeStringToWrapperspbUint32(str types.String) (*wrapperspb.UInt32Value, diag2.Diagnostics) {
 	parsed, err := strconv.ParseUint(str.ValueString(), 10, 32)
 	if err != nil {
 		return nil, diag2.Diagnostics{diag2.NewErrorDiagnostic("Failed to convert string to uint32", err.Error())}

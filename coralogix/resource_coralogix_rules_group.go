@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -44,8 +45,8 @@ var (
 		"Error":    cxsdk.SeverityConstraintValueError,
 		"Critical": cxsdk.SeverityConstraintValueCritical,
 	}
-	rulesProtoSeverityToSchemaSeverity                 = ReverseMap(rulesSchemaSeverityToProtoSeverity)
-	rulesValidSeverities                               = GetKeys(rulesSchemaSeverityToProtoSeverity)
+	rulesProtoSeverityToSchemaSeverity                 = utils.ReverseMap(rulesSchemaSeverityToProtoSeverity)
+	rulesValidSeverities                               = utils.GetKeys(rulesSchemaSeverityToProtoSeverity)
 	rulesSchemaDestinationFieldToProtoDestinationField = map[string]cxsdk.JSONExtractParametersDestinationField{
 		"Category": cxsdk.JSONExtractParametersDestinationFieldCategoryOrUnspecified,
 		"Class":    cxsdk.JSONExtractParametersDestinationFieldClassName,
@@ -54,8 +55,8 @@ var (
 		"Severity": cxsdk.JSONExtractParametersDestinationFieldSeverity,
 		"Text":     cxsdk.JSONExtractParametersDestinationFieldText,
 	}
-	rulesProtoDestinationFieldToSchemaDestinationField = ReverseMap(rulesSchemaDestinationFieldToProtoDestinationField)
-	rulesValidDestinationFields                        = GetKeys(rulesSchemaDestinationFieldToProtoDestinationField)
+	rulesProtoDestinationFieldToSchemaDestinationField = utils.ReverseMap(rulesSchemaDestinationFieldToProtoDestinationField)
+	rulesValidDestinationFields                        = utils.GetKeys(rulesSchemaDestinationFieldToProtoDestinationField)
 	rulesSchemaFormatStandardToProtoFormatStandard     = map[string]cxsdk.ExtractTimestampParametersFormatStandard{
 		"Strftime": cxsdk.ExtractTimestampParametersFormatStandardStrftimeOrUnspecified,
 		"JavaSDF":  cxsdk.ExtractTimestampParametersFormatStandardJavasdf,
@@ -65,8 +66,8 @@ var (
 		"MicroTS":  cxsdk.ExtractTimestampParametersFormatStandardMicroTS,
 		"NanoTS":   cxsdk.ExtractTimestampParametersFormatStandardNanoTS,
 	}
-	rulesProtoFormatStandardToSchemaFormatStandard = ReverseMap(rulesSchemaFormatStandardToProtoFormatStandard)
-	rulesValidFormatStandards                      = GetKeys(rulesSchemaFormatStandardToProtoFormatStandard)
+	rulesProtoFormatStandardToSchemaFormatStandard = utils.ReverseMap(rulesSchemaFormatStandardToProtoFormatStandard)
+	rulesValidFormatStandards                      = utils.GetKeys(rulesSchemaFormatStandardToProtoFormatStandard)
 )
 
 func resourceCoralogixRulesGroup() *schema.Resource {
@@ -483,7 +484,7 @@ func resourceCoralogixRulesGroupCreate(ctx context.Context, d *schema.ResourceDa
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().Create(ctx, createRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, cxsdk.RuleGroupsCreateRuleGroupRPC, protojson.Format(createRuleGroupRequest)))
+		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.RuleGroupsCreateRuleGroupRPC, protojson.Format(createRuleGroupRequest)))
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
 	log.Printf("[INFO] Submitted new rule-group: %s", protojson.Format(ruleGroup))
@@ -510,7 +511,7 @@ func resourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceData
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		return diag.Errorf(formatRpcErrors(err, cxsdk.RuleGroupsGetRuleGroupRPC, protojson.Format(getRuleGroupRequest)))
+		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.RuleGroupsGetRuleGroupRPC, protojson.Format(getRuleGroupRequest)))
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
 	log.Printf("[INFO] Received rule-group: %s", protojson.Format(ruleGroup))
@@ -534,7 +535,7 @@ func resourceCoralogixRulesGroupUpdate(ctx context.Context, d *schema.ResourceDa
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().Update(ctx, updateRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, cxsdk.RuleGroupsUpdateRuleGroupRPC, protojson.Format(updateRuleGroupRequest)))
+		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.RuleGroupsUpdateRuleGroupRPC, protojson.Format(updateRuleGroupRequest)))
 	}
 	log.Printf("[INFO] Submitted updated rule-group: %s", protojson.Format(ruleGroupResp))
 
@@ -551,7 +552,7 @@ func resourceCoralogixRulesGroupDelete(ctx context.Context, d *schema.ResourceDa
 	_, err := meta.(*clientset.ClientSet).RuleGroups().Delete(ctx, deleteRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, cxsdk.RuleGroupsDeleteRuleGroupRPC, protojson.Format(deleteRuleGroupRequest)))
+		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.RuleGroupsDeleteRuleGroupRPC, protojson.Format(deleteRuleGroupRequest)))
 	}
 	log.Printf("[INFO] rule-group %s deleted", id)
 
@@ -731,12 +732,12 @@ func expandRule(i interface{}) (*cxsdk.CreateRuleGroupRequestCreateRuleSubgroupC
 			if rule == nil {
 				rule = expandRuleForSpecificRuleType(k, r[0])
 			} else {
-				return nil, fmt.Errorf("exactly one of %q must be provided inside rule. more than one rule type where provided", getKeysInterface(m))
+				return nil, fmt.Errorf("exactly one of %q must be provided inside rule. more than one rule type where provided", utils.GetKeys(m))
 			}
 		}
 	}
 	if rule == nil {
-		return nil, fmt.Errorf("exactly one of %q must be provided inside rule. no rule type was provided", getKeysInterface(m))
+		return nil, fmt.Errorf("exactly one of %q must be provided inside rule. no rule type was provided", utils.GetKeys(m))
 	}
 	return rule, nil
 }
@@ -814,7 +815,7 @@ func expandParameters(ruleType string, m map[string]interface{}) *cxsdk.RulePara
 		ruleParametersExtractTimestampParameters := cxsdk.RuleParametersExtractTimestampParameters{ExtractTimestampParameters: &extractTimestampParameters}
 		ruleParameters.RuleParameters = &ruleParametersExtractTimestampParameters
 	case "remove_fields":
-		excludedFields := interfaceSliceToStringSlice(m["excluded_fields"].([]interface{}))
+		excludedFields := utils.InterfaceSliceToStringSlice(m["excluded_fields"].([]interface{}))
 		removeFieldsParameters := cxsdk.RemoveFieldsParameters{Fields: excludedFields}
 		ruleParametersRemoveFieldsParameters := cxsdk.RuleParametersRemoveFieldsParameters{RemoveFieldsParameters: &removeFieldsParameters}
 		ruleParameters.RuleParameters = &ruleParametersRemoveFieldsParameters
