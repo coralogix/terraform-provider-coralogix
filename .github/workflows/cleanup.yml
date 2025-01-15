@@ -26,4 +26,4 @@ jobs:
           TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}          
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
         run: |
-          go run scripts/cx-test-resource-cleanup.go
+          go run -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" scripts/cx-test-resource-cleanup.go
