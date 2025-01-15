@@ -61,8 +61,8 @@ var (
 		"side":        cxsdk.LegendPlacementSide,
 		"hidden":      cxsdk.LegendPlacementHidden,
 	}
-	DashboardLegendPlacementProtoToSchema = utils.ReverseMap(dashboardLegendPlacementSchemaToProto)
-	DashboardValidLegendPlacements        = utils.GetKeys(dashboardLegendPlacementSchemaToProto)
+	DashboardLegendPlacementProtoToSchema = utils.ReverseMap(DashboardLegendPlacementSchemaToProto)
+	DashboardValidLegendPlacements        = utils.GetKeys(DashboardLegendPlacementSchemaToProto)
 
 	DashboardRowStyleSchemaToProto = map[string]cxsdk.RowStyle{
 		"unspecified": cxsdk.RowStyleUnspecified,
@@ -72,8 +72,8 @@ var (
 		"json":        cxsdk.RowStyleJSON,
 		"list":        cxsdk.RowStyleList,
 	}
-	DashboardRowStyleProtoToSchema     = utils.ReverseMap(dashboardRowStyleSchemaToProto)
-	DashboardValidRowStyles            = utils.GetKeys(dashboardRowStyleSchemaToProto)
+	DashboardRowStyleProtoToSchema     = utils.ReverseMap(DashboardRowStyleSchemaToProto)
+	DashboardValidRowStyles            = utils.GetKeys(DashboardRowStyleSchemaToProto)
 	DashboardLegendColumnSchemaToProto = map[string]cxsdk.DashboardLegendColumn{
 		"unspecified": cxsdk.LegendColumnUnspecified,
 		"min":         cxsdk.LegendColumnMin,
@@ -83,30 +83,30 @@ var (
 		"last":        cxsdk.LegendColumnLast,
 		"name":        cxsdk.LegendColumnName,
 	}
-	DashboardLegendColumnProtoToSchema   = utils.ReverseMap(dashboardLegendColumnSchemaToProto)
-	DashboardValidLegendColumns          = utils.GetKeys(dashboardLegendColumnSchemaToProto)
+	DashboardLegendColumnProtoToSchema   = utils.ReverseMap(DashboardLegendColumnSchemaToProto)
+	DashboardValidLegendColumns          = utils.GetKeys(DashboardLegendColumnSchemaToProto)
 	DashboardOrderDirectionSchemaToProto = map[string]cxsdk.OrderDirection{
 		"unspecified": cxsdk.OrderDirectionUnspecified,
 		"asc":         cxsdk.OrderDirectionAsc,
 		"desc":        cxsdk.OrderDirectionDesc,
 	}
-	DashboardOrderDirectionProtoToSchema = utils.ReverseMap(dashboardOrderDirectionSchemaToProto)
-	DashboardValidOrderDirections        = utils.GetKeys(dashboardOrderDirectionSchemaToProto)
+	DashboardOrderDirectionProtoToSchema = utils.ReverseMap(DashboardOrderDirectionSchemaToProto)
+	DashboardValidOrderDirections        = utils.GetKeys(DashboardOrderDirectionSchemaToProto)
 	DashboardSchemaToProtoTooltipType    = map[string]cxsdk.LineChartTooltipType{
 		"unspecified": cxsdk.LineChartToolTipTypeUnspecified,
 		"all":         cxsdk.LineChartToolTipTypeAll,
 		"single":      cxsdk.LineChartToolTipTypeSingle,
 	}
-	DashboardProtoToSchemaTooltipType = utils.ReverseMap(dashboardSchemaToProtoTooltipType)
-	DashboardValidTooltipTypes        = utils.GetKeys(dashboardSchemaToProtoTooltipType)
+	DashboardProtoToSchemaTooltipType = utils.ReverseMap(DashboardSchemaToProtoTooltipType)
+	DashboardValidTooltipTypes        = utils.GetKeys(DashboardSchemaToProtoTooltipType)
 	DashboardSchemaToProtoScaleType   = map[string]cxsdk.ScaleType{
 		"unspecified": cxsdk.ScaleTypeUnspecified,
 		"linear":      cxsdk.ScaleTypeLinear,
 		"logarithmic": cxsdk.ScaleTypeLogarithmic,
 	}
-	DashboardProtoToSchemaScaleType = utils.ReverseMap(dashboardSchemaToProtoScaleType)
-	DashboardValidScaleTypes        = utils.GetKeys(dashboardSchemaToProtoScaleType)
-	
+	DashboardProtoToSchemaScaleType = utils.ReverseMap(DashboardSchemaToProtoScaleType)
+	DashboardValidScaleTypes        = utils.GetKeys(DashboardSchemaToProtoScaleType)
+
 	DashboardSchemaToProtoGaugeUnit = map[string]cxsdk.GaugeUnit{
 		"unspecified":  cxsdk.GaugeUnitUnspecified,
 		"none":         cxsdk.GaugeUnitMicroseconds,
@@ -131,15 +131,15 @@ var (
 		"percent01":    cxsdk.GaugeUnitPercent01,
 		"percent100":   cxsdk.GaugeUnitPercent100,
 	}
-	DashboardProtoToSchemaGaugeUnit           = utils.ReverseMap(dashboardSchemaToProtoGaugeUnit)
-	DashboardValidGaugeUnits                  = utils.GetKeys(dashboardSchemaToProtoGaugeUnit)
+	DashboardProtoToSchemaGaugeUnit           = utils.ReverseMap(DashboardSchemaToProtoGaugeUnit)
+	DashboardValidGaugeUnits                  = utils.GetKeys(DashboardSchemaToProtoGaugeUnit)
 	DashboardSchemaToProtoPieChartLabelSource = map[string]cxsdk.PieChartLabelSource{
 		"unspecified": cxsdk.PieChartLabelSourceUnspecified,
 		"inner":       cxsdk.PieChartLabelSourceInner,
 		"stack":       cxsdk.PieChartLabelSourceStack,
 	}
-	DashboardProtoToSchemaPieChartLabelSource = utils.ReverseMap(dashboardSchemaToProtoPieChartLabelSource)
-	DashboardValidPieChartLabelSources        = utils.GetKeys(dashboardSchemaToProtoPieChartLabelSource)
+	DashboardProtoToSchemaPieChartLabelSource = utils.ReverseMap(DashboardSchemaToProtoPieChartLabelSource)
+	DashboardValidPieChartLabelSources        = utils.GetKeys(DashboardSchemaToProtoPieChartLabelSource)
 	DashboardSchemaToProtoGaugeAggregation    = map[string]cxsdk.GaugeAggregation{
 		"unspecified": cxsdk.GaugeAggregationUnspecified,
 		"last":        cxsdk.GaugeAggregationLast,
@@ -148,14 +148,14 @@ var (
 		"avg":         cxsdk.GaugeAggregationAvg,
 		"sum":         cxsdk.GaugeAggregationSum,
 	}
-	DashboardProtoToSchemaGaugeAggregation            = utils.ReverseMap(dashboardSchemaToProtoGaugeAggregation)
-	DashboardValidGaugeAggregations                   = utils.GetKeys(dashboardSchemaToProtoGaugeAggregation)
+	DashboardProtoToSchemaGaugeAggregation            = utils.ReverseMap(DashboardSchemaToProtoGaugeAggregation)
+	DashboardValidGaugeAggregations                   = utils.GetKeys(DashboardSchemaToProtoGaugeAggregation)
 	DashboardSchemaToProtoSpansAggregationMetricField = map[string]cxsdk.SpansAggregationMetricAggregationMetricField{
 		"unspecified": cxsdk.SpansAggregationMetricAggregationMetricFieldUnspecified,
 		"duration":    cxsdk.SpansAggregationMetricAggregationMetricFieldDuration,
 	}
-	DashboardProtoToSchemaSpansAggregationMetricField           = utils.ReverseMap(dashboardSchemaToProtoSpansAggregationMetricField)
-	DashboardValidSpansAggregationMetricFields                  = utils.GetKeys(dashboardSchemaToProtoSpansAggregationMetricField)
+	DashboardProtoToSchemaSpansAggregationMetricField           = utils.ReverseMap(DashboardSchemaToProtoSpansAggregationMetricField)
+	DashboardValidSpansAggregationMetricFields                  = utils.GetKeys(DashboardSchemaToProtoSpansAggregationMetricField)
 	DashboardSchemaToProtoSpansAggregationMetricAggregationType = map[string]cxsdk.SpansAggregationMetricAggregationMetricAggregationType{
 		"unspecified":   cxsdk.SpansAggregationMetricAggregationMetricTypeUnspecified,
 		"min":           cxsdk.SpansAggregationMetricAggregationMetricTypeMin,
@@ -166,21 +166,21 @@ var (
 		"percentile_95": cxsdk.SpansAggregationMetricAggregationMetricTypePercentile95,
 		"percentile_50": cxsdk.SpansAggregationMetricAggregationMetricTypePercentile50,
 	}
-	DashboardProtoToSchemaSpansAggregationMetricAggregationType = utils.ReverseMap(dashboardSchemaToProtoSpansAggregationMetricAggregationType)
-	DashboardValidSpansAggregationMetricAggregationTypes        = utils.GetKeys(dashboardSchemaToProtoSpansAggregationMetricAggregationType)
+	DashboardProtoToSchemaSpansAggregationMetricAggregationType = utils.ReverseMap(DashboardSchemaToProtoSpansAggregationMetricAggregationType)
+	DashboardValidSpansAggregationMetricAggregationTypes        = utils.GetKeys(DashboardSchemaToProtoSpansAggregationMetricAggregationType)
 	DashboardProtoToSchemaSpansAggregationDimensionField        = map[string]cxsdk.SpansAggregationDimensionAggregationDimensionField{
 		"unspecified": cxsdk.SpansAggregationDimensionAggregationDimensionFieldUnspecified,
 		"trace_id":    cxsdk.SpansAggregationDimensionAggregationDimensionFieldTraceID,
 	}
-	DashboardSchemaToProtoSpansAggregationDimensionField           = utils.ReverseMap(dashboardProtoToSchemaSpansAggregationDimensionField)
-	DashboardValidSpansAggregationDimensionFields                  = utils.GetKeys(dashboardProtoToSchemaSpansAggregationDimensionField)
+	DashboardSchemaToProtoSpansAggregationDimensionField           = utils.ReverseMap(DashboardProtoToSchemaSpansAggregationDimensionField)
+	DashboardValidSpansAggregationDimensionFields                  = utils.GetKeys(DashboardProtoToSchemaSpansAggregationDimensionField)
 	DashboardSchemaToProtoSpansAggregationDimensionAggregationType = map[string]cxsdk.SpansAggregationDimensionAggregationType{
 		"unspecified":  cxsdk.SpansAggregationDimensionAggregationTypeUnspecified,
 		"unique_count": cxsdk.SpansAggregationDimensionAggregationTypeUniqueCount,
 		"error_count":  cxsdk.SpansAggregationDimensionAggregationTypeErrorCount,
 	}
-	DashboardProtoToSchemaSpansAggregationDimensionAggregationType = utils.ReverseMap(dashboardSchemaToProtoSpansAggregationDimensionAggregationType)
-	DashboardValidSpansAggregationDimensionAggregationTypes        = utils.GetKeys(dashboardSchemaToProtoSpansAggregationDimensionAggregationType)
+	DashboardProtoToSchemaSpansAggregationDimensionAggregationType = utils.ReverseMap(DashboardSchemaToProtoSpansAggregationDimensionAggregationType)
+	DashboardValidSpansAggregationDimensionAggregationTypes        = utils.GetKeys(DashboardSchemaToProtoSpansAggregationDimensionAggregationType)
 	DashboardSchemaToProtoSpanFieldMetadataField                   = map[string]cxsdk.SpanFieldMetadataFieldInner{
 		"unspecified":      cxsdk.SpanFieldMetadataFieldUnspecified,
 		"application_name": cxsdk.SpanFieldMetadataFieldApplicationName,
@@ -188,71 +188,68 @@ var (
 		"service_name":     cxsdk.SpanFieldMetadataFieldServiceName,
 		"operation_name":   cxsdk.SpanFieldMetadataFieldOperationName,
 	}
-	DashboardProtoToSchemaSpanFieldMetadataField = utils.ReverseMap(dashboardSchemaToProtoSpanFieldMetadataField)
-	DashboardValidSpanFieldMetadataFields        = utils.GetKeys(dashboardSchemaToProtoSpanFieldMetadataField)
+	DashboardProtoToSchemaSpanFieldMetadataField = utils.ReverseMap(DashboardSchemaToProtoSpanFieldMetadataField)
+	DashboardValidSpanFieldMetadataFields        = utils.GetKeys(DashboardSchemaToProtoSpanFieldMetadataField)
 	DashboardSchemaToProtoSortBy                 = map[string]cxsdk.SortByType{
 		"unspecified": cxsdk.SortByTypeUnspecified,
 		"value":       cxsdk.SortByTypeValue,
 		"name":        cxsdk.SortByTypeName,
 	}
-	DashboardProtoToSchemaSortBy                = utils.ReverseMap(dashboardSchemaToProtoSortBy)
-	DashboardValidSortBy                        = utils.GetKeys(dashboardSchemaToProtoSortBy)
+	DashboardProtoToSchemaSortBy                = utils.ReverseMap(DashboardSchemaToProtoSortBy)
+	DashboardValidSortBy                        = utils.GetKeys(DashboardSchemaToProtoSortBy)
 	DashboardSchemaToProtoObservationFieldScope = map[string]cxsdk.DatasetScope{
 		"unspecified": cxsdk.DatasetScopeUnspecified,
 		"user_data":   cxsdk.DatasetScopeUserData,
 		"label":       cxsdk.DatasetScopeLabel,
 		"metadata":    cxsdk.DatasetScopeMetadata,
 	}
-	DashboardProtoToSchemaObservationFieldScope = utils.ReverseMap(dashboardSchemaToProtoObservationFieldScope)
-	DashboardValidObservationFieldScope         = utils.GetKeys(dashboardSchemaToProtoObservationFieldScope)
+	DashboardProtoToSchemaObservationFieldScope = utils.ReverseMap(DashboardSchemaToProtoObservationFieldScope)
+	DashboardValidObservationFieldScope         = utils.GetKeys(DashboardSchemaToProtoObservationFieldScope)
 	DashboardSchemaToProtoDataModeType          = map[string]cxsdk.DataModeType{
 		"unspecified": cxsdk.DataModeTypeHighUnspecified,
 		"archive":     cxsdk.DataModeTypeArchive,
 	}
-	DashboardProtoToSchemaDataModeType     = utils.ReverseMap(dashboardSchemaToProtoDataModeType)
-	DashboardValidDataModeTypes            = utils.GetKeys(dashboardSchemaToProtoDataModeType)
+	DashboardProtoToSchemaDataModeType     = utils.ReverseMap(DashboardSchemaToProtoDataModeType)
+	DashboardValidDataModeTypes            = utils.GetKeys(DashboardSchemaToProtoDataModeType)
 	DashboardSchemaToProtoGaugeThresholdBy = map[string]cxsdk.GaugeThresholdBy{
 		"unspecified": cxsdk.GaugeThresholdByUnspecified,
 		"value":       cxsdk.GaugeThresholdByValue,
 		"background":  cxsdk.GaugeThresholdByBackground,
 	}
-	DashboardProtoToSchemaGaugeThresholdBy = utils.ReverseMap(dashboardSchemaToProtoGaugeThresholdBy)
-	DashboardValidGaugeThresholdBy         = utils.GetKeys(dashboardSchemaToProtoGaugeThresholdBy)
+	DashboardProtoToSchemaGaugeThresholdBy = utils.ReverseMap(DashboardSchemaToProtoGaugeThresholdBy)
+	DashboardValidGaugeThresholdBy         = utils.GetKeys(DashboardSchemaToProtoGaugeThresholdBy)
 	DashboardSchemaToProtoRefreshStrategy  = map[string]cxsdk.MultiSelectRefreshStrategy{
 		"unspecified":          cxsdk.MultiSelectRefreshStrategyUnspecified,
 		"on_dashboard_load":    cxsdk.MultiSelectRefreshStrategyOnDashboardLoad,
 		"on_time_frame_change": cxsdk.MultiSelectRefreshStrategyOnTimeFrameChange,
 	}
-	DashboardProtoToSchemaRefreshStrategy = utils.ReverseMap(dashboardSchemaToProtoRefreshStrategy)
-	DashboardValidRefreshStrategies       = utils.GetKeys(dashboardSchemaToProtoRefreshStrategy)
+	DashboardProtoToSchemaRefreshStrategy = utils.ReverseMap(DashboardSchemaToProtoRefreshStrategy)
+	DashboardValidRefreshStrategies       = utils.GetKeys(DashboardSchemaToProtoRefreshStrategy)
 	DashboardValidLogsAggregationTypes    = []string{"count", "count_distinct", "sum", "avg", "min", "max", "percentile"}
 	DashboardValidSpanFieldTypes          = []string{"metadata", "tag", "process_tag"}
 	DashboardValidSpanAggregationTypes    = []string{"metric", "dimension"}
 	DashboardValidColorSchemes            = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
-	sectionValidColors                    = []string{"unspecified", "cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
+	SectionValidColors                    = []string{"unspecified", "cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
 
 	DashboardThresholdTypeSchemaToProto = map[string]cxsdk.ThresholdType{
 		"unspecified": cxsdk.ThresholdTypeUnspecified,
 		"absolute":    cxsdk.ThresholdTypeAbsolute,
 		"relative":    cxsdk.ThresholdTypeRelative,
 	}
-	DashboardThresholdTypeProtoToSchema = utils.ReverseMap(dashboardThresholdTypeSchemaToProto)
-	DashboardValidThresholdTypes         = utils.GetKeys(dashboardThresholdTypeSchemaToProto)
-	DashboardLegendBySchemaToProto       = map[string]cxsdk.LegendBy{
+	DashboardThresholdTypeProtoToSchema = utils.ReverseMap(DashboardThresholdTypeSchemaToProto)
+	DashboardValidThresholdTypes        = utils.GetKeys(DashboardThresholdTypeSchemaToProto)
+	DashboardLegendBySchemaToProto      = map[string]cxsdk.LegendBy{
 		"unspecified": cxsdk.LegendByUnspecified,
 		"thresholds":  cxsdk.LegendByThresholds,
 		"groups":      cxsdk.LegendByGroups,
 	}
-	DashboardLegendByProtoToSchema = utils.ReverseMap(dashboardLegendBySchemaToProto)
-	DashboardValidLegendBys         = utils.GetKeys(dashboardLegendBySchemaToProto)
-
-
-)
+	DashboardLegendByProtoToSchema = utils.ReverseMap(DashboardLegendBySchemaToProto)
+	DashboardValidLegendBys        = utils.GetKeys(DashboardLegendBySchemaToProto)
 )
 
 type LegendModel struct {
 	IsVisible    types.Bool   `tfsdk:"is_visible"`
-	Columns      types.List   `tfsdk:"columns"` //types.String (dashboardValidLegendColumns)
+	Columns      types.List   `tfsdk:"columns"` //types.String (DashboardValidLegendColumns)
 	GroupByQuery types.Bool   `tfsdk:"group_by_query"`
 	Placement    types.String `tfsdk:"placement"`
 }
@@ -270,10 +267,10 @@ func legendSchema() schema.SingleNestedAttribute {
 				ElementType: types.StringType,
 				Optional:    true,
 				Validators: []validator.List{
-					listvalidator.ValueStringsAre(stringvalidator.OneOf(dashboardValidLegendColumns...)),
+					listvalidator.ValueStringsAre(stringvalidator.OneOf(DashboardValidLegendColumns...)),
 					listvalidator.SizeAtLeast(1),
 				},
-				MarkdownDescription: fmt.Sprintf("The columns to display in the legend. Valid values are: %s.", strings.Join(dashboardValidLegendColumns, ", ")),
+				MarkdownDescription: fmt.Sprintf("The columns to display in the legend. Valid values are: %s.", strings.Join(DashboardValidLegendColumns, ", ")),
 			},
 			"group_by_query": schema.BoolAttribute{
 				Optional: true,
@@ -284,9 +281,9 @@ func legendSchema() schema.SingleNestedAttribute {
 				Optional: true,
 				Computed: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidLegendPlacements...),
+					stringvalidator.OneOf(DashboardValidLegendPlacements...),
 				},
-				MarkdownDescription: fmt.Sprintf("The placement of the legend. Valid values are: %s.", strings.Join(dashboardValidLegendPlacements, ", ")),
+				MarkdownDescription: fmt.Sprintf("The placement of the legend. Valid values are: %s.", strings.Join(DashboardValidLegendPlacements, ", ")),
 			},
 		},
 		Optional: true,
