@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strconv"
 	"strings"
 	"terraform-provider-coralogix/coralogix/clientset"
 
@@ -105,7 +106,7 @@ func (r *ScopeResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				MarkdownDescription: "Associated team.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"filters": schema.ListNestedAttribute{
@@ -232,6 +233,7 @@ func flattenScope(resp *cxsdk.GetScopesResponse) []ScopeResourceModel {
 			DisplayName:       types.StringValue(scope.GetDisplayName()),
 			Description:       description,
 			DefaultExpression: types.StringValue(scope.GetDefaultExpression()),
+			TeamId:            types.StringValue(strconv.Itoa(int(scope.GetTeamId()))),
 			Filters:           flattenScopeFilters(scope.GetFilters()),
 		})
 	}
@@ -284,6 +286,7 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	log.Printf("[INFO] Received Scope: %s", protojson.Format(getScopeResp))
 
 	state := flattenScope(getScopeResp)[0]
+
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
