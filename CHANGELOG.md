@@ -745,3 +745,11 @@ Breaking Changes:
 
 Revamped the structure of alerts in general. Please consult the guide v1-v2-migration-guide on how to migrate.
 
+# Release 2.0.1
+### resource/coralogix_slo
+* Various SLO fixes
+
+
+# Release 2.0.2
+### resource/coralogix_scope
+* Update scopes in place instead of creating new ones on update
