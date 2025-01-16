@@ -28,7 +28,6 @@ import (
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/google/uuid"
-	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
@@ -48,7 +47,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/nsf/jsondiff"
-	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -163,33 +161,22 @@ type LineChartQueryLogsModel struct {
 	Filters      types.List   `tfsdk:"filters"`      //FilterModel
 }
 
-type FilterOperatorModel struct {
-	Type           types.String `tfsdk:"type"`
-	SelectedValues types.List   `tfsdk:"selected_values"` //types.String
-}
-
 type LineChartQueryMetricsModel struct {
 	PromqlQuery types.String `tfsdk:"promql_query"`
 	Filters     types.List   `tfsdk:"filters"` //MetricsFilterModel
 }
 
 type QueryMetricFilterModel struct {
-	Metric   types.String         `tfsdk:"metric"`
-	Label    types.String         `tfsdk:"label"`
-	Operator *FilterOperatorModel `tfsdk:"operator"`
+	Metric   types.String                          `tfsdk:"metric"`
+	Label    types.String                          `tfsdk:"label"`
+	Operator *dashboardwidgets.FilterOperatorModel `tfsdk:"operator"`
 }
 
 type LineChartQuerySpansModel struct {
 	LuceneQuery  types.String `tfsdk:"lucene_query"`
-	GroupBy      types.List   `tfsdk:"group_by"`     //SpansFieldModel
+	GroupBy      types.List   `tfsdk:"group_by"`     //dashboardwidgets.SpansFieldModel
 	Aggregations types.List   `tfsdk:"aggregations"` //SpansAggregationModel
 	Filters      types.List   `tfsdk:"filters"`      //SpansFilterModel
-}
-
-type SpansAggregationModel struct {
-	Type            types.String `tfsdk:"type"`
-	AggregationType types.String `tfsdk:"aggregation_type"`
-	Field           types.String `tfsdk:"field"`
 }
 
 type DataTableModel struct {
@@ -208,9 +195,9 @@ type DataTableQueryLogsModel struct {
 }
 
 type LogsFilterModel struct {
-	Field            types.String         `tfsdk:"field"`
-	Operator         *FilterOperatorModel `tfsdk:"operator"`
-	ObservationField types.Object         `tfsdk:"observation_field"`
+	Field            types.String                          `tfsdk:"field"`
+	Operator         *dashboardwidgets.FilterOperatorModel `tfsdk:"operator"`
+	ObservationField types.Object                          `tfsdk:"observation_field"`
 }
 
 type DataTableLogsQueryGroupingModel struct {
@@ -220,29 +207,17 @@ type DataTableLogsQueryGroupingModel struct {
 }
 
 type DataTableLogsAggregationModel struct {
-	ID          types.String          `tfsdk:"id"`
-	Name        types.String          `tfsdk:"name"`
-	IsVisible   types.Bool            `tfsdk:"is_visible"`
-	Aggregation *LogsAggregationModel `tfsdk:"aggregation"`
-}
-
-type LogsAggregationModel struct {
-	Type             types.String  `tfsdk:"type"`
-	Field            types.String  `tfsdk:"field"`
-	Percent          types.Float64 `tfsdk:"percent"`
-	ObservationField types.Object  `tfsdk:"observation_field"`
+	ID          types.String                           `tfsdk:"id"`
+	Name        types.String                           `tfsdk:"name"`
+	IsVisible   types.Bool                             `tfsdk:"is_visible"`
+	Aggregation *dashboardwidgets.LogsAggregationModel `tfsdk:"aggregation"`
 }
 
 type DataTableQueryModel struct {
-	Logs      *DataTableQueryLogsModel    `tfsdk:"logs"`
-	Metrics   *DataTableQueryMetricsModel `tfsdk:"metrics"`
-	Spans     *DataTableQuerySpansModel   `tfsdk:"spans"`
-	DataPrime *DataPrimeModel             `tfsdk:"data_prime"`
-}
-
-type DataPrimeModel struct {
-	Query   types.String `tfsdk:"query"`
-	Filters types.List   `tfsdk:"filters"` //DashboardFilterSourceModel
+	Logs      *DataTableQueryLogsModel         `tfsdk:"logs"`
+	Metrics   *DataTableQueryMetricsModel      `tfsdk:"metrics"`
+	Spans     *DataTableQuerySpansModel        `tfsdk:"spans"`
+	DataPrime *dashboardwidgets.DataPrimeModel `tfsdk:"data_prime"`
 }
 
 type DataTableQueryMetricsModel struct {
@@ -252,9 +227,9 @@ type DataTableQueryMetricsModel struct {
 }
 
 type MetricsFilterModel struct {
-	Metric   types.String         `tfsdk:"metric"`
-	Label    types.String         `tfsdk:"label"`
-	Operator *FilterOperatorModel `tfsdk:"operator"`
+	Metric   types.String                          `tfsdk:"metric"`
+	Label    types.String                          `tfsdk:"label"`
+	Operator *dashboardwidgets.FilterOperatorModel `tfsdk:"operator"`
 }
 
 type DataTableColumnModel struct {
@@ -274,13 +249,8 @@ type DataTableQuerySpansModel struct {
 }
 
 type SpansFilterModel struct {
-	Field    *SpansFieldModel     `tfsdk:"field"`
-	Operator *FilterOperatorModel `tfsdk:"operator"`
-}
-
-type SpansFieldModel struct {
-	Type  types.String `tfsdk:"type"`
-	Value types.String `tfsdk:"value"`
+	Field    *dashboardwidgets.SpansFieldModel     `tfsdk:"field"`
+	Operator *dashboardwidgets.FilterOperatorModel `tfsdk:"operator"`
 }
 
 type DataTableSpansQueryGroupingModel struct {
@@ -301,16 +271,16 @@ type GaugeModel struct {
 }
 
 type GaugeQueryModel struct {
-	Logs      *GaugeQueryLogsModel    `tfsdk:"logs"`
-	Metrics   *GaugeQueryMetricsModel `tfsdk:"metrics"`
-	Spans     *GaugeQuerySpansModel   `tfsdk:"spans"`
-	DataPrime *DataPrimeModel         `tfsdk:"data_prime"`
+	Logs      *GaugeQueryLogsModel             `tfsdk:"logs"`
+	Metrics   *GaugeQueryMetricsModel          `tfsdk:"metrics"`
+	Spans     *GaugeQuerySpansModel            `tfsdk:"spans"`
+	DataPrime *dashboardwidgets.DataPrimeModel `tfsdk:"data_prime"`
 }
 
 type GaugeQueryLogsModel struct {
-	LuceneQuery     types.String          `tfsdk:"lucene_query"`
-	LogsAggregation *LogsAggregationModel `tfsdk:"logs_aggregation"`
-	Filters         types.List            `tfsdk:"filters"` //LogsFilterModel
+	LuceneQuery     types.String                           `tfsdk:"lucene_query"`
+	LogsAggregation *dashboardwidgets.LogsAggregationModel `tfsdk:"logs_aggregation"`
+	Filters         types.List                             `tfsdk:"filters"` //LogsFilterModel
 }
 
 type GaugeQueryMetricsModel struct {
@@ -320,9 +290,9 @@ type GaugeQueryMetricsModel struct {
 }
 
 type GaugeQuerySpansModel struct {
-	LuceneQuery      types.String           `tfsdk:"lucene_query"`
-	SpansAggregation *SpansAggregationModel `tfsdk:"spans_aggregation"`
-	Filters          types.List             `tfsdk:"filters"` //SpansFilterModel
+	LuceneQuery      types.String                            `tfsdk:"lucene_query"`
+	SpansAggregation *dashboardwidgets.SpansAggregationModel `tfsdk:"spans_aggregation"`
+	Filters          types.List                              `tfsdk:"filters"` //SpansFilterModel
 }
 
 type GaugeThresholdModel struct {
@@ -356,13 +326,13 @@ type PieChartQueryModel struct {
 }
 
 type PieChartQueryLogsModel struct {
-	LuceneQuery           types.String          `tfsdk:"lucene_query"`
-	Aggregation           *LogsAggregationModel `tfsdk:"aggregation"`
-	Filters               types.List            `tfsdk:"filters"`     //LogsFilterModel
-	GroupNames            types.List            `tfsdk:"group_names"` //types.String
-	StackedGroupName      types.String          `tfsdk:"stacked_group_name"`
-	GroupNamesFields      types.List            `tfsdk:"group_names_fields"`       //ObservationFieldModel
-	StackedGroupNameField types.Object          `tfsdk:"stacked_group_name_field"` //ObservationFieldModel
+	LuceneQuery           types.String                           `tfsdk:"lucene_query"`
+	Aggregation           *dashboardwidgets.LogsAggregationModel `tfsdk:"aggregation"`
+	Filters               types.List                             `tfsdk:"filters"`     //LogsFilterModel
+	GroupNames            types.List                             `tfsdk:"group_names"` //types.String
+	StackedGroupName      types.String                           `tfsdk:"stacked_group_name"`
+	GroupNamesFields      types.List                             `tfsdk:"group_names_fields"`       //ObservationFieldModel
+	StackedGroupNameField types.Object                           `tfsdk:"stacked_group_name_field"` //ObservationFieldModel
 }
 
 type PieChartQueryMetricsModel struct {
@@ -373,11 +343,11 @@ type PieChartQueryMetricsModel struct {
 }
 
 type PieChartQuerySpansModel struct {
-	LuceneQuery      types.String           `tfsdk:"lucene_query"`
-	Aggregation      *SpansAggregationModel `tfsdk:"aggregation"`
-	Filters          types.List             `tfsdk:"filters"`     //SpansFilterModel
-	GroupNames       types.List             `tfsdk:"group_names"` //SpansFieldModel
-	StackedGroupName *SpansFieldModel       `tfsdk:"stacked_group_name"`
+	LuceneQuery      types.String                            `tfsdk:"lucene_query"`
+	Aggregation      *dashboardwidgets.SpansAggregationModel `tfsdk:"aggregation"`
+	Filters          types.List                              `tfsdk:"filters"`     //SpansFilterModel
+	GroupNames       types.List                              `tfsdk:"group_names"` //dashboardwidgets.SpansFieldModel
+	StackedGroupName *dashboardwidgets.SpansFieldModel       `tfsdk:"stacked_group_name"`
 }
 
 type PieChartQueryDataPrimeModel struct {
@@ -417,13 +387,13 @@ type BarChartQueryModel struct {
 }
 
 type BarChartQueryLogsModel struct {
-	LuceneQuery           types.String          `tfsdk:"lucene_query"`
-	Aggregation           *LogsAggregationModel `tfsdk:"aggregation"`
-	Filters               types.List            `tfsdk:"filters"`     //LogsFilterModel
-	GroupNames            types.List            `tfsdk:"group_names"` //types.String
-	StackedGroupName      types.String          `tfsdk:"stacked_group_name"`
-	GroupNamesFields      types.List            `tfsdk:"group_names_fields"`       //ObservationFieldModel
-	StackedGroupNameField types.Object          `tfsdk:"stacked_group_name_field"` //ObservationFieldModel
+	LuceneQuery           types.String                           `tfsdk:"lucene_query"`
+	Aggregation           *dashboardwidgets.LogsAggregationModel `tfsdk:"aggregation"`
+	Filters               types.List                             `tfsdk:"filters"`     //LogsFilterModel
+	GroupNames            types.List                             `tfsdk:"group_names"` //types.String
+	StackedGroupName      types.String                           `tfsdk:"stacked_group_name"`
+	GroupNamesFields      types.List                             `tfsdk:"group_names_fields"`       //ObservationFieldModel
+	StackedGroupNameField types.Object                           `tfsdk:"stacked_group_name_field"` //ObservationFieldModel
 }
 
 type ObservationFieldModel struct {
@@ -439,11 +409,11 @@ type BarChartQueryMetricsModel struct {
 }
 
 type BarChartQuerySpansModel struct {
-	LuceneQuery      types.String           `tfsdk:"lucene_query"`
-	Aggregation      *SpansAggregationModel `tfsdk:"aggregation"`
-	Filters          types.List             `tfsdk:"filters"`     //SpansFilterModel
-	GroupNames       types.List             `tfsdk:"group_names"` //SpansFieldModel
-	StackedGroupName *SpansFieldModel       `tfsdk:"stacked_group_name"`
+	LuceneQuery      types.String                            `tfsdk:"lucene_query"`
+	Aggregation      *dashboardwidgets.SpansAggregationModel `tfsdk:"aggregation"`
+	Filters          types.List                              `tfsdk:"filters"`     //SpansFilterModel
+	GroupNames       types.List                              `tfsdk:"group_names"` //dashboardwidgets.SpansFieldModel
+	StackedGroupName *dashboardwidgets.SpansFieldModel       `tfsdk:"stacked_group_name"`
 }
 
 type BarChartQueryDataPrimeModel struct {
@@ -454,10 +424,10 @@ type BarChartQueryDataPrimeModel struct {
 }
 
 type DataTableSpansAggregationModel struct {
-	ID          types.String           `tfsdk:"id"`
-	Name        types.String           `tfsdk:"name"`
-	IsVisible   types.Bool             `tfsdk:"is_visible"`
-	Aggregation *SpansAggregationModel `tfsdk:"aggregation"`
+	ID          types.String                            `tfsdk:"id"`
+	Name        types.String                            `tfsdk:"name"`
+	IsVisible   types.Bool                              `tfsdk:"is_visible"`
+	Aggregation *dashboardwidgets.SpansAggregationModel `tfsdk:"aggregation"`
 }
 
 type BarChartStackDefinitionModel struct {
@@ -527,11 +497,11 @@ type VariableMultiSelectModel struct {
 }
 
 type VariableMultiSelectSourceModel struct {
-	LogsPath     types.String                  `tfsdk:"logs_path"`
-	MetricLabel  *MetricMultiSelectSourceModel `tfsdk:"metric_label"`
-	ConstantList types.List                    `tfsdk:"constant_list"` //types.String
-	SpanField    *SpansFieldModel              `tfsdk:"span_field"`
-	Query        types.Object                  `tfsdk:"query"` //VariableMultiSelectQueryModel
+	LogsPath     types.String                      `tfsdk:"logs_path"`
+	MetricLabel  *MetricMultiSelectSourceModel     `tfsdk:"metric_label"`
+	ConstantList types.List                        `tfsdk:"constant_list"` //types.String
+	SpanField    *dashboardwidgets.SpansFieldModel `tfsdk:"span_field"`
+	Query        types.Object                      `tfsdk:"query"` //VariableMultiSelectQueryModel
 }
 
 type VariableMultiSelectQueryModel struct {
@@ -597,7 +567,7 @@ type MetricLabelFilterOperatorSelectedValuesModel struct {
 
 type MultiSelectSpansQueryModel struct {
 	FieldName  types.Object `tfsdk:"field_name"`  //SpanFieldNameModel
-	FieldValue types.Object `tfsdk:"field_value"` //SpansFieldModel
+	FieldValue types.Object `tfsdk:"field_value"` //dashboardwidgets.SpansFieldModel
 }
 
 type MultiSelectValueDisplayOptionsModel struct {
@@ -618,20 +588,20 @@ type DashboardFilterSourceModel struct {
 }
 
 type FilterSourceLogsModel struct {
-	Field            types.String         `tfsdk:"field"`
-	Operator         *FilterOperatorModel `tfsdk:"operator"`
-	ObservationField types.Object         `tfsdk:"observation_field"`
+	Field            types.String                          `tfsdk:"field"`
+	Operator         *dashboardwidgets.FilterOperatorModel `tfsdk:"operator"`
+	ObservationField types.Object                          `tfsdk:"observation_field"`
 }
 
 type FilterSourceMetricsModel struct {
-	MetricName  types.String         `tfsdk:"metric_name"`
-	MetricLabel types.String         `tfsdk:"label"`
-	Operator    *FilterOperatorModel `tfsdk:"operator"`
+	MetricName  types.String                          `tfsdk:"metric_name"`
+	MetricLabel types.String                          `tfsdk:"label"`
+	Operator    *dashboardwidgets.FilterOperatorModel `tfsdk:"operator"`
 }
 
 type FilterSourceSpansModel struct {
-	Field    *SpansFieldModel     `tfsdk:"field"`
-	Operator *FilterOperatorModel `tfsdk:"operator"`
+	Field    *dashboardwidgets.SpansFieldModel     `tfsdk:"field"`
+	Operator *dashboardwidgets.FilterOperatorModel `tfsdk:"operator"`
 }
 
 type DashboardTimeFrameModel struct {
@@ -704,8 +674,7 @@ type DashboardAnnotationMetricStrategyModel struct {
 	StartTime types.Object `tfsdk:"start_time"` //MetricStrategyStartTimeModel
 }
 
-type MetricStrategyStartTimeModel struct {
-}
+type MetricStrategyStartTimeModel struct{}
 
 type DashboardAutoRefreshModel struct {
 	Type types.String `tfsdk:"type"`
@@ -997,8 +966,8 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																								ElementType: types.StringType,
 																								Optional:    true,
 																							},
-																							"filters":      logsFiltersSchema(),
-																							"aggregations": logsAggregationsSchema(),
+																							"filters":      dashboardwidgets.LogsFiltersSchema(),
+																							"aggregations": dashboardwidgets.LogsAggregationsSchema(),
 																						},
 																						Optional: true,
 																						Validators: []validator.Object{
@@ -1013,7 +982,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																							"promql_query": schema.StringAttribute{
 																								Required: true,
 																							},
-																							"filters": metricFiltersSchema(),
+																							"filters": dashboardwidgets.MetricFiltersSchema(),
 																						},
 																						Optional: true,
 																						Validators: []validator.Object{
@@ -1028,9 +997,9 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																							"lucene_query": schema.StringAttribute{
 																								Optional: true,
 																							},
-																							"group_by":     spansFieldsSchema(),
-																							"aggregations": spansAggregationsSchema(),
-																							"filters":      spansFilterSchema(),
+																							"group_by":     dashboardwidgets.SpansFieldsSchema(),
+																							"aggregations": dashboardwidgets.SpansAggregationsSchema(),
+																							"filters":      dashboardwidgets.SpansFilterSchema(),
 																						},
 																						Optional: true,
 																						Validators: []validator.Object{
@@ -1048,7 +1017,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																							"max": schema.NumberAttribute{
 																								Optional: true,
 																							},
-																							"unit": unitSchema(),
+																							"unit": dashboardwidgets.UnitSchema(),
 																							"custom_unit": schema.StringAttribute{
 																								Optional: true,
 																							},
@@ -1056,8 +1025,8 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																							"dataprime_query": schema.StringAttribute{
 																								Optional: true,
 																							},
-																							"time_frame": timeFrameSchema(),
-																							"filters":    spansFilterSchema(),
+																							"time_frame": dashboardwidgets.TimeFrameSchema(),
+																							"filters":    dashboardwidgets.SpansFilterSchema(),
 																						},
 																						Optional: true,
 																						Validators: []validator.Object{
@@ -1076,7 +1045,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																			"series_count_limit": schema.Int64Attribute{
 																				Optional: true,
 																			},
-																			"unit": unitSchema(),
+																			"unit": dashboardwidgets.UnitSchema(),
 																			"scale_type": schema.StringAttribute{
 																				Optional: true,
 																				Computed: true,
@@ -1159,7 +1128,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"lucene_query": schema.StringAttribute{
 																						Optional: true,
 																					},
-																					"filters": logsFiltersSchema(),
+																					"filters": dashboardwidgets.LogsFiltersSchema(),
 																					"grouping": schema.SingleNestedAttribute{
 																						Attributes: map[string]schema.Attribute{
 																							"group_by": schema.ListAttribute{
@@ -1184,14 +1153,14 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																											Computed: true,
 																											Default:  booldefault.StaticBool(true),
 																										},
-																										"aggregation": logsAggregationSchema(),
+																										"aggregation": dashboardwidgets.LogsAggregationSchema(),
 																									},
 																								},
 																								Optional: true,
 																							},
 																							"group_bys": schema.ListNestedAttribute{
 																								NestedObject: schema.NestedAttributeObject{
-																									Attributes: observationFieldSchemaAttributes(),
+																									Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
 																								},
 																								Optional: true,
 																							},
@@ -1213,10 +1182,10 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"lucene_query": schema.StringAttribute{
 																						Optional: true,
 																					},
-																					"filters": spansFilterSchema(),
+																					"filters": dashboardwidgets.SpansFilterSchema(),
 																					"grouping": schema.SingleNestedAttribute{
 																						Attributes: map[string]schema.Attribute{
-																							"group_by": spansFieldsSchema(),
+																							"group_by": dashboardwidgets.SpansFieldsSchema(),
 																							"aggregations": schema.ListNestedAttribute{
 																								NestedObject: schema.NestedAttributeObject{
 																									Attributes: map[string]schema.Attribute{
@@ -1234,7 +1203,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																											Computed: true,
 																											Default:  booldefault.StaticBool(true),
 																										},
-																										"aggregation": spansAggregationSchema(),
+																										"aggregation": dashboardwidgets.SpansAggregationSchema(),
 																									},
 																								},
 																								Optional: true,
@@ -1257,7 +1226,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"promql_query": schema.StringAttribute{
 																						Required: true,
 																					},
-																					"filters": metricFiltersSchema(),
+																					"filters": dashboardwidgets.MetricFiltersSchema(),
 																					"promql_query_type": schema.StringAttribute{
 																						Optional: true,
 																						Computed: true,
@@ -1280,7 +1249,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"filters": schema.ListNestedAttribute{
 																						NestedObject: schema.NestedAttributeObject{
-																							Attributes: filtersSourceAttribute(),
+																							Attributes: dashboardwidgets.FiltersSourceAttribute(),
 																						},
 																						Optional: true,
 																					},
@@ -1358,6 +1327,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																		path.MatchRelative().AtParent().AtName("line_chart"),
 																		path.MatchRelative().AtParent().AtName("gauge"),
 																		path.MatchRelative().AtParent().AtName("pie_chart"),
+																		path.MatchRelative().AtParent().AtName("hexagon"),
 																		path.MatchRelative().AtParent().AtName("bar_chart"),
 																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
 																		path.MatchRelative().AtParent().AtName("markdown"),
@@ -1377,8 +1347,8 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"lucene_query": schema.StringAttribute{
 																						Optional: true,
 																					},
-																					"filters":          logsFiltersSchema(),
-																					"logs_aggregation": logsAggregationSchema(),
+																					"filters":          dashboardwidgets.LogsFiltersSchema(),
+																					"logs_aggregation": dashboardwidgets.LogsAggregationSchema(),
 																				},
 																				Validators: []validator.Object{
 																					objectvalidator.ExactlyOneOf(
@@ -1403,7 +1373,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																						Computed:            true,
 																						Default:             stringdefault.StaticString("unspecified"),
 																					},
-																					"filters": metricFiltersSchema(),
+																					"filters": dashboardwidgets.MetricFiltersSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -1419,8 +1389,8 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"lucene_query": schema.StringAttribute{
 																						Optional: true,
 																					},
-																					"spans_aggregation": spansAggregationSchema(),
-																					"filters":           spansFilterSchema(),
+																					"spans_aggregation": dashboardwidgets.SpansAggregationSchema(),
+																					"filters":           dashboardwidgets.SpansFilterSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -1438,7 +1408,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"filters": schema.ListNestedAttribute{
 																						NestedObject: schema.NestedAttributeObject{
-																							Attributes: filtersSourceAttribute(),
+																							Attributes: dashboardwidgets.FiltersSourceAttribute(),
 																						},
 																						Optional: true,
 																					},
@@ -1520,6 +1490,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																		path.MatchRelative().AtParent().AtName("data_table"),
 																		path.MatchRelative().AtParent().AtName("pie_chart"),
 																		path.MatchRelative().AtParent().AtName("bar_chart"),
+																		path.MatchRelative().AtParent().AtName("hexagon"),
 																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
 																		path.MatchRelative().AtParent().AtName("markdown"),
 																	),
@@ -1538,8 +1509,8 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"lucene_query": schema.StringAttribute{
 																						Optional: true,
 																					},
-																					"aggregation": logsAggregationSchema(),
-																					"filters":     logsFiltersSchema(),
+																					"aggregation": dashboardwidgets.LogsAggregationSchema(),
+																					"filters":     dashboardwidgets.LogsFiltersSchema(),
 																					"group_names": schema.ListAttribute{
 																						ElementType: types.StringType,
 																						Optional:    true,
@@ -1552,12 +1523,12 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"group_names_fields": schema.ListNestedAttribute{
 																						NestedObject: schema.NestedAttributeObject{
-																							Attributes: observationFieldSchemaAttributes(),
+																							Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
 																						},
 																						Optional: true,
 																					},
 																					"stacked_group_name_field": schema.SingleNestedAttribute{
-																						Attributes: observationFieldSchemaAttributes(),
+																						Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
 																						Optional:   true,
 																					},
 																				},
@@ -1575,10 +1546,10 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"lucene_query": schema.StringAttribute{
 																						Optional: true,
 																					},
-																					"aggregation":        spansAggregationSchema(),
-																					"filters":            spansFilterSchema(),
-																					"group_names":        spansFieldsSchema(),
-																					"stacked_group_name": spansFieldSchema(),
+																					"aggregation":        dashboardwidgets.SpansAggregationSchema(),
+																					"filters":            dashboardwidgets.SpansFilterSchema(),
+																					"group_names":        dashboardwidgets.SpansFieldsSchema(),
+																					"stacked_group_name": dashboardwidgets.SpansFieldSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -1594,7 +1565,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"promql_query": schema.StringAttribute{
 																						Required: true,
 																					},
-																					"filters": metricFiltersSchema(),
+																					"filters": dashboardwidgets.MetricFiltersSchema(),
 																					"group_names": schema.ListAttribute{
 																						ElementType: types.StringType,
 																						Optional:    true,
@@ -1619,7 +1590,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"filters": schema.ListNestedAttribute{
 																						NestedObject: schema.NestedAttributeObject{
-																							Attributes: filtersSourceAttribute(),
+																							Attributes: dashboardwidgets.FiltersSourceAttribute(),
 																						},
 																						Optional: true,
 																					},
@@ -1744,8 +1715,8 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"lucene_query": schema.StringAttribute{
 																						Optional: true,
 																					},
-																					"aggregation": logsAggregationSchema(),
-																					"filters":     logsFiltersSchema(),
+																					"aggregation": dashboardwidgets.LogsAggregationSchema(),
+																					"filters":     dashboardwidgets.LogsFiltersSchema(),
 																					"group_names": schema.ListAttribute{
 																						ElementType: types.StringType,
 																						Optional:    true,
@@ -1755,12 +1726,12 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"group_names_fields": schema.ListNestedAttribute{
 																						NestedObject: schema.NestedAttributeObject{
-																							Attributes: observationFieldSchemaAttributes(),
+																							Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
 																						},
 																						Optional: true,
 																					},
 																					"stacked_group_name_field": schema.SingleNestedAttribute{
-																						Attributes: observationFieldSchemaAttributes(),
+																						Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
 																						Optional:   true,
 																					},
 																				},
@@ -1778,7 +1749,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"promql_query": schema.StringAttribute{
 																						Required: true,
 																					},
-																					"filters": metricFiltersSchema(),
+																					"filters": dashboardwidgets.MetricFiltersSchema(),
 																					"group_names": schema.ListAttribute{
 																						ElementType: types.StringType,
 																						Optional:    true,
@@ -1801,10 +1772,10 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"lucene_query": schema.StringAttribute{
 																						Optional: true,
 																					},
-																					"aggregation":        spansAggregationSchema(),
-																					"filters":            spansFilterSchema(),
-																					"group_names":        spansFieldsSchema(),
-																					"stacked_group_name": spansFieldSchema(),
+																					"aggregation":        dashboardwidgets.SpansAggregationSchema(),
+																					"filters":            dashboardwidgets.SpansFilterSchema(),
+																					"group_names":        dashboardwidgets.SpansFieldsSchema(),
+																					"stacked_group_name": dashboardwidgets.SpansFieldSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -1822,7 +1793,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"filters": schema.ListNestedAttribute{
 																						NestedObject: schema.NestedAttributeObject{
-																							Attributes: filtersSourceAttribute(),
+																							Attributes: dashboardwidgets.FiltersSourceAttribute(),
 																						},
 																						Optional: true,
 																					},
@@ -1963,8 +1934,8 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"lucene_query": schema.StringAttribute{
 																						Optional: true,
 																					},
-																					"aggregation": logsAggregationSchema(),
-																					"filters":     logsFiltersSchema(),
+																					"aggregation": dashboardwidgets.LogsAggregationSchema(),
+																					"filters":     dashboardwidgets.LogsFiltersSchema(),
 																					"group_names": schema.ListAttribute{
 																						ElementType: types.StringType,
 																						Optional:    true,
@@ -1977,12 +1948,12 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"group_names_fields": schema.ListNestedAttribute{
 																						NestedObject: schema.NestedAttributeObject{
-																							Attributes: observationFieldSchemaAttributes(),
+																							Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
 																						},
 																						Optional: true,
 																					},
 																					"stacked_group_name_field": schema.SingleNestedAttribute{
-																						Attributes: observationFieldSchemaAttributes(),
+																						Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
 																						Optional:   true,
 																					},
 																				},
@@ -1993,7 +1964,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"promql_query": schema.StringAttribute{
 																						Required: true,
 																					},
-																					"filters": metricFiltersSchema(),
+																					"filters": dashboardwidgets.MetricFiltersSchema(),
 																					"group_names": schema.ListAttribute{
 																						ElementType: types.StringType,
 																						Optional:    true,
@@ -2009,10 +1980,10 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"lucene_query": schema.StringAttribute{
 																						Optional: true,
 																					},
-																					"aggregation":        spansAggregationSchema(),
-																					"filters":            spansFilterSchema(),
-																					"group_names":        spansFieldsSchema(),
-																					"stacked_group_name": spansFieldSchema(),
+																					"aggregation":        dashboardwidgets.SpansAggregationSchema(),
+																					"filters":            dashboardwidgets.SpansFilterSchema(),
+																					"group_names":        dashboardwidgets.SpansFieldsSchema(),
+																					"stacked_group_name": dashboardwidgets.SpansFieldSchema(),
 																				},
 																				Optional: true,
 																			},
@@ -2240,13 +2211,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 												ElementType: types.StringType,
 												Optional:    true,
 											},
-											"span_field": schema.SingleNestedAttribute{
-												Attributes: spansFieldAttributes(),
-												Optional:   true,
-												Validators: []validator.Object{
-													spansFieldValidator{},
-												},
-											},
+											"span_field": dashboardwidgets.SpansFieldSchema(),
 											"query": schema.SingleNestedAttribute{
 												Attributes: map[string]schema.Attribute{
 													"query": schema.SingleNestedAttribute{
@@ -2268,7 +2233,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																		Optional: true,
 																		Attributes: map[string]schema.Attribute{
 																			"observation_field": schema.SingleNestedAttribute{
-																				Attributes: observationFieldSchemaAttributes(),
+																				Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
 																				Required:   true,
 																			},
 																		},
@@ -2355,7 +2320,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																			objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("field_value")),
 																		},
 																	},
-																	"field_value": spansFieldSchema(),
+																	"field_value": dashboardwidgets.SpansFieldSchema(),
 																},
 																Optional: true,
 															},
@@ -2407,7 +2372,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 			NestedObject: schema.NestedAttributeObject{
 				Attributes: map[string]schema.Attribute{
 					"source": schema.SingleNestedAttribute{
-						Attributes: filtersSourceAttribute(),
+						Attributes: dashboardwidgets.FiltersSourceAttribute(),
 						Required:   true,
 					},
 					"enabled": schema.BoolAttribute{
@@ -2427,7 +2392,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 			},
 			MarkdownDescription: "List of filters that can be applied to the dashboard's data.",
 		},
-		"time_frame": timeFrameSchema(),
+		"time_frame": dashboardwidgets.TimeFrameSchema(),
 		"folder": schema.SingleNestedAttribute{
 			Attributes: map[string]schema.Attribute{
 				"id": schema.StringAttribute{
@@ -2576,42 +2541,6 @@ func stringOrVariableSchema() schema.SingleNestedAttribute {
 	}
 }
 
-func timeFrameSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Optional: true,
-		Attributes: map[string]schema.Attribute{
-			"absolute": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"start": schema.StringAttribute{
-						Required: true,
-					},
-					"end": schema.StringAttribute{
-						Required: true,
-					},
-				},
-				Optional: true,
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("relative")),
-				},
-				MarkdownDescription: "Absolute time frame specifying a fixed start and end time.",
-			},
-			"relative": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"duration": schema.StringAttribute{
-						Required: true,
-					},
-				},
-				Optional: true,
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("absolute")),
-				},
-				MarkdownDescription: "Relative time frame specifying a duration from the current time.",
-			},
-		},
-		MarkdownDescription: "Specifies the time frame for the dashboard's data. Can be either absolute or relative.",
-	}
-}
-
 func stringOrVariableAttr() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"string_value": schema.StringAttribute{
@@ -2639,7 +2568,7 @@ func logsAndSpansAttributes() map[string]schema.Attribute {
 		},
 		"label_fields": schema.ListNestedAttribute{
 			NestedObject: schema.NestedAttributeObject{
-				Attributes: observationFieldSchemaAttributes(),
+				Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
 			},
 			Optional: true,
 		},
@@ -2682,97 +2611,8 @@ func relativeTimeFrameAttributes() map[string]attr.Type {
 
 func observationFieldSingleNestedAttribute() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
-		Attributes: observationFieldSchemaAttributes(),
+		Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
 		Required:   true,
-	}
-}
-
-func observationFieldSchemaAttributes() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"keypath": schema.ListAttribute{
-			ElementType: types.StringType,
-			Required:    true,
-		},
-		"scope": schema.StringAttribute{
-			Required: true,
-			Validators: []validator.String{
-				stringvalidator.OneOf(dashboardwidgets.DashboardValidObservationFieldScope...),
-			},
-		},
-	}
-}
-
-func unitSchema() schema.StringAttribute {
-	return schema.StringAttribute{
-		Optional: true,
-		Computed: true,
-		Default:  stringdefault.StaticString("unspecified"),
-		Validators: []validator.String{
-			stringvalidator.OneOf(dashboardwidgets.DashboardValidUnits...),
-		},
-		MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(dashboardwidgets.DashboardValidUnits, ", ")),
-	}
-}
-
-func filtersSourceAttribute() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"logs": schema.SingleNestedAttribute{
-			Attributes: map[string]schema.Attribute{
-				"field": schema.StringAttribute{
-					Required:            true,
-					MarkdownDescription: "Field in the logs to apply the filter on.",
-				},
-				"operator": filterOperatorSchema(),
-				"observation_field": schema.SingleNestedAttribute{
-					Attributes: observationFieldSchemaAttributes(),
-					Optional:   true,
-				},
-			},
-			Optional: true,
-			Validators: []validator.Object{
-				objectvalidator.ExactlyOneOf(
-					path.MatchRelative().AtParent().AtName("metrics"),
-					path.MatchRelative().AtParent().AtName("spans"),
-				),
-			},
-		},
-		"spans": schema.SingleNestedAttribute{
-			Attributes: map[string]schema.Attribute{
-				"field": schema.SingleNestedAttribute{
-					Attributes: spansFieldAttributes(),
-					Required:   true,
-					Validators: []validator.Object{
-						spansFieldValidator{},
-					},
-				},
-				"operator": filterOperatorSchema(),
-			},
-			Optional: true,
-			Validators: []validator.Object{
-				objectvalidator.ExactlyOneOf(
-					path.MatchRelative().AtParent().AtName("metrics"),
-					path.MatchRelative().AtParent().AtName("logs"),
-				),
-			},
-		},
-		"metrics": schema.SingleNestedAttribute{
-			Attributes: map[string]schema.Attribute{
-				"metric_name": schema.StringAttribute{
-					Required: true,
-				},
-				"label": schema.StringAttribute{
-					Required: true,
-				},
-				"operator": filterOperatorSchema(),
-			},
-			Validators: []validator.Object{
-				objectvalidator.ExactlyOneOf(
-					path.MatchRelative().AtParent().AtName("spans"),
-					path.MatchRelative().AtParent().AtName("logs"),
-				),
-			},
-			Optional: true,
-		},
 	}
 }
 
@@ -2802,337 +2642,6 @@ func JSONStringsEqualPlanModifier(_ context.Context, plan planmodifier.StringReq
 		req.RequiresReplace = false
 	}
 	req.RequiresReplace = true
-}
-
-func metricFiltersSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: map[string]schema.Attribute{
-				"metric": schema.StringAttribute{
-					Required:            true,
-					MarkdownDescription: "Metric name to apply the filter on.",
-				},
-				"label": schema.StringAttribute{
-					Optional:            true,
-					MarkdownDescription: "Label associated with the metric.",
-				},
-				"operator": filterOperatorSchema(),
-			},
-		},
-		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
-		},
-		Optional: true,
-	}
-}
-
-func filterOperatorSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Attributes: map[string]schema.Attribute{
-			"type": schema.StringAttribute{
-				Required: true,
-				Validators: []validator.String{
-					stringvalidator.OneOf("equals", "not_equals"),
-				},
-				MarkdownDescription: "The type of the operator. Can be one of `equals` or `not_equals`.",
-			},
-			"selected_values": schema.ListAttribute{
-				ElementType:         types.StringType,
-				Optional:            true,
-				MarkdownDescription: "the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.",
-			},
-		},
-		Validators: []validator.Object{
-			filterOperatorValidator{},
-		},
-		Required:            true,
-		MarkdownDescription: "Operator to use for filtering.",
-	}
-}
-
-type filterOperatorValidator struct{}
-
-func (f filterOperatorValidator) Description(_ context.Context) string {
-	return ""
-}
-
-func (f filterOperatorValidator) MarkdownDescription(_ context.Context) string {
-	return ""
-}
-
-func (f filterOperatorValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
-	if req.ConfigValue.IsNull() {
-		return
-	}
-
-	var filter FilterOperatorModel
-	diags := req.ConfigValue.As(ctx, &filter, basetypes.ObjectAsOptions{})
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	if filter.Type.ValueString() == "not_equals" && filter.SelectedValues.IsNull() {
-		resp.Diagnostics.Append(diag.NewErrorDiagnostic("filter operator validation failed", "when type is `not_equals`, `selected_values` must be set"))
-	}
-}
-
-func logsFiltersSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
-		Optional: true,
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: map[string]schema.Attribute{
-				"field": schema.StringAttribute{
-					Required: true,
-				},
-				"operator": filterOperatorSchema(),
-				"observation_field": schema.SingleNestedAttribute{
-					Attributes: observationFieldSchemaAttributes(),
-					Optional:   true,
-				},
-			},
-		},
-		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
-		},
-	}
-}
-
-type logsAggregationValidator struct{}
-
-func (l logsAggregationValidator) Description(ctx context.Context) string {
-	return ""
-}
-
-func (l logsAggregationValidator) MarkdownDescription(ctx context.Context) string {
-	return ""
-}
-
-func (l logsAggregationValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
-	if req.ConfigValue.IsNull() {
-		return
-	}
-
-	var aggregation LogsAggregationModel
-	diags := req.ConfigValue.As(ctx, &aggregation, basetypes.ObjectAsOptions{})
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	aggregationType := aggregation.Type.ValueString()
-	if aggregationType == "count" && !aggregation.Field.IsNull() {
-		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", "when type is `count`, `field` cannot be set"))
-	} else if aggregationType != "count" && aggregation.Field.IsNull() {
-		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, `field` must be set", aggregationType)))
-	}
-
-	if aggregationType == "percentile" && aggregation.Percent.IsNull() {
-		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", "when type is `percentile`, `percent` must be set"))
-	} else if aggregationType != "percentile" && !aggregation.Percent.IsNull() {
-		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, `percent` cannot be set", aggregationType)))
-	}
-}
-
-func logsAggregationSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Required:   true,
-		Attributes: logsAggregationAttributes(),
-		Validators: []validator.Object{
-			logsAggregationValidator{},
-		},
-	}
-}
-
-func logsAggregationsSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
-		Required: true,
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: logsAggregationAttributes(),
-			Validators: []validator.Object{
-				logsAggregationValidator{},
-			},
-		},
-		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
-		},
-	}
-}
-
-func logsAggregationAttributes() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"type": schema.StringAttribute{
-			Required: true,
-			Validators: []validator.String{
-				stringvalidator.OneOf(dashboardwidgets.DashboardValidLogsAggregationTypes...),
-			},
-			MarkdownDescription: fmt.Sprintf("The type of the aggregation. Can be one of %q", dashboardwidgets.DashboardValidLogsAggregationTypes),
-		},
-		"field": schema.StringAttribute{
-			Optional: true,
-		},
-		"percent": schema.Float64Attribute{
-			Optional: true,
-			Validators: []validator.Float64{
-				float64validator.Between(0, 100),
-			},
-			MarkdownDescription: "The percentage of the aggregation to return. required when type is `percentile`.",
-		},
-		"observation_field": schema.SingleNestedAttribute{
-			Attributes: observationFieldSchemaAttributes(),
-			Optional:   true,
-		},
-	}
-}
-
-type spansFieldValidator struct{}
-
-func (s spansFieldValidator) Description(ctx context.Context) string {
-	return ""
-}
-
-func (s spansFieldValidator) MarkdownDescription(ctx context.Context) string {
-	return ""
-}
-
-func (s spansFieldValidator) ValidateObject(ctx context.Context, request validator.ObjectRequest, response *validator.ObjectResponse) {
-	if request.ConfigValue.IsNull() {
-		return
-	}
-
-	var field SpansFieldModel
-	diags := request.ConfigValue.As(ctx, &field, basetypes.ObjectAsOptions{})
-	if diags.HasError() {
-		response.Diagnostics.Append(diags...)
-		return
-	}
-	if field.Type.ValueString() == "metadata" && !slices.Contains(dashboardwidgets.DashboardValidSpanFieldMetadataFields, field.Value.ValueString()) {
-		response.Diagnostics.Append(diag.NewErrorDiagnostic("spans field validation failed", fmt.Sprintf("when type is `metadata`, `value` must be one of %q", dashboardwidgets.DashboardValidSpanFieldMetadataFields)))
-	}
-}
-
-func spansFieldSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Attributes: spansFieldAttributes(),
-		Optional:   true,
-		Validators: []validator.Object{
-			spansFieldValidator{},
-		},
-	}
-}
-
-func spansFieldsSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: spansFieldAttributes(),
-			Validators: []validator.Object{
-				spansFieldValidator{},
-			},
-		},
-		Optional: true,
-	}
-}
-
-func spansFieldAttributes() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"type": schema.StringAttribute{
-			Required: true,
-			Validators: []validator.String{
-				stringvalidator.OneOf(dashboardwidgets.DashboardValidSpanFieldTypes...),
-			},
-			MarkdownDescription: fmt.Sprintf("The type of the field. Can be one of %q", dashboardwidgets.DashboardValidSpanFieldTypes),
-		},
-		"value": schema.StringAttribute{
-			Required:            true,
-			MarkdownDescription: fmt.Sprintf("The value of the field. When the field type is `metadata`, can be one of %q", dashboardwidgets.DashboardValidSpanFieldMetadataFields),
-		},
-	}
-}
-
-type spansAggregationValidator struct{}
-
-func (s spansAggregationValidator) Description(ctx context.Context) string {
-	return ""
-}
-
-func (s spansAggregationValidator) MarkdownDescription(ctx context.Context) string {
-	return ""
-}
-
-func (s spansAggregationValidator) ValidateObject(ctx context.Context, request validator.ObjectRequest, response *validator.ObjectResponse) {
-	if request.ConfigValue.IsNull() {
-		return
-	}
-
-	var aggregation SpansAggregationModel
-	diags := request.ConfigValue.As(ctx, &aggregation, basetypes.ObjectAsOptions{})
-	if diags.HasError() {
-		response.Diagnostics.Append(diags...)
-		return
-	}
-
-	if aggregation.Type.ValueString() == "metrics" && !slices.Contains(dashboardwidgets.DashboardValidSpansAggregationMetricAggregationTypes, aggregation.AggregationType.ValueString()) {
-		response.Diagnostics.Append(diag.NewErrorDiagnostic("spans aggregation validation failed", fmt.Sprintf("when type is `metrics`, `aggregation_type` must be one of %q", dashboardwidgets.DashboardValidSpansAggregationMetricAggregationTypes)))
-	}
-	if aggregation.Type.ValueString() == "dimension" && !slices.Contains(dashboardwidgets.DashboardValidSpansAggregationDimensionAggregationTypes, aggregation.AggregationType.ValueString()) {
-		response.Diagnostics.Append(diag.NewErrorDiagnostic("spans aggregation validation failed", fmt.Sprintf("when type is `dimension`, `aggregation_type` must be one of %q", dashboardwidgets.DashboardValidSpansAggregationDimensionAggregationTypes)))
-	}
-}
-
-func spansAggregationSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Attributes: spansAggregationAttributes(),
-		Optional:   true,
-		Validators: []validator.Object{
-			spansAggregationValidator{},
-		},
-	}
-}
-
-func spansAggregationsSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: spansAggregationAttributes(),
-			Validators: []validator.Object{
-				spansAggregationValidator{},
-			},
-		},
-		Optional: true,
-	}
-}
-func spansAggregationAttributes() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"type": schema.StringAttribute{
-			Required: true,
-			Validators: []validator.String{
-				stringvalidator.OneOf(dashboardwidgets.DashboardValidSpanAggregationTypes...),
-			},
-			MarkdownDescription: fmt.Sprintf("Can be one of %q", dashboardwidgets.DashboardValidSpanAggregationTypes),
-		},
-		"aggregation_type": schema.StringAttribute{
-			Required:            true,
-			MarkdownDescription: fmt.Sprintf("The type of the aggregation. When the aggregation type is `metrics`, can be one of %q. When the aggregation type is `dimension`, can be one of %q.", dashboardwidgets.DashboardValidSpansAggregationMetricAggregationTypes, dashboardwidgets.DashboardValidSpansAggregationDimensionAggregationTypes),
-		},
-		"field": schema.StringAttribute{
-			Required:            true,
-			MarkdownDescription: fmt.Sprintf("The field to aggregate on. When the aggregation type is `metrics`, can be one of %q. When the aggregation type is `dimension`, can be one of %q.", dashboardwidgets.DashboardValidSpansAggregationMetricFields, dashboardwidgets.DashboardValidSpansAggregationDimensionFields),
-		},
-	}
-}
-
-func spansFilterSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: map[string]schema.Attribute{
-				"field": schema.SingleNestedAttribute{
-					Attributes: spansFieldAttributes(),
-					Required:   true,
-				},
-				"operator": filterOperatorSchema(),
-			},
-		},
-		Optional: true,
-	}
 }
 
 func (r DashboardResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -4137,7 +3646,7 @@ func expandSpansAggregations(ctx context.Context, aggregations types.List) ([]*c
 		return nil, diags
 	}
 	for _, ao := range aggregationsObjects {
-		var aggregation SpansAggregationModel
+		var aggregation dashboardwidgets.SpansAggregationModel
 		if dg := ao.As(ctx, &aggregation, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -4153,7 +3662,7 @@ func expandSpansAggregations(ctx context.Context, aggregations types.List) ([]*c
 	return expandedAggregations, diags
 }
 
-func expandSpansAggregation(spansAggregation *SpansAggregationModel) (*cxsdk.SpansAggregation, diag.Diagnostic) {
+func expandSpansAggregation(spansAggregation *dashboardwidgets.SpansAggregationModel) (*cxsdk.SpansAggregation, diag.Diagnostic) {
 	if spansAggregation == nil {
 		return nil, nil
 	}
@@ -4223,7 +3732,7 @@ func expandSpansFilter(ctx context.Context, spansFilter SpansFilterModel) (*cxsd
 	}, nil
 }
 
-func expandSpansField(spansFilterField *SpansFieldModel) (*cxsdk.SpanField, diag.Diagnostic) {
+func expandSpansField(spansFilterField *dashboardwidgets.SpansFieldModel) (*cxsdk.SpanField, diag.Diagnostic) {
 	if spansFilterField == nil {
 		return nil, nil
 	}
@@ -4712,7 +4221,7 @@ func expandMultiSelectSpansQueryTypeFieldValue(ctx context.Context, value types.
 		return nil, nil
 	}
 
-	var valueObject SpansFieldModel
+	var valueObject dashboardwidgets.SpansFieldModel
 	diags := value.As(ctx, &valueObject, basetypes.ObjectAsOptions{})
 	if diags.HasError() {
 		return nil, diags
@@ -4780,7 +4289,7 @@ func expandMetricFilter(ctx context.Context, metricFilter MetricsFilterModel) (*
 	}, nil
 }
 
-func expandFilterOperator(ctx context.Context, operator *FilterOperatorModel) (*cxsdk.DashboardFilterOperator, diag.Diagnostics) {
+func expandFilterOperator(ctx context.Context, operator *dashboardwidgets.FilterOperatorModel) (*cxsdk.DashboardFilterOperator, diag.Diagnostics) {
 	if operator == nil {
 		return nil, nil
 	}
@@ -4878,7 +4387,7 @@ func expandLogsAggregations(ctx context.Context, logsAggregations types.List) ([
 		return nil, diags
 	}
 	for _, qdo := range logsAggregationsObjects {
-		var aggregation LogsAggregationModel
+		var aggregation dashboardwidgets.LogsAggregationModel
 		if dg := qdo.As(ctx, &aggregation, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -4894,7 +4403,7 @@ func expandLogsAggregations(ctx context.Context, logsAggregations types.List) ([
 	return expandedLogsAggregations, diags
 }
 
-func expandLogsAggregation(ctx context.Context, logsAggregation *LogsAggregationModel) (*cxsdk.LogsAggregation, diag.Diagnostics) {
+func expandLogsAggregation(ctx context.Context, logsAggregation *dashboardwidgets.LogsAggregationModel) (*cxsdk.LogsAggregation, diag.Diagnostics) {
 	if logsAggregation == nil {
 		return nil, nil
 	}
@@ -5487,7 +4996,7 @@ func expandSpansFields(ctx context.Context, spanFields types.List) ([]*cxsdk.Spa
 		return nil, diags
 	}
 	for _, sfo := range spanFieldsObjects {
-		var spansField SpansFieldModel
+		var spansField dashboardwidgets.SpansFieldModel
 		if dg := sfo.As(ctx, &spansField, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -5602,7 +5111,7 @@ func expandDataTableQuery(ctx context.Context, dataTableQuery *DataTableQueryMod
 	}
 }
 
-func expandDataTableDataPrimeQuery(ctx context.Context, dataPrime *DataPrimeModel) (*cxsdk.DashboardDataTableQueryDataprime, diag.Diagnostics) {
+func expandDataTableDataPrimeQuery(ctx context.Context, dataPrime *dashboardwidgets.DataPrimeModel) (*cxsdk.DashboardDataTableQueryDataprime, diag.Diagnostics) {
 	if dataPrime == nil {
 		return nil, nil
 	}
@@ -8396,14 +7905,14 @@ func flattenAggregations(ctx context.Context, aggregations []*cxsdk.LogsAggregat
 	return types.ListValueMust(types.ObjectType{AttrTypes: aggregationModelAttr()}, aggregationsElements), diagnostics
 }
 
-func flattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregation) (*LogsAggregationModel, diag.Diagnostics) {
+func flattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregation) (*dashboardwidgets.LogsAggregationModel, diag.Diagnostics) {
 	if aggregation == nil {
 		return nil, nil
 	}
 
 	switch aggregationValue := aggregation.GetValue().(type) {
 	case *cxsdk.LogsAggregationCount:
-		return &LogsAggregationModel{
+		return &dashboardwidgets.LogsAggregationModel{
 			Type:             types.StringValue("count"),
 			ObservationField: types.ObjectNull(observationFieldAttributes()),
 		}, nil
@@ -8412,7 +7921,7 @@ func flattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregat
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &LogsAggregationModel{
+		return &dashboardwidgets.LogsAggregationModel{
 			Type:             types.StringValue("count_distinct"),
 			Field:            utils.WrapperspbStringToTypeString(aggregationValue.CountDistinct.GetField()),
 			ObservationField: observationField,
@@ -8422,7 +7931,7 @@ func flattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregat
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &LogsAggregationModel{
+		return &dashboardwidgets.LogsAggregationModel{
 			Type:             types.StringValue("sum"),
 			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Sum.GetField()),
 			ObservationField: observationField,
@@ -8432,7 +7941,7 @@ func flattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregat
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &LogsAggregationModel{
+		return &dashboardwidgets.LogsAggregationModel{
 			Type:             types.StringValue("avg"),
 			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Average.GetField()),
 			ObservationField: observationField,
@@ -8442,7 +7951,7 @@ func flattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregat
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &LogsAggregationModel{
+		return &dashboardwidgets.LogsAggregationModel{
 			Type:             types.StringValue("min"),
 			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Min.GetField()),
 			ObservationField: observationField,
@@ -8452,7 +7961,7 @@ func flattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregat
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &LogsAggregationModel{
+		return &dashboardwidgets.LogsAggregationModel{
 			Type:             types.StringValue("max"),
 			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Max.GetField()),
 			ObservationField: observationField,
@@ -8462,7 +7971,7 @@ func flattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregat
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &LogsAggregationModel{
+		return &dashboardwidgets.LogsAggregationModel{
 			Type:             types.StringValue("percentile"),
 			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Percentile.GetField()),
 			Percent:          utils.WrapperspbDoubleToTypeFloat64(aggregationValue.Percentile.GetPercent()),
@@ -8519,17 +8028,17 @@ func flattenLogsFilter(ctx context.Context, filter *cxsdk.DashboardFilterLogsFil
 	}, nil
 }
 
-func flattenFilterOperator(operator *cxsdk.DashboardFilterOperator) (*FilterOperatorModel, diag.Diagnostic) {
+func flattenFilterOperator(operator *cxsdk.DashboardFilterOperator) (*dashboardwidgets.FilterOperatorModel, diag.Diagnostic) {
 	switch operator.GetValue().(type) {
 	case *cxsdk.DashboardFilterOperatorEquals:
 		switch operator.GetEquals().GetSelection().GetValue().(type) {
 		case *cxsdk.DashboardFilterEqualsSelectionAll:
-			return &FilterOperatorModel{
+			return &dashboardwidgets.FilterOperatorModel{
 				Type:           types.StringValue("equals"),
 				SelectedValues: types.ListNull(types.StringType),
 			}, nil
 		case *cxsdk.DashboardFilterEqualsSelectionList:
-			return &FilterOperatorModel{
+			return &dashboardwidgets.FilterOperatorModel{
 				Type:           types.StringValue("equals"),
 				SelectedValues: utils.WrappedStringSliceToTypeStringList(operator.GetEquals().GetSelection().GetList().GetValues()),
 			}, nil
@@ -8539,7 +8048,7 @@ func flattenFilterOperator(operator *cxsdk.DashboardFilterOperator) (*FilterOper
 	case *cxsdk.DashboardFilterOperatorNotEquals:
 		switch operator.GetNotEquals().GetSelection().GetValue().(type) {
 		case *cxsdk.DashboardFilterNotEqualsSelectionList:
-			return &FilterOperatorModel{
+			return &dashboardwidgets.FilterOperatorModel{
 				Type:           types.StringValue("not_equals"),
 				SelectedValues: utils.WrappedStringSliceToTypeStringList(operator.GetNotEquals().GetSelection().GetList().GetValues()),
 			}, nil
@@ -8715,24 +8224,24 @@ func flattenSpansFields(ctx context.Context, spanFields []*cxsdk.SpanField) (typ
 	return types.ListValueMust(types.ObjectType{AttrTypes: spansFieldModelAttr()}, spanFieldElements), diagnostics
 }
 
-func flattenSpansField(field *cxsdk.SpanField) (*SpansFieldModel, diag.Diagnostic) {
+func flattenSpansField(field *cxsdk.SpanField) (*dashboardwidgets.SpansFieldModel, diag.Diagnostic) {
 	if field == nil {
 		return nil, nil
 	}
 
 	switch field.GetValue().(type) {
 	case *cxsdk.SpanFieldMetadataField:
-		return &SpansFieldModel{
+		return &dashboardwidgets.SpansFieldModel{
 			Type:  types.StringValue("metadata"),
 			Value: types.StringValue(dashboardwidgets.DashboardProtoToSchemaSpanFieldMetadataField[field.GetMetadataField()]),
 		}, nil
 	case *cxsdk.SpanFieldTagField:
-		return &SpansFieldModel{
+		return &dashboardwidgets.SpansFieldModel{
 			Type:  types.StringValue("tag"),
 			Value: utils.WrapperspbStringToTypeString(field.GetTagField()),
 		}, nil
 	case *cxsdk.SpanFieldProcessTagField:
-		return &SpansFieldModel{
+		return &dashboardwidgets.SpansFieldModel{
 			Type:  types.StringValue("process_tag"),
 			Value: utils.WrapperspbStringToTypeString(field.GetProcessTagField()),
 		}, nil
@@ -8804,7 +8313,7 @@ func flattenDataTableDataPrimeQuery(ctx context.Context, dataPrime *cxsdk.Dashbo
 	}
 
 	return &DataTableQueryModel{
-		DataPrime: &DataPrimeModel{
+		DataPrime: &dashboardwidgets.DataPrimeModel{
 			Query:   dataPrimeQuery,
 			Filters: filters,
 		},
@@ -8998,19 +8507,19 @@ func flattenDataTableSpansQueryAggregation(spanAggregation *cxsdk.DashboardDataT
 	}, nil
 }
 
-func flattenSpansAggregation(aggregation *cxsdk.SpansAggregation) (*SpansAggregationModel, diag.Diagnostic) {
+func flattenSpansAggregation(aggregation *cxsdk.SpansAggregation) (*dashboardwidgets.SpansAggregationModel, diag.Diagnostic) {
 	if aggregation == nil || aggregation.GetAggregation() == nil {
 		return nil, nil
 	}
 	switch aggregation := aggregation.GetAggregation().(type) {
 	case *cxsdk.SpansAggregationMetricAggregation:
-		return &SpansAggregationModel{
+		return &dashboardwidgets.SpansAggregationModel{
 			Type:            types.StringValue("metric"),
 			AggregationType: types.StringValue(dashboardwidgets.DashboardProtoToSchemaSpansAggregationMetricAggregationType[aggregation.MetricAggregation.GetAggregationType()]),
 			Field:           types.StringValue(dashboardwidgets.DashboardProtoToSchemaSpansAggregationMetricField[aggregation.MetricAggregation.GetMetricField()]),
 		}, nil
 	case *cxsdk.SpansAggregationDimensionAggregation:
-		return &SpansAggregationModel{
+		return &dashboardwidgets.SpansAggregationModel{
 			Type:            types.StringValue("dimension"),
 			AggregationType: types.StringValue(dashboardwidgets.DashboardProtoToSchemaSpansAggregationDimensionAggregationType[aggregation.DimensionAggregation.GetAggregationType()]),
 			Field:           types.StringValue(dashboardwidgets.DashboardSchemaToProtoSpansAggregationDimensionField[aggregation.DimensionAggregation.GetDimensionField()]),

@@ -57,23 +57,23 @@ var (
 		"post": cxsdk.GenericWebhookConfigPost,
 		"put":  cxsdk.GenericWebhookConfigPut,
 	}
-	webhooksProtoToSchemaMethod                = ReverseMap(webhooksSchemaToProtoMethod)
-	webhooksValidMethods                       = GetKeys(webhooksSchemaToProtoMethod)
+	webhooksProtoToSchemaMethod                = utils.ReverseMap(webhooksSchemaToProtoMethod)
+	webhooksValidMethods                       = utils.GetKeys(webhooksSchemaToProtoMethod)
 	webhooksSchemaToProtoSlackConfigDigestType = map[string]cxsdk.SlackConfigDigestType{
 		"error_and_critical_logs": cxsdk.SlackConfigErrorAndCriticalLogs,
 		"flow_anomalies":          cxsdk.SlackConfigFlowAnomalies,
 		"spike_anomalies":         cxsdk.SlackConfigSpikeAnomalies,
 		"data_usage":              cxsdk.SlackConfigDataUsage,
 	}
-	webhooksProtoToSchemaSlackConfigDigestType = ReverseMap(webhooksSchemaToProtoSlackConfigDigestType)
-	webhooksValidSlackConfigDigestTypes        = GetKeys(webhooksSchemaToProtoSlackConfigDigestType)
+	webhooksProtoToSchemaSlackConfigDigestType = utils.ReverseMap(webhooksSchemaToProtoSlackConfigDigestType)
+	webhooksValidSlackConfigDigestTypes        = utils.GetKeys(webhooksSchemaToProtoSlackConfigDigestType)
 	webhooksProtoToSchemaSlackAttachmentType   = map[string]cxsdk.SlackConfigAttachmentType{
 		"empty":           cxsdk.SlackConfigEmpty,
 		"metric_snapshot": cxsdk.SlackConfigMetricSnapshot,
 		"logs":            cxsdk.SlackConfigLogs,
 	}
-	webhooksSchemaToProtoSlackAttachmentType = ReverseMap(webhooksProtoToSchemaSlackAttachmentType)
-	webhooksValidSlackAttachmentTypes        = GetKeys(webhooksProtoToSchemaSlackAttachmentType)
+	webhooksSchemaToProtoSlackAttachmentType = utils.ReverseMap(webhooksProtoToSchemaSlackAttachmentType)
+	webhooksValidSlackAttachmentTypes        = utils.GetKeys(webhooksProtoToSchemaSlackAttachmentType)
 	customDefaultPayload                     = `{
     "uuid": "",
     "alert_id": "$ALERT_ID",

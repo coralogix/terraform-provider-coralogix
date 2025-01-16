@@ -15,17 +15,25 @@
 package dashboardwidgets
 
 import (
+	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 var (
@@ -247,6 +255,112 @@ var (
 	DashboardValidLegendBys        = utils.GetKeys(DashboardLegendBySchemaToProto)
 )
 
+type QueryLogsModel struct {
+	LuceneQuery  types.String `tfsdk:"lucene_query"`
+	GroupBy      types.List   `tfsdk:"group_by"`     //types.String
+	Aggregations types.List   `tfsdk:"aggregations"` //AggregationModel
+	Filters      types.List   `tfsdk:"filters"`      //FilterModel
+}
+
+type QueryMetricsModel struct {
+	PromqlQuery types.String `tfsdk:"promql_query"`
+	Filters     types.List   `tfsdk:"filters"` //MetricsFilterModel
+}
+
+type MetricFilterModel struct {
+	Metric   types.String         `tfsdk:"metric"`
+	Label    types.String         `tfsdk:"label"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
+type QuerySpansModel struct {
+	LuceneQuery  types.String `tfsdk:"lucene_query"`
+	GroupBy      types.List   `tfsdk:"group_by"`     //SpansFieldModel
+	Aggregations types.List   `tfsdk:"aggregations"` //SpansAggregationModel
+	Filters      types.List   `tfsdk:"filters"`      //SpansFilterModel
+}
+
+type SpansFieldModel struct {
+	Type  types.String `tfsdk:"type"`
+	Value types.String `tfsdk:"value"`
+}
+
+type LogsAggregationModel struct {
+	Type             types.String  `tfsdk:"type"`
+	Field            types.String  `tfsdk:"field"`
+	Percent          types.Float64 `tfsdk:"percent"`
+	ObservationField types.Object  `tfsdk:"observation_field"`
+}
+
+type DataPrimeModel struct {
+	Query   types.String `tfsdk:"query"`
+	Filters types.List   `tfsdk:"filters"` //DashboardFilterSourceModel
+}
+
+type SpansAggregationModel struct {
+	Type            types.String `tfsdk:"type"`
+	AggregationType types.String `tfsdk:"aggregation_type"`
+	Field           types.String `tfsdk:"field"`
+}
+
+type spansFieldValidator struct{}
+
+func (s spansFieldValidator) Description(ctx context.Context) string {
+	return ""
+}
+
+func (s spansFieldValidator) MarkdownDescription(ctx context.Context) string {
+	return ""
+}
+
+func (s spansFieldValidator) ValidateObject(ctx context.Context, request validator.ObjectRequest, response *validator.ObjectResponse) {
+	if request.ConfigValue.IsNull() {
+		return
+	}
+
+	var field SpansFieldModel
+	diags := request.ConfigValue.As(ctx, &field, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		response.Diagnostics.Append(diags...)
+		return
+	}
+	if field.Type.ValueString() == "metadata" && !slices.Contains(DashboardValidSpanFieldMetadataFields, field.Value.ValueString()) {
+		response.Diagnostics.Append(diag.NewErrorDiagnostic("spans field validation failed", fmt.Sprintf("when type is `metadata`, `value` must be one of %q", DashboardValidSpanFieldMetadataFields)))
+	}
+}
+
+type FilterOperatorModel struct {
+	Type           types.String `tfsdk:"type"`
+	SelectedValues types.List   `tfsdk:"selected_values"` //types.String
+}
+
+type filterOperatorValidator struct{}
+
+func (f filterOperatorValidator) Description(_ context.Context) string {
+	return ""
+}
+
+func (f filterOperatorValidator) MarkdownDescription(_ context.Context) string {
+	return ""
+}
+
+func (f filterOperatorValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() {
+		return
+	}
+
+	var filter FilterOperatorModel
+	diags := req.ConfigValue.As(ctx, &filter, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	if filter.Type.ValueString() == "not_equals" && filter.SelectedValues.IsNull() {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("filter operator validation failed", "when type is `not_equals`, `selected_values` must be set"))
+	}
+}
+
 type LegendModel struct {
 	IsVisible    types.Bool   `tfsdk:"is_visible"`
 	Columns      types.List   `tfsdk:"columns"` //types.String (DashboardValidLegendColumns)
@@ -254,7 +368,7 @@ type LegendModel struct {
 	Placement    types.String `tfsdk:"placement"`
 }
 
-func legendSchema() schema.SingleNestedAttribute {
+func LegendSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Attributes: map[string]schema.Attribute{
 			"is_visible": schema.BoolAttribute{
@@ -287,5 +401,408 @@ func legendSchema() schema.SingleNestedAttribute {
 			},
 		},
 		Optional: true,
+	}
+}
+
+func LogsFiltersSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		Optional: true,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"field": schema.StringAttribute{
+					Required: true,
+				},
+				"operator": FilterOperatorSchema(),
+				"observation_field": schema.SingleNestedAttribute{
+					Attributes: ObservationFieldSchemaAttributes(),
+					Optional:   true,
+				},
+			},
+		},
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
+	}
+}
+
+func UnitSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Optional: true,
+		Computed: true,
+		Default:  stringdefault.StaticString("unspecified"),
+		Validators: []validator.String{
+			stringvalidator.OneOf(DashboardValidUnits...),
+		},
+		MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
+	}
+}
+
+func FiltersSourceAttribute() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"logs": schema.SingleNestedAttribute{
+			Attributes: map[string]schema.Attribute{
+				"field": schema.StringAttribute{
+					Required:            true,
+					MarkdownDescription: "Field in the logs to apply the filter on.",
+				},
+				"operator": FilterOperatorSchema(),
+				"observation_field": schema.SingleNestedAttribute{
+					Attributes: ObservationFieldSchemaAttributes(),
+					Optional:   true,
+				},
+			},
+			Optional: true,
+			Validators: []validator.Object{
+				objectvalidator.ExactlyOneOf(
+					path.MatchRelative().AtParent().AtName("metrics"),
+					path.MatchRelative().AtParent().AtName("spans"),
+				),
+			},
+		},
+		"spans": schema.SingleNestedAttribute{
+			Attributes: map[string]schema.Attribute{
+				"field": schema.SingleNestedAttribute{
+					Attributes: SpansFieldAttributes(),
+					Required:   true,
+					Validators: []validator.Object{
+						spansFieldValidator{},
+					},
+				},
+				"operator": FilterOperatorSchema(),
+			},
+			Optional: true,
+			Validators: []validator.Object{
+				objectvalidator.ExactlyOneOf(
+					path.MatchRelative().AtParent().AtName("metrics"),
+					path.MatchRelative().AtParent().AtName("logs"),
+				),
+			},
+		},
+		"metrics": schema.SingleNestedAttribute{
+			Attributes: map[string]schema.Attribute{
+				"metric_name": schema.StringAttribute{
+					Required: true,
+				},
+				"label": schema.StringAttribute{
+					Required: true,
+				},
+				"operator": FilterOperatorSchema(),
+			},
+			Validators: []validator.Object{
+				objectvalidator.ExactlyOneOf(
+					path.MatchRelative().AtParent().AtName("spans"),
+					path.MatchRelative().AtParent().AtName("logs"),
+				),
+			},
+			Optional: true,
+		},
+	}
+}
+
+func FilterOperatorSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Attributes: map[string]schema.Attribute{
+			"type": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf("equals", "not_equals"),
+				},
+				MarkdownDescription: "The type of the operator. Can be one of `equals` or `not_equals`.",
+			},
+			"selected_values": schema.ListAttribute{
+				ElementType:         types.StringType,
+				Optional:            true,
+				MarkdownDescription: "the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.",
+			},
+		},
+		Validators: []validator.Object{
+			filterOperatorValidator{},
+		},
+		Required:            true,
+		MarkdownDescription: "Operator to use for filtering.",
+	}
+}
+
+func ObservationFieldSchemaAttributes() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"keypath": schema.ListAttribute{
+			ElementType: types.StringType,
+			Required:    true,
+		},
+		"scope": schema.StringAttribute{
+			Required: true,
+			Validators: []validator.String{
+				stringvalidator.OneOf(DashboardValidObservationFieldScope...),
+			},
+		},
+	}
+}
+
+func SpansFilterSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"field": schema.SingleNestedAttribute{
+					Attributes: SpansFieldAttributes(),
+					Required:   true,
+				},
+				"operator": FilterOperatorSchema(),
+			},
+		},
+		Optional: true,
+	}
+}
+
+func SpansFieldSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Attributes: SpansFieldAttributes(),
+		Optional:   true,
+		Validators: []validator.Object{
+			spansFieldValidator{},
+		},
+	}
+}
+
+func SpansFieldsSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: SpansFieldAttributes(),
+			Validators: []validator.Object{
+				spansFieldValidator{},
+			},
+		},
+		Optional: true,
+	}
+}
+
+func SpansFieldAttributes() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"type": schema.StringAttribute{
+			Required: true,
+			Validators: []validator.String{
+				stringvalidator.OneOf(DashboardValidSpanFieldTypes...),
+			},
+			MarkdownDescription: fmt.Sprintf("The type of the field. Can be one of %q", DashboardValidSpanFieldTypes),
+		},
+		"value": schema.StringAttribute{
+			Required:            true,
+			MarkdownDescription: fmt.Sprintf("The value of the field. When the field type is `metadata`, can be one of %q", DashboardValidSpanFieldMetadataFields),
+		},
+	}
+}
+
+func SpansAggregationsSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: SpansAggregationAttributes(),
+			Validators: []validator.Object{
+				spansAggregationValidator{},
+			},
+		},
+		Optional: true,
+	}
+}
+
+func SpansAggregationSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Attributes: SpansAggregationAttributes(),
+		Optional:   true,
+		Validators: []validator.Object{
+			spansAggregationValidator{},
+		},
+	}
+}
+func SpansAggregationAttributes() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"type": schema.StringAttribute{
+			Required: true,
+			Validators: []validator.String{
+				stringvalidator.OneOf(DashboardValidSpanAggregationTypes...),
+			},
+			MarkdownDescription: fmt.Sprintf("Can be one of %q", DashboardValidSpanAggregationTypes),
+		},
+		"aggregation_type": schema.StringAttribute{
+			Required:            true,
+			MarkdownDescription: fmt.Sprintf("The type of the aggregation. When the aggregation type is `metrics`, can be one of %q. When the aggregation type is `dimension`, can be one of %q.", DashboardValidSpansAggregationMetricAggregationTypes, DashboardValidSpansAggregationDimensionAggregationTypes),
+		},
+		"field": schema.StringAttribute{
+			Required:            true,
+			MarkdownDescription: fmt.Sprintf("The field to aggregate on. When the aggregation type is `metrics`, can be one of %q. When the aggregation type is `dimension`, can be one of %q.", DashboardValidSpansAggregationMetricFields, DashboardValidSpansAggregationDimensionFields),
+		},
+	}
+}
+
+type spansAggregationValidator struct{}
+
+func (s spansAggregationValidator) Description(ctx context.Context) string {
+	return ""
+}
+
+func (s spansAggregationValidator) MarkdownDescription(ctx context.Context) string {
+	return ""
+}
+
+func (s spansAggregationValidator) ValidateObject(ctx context.Context, request validator.ObjectRequest, response *validator.ObjectResponse) {
+	if request.ConfigValue.IsNull() {
+		return
+	}
+
+	var aggregation SpansAggregationModel
+	diags := request.ConfigValue.As(ctx, &aggregation, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		response.Diagnostics.Append(diags...)
+		return
+	}
+
+	if aggregation.Type.ValueString() == "metrics" && !slices.Contains(DashboardValidSpansAggregationMetricAggregationTypes, aggregation.AggregationType.ValueString()) {
+		response.Diagnostics.Append(diag.NewErrorDiagnostic("spans aggregation validation failed", fmt.Sprintf("when type is `metrics`, `aggregation_type` must be one of %q", DashboardValidSpansAggregationMetricAggregationTypes)))
+	}
+	if aggregation.Type.ValueString() == "dimension" && !slices.Contains(DashboardValidSpansAggregationDimensionAggregationTypes, aggregation.AggregationType.ValueString()) {
+		response.Diagnostics.Append(diag.NewErrorDiagnostic("spans aggregation validation failed", fmt.Sprintf("when type is `dimension`, `aggregation_type` must be one of %q", DashboardValidSpansAggregationDimensionAggregationTypes)))
+	}
+}
+
+type logsAggregationValidator struct{}
+
+func (l logsAggregationValidator) Description(ctx context.Context) string {
+	return ""
+}
+
+func (l logsAggregationValidator) MarkdownDescription(ctx context.Context) string {
+	return ""
+}
+
+func (l logsAggregationValidator) ValidateObject(ctx context.Context, req validator.ObjectRequest, resp *validator.ObjectResponse) {
+	if req.ConfigValue.IsNull() {
+		return
+	}
+
+	var aggregation LogsAggregationModel
+	diags := req.ConfigValue.As(ctx, &aggregation, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	aggregationType := aggregation.Type.ValueString()
+	if aggregationType == "count" && !aggregation.Field.IsNull() {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", "when type is `count`, `field` cannot be set"))
+	} else if aggregationType != "count" && aggregation.Field.IsNull() {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, `field` must be set", aggregationType)))
+	}
+
+	if aggregationType == "percentile" && aggregation.Percent.IsNull() {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", "when type is `percentile`, `percent` must be set"))
+	} else if aggregationType != "percentile" && !aggregation.Percent.IsNull() {
+		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, `percent` cannot be set", aggregationType)))
+	}
+}
+
+func LogsAggregationSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Required:   true,
+		Attributes: LogsAggregationAttributes(),
+		Validators: []validator.Object{
+			logsAggregationValidator{},
+		},
+	}
+}
+
+func LogsAggregationsSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		Required: true,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: LogsAggregationAttributes(),
+			Validators: []validator.Object{
+				logsAggregationValidator{},
+			},
+		},
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
+	}
+}
+
+func LogsAggregationAttributes() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"type": schema.StringAttribute{
+			Required: true,
+			Validators: []validator.String{
+				stringvalidator.OneOf(DashboardValidLogsAggregationTypes...),
+			},
+			MarkdownDescription: fmt.Sprintf("The type of the aggregation. Can be one of %q", DashboardValidLogsAggregationTypes),
+		},
+		"field": schema.StringAttribute{
+			Optional: true,
+		},
+		"percent": schema.Float64Attribute{
+			Optional: true,
+			Validators: []validator.Float64{
+				float64validator.Between(0, 100),
+			},
+			MarkdownDescription: "The percentage of the aggregation to return. required when type is `percentile`.",
+		},
+		"observation_field": schema.SingleNestedAttribute{
+			Attributes: ObservationFieldSchemaAttributes(),
+			Optional:   true,
+		},
+	}
+}
+
+func MetricFiltersSchema() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"metric": schema.StringAttribute{
+					Required:            true,
+					MarkdownDescription: "Metric name to apply the filter on.",
+				},
+				"label": schema.StringAttribute{
+					Optional:            true,
+					MarkdownDescription: "Label associated with the metric.",
+				},
+				"operator": FilterOperatorSchema(),
+			},
+		},
+		Validators: []validator.List{
+			listvalidator.SizeAtLeast(1),
+		},
+		Optional: true,
+	}
+}
+
+func TimeFrameSchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"absolute": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"start": schema.StringAttribute{
+						Required: true,
+					},
+					"end": schema.StringAttribute{
+						Required: true,
+					},
+				},
+				Optional: true,
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("relative")),
+				},
+				MarkdownDescription: "Absolute time frame specifying a fixed start and end time.",
+			},
+			"relative": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"duration": schema.StringAttribute{
+						Required: true,
+					},
+				},
+				Optional: true,
+				Validators: []validator.Object{
+					objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("absolute")),
+				},
+				MarkdownDescription: "Relative time frame specifying a duration from the current time.",
+			},
+		},
+		MarkdownDescription: "Specifies the time frame for the dashboard's data. Can be either absolute or relative.",
 	}
 }

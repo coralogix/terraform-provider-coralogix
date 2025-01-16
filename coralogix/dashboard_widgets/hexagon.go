@@ -21,14 +21,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 type HexagonModel struct {
-	customUnit    types.String `tfsdk:"custom_unit"`
+	CustomUnit    types.String `tfsdk:"custom_unit"`
 	LegendBy      types.String `tfsdk:"legend_by"`
 	Decimal       types.Number `tfsdk:"decimal"`
 	DataModeType  types.String `tfsdk:"data_mode_type"`
@@ -42,25 +42,26 @@ type HexagonModel struct {
 }
 
 type HexagonQueryDefinitionModel struct {
-	ID                 types.String         `tfsdk:"id"`
-	Query              *LineChartQueryModel `tfsdk:"query"`
-	SeriesNameTemplate types.String         `tfsdk:"series_name_template"`
-	SeriesCountLimit   types.Int64          `tfsdk:"series_count_limit"`
-	Unit               types.String         `tfsdk:"unit"`
-	ScaleType          types.String         `tfsdk:"scale_type"`
-	Name               types.String         `tfsdk:"name"`
-	IsVisible          types.Bool           `tfsdk:"is_visible"`
-	ColorScheme        types.String         `tfsdk:"color_scheme"`
-	Resolution         types.Object         `tfsdk:"resolution"` //LineChartResolutionModel
-	DataModeType       types.String         `tfsdk:"data_mode_type"`
+	ID                 types.String       `tfsdk:"id"`
+	Query              *HexagonQueryModel `tfsdk:"query"`
+	SeriesNameTemplate types.String       `tfsdk:"series_name_template"`
+	SeriesCountLimit   types.Int64        `tfsdk:"series_count_limit"`
+	Unit               types.String       `tfsdk:"unit"`
+	ScaleType          types.String       `tfsdk:"scale_type"`
+	Name               types.String       `tfsdk:"name"`
+	IsVisible          types.Bool         `tfsdk:"is_visible"`
+	ColorScheme        types.String       `tfsdk:"color_scheme"`
+	Resolution         types.Object       `tfsdk:"resolution"` //LineChartResolutionModel
+	DataModeType       types.String       `tfsdk:"data_mode_type"`
 }
 
 type HexagonQueryModel struct {
-	Logs      *LineChartQueryLogsModel    `tfsdk:"logs"`
-	Metrics   *LineChartQueryMetricsModel `tfsdk:"metrics"`
-	Spans     *LineChartQuerySpansModel   `tfsdk:"spans"`
-	DataPrime *DataPrimeQueryModel        `tfsdk:"dataprime"`
+	Logs      *QueryLogsModel    `tfsdk:"logs"`
+	Metrics   *QueryMetricsModel `tfsdk:"metrics"`
+	Spans     *QuerySpansModel   `tfsdk:"spans"`
+	DataPrime *DataPrimeModel    `tfsdk:"dataprime"`
 }
+
 type HexagonThresholdModel struct {
 	From  types.Number `tfsdk:"from"`
 	Color types.String `tfsdk:"color"`
@@ -80,30 +81,30 @@ func HexagonSchema() schema.Attribute {
 			"decimal": schema.NumberAttribute{
 				Optional: true,
 			},
-			"legend": legendSchema(),
+			"legend": LegendSchema(),
 			"legend_by": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
 				Default:  stringdefault.StaticString("unspecified"),
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidLegendBy...),
+					stringvalidator.OneOf(DashboardValidLegendBys...),
 				},
-				MarkdownDescription: fmt.Sprintf("The legend by. Valid values are: %s.", strings.Join(dashboardValidLegendBy, ", ")),
+				MarkdownDescription: fmt.Sprintf("The legend by. Valid values are: %s.", strings.Join(DashboardValidLegendBys, ", ")),
 			},
 			"unit": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
 				Default:  stringdefault.StaticString("unspecified"),
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidUnits...),
+					stringvalidator.OneOf(DashboardValidUnits...),
 				},
-				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(dashboardValidUnits, ", ")),
+				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
 			},
 			"data_mode_type": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidDataModeTypes...),
+					stringvalidator.OneOf(DashboardValidDataModeTypes...),
 				},
 				Default: stringdefault.StaticString("unspecified"),
 			},
@@ -126,10 +127,10 @@ func HexagonSchema() schema.Attribute {
 				Optional: true,
 				Computed: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf(dashboardValidThresholdTypes...),
+					stringvalidator.OneOf(DashboardValidThresholdTypes...),
 				},
 				Default:             stringdefault.StaticString("unspecified"),
-				MarkdownDescription: fmt.Sprintf("The threshold type. Valid values are: %s.", strings.Join(dashboardValidThresholdTypes, ", ")),
+				MarkdownDescription: fmt.Sprintf("The threshold type. Valid values are: %s.", strings.Join(DashboardValidThresholdTypes, ", ")),
 			},
 			"query": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
@@ -142,8 +143,8 @@ func HexagonSchema() schema.Attribute {
 								ElementType: types.StringType,
 								Optional:    true,
 							},
-							"filters":      logsFiltersSchema(),
-							"aggregations": logsAggregationsSchema(),
+							"filters":      LogsFiltersSchema(),
+							"aggregations": LogsAggregationsSchema(),
 						},
 						Optional: true,
 						Validators: []validator.Object{
@@ -159,7 +160,7 @@ func HexagonSchema() schema.Attribute {
 							"promql_query": schema.StringAttribute{
 								Required: true,
 							},
-							"filters": metricFiltersSchema(),
+							"filters": MetricFiltersSchema(),
 						},
 						Optional: true,
 						Validators: []validator.Object{
@@ -175,9 +176,9 @@ func HexagonSchema() schema.Attribute {
 							"lucene_query": schema.StringAttribute{
 								Optional: true,
 							},
-							"group_by":     spansFieldsSchema(),
-							"aggregations": spansAggregationsSchema(),
-							"filters":      spansFilterSchema(),
+							"group_by":     SpansFieldsSchema(),
+							"aggregations": SpansAggregationSchema(),
+							"filters":      SpansFilterSchema(),
 						},
 						Optional: true,
 						Validators: []validator.Object{
@@ -193,8 +194,13 @@ func HexagonSchema() schema.Attribute {
 							"dataprime_query": schema.StringAttribute{
 								Optional: true,
 							},
-							"timeframe": timeFrameSchema(),
-							"filters":   spansFilterSchema(),
+							"timeframe": TimeFrameSchema(),
+							"filters": schema.ListNestedAttribute{
+								NestedObject: schema.NestedAttributeObject{
+									Attributes: FiltersSourceAttribute(),
+								},
+								Optional: true,
+							},
 						},
 						Optional: true,
 						Validators: []validator.Object{
