@@ -15,11 +15,17 @@
 package dashboardwidgets
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"terraform-provider-coralogix/coralogix/utils"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -28,31 +34,17 @@ import (
 )
 
 type HexagonModel struct {
-	CustomUnit    types.String `tfsdk:"custom_unit"`
-	LegendBy      types.String `tfsdk:"legend_by"`
-	Decimal       types.Number `tfsdk:"decimal"`
-	DataModeType  types.String `tfsdk:"data_mode_type"`
-	Thresholds    types.Set    `tfsdk:"thresholds"` //HexagonThresholdModel
-	ThresholdType types.String `tfsdk:"threshold_type"`
-	Min           types.Number `tfsdk:"min"`
-	Max           types.Number `tfsdk:"max"`
-	Unit          types.String `tfsdk:"unit"`
-	Legend        *LegendModel `tfsdk:"legend"`
-	Query         types.Object `tfsdk:"query"` //HexagonQueryDefinitionModel
-}
-
-type HexagonQueryDefinitionModel struct {
-	ID                 types.String       `tfsdk:"id"`
-	Query              *HexagonQueryModel `tfsdk:"query"`
-	SeriesNameTemplate types.String       `tfsdk:"series_name_template"`
-	SeriesCountLimit   types.Int64        `tfsdk:"series_count_limit"`
-	Unit               types.String       `tfsdk:"unit"`
-	ScaleType          types.String       `tfsdk:"scale_type"`
-	Name               types.String       `tfsdk:"name"`
-	IsVisible          types.Bool         `tfsdk:"is_visible"`
-	ColorScheme        types.String       `tfsdk:"color_scheme"`
-	Resolution         types.Object       `tfsdk:"resolution"` //LineChartResolutionModel
-	DataModeType       types.String       `tfsdk:"data_mode_type"`
+	CustomUnit    types.String       `tfsdk:"custom_unit"`
+	LegendBy      types.String       `tfsdk:"legend_by"`
+	Decimal       types.Number       `tfsdk:"decimal"`
+	DataModeType  types.String       `tfsdk:"data_mode_type"`
+	Thresholds    types.Set          `tfsdk:"thresholds"` //HexagonThresholdModel
+	ThresholdType types.String       `tfsdk:"threshold_type"`
+	Min           types.Number       `tfsdk:"min"`
+	Max           types.Number       `tfsdk:"max"`
+	Unit          types.String       `tfsdk:"unit"`
+	Legend        *LegendModel       `tfsdk:"legend"`
+	Query         *HexagonQueryModel `tfsdk:"query"`
 }
 
 type HexagonQueryModel struct {
@@ -231,3 +223,207 @@ func HexagonSchema() schema.Attribute {
 		Optional: true,
 	}
 }
+
+func FlattenHexagon(ctx context.Context, chart *cxsdk.Hexagon) (*WidgetDefinitionModel, diag.Diagnostics) {
+	if chart == nil {
+		return nil, nil
+	}
+
+	query, diags := flattenHexagonQuery(ctx, chart.GetQuery())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &WidgetDefinitionModel{
+		Hexagon: &HexagonModel{
+			Legend: FlattenLegend(chart.GetLegend()),
+			Query:  query,
+		},
+	}, nil
+}
+
+func flattenHexagonQuery(ctx context.Context, query *cxsdk.HexagonQuery) (*HexagonQueryModel, diag.Diagnostics) {
+	if query == nil {
+		return nil, nil
+	}
+
+	switch query.GetValue().(type) {
+	case *cxsdk.HexagonQueryLogs:
+		return flattenHexagonLogsQuery(ctx, query.GetLogs())
+	case *cxsdk.HexagonQueryMetrics:
+		return flattenHexagonMetricsQuery(ctx, query.GetMetrics())
+	case *cxsdk.HexagonQuerySpans:
+		return flattenHexagonSpansQuery(ctx, query.GetSpans())
+	case *cxsdk.HexagonQueryDataprime:
+		return flattenHexagonDataPrimeQuery(ctx, query.GetDataprime())
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Data Table Query", "unknown data table query type")}
+	}
+}
+
+func flattenHexagonDataPrimeQuery(ctx context.Context, dataPrime *cxsdk.HexagonDataprimeQuery) (*HexagonQueryModel, diag.Diagnostics) {
+	if dataPrime == nil {
+		return nil, nil
+	}
+
+	dataPrimeQuery := types.StringNull()
+	if dataPrime.GetDataprimeQuery() != nil {
+		dataPrimeQuery = types.StringValue(dataPrime.GetDataprimeQuery().GetText())
+	}
+
+	filters, diags := FlattenDashboardFiltersSources(ctx, dataPrime.GetFilters())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &HexagonQueryModel{
+		DataPrime: &DataPrimeModel{
+			Query:   dataPrimeQuery,
+			Filters: filters,
+		},
+	}, nil
+}
+
+func flattenHexagonLogsQuery(ctx context.Context, logs *cxsdk.HexagonLogsQuery) (*HexagonQueryModel, diag.Diagnostics) {
+	if logs == nil {
+		return nil, nil
+	}
+
+	filters, diags := FlattenLogsFilters(ctx, logs.GetFilters())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	grouping, diags := FlattenObservationFields(ctx, logs.GetGroupBy())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &HexagonQueryModel{
+		Logs: &QueryLogsModel{
+			LuceneQuery: utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
+			Filters:     filters,
+			GroupBy:     grouping,
+		},
+	}, nil
+}
+
+func flattenGroupingAggregations(ctx context.Context, aggregations []*cxsdk.DashboardDataTableLogsQueryAggregation) (types.List, diag.Diagnostics) {
+	if len(aggregations) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: GroupingAggregationModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	aggregationElements := make([]attr.Value, 0, len(aggregations))
+	for _, aggregation := range aggregations {
+		flattenedAggregation, diags := flattenGroupingAggregation(ctx, aggregation)
+		if diags.HasError() {
+			diagnostics.Append(diags...)
+			continue
+		}
+		aggregationElement, diags := types.ObjectValueFrom(ctx, GroupingAggregationModelAttr(), flattenedAggregation)
+		if diags.HasError() {
+			diagnostics.Append(diags...)
+			continue
+		}
+		aggregationElements = append(aggregationElements, aggregationElement)
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: GroupingAggregationModelAttr()}, aggregationElements), diagnostics
+}
+
+func flattenGroupingAggregation(ctx context.Context, dataTableAggregation *cxsdk.DashboardDataTableLogsQueryAggregation) (*DataTableLogsAggregationModel, diag.Diagnostics) {
+	aggregation, diags := FlattenLogsAggregation(ctx, dataTableAggregation.GetAggregation())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &DataTableLogsAggregationModel{
+		ID:          utils.WrapperspbStringToTypeString(dataTableAggregation.GetId()),
+		Name:        utils.WrapperspbStringToTypeString(dataTableAggregation.GetName()),
+		IsVisible:   utils.WrapperspbBoolToTypeBool(dataTableAggregation.GetIsVisible()),
+		Aggregation: aggregation,
+	}, nil
+}
+
+func flattenHexagonMetricsQuery(ctx context.Context, metrics *cxsdk.HexagonMetricsQuery) (*HexagonQueryModel, diag.Diagnostics) {
+	if metrics == nil {
+		return nil, nil
+	}
+
+	filters, diags := FlattenMetricsFilters(ctx, metrics.GetFilters())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &HexagonQueryModel{
+		Metrics: &QueryMetricsModel{
+			PromqlQuery: utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
+			Filters:     filters,
+		},
+	}, nil
+}
+
+func flattenHexagonSpansQuery(ctx context.Context, spans *cxsdk.HexagonSpansQuery) (*HexagonQueryModel, diag.Diagnostics) {
+	if spans == nil {
+		return nil, nil
+	}
+
+	filters, diags := FlattenSpansFilters(ctx, spans.GetFilters())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	grouping, diags := FlattenSpansFields(ctx, spans.GetGroupBy())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &HexagonQueryModel{
+		Spans: &QuerySpansModel{
+			LuceneQuery: utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
+			Filters:     filters,
+			GroupBy:     grouping,
+		},
+	}, nil
+}
+
+// func flattenHexagonSpansQueryAggregations(ctx context.Context, aggregations []*cxsdk.SpansAggregation) (types.List, diag.Diagnostics) {
+// 	if len(aggregations) == 0 {
+// 		return types.ListNull(types.ObjectType{AttrTypes: SpansAggregationModelAttr()}), nil
+// 	}
+// 	var diagnostics diag.Diagnostics
+// 	aggregationElements := make([]attr.Value, 0, len(aggregations))
+// 	for _, aggregation := range aggregations {
+// 		flattenedAggregation, dg := flattenHexagonSpansQueryAggregation(aggregation)
+// 		if dg != nil {
+// 			diagnostics.Append(dg)
+// 			continue
+// 		}
+// 		aggregationElement, diags := types.ObjectValueFrom(ctx, SpansAggregationModelAttr(), flattenedAggregation)
+// 		if diags.HasError() {
+// 			diagnostics = append(diagnostics, diags...)
+// 			continue
+// 		}
+// 		aggregationElements = append(aggregationElements, aggregationElement)
+// 	}
+// 	return types.ListValueMust(types.ObjectType{AttrTypes: SpansAggregationModelAttr()}, aggregationElements), diagnostics
+// }
+
+// func flattenHexagonSpansQueryAggregation(spanAggregation *cxsdk.SpansAggregation) (*DataTableSpansAggregationModel, diag.Diagnostic) {
+// 	if spanAggregation == nil {
+// 		return nil, nil
+// 	}
+
+// 	aggregation, dg := flattenSpansAggregation(spanAggregation.GetAggregation())
+// 	if dg != nil {
+// 		return nil, dg
+// 	}
+
+// 	return &DataTableSpansAggregationModel{
+// 		ID:          utils.WrapperspbStringToTypeString(spanAggregation.GetId()),
+// 		Name:        utils.WrapperspbStringToTypeString(spanAggregation.GetName()),
+// 		IsVisible:   utils.WrapperspbBoolToTypeBool(spanAggregation.GetIsVisible()),
+// 		Aggregation: aggregation,
+// 	}, nil
+// }

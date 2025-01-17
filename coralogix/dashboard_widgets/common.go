@@ -26,6 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -34,6 +35,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 var (
@@ -301,6 +303,409 @@ type SpansAggregationModel struct {
 	Type            types.String `tfsdk:"type"`
 	AggregationType types.String `tfsdk:"aggregation_type"`
 	Field           types.String `tfsdk:"field"`
+}
+
+type WidgetDefinitionModel struct {
+	LineChart          *LineChartModel          `tfsdk:"line_chart"`
+	Hexagon            *HexagonModel            `tfsdk:"hexagon"`
+	DataTable          *DataTableModel          `tfsdk:"data_table"`
+	Gauge              *GaugeModel              `tfsdk:"gauge"`
+	PieChart           *PieChartModel           `tfsdk:"pie_chart"`
+	BarChart           *BarChartModel           `tfsdk:"bar_chart"`
+	HorizontalBarChart *HorizontalBarChartModel `tfsdk:"horizontal_bar_chart"`
+	Markdown           *MarkdownModel           `tfsdk:"markdown"`
+}
+
+type LineChartModel struct {
+	Legend           *LegendModel  `tfsdk:"legend"`
+	Tooltip          *TooltipModel `tfsdk:"tooltip"`
+	QueryDefinitions types.List    `tfsdk:"query_definitions"` //LineChartQueryDefinitionModel
+}
+
+type TooltipModel struct {
+	ShowLabels types.Bool   `tfsdk:"show_labels"`
+	Type       types.String `tfsdk:"type"`
+}
+
+type LineChartQueryDefinitionModel struct {
+	ID                 types.String         `tfsdk:"id"`
+	Query              *LineChartQueryModel `tfsdk:"query"`
+	SeriesNameTemplate types.String         `tfsdk:"series_name_template"`
+	SeriesCountLimit   types.Int64          `tfsdk:"series_count_limit"`
+	Unit               types.String         `tfsdk:"unit"`
+	ScaleType          types.String         `tfsdk:"scale_type"`
+	Name               types.String         `tfsdk:"name"`
+	IsVisible          types.Bool           `tfsdk:"is_visible"`
+	ColorScheme        types.String         `tfsdk:"color_scheme"`
+	Resolution         types.Object         `tfsdk:"resolution"` //LineChartResolutionModel
+	DataModeType       types.String         `tfsdk:"data_mode_type"`
+}
+
+type LineChartResolutionModel struct {
+	Interval         types.String `tfsdk:"interval"`
+	BucketsPresented types.Int64  `tfsdk:"buckets_presented"`
+}
+
+type LineChartQueryModel struct {
+	Logs    *LineChartQueryLogsModel    `tfsdk:"logs"`
+	Metrics *LineChartQueryMetricsModel `tfsdk:"metrics"`
+	Spans   *LineChartQuerySpansModel   `tfsdk:"spans"`
+}
+
+type LineChartQueryLogsModel struct {
+	LuceneQuery  types.String `tfsdk:"lucene_query"`
+	GroupBy      types.List   `tfsdk:"group_by"`     //types.String
+	Aggregations types.List   `tfsdk:"aggregations"` //AggregationModel
+	Filters      types.List   `tfsdk:"filters"`      //FilterModel
+}
+
+type LineChartQueryMetricsModel struct {
+	PromqlQuery types.String `tfsdk:"promql_query"`
+	Filters     types.List   `tfsdk:"filters"` //MetricsFilterModel
+}
+
+type QueryMetricFilterModel struct {
+	Metric   types.String         `tfsdk:"metric"`
+	Label    types.String         `tfsdk:"label"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
+type LineChartQuerySpansModel struct {
+	LuceneQuery  types.String `tfsdk:"lucene_query"`
+	GroupBy      types.List   `tfsdk:"group_by"`     //SpansFieldModel
+	Aggregations types.List   `tfsdk:"aggregations"` //SpansAggregationModel
+	Filters      types.List   `tfsdk:"filters"`      //SpansFilterModel
+}
+
+type DataTableModel struct {
+	Query          *DataTableQueryModel `tfsdk:"query"`
+	ResultsPerPage types.Int64          `tfsdk:"results_per_page"`
+	RowStyle       types.String         `tfsdk:"row_style"`
+	Columns        types.List           `tfsdk:"columns"` //DataTableColumnModel
+	OrderBy        *OrderByModel        `tfsdk:"order_by"`
+	DataModeType   types.String         `tfsdk:"data_mode_type"`
+}
+
+type DataTableQueryLogsModel struct {
+	LuceneQuery types.String                     `tfsdk:"lucene_query"`
+	Filters     types.List                       `tfsdk:"filters"` //LogsFilterModel
+	Grouping    *DataTableLogsQueryGroupingModel `tfsdk:"grouping"`
+}
+
+type LogsFilterModel struct {
+	Field            types.String         `tfsdk:"field"`
+	Operator         *FilterOperatorModel `tfsdk:"operator"`
+	ObservationField types.Object         `tfsdk:"observation_field"`
+}
+
+type DataTableLogsQueryGroupingModel struct {
+	GroupBy      types.List `tfsdk:"group_by"`     //types.String
+	Aggregations types.List `tfsdk:"aggregations"` //DataTableLogsAggregationModel
+	GroupBys     types.List `tfsdk:"group_bys"`    //types.String
+}
+
+type DataTableLogsAggregationModel struct {
+	ID          types.String          `tfsdk:"id"`
+	Name        types.String          `tfsdk:"name"`
+	IsVisible   types.Bool            `tfsdk:"is_visible"`
+	Aggregation *LogsAggregationModel `tfsdk:"aggregation"`
+}
+
+type DataTableQueryModel struct {
+	Logs      *DataTableQueryLogsModel    `tfsdk:"logs"`
+	Metrics   *DataTableQueryMetricsModel `tfsdk:"metrics"`
+	Spans     *DataTableQuerySpansModel   `tfsdk:"spans"`
+	DataPrime *DataPrimeModel             `tfsdk:"data_prime"`
+}
+
+type DataTableQueryMetricsModel struct {
+	PromqlQuery types.String `tfsdk:"promql_query"`
+	Filters     types.List   `tfsdk:"filters"` //MetricsFilterModel
+}
+
+type MetricsFilterModel struct {
+	Metric   types.String         `tfsdk:"metric"`
+	Label    types.String         `tfsdk:"label"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
+type DataTableColumnModel struct {
+	Field types.String `tfsdk:"field"`
+	Width types.Int64  `tfsdk:"width"`
+}
+
+type OrderByModel struct {
+	Field          types.String `tfsdk:"field"`
+	OrderDirection types.String `tfsdk:"order_direction"`
+}
+
+type DataTableQuerySpansModel struct {
+	LuceneQuery types.String                      `tfsdk:"lucene_query"`
+	Filters     types.List                        `tfsdk:"filters"` //SpansFilterModel
+	Grouping    *DataTableSpansQueryGroupingModel `tfsdk:"grouping"`
+}
+
+type SpansFilterModel struct {
+	Field    *SpansFieldModel     `tfsdk:"field"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
+type DataTableSpansQueryGroupingModel struct {
+	GroupBy      types.List `tfsdk:"group_by"`     //SpansFieldModel
+	Aggregations types.List `tfsdk:"aggregations"` //DataTableSpansAggregationModel
+}
+
+type GaugeModel struct {
+	Query        *GaugeQueryModel `tfsdk:"query"`
+	Min          types.Float64    `tfsdk:"min"`
+	Max          types.Float64    `tfsdk:"max"`
+	ShowInnerArc types.Bool       `tfsdk:"show_inner_arc"`
+	ShowOuterArc types.Bool       `tfsdk:"show_outer_arc"`
+	Unit         types.String     `tfsdk:"unit"`
+	Thresholds   types.List       `tfsdk:"thresholds"` //GaugeThresholdModel
+	DataModeType types.String     `tfsdk:"data_mode_type"`
+	ThresholdBy  types.String     `tfsdk:"threshold_by"`
+}
+
+type GaugeQueryModel struct {
+	Logs      *GaugeQueryLogsModel    `tfsdk:"logs"`
+	Metrics   *GaugeQueryMetricsModel `tfsdk:"metrics"`
+	Spans     *GaugeQuerySpansModel   `tfsdk:"spans"`
+	DataPrime *DataPrimeModel         `tfsdk:"data_prime"`
+}
+
+type GaugeQueryLogsModel struct {
+	LuceneQuery     types.String          `tfsdk:"lucene_query"`
+	LogsAggregation *LogsAggregationModel `tfsdk:"logs_aggregation"`
+	Filters         types.List            `tfsdk:"filters"` //LogsFilterModel
+}
+
+type GaugeQueryMetricsModel struct {
+	PromqlQuery types.String `tfsdk:"promql_query"`
+	Aggregation types.String `tfsdk:"aggregation"`
+	Filters     types.List   `tfsdk:"filters"` //MetricsFilterModel
+}
+
+type GaugeQuerySpansModel struct {
+	LuceneQuery      types.String           `tfsdk:"lucene_query"`
+	SpansAggregation *SpansAggregationModel `tfsdk:"spans_aggregation"`
+	Filters          types.List             `tfsdk:"filters"` //SpansFilterModel
+}
+
+type GaugeThresholdModel struct {
+	From  types.Float64 `tfsdk:"from"`
+	Color types.String  `tfsdk:"color"`
+}
+
+type PieChartModel struct {
+	Query              *PieChartQueryModel           `tfsdk:"query"`
+	MaxSlicesPerChart  types.Int64                   `tfsdk:"max_slices_per_chart"`
+	MinSlicePercentage types.Int64                   `tfsdk:"min_slice_percentage"`
+	StackDefinition    *PieChartStackDefinitionModel `tfsdk:"stack_definition"`
+	LabelDefinition    *LabelDefinitionModel         `tfsdk:"label_definition"`
+	ShowLegend         types.Bool                    `tfsdk:"show_legend"`
+	GroupNameTemplate  types.String                  `tfsdk:"group_name_template"`
+	Unit               types.String                  `tfsdk:"unit"`
+	ColorScheme        types.String                  `tfsdk:"color_scheme"`
+	DataModeType       types.String                  `tfsdk:"data_mode_type"`
+}
+
+type PieChartStackDefinitionModel struct {
+	MaxSlicesPerStack types.Int64  `tfsdk:"max_slices_per_stack"`
+	StackNameTemplate types.String `tfsdk:"stack_name_template"`
+}
+
+type PieChartQueryModel struct {
+	Logs      *PieChartQueryLogsModel      `tfsdk:"logs"`
+	Metrics   *PieChartQueryMetricsModel   `tfsdk:"metrics"`
+	Spans     *PieChartQuerySpansModel     `tfsdk:"spans"`
+	DataPrime *PieChartQueryDataPrimeModel `tfsdk:"data_prime"`
+}
+
+type PieChartQueryLogsModel struct {
+	LuceneQuery           types.String          `tfsdk:"lucene_query"`
+	Aggregation           *LogsAggregationModel `tfsdk:"aggregation"`
+	Filters               types.List            `tfsdk:"filters"`     //LogsFilterModel
+	GroupNames            types.List            `tfsdk:"group_names"` //types.String
+	StackedGroupName      types.String          `tfsdk:"stacked_group_name"`
+	GroupNamesFields      types.List            `tfsdk:"group_names_fields"`       //ObservationFieldModel
+	StackedGroupNameField types.Object          `tfsdk:"stacked_group_name_field"` //ObservationFieldModel
+}
+
+type PieChartQueryMetricsModel struct {
+	PromqlQuery      types.String `tfsdk:"promql_query"`
+	Filters          types.List   `tfsdk:"filters"`     //MetricsFilterModel
+	GroupNames       types.List   `tfsdk:"group_names"` //types.String
+	StackedGroupName types.String `tfsdk:"stacked_group_name"`
+}
+
+type PieChartQuerySpansModel struct {
+	LuceneQuery      types.String           `tfsdk:"lucene_query"`
+	Aggregation      *SpansAggregationModel `tfsdk:"aggregation"`
+	Filters          types.List             `tfsdk:"filters"`     //SpansFilterModel
+	GroupNames       types.List             `tfsdk:"group_names"` //SpansFieldModel
+	StackedGroupName *SpansFieldModel       `tfsdk:"stacked_group_name"`
+}
+
+type PieChartQueryDataPrimeModel struct {
+	Query            types.String `tfsdk:"query"`
+	Filters          types.List   `tfsdk:"filters"`     //DashboardFilterSourceModel
+	GroupNames       types.List   `tfsdk:"group_names"` //types.String
+	StackedGroupName types.String `tfsdk:"stacked_group_name"`
+}
+
+type LabelDefinitionModel struct {
+	LabelSource    types.String `tfsdk:"label_source"`
+	IsVisible      types.Bool   `tfsdk:"is_visible"`
+	ShowName       types.Bool   `tfsdk:"show_name"`
+	ShowValue      types.Bool   `tfsdk:"show_value"`
+	ShowPercentage types.Bool   `tfsdk:"show_percentage"`
+}
+
+type BarChartModel struct {
+	Query             *BarChartQueryModel           `tfsdk:"query"`
+	MaxBarsPerChart   types.Int64                   `tfsdk:"max_bars_per_chart"`
+	GroupNameTemplate types.String                  `tfsdk:"group_name_template"`
+	StackDefinition   *BarChartStackDefinitionModel `tfsdk:"stack_definition"`
+	ScaleType         types.String                  `tfsdk:"scale_type"`
+	ColorsBy          types.String                  `tfsdk:"colors_by"`
+	XAxis             *BarChartXAxisModel           `tfsdk:"xaxis"`
+	Unit              types.String                  `tfsdk:"unit"`
+	SortBy            types.String                  `tfsdk:"sort_by"`
+	ColorScheme       types.String                  `tfsdk:"color_scheme"`
+	DataModeType      types.String                  `tfsdk:"data_mode_type"`
+}
+
+type BarChartQueryModel struct {
+	Logs      types.Object `tfsdk:"logs"`       //BarChartQueryLogsModel
+	Metrics   types.Object `tfsdk:"metrics"`    //BarChartQueryMetricsModel
+	Spans     types.Object `tfsdk:"spans"`      //BarChartQuerySpansModel
+	DataPrime types.Object `tfsdk:"data_prime"` //BarChartQueryDataPrimeModel
+}
+
+type BarChartQueryLogsModel struct {
+	LuceneQuery           types.String          `tfsdk:"lucene_query"`
+	Aggregation           *LogsAggregationModel `tfsdk:"aggregation"`
+	Filters               types.List            `tfsdk:"filters"`     //LogsFilterModel
+	GroupNames            types.List            `tfsdk:"group_names"` //types.String
+	StackedGroupName      types.String          `tfsdk:"stacked_group_name"`
+	GroupNamesFields      types.List            `tfsdk:"group_names_fields"`       //ObservationFieldModel
+	StackedGroupNameField types.Object          `tfsdk:"stacked_group_name_field"` //ObservationFieldModel
+}
+
+type ObservationFieldModel struct {
+	Keypath types.List   `tfsdk:"keypath"` //types.String
+	Scope   types.String `tfsdk:"scope"`
+}
+
+type BarChartQueryMetricsModel struct {
+	PromqlQuery      types.String `tfsdk:"promql_query"`
+	Filters          types.List   `tfsdk:"filters"`     //MetricsFilterModel
+	GroupNames       types.List   `tfsdk:"group_names"` //types.String
+	StackedGroupName types.String `tfsdk:"stacked_group_name"`
+}
+
+type BarChartQuerySpansModel struct {
+	LuceneQuery      types.String           `tfsdk:"lucene_query"`
+	Aggregation      *SpansAggregationModel `tfsdk:"aggregation"`
+	Filters          types.List             `tfsdk:"filters"`     //SpansFilterModel
+	GroupNames       types.List             `tfsdk:"group_names"` //SpansFieldModel
+	StackedGroupName *SpansFieldModel       `tfsdk:"stacked_group_name"`
+}
+
+type BarChartQueryDataPrimeModel struct {
+	Query            types.String `tfsdk:"query"`
+	Filters          types.List   `tfsdk:"filters"`     //DashboardFilterSourceModel
+	GroupNames       types.List   `tfsdk:"group_names"` //types.String
+	StackedGroupName types.String `tfsdk:"stacked_group_name"`
+}
+
+type DataTableSpansAggregationModel struct {
+	ID          types.String           `tfsdk:"id"`
+	Name        types.String           `tfsdk:"name"`
+	IsVisible   types.Bool             `tfsdk:"is_visible"`
+	Aggregation *SpansAggregationModel `tfsdk:"aggregation"`
+}
+
+type BarChartStackDefinitionModel struct {
+	MaxSlicesPerBar   types.Int64  `tfsdk:"max_slices_per_bar"`
+	StackNameTemplate types.String `tfsdk:"stack_name_template"`
+}
+
+type BarChartXAxisModel struct {
+	Time  *BarChartXAxisTimeModel  `tfsdk:"time"`
+	Value *BarChartXAxisValueModel `tfsdk:"value"`
+}
+
+type BarChartXAxisTimeModel struct {
+	Interval         types.String `tfsdk:"interval"`
+	BucketsPresented types.Int64  `tfsdk:"buckets_presented"`
+}
+
+type BarChartXAxisValueModel struct {
+}
+
+type HorizontalBarChartModel struct {
+	Query             *HorizontalBarChartQueryModel `tfsdk:"query"`
+	MaxBarsPerChart   types.Int64                   `tfsdk:"max_bars_per_chart"`
+	GroupNameTemplate types.String                  `tfsdk:"group_name_template"`
+	StackDefinition   *BarChartStackDefinitionModel `tfsdk:"stack_definition"`
+	ScaleType         types.String                  `tfsdk:"scale_type"`
+	ColorsBy          types.String                  `tfsdk:"colors_by"`
+	Unit              types.String                  `tfsdk:"unit"`
+	DisplayOnBar      types.Bool                    `tfsdk:"display_on_bar"`
+	YAxisViewBy       types.String                  `tfsdk:"y_axis_view_by"`
+	SortBy            types.String                  `tfsdk:"sort_by"`
+	ColorScheme       types.String                  `tfsdk:"color_scheme"`
+	DataModeType      types.String                  `tfsdk:"data_mode_type"`
+}
+
+type HorizontalBarChartQueryModel struct {
+	Logs    types.Object `tfsdk:"logs"`    //BarChartQueryLogsModel
+	Metrics types.Object `tfsdk:"metrics"` //BarChartQueryMetricsModel
+	Spans   types.Object `tfsdk:"spans"`   //BarChartQuerySpansModel
+}
+
+type MarkdownModel struct {
+	MarkdownText types.String `tfsdk:"markdown_text"`
+	TooltipText  types.String `tfsdk:"tooltip_text"`
+}
+
+type DashboardFilterSourceModel struct {
+	Logs    *FilterSourceLogsModel    `tfsdk:"logs"`
+	Metrics *FilterSourceMetricsModel `tfsdk:"metrics"`
+	Spans   *FilterSourceSpansModel   `tfsdk:"spans"`
+}
+
+type FilterSourceLogsModel struct {
+	Field            types.String         `tfsdk:"field"`
+	Operator         *FilterOperatorModel `tfsdk:"operator"`
+	ObservationField types.Object         `tfsdk:"observation_field"`
+}
+
+type FilterSourceMetricsModel struct {
+	MetricName  types.String         `tfsdk:"metric_name"`
+	MetricLabel types.String         `tfsdk:"label"`
+	Operator    *FilterOperatorModel `tfsdk:"operator"`
+}
+
+type FilterSourceSpansModel struct {
+	Field    *SpansFieldModel     `tfsdk:"field"`
+	Operator *FilterOperatorModel `tfsdk:"operator"`
+}
+
+type DashboardTimeFrameAbsoluteModel struct {
+	Start types.String `tfsdk:"start"`
+	End   types.String `tfsdk:"end"`
+}
+
+type DashboardTimeFrameRelativeModel struct {
+	Duration types.String `tfsdk:"duration"`
+}
+
+type DashboardTimeFrameModel struct {
+	Absolute types.Object `tfsdk:"absolute"` //DashboardTimeFrameAbsoluteModel
+	Relative types.Object `tfsdk:"relative"` //DashboardTimeFrameRelativeModel
 }
 
 type spansFieldValidator struct{}
@@ -804,5 +1209,566 @@ func TimeFrameSchema() schema.SingleNestedAttribute {
 			},
 		},
 		MarkdownDescription: "Specifies the time frame for the dashboard's data. Can be either absolute or relative.",
+	}
+}
+
+func FlattenLegend(legend *cxsdk.DashboardLegend) *LegendModel {
+	if legend == nil {
+		return nil
+	}
+
+	return &LegendModel{
+		IsVisible:    utils.WrapperspbBoolToTypeBool(legend.GetIsVisible()),
+		GroupByQuery: utils.WrapperspbBoolToTypeBool(legend.GetGroupByQuery()),
+		Columns:      flattenLegendColumns(legend.GetColumns()),
+		Placement:    types.StringValue(DashboardLegendPlacementProtoToSchema[legend.GetPlacement()]),
+	}
+}
+
+func flattenLegendColumns(columns []cxsdk.DashboardLegendColumn) types.List {
+	if len(columns) == 0 {
+		return types.ListNull(types.StringType)
+	}
+
+	columnsElements := make([]attr.Value, 0, len(columns))
+	for _, column := range columns {
+		flattenedColumn := DashboardLegendColumnProtoToSchema[column]
+		columnElement := types.StringValue(flattenedColumn)
+		columnsElements = append(columnsElements, columnElement)
+	}
+
+	return types.ListValueMust(types.StringType, columnsElements)
+}
+
+func FlattenSpansFields(ctx context.Context, spanFields []*cxsdk.SpanField) (types.List, diag.Diagnostics) {
+	if len(spanFields) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: SpansFieldModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	spanFieldElements := make([]attr.Value, 0, len(spanFields))
+	for _, field := range spanFields {
+		flattenedField, dg := FlattenSpansField(field)
+		if dg != nil {
+			diagnostics.Append(dg)
+			continue
+		}
+		fieldElement, diags := types.ObjectValueFrom(ctx, SpansFieldModelAttr(), flattenedField)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		spanFieldElements = append(spanFieldElements, fieldElement)
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: SpansFieldModelAttr()}, spanFieldElements), diagnostics
+}
+
+func FlattenSpansField(field *cxsdk.SpanField) (*SpansFieldModel, diag.Diagnostic) {
+	if field == nil {
+		return nil, nil
+	}
+
+	switch field.GetValue().(type) {
+	case *cxsdk.SpanFieldMetadataField:
+		return &SpansFieldModel{
+			Type:  types.StringValue("metadata"),
+			Value: types.StringValue(DashboardProtoToSchemaSpanFieldMetadataField[field.GetMetadataField()]),
+		}, nil
+	case *cxsdk.SpanFieldTagField:
+		return &SpansFieldModel{
+			Type:  types.StringValue("tag"),
+			Value: utils.WrapperspbStringToTypeString(field.GetTagField()),
+		}, nil
+	case *cxsdk.SpanFieldProcessTagField:
+		return &SpansFieldModel{
+			Type:  types.StringValue("process_tag"),
+			Value: utils.WrapperspbStringToTypeString(field.GetProcessTagField()),
+		}, nil
+
+	default:
+		return nil, diag.NewErrorDiagnostic("Error Flatten Spans Field", "unknown spans field type")
+	}
+}
+
+func ObservationFieldsObject() types.ObjectType {
+	return types.ObjectType{
+		AttrTypes: ObservationFieldAttr(),
+	}
+}
+
+func FlattenDashboardFiltersSources(ctx context.Context, sources []*cxsdk.DashboardFilterSource) (types.List, diag.Diagnostics) {
+	if len(sources) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: FilterSourceModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	filtersElements := make([]attr.Value, 0, len(sources))
+	for _, source := range sources {
+		flattenedFilter, diags := FlattenDashboardFilterSource(ctx, source)
+		if diags.HasError() {
+			diagnostics.Append(diags...)
+			continue
+		}
+		filterElement, diags := types.ObjectValueFrom(ctx, FilterSourceModelAttr(), flattenedFilter)
+		if diags.HasError() {
+			diagnostics.Append(diags...)
+			continue
+		}
+		filtersElements = append(filtersElements, filterElement)
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: FilterSourceModelAttr()}, filtersElements), diagnostics
+}
+
+func FlattenDashboardFilterSource(ctx context.Context, source *cxsdk.DashboardFilterSource) (*DashboardFilterSourceModel, diag.Diagnostics) {
+	if source == nil {
+		return nil, nil
+	}
+
+	switch source.GetValue().(type) {
+	case *cxsdk.DashboardFilterSourceLogs:
+		logs, diags := FlattenDashboardFilterSourceLogs(ctx, source.GetLogs())
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &DashboardFilterSourceModel{Logs: logs}, nil
+	case *cxsdk.DashboardFilterSourceSpans:
+		spans, dg := FlattenDashboardFilterSourceSpans(source.GetSpans())
+		if dg != nil {
+			return nil, diag.Diagnostics{dg}
+		}
+		return &DashboardFilterSourceModel{Spans: spans}, nil
+	case *cxsdk.DashboardFilterSourceMetrics:
+		metrics, dg := FlattenDashboardFilterSourceMetrics(source.GetMetrics())
+		if dg != nil {
+			return nil, diag.Diagnostics{dg}
+		}
+		return &DashboardFilterSourceModel{Metrics: metrics}, nil
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Filter Source", fmt.Sprintf("unknown filter source type %T", source))}
+	}
+}
+
+func FlattenDashboardFilterSourceLogs(ctx context.Context, logs *cxsdk.DashboardFilterLogsFilter) (*FilterSourceLogsModel, diag.Diagnostics) {
+	if logs == nil {
+		return nil, nil
+	}
+
+	operator, dg := FlattenFilterOperator(logs.GetOperator())
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
+	observationField, diags := FlattenObservationField(ctx, logs.GetObservationField())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &FilterSourceLogsModel{
+		Field:            utils.WrapperspbStringToTypeString(logs.GetField()),
+		Operator:         operator,
+		ObservationField: observationField,
+	}, nil
+}
+
+func FlattenDashboardFilterSourceSpans(spans *cxsdk.DashboardFilterSpansFilter) (*FilterSourceSpansModel, diag.Diagnostic) {
+	if spans == nil {
+		return nil, nil
+	}
+
+	field, dg := FlattenSpansField(spans.GetField())
+	if dg != nil {
+		return nil, dg
+	}
+
+	operator, dg := FlattenFilterOperator(spans.GetOperator())
+	if dg != nil {
+		return nil, dg
+	}
+
+	return &FilterSourceSpansModel{
+		Field:    field,
+		Operator: operator,
+	}, nil
+}
+
+func FlattenDashboardFilterSourceMetrics(metrics *cxsdk.DashboardFilterMetricsFilter) (*FilterSourceMetricsModel, diag.Diagnostic) {
+	if metrics == nil {
+		return nil, nil
+	}
+
+	operator, dg := FlattenFilterOperator(metrics.GetOperator())
+	if dg != nil {
+		return nil, dg
+	}
+
+	return &FilterSourceMetricsModel{
+		MetricName:  utils.WrapperspbStringToTypeString(metrics.GetMetric()),
+		MetricLabel: utils.WrapperspbStringToTypeString(metrics.GetLabel()),
+		Operator:    operator,
+	}, nil
+}
+
+func FlattenDashboardTimeFrame(ctx context.Context, d *cxsdk.Dashboard) (types.Object, diag.Diagnostics) {
+	if d.GetTimeFrame() == nil {
+		return types.ObjectNull(DashboardTimeFrameModelAttr()), nil
+	}
+	switch timeFrameType := d.GetTimeFrame().(type) {
+	case *cxsdk.DashboardAbsoluteTimeFrame:
+		return flattenAbsoluteDashboardTimeFrame(ctx, timeFrameType.AbsoluteTimeFrame)
+	case *cxsdk.DashboardRelativeTimeFrame:
+		return flattenRelativeDashboardTimeFrame(ctx, timeFrameType.RelativeTimeFrame)
+	default:
+		return types.ObjectNull(DashboardTimeFrameModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Time Frame", fmt.Sprintf("unknown time frame type %T", timeFrameType))}
+	}
+}
+
+func FlattenObservationField(ctx context.Context, field *cxsdk.ObservationField) (types.Object, diag.Diagnostics) {
+	if field == nil {
+		return types.ObjectNull(ObservationFieldAttr()), nil
+	}
+
+	return types.ObjectValueFrom(ctx, ObservationFieldAttr(), FlattenLogsFieldModel(field))
+}
+
+func FlattenLogsFieldModel(field *cxsdk.ObservationField) *ObservationFieldModel {
+	return &ObservationFieldModel{
+		Keypath: utils.WrappedStringSliceToTypeStringList(field.GetKeypath()),
+		Scope:   types.StringValue(DashboardProtoToSchemaObservationFieldScope[field.GetScope()]),
+	}
+}
+
+func flattenDuration(timeFrame *durationpb.Duration) basetypes.StringValue {
+	if timeFrame == nil {
+		return types.StringNull()
+	}
+	if timeFrame.Seconds == 0 && timeFrame.Nanos == 0 {
+		return types.StringValue("seconds:0")
+	}
+	return types.StringValue(timeFrame.String())
+}
+
+func flattenAbsoluteDashboardTimeFrame(ctx context.Context, timeFrame *cxsdk.DashboardTimeFrame) (types.Object, diag.Diagnostics) {
+	absoluteTimeFrame := &DashboardTimeFrameAbsoluteModel{
+		Start: types.StringValue(timeFrame.GetFrom().String()),
+		End:   types.StringValue(timeFrame.GetTo().String()),
+	}
+
+	timeFrameObject, dgs := types.ObjectValueFrom(ctx, AbsoluteTimeFrameAttributes(), absoluteTimeFrame)
+	if dgs.HasError() {
+		return types.ObjectNull(DashboardTimeFrameModelAttr()), dgs
+	}
+	flattenedTimeFrame := &DashboardTimeFrameModel{
+		Absolute: timeFrameObject,
+		Relative: types.ObjectNull(AbsoluteTimeFrameAttributes()),
+	}
+	return types.ObjectValueFrom(ctx, DashboardTimeFrameModelAttr(), flattenedTimeFrame)
+}
+
+func flattenRelativeDashboardTimeFrame(ctx context.Context, timeFrame *durationpb.Duration) (types.Object, diag.Diagnostics) {
+	relativeTimeFrame := &DashboardTimeFrameRelativeModel{
+		Duration: flattenDuration(timeFrame),
+	}
+	timeFrameObject, dgs := types.ObjectValueFrom(ctx, RelativeTimeFrameAttributes(), relativeTimeFrame)
+	if dgs.HasError() {
+		return types.ObjectNull(DashboardTimeFrameModelAttr()), dgs
+	}
+	flattenedTimeFrame := &DashboardTimeFrameModel{
+		Relative: timeFrameObject,
+		Absolute: types.ObjectNull(AbsoluteTimeFrameAttributes()),
+	}
+	return types.ObjectValueFrom(ctx, DashboardTimeFrameModelAttr(), flattenedTimeFrame)
+}
+
+func flattenSpansAggregation(aggregation *cxsdk.SpansAggregation) (*SpansAggregationModel, diag.Diagnostic) {
+	if aggregation == nil || aggregation.GetAggregation() == nil {
+		return nil, nil
+	}
+	switch aggregation := aggregation.GetAggregation().(type) {
+	case *cxsdk.SpansAggregationMetricAggregation:
+		return &SpansAggregationModel{
+			Type:            types.StringValue("metric"),
+			AggregationType: types.StringValue(DashboardProtoToSchemaSpansAggregationMetricAggregationType[aggregation.MetricAggregation.GetAggregationType()]),
+			Field:           types.StringValue(DashboardProtoToSchemaSpansAggregationMetricField[aggregation.MetricAggregation.GetMetricField()]),
+		}, nil
+	case *cxsdk.SpansAggregationDimensionAggregation:
+		return &SpansAggregationModel{
+			Type:            types.StringValue("dimension"),
+			AggregationType: types.StringValue(DashboardProtoToSchemaSpansAggregationDimensionAggregationType[aggregation.DimensionAggregation.GetAggregationType()]),
+			Field:           types.StringValue(DashboardSchemaToProtoSpansAggregationDimensionField[aggregation.DimensionAggregation.GetDimensionField()]),
+		}, nil
+	default:
+		return nil, diag.NewErrorDiagnostic("Error Flatten Span Aggregation", fmt.Sprintf("unknown aggregation type %T", aggregation))
+	}
+}
+
+func FlattenSpansFilters(ctx context.Context, filters []*cxsdk.DashboardFilterSpansFilter) (types.List, diag.Diagnostics) {
+	if len(filters) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: SpansFilterModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	filtersElements := make([]attr.Value, 0, len(filters))
+	for _, filter := range filters {
+		flattenedFilter, dg := FlattenSpansFilter(filter)
+		if dg != nil {
+			diagnostics.Append(dg)
+			continue
+		}
+		filterElement, diags := types.ObjectValueFrom(ctx, SpansFilterModelAttr(), flattenedFilter)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		filtersElements = append(filtersElements, filterElement)
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: SpansFilterModelAttr()}, filtersElements), diagnostics
+
+}
+
+func FlattenSpansFilter(filter *cxsdk.DashboardFilterSpansFilter) (*SpansFilterModel, diag.Diagnostic) {
+	if filter == nil {
+		return nil, nil
+	}
+
+	operator, dg := FlattenFilterOperator(filter.GetOperator())
+	if dg != nil {
+		return nil, dg
+	}
+
+	field, dg := FlattenSpansField(filter.GetField())
+	if dg != nil {
+		return nil, dg
+	}
+
+	return &SpansFilterModel{
+		Field:    field,
+		Operator: operator,
+	}, nil
+}
+
+func FlattenFilterOperator(operator *cxsdk.DashboardFilterOperator) (*FilterOperatorModel, diag.Diagnostic) {
+	switch operator.GetValue().(type) {
+	case *cxsdk.DashboardFilterOperatorEquals:
+		switch operator.GetEquals().GetSelection().GetValue().(type) {
+		case *cxsdk.DashboardFilterEqualsSelectionAll:
+			return &FilterOperatorModel{
+				Type:           types.StringValue("equals"),
+				SelectedValues: types.ListNull(types.StringType),
+			}, nil
+		case *cxsdk.DashboardFilterEqualsSelectionList:
+			return &FilterOperatorModel{
+				Type:           types.StringValue("equals"),
+				SelectedValues: utils.WrappedStringSliceToTypeStringList(operator.GetEquals().GetSelection().GetList().GetValues()),
+			}, nil
+		default:
+			return nil, diag.NewErrorDiagnostic("Error Flatten Logs Filter Operator Equals", "unknown logs filter operator equals selection type")
+		}
+	case *cxsdk.DashboardFilterOperatorNotEquals:
+		switch operator.GetNotEquals().GetSelection().GetValue().(type) {
+		case *cxsdk.DashboardFilterNotEqualsSelectionList:
+			return &FilterOperatorModel{
+				Type:           types.StringValue("not_equals"),
+				SelectedValues: utils.WrappedStringSliceToTypeStringList(operator.GetNotEquals().GetSelection().GetList().GetValues()),
+			}, nil
+		default:
+			return nil, diag.NewErrorDiagnostic("Error Flatten Logs Filter Operator NotEquals", "unknown logs filter operator not_equals selection type")
+		}
+	default:
+		return nil, diag.NewErrorDiagnostic("Error Flatten Logs Filter Operator", "unknown logs filter operator type")
+	}
+}
+
+func FlattenMetricsFilters(ctx context.Context, filters []*cxsdk.DashboardFilterMetricsFilter) (types.List, diag.Diagnostics) {
+	if len(filters) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: MetricsFilterModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	filtersElements := make([]attr.Value, 0, len(filters))
+	for _, filter := range filters {
+		flattenedFilter, dg := FlattenMetricsFilter(filter)
+		if dg != nil {
+			diagnostics.Append(dg)
+			continue
+		}
+		filterElement, diags := types.ObjectValueFrom(ctx, MetricsFilterModelAttr(), flattenedFilter)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		filtersElements = append(filtersElements, filterElement)
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: MetricsFilterModelAttr()}, filtersElements), diagnostics
+}
+
+func FlattenMetricsFilter(filter *cxsdk.DashboardFilterMetricsFilter) (*MetricsFilterModel, diag.Diagnostic) {
+	if filter == nil {
+		return nil, nil
+	}
+
+	operator, dg := FlattenFilterOperator(filter.GetOperator())
+	if dg != nil {
+		return nil, dg
+	}
+
+	return &MetricsFilterModel{
+		Metric:   utils.WrapperspbStringToTypeString(filter.GetMetric()),
+		Label:    utils.WrapperspbStringToTypeString(filter.GetLabel()),
+		Operator: operator,
+	}, nil
+}
+
+func FlattenLogsFilters(ctx context.Context, filters []*cxsdk.DashboardFilterLogsFilter) (types.List, diag.Diagnostics) {
+	if len(filters) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: LogsFilterModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	filtersElements := make([]attr.Value, 0, len(filters))
+	for _, filter := range filters {
+		flattenedFilter, diags := flattenLogsFilter(ctx, filter)
+		if diags.HasError() {
+			diagnostics.Append(diags...)
+			continue
+		}
+		filterElement, diags := types.ObjectValueFrom(ctx, LogsFilterModelAttr(), flattenedFilter)
+		if diags.HasError() {
+			diagnostics.Append(diags...)
+			continue
+		}
+		filtersElements = append(filtersElements, filterElement)
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: LogsFilterModelAttr()}, filtersElements), diagnostics
+}
+
+func flattenLogsFilter(ctx context.Context, filter *cxsdk.DashboardFilterLogsFilter) (*LogsFilterModel, diag.Diagnostics) {
+	if filter == nil {
+		return nil, nil
+	}
+
+	operator, dg := FlattenFilterOperator(filter.GetOperator())
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+
+	observationField, diags := FlattenObservationField(ctx, filter.GetObservationField())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &LogsFilterModel{
+		Field:            utils.WrapperspbStringToTypeString(filter.GetField()),
+		Operator:         operator,
+		ObservationField: observationField,
+	}, nil
+}
+
+func FlattenObservationFields(ctx context.Context, namesFields []*cxsdk.ObservationField) (types.List, diag.Diagnostics) {
+	if len(namesFields) == 0 {
+		return types.ListNull(types.ObjectType{AttrTypes: ObservationFieldAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	fieldElements := make([]attr.Value, 0, len(namesFields))
+	for _, field := range namesFields {
+		flattenedField, diags := FlattenObservationField(ctx, field)
+		if diags != nil {
+			diagnostics.Append(diags...)
+			continue
+		}
+		fieldElement, diags := types.ObjectValueFrom(ctx, ObservationFieldAttr(), flattenedField)
+		if diags.HasError() {
+			diagnostics.Append(diags...)
+			continue
+		}
+		fieldElements = append(fieldElements, fieldElement)
+	}
+
+	if diagnostics.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: ObservationFieldAttr()}), diagnostics
+	}
+
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: ObservationFieldAttr()}, fieldElements)
+}
+
+func FlattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregation) (*LogsAggregationModel, diag.Diagnostics) {
+	if aggregation == nil {
+		return nil, nil
+	}
+
+	switch aggregationValue := aggregation.GetValue().(type) {
+	case *cxsdk.LogsAggregationCount:
+		return &LogsAggregationModel{
+			Type:             types.StringValue("count"),
+			ObservationField: types.ObjectNull(ObservationFieldAttr()),
+		}, nil
+	case *cxsdk.LogsAggregationCountDistinct:
+		observationField, diags := FlattenObservationField(ctx, aggregationValue.CountDistinct.GetObservationField())
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &LogsAggregationModel{
+			Type:             types.StringValue("count_distinct"),
+			Field:            utils.WrapperspbStringToTypeString(aggregationValue.CountDistinct.GetField()),
+			ObservationField: observationField,
+		}, nil
+	case *cxsdk.LogsAggregationSum:
+		observationField, diags := FlattenObservationField(ctx, aggregationValue.Sum.GetObservationField())
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &LogsAggregationModel{
+			Type:             types.StringValue("sum"),
+			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Sum.GetField()),
+			ObservationField: observationField,
+		}, nil
+	case *cxsdk.LogsAggregationAverage:
+		observationField, diags := FlattenObservationField(ctx, aggregationValue.Average.GetObservationField())
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &LogsAggregationModel{
+			Type:             types.StringValue("avg"),
+			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Average.GetField()),
+			ObservationField: observationField,
+		}, nil
+	case *cxsdk.LogsAggregationMin:
+		observationField, diags := FlattenObservationField(ctx, aggregationValue.Min.GetObservationField())
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &LogsAggregationModel{
+			Type:             types.StringValue("min"),
+			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Min.GetField()),
+			ObservationField: observationField,
+		}, nil
+	case *cxsdk.LogsAggregationMax:
+		observationField, diags := FlattenObservationField(ctx, aggregationValue.Max.GetObservationField())
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &LogsAggregationModel{
+			Type:             types.StringValue("max"),
+			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Max.GetField()),
+			ObservationField: observationField,
+		}, nil
+	case *cxsdk.LogsAggregationPercentile:
+		observationField, diags := FlattenObservationField(ctx, aggregationValue.Percentile.GetObservationField())
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &LogsAggregationModel{
+			Type:             types.StringValue("percentile"),
+			Field:            utils.WrapperspbStringToTypeString(aggregationValue.Percentile.GetField()),
+			Percent:          utils.WrapperspbDoubleToTypeFloat64(aggregationValue.Percentile.GetPercent()),
+			ObservationField: observationField,
+		}, nil
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Logs Aggregation", "unknown logs aggregation type")}
 	}
 }
