@@ -246,7 +246,7 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	}
 
 	if !config.Env.IsNull() {
-		env = config.Env.ValueString()
+		env = envToGrpcUrl[config.Env.ValueString()]
 	}
 
 	if !config.ApiKey.IsNull() {
