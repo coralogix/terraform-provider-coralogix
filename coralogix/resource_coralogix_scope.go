@@ -332,7 +332,7 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 	log.Printf("[INFO] Received Scope: %s", protojson.Format(getScopeResp))
-	state := flattenScope(getScopeResp)
+	state := flattenScope(getScopeResp)[0]
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
