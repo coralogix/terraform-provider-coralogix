@@ -757,3 +757,9 @@ Revamped the structure of alerts in general. Please consult the guide v1-v2-migr
 # Release 2.0.3
 ### resource/coralogix_scope
 * Fixed scope update
+
+# Release 2.0.4
+
+Fix:
+
+* Fixed env parsing

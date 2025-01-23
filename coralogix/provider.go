@@ -38,7 +38,7 @@ import (
 )
 
 var (
-	envToGrpcUrl = map[string]string{
+	terraformEnvironmentAliasToGrpcUrl = map[string]string{
 		"APAC1":   "ng-api-grpc.app.coralogix.in:443",
 		"AP1":     "ng-api-grpc.app.coralogix.in:443",
 		"APAC2":   "ng-api-grpc.coralogixsg.com:443",
@@ -54,7 +54,23 @@ var (
 		"USA2":    "ng-api-grpc.cx498.coralogix.com:443",
 		"US2":     "ng-api-grpc.cx498.coralogix.com:443",
 	}
-	validEnvs = getKeysStrings(envToGrpcUrl)
+	validEnvironmentAliases                   = getKeysStrings(terraformEnvironmentAliasToGrpcUrl)
+	terraformEnvironmentAliasToSdkEnvironment = map[string]string{
+		"APAC1":   "AP1",
+		"AP1":     "AP1",
+		"APAC2":   "AP2",
+		"AP2":     "AP2",
+		"APAC3":   "AP3",
+		"AP3":     "AP3",
+		"EUROPE1": "EU1",
+		"EU1":     "EU1",
+		"EUROPE2": "EU2",
+		"EU2":     "EU2",
+		"USA1":    "US1",
+		"US1":     "US1",
+		"USA2":    "US2",
+		"US2":     "US2",
+	}
 )
 
 // OldProvider returns a *schema.Provider.
@@ -66,8 +82,8 @@ func OldProvider() *oldSchema.Provider {
 				Optional: true,
 				//ForceNew: true,
 				//DefaultFunc:   oldSchema.EnvDefaultFunc("CORALOGIX_ENV", nil),
-				ValidateFunc:  validation.StringInSlice(validEnvs, false),
-				Description:   fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvs),
+				ValidateFunc:  validation.StringInSlice(validEnvironmentAliases, false),
+				Description:   fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvironmentAliases),
 				ConflictsWith: []string{"domain"},
 			},
 			"domain": {
@@ -107,8 +123,8 @@ func OldProvider() *oldSchema.Provider {
 			var targetUrl string
 			var cxEnv string
 			if env, ok := d.GetOk("env"); ok && env.(string) != "" {
-				if url, ok := envToGrpcUrl[env.(string)]; !ok {
-					return nil, diag.Errorf("The Coralogix env must be one of %q", validEnvs)
+				if url, ok := terraformEnvironmentAliasToGrpcUrl[env.(string)]; !ok {
+					return nil, diag.Errorf("The Coralogix env must be one of %q", validEnvironmentAliases)
 				} else {
 					targetUrl = url
 				}
@@ -116,8 +132,8 @@ func OldProvider() *oldSchema.Provider {
 				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
 				cxEnv = targetUrl
 			} else if env = os.Getenv("CORALOGIX_ENV"); env != "" {
-				if url, ok := envToGrpcUrl[env.(string)]; !ok {
-					return nil, diag.Errorf("The Coralogix env must be one of %q", validEnvs)
+				if url, ok := terraformEnvironmentAliasToGrpcUrl[env.(string)]; !ok {
+					return nil, diag.Errorf("The Coralogix env must be one of %q", validEnvironmentAliases)
 				} else {
 					targetUrl = url
 					cxEnv = env.(string)
@@ -171,10 +187,10 @@ func (p *coralogixProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			"env": schema.StringAttribute{
 				Optional: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf(validEnvs...),
+					stringvalidator.OneOf(validEnvironmentAliases...),
 					stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("domain")),
 				},
-				Description: fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvs),
+				Description: fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvironmentAliases),
 			},
 			"domain": schema.StringAttribute{
 				Optional: true,
@@ -238,7 +254,7 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	// with Terraform configuration value if set.
 
 	domain := os.Getenv("CORALOGIX_DOMAIN")
-	env := os.Getenv("CORALOGIX_ENV")
+	terraformEnvironmentAlias := os.Getenv("CORALOGIX_ENV")
 	apiKey := os.Getenv("CORALOGIX_API_KEY")
 
 	if !config.Domain.IsNull() {
@@ -246,7 +262,7 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	}
 
 	if !config.Env.IsNull() {
-		env = envToGrpcUrl[config.Env.ValueString()]
+		terraformEnvironmentAlias = config.Env.ValueString()
 	}
 
 	if !config.ApiKey.IsNull() {
@@ -256,7 +272,7 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	// If any of the expected configurations are missing, return
 	// errors with provider-specific guidance.
 
-	if domain == "" && env == "" {
+	if domain == "" && terraformEnvironmentAlias == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("domain"),
 			"Missing Coralogix domain",
@@ -275,13 +291,13 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 		)
 	}
 
-	if domain != "" && env != "" {
+	if domain != "" && terraformEnvironmentAlias != "" {
 		resp.Diagnostics.AddError("Conflicting attributes \"env\" and \"domain\"",
 			"Only one of \"env\" need to be set."+
 				"ensure CORALOGIX_ENV and CORALOGIX_DOMAIN are not set together as well.",
 		)
-	} else if domain == "" && !slices.Contains(validEnvs, env) {
-		resp.Diagnostics.AddAttributeError(path.Root("env"), "Invalid Coralogix env", fmt.Sprintf("The Coralogix env must be one of %q", validEnvs))
+	} else if domain == "" && !slices.Contains(validEnvironmentAliases, terraformEnvironmentAlias) {
+		resp.Diagnostics.AddAttributeError(path.Root("env"), "Invalid Coralogix env", fmt.Sprintf("The Coralogix env must be one of %q", validEnvironmentAliases))
 	}
 
 	if apiKey == "" {
@@ -299,16 +315,17 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	}
 
 	var targetUrl string
-	if env != "" {
-		targetUrl = envToGrpcUrl[env]
+	if terraformEnvironmentAlias != "" {
+		targetUrl = terraformEnvironmentAliasToGrpcUrl[terraformEnvironmentAlias]
 	} else {
 		targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
 	}
-	if domain != "" {
-		env = targetUrl
-	}
 
-	clientSet := clientset.NewClientSet(env, apiKey, targetUrl)
+	sdkEnvironment := terraformEnvironmentAliasToSdkEnvironment[terraformEnvironmentAlias]
+	if domain != "" {
+		sdkEnvironment = targetUrl
+	}
+	clientSet := clientset.NewClientSet(sdkEnvironment, apiKey, targetUrl)
 	resp.DataSourceData = clientSet
 	resp.ResourceData = clientSet
 }

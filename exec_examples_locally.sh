@@ -34,7 +34,7 @@ revert_provider() {
         /terraform {/,/}/ {
             /required_providers {/,/}/ {
                 /coralogix = {/,/}/ {
-                    s/version = ".*"/version = "~> 1.8"/
+                    s/version = ".*"/version = "~> 2.0"/
                     s/source  = "locally\/debug\/coralogix"/source  = "coralogix\/coralogix"/
                 }
             }
