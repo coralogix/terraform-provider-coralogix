@@ -763,3 +763,9 @@ Revamped the structure of alerts in general. Please consult the guide v1-v2-migr
 Fix:
 
 * Fixed env parsing
+
+# Release 2.0.5
+
+Fix:
+
+* Bumped SDK to 1.1.1
