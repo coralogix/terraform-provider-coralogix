@@ -122,6 +122,7 @@ func OldProvider() *oldSchema.Provider {
 		ConfigureContextFunc: func(context context.Context, d *oldSchema.ResourceData) (interface{}, diag.Diagnostics) {
 			var targetUrl string
 			var cxEnv string
+			var cxDomain string
 			if env, ok := d.GetOk("env"); ok && env.(string) != "" {
 				if url, ok := terraformEnvironmentAliasToGrpcUrl[env.(string)]; !ok {
 					return nil, diag.Errorf("The Coralogix env must be one of %q", validEnvironmentAliases)
@@ -129,6 +130,7 @@ func OldProvider() *oldSchema.Provider {
 					targetUrl = url
 				}
 			} else if domain, ok := d.GetOk("domain"); ok && domain.(string) != "" {
+				cxDomain = domain.(string)
 				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
 				cxEnv = targetUrl
 			} else if env = os.Getenv("CORALOGIX_ENV"); env != "" {
@@ -138,8 +140,9 @@ func OldProvider() *oldSchema.Provider {
 					targetUrl = url
 					cxEnv = env.(string)
 				}
-			} else if domain = os.Getenv("CORALOGIX_DOMAIN"); domain != "" {
+			} else if domain := os.Getenv("CORALOGIX_DOMAIN"); domain != "" {
 				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
+				cxDomain = domain
 			} else {
 				return nil, diag.Errorf("At least one of the fields 'env' or 'domain', or one of the environment variables 'CORALOGIX_ENV' or 'CORALOGIX_DOMAIN' have to be defined")
 			}
@@ -153,7 +156,7 @@ func OldProvider() *oldSchema.Provider {
 				return nil, diag.Errorf("At least one of the field 'api_key' or environment variable 'CORALOGIX_API_KEY' have to be defined")
 			}
 			if cxEnv == "" || len(cxEnv) > 3 {
-				cxEnv = targetUrl
+				cxEnv = cxDomain
 			}
 
 			return clientset.NewClientSet(cxEnv, apiKey, targetUrl), nil
@@ -323,7 +326,7 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 
 	sdkEnvironment := terraformEnvironmentAliasToSdkEnvironment[terraformEnvironmentAlias]
 	if domain != "" {
-		sdkEnvironment = targetUrl
+		sdkEnvironment = domain
 	}
 	clientSet := clientset.NewClientSet(sdkEnvironment, apiKey, targetUrl)
 	resp.DataSourceData = clientSet
