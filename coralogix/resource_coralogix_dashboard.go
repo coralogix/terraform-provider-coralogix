@@ -5004,7 +5004,7 @@ func expandLineChart(ctx context.Context, lineChart *dashboardwidgets.LineChartM
 		return nil, nil
 	}
 
-	legend, diags := expandLineChartLegend(ctx, lineChart.Legend)
+	legend, diags := dashboardwidgets.ExpandLegend(ctx, lineChart.Legend)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5023,46 +5023,6 @@ func expandLineChart(ctx context.Context, lineChart *dashboardwidgets.LineChartM
 			},
 		},
 	}, nil
-}
-
-func expandLineChartLegend(ctx context.Context, legend *dashboardwidgets.LegendModel) (*cxsdk.DashboardLegend, diag.Diagnostics) {
-	if legend == nil {
-		return nil, nil
-	}
-
-	columns, diags := expandLineChartLegendColumns(ctx, legend.Columns.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardLegend{
-		IsVisible:    utils.TypeBoolToWrapperspbBool(legend.IsVisible),
-		Columns:      columns,
-		GroupByQuery: utils.TypeBoolToWrapperspbBool(legend.GroupByQuery),
-		Placement:    dashboardwidgets.DashboardLegendPlacementSchemaToProto[legend.Placement.ValueString()],
-	}, nil
-}
-
-func expandLineChartLegendColumns(ctx context.Context, columns []attr.Value) ([]cxsdk.DashboardLegendColumn, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	expandedColumns := make([]cxsdk.DashboardLegendColumn, 0, len(columns))
-	for _, s := range columns {
-		v, err := s.ToTerraformValue(ctx)
-		if err != nil {
-			diags.AddError("Extract LineChart Legend Columns Error", err.Error())
-			continue
-		}
-		var column string
-		if err = v.As(&column); err != nil {
-			diags.AddError("Extract LineChart Legend Columns Error", err.Error())
-			continue
-		}
-
-		expandedColumn := dashboardwidgets.DashboardLegendColumnSchemaToProto[column]
-		expandedColumns = append(expandedColumns, expandedColumn)
-	}
-
-	return expandedColumns, diags
 }
 
 func expandLineChartTooltip(tooltip *dashboardwidgets.TooltipModel) *cxsdk.LineChartTooltip {

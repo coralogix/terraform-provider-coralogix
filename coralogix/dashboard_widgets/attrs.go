@@ -153,3 +153,11 @@ func ObservationFieldAttr() map[string]attr.Type {
 		"scope": types.StringType,
 	}
 }
+
+func ThresholdAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"from":  types.NumberType,
+		"color": types.NumberType,
+		"label": types.NumberType,
+	}
+}

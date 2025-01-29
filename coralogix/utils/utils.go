@@ -601,6 +601,39 @@ func WrapperspbInt64ToTypeInt64(num *wrapperspb.Int64Value) types.Int64 {
 	return types.Int64Value(num.GetValue())
 }
 
+func WrapperspbDoubleToNumberType(num *wrapperspb.DoubleValue) types.Number {
+	if num == nil {
+		return types.NumberNull()
+	}
+
+	return types.NumberValue(big.NewFloat(num.GetValue()))
+}
+
+func NumberTypeToWrapperspbDouble(num types.Number) *wrapperspb.DoubleValue {
+	if num.IsNull() {
+		return nil
+	}
+	// types.NumberValue(big.NewFloat(float64(num.GetValue())))
+	val, _ := num.ValueBigFloat().Float64()
+	return wrapperspb.Double(val)
+}
+
+func NumberTypeToWrapperspbInt32(num types.Number) *wrapperspb.Int32Value {
+	if num.IsNull() {
+		return nil
+	}
+	// types.NumberValue(big.NewFloat(float64(num.GetValue())))
+	val, _ := num.ValueBigFloat().Uint64()
+	return wrapperspb.Int32(int32(val))
+}
+
+func WrapperspbInt32ToNumberType(num *wrapperspb.Int32Value) types.Number {
+	if num == nil {
+		return types.NumberNull()
+	}
+
+	return types.NumberValue(big.NewFloat(float64(num.GetValue())))
+}
 func WrapperspbUInt64ToNumberType(num *wrapperspb.UInt64Value) types.Number {
 	if num == nil {
 		return types.NumberNull()

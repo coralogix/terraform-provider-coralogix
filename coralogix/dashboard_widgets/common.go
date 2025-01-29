@@ -241,20 +241,20 @@ var (
 	DashboardValidColorSchemes            = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
 	SectionValidColors                    = []string{"unspecified", "cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
 
-	DashboardThresholdTypeSchemaToProto = map[string]cxsdk.ThresholdType{
+	DashboardSchemaToProtoThresholdType = map[string]cxsdk.ThresholdType{
 		"unspecified": cxsdk.ThresholdTypeUnspecified,
 		"absolute":    cxsdk.ThresholdTypeAbsolute,
 		"relative":    cxsdk.ThresholdTypeRelative,
 	}
-	DashboardThresholdTypeProtoToSchema = utils.ReverseMap(DashboardThresholdTypeSchemaToProto)
-	DashboardValidThresholdTypes        = utils.GetKeys(DashboardThresholdTypeSchemaToProto)
-	DashboardLegendBySchemaToProto      = map[string]cxsdk.LegendBy{
+	DashboardProtoToSchemaThresholdType = utils.ReverseMap(DashboardSchemaToProtoThresholdType)
+	DashboardValidThresholdTypes        = utils.GetKeys(DashboardSchemaToProtoThresholdType)
+	DashboardSchemaToProtoLegendBy      = map[string]cxsdk.LegendBy{
 		"unspecified": cxsdk.LegendByUnspecified,
 		"thresholds":  cxsdk.LegendByThresholds,
 		"groups":      cxsdk.LegendByGroups,
 	}
-	DashboardLegendByProtoToSchema = utils.ReverseMap(DashboardLegendBySchemaToProto)
-	DashboardValidLegendBys        = utils.GetKeys(DashboardLegendBySchemaToProto)
+	DashboardProtoToSchemaLegendBy = utils.ReverseMap(DashboardSchemaToProtoLegendBy)
+	DashboardValidLegendBys        = utils.GetKeys(DashboardSchemaToProtoLegendBy)
 )
 
 type QueryLogsModel struct {
@@ -1238,6 +1238,32 @@ func flattenLegendColumns(columns []cxsdk.DashboardLegendColumn) types.List {
 	}
 
 	return types.ListValueMust(types.StringType, columnsElements)
+}
+
+func ExpandLegend(ctx context.Context, legend *LegendModel) (*cxsdk.DashboardLegend, diag.Diagnostics) {
+	if legend == nil {
+		return nil, nil
+	}
+
+	columns := make([]cxsdk.DashboardLegendColumn, 0, len(legend.Columns.Elements()))
+	var columnsParsed []types.String
+	if diags := legend.Columns.ElementsAs(ctx, &columnsParsed, true); diags.HasError() {
+		return nil, diags
+	}
+	var diagnostics diag.Diagnostics
+	for _, col := range columnsParsed {
+		columns = append(columns, DashboardLegendColumnSchemaToProto[col.ValueString()])
+	}
+	if diagnostics.HasError() {
+		return nil, diagnostics
+	}
+
+	return &cxsdk.DashboardLegend{
+		IsVisible:    utils.TypeBoolToWrapperspbBool(legend.IsVisible),
+		Columns:      columns,
+		GroupByQuery: utils.TypeBoolToWrapperspbBool(legend.GroupByQuery),
+		Placement:    DashboardLegendPlacementSchemaToProto[legend.Placement.ValueString()],
+	}, nil
 }
 
 func FlattenSpansFields(ctx context.Context, spanFields []*cxsdk.SpanField) (types.List, diag.Diagnostics) {
