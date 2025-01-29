@@ -453,8 +453,9 @@ type DataPrimeModel struct {
 }
 
 type DataTableQueryMetricsModel struct {
-	PromqlQuery types.String `tfsdk:"promql_query"`
-	Filters     types.List   `tfsdk:"filters"` //MetricsFilterModel
+	PromqlQuery     types.String `tfsdk:"promql_query"`
+	Filters         types.List   `tfsdk:"filters"` //MetricsFilterModel
+	PromqlQueryType types.String `tfsdk:"promql_query_type"`
 }
 
 type MetricsFilterModel struct {
@@ -1448,6 +1449,11 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																						Required: true,
 																					},
 																					"filters": metricFiltersSchema(),
+																					"promql_query_type": schema.StringAttribute{
+																						Optional: true,
+																						Computed: true,
+																						Default:  stringdefault.StaticString("PROM_QL_QUERY_TYPE_UNSPECIFIED"),
+																					},
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -5831,10 +5837,20 @@ func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *Data
 
 	return &cxsdk.DashboardDataTableQueryMetrics{
 		Metrics: &cxsdk.DashboardDataTableMetricsQuery{
-			PromqlQuery: expandPromqlQuery(dataTableQueryMetric.PromqlQuery),
-			Filters:     filters,
+			PromqlQuery:     expandPromqlQuery(dataTableQueryMetric.PromqlQuery),
+			Filters:         filters,
+			PromqlQueryType: expandPromqlQueryType(dataTableQueryMetric.PromqlQueryType),
 		},
 	}, nil
+}
+
+func expandPromqlQueryType(promqlQueryType basetypes.StringValue) cxsdk.PromQLQueryType {
+	if promqlQueryType.ValueString() == "PROM_QL_QUERY_TYPE_INSTANT" {
+		return cxsdk.PromQLQueryTypeInstant
+	} else if promqlQueryType.ValueString() == "PROM_QL_QUERY_TYPE_RANGE" {
+		return cxsdk.PromQLQueryTypeRange
+	}
+	return cxsdk.PromQLQueryTypeUnspecified
 }
 
 func expandDataTableLogsQuery(ctx context.Context, dataTableQueryLogs *DataTableQueryLogsModel) (*cxsdk.DashboardDataTableQueryLogs, diag.Diagnostics) {
@@ -7213,6 +7229,7 @@ func widgetModelAttr() map[string]attr.Type {
 												AttrTypes: metricsFilterModelAttr(),
 											},
 										},
+										"promql_query_type": types.StringType,
 									},
 								},
 								"data_prime": types.ObjectType{
@@ -9064,8 +9081,9 @@ func flattenDataTableMetricsQuery(ctx context.Context, metrics *cxsdk.DashboardD
 
 	return &DataTableQueryModel{
 		Metrics: &DataTableQueryMetricsModel{
-			PromqlQuery: wrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
-			Filters:     filters,
+			PromqlQuery:     wrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
+			Filters:         filters,
+			PromqlQueryType: types.StringValue(metrics.GetPromqlQueryType().String()),
 		},
 	}, nil
 }
