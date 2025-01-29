@@ -1009,6 +1009,7 @@ Read-Only:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters))
 - `promql_query` (String)
+- `promql_query_type` (String)
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.metrics.filters`
