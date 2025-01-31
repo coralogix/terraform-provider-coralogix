@@ -34,6 +34,20 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
+var (
+	DashboardSchemaToProtoHexagonAggregation = map[string]cxsdk.HexagonMetricAggregation{
+		"unspecified": cxsdk.HexagonMetricAggregationUnspecified,
+		"last":        cxsdk.HexagonMetricAggregationLast,
+		"min":         cxsdk.HexagonMetricAggregationMin,
+		"max":         cxsdk.HexagonMetricAggregationMax,
+		"avg":         cxsdk.HexagonMetricAggregationAvg,
+		"sum":         cxsdk.HexagonMetricAggregationSum,
+	}
+
+	DashboardProtoToSchemaHexagonMetricAggregation = utils.ReverseMap(DashboardSchemaToProtoHexagonAggregation)
+	DashboardValidHexagonMetricAggregations        = utils.GetKeys(DashboardSchemaToProtoHexagonAggregation)
+)
+
 type HexagonModel struct {
 	CustomUnit    types.String       `tfsdk:"custom_unit"`
 	LegendBy      types.String       `tfsdk:"legend_by"`
@@ -46,13 +60,21 @@ type HexagonModel struct {
 	Unit          types.String       `tfsdk:"unit"`
 	Legend        *LegendModel       `tfsdk:"legend"`
 	Query         *HexagonQueryModel `tfsdk:"query"`
+	TimeFrame     *TimeFrameModel    `tfdsk:"time_frame"`
 }
 
 type HexagonQueryModel struct {
-	Logs      *QueryLogsModel    `tfsdk:"logs"`
-	Metrics   *QueryMetricsModel `tfsdk:"metrics"`
-	Spans     *QuerySpansModel   `tfsdk:"spans"`
-	DataPrime *DataPrimeModel    `tfsdk:"dataprime"`
+	Logs      *HexagonQueryLogsModel `tfsdk:"logs"`
+	Metrics   *QueryMetricsModel     `tfsdk:"metrics"`
+	Spans     *QuerySpansModel       `tfsdk:"spans"`
+	DataPrime *DataPrimeModel        `tfsdk:"dataprime"`
+}
+
+type HexagonQueryLogsModel struct {
+	LuceneQuery types.String          `tfsdk:"lucene_query"`
+	GroupBy     types.List            `tfsdk:"group_by"`     //types.String
+	Aggregation *LogsAggregationModel `tfsdk:"aggregations"` //AggregationModel
+	Filters     types.List            `tfsdk:"filters"`      //FilterModel
 }
 
 type HexagonThresholdModel struct {
@@ -125,6 +147,7 @@ func HexagonSchema() schema.Attribute {
 				Default:             stringdefault.StaticString("unspecified"),
 				MarkdownDescription: fmt.Sprintf("The threshold type. Valid values are: %s.", strings.Join(DashboardValidThresholdTypes, ", ")),
 			},
+			"time_frame": TimeFrameSchema(),
 			"query": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"logs": schema.SingleNestedAttribute{
@@ -132,12 +155,14 @@ func HexagonSchema() schema.Attribute {
 							"lucene_query": schema.StringAttribute{
 								Optional: true,
 							},
-							"group_by": schema.ListAttribute{
-								ElementType: types.StringType,
-								Optional:    true,
+							"group_by": schema.ListNestedAttribute{
+								NestedObject: schema.NestedAttributeObject{
+									Attributes: ObservationFieldSchema(),
+								},
+								Optional: true,
 							},
-							"filters":      LogsFiltersSchema(),
-							"aggregations": LogsAggregationsSchema(),
+							"filters":     LogsFiltersSchema(),
+							"aggregation": LogsAggregationsSchema(),
 						},
 						Optional: true,
 						Validators: []validator.Object{
@@ -154,6 +179,13 @@ func HexagonSchema() schema.Attribute {
 								Required: true,
 							},
 							"filters": MetricFiltersSchema(),
+							"aggregation": schema.StringAttribute{
+								Optional: false,
+								Default:  stringdefault.StaticString("unspecified"),
+								Validators: []validator.String{
+									stringvalidator.OneOf(DashboardValidHexagonMetricAggregations...),
+								},
+							},
 						},
 						Optional: true,
 						Validators: []validator.Object{
@@ -169,9 +201,9 @@ func HexagonSchema() schema.Attribute {
 							"lucene_query": schema.StringAttribute{
 								Optional: true,
 							},
-							"group_by":     SpansFieldsSchema(),
-							"aggregations": SpansAggregationSchema(),
-							"filters":      SpansFilterSchema(),
+							"group_by":    SpansFieldsSchema(),
+							"aggregation": SpansAggregationSchema(),
+							"filters":     SpansFilterSchema(),
 						},
 						Optional: true,
 						Validators: []validator.Object{
@@ -187,10 +219,9 @@ func HexagonSchema() schema.Attribute {
 							"dataprime_query": schema.StringAttribute{
 								Optional: true,
 							},
-							"timeframe": TimeFrameSchema(),
 							"filters": schema.ListNestedAttribute{
 								NestedObject: schema.NestedAttributeObject{
-									Attributes: FiltersSourceAttribute(),
+									Attributes: FiltersSourceSchema(),
 								},
 								Optional: true,
 							},
@@ -225,12 +256,101 @@ func HexagonSchema() schema.Attribute {
 	}
 }
 
+func HexagonType() types.ObjectType {
+	return types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"min":     types.NumberType,
+			"max":     types.NumberType,
+			"decimal": types.NumberType,
+			"legend": types.ObjectType{
+				AttrTypes: LegendAttr(),
+			},
+			"legend_by":      types.StringType,
+			"unit":           types.StringType,
+			"data_mode_type": types.StringType,
+			"thresholds": types.SetType{
+				ElemType: types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"from":  types.NumberType,
+						"color": types.StringType,
+						"label": types.StringType,
+					},
+				},
+			},
+			"threshold_type": types.StringType,
+			"time_frame": types.ObjectType{
+				AttrTypes: TimeFrameModelAttr(),
+			},
+			"query": types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"logs": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"lucene_query": types.StringType,
+							"filters": types.ListType{
+								ElemType: types.ObjectType{
+									AttrTypes: LogsFilterModelAttr(),
+								},
+							},
+							"aggregation": types.ObjectType{
+								AttrTypes: SpansAggregationModelAttr(),
+							},
+							"group_by": types.ListType{
+								ElemType: ObservationFieldsObject(),
+							},
+						},
+					},
+					"metrics": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"promql_query": types.StringType,
+							"filters": types.ListType{
+								ElemType: types.ObjectType{
+									AttrTypes: MetricsFilterModelAttr(),
+								},
+							},
+							"promql_query_type": types.StringType,
+							"aggregation":       types.StringType,
+						},
+					},
+					"spans": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"lucene_query": types.StringType,
+							"filters": types.ListType{
+								ElemType: types.ObjectType{
+									AttrTypes: SpansFilterModelAttr(),
+								},
+							},
+							"group_by": types.ListType{
+								ElemType: types.ObjectType{
+									AttrTypes: SpansFieldModelAttr(),
+								},
+							},
+							"aggregation": types.ObjectType{
+								AttrTypes: SpansAggregationModelAttr(),
+							},
+						},
+					},
+					"data_prime": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"dataprime_query": types.StringType,
+							"filters": types.ListType{
+								ElemType: types.ObjectType{
+									AttrTypes: FilterSourceModelAttr(),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func FlattenHexagon(ctx context.Context, chart *cxsdk.Hexagon) (*WidgetDefinitionModel, diag.Diagnostics) {
 	if chart == nil {
 		return nil, nil
 	}
 
-	query, diags := flattenHexagonQuery(ctx, chart.GetQuery())
+	query, timeframe, diags := flattenHexagonQuery(ctx, chart.GetQuery())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -253,6 +373,7 @@ func FlattenHexagon(ctx context.Context, chart *cxsdk.Hexagon) (*WidgetDefinitio
 			DataModeType:  basetypes.NewStringValue(DashboardProtoToSchemaDataModeType[chart.DataModeType]),
 			ThresholdType: basetypes.NewStringValue(DashboardProtoToSchemaThresholdType[chart.ThresholdType]),
 			Thresholds:    thresholds,
+			TimeFrame:     timeframe,
 		},
 	}, nil
 }
@@ -280,9 +401,9 @@ func flattenThresholds(ctx context.Context, set []*cxsdk.Threshold) (types.Set, 
 	return types.SetValueMust(types.ObjectType{AttrTypes: ThresholdAttr()}, thresholds), nil
 }
 
-func flattenHexagonQuery(ctx context.Context, query *cxsdk.HexagonQuery) (*HexagonQueryModel, diag.Diagnostics) {
+func flattenHexagonQuery(ctx context.Context, query *cxsdk.HexagonQuery) (*HexagonQueryModel, *TimeFrameModel, diag.Diagnostics) {
 	if query == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	switch query.GetValue().(type) {
@@ -295,13 +416,13 @@ func flattenHexagonQuery(ctx context.Context, query *cxsdk.HexagonQuery) (*Hexag
 	case *cxsdk.HexagonQueryDataprime:
 		return flattenHexagonDataPrimeQuery(ctx, query.GetDataprime())
 	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Data Table Query", "unknown data table query type")}
+		return nil, nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Data Table Query", "unknown data table query type")}
 	}
 }
 
-func flattenHexagonDataPrimeQuery(ctx context.Context, dataPrime *cxsdk.HexagonDataprimeQuery) (*HexagonQueryModel, diag.Diagnostics) {
+func flattenHexagonDataPrimeQuery(ctx context.Context, dataPrime *cxsdk.HexagonDataprimeQuery) (*HexagonQueryModel, *TimeFrameModel, diag.Diagnostics) {
 	if dataPrime == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	dataPrimeQuery := types.StringNull()
@@ -311,7 +432,11 @@ func flattenHexagonDataPrimeQuery(ctx context.Context, dataPrime *cxsdk.HexagonD
 
 	filters, diags := FlattenDashboardFiltersSources(ctx, dataPrime.GetFilters())
 	if diags.HasError() {
-		return nil, diags
+		return nil, nil, diags
+	}
+	timeframe, diags := FlattenTimeFrameSelect(ctx, dataPrime.TimeFrame)
+	if diags.HasError() {
+		return nil, nil, diags
 	}
 
 	return &HexagonQueryModel{
@@ -319,31 +444,41 @@ func flattenHexagonDataPrimeQuery(ctx context.Context, dataPrime *cxsdk.HexagonD
 			Query:   dataPrimeQuery,
 			Filters: filters,
 		},
-	}, nil
+	}, timeframe, nil
 }
 
-func flattenHexagonLogsQuery(ctx context.Context, logs *cxsdk.HexagonLogsQuery) (*HexagonQueryModel, diag.Diagnostics) {
+func flattenHexagonLogsQuery(ctx context.Context, logs *cxsdk.HexagonLogsQuery) (*HexagonQueryModel, *TimeFrameModel, diag.Diagnostics) {
 	if logs == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	filters, diags := FlattenLogsFilters(ctx, logs.GetFilters())
 	if diags.HasError() {
-		return nil, diags
+		return nil, nil, diags
 	}
 
 	grouping, diags := FlattenObservationFields(ctx, logs.GetGroupBy())
 	if diags.HasError() {
-		return nil, diags
+		return nil, nil, diags
+	}
+	aggregation, diags := FlattenLogsAggregation(ctx, logs.LogsAggregation)
+	if diags.HasError() {
+		return nil, nil, diags
+	}
+
+	timeframe, diags := FlattenTimeFrameSelect(ctx, logs.TimeFrame)
+	if diags.HasError() {
+		return nil, nil, diags
 	}
 
 	return &HexagonQueryModel{
-		Logs: &QueryLogsModel{
+		Logs: &HexagonQueryLogsModel{
 			LuceneQuery: utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
 			Filters:     filters,
 			GroupBy:     grouping,
+			Aggregation: aggregation,
 		},
-	}, nil
+	}, timeframe, nil
 }
 
 func flattenGroupingAggregations(ctx context.Context, aggregations []*cxsdk.DashboardDataTableLogsQueryAggregation) (types.List, diag.Diagnostics) {
@@ -384,14 +519,19 @@ func flattenGroupingAggregation(ctx context.Context, dataTableAggregation *cxsdk
 	}, nil
 }
 
-func flattenHexagonMetricsQuery(ctx context.Context, metrics *cxsdk.HexagonMetricsQuery) (*HexagonQueryModel, diag.Diagnostics) {
+func flattenHexagonMetricsQuery(ctx context.Context, metrics *cxsdk.HexagonMetricsQuery) (*HexagonQueryModel, *TimeFrameModel, diag.Diagnostics) {
 	if metrics == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	filters, diags := FlattenMetricsFilters(ctx, metrics.GetFilters())
 	if diags.HasError() {
-		return nil, diags
+		return nil, nil, diags
+	}
+
+	timeframe, diags := FlattenTimeFrameSelect(ctx, metrics.TimeFrame)
+	if diags.HasError() {
+		return nil, nil, diags
 	}
 
 	return &HexagonQueryModel{
@@ -399,22 +539,27 @@ func flattenHexagonMetricsQuery(ctx context.Context, metrics *cxsdk.HexagonMetri
 			PromqlQuery: utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 			Filters:     filters,
 		},
-	}, nil
+	}, timeframe, nil
 }
 
-func flattenHexagonSpansQuery(ctx context.Context, spans *cxsdk.HexagonSpansQuery) (*HexagonQueryModel, diag.Diagnostics) {
+func flattenHexagonSpansQuery(ctx context.Context, spans *cxsdk.HexagonSpansQuery) (*HexagonQueryModel, *TimeFrameModel, diag.Diagnostics) {
 	if spans == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	filters, diags := FlattenSpansFilters(ctx, spans.GetFilters())
 	if diags.HasError() {
-		return nil, diags
+		return nil, nil, diags
 	}
 
 	grouping, diags := FlattenSpansFields(ctx, spans.GetGroupBy())
 	if diags.HasError() {
-		return nil, diags
+		return nil, nil, diags
+	}
+
+	timeframe, diags := FlattenTimeFrameSelect(ctx, spans.TimeFrame)
+	if diags.HasError() {
+		return nil, nil, diags
 	}
 
 	return &HexagonQueryModel{
@@ -423,7 +568,7 @@ func flattenHexagonSpansQuery(ctx context.Context, spans *cxsdk.HexagonSpansQuer
 			Filters:     filters,
 			GroupBy:     grouping,
 		},
-	}, nil
+	}, timeframe, nil
 }
 
 func ExpandHexagon(ctx context.Context, hexagon *HexagonModel) (*cxsdk.Hexagon, diag.Diagnostics) {
@@ -440,6 +585,14 @@ func ExpandHexagon(ctx context.Context, hexagon *HexagonModel) (*cxsdk.Hexagon, 
 		return nil, diags
 	}
 
+	timeframe, diags := ExpandTimeFrameSelect(ctx, hexagon.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+	query, diags := expandHexagonQuery(ctx, hexagon.Query, timeframe)
+	if diags.HasError() {
+		return nil, diags
+	}
 	return &cxsdk.Hexagon{
 		Min:           utils.NumberTypeToWrapperspbDouble(hexagon.Min),
 		Max:           utils.NumberTypeToWrapperspbDouble(hexagon.Max),
@@ -451,7 +604,7 @@ func ExpandHexagon(ctx context.Context, hexagon *HexagonModel) (*cxsdk.Hexagon, 
 		DataModeType:  DashboardSchemaToProtoDataModeType[hexagon.DataModeType.ValueString()],
 		Thresholds:    thresholds,
 		Legend:        legend,
-		// Query:
+		Query:         query,
 	}, nil
 }
 
@@ -485,41 +638,41 @@ func expandThresholds(ctx context.Context, set types.Set) ([]*cxsdk.Threshold, d
 	return thresholds, nil
 }
 
-func expandDataTableQuery(ctx context.Context, dataTableQuery *DataTableQueryModel) (*cxsdk.DashboardDataTableQuery, diag.Diagnostics) {
+func expandHexagonQuery(ctx context.Context, dataTableQuery *HexagonQueryModel, timeframe *cxsdk.TimeframeSelect) (*cxsdk.HexagonQuery, diag.Diagnostics) {
 	if dataTableQuery == nil {
 		return nil, nil
 	}
 	switch {
 	case dataTableQuery.Metrics != nil:
-		metrics, diags := expandDataTableMetricsQuery(ctx, dataTableQuery.Metrics)
+		metrics, diags := expandHexagonMetricsQuery(ctx, dataTableQuery.Metrics, timeframe)
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &cxsdk.DashboardDataTableQuery{
+		return &cxsdk.HexagonQuery{
 			Value: metrics,
 		}, nil
 	case dataTableQuery.Logs != nil:
-		logs, diags := expandDataTableLogsQuery(ctx, dataTableQuery.Logs)
+		logs, diags := expandHexagonLogsQuery(ctx, dataTableQuery.Logs, timeframe)
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &cxsdk.DashboardDataTableQuery{
+		return &cxsdk.HexagonQuery{
 			Value: logs,
 		}, nil
 	case dataTableQuery.Spans != nil:
-		spans, diags := expandDataTableSpansQuery(ctx, dataTableQuery.Spans)
+		spans, diags := expandHexagonSpansQuery(ctx, dataTableQuery.Spans, timeframe)
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &cxsdk.DashboardDataTableQuery{
+		return &cxsdk.HexagonQuery{
 			Value: spans,
 		}, nil
 	case dataTableQuery.DataPrime != nil:
-		dataPrime, diags := expandDataTableDataPrimeQuery(ctx, dataTableQuery.DataPrime)
+		dataPrime, diags := expandDataTableDataPrimeQuery(ctx, dataTableQuery.DataPrime, timeframe)
 		if diags.HasError() {
 			return nil, diags
 		}
-		return &cxsdk.DashboardDataTableQuery{
+		return &cxsdk.HexagonQuery{
 			Value: dataPrime,
 		}, nil
 	default:
@@ -527,7 +680,7 @@ func expandDataTableQuery(ctx context.Context, dataTableQuery *DataTableQueryMod
 	}
 }
 
-func expandDataTableDataPrimeQuery(ctx context.Context, dataPrime *DataPrimeModel) (*cxsdk.DashboardDataTableQueryDataprime, diag.Diagnostics) {
+func expandDataTableDataPrimeQuery(ctx context.Context, dataPrime *DataPrimeModel, timeframe *cxsdk.TimeframeSelect) (*cxsdk.HexagonQueryDataprime, diag.Diagnostics) {
 	if dataPrime == nil {
 		return nil, nil
 	}
@@ -544,10 +697,11 @@ func expandDataTableDataPrimeQuery(ctx context.Context, dataPrime *DataPrimeMode
 		}
 	}
 
-	return &cxsdk.DashboardDataTableQueryDataprime{
-		Dataprime: &cxsdk.DashboardDataTableDataprimeQuery{
+	return &cxsdk.HexagonQueryDataprime{
+		Dataprime: &cxsdk.HexagonDataprimeQuery{
 			DataprimeQuery: dataPrimeQuery,
 			Filters:        filters,
+			TimeFrame:      timeframe,
 		},
 	}, nil
 }
@@ -565,7 +719,7 @@ func expandDashboardFiltersSources(ctx context.Context, filters types.List) ([]*
 			diags.Append(dg...)
 			continue
 		}
-		expandedFilter, expandDiags := expandFilterSource(ctx, &filterSource)
+		expandedFilter, expandDiags := ExpandFilterSource(ctx, &filterSource)
 		if expandDiags.HasError() {
 			diags.Append(expandDiags...)
 			continue
@@ -576,202 +730,80 @@ func expandDashboardFiltersSources(ctx context.Context, filters types.List) ([]*
 	return expandedFiltersSources, diags
 }
 
-func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *DataTableQueryMetricsModel) (*cxsdk.DashboardDataTableQueryMetrics, diag.Diagnostics) {
+func expandHexagonMetricsQuery(ctx context.Context, dataTableQueryMetric *QueryMetricsModel, timeframe *cxsdk.TimeframeSelect) (*cxsdk.HexagonQueryMetrics, diag.Diagnostics) {
 	if dataTableQueryMetric == nil {
 		return nil, nil
 	}
 
-	filters, diags := expandMetricsFilters(ctx, dataTableQueryMetric.Filters)
+	filters, diags := ExpandMetricsFilters(ctx, dataTableQueryMetric.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.DashboardDataTableQueryMetrics{
-		Metrics: &cxsdk.DashboardDataTableMetricsQuery{
+	return &cxsdk.HexagonQueryMetrics{
+		Metrics: &cxsdk.HexagonMetricsQuery{
 			PromqlQuery: expandPromqlQuery(dataTableQueryMetric.PromqlQuery),
 			Filters:     filters,
+			TimeFrame:   timeframe,
+			//PromqlQueryType: &DashboardSchemaToProtoPromQLQueryType[dataTableQueryMetric.PromqlQueryType.ValueString()], // Coming soon?
+
 		},
 	}, nil
 }
 
-func expandDataTableLogsQuery(ctx context.Context, dataTableQueryLogs *DataTableQueryLogsModel) (*cxsdk.DashboardDataTableQueryLogs, diag.Diagnostics) {
-	if dataTableQueryLogs == nil {
+func expandHexagonLogsQuery(ctx context.Context, queryLogs *HexagonQueryLogsModel, timeframe *cxsdk.TimeframeSelect) (*cxsdk.HexagonQueryLogs, diag.Diagnostics) {
+	if queryLogs == nil {
 		return nil, nil
 	}
 
-	filters, diags := expandLogsFilters(ctx, dataTableQueryLogs.Filters)
+	filters, diags := ExpandLogsFilters(ctx, queryLogs.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	grouping, diags := expandDataTableLogsGrouping(ctx, dataTableQueryLogs.Grouping)
+	aggregation, diags := ExpandLogsAggregation(ctx, queryLogs.Aggregation)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.DashboardDataTableQueryLogs{
-		Logs: &cxsdk.DashboardDataTableLogsQuery{
-			LuceneQuery: expandLuceneQuery(dataTableQueryLogs.LuceneQuery),
+	groupBys, diags := ExpandObservationFields(ctx, queryLogs.GroupBy)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &cxsdk.HexagonQueryLogs{
+		Logs: &cxsdk.HexagonLogsQuery{
+			LuceneQuery:     ExpandLuceneQuery(queryLogs.LuceneQuery),
+			Filters:         filters,
+			LogsAggregation: aggregation,
+			GroupBy:         groupBys,
+			TimeFrame:       timeframe,
+		},
+	}, nil
+}
+
+func expandHexagonSpansQuery(ctx context.Context, hexagonQuerySpans *QuerySpansModel, timeframe *cxsdk.TimeframeSelect) (*cxsdk.HexagonQuerySpans, diag.Diagnostics) {
+	if hexagonQuerySpans == nil {
+		return nil, nil
+	}
+
+	filters, diags := ExpandSpansFilters(ctx, hexagonQuerySpans.Filters)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	grouping, diags := ExpandSpansFields(ctx, hexagonQuerySpans.GroupBy)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &cxsdk.HexagonQuerySpans{
+		Spans: &cxsdk.HexagonSpansQuery{
+			LuceneQuery: ExpandLuceneQuery(hexagonQuerySpans.LuceneQuery),
 			Filters:     filters,
-			Grouping:    grouping,
+			GroupBy:     grouping,
+			TimeFrame:   timeframe,
 		},
-	}, nil
-}
-
-func expandDataTableLogsGrouping(ctx context.Context, grouping *DataTableLogsQueryGroupingModel) (*cxsdk.DashboardDataTableLogsQueryGrouping, diag.Diagnostics) {
-	if grouping == nil {
-		return nil, nil
-	}
-
-	groupBy, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, grouping.GroupBy.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	aggregations, diags := expandDataTableLogsAggregations(ctx, grouping.Aggregations)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	groupBys, diags := expandObservationFields(ctx, grouping.GroupBys)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardDataTableLogsQueryGrouping{
-		GroupBy:      groupBy,
-		Aggregations: aggregations,
-		GroupBys:     groupBys,
-	}, nil
-
-}
-
-func expandDataTableLogsAggregations(ctx context.Context, aggregations types.List) ([]*cxsdk.DashboardDataTableLogsQueryAggregation, diag.Diagnostics) {
-	var aggregationsObjects []types.Object
-	var expandedAggregations []*cxsdk.DashboardDataTableLogsQueryAggregation
-	diags := aggregations.ElementsAs(ctx, &aggregationsObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-	for _, ao := range aggregationsObjects {
-		var aggregation DataTableLogsAggregationModel
-		if dg := ao.As(ctx, &aggregation, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedAggregation, expandDiags := expandDataTableLogsAggregation(ctx, &aggregation)
-		if expandDiags.HasError() {
-			diags.Append(expandDiags...)
-			continue
-		}
-		expandedAggregations = append(expandedAggregations, expandedAggregation)
-	}
-
-	return expandedAggregations, diags
-}
-
-func expandDataTableLogsAggregation(ctx context.Context, aggregation *DataTableLogsAggregationModel) (*cxsdk.DashboardDataTableLogsQueryAggregation, diag.Diagnostics) {
-	if aggregation == nil {
-		return nil, nil
-	}
-
-	logsAggregation, diags := expandLogsAggregation(ctx, aggregation.Aggregation)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardDataTableLogsQueryAggregation{
-		Id:          utils.TypeStringToWrapperspbString(aggregation.ID),
-		Name:        utils.TypeStringToWrapperspbString(aggregation.Name),
-		IsVisible:   utils.TypeBoolToWrapperspbBool(aggregation.IsVisible),
-		Aggregation: logsAggregation,
-	}, nil
-}
-
-func expandDataTableSpansQuery(ctx context.Context, dataTableQuerySpans *DataTableQuerySpansModel) (*cxsdk.DashboardDataTableQuerySpans, diag.Diagnostics) {
-	if dataTableQuerySpans == nil {
-		return nil, nil
-	}
-
-	filters, diags := expandSpansFilters(ctx, dataTableQuerySpans.Filters)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	grouping, diags := expandDataTableSpansGrouping(ctx, dataTableQuerySpans.Grouping)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardDataTableQuerySpans{
-		Spans: &cxsdk.DashboardDataTableSpansQuery{
-			LuceneQuery: expandLuceneQuery(dataTableQuerySpans.LuceneQuery),
-			Filters:     filters,
-			Grouping:    grouping,
-		},
-	}, nil
-}
-
-func expandDataTableSpansGrouping(ctx context.Context, grouping *DataTableSpansQueryGroupingModel) (*cxsdk.DashboardDataTableSpansQueryGrouping, diag.Diagnostics) {
-	if grouping == nil {
-		return nil, nil
-	}
-
-	groupBy, diags := expandSpansFields(ctx, grouping.GroupBy)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	aggregations, diags := expandDataTableSpansAggregations(ctx, grouping.Aggregations)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardDataTableSpansQueryGrouping{
-		GroupBy:      groupBy,
-		Aggregations: aggregations,
-	}, nil
-}
-
-func expandDataTableSpansAggregations(ctx context.Context, spansAggregations types.List) ([]*cxsdk.DashboardDataTableSpansQueryAggregation, diag.Diagnostics) {
-	var spansAggregationsObjects []types.Object
-	var expandedSpansAggregations []*cxsdk.DashboardDataTableSpansQueryAggregation
-	diags := spansAggregations.ElementsAs(ctx, &spansAggregationsObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-	for _, sfo := range spansAggregationsObjects {
-		var aggregation DataTableSpansAggregationModel
-		if dg := sfo.As(ctx, &aggregation, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedSpansAggregation, expandDiag := expandDataTableSpansAggregation(&aggregation)
-		if expandDiag != nil {
-			diags.Append(expandDiag)
-			continue
-		}
-		expandedSpansAggregations = append(expandedSpansAggregations, expandedSpansAggregation)
-	}
-
-	return expandedSpansAggregations, diags
-}
-
-func expandDataTableSpansAggregation(aggregation *DataTableSpansAggregationModel) (*cxsdk.DashboardDataTableSpansQueryAggregation, diag.Diagnostic) {
-	if aggregation == nil {
-		return nil, nil
-	}
-
-	spansAggregation, dg := expandSpansAggregation(aggregation.Aggregation)
-	if dg != nil {
-		return nil, dg
-	}
-
-	return &cxsdk.DashboardDataTableSpansQueryAggregation{
-		Id:          utils.TypeStringToWrapperspbString(aggregation.ID),
-		Name:        utils.TypeStringToWrapperspbString(aggregation.Name),
-		IsVisible:   utils.TypeBoolToWrapperspbBool(aggregation.IsVisible),
-		Aggregation: spansAggregation,
 	}, nil
 }
 

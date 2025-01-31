@@ -29,10 +29,12 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	gouuid "github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	diag2 "github.com/hashicorp/terraform-plugin-framework/diag"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -769,4 +771,27 @@ func WrapperspbUint32ToString(num *wrapperspb.UInt32Value) types.String {
 	}
 	return types.StringValue(strconv.FormatUint(uint64(num.GetValue()), 10))
 
+}
+
+func ParseDuration(ti, fieldsName string) (*time.Duration, diag.Diagnostic) {
+	// This for some reason has format seconds:900
+	durStr := strings.Split(ti, ":")
+	var duration time.Duration
+	if len(durStr) != 2 {
+		return nil, diag.NewErrorDiagnostic(fmt.Sprintf("Error Expand %s", fieldsName), fmt.Sprintf("error parsing duration: %s", durStr))
+	}
+	unit := durStr[0]
+	no, err := strconv.Atoi(durStr[1])
+	if err != nil {
+		return nil, diag.NewErrorDiagnostic(fmt.Sprintf("Error Expand %s", fieldsName), fmt.Sprintf("error parsing duration numbers: %s", durStr))
+	}
+	switch unit {
+	case "seconds":
+		duration = time.Second * time.Duration(no)
+	case "minutes":
+		duration = time.Minute * time.Duration(no)
+	default:
+		return nil, diag.NewErrorDiagnostic(fmt.Sprintf("Error Expand %s", fieldsName), fmt.Sprintf("error parsing duration unit: %s", unit))
+	}
+	return &duration, nil
 }

@@ -61,7 +61,7 @@ func LogsFilterModelAttr() map[string]attr.Type {
 			AttrTypes: FilterOperatorModelAttr(),
 		},
 		"observation_field": types.ObjectType{
-			AttrTypes: ObservationFieldAttributes(),
+			AttrTypes: ObservationFieldAttr(),
 		},
 	}
 }
@@ -87,21 +87,21 @@ func filterSourceMetricsModelAttr() map[string]attr.Type {
 	}
 }
 
-func DashboardTimeFrameModelAttr() map[string]attr.Type {
+func TimeFrameModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"absolute": types.ObjectType{AttrTypes: AbsoluteTimeFrameAttributes()},
-		"relative": types.ObjectType{AttrTypes: RelativeTimeFrameAttributes()},
+		"absolute": types.ObjectType{AttrTypes: AbsoluteTimeFrameAttr()},
+		"relative": types.ObjectType{AttrTypes: RelativeTimeFrameAttr()},
 	}
 }
 
-func AbsoluteTimeFrameAttributes() map[string]attr.Type {
+func AbsoluteTimeFrameAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"start": types.StringType,
 		"end":   types.StringType,
 	}
 }
 
-func RelativeTimeFrameAttributes() map[string]attr.Type {
+func RelativeTimeFrameAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"duration": types.StringType,
 	}
@@ -159,5 +159,16 @@ func ThresholdAttr() map[string]attr.Type {
 		"from":  types.NumberType,
 		"color": types.NumberType,
 		"label": types.NumberType,
+	}
+}
+
+func LegendAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"is_visible": types.BoolType,
+		"columns": types.ListType{
+			ElemType: types.StringType,
+		},
+		"group_by_query": types.BoolType,
+		"placement":      types.StringType,
 	}
 }

@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 	"terraform-provider-coralogix/coralogix/clientset"
 	dashboardwidgets "terraform-provider-coralogix/coralogix/dashboard_widgets"
@@ -51,7 +50,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/durationpb"
-	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -63,17 +61,17 @@ var (
 )
 
 type DashboardResourceModel struct {
-	ID          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-	Layout      types.Object `tfsdk:"layout"`       //DashboardLayoutModel
-	Variables   types.List   `tfsdk:"variables"`    //DashboardVariableModel
-	Filters     types.List   `tfsdk:"filters"`      //DashboardFilterModel
-	TimeFrame   types.Object `tfsdk:"time_frame"`   //DashboardTimeFrameModel
-	Folder      types.Object `tfsdk:"folder"`       //DashboardFolderModel
-	Annotations types.List   `tfsdk:"annotations"`  //DashboardAnnotationModel
-	AutoRefresh types.Object `tfsdk:"auto_refresh"` //DashboardAutoRefreshModel
-	ContentJson types.String `tfsdk:"content_json"`
+	ID          types.String                     `tfsdk:"id"`
+	Name        types.String                     `tfsdk:"name"`
+	Description types.String                     `tfsdk:"description"`
+	Layout      types.Object                     `tfsdk:"layout"`    //DashboardLayoutModel
+	Variables   types.List                       `tfsdk:"variables"` //DashboardVariableModel
+	Filters     types.List                       `tfsdk:"filters"`   //DashboardFilterModel
+	TimeFrame   *dashboardwidgets.TimeFrameModel `tfsdk:"time_frame"`
+	Folder      types.Object                     `tfsdk:"folder"`       //DashboardFolderModel
+	Annotations types.List                       `tfsdk:"annotations"`  //DashboardAnnotationModel
+	AutoRefresh types.Object                     `tfsdk:"auto_refresh"` //DashboardAutoRefreshModel
+	ContentJson types.String                     `tfsdk:"content_json"`
 }
 
 type DashboardLayoutModel struct {
@@ -494,39 +492,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 														Attributes: map[string]schema.Attribute{
 															"line_chart": schema.SingleNestedAttribute{
 																Attributes: map[string]schema.Attribute{
-																	"legend": schema.SingleNestedAttribute{
-																		Attributes: map[string]schema.Attribute{
-																			"is_visible": schema.BoolAttribute{
-																				Optional:            true,
-																				Computed:            true,
-																				Default:             booldefault.StaticBool(true),
-																				MarkdownDescription: "Whether to display the legend. False by default.",
-																			},
-																			"columns": schema.ListAttribute{
-																				ElementType: types.StringType,
-																				Optional:    true,
-																				Validators: []validator.List{
-																					listvalidator.ValueStringsAre(stringvalidator.OneOf(dashboardwidgets.DashboardValidLegendColumns...)),
-																					listvalidator.SizeAtLeast(1),
-																				},
-																				MarkdownDescription: fmt.Sprintf("The columns to display in the legend. Valid values are: %s.", strings.Join(dashboardwidgets.DashboardValidLegendColumns, ", ")),
-																			},
-																			"group_by_query": schema.BoolAttribute{
-																				Optional: true,
-																				Computed: true,
-																				Default:  booldefault.StaticBool(false),
-																			},
-																			"placement": schema.StringAttribute{
-																				Optional: true,
-																				Computed: true,
-																				Validators: []validator.String{
-																					stringvalidator.OneOf(dashboardwidgets.DashboardValidLegendPlacements...),
-																				},
-																				MarkdownDescription: fmt.Sprintf("The placement of the legend. Valid values are: %s.", strings.Join(dashboardwidgets.DashboardValidLegendPlacements, ", ")),
-																			},
-																		},
-																		Optional: true,
-																	},
+																	"legend": dashboardwidgets.LegendSchema(),
 																	"tooltip": schema.SingleNestedAttribute{
 																		Attributes: map[string]schema.Attribute{
 																			"show_labels": schema.BoolAttribute{
@@ -648,7 +614,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																				Validators: []validator.String{
 																					stringvalidator.OneOf(dashboardwidgets.DashboardValidScaleTypes...),
 																				},
-																				Default:             stringdefault.StaticString("unspecified"),
+																				Default:             stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																				MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(dashboardwidgets.DashboardValidScaleTypes, ", ")),
 																			},
 																			"name": schema.StringAttribute{
@@ -692,7 +658,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																				Validators: []validator.String{
 																					stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																				},
-																				Default: stringdefault.StaticString("unspecified"),
+																				Default: stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																			},
 																		},
 																		Required: true,
@@ -705,6 +671,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																		path.MatchRelative().AtParent().AtName("line_chart"),
 																		path.MatchRelative().AtParent().AtName("pie_chart"),
 																		path.MatchRelative().AtParent().AtName("bar_chart"),
+																		path.MatchRelative().AtParent().AtName("hexagon"),
 																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
 																		path.MatchRelative().AtParent().AtName("markdown"),
 																	),
@@ -728,8 +695,9 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"grouping": schema.SingleNestedAttribute{
 																						Attributes: map[string]schema.Attribute{
 																							"group_by": schema.ListAttribute{
-																								ElementType: types.StringType,
-																								Optional:    true,
+																								ElementType:        types.StringType,
+																								Optional:           true,
+																								DeprecationMessage: "Use group_bys instead.",
 																							},
 																							"aggregations": schema.ListNestedAttribute{
 																								NestedObject: schema.NestedAttributeObject{
@@ -756,13 +724,14 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																							},
 																							"group_bys": schema.ListNestedAttribute{
 																								NestedObject: schema.NestedAttributeObject{
-																									Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
+																									Attributes: dashboardwidgets.ObservationFieldSchema(),
 																								},
 																								Optional: true,
 																							},
 																						},
 																						Optional: true,
 																					},
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -826,7 +795,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"promql_query_type": schema.StringAttribute{
 																						Optional: true,
 																						Computed: true,
-																						Default:  stringdefault.StaticString("PROM_QL_QUERY_TYPE_UNSPECIFIED"),
+																						Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																					},
 																				},
 																				Optional: true,
@@ -845,7 +814,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"filters": schema.ListNestedAttribute{
 																						NestedObject: schema.NestedAttributeObject{
-																							Attributes: dashboardwidgets.FiltersSourceAttribute(),
+																							Attributes: dashboardwidgets.FiltersSourceSchema(),
 																						},
 																						Optional: true,
 																					},
@@ -903,7 +872,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																				MarkdownDescription: fmt.Sprintf("The order direction. Can be one of %q.", dashboardwidgets.DashboardValidOrderDirections),
 																				Optional:            true,
 																				Computed:            true,
-																				Default:             stringdefault.StaticString("unspecified"),
+																				Default:             stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																			},
 																		},
 																		Optional: true,
@@ -914,7 +883,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
-																		Default:             stringdefault.StaticString("unspecified"),
+																		Default:             stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																		MarkdownDescription: fmt.Sprintf("The data mode type. Can be one of %q.", dashboardwidgets.DashboardValidDataModeTypes),
 																	},
 																},
@@ -967,7 +936,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																						MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardwidgets.DashboardValidGaugeAggregations),
 																						Optional:            true,
 																						Computed:            true,
-																						Default:             stringdefault.StaticString("unspecified"),
+																						Default:             stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																					},
 																					"filters": dashboardwidgets.MetricFiltersSchema(),
 																				},
@@ -1004,7 +973,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"filters": schema.ListNestedAttribute{
 																						NestedObject: schema.NestedAttributeObject{
-																							Attributes: dashboardwidgets.FiltersSourceAttribute(),
+																							Attributes: dashboardwidgets.FiltersSourceSchema(),
 																						},
 																						Optional: true,
 																					},
@@ -1064,7 +1033,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"data_mode_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString("unspecified"),
+																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
@@ -1073,7 +1042,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"threshold_by": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString("unspecified"),
+																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidGaugeThresholdBy...),
 																		},
@@ -1119,12 +1088,12 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"group_names_fields": schema.ListNestedAttribute{
 																						NestedObject: schema.NestedAttributeObject{
-																							Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
+																							Attributes: dashboardwidgets.ObservationFieldSchema(),
 																						},
 																						Optional: true,
 																					},
 																					"stacked_group_name_field": schema.SingleNestedAttribute{
-																						Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
+																						Attributes: dashboardwidgets.ObservationFieldSchema(),
 																						Optional:   true,
 																					},
 																				},
@@ -1186,7 +1155,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"filters": schema.ListNestedAttribute{
 																						NestedObject: schema.NestedAttributeObject{
-																							Attributes: dashboardwidgets.FiltersSourceAttribute(),
+																							Attributes: dashboardwidgets.FiltersSourceSchema(),
 																						},
 																						Optional: true,
 																					},
@@ -1232,7 +1201,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																			"label_source": schema.StringAttribute{
 																				Optional: true,
 																				Computed: true,
-																				Default:  stringdefault.StaticString("unspecified"),
+																				Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																				Validators: []validator.String{
 																					stringvalidator.OneOf(dashboardwidgets.DashboardValidPieChartLabelSources...),
 																				},
@@ -1272,7 +1241,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"unit": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString("unspecified"),
+																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																	},
 																	"color_scheme": schema.StringAttribute{
 																		Optional: true,
@@ -1284,7 +1253,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"data_mode_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString("unspecified"),
+																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
@@ -1322,12 +1291,12 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"group_names_fields": schema.ListNestedAttribute{
 																						NestedObject: schema.NestedAttributeObject{
-																							Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
+																							Attributes: dashboardwidgets.ObservationFieldSchema(),
 																						},
 																						Optional: true,
 																					},
 																					"stacked_group_name_field": schema.SingleNestedAttribute{
-																						Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
+																						Attributes: dashboardwidgets.ObservationFieldSchema(),
 																						Optional:   true,
 																					},
 																				},
@@ -1389,7 +1358,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"filters": schema.ListNestedAttribute{
 																						NestedObject: schema.NestedAttributeObject{
-																							Attributes: dashboardwidgets.FiltersSourceAttribute(),
+																							Attributes: dashboardwidgets.FiltersSourceSchema(),
 																						},
 																						Optional: true,
 																					},
@@ -1433,7 +1402,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"scale_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString("unspecified"),
+																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																	},
 																	"colors_by": schema.StringAttribute{
 																		Optional: true,
@@ -1475,7 +1444,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"unit": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString("unspecified"),
+																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidUnits...),
 																		},
@@ -1484,7 +1453,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"sort_by": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString("unspecified"),
+																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidSortBy...),
 																		},
@@ -1500,7 +1469,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"data_mode_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString("unspecified"),
+																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
@@ -1544,12 +1513,12 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"group_names_fields": schema.ListNestedAttribute{
 																						NestedObject: schema.NestedAttributeObject{
-																							Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
+																							Attributes: dashboardwidgets.ObservationFieldSchema(),
 																						},
 																						Optional: true,
 																					},
 																					"stacked_group_name_field": schema.SingleNestedAttribute{
-																						Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
+																						Attributes: dashboardwidgets.ObservationFieldSchema(),
 																						Optional:   true,
 																					},
 																				},
@@ -1606,7 +1575,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"scale_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString("unspecified"),
+																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																	},
 																	"colors_by": schema.StringAttribute{
 																		Optional: true,
@@ -1614,7 +1583,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"unit": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString("unspecified"),
+																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidUnits...),
 																		},
@@ -1634,7 +1603,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"sort_by": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString("unspecified"),
+																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidSortBy...),
 																		},
@@ -1649,7 +1618,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	"data_mode_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString("unspecified"),
+																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
@@ -1829,7 +1798,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																		Optional: true,
 																		Attributes: map[string]schema.Attribute{
 																			"observation_field": schema.SingleNestedAttribute{
-																				Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
+																				Attributes: dashboardwidgets.ObservationFieldSchema(),
 																				Required:   true,
 																			},
 																		},
@@ -1926,7 +1895,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 													"refresh_strategy": schema.StringAttribute{
 														Optional: true,
 														Computed: true,
-														Default:  stringdefault.StaticString("unspecified"),
+														Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 														Validators: []validator.String{
 															stringvalidator.OneOf(dashboardwidgets.DashboardValidRefreshStrategies...),
 														},
@@ -1968,7 +1937,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 			NestedObject: schema.NestedAttributeObject{
 				Attributes: map[string]schema.Attribute{
 					"source": schema.SingleNestedAttribute{
-						Attributes: dashboardwidgets.FiltersSourceAttribute(),
+						Attributes: dashboardwidgets.FiltersSourceSchema(),
 						Required:   true,
 					},
 					"enabled": schema.BoolAttribute{
@@ -2164,14 +2133,14 @@ func logsAndSpansAttributes() map[string]schema.Attribute {
 		},
 		"label_fields": schema.ListNestedAttribute{
 			NestedObject: schema.NestedAttributeObject{
-				Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
+				Attributes: dashboardwidgets.ObservationFieldSchema(),
 			},
 			Optional: true,
 		},
 	}
 }
 
-func logsAndSpansStrategy() schema.SingleNestedAttribute {
+func logsAndSpansStrategy() schema.Attribute {
 	return schema.SingleNestedAttribute{
 		Attributes: map[string]schema.Attribute{
 			"instant": schema.SingleNestedAttribute{
@@ -2201,7 +2170,7 @@ func logsAndSpansStrategy() schema.SingleNestedAttribute {
 
 func observationFieldSingleNestedAttribute() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
-		Attributes: dashboardwidgets.ObservationFieldSchemaAttributes(),
+		Attributes: dashboardwidgets.ObservationFieldSchema(),
 		Required:   true,
 	}
 }
@@ -2333,7 +2302,7 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*cxsdk.
 		Annotations: annotations,
 	}
 
-	dashboard, diags = expandDashboardTimeFrame(ctx, dashboard, plan.TimeFrame)
+	dashboard, diags = dashboardwidgets.ExpandDashboardTimeFrame(ctx, dashboard, plan.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2468,7 +2437,7 @@ func expandLogsSource(ctx context.Context, logs types.Object) (*cxsdk.Annotation
 		return nil, diags
 	}
 
-	labels, diags := expandObservationFields(ctx, logsObject.LabelFields)
+	labels, diags := dashboardwidgets.ExpandObservationFields(ctx, logsObject.LabelFields)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2682,7 +2651,7 @@ func expandSpansSource(ctx context.Context, spans types.Object) (*cxsdk.Annotati
 		return nil, diags
 	}
 
-	labels, diags := expandObservationFields(ctx, spansObject.LabelFields)
+	labels, diags := dashboardwidgets.ExpandObservationFields(ctx, spansObject.LabelFields)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2739,26 +2708,6 @@ func expandMetricSourceStrategy(ctx context.Context, strategy types.Object) (*cx
 			StartTimeMetric: &cxsdk.AnnotationMetricsSourceStartTimeMetric{},
 		},
 	}, nil
-}
-
-func expandDashboardTimeFrame(ctx context.Context, dashboard *cxsdk.Dashboard, timeFrame types.Object) (*cxsdk.Dashboard, diag.Diagnostics) {
-	if utils.ObjIsNullOrUnknown(timeFrame) {
-		return dashboard, nil
-	}
-	var timeFrameObject dashboardwidgets.DashboardTimeFrameModel
-	diags := timeFrame.As(ctx, &timeFrameObject, basetypes.ObjectAsOptions{})
-	if diags.HasError() {
-		return nil, diags
-	}
-	switch {
-	case !utils.ObjIsNullOrUnknown(timeFrameObject.Relative):
-		dashboard.TimeFrame, diags = expandRelativeDashboardTimeFrame(ctx, timeFrameObject.Relative)
-	case !utils.ObjIsNullOrUnknown(timeFrameObject.Absolute):
-		dashboard.TimeFrame, diags = expandAbsoluteDashboardTimeFrame(ctx, timeFrameObject.Absolute)
-	default:
-		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Time Frame", "Dashboard TimeFrame must be either Relative or Absolute")}
-	}
-	return dashboard, diags
 }
 
 func expandDashboardLayout(ctx context.Context, layout types.Object) (*cxsdk.DashboardLayout, diag.Diagnostics) {
@@ -2834,7 +2783,7 @@ func expandSectionOptions(_ context.Context, option SectionOptionsModel) (*cxsdk
 	if !option.Color.IsNull() {
 		mappedColor := cxsdk.DashboardSectionPredefinedColorValueLookup[fmt.Sprintf("SECTION_PREDEFINED_COLOR_%s", strings.ToUpper(option.Color.ValueString()))]
 		// this means the color field somehow wasn't validated
-		if mappedColor == 0 && option.Color.String() != "unspecified" {
+		if mappedColor == 0 && option.Color.String() != dashboardwidgets.UNSPECIFIED {
 			return nil, diag.Diagnostics{
 				diag.NewErrorDiagnostic(
 					"Extract Dashboard Section Options Error",
@@ -3228,129 +3177,6 @@ func expandGaugeQuerySpans(ctx context.Context, gaugeQuerySpans *dashboardwidget
 	}, nil
 }
 
-func expandSpansAggregations(ctx context.Context, aggregations types.List) ([]*cxsdk.SpansAggregation, diag.Diagnostics) {
-	var aggregationsObjects []types.Object
-	var expandedAggregations []*cxsdk.SpansAggregation
-	diags := aggregations.ElementsAs(ctx, &aggregationsObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-	for _, ao := range aggregationsObjects {
-		var aggregation dashboardwidgets.SpansAggregationModel
-		if dg := ao.As(ctx, &aggregation, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedAggregation, expandDiag := expandSpansAggregation(&aggregation)
-		if expandDiag != nil {
-			diags.Append(expandDiag)
-			continue
-		}
-		expandedAggregations = append(expandedAggregations, expandedAggregation)
-	}
-
-	return expandedAggregations, diags
-}
-
-func expandSpansAggregation(spansAggregation *dashboardwidgets.SpansAggregationModel) (*cxsdk.SpansAggregation, diag.Diagnostic) {
-	if spansAggregation == nil {
-		return nil, nil
-	}
-
-	switch spansAggregation.Type.ValueString() {
-	case "metric":
-		return &cxsdk.SpansAggregation{
-			Aggregation: &cxsdk.SpansAggregationMetricAggregation{
-				MetricAggregation: &cxsdk.SpansAggregationMetricAggregationInner{
-					MetricField:     dashboardwidgets.DashboardSchemaToProtoSpansAggregationMetricField[spansAggregation.Field.ValueString()],
-					AggregationType: dashboardwidgets.DashboardSchemaToProtoSpansAggregationMetricAggregationType[spansAggregation.AggregationType.ValueString()],
-				},
-			},
-		}, nil
-	case "dimension":
-		return &cxsdk.SpansAggregation{
-			Aggregation: &cxsdk.SpansAggregationDimensionAggregation{
-				DimensionAggregation: &cxsdk.SpansAggregationDimensionAggregationInner{
-					DimensionField:  dashboardwidgets.DashboardProtoToSchemaSpansAggregationDimensionField[spansAggregation.Field.ValueString()],
-					AggregationType: dashboardwidgets.DashboardSchemaToProtoSpansAggregationDimensionAggregationType[spansAggregation.AggregationType.ValueString()],
-				},
-			},
-		}, nil
-	default:
-		return nil, diag.NewErrorDiagnostic("Extract Spans Aggregation Error", fmt.Sprintf("Unknown spans aggregation type %#v", spansAggregation))
-	}
-}
-
-func expandSpansFilters(ctx context.Context, spansFilters types.List) ([]*cxsdk.DashboardFilterSpansFilter, diag.Diagnostics) {
-	var spansFiltersObjects []types.Object
-	var expandedSpansFilters []*cxsdk.DashboardFilterSpansFilter
-	diags := spansFilters.ElementsAs(ctx, &spansFiltersObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-	for _, sfo := range spansFiltersObjects {
-		var spansFilter dashboardwidgets.SpansFilterModel
-		if dg := sfo.As(ctx, &spansFilter, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedSpansFilter, expandDiags := expandSpansFilter(ctx, spansFilter)
-		if expandDiags.HasError() {
-			diags.Append(expandDiags...)
-			continue
-		}
-		expandedSpansFilters = append(expandedSpansFilters, expandedSpansFilter)
-	}
-
-	return expandedSpansFilters, diags
-}
-
-func expandSpansFilter(ctx context.Context, spansFilter dashboardwidgets.SpansFilterModel) (*cxsdk.DashboardFilterSpansFilter, diag.Diagnostics) {
-	operator, diags := expandFilterOperator(ctx, spansFilter.Operator)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	field, dg := expandSpansField(spansFilter.Field)
-	if dg != nil {
-		return nil, diag.Diagnostics{dg}
-	}
-
-	return &cxsdk.DashboardFilterSpansFilter{
-		Field:    field,
-		Operator: operator,
-	}, nil
-}
-
-func expandSpansField(spansFilterField *dashboardwidgets.SpansFieldModel) (*cxsdk.SpanField, diag.Diagnostic) {
-	if spansFilterField == nil {
-		return nil, nil
-	}
-
-	switch spansFilterField.Type.ValueString() {
-	case "metadata":
-		return &cxsdk.SpanField{
-			Value: &cxsdk.SpanFieldMetadataField{
-				MetadataField: dashboardwidgets.DashboardSchemaToProtoSpanFieldMetadataField[spansFilterField.Value.ValueString()],
-			},
-		}, nil
-	case "tag":
-		return &cxsdk.SpanField{
-			Value: &cxsdk.SpanFieldTagField{
-				TagField: utils.TypeStringToWrapperspbString(spansFilterField.Value),
-			},
-		}, nil
-	case "process_tag":
-		return &cxsdk.SpanField{
-			Value: &cxsdk.SpanFieldProcessTagField{
-				ProcessTagField: utils.TypeStringToWrapperspbString(spansFilterField.Value),
-			},
-		}, nil
-	default:
-		return nil, diag.NewErrorDiagnostic("Extract Spans Filter Field Error", fmt.Sprintf("Unknown spans filter field type %s", spansFilterField.Type.ValueString()))
-	}
-}
-
 func expandMultiSelectSourceQuery(ctx context.Context, sourceQuery types.Object) (*cxsdk.MultiSelectSource, diag.Diagnostics) {
 	if sourceQuery.IsNull() || sourceQuery.IsUnknown() {
 		return nil, nil
@@ -3383,7 +3209,7 @@ func expandMultiSelectSourceQuery(ctx context.Context, sourceQuery types.Object)
 }
 
 func expandMultiSelectQuery(ctx context.Context, query types.Object) (*cxsdk.MultiSelectQuery, diag.Diagnostics) {
-	if query.IsNull() || query.IsUnknown() {
+	if utils.ObjIsNullOrUnknown(query) {
 		return nil, nil
 	}
 
@@ -3395,11 +3221,11 @@ func expandMultiSelectQuery(ctx context.Context, query types.Object) (*cxsdk.Mul
 
 	multiSelectQuery := &cxsdk.MultiSelectQuery{}
 	switch {
-	case !(queryObject.Metrics.IsNull() || queryObject.Metrics.IsUnknown()):
+	case !utils.ObjIsNullOrUnknown(queryObject.Metrics):
 		multiSelectQuery.Value, diags = expandMultiSelectMetricsQuery(ctx, queryObject.Metrics)
-	case !(queryObject.Logs.IsNull() || queryObject.Logs.IsUnknown()):
+	case !utils.ObjIsNullOrUnknown(queryObject.Logs):
 		multiSelectQuery.Value, diags = expandMultiSelectLogsQuery(ctx, queryObject.Logs)
-	case !(queryObject.Spans.IsNull() || queryObject.Spans.IsUnknown()):
+	case !utils.ObjIsNullOrUnknown(queryObject.Spans):
 		multiSelectQuery.Value, diags = expandMultiSelectSpansQuery(ctx, queryObject.Spans)
 	default:
 		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand MultiSelect Query", "MultiSelect Query must be either Metrics, Logs or Spans")}
@@ -3430,7 +3256,7 @@ func expandMultiSelectValueDisplayOptions(ctx context.Context, options types.Obj
 }
 
 func expandMultiSelectLogsQuery(ctx context.Context, logs types.Object) (*cxsdk.MultiSelectQueryLogsQuery, diag.Diagnostics) {
-	if logs.IsNull() || logs.IsUnknown() {
+	if utils.ObjIsNullOrUnknown(logs) {
 		return nil, nil
 	}
 
@@ -3519,11 +3345,11 @@ func expandMultiSelectMetricsQuery(ctx context.Context, metrics types.Object) (*
 	}
 
 	switch {
-	case !(metricsObject.MetricName.IsNull() || metricsObject.MetricName.IsUnknown()):
+	case !utils.ObjIsNullOrUnknown(metricsObject.MetricName):
 		metricsQuery.MetricsQuery.Type.Value, diags = expandMultiSelectMetricsQueryTypeMetricName(ctx, metricsObject.MetricName)
-	case !(metricsObject.LabelName.IsNull() || metricsObject.LabelName.IsUnknown()):
+	case !utils.ObjIsNullOrUnknown(metricsObject.LabelName):
 		metricsQuery.MetricsQuery.Type.Value, diags = expandMultiSelectMetricsQueryTypeLabelName(ctx, metricsObject.LabelName)
-	case !(metricsObject.LabelValue.IsNull() || metricsObject.LabelValue.IsUnknown()):
+	case !utils.ObjIsNullOrUnknown(metricsObject.LabelValue):
 		metricsQuery.MetricsQuery.Type.Value, diags = expandMultiSelectMetricsQueryTypeLabelValue(ctx, metricsObject.LabelValue)
 	}
 
@@ -3842,108 +3668,8 @@ func expandGaugeQueryMetrics(ctx context.Context, gaugeQueryMetrics *dashboardwi
 	}, nil
 }
 
-func expandMetricsFilters(ctx context.Context, metricFilters types.List) ([]*cxsdk.DashboardMetricsFilter, diag.Diagnostics) {
-	var metricFiltersObjects []types.Object
-	var expandedMetricFilters []*cxsdk.DashboardMetricsFilter
-	diags := metricFilters.ElementsAs(ctx, &metricFiltersObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-	for _, mfo := range metricFiltersObjects {
-		var metricsFilter dashboardwidgets.MetricsFilterModel
-		if dg := mfo.As(ctx, &metricsFilter, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedMetricFilter, expandDiags := expandMetricFilter(ctx, metricsFilter)
-		if expandDiags.HasError() {
-			diags.Append(expandDiags...)
-			continue
-		}
-		expandedMetricFilters = append(expandedMetricFilters, expandedMetricFilter)
-	}
-
-	return expandedMetricFilters, diags
-}
-
-func expandMetricFilter(ctx context.Context, metricFilter dashboardwidgets.MetricsFilterModel) (*cxsdk.DashboardMetricsFilter, diag.Diagnostics) {
-	operator, diags := expandFilterOperator(ctx, metricFilter.Operator)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardMetricsFilter{
-		Metric:   utils.TypeStringToWrapperspbString(metricFilter.Metric),
-		Label:    utils.TypeStringToWrapperspbString(metricFilter.Label),
-		Operator: operator,
-	}, nil
-}
-
-func expandFilterOperator(ctx context.Context, operator *dashboardwidgets.FilterOperatorModel) (*cxsdk.DashboardFilterOperator, diag.Diagnostics) {
-	if operator == nil {
-		return nil, nil
-	}
-
-	selectedValues, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, operator.SelectedValues.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	switch operator.Type.ValueString() {
-	case "equals":
-		filterOperator := &cxsdk.DashboardFilterOperator{
-			Value: &cxsdk.DashboardFilterOperatorEquals{
-				Equals: &cxsdk.DashboardFilterEquals{
-					Selection: &cxsdk.DashboardFilterEqualsSelection{},
-				},
-			},
-		}
-		if len(selectedValues) != 0 {
-			filterOperator.GetEquals().Selection.Value = &cxsdk.DashboardFilterEqualsSelectionList{
-				List: &cxsdk.DashboardFilterEqualsSelectionListSelection{
-					Values: selectedValues,
-				},
-			}
-		} else {
-			filterOperator.GetEquals().Selection.Value = &cxsdk.DashboardFilterEqualsSelectionAll{
-				All: &cxsdk.DashboardFilterEqualsSelectionAllSelection{},
-			}
-		}
-		return filterOperator, nil
-	case "not_equals":
-		return &cxsdk.DashboardFilterOperator{
-			Value: &cxsdk.DashboardFilterOperatorNotEquals{
-				NotEquals: &cxsdk.DashboardFilterNotEquals{
-					Selection: &cxsdk.DashboardFilterNotEqualsSelection{
-						Value: &cxsdk.DashboardFilterNotEqualsSelectionList{
-							List: &cxsdk.DashboardFilterNotEqualsSelectionListSelection{
-								Values: selectedValues,
-							},
-						},
-					},
-				},
-			},
-		}, nil
-	default:
-		diags.Append(diag.NewErrorDiagnostic(
-			"Error expand filter operator",
-			fmt.Sprintf("unknown filter operator type %s", operator.Type.ValueString())))
-		return nil, diags
-	}
-}
-
-func expandPromqlQuery(promqlQuery types.String) *cxsdk.DashboardPromQlQuery {
-	if promqlQuery.IsNull() || promqlQuery.IsUnknown() {
-		return nil
-	}
-
-	return &cxsdk.DashboardPromQlQuery{
-		Value: wrapperspb.String(promqlQuery.ValueString()),
-	}
-}
-
 func expandGaugeQueryLogs(ctx context.Context, gaugeQueryLogs *dashboardwidgets.GaugeQueryLogsModel) (*cxsdk.GaugeLogsQuery, diag.Diagnostics) {
-	logsAggregation, diags := expandLogsAggregation(ctx, gaugeQueryLogs.LogsAggregation)
+	logsAggregation, diags := dashboardwidgets.ExpandLogsAggregation(ctx, gaugeQueryLogs.LogsAggregation)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3957,177 +3683,6 @@ func expandGaugeQueryLogs(ctx context.Context, gaugeQueryLogs *dashboardwidgets.
 		LuceneQuery:     expandLuceneQuery(gaugeQueryLogs.LuceneQuery),
 		LogsAggregation: logsAggregation,
 		Filters:         filters,
-	}, nil
-}
-
-func expandLuceneQuery(luceneQuery types.String) *cxsdk.DashboardLuceneQuery {
-	if luceneQuery.IsNull() || luceneQuery.IsUnknown() {
-		return nil
-	}
-	return &cxsdk.DashboardLuceneQuery{
-		Value: wrapperspb.String(luceneQuery.ValueString()),
-	}
-}
-
-func expandLogsAggregations(ctx context.Context, logsAggregations types.List) ([]*cxsdk.LogsAggregation, diag.Diagnostics) {
-	var logsAggregationsObjects []types.Object
-	var expandedLogsAggregations []*cxsdk.LogsAggregation
-	diags := logsAggregations.ElementsAs(ctx, &logsAggregationsObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-	for _, qdo := range logsAggregationsObjects {
-		var aggregation dashboardwidgets.LogsAggregationModel
-		if dg := qdo.As(ctx, &aggregation, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedLogsAggregation, expandDiags := expandLogsAggregation(ctx, &aggregation)
-		if expandDiags.HasError() {
-			diags.Append(expandDiags...)
-			continue
-		}
-		expandedLogsAggregations = append(expandedLogsAggregations, expandedLogsAggregation)
-	}
-
-	return expandedLogsAggregations, diags
-}
-
-func expandLogsAggregation(ctx context.Context, logsAggregation *dashboardwidgets.LogsAggregationModel) (*cxsdk.LogsAggregation, diag.Diagnostics) {
-	if logsAggregation == nil {
-		return nil, nil
-	}
-	switch logsAggregation.Type.ValueString() {
-	case "count":
-		return &cxsdk.LogsAggregation{
-			Value: &cxsdk.LogsAggregationCount{
-				Count: &cxsdk.LogsAggregationCountInner{},
-			},
-		}, nil
-	case "count_distinct":
-		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &cxsdk.LogsAggregation{
-			Value: &cxsdk.LogsAggregationCountDistinct{
-				CountDistinct: &cxsdk.LogsAggregationCountDistinctInner{
-					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
-					ObservationField: observationField,
-				},
-			},
-		}, nil
-	case "sum":
-		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &cxsdk.LogsAggregation{
-			Value: &cxsdk.LogsAggregationSum{
-				Sum: &cxsdk.LogsAggregationSumInner{
-					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
-					ObservationField: observationField,
-				},
-			},
-		}, nil
-	case "avg":
-		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &cxsdk.LogsAggregation{
-			Value: &cxsdk.LogsAggregationAverage{
-				Average: &cxsdk.LogsAggregationAverageInner{
-					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
-					ObservationField: observationField,
-				},
-			},
-		}, nil
-	case "min":
-		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &cxsdk.LogsAggregation{
-			Value: &cxsdk.LogsAggregationMin{
-				Min: &cxsdk.LogsAggregationMinInner{
-					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
-					ObservationField: observationField,
-				},
-			},
-		}, nil
-	case "max":
-		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &cxsdk.LogsAggregation{
-			Value: &cxsdk.LogsAggregationMax{
-				Max: &cxsdk.LogsAggregationMaxInner{
-					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
-					ObservationField: observationField,
-				},
-			},
-		}, nil
-	case "percentile":
-		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &cxsdk.LogsAggregation{
-			Value: &cxsdk.LogsAggregationPercentile{
-				Percentile: &cxsdk.LogsAggregationPercentileInner{
-					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
-					Percent:          utils.TypeFloat64ToWrapperspbDouble(logsAggregation.Percent),
-					ObservationField: observationField,
-				},
-			},
-		}, nil
-	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error expand logs aggregation", fmt.Sprintf("unknown logs aggregation type %s", logsAggregation.Type.ValueString()))}
-	}
-}
-
-func expandLogsFilters(ctx context.Context, logsFilters types.List) ([]*cxsdk.DashboardFilterLogsFilter, diag.Diagnostics) {
-	var filtersObjects []types.Object
-	var expandedFilters []*cxsdk.DashboardFilterLogsFilter
-	diags := logsFilters.ElementsAs(ctx, &filtersObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	for _, fo := range filtersObjects {
-		var filter dashboardwidgets.LogsFilterModel
-		if dg := fo.As(ctx, &filter, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedFilter, expandDiags := expandLogsFilter(ctx, filter)
-		if expandDiags.HasError() {
-			diags.Append(expandDiags...)
-			continue
-		}
-		expandedFilters = append(expandedFilters, expandedFilter)
-	}
-
-	return expandedFilters, diags
-}
-
-func expandLogsFilter(ctx context.Context, logsFilter dashboardwidgets.LogsFilterModel) (*cxsdk.DashboardFilterLogsFilter, diag.Diagnostics) {
-	operator, diags := expandFilterOperator(ctx, logsFilter.Operator)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	observationField, diags := expandObservationFieldObject(ctx, logsFilter.ObservationField)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardFilterLogsFilter{
-		Field:            utils.TypeStringToWrapperspbString(logsFilter.Field),
-		Operator:         operator,
-		ObservationField: observationField,
 	}, nil
 }
 
@@ -4318,7 +3873,7 @@ func expandHorizontalBarChartLogsQuery(ctx context.Context, logs types.Object) (
 		return nil, diags
 	}
 
-	aggregation, diags := expandLogsAggregation(ctx, logsObject.Aggregation)
+	aggregation, diags := dashboardwidgets.ExpandLogsAggregation(ctx, logsObject.Aggregation)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4392,7 +3947,7 @@ func expandHorizontalBarChartSpansQuery(ctx context.Context, spans types.Object)
 		return nil, diags
 	}
 
-	groupNames, diags := expandSpansFields(ctx, spansObject.GroupNames)
+	groupNames, diags := dashboardwidgets.ExpandSpansFields(ctx, spansObject.GroupNames)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4422,7 +3977,7 @@ func expandBarChartLogsQuery(ctx context.Context, barChartQueryLogs types.Object
 		return nil, diags
 	}
 
-	aggregation, diags := expandLogsAggregation(ctx, barChartQueryLogsObject.Aggregation)
+	aggregation, diags := dashboardwidgets.ExpandLogsAggregation(ctx, barChartQueryLogsObject.Aggregation)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4437,7 +3992,7 @@ func expandBarChartLogsQuery(ctx context.Context, barChartQueryLogs types.Object
 		return nil, diags
 	}
 
-	groupNamesFields, diags := expandObservationFields(ctx, barChartQueryLogsObject.GroupNamesFields)
+	groupNamesFields, diags := dashboardwidgets.ExpandObservationFields(ctx, barChartQueryLogsObject.GroupNamesFields)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4458,59 +4013,8 @@ func expandBarChartLogsQuery(ctx context.Context, barChartQueryLogs types.Object
 	}, nil
 }
 
-func expandObservationFields(ctx context.Context, namesFields types.List) ([]*cxsdk.ObservationField, diag.Diagnostics) {
-	var namesFieldsObjects []types.Object
-	var expandedNamesFields []*cxsdk.ObservationField
-	diags := namesFields.ElementsAs(ctx, &namesFieldsObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-	for _, nfo := range namesFieldsObjects {
-		var namesField dashboardwidgets.ObservationFieldModel
-		if dg := nfo.As(ctx, &namesField, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedNamesField, expandDiags := expandObservationField(ctx, namesField)
-		if expandDiags != nil {
-			diags.Append(expandDiags...)
-			continue
-		}
-		expandedNamesFields = append(expandedNamesFields, expandedNamesField)
-	}
-
-	return expandedNamesFields, diags
-}
-
-func expandObservationFieldObject(ctx context.Context, field types.Object) (*cxsdk.ObservationField, diag.Diagnostics) {
-	if field.IsNull() || field.IsUnknown() {
-		return nil, nil
-	}
-
-	var observationField dashboardwidgets.ObservationFieldModel
-	if dg := field.As(ctx, &observationField, basetypes.ObjectAsOptions{}); dg.HasError() {
-		return nil, dg
-	}
-
-	return expandObservationField(ctx, observationField)
-}
-
-func expandObservationField(ctx context.Context, observationField dashboardwidgets.ObservationFieldModel) (*cxsdk.ObservationField, diag.Diagnostics) {
-	keypath, dg := utils.TypeStringSliceToWrappedStringSlice(ctx, observationField.Keypath.Elements())
-	if dg.HasError() {
-		return nil, dg
-	}
-
-	scope := dashboardwidgets.DashboardSchemaToProtoObservationFieldScope[observationField.Scope.ValueString()]
-
-	return &cxsdk.ObservationField{
-		Keypath: keypath,
-		Scope:   scope,
-	}, nil
-}
-
 func expandBarChartMetricsQuery(ctx context.Context, barChartQueryMetrics types.Object) (*cxsdk.BarChartMetricsQuery, diag.Diagnostics) {
-	if barChartQueryMetrics.IsNull() || barChartQueryMetrics.IsUnknown() {
+	if utils.ObjIsNullOrUnknown(barChartQueryMetrics) {
 		return nil, nil
 	}
 
@@ -4559,7 +4063,7 @@ func expandBarChartSpansQuery(ctx context.Context, barChartQuerySpans types.Obje
 		return nil, diags
 	}
 
-	groupNames, diags := expandSpansFields(ctx, barChartQuerySpansObject.GroupNames)
+	groupNames, diags := dashboardwidgets.ExpandSpansFields(ctx, barChartQuerySpansObject.GroupNames)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4576,30 +4080,6 @@ func expandBarChartSpansQuery(ctx context.Context, barChartQuerySpans types.Obje
 		GroupNames:       groupNames,
 		StackedGroupName: expandedFilter,
 	}, nil
-}
-
-func expandSpansFields(ctx context.Context, spanFields types.List) ([]*cxsdk.SpanField, diag.Diagnostics) {
-	var spanFieldsObjects []types.Object
-	var expandedSpanFields []*cxsdk.SpanField
-	diags := spanFields.ElementsAs(ctx, &spanFieldsObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-	for _, sfo := range spanFieldsObjects {
-		var spansField dashboardwidgets.SpansFieldModel
-		if dg := sfo.As(ctx, &spansField, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedSpanField, expandDiag := expandSpansField(&spansField)
-		if expandDiag != nil {
-			diags.Append(expandDiag)
-			continue
-		}
-		expandedSpanFields = append(expandedSpanFields, expandedSpanField)
-	}
-
-	return expandedSpanFields, diags
 }
 
 func expandBarChartDataPrimeQuery(ctx context.Context, dataPrime types.Object) (*cxsdk.BarChartDataprimeQuery, diag.Diagnostics) {
@@ -4769,7 +4249,6 @@ func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *dash
 	}, nil
 }
 
-<<<<<<< HEAD
 func expandPromqlQueryType(promqlQueryType basetypes.StringValue) cxsdk.PromQLQueryType {
 	if promqlQueryType.ValueString() == "PROM_QL_QUERY_TYPE_INSTANT" {
 		return cxsdk.PromQLQueryTypeInstant
@@ -4779,10 +4258,7 @@ func expandPromqlQueryType(promqlQueryType basetypes.StringValue) cxsdk.PromQLQu
 	return cxsdk.PromQLQueryTypeUnspecified
 }
 
-func expandDataTableLogsQuery(ctx context.Context, dataTableQueryLogs *DataTableQueryLogsModel) (*cxsdk.DashboardDataTableQueryLogs, diag.Diagnostics) {
-=======
 func expandDataTableLogsQuery(ctx context.Context, dataTableQueryLogs *dashboardwidgets.DataTableQueryLogsModel) (*cxsdk.DashboardDataTableQueryLogs, diag.Diagnostics) {
->>>>>>> 2e98b5e (chore: refactoring, cleanup)
 	if dataTableQueryLogs == nil {
 		return nil, nil
 	}
@@ -4797,11 +4273,16 @@ func expandDataTableLogsQuery(ctx context.Context, dataTableQueryLogs *dashboard
 		return nil, diags
 	}
 
+	timeframe, diags := dashboardwidgets.ExpandTimeFrameSelect(ctx, dataTableQueryLogs.Timeframe)
+	if diags.HasError() {
+		return nil, diags
+	}
 	return &cxsdk.DashboardDataTableQueryLogs{
 		Logs: &cxsdk.DashboardDataTableLogsQuery{
 			LuceneQuery: expandLuceneQuery(dataTableQueryLogs.LuceneQuery),
 			Filters:     filters,
 			Grouping:    grouping,
+			TimeFrame:   timeframe,
 		},
 	}, nil
 }
@@ -4821,7 +4302,7 @@ func expandDataTableLogsGrouping(ctx context.Context, grouping *dashboardwidgets
 		return nil, diags
 	}
 
-	groupBys, diags := expandObservationFields(ctx, grouping.GroupBys)
+	groupBys, diags := dashboardwidgets.ExpandObservationFields(ctx, grouping.GroupBys)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4863,7 +4344,7 @@ func expandDataTableLogsAggregation(ctx context.Context, aggregation *dashboardw
 		return nil, nil
 	}
 
-	logsAggregation, diags := expandLogsAggregation(ctx, aggregation.Aggregation)
+	logsAggregation, diags := dashboardwidgets.ExpandLogsAggregation(ctx, aggregation.Aggregation)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4905,7 +4386,7 @@ func expandDataTableSpansGrouping(ctx context.Context, grouping *dashboardwidget
 		return nil, nil
 	}
 
-	groupBy, diags := expandSpansFields(ctx, grouping.GroupBy)
+	groupBy, diags := dashboardwidgets.ExpandSpansFields(ctx, grouping.GroupBy)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5160,7 +4641,7 @@ func expandLineChartLogsQuery(ctx context.Context, logs *dashboardwidgets.LineCh
 		return nil, diags
 	}
 
-	aggregations, diags := expandLogsAggregations(ctx, logs.Aggregations)
+	aggregations, diags := dashboardwidgets.ExpandLogsAggregations(ctx, logs.Aggregations)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5203,7 +4684,7 @@ func expandLineChartSpansQuery(ctx context.Context, spans *dashboardwidgets.Line
 		return nil, nil
 	}
 
-	groupBy, diags := expandSpansFields(ctx, spans.GroupBy)
+	groupBy, diags := dashboardwidgets.ExpandSpansFields(ctx, spans.GroupBy)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5276,7 +4757,7 @@ func expandPieChartLogsQuery(ctx context.Context, pieChartQueryLogs *dashboardwi
 		return nil, nil
 	}
 
-	aggregation, diags := expandLogsAggregation(ctx, pieChartQueryLogs.Aggregation)
+	aggregation, diags := dashboardwidgets.ExpandLogsAggregation(ctx, pieChartQueryLogs.Aggregation)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5291,7 +4772,7 @@ func expandPieChartLogsQuery(ctx context.Context, pieChartQueryLogs *dashboardwi
 		return nil, diags
 	}
 
-	groupNamesFields, diags := expandObservationFields(ctx, pieChartQueryLogs.GroupNamesFields)
+	groupNamesFields, diags := dashboardwidgets.ExpandObservationFields(ctx, pieChartQueryLogs.GroupNamesFields)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5354,12 +4835,12 @@ func expandPieChartSpansQuery(ctx context.Context, pieChartQuerySpans *dashboard
 		return nil, diags
 	}
 
-	groupNames, diags := expandSpansFields(ctx, pieChartQuerySpans.GroupNames)
+	groupNames, diags := dashboardwidgets.ExpandSpansFields(ctx, pieChartQuerySpans.GroupNames)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	stackedGroupName, dg := expandSpansField(pieChartQuerySpans.StackedGroupName)
+	stackedGroupName, dg := dashboardwidgets.ExpandSpansField(pieChartQuerySpans.StackedGroupName)
 	if dg != nil {
 		return nil, diag.Diagnostics{dg}
 	}
@@ -5602,95 +5083,6 @@ func expandDashboardFilter(ctx context.Context, filter *DashboardFilterModel) (*
 	}, nil
 }
 
-func expandFilterSource(ctx context.Context, source *dashboardwidgets.DashboardFilterSourceModel) (*cxsdk.DashboardFilterSource, diag.Diagnostics) {
-	if source == nil {
-		return nil, nil
-	}
-
-	switch {
-	case source.Logs != nil:
-		return expandFilterSourceLogs(ctx, source.Logs)
-	case source.Metrics != nil:
-		return expandFilterSourceMetrics(ctx, source.Metrics)
-	case source.Spans != nil:
-		return expandFilterSourceSpans(ctx, source.Spans)
-	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Filter Source", fmt.Sprintf("Unknown filter source type: %#v", source))}
-	}
-}
-
-func expandFilterSourceLogs(ctx context.Context, logs *dashboardwidgets.FilterSourceLogsModel) (*cxsdk.DashboardFilterSource, diag.Diagnostics) {
-	if logs == nil {
-		return nil, nil
-	}
-
-	operator, diags := expandFilterOperator(ctx, logs.Operator)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	observationField, diags := expandObservationFieldObject(ctx, logs.ObservationField)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardFilterSource{
-		Value: &cxsdk.DashboardFilterSourceLogs{
-			Logs: &cxsdk.DashboardFilterLogsFilter{
-				Field:            utils.TypeStringToWrapperspbString(logs.Field),
-				Operator:         operator,
-				ObservationField: observationField,
-			},
-		},
-	}, nil
-}
-
-func expandFilterSourceMetrics(ctx context.Context, metrics *dashboardwidgets.FilterSourceMetricsModel) (*cxsdk.DashboardFilterSource, diag.Diagnostics) {
-	if metrics == nil {
-		return nil, nil
-	}
-
-	operator, diags := expandFilterOperator(ctx, metrics.Operator)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardFilterSource{
-		Value: &cxsdk.DashboardFilterSourceMetrics{
-			Metrics: &cxsdk.DashboardFilterMetricsFilter{
-				Metric:   utils.TypeStringToWrapperspbString(metrics.MetricName),
-				Label:    utils.TypeStringToWrapperspbString(metrics.MetricLabel),
-				Operator: operator,
-			},
-		},
-	}, nil
-}
-
-func expandFilterSourceSpans(ctx context.Context, spans *dashboardwidgets.FilterSourceSpansModel) (*cxsdk.DashboardFilterSource, diag.Diagnostics) {
-	if spans == nil {
-		return nil, nil
-	}
-
-	field, dg := expandSpansField(spans.Field)
-	if dg != nil {
-		return nil, diag.Diagnostics{dg}
-	}
-
-	operator, diags := expandFilterOperator(ctx, spans.Operator)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardFilterSource{
-		Value: &cxsdk.DashboardFilterSourceSpans{
-			Spans: &cxsdk.DashboardFilterSpansFilter{
-				Field:    field,
-				Operator: operator,
-			},
-		},
-	}, nil
-}
-
 func expandDashboardFolder(ctx context.Context, dashboard *cxsdk.Dashboard, folder types.Object) (*cxsdk.Dashboard, diag.Diagnostics) {
 	if utils.ObjIsNullOrUnknown(folder) {
 		return dashboard, nil
@@ -5715,70 +5107,6 @@ func expandDashboardFolder(ctx context.Context, dashboard *cxsdk.Dashboard, fold
 	}
 
 	return dashboard, nil
-}
-
-func expandAbsoluteDashboardTimeFrame(ctx context.Context, timeFrame types.Object) (*cxsdk.DashboardAbsoluteTimeFrame, diag.Diagnostics) {
-	timeFrameModel := &dashboardwidgets.DashboardTimeFrameAbsoluteModel{}
-	dgs := timeFrame.As(ctx, timeFrameModel, basetypes.ObjectAsOptions{})
-	if dgs.HasError() {
-		return nil, dgs
-	}
-	fromTime, err := time.Parse(time.RFC3339, timeFrameModel.Start.ValueString())
-	if err != nil {
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Absolute Dashboard Time Frame", fmt.Sprintf("Error parsing from time: %s", err.Error()))}
-	}
-	toTime, err := time.Parse(time.RFC3339, timeFrameModel.End.ValueString())
-	if err != nil {
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Absolute Dashboard Time Frame", fmt.Sprintf("Error parsing from time: %s", err.Error()))}
-	}
-
-	from := timestamppb.New(fromTime)
-	to := timestamppb.New(toTime)
-
-	return &cxsdk.DashboardAbsoluteTimeFrame{
-		AbsoluteTimeFrame: &cxsdk.DashboardTimeFrame{
-			From: from,
-			To:   to,
-		},
-	}, nil
-}
-
-func parseDuration(ti, fieldsName string) (*time.Duration, diag.Diagnostic) {
-	// This for some reason has format seconds:900
-	durStr := strings.Split(ti, ":")
-	var duration time.Duration
-	if len(durStr) != 2 {
-		return nil, diag.NewErrorDiagnostic(fmt.Sprintf("Error Expand %s", fieldsName), fmt.Sprintf("error parsing duration: %s", durStr))
-	}
-	unit := durStr[0]
-	no, err := strconv.Atoi(durStr[1])
-	if err != nil {
-		return nil, diag.NewErrorDiagnostic(fmt.Sprintf("Error Expand %s", fieldsName), fmt.Sprintf("error parsing duration numbers: %s", durStr))
-	}
-	switch unit {
-	case "seconds":
-		duration = time.Second * time.Duration(no)
-	case "minutes":
-		duration = time.Minute * time.Duration(no)
-	default:
-		return nil, diag.NewErrorDiagnostic(fmt.Sprintf("Error Expand %s", fieldsName), fmt.Sprintf("error parsing duration unit: %s", unit))
-	}
-	return &duration, nil
-}
-
-func expandRelativeDashboardTimeFrame(ctx context.Context, timeFrame types.Object) (*cxsdk.DashboardRelativeTimeFrame, diag.Diagnostics) {
-	timeFrameModel := &dashboardwidgets.DashboardTimeFrameRelativeModel{}
-	dgs := timeFrame.As(ctx, timeFrameModel, basetypes.ObjectAsOptions{})
-	if dgs.HasError() {
-		return nil, dgs
-	}
-	duration, dg := parseDuration(timeFrameModel.Duration.ValueString(), "Relative Dashboard Time Frame")
-	if dg != nil {
-		return nil, diag.Diagnostics{dg}
-	}
-	return &cxsdk.DashboardRelativeTimeFrame{
-		RelativeTimeFrame: durationpb.New(*duration),
-	}, nil
 }
 
 func expand21LengthUUID(id types.String) *cxsdk.UUID {
@@ -5821,7 +5149,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 			Layout:      types.ObjectNull(layoutModelAttr()),
 			Variables:   types.ListNull(types.ObjectType{AttrTypes: dashboardsVariablesModelAttr()}),
 			Filters:     types.ListNull(types.ObjectType{AttrTypes: dashboardsFiltersModelAttr()}),
-			TimeFrame:   types.ObjectNull(dashboardwidgets.DashboardTimeFrameModelAttr()),
+			TimeFrame:   types.ObjectNull(dashboardwidgets.TimeFrameModelAttr()),
 			Folder:      types.ObjectNull(dashboardFolderModelAttr()),
 			Annotations: types.ListNull(types.ObjectType{AttrTypes: dashboardsAnnotationsModelAttr()}),
 			AutoRefresh: types.ObjectNull(dashboardAutoRefreshModelAttr()),
@@ -5950,17 +5278,11 @@ func widgetModelAttr() map[string]attr.Type {
 		"description": types.StringType,
 		"definition": types.ObjectType{
 			AttrTypes: map[string]attr.Type{
+				"hexagon": dashboardwidgets.HexagonType().WithAttributeTypes(),
 				"line_chart": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
 						"legend": types.ObjectType{
-							AttrTypes: map[string]attr.Type{
-								"is_visible": types.BoolType,
-								"columns": types.ListType{
-									ElemType: types.StringType,
-								},
-								"group_by_query": types.BoolType,
-								"placement":      types.StringType,
-							},
+							AttrTypes: dashboardwidgets.LegendAttr(),
 						},
 						"tooltip": types.ObjectType{
 							AttrTypes: map[string]attr.Type{
@@ -6057,6 +5379,7 @@ func widgetModelAttr() map[string]attr.Type {
 										},
 										"grouping": types.ObjectType{
 											AttrTypes: map[string]attr.Type{
+												// Deprecated, remove in 2.1
 												"group_by": types.ListType{
 													ElemType: types.StringType,
 												},
@@ -6074,6 +5397,9 @@ func widgetModelAttr() map[string]attr.Type {
 												},
 												"group_bys": types.ListType{
 													ElemType: dashboardwidgets.ObservationFieldsObject(),
+												},
+												"time_frame": types.ObjectType{
+													AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
 												},
 											},
 										},
@@ -7528,18 +6854,11 @@ func flattenDataTableMetricsQuery(ctx context.Context, metrics *cxsdk.DashboardD
 		return nil, diags
 	}
 
-<<<<<<< HEAD
-	return &DataTableQueryModel{
-		Metrics: &DataTableQueryMetricsModel{
-			PromqlQuery:     utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
-			Filters:         filters,
-			PromqlQueryType: types.StringValue(metrics.GetPromqlQueryType().String()),
-=======
 	return &dashboardwidgets.DataTableQueryModel{
 		Metrics: &dashboardwidgets.DataTableQueryMetricsModel{
-			PromqlQuery: utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
-			Filters:     filters,
->>>>>>> 2e98b5e (chore: refactoring, cleanup)
+			PromqlQueryType: types.StringValue(metrics.GetPromqlQueryType().String()),
+			PromqlQuery:     utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
+			Filters:         filters,
 		},
 	}, nil
 }

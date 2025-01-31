@@ -18,29 +18,25 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"strings"
 	"terraform-provider-coralogix/coralogix/utils"
+	"time"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+// Protobuf default value
+const UNSPECIFIED = "unspecified"
 
 var (
 	DashboardSchemaToProtoUnit = map[string]cxsdk.Unit{
-		"unspecified":  cxsdk.UnitUnspecified,
+		UNSPECIFIED:    cxsdk.UnitUnspecified,
 		"microseconds": cxsdk.UnitMicroseconds,
 		"milliseconds": cxsdk.UnitMilliseconds,
 		"nanoseconds":  cxsdk.UnitNanoseconds,
@@ -65,52 +61,52 @@ var (
 	DashboardValidUnits        = utils.GetKeys(DashboardSchemaToProtoUnit)
 
 	DashboardLegendPlacementSchemaToProto = map[string]cxsdk.LegendPlacement{
-		"unspecified": cxsdk.LegendPlacementUnspecified,
-		"auto":        cxsdk.LegendPlacementAuto,
-		"bottom":      cxsdk.LegendPlacementBottom,
-		"side":        cxsdk.LegendPlacementSide,
-		"hidden":      cxsdk.LegendPlacementHidden,
+		UNSPECIFIED: cxsdk.LegendPlacementUnspecified,
+		"auto":      cxsdk.LegendPlacementAuto,
+		"bottom":    cxsdk.LegendPlacementBottom,
+		"side":      cxsdk.LegendPlacementSide,
+		"hidden":    cxsdk.LegendPlacementHidden,
 	}
 	DashboardLegendPlacementProtoToSchema = utils.ReverseMap(DashboardLegendPlacementSchemaToProto)
 	DashboardValidLegendPlacements        = utils.GetKeys(DashboardLegendPlacementSchemaToProto)
 
 	DashboardRowStyleSchemaToProto = map[string]cxsdk.RowStyle{
-		"unspecified": cxsdk.RowStyleUnspecified,
-		"one_line":    cxsdk.RowStyleOneLine,
-		"two_line":    cxsdk.RowStyleTwoLine,
-		"condensed":   cxsdk.RowStyleCondensed,
-		"json":        cxsdk.RowStyleJSON,
-		"list":        cxsdk.RowStyleList,
+		UNSPECIFIED: cxsdk.RowStyleUnspecified,
+		"one_line":  cxsdk.RowStyleOneLine,
+		"two_line":  cxsdk.RowStyleTwoLine,
+		"condensed": cxsdk.RowStyleCondensed,
+		"json":      cxsdk.RowStyleJSON,
+		"list":      cxsdk.RowStyleList,
 	}
 	DashboardRowStyleProtoToSchema     = utils.ReverseMap(DashboardRowStyleSchemaToProto)
 	DashboardValidRowStyles            = utils.GetKeys(DashboardRowStyleSchemaToProto)
 	DashboardLegendColumnSchemaToProto = map[string]cxsdk.DashboardLegendColumn{
-		"unspecified": cxsdk.LegendColumnUnspecified,
-		"min":         cxsdk.LegendColumnMin,
-		"max":         cxsdk.LegendColumnMax,
-		"sum":         cxsdk.LegendColumnSum,
-		"avg":         cxsdk.LegendColumnAvg,
-		"last":        cxsdk.LegendColumnLast,
-		"name":        cxsdk.LegendColumnName,
+		UNSPECIFIED: cxsdk.LegendColumnUnspecified,
+		"min":       cxsdk.LegendColumnMin,
+		"max":       cxsdk.LegendColumnMax,
+		"sum":       cxsdk.LegendColumnSum,
+		"avg":       cxsdk.LegendColumnAvg,
+		"last":      cxsdk.LegendColumnLast,
+		"name":      cxsdk.LegendColumnName,
 	}
 	DashboardLegendColumnProtoToSchema   = utils.ReverseMap(DashboardLegendColumnSchemaToProto)
 	DashboardValidLegendColumns          = utils.GetKeys(DashboardLegendColumnSchemaToProto)
 	DashboardOrderDirectionSchemaToProto = map[string]cxsdk.OrderDirection{
-		"unspecified": cxsdk.OrderDirectionUnspecified,
-		"asc":         cxsdk.OrderDirectionAsc,
-		"desc":        cxsdk.OrderDirectionDesc,
+		UNSPECIFIED: cxsdk.OrderDirectionUnspecified,
+		"asc":       cxsdk.OrderDirectionAsc,
+		"desc":      cxsdk.OrderDirectionDesc,
 	}
 	DashboardOrderDirectionProtoToSchema = utils.ReverseMap(DashboardOrderDirectionSchemaToProto)
 	DashboardValidOrderDirections        = utils.GetKeys(DashboardOrderDirectionSchemaToProto)
 	DashboardSchemaToProtoTooltipType    = map[string]cxsdk.LineChartTooltipType{
-		"unspecified": cxsdk.LineChartToolTipTypeUnspecified,
-		"all":         cxsdk.LineChartToolTipTypeAll,
-		"single":      cxsdk.LineChartToolTipTypeSingle,
+		UNSPECIFIED: cxsdk.LineChartToolTipTypeUnspecified,
+		"all":       cxsdk.LineChartToolTipTypeAll,
+		"single":    cxsdk.LineChartToolTipTypeSingle,
 	}
 	DashboardProtoToSchemaTooltipType = utils.ReverseMap(DashboardSchemaToProtoTooltipType)
 	DashboardValidTooltipTypes        = utils.GetKeys(DashboardSchemaToProtoTooltipType)
 	DashboardSchemaToProtoScaleType   = map[string]cxsdk.ScaleType{
-		"unspecified": cxsdk.ScaleTypeUnspecified,
+		UNSPECIFIED:   cxsdk.ScaleTypeUnspecified,
 		"linear":      cxsdk.ScaleTypeLinear,
 		"logarithmic": cxsdk.ScaleTypeLogarithmic,
 	}
@@ -118,7 +114,7 @@ var (
 	DashboardValidScaleTypes        = utils.GetKeys(DashboardSchemaToProtoScaleType)
 
 	DashboardSchemaToProtoGaugeUnit = map[string]cxsdk.GaugeUnit{
-		"unspecified":  cxsdk.GaugeUnitUnspecified,
+		UNSPECIFIED:    cxsdk.GaugeUnitUnspecified,
 		"none":         cxsdk.GaugeUnitMicroseconds,
 		"percent":      cxsdk.GaugeUnitMilliseconds,
 		"microseconds": cxsdk.GaugeUnitNanoseconds,
@@ -144,30 +140,30 @@ var (
 	DashboardProtoToSchemaGaugeUnit           = utils.ReverseMap(DashboardSchemaToProtoGaugeUnit)
 	DashboardValidGaugeUnits                  = utils.GetKeys(DashboardSchemaToProtoGaugeUnit)
 	DashboardSchemaToProtoPieChartLabelSource = map[string]cxsdk.PieChartLabelSource{
-		"unspecified": cxsdk.PieChartLabelSourceUnspecified,
-		"inner":       cxsdk.PieChartLabelSourceInner,
-		"stack":       cxsdk.PieChartLabelSourceStack,
+		UNSPECIFIED: cxsdk.PieChartLabelSourceUnspecified,
+		"inner":     cxsdk.PieChartLabelSourceInner,
+		"stack":     cxsdk.PieChartLabelSourceStack,
 	}
 	DashboardProtoToSchemaPieChartLabelSource = utils.ReverseMap(DashboardSchemaToProtoPieChartLabelSource)
 	DashboardValidPieChartLabelSources        = utils.GetKeys(DashboardSchemaToProtoPieChartLabelSource)
 	DashboardSchemaToProtoGaugeAggregation    = map[string]cxsdk.GaugeAggregation{
-		"unspecified": cxsdk.GaugeAggregationUnspecified,
-		"last":        cxsdk.GaugeAggregationLast,
-		"min":         cxsdk.GaugeAggregationMin,
-		"max":         cxsdk.GaugeAggregationMax,
-		"avg":         cxsdk.GaugeAggregationAvg,
-		"sum":         cxsdk.GaugeAggregationSum,
+		UNSPECIFIED: cxsdk.GaugeAggregationUnspecified,
+		"last":      cxsdk.GaugeAggregationLast,
+		"min":       cxsdk.GaugeAggregationMin,
+		"max":       cxsdk.GaugeAggregationMax,
+		"avg":       cxsdk.GaugeAggregationAvg,
+		"sum":       cxsdk.GaugeAggregationSum,
 	}
 	DashboardProtoToSchemaGaugeAggregation            = utils.ReverseMap(DashboardSchemaToProtoGaugeAggregation)
 	DashboardValidGaugeAggregations                   = utils.GetKeys(DashboardSchemaToProtoGaugeAggregation)
 	DashboardSchemaToProtoSpansAggregationMetricField = map[string]cxsdk.SpansAggregationMetricAggregationMetricField{
-		"unspecified": cxsdk.SpansAggregationMetricAggregationMetricFieldUnspecified,
-		"duration":    cxsdk.SpansAggregationMetricAggregationMetricFieldDuration,
+		UNSPECIFIED: cxsdk.SpansAggregationMetricAggregationMetricFieldUnspecified,
+		"duration":  cxsdk.SpansAggregationMetricAggregationMetricFieldDuration,
 	}
 	DashboardProtoToSchemaSpansAggregationMetricField           = utils.ReverseMap(DashboardSchemaToProtoSpansAggregationMetricField)
 	DashboardValidSpansAggregationMetricFields                  = utils.GetKeys(DashboardSchemaToProtoSpansAggregationMetricField)
 	DashboardSchemaToProtoSpansAggregationMetricAggregationType = map[string]cxsdk.SpansAggregationMetricAggregationMetricAggregationType{
-		"unspecified":   cxsdk.SpansAggregationMetricAggregationMetricTypeUnspecified,
+		UNSPECIFIED:     cxsdk.SpansAggregationMetricAggregationMetricTypeUnspecified,
 		"min":           cxsdk.SpansAggregationMetricAggregationMetricTypeMin,
 		"max":           cxsdk.SpansAggregationMetricAggregationMetricTypeMax,
 		"avg":           cxsdk.SpansAggregationMetricAggregationMetricTypeAverage,
@@ -179,20 +175,20 @@ var (
 	DashboardProtoToSchemaSpansAggregationMetricAggregationType = utils.ReverseMap(DashboardSchemaToProtoSpansAggregationMetricAggregationType)
 	DashboardValidSpansAggregationMetricAggregationTypes        = utils.GetKeys(DashboardSchemaToProtoSpansAggregationMetricAggregationType)
 	DashboardProtoToSchemaSpansAggregationDimensionField        = map[string]cxsdk.SpansAggregationDimensionAggregationDimensionField{
-		"unspecified": cxsdk.SpansAggregationDimensionAggregationDimensionFieldUnspecified,
-		"trace_id":    cxsdk.SpansAggregationDimensionAggregationDimensionFieldTraceID,
+		UNSPECIFIED: cxsdk.SpansAggregationDimensionAggregationDimensionFieldUnspecified,
+		"trace_id":  cxsdk.SpansAggregationDimensionAggregationDimensionFieldTraceID,
 	}
 	DashboardSchemaToProtoSpansAggregationDimensionField           = utils.ReverseMap(DashboardProtoToSchemaSpansAggregationDimensionField)
 	DashboardValidSpansAggregationDimensionFields                  = utils.GetKeys(DashboardProtoToSchemaSpansAggregationDimensionField)
 	DashboardSchemaToProtoSpansAggregationDimensionAggregationType = map[string]cxsdk.SpansAggregationDimensionAggregationType{
-		"unspecified":  cxsdk.SpansAggregationDimensionAggregationTypeUnspecified,
+		UNSPECIFIED:    cxsdk.SpansAggregationDimensionAggregationTypeUnspecified,
 		"unique_count": cxsdk.SpansAggregationDimensionAggregationTypeUniqueCount,
 		"error_count":  cxsdk.SpansAggregationDimensionAggregationTypeErrorCount,
 	}
 	DashboardProtoToSchemaSpansAggregationDimensionAggregationType = utils.ReverseMap(DashboardSchemaToProtoSpansAggregationDimensionAggregationType)
 	DashboardValidSpansAggregationDimensionAggregationTypes        = utils.GetKeys(DashboardSchemaToProtoSpansAggregationDimensionAggregationType)
 	DashboardSchemaToProtoSpanFieldMetadataField                   = map[string]cxsdk.SpanFieldMetadataFieldInner{
-		"unspecified":      cxsdk.SpanFieldMetadataFieldUnspecified,
+		UNSPECIFIED:        cxsdk.SpanFieldMetadataFieldUnspecified,
 		"application_name": cxsdk.SpanFieldMetadataFieldApplicationName,
 		"subsystem_name":   cxsdk.SpanFieldMetadataFieldSubsystemName,
 		"service_name":     cxsdk.SpanFieldMetadataFieldServiceName,
@@ -201,35 +197,35 @@ var (
 	DashboardProtoToSchemaSpanFieldMetadataField = utils.ReverseMap(DashboardSchemaToProtoSpanFieldMetadataField)
 	DashboardValidSpanFieldMetadataFields        = utils.GetKeys(DashboardSchemaToProtoSpanFieldMetadataField)
 	DashboardSchemaToProtoSortBy                 = map[string]cxsdk.SortByType{
-		"unspecified": cxsdk.SortByTypeUnspecified,
-		"value":       cxsdk.SortByTypeValue,
-		"name":        cxsdk.SortByTypeName,
+		UNSPECIFIED: cxsdk.SortByTypeUnspecified,
+		"value":     cxsdk.SortByTypeValue,
+		"name":      cxsdk.SortByTypeName,
 	}
 	DashboardProtoToSchemaSortBy                = utils.ReverseMap(DashboardSchemaToProtoSortBy)
 	DashboardValidSortBy                        = utils.GetKeys(DashboardSchemaToProtoSortBy)
 	DashboardSchemaToProtoObservationFieldScope = map[string]cxsdk.DatasetScope{
-		"unspecified": cxsdk.DatasetScopeUnspecified,
-		"user_data":   cxsdk.DatasetScopeUserData,
-		"label":       cxsdk.DatasetScopeLabel,
-		"metadata":    cxsdk.DatasetScopeMetadata,
+		UNSPECIFIED: cxsdk.DatasetScopeUnspecified,
+		"user_data": cxsdk.DatasetScopeUserData,
+		"label":     cxsdk.DatasetScopeLabel,
+		"metadata":  cxsdk.DatasetScopeMetadata,
 	}
 	DashboardProtoToSchemaObservationFieldScope = utils.ReverseMap(DashboardSchemaToProtoObservationFieldScope)
 	DashboardValidObservationFieldScope         = utils.GetKeys(DashboardSchemaToProtoObservationFieldScope)
 	DashboardSchemaToProtoDataModeType          = map[string]cxsdk.DataModeType{
-		"unspecified": cxsdk.DataModeTypeHighUnspecified,
-		"archive":     cxsdk.DataModeTypeArchive,
+		UNSPECIFIED: cxsdk.DataModeTypeHighUnspecified,
+		"archive":   cxsdk.DataModeTypeArchive,
 	}
 	DashboardProtoToSchemaDataModeType     = utils.ReverseMap(DashboardSchemaToProtoDataModeType)
 	DashboardValidDataModeTypes            = utils.GetKeys(DashboardSchemaToProtoDataModeType)
 	DashboardSchemaToProtoGaugeThresholdBy = map[string]cxsdk.GaugeThresholdBy{
-		"unspecified": cxsdk.GaugeThresholdByUnspecified,
-		"value":       cxsdk.GaugeThresholdByValue,
-		"background":  cxsdk.GaugeThresholdByBackground,
+		UNSPECIFIED:  cxsdk.GaugeThresholdByUnspecified,
+		"value":      cxsdk.GaugeThresholdByValue,
+		"background": cxsdk.GaugeThresholdByBackground,
 	}
 	DashboardProtoToSchemaGaugeThresholdBy = utils.ReverseMap(DashboardSchemaToProtoGaugeThresholdBy)
 	DashboardValidGaugeThresholdBy         = utils.GetKeys(DashboardSchemaToProtoGaugeThresholdBy)
 	DashboardSchemaToProtoRefreshStrategy  = map[string]cxsdk.MultiSelectRefreshStrategy{
-		"unspecified":          cxsdk.MultiSelectRefreshStrategyUnspecified,
+		UNSPECIFIED:            cxsdk.MultiSelectRefreshStrategyUnspecified,
 		"on_dashboard_load":    cxsdk.MultiSelectRefreshStrategyOnDashboardLoad,
 		"on_time_frame_change": cxsdk.MultiSelectRefreshStrategyOnTimeFrameChange,
 	}
@@ -239,34 +235,42 @@ var (
 	DashboardValidSpanFieldTypes          = []string{"metadata", "tag", "process_tag"}
 	DashboardValidSpanAggregationTypes    = []string{"metric", "dimension"}
 	DashboardValidColorSchemes            = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
-	SectionValidColors                    = []string{"unspecified", "cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
+	SectionValidColors                    = []string{UNSPECIFIED, "cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
 
 	DashboardSchemaToProtoThresholdType = map[string]cxsdk.ThresholdType{
-		"unspecified": cxsdk.ThresholdTypeUnspecified,
-		"absolute":    cxsdk.ThresholdTypeAbsolute,
-		"relative":    cxsdk.ThresholdTypeRelative,
+		UNSPECIFIED: cxsdk.ThresholdTypeUnspecified,
+		"absolute":  cxsdk.ThresholdTypeAbsolute,
+		"relative":  cxsdk.ThresholdTypeRelative,
 	}
 	DashboardProtoToSchemaThresholdType = utils.ReverseMap(DashboardSchemaToProtoThresholdType)
 	DashboardValidThresholdTypes        = utils.GetKeys(DashboardSchemaToProtoThresholdType)
 	DashboardSchemaToProtoLegendBy      = map[string]cxsdk.LegendBy{
-		"unspecified": cxsdk.LegendByUnspecified,
-		"thresholds":  cxsdk.LegendByThresholds,
-		"groups":      cxsdk.LegendByGroups,
+		UNSPECIFIED:  cxsdk.LegendByUnspecified,
+		"thresholds": cxsdk.LegendByThresholds,
+		"groups":     cxsdk.LegendByGroups,
 	}
 	DashboardProtoToSchemaLegendBy = utils.ReverseMap(DashboardSchemaToProtoLegendBy)
 	DashboardValidLegendBys        = utils.GetKeys(DashboardSchemaToProtoLegendBy)
+
+	DashboardSchemaToProtoPromQLQueryType = map[string]cxsdk.PromQLQueryType{
+		UNSPECIFIED: cxsdk.PromQLQueryTypeUnspecified,
+		"range":     cxsdk.PromQLQueryTypeRange,
+		"instant":   cxsdk.PromQLQueryTypeInstant,
+	}
+	DashboardProtoToSchemaPromQLQueryType = utils.ReverseMap(DashboardSchemaToProtoPromQLQueryType)
+	DashboardValidPromQLQueryType         = utils.GetKeys(DashboardSchemaToProtoPromQLQueryType)
 )
 
-type QueryLogsModel struct {
-	LuceneQuery  types.String `tfsdk:"lucene_query"`
-	GroupBy      types.List   `tfsdk:"group_by"`     //types.String
-	Aggregations types.List   `tfsdk:"aggregations"` //AggregationModel
-	Filters      types.List   `tfsdk:"filters"`      //FilterModel
+type QueryMetricsModel struct {
+	PromqlQuery     types.String `tfsdk:"promql_query"`
+	Filters         types.List   `tfsdk:"filters"` //MetricsFilterModel
+	PromqlQueryType types.String `tfsdk:"promql_query_type"`
 }
 
-type QueryMetricsModel struct {
-	PromqlQuery types.String `tfsdk:"promql_query"`
-	Filters     types.List   `tfsdk:"filters"` //MetricsFilterModel
+type DataTableQueryMetricsModel struct {
+	PromqlQuery     types.String `tfsdk:"promql_query"`
+	Filters         types.List   `tfsdk:"filters"` //MetricsFilterModel
+	PromqlQueryType types.String `tfsdk:"promql_query_type"`
 }
 
 type MetricFilterModel struct {
@@ -347,9 +351,9 @@ type LineChartResolutionModel struct {
 }
 
 type LineChartQueryModel struct {
-	Logs    *LineChartQueryLogsModel    `tfsdk:"logs"`
-	Metrics *LineChartQueryMetricsModel `tfsdk:"metrics"`
-	Spans   *LineChartQuerySpansModel   `tfsdk:"spans"`
+	Logs    *LineChartQueryLogsModel  `tfsdk:"logs"`
+	Metrics *QueryMetricsModel        `tfsdk:"metrics"`
+	Spans   *LineChartQuerySpansModel `tfsdk:"spans"`
 }
 
 type LineChartQueryLogsModel struct {
@@ -357,11 +361,6 @@ type LineChartQueryLogsModel struct {
 	GroupBy      types.List   `tfsdk:"group_by"`     //types.String
 	Aggregations types.List   `tfsdk:"aggregations"` //AggregationModel
 	Filters      types.List   `tfsdk:"filters"`      //FilterModel
-}
-
-type LineChartQueryMetricsModel struct {
-	PromqlQuery types.String `tfsdk:"promql_query"`
-	Filters     types.List   `tfsdk:"filters"` //MetricsFilterModel
 }
 
 type QueryMetricFilterModel struct {
@@ -390,6 +389,7 @@ type DataTableQueryLogsModel struct {
 	LuceneQuery types.String                     `tfsdk:"lucene_query"`
 	Filters     types.List                       `tfsdk:"filters"` //LogsFilterModel
 	Grouping    *DataTableLogsQueryGroupingModel `tfsdk:"grouping"`
+	Timeframe   *TimeFrameModel                  `tfsdk:"time_frame"`
 }
 
 type LogsFilterModel struct {
@@ -412,15 +412,10 @@ type DataTableLogsAggregationModel struct {
 }
 
 type DataTableQueryModel struct {
-	Logs      *DataTableQueryLogsModel    `tfsdk:"logs"`
-	Metrics   *DataTableQueryMetricsModel `tfsdk:"metrics"`
-	Spans     *DataTableQuerySpansModel   `tfsdk:"spans"`
-	DataPrime *DataPrimeModel             `tfsdk:"data_prime"`
-}
-
-type DataTableQueryMetricsModel struct {
-	PromqlQuery types.String `tfsdk:"promql_query"`
-	Filters     types.List   `tfsdk:"filters"` //MetricsFilterModel
+	Logs      *DataTableQueryLogsModel  `tfsdk:"logs"`
+	Metrics   *QueryMetricsModel        `tfsdk:"metrics"`
+	Spans     *DataTableQuerySpansModel `tfsdk:"spans"`
+	DataPrime *DataPrimeModel           `tfsdk:"data_prime"`
 }
 
 type MetricsFilterModel struct {
@@ -694,18 +689,18 @@ type FilterSourceSpansModel struct {
 	Operator *FilterOperatorModel `tfsdk:"operator"`
 }
 
-type DashboardTimeFrameAbsoluteModel struct {
+type TimeFrameAbsoluteModel struct {
 	Start types.String `tfsdk:"start"`
 	End   types.String `tfsdk:"end"`
 }
 
-type DashboardTimeFrameRelativeModel struct {
+type TimeFrameRelativeModel struct {
 	Duration types.String `tfsdk:"duration"`
 }
 
-type DashboardTimeFrameModel struct {
-	Absolute types.Object `tfsdk:"absolute"` //DashboardTimeFrameAbsoluteModel
-	Relative types.Object `tfsdk:"relative"` //DashboardTimeFrameRelativeModel
+type TimeFrameModel struct {
+	Absolute types.Object `tfsdk:"absolute"` //TimeFrameAbsoluteModel
+	Relative types.Object `tfsdk:"relative"` //TimeFrameRelativeModel
 }
 
 type spansFieldValidator struct{}
@@ -773,270 +768,6 @@ type LegendModel struct {
 	Placement    types.String `tfsdk:"placement"`
 }
 
-func LegendSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Attributes: map[string]schema.Attribute{
-			"is_visible": schema.BoolAttribute{
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(true),
-				MarkdownDescription: "Whether to display the legend. True by default.",
-			},
-			"columns": schema.ListAttribute{
-				ElementType: types.StringType,
-				Optional:    true,
-				Validators: []validator.List{
-					listvalidator.ValueStringsAre(stringvalidator.OneOf(DashboardValidLegendColumns...)),
-					listvalidator.SizeAtLeast(1),
-				},
-				MarkdownDescription: fmt.Sprintf("The columns to display in the legend. Valid values are: %s.", strings.Join(DashboardValidLegendColumns, ", ")),
-			},
-			"group_by_query": schema.BoolAttribute{
-				Optional: true,
-				Computed: true,
-				Default:  booldefault.StaticBool(false),
-			},
-			"placement": schema.StringAttribute{
-				Optional: true,
-				Computed: true,
-				Validators: []validator.String{
-					stringvalidator.OneOf(DashboardValidLegendPlacements...),
-				},
-				MarkdownDescription: fmt.Sprintf("The placement of the legend. Valid values are: %s.", strings.Join(DashboardValidLegendPlacements, ", ")),
-			},
-		},
-		Optional: true,
-	}
-}
-
-func LogsFiltersSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
-		Optional: true,
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: map[string]schema.Attribute{
-				"field": schema.StringAttribute{
-					Required: true,
-				},
-				"operator": FilterOperatorSchema(),
-				"observation_field": schema.SingleNestedAttribute{
-					Attributes: ObservationFieldSchemaAttributes(),
-					Optional:   true,
-				},
-			},
-		},
-		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
-		},
-	}
-}
-
-func UnitSchema() schema.StringAttribute {
-	return schema.StringAttribute{
-		Optional: true,
-		Computed: true,
-		Default:  stringdefault.StaticString("unspecified"),
-		Validators: []validator.String{
-			stringvalidator.OneOf(DashboardValidUnits...),
-		},
-		MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
-	}
-}
-
-func FiltersSourceAttribute() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"logs": schema.SingleNestedAttribute{
-			Attributes: map[string]schema.Attribute{
-				"field": schema.StringAttribute{
-					Required:            true,
-					MarkdownDescription: "Field in the logs to apply the filter on.",
-				},
-				"operator": FilterOperatorSchema(),
-				"observation_field": schema.SingleNestedAttribute{
-					Attributes: ObservationFieldSchemaAttributes(),
-					Optional:   true,
-				},
-			},
-			Optional: true,
-			Validators: []validator.Object{
-				objectvalidator.ExactlyOneOf(
-					path.MatchRelative().AtParent().AtName("metrics"),
-					path.MatchRelative().AtParent().AtName("spans"),
-				),
-			},
-		},
-		"spans": schema.SingleNestedAttribute{
-			Attributes: map[string]schema.Attribute{
-				"field": schema.SingleNestedAttribute{
-					Attributes: SpansFieldAttributes(),
-					Required:   true,
-					Validators: []validator.Object{
-						spansFieldValidator{},
-					},
-				},
-				"operator": FilterOperatorSchema(),
-			},
-			Optional: true,
-			Validators: []validator.Object{
-				objectvalidator.ExactlyOneOf(
-					path.MatchRelative().AtParent().AtName("metrics"),
-					path.MatchRelative().AtParent().AtName("logs"),
-				),
-			},
-		},
-		"metrics": schema.SingleNestedAttribute{
-			Attributes: map[string]schema.Attribute{
-				"metric_name": schema.StringAttribute{
-					Required: true,
-				},
-				"label": schema.StringAttribute{
-					Required: true,
-				},
-				"operator": FilterOperatorSchema(),
-			},
-			Validators: []validator.Object{
-				objectvalidator.ExactlyOneOf(
-					path.MatchRelative().AtParent().AtName("spans"),
-					path.MatchRelative().AtParent().AtName("logs"),
-				),
-			},
-			Optional: true,
-		},
-	}
-}
-
-func FilterOperatorSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Attributes: map[string]schema.Attribute{
-			"type": schema.StringAttribute{
-				Required: true,
-				Validators: []validator.String{
-					stringvalidator.OneOf("equals", "not_equals"),
-				},
-				MarkdownDescription: "The type of the operator. Can be one of `equals` or `not_equals`.",
-			},
-			"selected_values": schema.ListAttribute{
-				ElementType:         types.StringType,
-				Optional:            true,
-				MarkdownDescription: "the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.",
-			},
-		},
-		Validators: []validator.Object{
-			filterOperatorValidator{},
-		},
-		Required:            true,
-		MarkdownDescription: "Operator to use for filtering.",
-	}
-}
-
-func ObservationFieldSchemaAttributes() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"keypath": schema.ListAttribute{
-			ElementType: types.StringType,
-			Required:    true,
-		},
-		"scope": schema.StringAttribute{
-			Required: true,
-			Validators: []validator.String{
-				stringvalidator.OneOf(DashboardValidObservationFieldScope...),
-			},
-		},
-	}
-}
-
-func SpansFilterSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: map[string]schema.Attribute{
-				"field": schema.SingleNestedAttribute{
-					Attributes: SpansFieldAttributes(),
-					Required:   true,
-				},
-				"operator": FilterOperatorSchema(),
-			},
-		},
-		Optional: true,
-	}
-}
-
-func SpansFieldSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Attributes: SpansFieldAttributes(),
-		Optional:   true,
-		Validators: []validator.Object{
-			spansFieldValidator{},
-		},
-	}
-}
-
-func SpansFieldsSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: SpansFieldAttributes(),
-			Validators: []validator.Object{
-				spansFieldValidator{},
-			},
-		},
-		Optional: true,
-	}
-}
-
-func SpansFieldAttributes() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"type": schema.StringAttribute{
-			Required: true,
-			Validators: []validator.String{
-				stringvalidator.OneOf(DashboardValidSpanFieldTypes...),
-			},
-			MarkdownDescription: fmt.Sprintf("The type of the field. Can be one of %q", DashboardValidSpanFieldTypes),
-		},
-		"value": schema.StringAttribute{
-			Required:            true,
-			MarkdownDescription: fmt.Sprintf("The value of the field. When the field type is `metadata`, can be one of %q", DashboardValidSpanFieldMetadataFields),
-		},
-	}
-}
-
-func SpansAggregationsSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: SpansAggregationAttributes(),
-			Validators: []validator.Object{
-				spansAggregationValidator{},
-			},
-		},
-		Optional: true,
-	}
-}
-
-func SpansAggregationSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Attributes: SpansAggregationAttributes(),
-		Optional:   true,
-		Validators: []validator.Object{
-			spansAggregationValidator{},
-		},
-	}
-}
-func SpansAggregationAttributes() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"type": schema.StringAttribute{
-			Required: true,
-			Validators: []validator.String{
-				stringvalidator.OneOf(DashboardValidSpanAggregationTypes...),
-			},
-			MarkdownDescription: fmt.Sprintf("Can be one of %q", DashboardValidSpanAggregationTypes),
-		},
-		"aggregation_type": schema.StringAttribute{
-			Required:            true,
-			MarkdownDescription: fmt.Sprintf("The type of the aggregation. When the aggregation type is `metrics`, can be one of %q. When the aggregation type is `dimension`, can be one of %q.", DashboardValidSpansAggregationMetricAggregationTypes, DashboardValidSpansAggregationDimensionAggregationTypes),
-		},
-		"field": schema.StringAttribute{
-			Required:            true,
-			MarkdownDescription: fmt.Sprintf("The field to aggregate on. When the aggregation type is `metrics`, can be one of %q. When the aggregation type is `dimension`, can be one of %q.", DashboardValidSpansAggregationMetricFields, DashboardValidSpansAggregationDimensionFields),
-		},
-	}
-}
-
 type spansAggregationValidator struct{}
 
 func (s spansAggregationValidator) Description(ctx context.Context) string {
@@ -1100,115 +831,6 @@ func (l logsAggregationValidator) ValidateObject(ctx context.Context, req valida
 		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", "when type is `percentile`, `percent` must be set"))
 	} else if aggregationType != "percentile" && !aggregation.Percent.IsNull() {
 		resp.Diagnostics.Append(diag.NewErrorDiagnostic("logs aggregation validation failed", fmt.Sprintf("when type is `%s`, `percent` cannot be set", aggregationType)))
-	}
-}
-
-func LogsAggregationSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Required:   true,
-		Attributes: LogsAggregationAttributes(),
-		Validators: []validator.Object{
-			logsAggregationValidator{},
-		},
-	}
-}
-
-func LogsAggregationsSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
-		Required: true,
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: LogsAggregationAttributes(),
-			Validators: []validator.Object{
-				logsAggregationValidator{},
-			},
-		},
-		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
-		},
-	}
-}
-
-func LogsAggregationAttributes() map[string]schema.Attribute {
-	return map[string]schema.Attribute{
-		"type": schema.StringAttribute{
-			Required: true,
-			Validators: []validator.String{
-				stringvalidator.OneOf(DashboardValidLogsAggregationTypes...),
-			},
-			MarkdownDescription: fmt.Sprintf("The type of the aggregation. Can be one of %q", DashboardValidLogsAggregationTypes),
-		},
-		"field": schema.StringAttribute{
-			Optional: true,
-		},
-		"percent": schema.Float64Attribute{
-			Optional: true,
-			Validators: []validator.Float64{
-				float64validator.Between(0, 100),
-			},
-			MarkdownDescription: "The percentage of the aggregation to return. required when type is `percentile`.",
-		},
-		"observation_field": schema.SingleNestedAttribute{
-			Attributes: ObservationFieldSchemaAttributes(),
-			Optional:   true,
-		},
-	}
-}
-
-func MetricFiltersSchema() schema.ListNestedAttribute {
-	return schema.ListNestedAttribute{
-		NestedObject: schema.NestedAttributeObject{
-			Attributes: map[string]schema.Attribute{
-				"metric": schema.StringAttribute{
-					Required:            true,
-					MarkdownDescription: "Metric name to apply the filter on.",
-				},
-				"label": schema.StringAttribute{
-					Optional:            true,
-					MarkdownDescription: "Label associated with the metric.",
-				},
-				"operator": FilterOperatorSchema(),
-			},
-		},
-		Validators: []validator.List{
-			listvalidator.SizeAtLeast(1),
-		},
-		Optional: true,
-	}
-}
-
-func TimeFrameSchema() schema.SingleNestedAttribute {
-	return schema.SingleNestedAttribute{
-		Optional: true,
-		Attributes: map[string]schema.Attribute{
-			"absolute": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"start": schema.StringAttribute{
-						Required: true,
-					},
-					"end": schema.StringAttribute{
-						Required: true,
-					},
-				},
-				Optional: true,
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("relative")),
-				},
-				MarkdownDescription: "Absolute time frame specifying a fixed start and end time.",
-			},
-			"relative": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"duration": schema.StringAttribute{
-						Required: true,
-					},
-				},
-				Optional: true,
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("absolute")),
-				},
-				MarkdownDescription: "Relative time frame specifying a duration from the current time.",
-			},
-		},
-		MarkdownDescription: "Specifies the time frame for the dashboard's data. Can be either absolute or relative.",
 	}
 }
 
@@ -1436,17 +1058,31 @@ func FlattenDashboardFilterSourceMetrics(metrics *cxsdk.DashboardFilterMetricsFi
 	}, nil
 }
 
-func FlattenDashboardTimeFrame(ctx context.Context, d *cxsdk.Dashboard) (types.Object, diag.Diagnostics) {
+func FlattenDashboardTimeFrame(ctx context.Context, d *cxsdk.Dashboard) (*TimeFrameModel, diag.Diagnostics) {
 	if d.GetTimeFrame() == nil {
-		return types.ObjectNull(DashboardTimeFrameModelAttr()), nil
+		return nil, nil
 	}
 	switch timeFrameType := d.GetTimeFrame().(type) {
 	case *cxsdk.DashboardAbsoluteTimeFrame:
-		return flattenAbsoluteDashboardTimeFrame(ctx, timeFrameType.AbsoluteTimeFrame)
+		return flattenAbsoluteTimeFrame(ctx, timeFrameType.AbsoluteTimeFrame)
 	case *cxsdk.DashboardRelativeTimeFrame:
-		return flattenRelativeDashboardTimeFrame(ctx, timeFrameType.RelativeTimeFrame)
+		return flattenRelativeTimeFrame(ctx, timeFrameType.RelativeTimeFrame)
 	default:
-		return types.ObjectNull(DashboardTimeFrameModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Time Frame", fmt.Sprintf("unknown time frame type %T", timeFrameType))}
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Time Frame", fmt.Sprintf("unknown time frame type %T", timeFrameType))}
+	}
+}
+
+func FlattenTimeFrameSelect(ctx context.Context, d *cxsdk.TimeframeSelect) (*TimeFrameModel, diag.Diagnostics) {
+	if d.GetValue() == nil {
+		return nil, nil
+	}
+	switch timeFrameType := d.GetValue().(type) {
+	case *cxsdk.TimeframeSelectAbsolute:
+		return flattenAbsoluteTimeFrame(ctx, timeFrameType.AbsoluteTimeFrame)
+	case *cxsdk.TimeframeSelectRelative:
+		return flattenRelativeTimeFrame(ctx, timeFrameType.RelativeTimeFrame)
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Time Frame", fmt.Sprintf("unknown time frame type %T", timeFrameType))}
 	}
 }
 
@@ -1475,36 +1111,36 @@ func flattenDuration(timeFrame *durationpb.Duration) basetypes.StringValue {
 	return types.StringValue(timeFrame.String())
 }
 
-func flattenAbsoluteDashboardTimeFrame(ctx context.Context, timeFrame *cxsdk.DashboardTimeFrame) (types.Object, diag.Diagnostics) {
-	absoluteTimeFrame := &DashboardTimeFrameAbsoluteModel{
+func flattenAbsoluteTimeFrame(ctx context.Context, timeFrame *cxsdk.DashboardTimeFrame) (*TimeFrameModel, diag.Diagnostics) {
+	absoluteTimeFrame := &TimeFrameAbsoluteModel{
 		Start: types.StringValue(timeFrame.GetFrom().String()),
 		End:   types.StringValue(timeFrame.GetTo().String()),
 	}
 
-	timeFrameObject, dgs := types.ObjectValueFrom(ctx, AbsoluteTimeFrameAttributes(), absoluteTimeFrame)
+	timeFrameObject, dgs := types.ObjectValueFrom(ctx, AbsoluteTimeFrameAttr(), absoluteTimeFrame)
 	if dgs.HasError() {
-		return types.ObjectNull(DashboardTimeFrameModelAttr()), dgs
+		return nil, dgs
 	}
-	flattenedTimeFrame := &DashboardTimeFrameModel{
+	flattenedTimeFrame := &TimeFrameModel{
 		Absolute: timeFrameObject,
-		Relative: types.ObjectNull(AbsoluteTimeFrameAttributes()),
+		Relative: types.ObjectNull(AbsoluteTimeFrameAttr()),
 	}
-	return types.ObjectValueFrom(ctx, DashboardTimeFrameModelAttr(), flattenedTimeFrame)
+	return flattenedTimeFrame, nil
 }
 
-func flattenRelativeDashboardTimeFrame(ctx context.Context, timeFrame *durationpb.Duration) (types.Object, diag.Diagnostics) {
-	relativeTimeFrame := &DashboardTimeFrameRelativeModel{
+func flattenRelativeTimeFrame(ctx context.Context, timeFrame *durationpb.Duration) (*TimeFrameModel, diag.Diagnostics) {
+	relativeTimeFrame := &TimeFrameRelativeModel{
 		Duration: flattenDuration(timeFrame),
 	}
-	timeFrameObject, dgs := types.ObjectValueFrom(ctx, RelativeTimeFrameAttributes(), relativeTimeFrame)
+	timeFrameObject, dgs := types.ObjectValueFrom(ctx, RelativeTimeFrameAttr(), relativeTimeFrame)
 	if dgs.HasError() {
-		return types.ObjectNull(DashboardTimeFrameModelAttr()), dgs
+		return nil, dgs
 	}
-	flattenedTimeFrame := &DashboardTimeFrameModel{
+	flattenedTimeFrame := &TimeFrameModel{
 		Relative: timeFrameObject,
-		Absolute: types.ObjectNull(AbsoluteTimeFrameAttributes()),
+		Absolute: types.ObjectNull(AbsoluteTimeFrameAttr()),
 	}
-	return types.ObjectValueFrom(ctx, DashboardTimeFrameModelAttr(), flattenedTimeFrame)
+	return flattenedTimeFrame, nil
 }
 
 func flattenSpansAggregation(aggregation *cxsdk.SpansAggregation) (*SpansAggregationModel, diag.Diagnostic) {
@@ -1551,7 +1187,6 @@ func FlattenSpansFilters(ctx context.Context, filters []*cxsdk.DashboardFilterSp
 	}
 
 	return types.ListValueMust(types.ObjectType{AttrTypes: SpansFilterModelAttr()}, filtersElements), diagnostics
-
 }
 
 func FlattenSpansFilter(filter *cxsdk.DashboardFilterSpansFilter) (*SpansFilterModel, diag.Diagnostic) {
@@ -1797,4 +1432,336 @@ func FlattenLogsAggregation(ctx context.Context, aggregation *cxsdk.LogsAggregat
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Logs Aggregation", "unknown logs aggregation type")}
 	}
+}
+
+func ExpandObservationFields(ctx context.Context, namesFields types.List) ([]*cxsdk.ObservationField, diag.Diagnostics) {
+	var namesFieldsObjects []types.Object
+	var expandedNamesFields []*cxsdk.ObservationField
+	diags := namesFields.ElementsAs(ctx, &namesFieldsObjects, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+	for _, nfo := range namesFieldsObjects {
+		var namesField ObservationFieldModel
+		if dg := nfo.As(ctx, &namesField, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		expandedNamesField, expandDiags := expandObservationField(ctx, namesField)
+		if expandDiags != nil {
+			diags.Append(expandDiags...)
+			continue
+		}
+		expandedNamesFields = append(expandedNamesFields, expandedNamesField)
+	}
+
+	return expandedNamesFields, diags
+}
+
+func expandObservationFieldObject(ctx context.Context, field types.Object) (*cxsdk.ObservationField, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(field) {
+		return nil, nil
+	}
+
+	var observationField ObservationFieldModel
+	if dg := field.As(ctx, &observationField, basetypes.ObjectAsOptions{}); dg.HasError() {
+		return nil, dg
+	}
+
+	return expandObservationField(ctx, observationField)
+}
+
+func expandObservationField(ctx context.Context, observationField ObservationFieldModel) (*cxsdk.ObservationField, diag.Diagnostics) {
+	keypath, dg := utils.TypeStringSliceToWrappedStringSlice(ctx, observationField.Keypath.Elements())
+	if dg.HasError() {
+		return nil, dg
+	}
+
+	scope := DashboardSchemaToProtoObservationFieldScope[observationField.Scope.ValueString()]
+
+	return &cxsdk.ObservationField{
+		Keypath: keypath,
+		Scope:   scope,
+	}, nil
+}
+
+func ExpandSpansField(spansFilterField *SpansFieldModel) (*cxsdk.SpanField, diag.Diagnostic) {
+	if spansFilterField == nil {
+		return nil, nil
+	}
+
+	switch spansFilterField.Type.ValueString() {
+	case "metadata":
+		return &cxsdk.SpanField{
+			Value: &cxsdk.SpanFieldMetadataField{
+				MetadataField: DashboardSchemaToProtoSpanFieldMetadataField[spansFilterField.Value.ValueString()],
+			},
+		}, nil
+	case "tag":
+		return &cxsdk.SpanField{
+			Value: &cxsdk.SpanFieldTagField{
+				TagField: utils.TypeStringToWrapperspbString(spansFilterField.Value),
+			},
+		}, nil
+	case "process_tag":
+		return &cxsdk.SpanField{
+			Value: &cxsdk.SpanFieldProcessTagField{
+				ProcessTagField: utils.TypeStringToWrapperspbString(spansFilterField.Value),
+			},
+		}, nil
+	default:
+		return nil, diag.NewErrorDiagnostic("Extract Spans Filter Field Error", fmt.Sprintf("Unknown spans filter field type %s", spansFilterField.Type.ValueString()))
+	}
+}
+
+func ExpandSpansFields(ctx context.Context, spanFields types.List) ([]*cxsdk.SpanField, diag.Diagnostics) {
+	var spanFieldsObjects []types.Object
+	var expandedSpanFields []*cxsdk.SpanField
+	diags := spanFields.ElementsAs(ctx, &spanFieldsObjects, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+	for _, sfo := range spanFieldsObjects {
+		var spansField SpansFieldModel
+		if dg := sfo.As(ctx, &spansField, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		expandedSpanField, expandDiag := ExpandSpansField(&spansField)
+		if expandDiag != nil {
+			diags.Append(expandDiag)
+			continue
+		}
+		expandedSpanFields = append(expandedSpanFields, expandedSpanField)
+	}
+
+	return expandedSpanFields, diags
+}
+
+func ExpandLogsAggregations(ctx context.Context, logsAggregations types.List) ([]*cxsdk.LogsAggregation, diag.Diagnostics) {
+	var logsAggregationsObjects []types.Object
+	var expandedLogsAggregations []*cxsdk.LogsAggregation
+	diags := logsAggregations.ElementsAs(ctx, &logsAggregationsObjects, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+	for _, qdo := range logsAggregationsObjects {
+		var aggregation LogsAggregationModel
+		if dg := qdo.As(ctx, &aggregation, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		expandedLogsAggregation, expandDiags := ExpandLogsAggregation(ctx, &aggregation)
+		if expandDiags.HasError() {
+			diags.Append(expandDiags...)
+			continue
+		}
+		expandedLogsAggregations = append(expandedLogsAggregations, expandedLogsAggregation)
+	}
+
+	return expandedLogsAggregations, diags
+}
+
+func ExpandLogsAggregation(ctx context.Context, logsAggregation *LogsAggregationModel) (*cxsdk.LogsAggregation, diag.Diagnostics) {
+	if logsAggregation == nil {
+		return nil, nil
+	}
+	switch logsAggregation.Type.ValueString() {
+	case "count":
+		return &cxsdk.LogsAggregation{
+			Value: &cxsdk.LogsAggregationCount{
+				Count: &cxsdk.LogsAggregationCountInner{},
+			},
+		}, nil
+	case "count_distinct":
+		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &cxsdk.LogsAggregation{
+			Value: &cxsdk.LogsAggregationCountDistinct{
+				CountDistinct: &cxsdk.LogsAggregationCountDistinctInner{
+					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
+					ObservationField: observationField,
+				},
+			},
+		}, nil
+	case "sum":
+		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &cxsdk.LogsAggregation{
+			Value: &cxsdk.LogsAggregationSum{
+				Sum: &cxsdk.LogsAggregationSumInner{
+					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
+					ObservationField: observationField,
+				},
+			},
+		}, nil
+	case "avg":
+		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &cxsdk.LogsAggregation{
+			Value: &cxsdk.LogsAggregationAverage{
+				Average: &cxsdk.LogsAggregationAverageInner{
+					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
+					ObservationField: observationField,
+				},
+			},
+		}, nil
+	case "min":
+		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &cxsdk.LogsAggregation{
+			Value: &cxsdk.LogsAggregationMin{
+				Min: &cxsdk.LogsAggregationMinInner{
+					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
+					ObservationField: observationField,
+				},
+			},
+		}, nil
+	case "max":
+		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &cxsdk.LogsAggregation{
+			Value: &cxsdk.LogsAggregationMax{
+				Max: &cxsdk.LogsAggregationMaxInner{
+					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
+					ObservationField: observationField,
+				},
+			},
+		}, nil
+	case "percentile":
+		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &cxsdk.LogsAggregation{
+			Value: &cxsdk.LogsAggregationPercentile{
+				Percentile: &cxsdk.LogsAggregationPercentileInner{
+					Field:            utils.TypeStringToWrapperspbString(logsAggregation.Field),
+					Percent:          utils.TypeFloat64ToWrapperspbDouble(logsAggregation.Percent),
+					ObservationField: observationField,
+				},
+			},
+		}, nil
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error expand logs aggregation", fmt.Sprintf("unknown logs aggregation type %s", logsAggregation.Type.ValueString()))}
+	}
+}
+
+func ExpandTimeFrameSelect(ctx context.Context, timeFrame *TimeFrameModel) (*cxsdk.TimeframeSelect, diag.Diagnostics) {
+	if timeFrame == nil {
+		return nil, nil
+	}
+
+	tf := cxsdk.TimeframeSelect{}
+
+	switch {
+	case !utils.ObjIsNullOrUnknown(timeFrame.Relative):
+		val, diags := expandRelativeTimeFrame(ctx, timeFrame.Relative)
+		if diags.HasError() {
+			return nil, diags
+		}
+		tf.Value = &cxsdk.TimeframeSelectRelative{
+			RelativeTimeFrame: val,
+		}
+	case !utils.ObjIsNullOrUnknown(timeFrame.Absolute):
+		from, to, diags := expandAbsoluteTimeFrame(ctx, timeFrame.Absolute)
+		if diags.HasError() {
+			return nil, diags
+		}
+		tf.Value = &cxsdk.TimeframeSelectAbsolute{
+			AbsoluteTimeFrame: &cxsdk.DashboardTimeFrame{
+				From: from,
+				To:   to,
+			},
+		}
+	default:
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Time Frame", "Dashboard TimeFrame must be either Relative or Absolute")}
+	}
+	return &tf, nil
+}
+
+func ExpandDashboardTimeFrame(ctx context.Context, dashboard *cxsdk.Dashboard, timeFrame types.Object) (*cxsdk.Dashboard, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(timeFrame) {
+		return dashboard, nil
+	}
+	var timeFrameObject TimeFrameModel
+	diags := timeFrame.As(ctx, &timeFrameObject, basetypes.ObjectAsOptions{})
+	if diags.HasError() {
+		return nil, diags
+	}
+	switch {
+	case !utils.ObjIsNullOrUnknown(timeFrameObject.Relative):
+		relative, diags := expandRelativeTimeFrame(ctx, timeFrame)
+		if diags.HasError() {
+			return nil, diags
+		}
+		dashboard.TimeFrame = &cxsdk.DashboardRelativeTimeFrame{
+			RelativeTimeFrame: relative,
+		}
+	case !utils.ObjIsNullOrUnknown(timeFrameObject.Absolute):
+		from, to, diags := expandAbsoluteTimeFrame(ctx, timeFrame)
+		if diags.HasError() {
+			return nil, diags
+		}
+		dashboard.TimeFrame = &cxsdk.DashboardAbsoluteTimeFrame{
+			AbsoluteTimeFrame: &cxsdk.DashboardTimeFrame{
+				From: from,
+				To:   to,
+			},
+		}
+	default:
+		diags = diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Time Frame", "Dashboard TimeFrame must be either Relative or Absolute")}
+	}
+	return dashboard, diags
+}
+
+func expandRelativeTimeFrame(ctx context.Context, timeFrame types.Object) (*durationpb.Duration, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(timeFrame) {
+		return nil, nil
+	}
+	timeFrameModel := &TimeFrameRelativeModel{}
+	dgs := timeFrame.As(ctx, timeFrameModel, basetypes.ObjectAsOptions{})
+	if dgs.HasError() {
+		return nil, dgs
+	}
+	duration, dg := utils.ParseDuration(timeFrameModel.Duration.ValueString(), "Relative Dashboard Time Frame")
+	if dg != nil {
+		return nil, diag.Diagnostics{dg}
+	}
+	return durationpb.New(*duration), nil
+}
+
+func expandAbsoluteTimeFrame(ctx context.Context, timeFrame types.Object) (*timestamppb.Timestamp, *timestamppb.Timestamp, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(timeFrame) {
+		return nil, nil, nil
+	}
+
+	timeFrameModel := &TimeFrameAbsoluteModel{}
+	dgs := timeFrame.As(ctx, timeFrameModel, basetypes.ObjectAsOptions{})
+	if dgs.HasError() {
+		return nil, nil, dgs
+	}
+	fromTime, err := time.Parse(time.RFC3339, timeFrameModel.Start.ValueString())
+	if err != nil {
+		return nil, nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Absolute Dashboard Time Frame", fmt.Sprintf("Error parsing from time: %s", err.Error()))}
+	}
+	from := timestamppb.New(fromTime)
+
+	toTime, err := time.Parse(time.RFC3339, timeFrameModel.End.ValueString())
+	if err != nil {
+		return from, nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Absolute Dashboard Time Frame", fmt.Sprintf("Error parsing from time: %s", err.Error()))}
+	}
+	to := timestamppb.New(toTime)
+
+	return from, to, nil
 }
