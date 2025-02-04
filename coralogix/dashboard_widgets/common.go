@@ -412,10 +412,10 @@ type DataTableLogsAggregationModel struct {
 }
 
 type DataTableQueryModel struct {
-	Logs      *DataTableQueryLogsModel  `tfsdk:"logs"`
-	Metrics   *QueryMetricsModel        `tfsdk:"metrics"`
-	Spans     *DataTableQuerySpansModel `tfsdk:"spans"`
-	DataPrime *DataPrimeModel           `tfsdk:"data_prime"`
+	Logs      *DataTableQueryLogsModel    `tfsdk:"logs"`
+	Metrics   *DataTableQueryMetricsModel `tfsdk:"metrics"`
+	Spans     *DataTableQuerySpansModel   `tfsdk:"spans"`
+	DataPrime *DataPrimeModel             `tfsdk:"data_prime"`
 }
 
 type MetricsFilterModel struct {
@@ -1458,7 +1458,7 @@ func ExpandObservationFields(ctx context.Context, namesFields types.List) ([]*cx
 	return expandedNamesFields, diags
 }
 
-func expandObservationFieldObject(ctx context.Context, field types.Object) (*cxsdk.ObservationField, diag.Diagnostics) {
+func ExpandObservationFieldObject(ctx context.Context, field types.Object) (*cxsdk.ObservationField, diag.Diagnostics) {
 	if utils.ObjIsNullOrUnknown(field) {
 		return nil, nil
 	}
@@ -1574,7 +1574,7 @@ func ExpandLogsAggregation(ctx context.Context, logsAggregation *LogsAggregation
 			},
 		}, nil
 	case "count_distinct":
-		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
+		observationField, diags := ExpandObservationFieldObject(ctx, logsAggregation.ObservationField)
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -1587,7 +1587,7 @@ func ExpandLogsAggregation(ctx context.Context, logsAggregation *LogsAggregation
 			},
 		}, nil
 	case "sum":
-		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
+		observationField, diags := ExpandObservationFieldObject(ctx, logsAggregation.ObservationField)
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -1600,7 +1600,7 @@ func ExpandLogsAggregation(ctx context.Context, logsAggregation *LogsAggregation
 			},
 		}, nil
 	case "avg":
-		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
+		observationField, diags := ExpandObservationFieldObject(ctx, logsAggregation.ObservationField)
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -1613,7 +1613,7 @@ func ExpandLogsAggregation(ctx context.Context, logsAggregation *LogsAggregation
 			},
 		}, nil
 	case "min":
-		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
+		observationField, diags := ExpandObservationFieldObject(ctx, logsAggregation.ObservationField)
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -1626,7 +1626,7 @@ func ExpandLogsAggregation(ctx context.Context, logsAggregation *LogsAggregation
 			},
 		}, nil
 	case "max":
-		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
+		observationField, diags := ExpandObservationFieldObject(ctx, logsAggregation.ObservationField)
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -1639,7 +1639,7 @@ func ExpandLogsAggregation(ctx context.Context, logsAggregation *LogsAggregation
 			},
 		}, nil
 	case "percentile":
-		observationField, diags := expandObservationFieldObject(ctx, logsAggregation.ObservationField)
+		observationField, diags := ExpandObservationFieldObject(ctx, logsAggregation.ObservationField)
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -1690,26 +1690,19 @@ func ExpandTimeFrameSelect(ctx context.Context, timeFrame *TimeFrameModel) (*cxs
 	return &tf, nil
 }
 
-func ExpandDashboardTimeFrame(ctx context.Context, dashboard *cxsdk.Dashboard, timeFrame types.Object) (*cxsdk.Dashboard, diag.Diagnostics) {
-	if utils.ObjIsNullOrUnknown(timeFrame) {
-		return dashboard, nil
-	}
-	var timeFrameObject TimeFrameModel
-	diags := timeFrame.As(ctx, &timeFrameObject, basetypes.ObjectAsOptions{})
-	if diags.HasError() {
-		return nil, diags
-	}
+func ExpandDashboardTimeFrame(ctx context.Context, dashboard *cxsdk.Dashboard, timeFrame *TimeFrameModel) (*cxsdk.Dashboard, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	switch {
-	case !utils.ObjIsNullOrUnknown(timeFrameObject.Relative):
-		relative, diags := expandRelativeTimeFrame(ctx, timeFrame)
+	case !utils.ObjIsNullOrUnknown(timeFrame.Relative):
+		relative, diags := expandRelativeTimeFrame(ctx, timeFrame.Relative)
 		if diags.HasError() {
 			return nil, diags
 		}
 		dashboard.TimeFrame = &cxsdk.DashboardRelativeTimeFrame{
 			RelativeTimeFrame: relative,
 		}
-	case !utils.ObjIsNullOrUnknown(timeFrameObject.Absolute):
-		from, to, diags := expandAbsoluteTimeFrame(ctx, timeFrame)
+	case !utils.ObjIsNullOrUnknown(timeFrame.Absolute):
+		from, to, diags := expandAbsoluteTimeFrame(ctx, timeFrame.Absolute)
 		if diags.HasError() {
 			return nil, diags
 		}

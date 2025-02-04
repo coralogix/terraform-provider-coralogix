@@ -742,7 +742,7 @@ func expandHexagonMetricsQuery(ctx context.Context, dataTableQueryMetric *QueryM
 
 	return &cxsdk.HexagonQueryMetrics{
 		Metrics: &cxsdk.HexagonMetricsQuery{
-			PromqlQuery: expandPromqlQuery(dataTableQueryMetric.PromqlQuery),
+			PromqlQuery: ExpandPromqlQuery(dataTableQueryMetric.PromqlQuery),
 			Filters:     filters,
 			TimeFrame:   timeframe,
 			//PromqlQueryType: &DashboardSchemaToProtoPromQLQueryType[dataTableQueryMetric.PromqlQueryType.ValueString()], // Coming soon?

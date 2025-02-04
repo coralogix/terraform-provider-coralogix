@@ -318,6 +318,13 @@ func upgradeDashboardStateV1ToV2(ctx context.Context, req resource.UpgradeStateR
 		return
 	}
 
+	var timeframe *dashboardwidgets.TimeFrameModel
+	if !utils.ObjIsNullOrUnknown(priorStateData.TimeFrame) {
+		diags = priorStateData.TimeFrame.As(ctx, timeframe, basetypes.ObjectAsOptions{})
+	} else {
+		timeframe = nil
+	}
+
 	upgradedStateData := DashboardResourceModel{
 		ID:          priorStateData.ID,
 		Name:        priorStateData.Name,
@@ -325,7 +332,7 @@ func upgradeDashboardStateV1ToV2(ctx context.Context, req resource.UpgradeStateR
 		Layout:      priorStateData.Layout,
 		Variables:   priorStateData.Variables,
 		Filters:     priorStateData.Filters,
-		TimeFrame:   priorStateData.TimeFrame,
+		TimeFrame:   timeframe,
 		Folder:      priorStateData.Folder,
 		Annotations: annotations,
 		AutoRefresh: types.ObjectNull(dashboardAutoRefreshModelAttr()),
@@ -2444,7 +2451,7 @@ func expandLogsSource(ctx context.Context, logs types.Object) (*cxsdk.Annotation
 
 	return &cxsdk.AnnotationSourceLogs{
 		Logs: &cxsdk.AnnotationLogsSource{
-			LuceneQuery:     expandLuceneQuery(logsObject.LuceneQuery),
+			LuceneQuery:     dashboardwidgets.ExpandLuceneQuery(logsObject.LuceneQuery),
 			Strategy:        strategy,
 			MessageTemplate: utils.TypeStringToWrapperspbString(logsObject.MessageTemplate),
 			LabelFields:     labels,
@@ -2478,12 +2485,12 @@ func expandLogsSourceDurationStrategy(ctx context.Context, duration types.Object
 		return nil, diags
 	}
 
-	startTimestampField, diags := expandObservationFieldObject(ctx, durationObject.StartTimestampField)
+	startTimestampField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, durationObject.StartTimestampField)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	durationField, diags := expandObservationFieldObject(ctx, durationObject.DurationField)
+	durationField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, durationObject.DurationField)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2504,12 +2511,12 @@ func expandLogsSourceRangeStrategy(ctx context.Context, object types.Object) (*c
 		return nil, diags
 	}
 
-	startTimestampField, diags := expandObservationFieldObject(ctx, rangeObject.StartTimestampField)
+	startTimestampField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, rangeObject.StartTimestampField)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	endTimestampField, diags := expandObservationFieldObject(ctx, rangeObject.EndTimestampField)
+	endTimestampField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, rangeObject.EndTimestampField)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2530,7 +2537,7 @@ func expandLogsSourceInstantStrategy(ctx context.Context, instant types.Object) 
 		return nil, diags
 	}
 
-	timestampField, diags := expandObservationFieldObject(ctx, instantObject.TimestampField)
+	timestampField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, instantObject.TimestampField)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2570,12 +2577,12 @@ func expandSpansSourceDurationStrategy(ctx context.Context, duration types.Objec
 		return nil, diags
 	}
 
-	startTimestampField, diags := expandObservationFieldObject(ctx, durationObject.StartTimestampField)
+	startTimestampField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, durationObject.StartTimestampField)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	durationField, diags := expandObservationFieldObject(ctx, durationObject.DurationField)
+	durationField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, durationObject.DurationField)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2596,12 +2603,12 @@ func expandSpansSourceRangeStrategy(ctx context.Context, object types.Object) (*
 		return nil, diags
 	}
 
-	startTimestampField, diags := expandObservationFieldObject(ctx, rangeObject.StartTimestampField)
+	startTimestampField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, rangeObject.StartTimestampField)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	endTimestampField, diags := expandObservationFieldObject(ctx, rangeObject.EndTimestampField)
+	endTimestampField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, rangeObject.EndTimestampField)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2622,7 +2629,7 @@ func expandSpansSourceInstantStrategy(ctx context.Context, instant types.Object)
 		return nil, diags
 	}
 
-	timestampField, diags := expandObservationFieldObject(ctx, instantObject.TimestampField)
+	timestampField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, instantObject.TimestampField)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2658,7 +2665,7 @@ func expandSpansSource(ctx context.Context, spans types.Object) (*cxsdk.Annotati
 
 	return &cxsdk.AnnotationSourceSpans{
 		Spans: &cxsdk.AnnotationSpansSource{
-			LuceneQuery:     expandLuceneQuery(spansObject.LuceneQuery),
+			LuceneQuery:     dashboardwidgets.ExpandLuceneQuery(spansObject.LuceneQuery),
 			Strategy:        strategy,
 			MessageTemplate: utils.TypeStringToWrapperspbString(spansObject.MessageTemplate),
 			LabelFields:     labels,
@@ -2688,7 +2695,7 @@ func expandMetricSource(ctx context.Context, metric types.Object) (*cxsdk.Annota
 
 	return &cxsdk.AnnotationSourceMetrics{
 		Metrics: &cxsdk.AnnotationMetricsSource{
-			PromqlQuery:     expandPromqlQuery(metricObject.PromqlQuery),
+			PromqlQuery:     dashboardwidgets.ExpandPromqlQuery(metricObject.PromqlQuery),
 			Strategy:        strategy,
 			MessageTemplate: utils.TypeStringToWrapperspbString(metricObject.MessageTemplate),
 			Labels:          labels,
@@ -3160,18 +3167,18 @@ func expandGaugeQuerySpans(ctx context.Context, gaugeQuerySpans *dashboardwidget
 	if gaugeQuerySpans == nil {
 		return nil, nil
 	}
-	filters, diags := expandSpansFilters(ctx, gaugeQuerySpans.Filters)
+	filters, diags := dashboardwidgets.ExpandSpansFilters(ctx, gaugeQuerySpans.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	spansAggregation, dg := expandSpansAggregation(gaugeQuerySpans.SpansAggregation)
+	spansAggregation, dg := dashboardwidgets.ExpandSpansAggregation(gaugeQuerySpans.SpansAggregation)
 	if dg != nil {
 		return nil, diag.Diagnostics{dg}
 	}
 
 	return &cxsdk.GaugeSpansQuery{
-		LuceneQuery:      expandLuceneQuery(gaugeQuerySpans.LuceneQuery),
+		LuceneQuery:      dashboardwidgets.ExpandLuceneQuery(gaugeQuerySpans.LuceneQuery),
 		SpansAggregation: spansAggregation,
 		Filters:          filters,
 	}, nil
@@ -3315,7 +3322,7 @@ func expandMultiSelectLogsQueryTypFieldValue(ctx context.Context, value types.Ob
 		return nil, diags
 	}
 
-	observationField, diags := expandObservationFieldObject(ctx, valueObject.ObservationField)
+	observationField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, valueObject.ObservationField)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3643,7 +3650,7 @@ func expandMultiSelectSpansQueryTypeFieldValue(ctx context.Context, value types.
 		return nil, diags
 	}
 
-	spansField, dgs := expandSpansField(&valueObject)
+	spansField, dgs := dashboardwidgets.ExpandSpansField(&valueObject)
 	if dgs != nil {
 		return nil, diag.Diagnostics{dgs}
 	}
@@ -3656,13 +3663,13 @@ func expandMultiSelectSpansQueryTypeFieldValue(ctx context.Context, value types.
 }
 
 func expandGaugeQueryMetrics(ctx context.Context, gaugeQueryMetrics *dashboardwidgets.GaugeQueryMetricsModel) (*cxsdk.GaugeMetricsQuery, diag.Diagnostics) {
-	filters, diags := expandMetricsFilters(ctx, gaugeQueryMetrics.Filters)
+	filters, diags := dashboardwidgets.ExpandMetricsFilters(ctx, gaugeQueryMetrics.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &cxsdk.GaugeMetricsQuery{
-		PromqlQuery: expandPromqlQuery(gaugeQueryMetrics.PromqlQuery),
+		PromqlQuery: dashboardwidgets.ExpandPromqlQuery(gaugeQueryMetrics.PromqlQuery),
 		Aggregation: dashboardwidgets.DashboardSchemaToProtoGaugeAggregation[gaugeQueryMetrics.Aggregation.ValueString()],
 		Filters:     filters,
 	}, nil
@@ -3674,13 +3681,13 @@ func expandGaugeQueryLogs(ctx context.Context, gaugeQueryLogs *dashboardwidgets.
 		return nil, diags
 	}
 
-	filters, diags := expandLogsFilters(ctx, gaugeQueryLogs.Filters)
+	filters, diags := dashboardwidgets.ExpandLogsFilters(ctx, gaugeQueryLogs.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &cxsdk.GaugeLogsQuery{
-		LuceneQuery:     expandLuceneQuery(gaugeQueryLogs.LuceneQuery),
+		LuceneQuery:     dashboardwidgets.ExpandLuceneQuery(gaugeQueryLogs.LuceneQuery),
 		LogsAggregation: logsAggregation,
 		Filters:         filters,
 	}, nil
@@ -3878,7 +3885,7 @@ func expandHorizontalBarChartLogsQuery(ctx context.Context, logs types.Object) (
 		return nil, diags
 	}
 
-	filters, diags := expandLogsFilters(ctx, logsObject.Filters)
+	filters, diags := dashboardwidgets.ExpandLogsFilters(ctx, logsObject.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3889,7 +3896,7 @@ func expandHorizontalBarChartLogsQuery(ctx context.Context, logs types.Object) (
 	}
 
 	return &cxsdk.HorizontalBarChartLogsQuery{
-		LuceneQuery:      expandLuceneQuery(logsObject.LuceneQuery),
+		LuceneQuery:      dashboardwidgets.ExpandLuceneQuery(logsObject.LuceneQuery),
 		Aggregation:      aggregation,
 		Filters:          filters,
 		GroupNames:       groupNames,
@@ -3908,7 +3915,7 @@ func expandHorizontalBarChartMetricsQuery(ctx context.Context, metrics types.Obj
 		return nil, diags
 	}
 
-	filters, diags := expandMetricsFilters(ctx, metricsObject.Filters)
+	filters, diags := dashboardwidgets.ExpandMetricsFilters(ctx, metricsObject.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3919,7 +3926,7 @@ func expandHorizontalBarChartMetricsQuery(ctx context.Context, metrics types.Obj
 	}
 
 	return &cxsdk.HorizontalBarChartMetricsQuery{
-		PromqlQuery:      expandPromqlQuery(metricsObject.PromqlQuery),
+		PromqlQuery:      dashboardwidgets.ExpandPromqlQuery(metricsObject.PromqlQuery),
 		Filters:          filters,
 		GroupNames:       groupNames,
 		StackedGroupName: utils.TypeStringToWrapperspbString(metricsObject.StackedGroupName),
@@ -3937,12 +3944,12 @@ func expandHorizontalBarChartSpansQuery(ctx context.Context, spans types.Object)
 		return nil, diags
 	}
 
-	aggregation, dg := expandSpansAggregation(spansObject.Aggregation)
+	aggregation, dg := dashboardwidgets.ExpandSpansAggregation(spansObject.Aggregation)
 	if dg != nil {
 		return nil, diag.Diagnostics{dg}
 	}
 
-	filters, diags := expandSpansFilters(ctx, spansObject.Filters)
+	filters, diags := dashboardwidgets.ExpandSpansFilters(ctx, spansObject.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3952,13 +3959,13 @@ func expandHorizontalBarChartSpansQuery(ctx context.Context, spans types.Object)
 		return nil, diags
 	}
 
-	expandedFilter, dg := expandSpansField(spansObject.StackedGroupName)
+	expandedFilter, dg := dashboardwidgets.ExpandSpansField(spansObject.StackedGroupName)
 	if dg != nil {
 		return nil, diag.Diagnostics{dg}
 	}
 
 	return &cxsdk.HorizontalBarChartSpansQuery{
-		LuceneQuery:      expandLuceneQuery(spansObject.LuceneQuery),
+		LuceneQuery:      dashboardwidgets.ExpandLuceneQuery(spansObject.LuceneQuery),
 		Aggregation:      aggregation,
 		Filters:          filters,
 		GroupNames:       groupNames,
@@ -3982,7 +3989,7 @@ func expandBarChartLogsQuery(ctx context.Context, barChartQueryLogs types.Object
 		return nil, diags
 	}
 
-	filters, diags := expandLogsFilters(ctx, barChartQueryLogsObject.Filters)
+	filters, diags := dashboardwidgets.ExpandLogsFilters(ctx, barChartQueryLogsObject.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3997,13 +4004,13 @@ func expandBarChartLogsQuery(ctx context.Context, barChartQueryLogs types.Object
 		return nil, diags
 	}
 
-	stackedGroupNameField, diags := expandObservationFieldObject(ctx, barChartQueryLogsObject.StackedGroupNameField)
+	stackedGroupNameField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, barChartQueryLogsObject.StackedGroupNameField)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &cxsdk.BarChartLogsQuery{
-		LuceneQuery:           expandLuceneQuery(barChartQueryLogsObject.LuceneQuery),
+		LuceneQuery:           dashboardwidgets.ExpandLuceneQuery(barChartQueryLogsObject.LuceneQuery),
 		Aggregation:           aggregation,
 		Filters:               filters,
 		GroupNames:            groupNames,
@@ -4024,7 +4031,7 @@ func expandBarChartMetricsQuery(ctx context.Context, barChartQueryMetrics types.
 		return nil, diags
 	}
 
-	filters, diags := expandMetricsFilters(ctx, barChartQueryMetricsObject.Filters)
+	filters, diags := dashboardwidgets.ExpandMetricsFilters(ctx, barChartQueryMetricsObject.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4035,7 +4042,7 @@ func expandBarChartMetricsQuery(ctx context.Context, barChartQueryMetrics types.
 	}
 
 	return &cxsdk.BarChartMetricsQuery{
-		PromqlQuery:      expandPromqlQuery(barChartQueryMetricsObject.PromqlQuery),
+		PromqlQuery:      dashboardwidgets.ExpandPromqlQuery(barChartQueryMetricsObject.PromqlQuery),
 		Filters:          filters,
 		GroupNames:       groupNames,
 		StackedGroupName: utils.TypeStringToWrapperspbString(barChartQueryMetricsObject.StackedGroupName),
@@ -4053,12 +4060,12 @@ func expandBarChartSpansQuery(ctx context.Context, barChartQuerySpans types.Obje
 		return nil, diags
 	}
 
-	aggregation, dg := expandSpansAggregation(barChartQuerySpansObject.Aggregation)
+	aggregation, dg := dashboardwidgets.ExpandSpansAggregation(barChartQuerySpansObject.Aggregation)
 	if dg != nil {
 		return nil, diag.Diagnostics{dg}
 	}
 
-	filters, diags := expandSpansFilters(ctx, barChartQuerySpansObject.Filters)
+	filters, diags := dashboardwidgets.ExpandSpansFilters(ctx, barChartQuerySpansObject.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4068,13 +4075,13 @@ func expandBarChartSpansQuery(ctx context.Context, barChartQuerySpans types.Obje
 		return nil, diags
 	}
 
-	expandedFilter, dg := expandSpansField(barChartQuerySpansObject.StackedGroupName)
+	expandedFilter, dg := dashboardwidgets.ExpandSpansField(barChartQuerySpansObject.StackedGroupName)
 	if dg != nil {
 		return nil, diag.Diagnostics{dg}
 	}
 
 	return &cxsdk.BarChartSpansQuery{
-		LuceneQuery:      expandLuceneQuery(barChartQuerySpansObject.LuceneQuery),
+		LuceneQuery:      dashboardwidgets.ExpandLuceneQuery(barChartQuerySpansObject.LuceneQuery),
 		Aggregation:      aggregation,
 		Filters:          filters,
 		GroupNames:       groupNames,
@@ -4219,7 +4226,7 @@ func expandDashboardFiltersSources(ctx context.Context, filters types.List) ([]*
 			diags.Append(dg...)
 			continue
 		}
-		expandedFilter, expandDiags := expandFilterSource(ctx, &filterSource)
+		expandedFilter, expandDiags := dashboardwidgets.ExpandFilterSource(ctx, &filterSource)
 		if expandDiags.HasError() {
 			diags.Append(expandDiags...)
 			continue
@@ -4235,14 +4242,14 @@ func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *dash
 		return nil, nil
 	}
 
-	filters, diags := expandMetricsFilters(ctx, dataTableQueryMetric.Filters)
+	filters, diags := dashboardwidgets.ExpandMetricsFilters(ctx, dataTableQueryMetric.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &cxsdk.DashboardDataTableQueryMetrics{
 		Metrics: &cxsdk.DashboardDataTableMetricsQuery{
-			PromqlQuery:     expandPromqlQuery(dataTableQueryMetric.PromqlQuery),
+			PromqlQuery:     dashboardwidgets.ExpandPromqlQuery(dataTableQueryMetric.PromqlQuery),
 			Filters:         filters,
 			PromqlQueryType: expandPromqlQueryType(dataTableQueryMetric.PromqlQueryType),
 		},
@@ -4263,7 +4270,7 @@ func expandDataTableLogsQuery(ctx context.Context, dataTableQueryLogs *dashboard
 		return nil, nil
 	}
 
-	filters, diags := expandLogsFilters(ctx, dataTableQueryLogs.Filters)
+	filters, diags := dashboardwidgets.ExpandLogsFilters(ctx, dataTableQueryLogs.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4279,7 +4286,7 @@ func expandDataTableLogsQuery(ctx context.Context, dataTableQueryLogs *dashboard
 	}
 	return &cxsdk.DashboardDataTableQueryLogs{
 		Logs: &cxsdk.DashboardDataTableLogsQuery{
-			LuceneQuery: expandLuceneQuery(dataTableQueryLogs.LuceneQuery),
+			LuceneQuery: dashboardwidgets.ExpandLuceneQuery(dataTableQueryLogs.LuceneQuery),
 			Filters:     filters,
 			Grouping:    grouping,
 			TimeFrame:   timeframe,
@@ -4362,7 +4369,7 @@ func expandDataTableSpansQuery(ctx context.Context, dataTableQuerySpans *dashboa
 		return nil, nil
 	}
 
-	filters, diags := expandSpansFilters(ctx, dataTableQuerySpans.Filters)
+	filters, diags := dashboardwidgets.ExpandSpansFilters(ctx, dataTableQuerySpans.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4374,7 +4381,7 @@ func expandDataTableSpansQuery(ctx context.Context, dataTableQuerySpans *dashboa
 
 	return &cxsdk.DashboardDataTableQuerySpans{
 		Spans: &cxsdk.DashboardDataTableSpansQuery{
-			LuceneQuery: expandLuceneQuery(dataTableQuerySpans.LuceneQuery),
+			LuceneQuery: dashboardwidgets.ExpandLuceneQuery(dataTableQuerySpans.LuceneQuery),
 			Filters:     filters,
 			Grouping:    grouping,
 		},
@@ -4431,7 +4438,7 @@ func expandDataTableSpansAggregation(aggregation *dashboardwidgets.DataTableSpan
 		return nil, nil
 	}
 
-	spansAggregation, dg := expandSpansAggregation(aggregation.Aggregation)
+	spansAggregation, dg := dashboardwidgets.ExpandSpansAggregation(aggregation.Aggregation)
 	if dg != nil {
 		return nil, dg
 	}
@@ -4581,7 +4588,7 @@ func expandResolution(ctx context.Context, resolution types.Object) (*cxsdk.Line
 	}
 
 	if !(resolutionModel.Interval.IsNull() || resolutionModel.Interval.IsUnknown()) {
-		interval, dg := parseDuration(resolutionModel.Interval.ValueString(), "resolution.interval")
+		interval, dg := utils.ParseDuration(resolutionModel.Interval.ValueString(), "resolution.interval")
 		if dg != nil {
 			return nil, diag.Diagnostics{dg}
 		}
@@ -4646,14 +4653,14 @@ func expandLineChartLogsQuery(ctx context.Context, logs *dashboardwidgets.LineCh
 		return nil, diags
 	}
 
-	filters, diags := expandLogsFilters(ctx, logs.Filters)
+	filters, diags := dashboardwidgets.ExpandLogsFilters(ctx, logs.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &cxsdk.LineChartQueryLogs{
 		Logs: &cxsdk.LineChartLogsQuery{
-			LuceneQuery:  expandLuceneQuery(logs.LuceneQuery),
+			LuceneQuery:  dashboardwidgets.ExpandLuceneQuery(logs.LuceneQuery),
 			GroupBy:      groupBy,
 			Aggregations: aggregations,
 			Filters:      filters,
@@ -4661,20 +4668,21 @@ func expandLineChartLogsQuery(ctx context.Context, logs *dashboardwidgets.LineCh
 	}, nil
 }
 
-func expandLineChartMetricsQuery(ctx context.Context, metrics *dashboardwidgets.LineChartQueryMetricsModel) (*cxsdk.LineChartQueryMetrics, diag.Diagnostics) {
+func expandLineChartMetricsQuery(ctx context.Context, metrics *dashboardwidgets.QueryMetricsModel) (*cxsdk.LineChartQueryMetrics, diag.Diagnostics) {
 	if metrics == nil {
 		return nil, nil
 	}
 
-	filters, diags := expandMetricsFilters(ctx, metrics.Filters)
+	filters, diags := dashboardwidgets.ExpandMetricsFilters(ctx, metrics.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &cxsdk.LineChartQueryMetrics{
 		Metrics: &cxsdk.LineChartMetricsQuery{
-			PromqlQuery: expandPromqlQuery(metrics.PromqlQuery),
+			PromqlQuery: dashboardwidgets.ExpandPromqlQuery(metrics.PromqlQuery),
 			Filters:     filters,
+			// TimeFrame: TODO
 		},
 	}, nil
 }
@@ -4689,19 +4697,19 @@ func expandLineChartSpansQuery(ctx context.Context, spans *dashboardwidgets.Line
 		return nil, diags
 	}
 
-	aggregations, diags := expandSpansAggregations(ctx, spans.Aggregations)
+	aggregations, diags := dashboardwidgets.ExpandSpansAggregations(ctx, spans.Aggregations)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	filters, diags := expandSpansFilters(ctx, spans.Filters)
+	filters, diags := dashboardwidgets.ExpandSpansFilters(ctx, spans.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &cxsdk.LineChartQuerySpans{
 		Spans: &cxsdk.LineChartSpansQuery{
-			LuceneQuery:  expandLuceneQuery(spans.LuceneQuery),
+			LuceneQuery:  dashboardwidgets.ExpandLuceneQuery(spans.LuceneQuery),
 			GroupBy:      groupBy,
 			Aggregations: aggregations,
 			Filters:      filters,
@@ -4762,7 +4770,7 @@ func expandPieChartLogsQuery(ctx context.Context, pieChartQueryLogs *dashboardwi
 		return nil, diags
 	}
 
-	filters, diags := expandLogsFilters(ctx, pieChartQueryLogs.Filters)
+	filters, diags := dashboardwidgets.ExpandLogsFilters(ctx, pieChartQueryLogs.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4777,14 +4785,14 @@ func expandPieChartLogsQuery(ctx context.Context, pieChartQueryLogs *dashboardwi
 		return nil, diags
 	}
 
-	stackedGroupNameField, diags := expandObservationFieldObject(ctx, pieChartQueryLogs.StackedGroupNameField)
+	stackedGroupNameField, diags := dashboardwidgets.ExpandObservationFieldObject(ctx, pieChartQueryLogs.StackedGroupNameField)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	return &cxsdk.PieChartQueryLogs{
 		Logs: &cxsdk.PieChartLogsQuery{
-			LuceneQuery:           expandLuceneQuery(pieChartQueryLogs.LuceneQuery),
+			LuceneQuery:           dashboardwidgets.ExpandLuceneQuery(pieChartQueryLogs.LuceneQuery),
 			Aggregation:           aggregation,
 			Filters:               filters,
 			GroupNames:            groupNames,
@@ -4800,7 +4808,7 @@ func expandPieChartMetricsQuery(ctx context.Context, pieChartQueryMetrics *dashb
 		return nil, nil
 	}
 
-	filters, diags := expandMetricsFilters(ctx, pieChartQueryMetrics.Filters)
+	filters, diags := dashboardwidgets.ExpandMetricsFilters(ctx, pieChartQueryMetrics.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4812,7 +4820,7 @@ func expandPieChartMetricsQuery(ctx context.Context, pieChartQueryMetrics *dashb
 
 	return &cxsdk.PieChartQueryMetrics{
 		Metrics: &cxsdk.PieChartMetricsQuery{
-			PromqlQuery:      expandPromqlQuery(pieChartQueryMetrics.PromqlQuery),
+			PromqlQuery:      dashboardwidgets.ExpandPromqlQuery(pieChartQueryMetrics.PromqlQuery),
 			GroupNames:       groupNames,
 			Filters:          filters,
 			StackedGroupName: utils.TypeStringToWrapperspbString(pieChartQueryMetrics.StackedGroupName),
@@ -4825,12 +4833,12 @@ func expandPieChartSpansQuery(ctx context.Context, pieChartQuerySpans *dashboard
 		return nil, nil
 	}
 
-	aggregation, dg := expandSpansAggregation(pieChartQuerySpans.Aggregation)
+	aggregation, dg := dashboardwidgets.ExpandSpansAggregation(pieChartQuerySpans.Aggregation)
 	if dg != nil {
 		return nil, diag.Diagnostics{dg}
 	}
 
-	filters, diags := expandSpansFilters(ctx, pieChartQuerySpans.Filters)
+	filters, diags := dashboardwidgets.ExpandSpansFilters(ctx, pieChartQuerySpans.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -4847,7 +4855,7 @@ func expandPieChartSpansQuery(ctx context.Context, pieChartQuerySpans *dashboard
 
 	return &cxsdk.PieChartQuerySpans{
 		Spans: &cxsdk.PieChartSpansQuery{
-			LuceneQuery:      expandLuceneQuery(pieChartQuerySpans.LuceneQuery),
+			LuceneQuery:      dashboardwidgets.ExpandLuceneQuery(pieChartQuerySpans.LuceneQuery),
 			Aggregation:      aggregation,
 			Filters:          filters,
 			GroupNames:       groupNames,
@@ -5024,7 +5032,7 @@ func expandMultiSelectSource(ctx context.Context, source *VariableMultiSelectSou
 			},
 		}, nil
 	case source.SpanField != nil:
-		spanField, dg := expandSpansField(source.SpanField)
+		spanField, dg := dashboardwidgets.ExpandSpansField(source.SpanField)
 		if dg != nil {
 			return nil, diag.Diagnostics{dg}
 		}
@@ -5071,7 +5079,7 @@ func expandDashboardFilter(ctx context.Context, filter *DashboardFilterModel) (*
 		return nil, nil
 	}
 
-	source, diags := expandFilterSource(ctx, filter.Source)
+	source, diags := dashboardwidgets.ExpandFilterSource(ctx, filter.Source)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -5149,7 +5157,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 			Layout:      types.ObjectNull(layoutModelAttr()),
 			Variables:   types.ListNull(types.ObjectType{AttrTypes: dashboardsVariablesModelAttr()}),
 			Filters:     types.ListNull(types.ObjectType{AttrTypes: dashboardsFiltersModelAttr()}),
-			TimeFrame:   types.ObjectNull(dashboardwidgets.TimeFrameModelAttr()),
+			TimeFrame:   nil,
 			Folder:      types.ObjectNull(dashboardFolderModelAttr()),
 			Annotations: types.ListNull(types.ObjectType{AttrTypes: dashboardsAnnotationsModelAttr()}),
 			AutoRefresh: types.ObjectNull(dashboardAutoRefreshModelAttr()),
@@ -5278,7 +5286,7 @@ func widgetModelAttr() map[string]attr.Type {
 		"description": types.StringType,
 		"definition": types.ObjectType{
 			AttrTypes: map[string]attr.Type{
-				"hexagon": dashboardwidgets.HexagonType().WithAttributeTypes(),
+				"hexagon": dashboardwidgets.HexagonType(),
 				"line_chart": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
 						"legend": types.ObjectType{
@@ -6660,7 +6668,7 @@ func flattenLineChartQueryMetrics(ctx context.Context, metrics *cxsdk.LineChartM
 	}
 
 	return &dashboardwidgets.LineChartQueryModel{
-		Metrics: &dashboardwidgets.LineChartQueryMetricsModel{
+		Metrics: &dashboardwidgets.QueryMetricsModel{
 			PromqlQuery: utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 			Filters:     filters,
 		},

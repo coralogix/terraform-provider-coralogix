@@ -95,7 +95,7 @@ func expandLogsFilter(ctx context.Context, logsFilter LogsFilterModel) (*cxsdk.D
 		return nil, diags
 	}
 
-	observationField, diags := expandObservationFieldObject(ctx, logsFilter.ObservationField)
+	observationField, diags := ExpandObservationFieldObject(ctx, logsFilter.ObservationField)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -142,7 +142,7 @@ func expandFilterSourceLogs(ctx context.Context, logs *FilterSourceLogsModel) (*
 		return nil, diags
 	}
 
-	observationField, diags := expandObservationFieldObject(ctx, logs.ObservationField)
+	observationField, diags := ExpandObservationFieldObject(ctx, logs.ObservationField)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -257,7 +257,7 @@ func expandFilterOperator(ctx context.Context, operator *FilterOperatorModel) (*
 	}
 }
 
-func expandPromqlQuery(promqlQuery types.String) *cxsdk.DashboardPromQLQuery {
+func ExpandPromqlQuery(promqlQuery types.String) *cxsdk.DashboardPromQLQuery {
 	if promqlQuery.IsNull() || promqlQuery.IsUnknown() {
 		return nil
 	}
