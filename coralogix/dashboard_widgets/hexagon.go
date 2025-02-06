@@ -180,7 +180,7 @@ func HexagonSchema() schema.Attribute {
 							},
 							"filters": MetricFiltersSchema(),
 							"aggregation": schema.StringAttribute{
-								Optional: false,
+								Optional: true,
 								Default:  stringdefault.StaticString("unspecified"),
 								Validators: []validator.String{
 									stringvalidator.OneOf(DashboardValidHexagonMetricAggregations...),
