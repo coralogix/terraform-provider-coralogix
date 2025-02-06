@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -365,7 +366,7 @@ resource "coralogix_dashboard" test {
 }
 
 func TestParseRelativeTimeDuration(t *testing.T) {
-	res, err := parseDuration("seconds:900", "relative")
+	res, err := utils.ParseDuration("seconds:900", "relative")
 	if err != nil {
 		t.Fatal(err)
 	}
