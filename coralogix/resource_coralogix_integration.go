@@ -270,35 +270,55 @@ func dynamicToParameters(planParameters types.Dynamic) ([]*cxsdk.IntegrationPara
 					Key:   key,
 					Value: &cxsdk.IntegrationParameterBooleanValue{BooleanValue: wrapperspb.Bool(b)},
 				})
-			case types.Tuple:
 
-				strings := make([]*wrapperspb.StringValue, len(v.Elements()))
-				for i, value := range v.Elements() {
-					switch value := value.(type) {
-					case types.String:
-						if !value.IsNull() && value.ValueString() != "" {
-							strings[i] = wrapperspb.String(value.ValueString())
-						}
-					default:
-						return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid parameter type", fmt.Sprintf("Invalid parameter type %v: %v", v, p))}
-					}
+			case types.List:
+				stringlist, diags := collectionToParameters(v.Elements())
+
+				if diags.HasError() {
+					return nil, diags
 				}
 
 				parameters = append(parameters, &cxsdk.IntegrationParameter{
-					Key: key,
-					Value: &cxsdk.IntegrationParameterStringList{
-						StringList: &cxsdk.IntegrationParameterStringListInner{
-							Values: strings,
-						}},
+					Key:   key,
+					Value: stringlist,
+				})
+			case types.Tuple:
+				stringlist, diags := collectionToParameters(v.Elements())
+
+				if diags.HasError() {
+					return nil, diags
+				}
+
+				parameters = append(parameters, &cxsdk.IntegrationParameter{
+					Key:   key,
+					Value: stringlist,
 				})
 			default:
-				return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid parameter type", fmt.Sprintf("Invalid parameter type (Lists have to be tuples) %v: %v", v, p))}
+				return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid parameter type", fmt.Sprintf("Invalid parameter type %v: %v", v, p))}
 			}
 		}
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Parameters have to be an object", fmt.Sprintf("Invalid parameters: %v", planParameters.UnderlyingValue()))}
 	}
 	return parameters, diag.Diagnostics{}
+}
+
+func collectionToParameters(elements []attr.Value) (*cxsdk.IntegrationParameterStringList, diag.Diagnostics) {
+	strings := make([]*wrapperspb.StringValue, len(elements))
+	for i, value := range elements {
+		switch value := value.(type) {
+		case types.String:
+			if !value.IsNull() && value.ValueString() != "" {
+				strings[i] = wrapperspb.String(value.ValueString())
+			}
+		default:
+			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid parameter type", fmt.Sprintf("Invalid parameter type %v: %v", value, elements))}
+		}
+	}
+	return &cxsdk.IntegrationParameterStringList{
+		StringList: &cxsdk.IntegrationParameterStringListInner{
+			Values: strings,
+		}}, nil
 }
 
 func integrationDetail(resp *cxsdk.GetDeployedIntegrationResponse, keys []string) (*IntegrationResourceModel, diag.Diagnostics) {
