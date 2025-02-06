@@ -785,3 +785,10 @@ Fix:
 Fix:
 
 * Add PhantomMode field
+
+
+### resource/coralogix_integration
+
+Fix:
+
+* Add support for lists
