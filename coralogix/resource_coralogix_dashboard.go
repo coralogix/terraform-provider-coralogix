@@ -2261,7 +2261,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Flattened Dashboard: %s", flattenedDashboard)
+	log.Printf("[INFO] Flattened Dashboard: %v", flattenedDashboard)
 	plan = *flattenedDashboard
 
 	// Set state to fully populated data
