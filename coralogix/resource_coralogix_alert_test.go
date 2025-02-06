@@ -41,6 +41,7 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs immediate alert"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs immediate alert from terraform"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "phantom_mode", "true"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.alert_type", "security"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.security_severity", "high"),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
@@ -1358,6 +1359,7 @@ func testAccCoralogixResourceAlertLogsImmediate() string {
   name        = "logs immediate alert"
   description = "Example of logs immediate alert from terraform"
   priority    = "P2"
+  phantom_mode = true
 
   labels = {
     alert_type        = "security"
