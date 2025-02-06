@@ -1725,6 +1725,7 @@ func extractAlertProperties(ctx context.Context, plan *AlertResourceModel) (*cxs
 		IncidentsSettings: incidentsSettings,
 		NotificationGroup: notificationGroup,
 		EntityLabels:      labels,
+		PhantomMode:       typeBoolToWrapperspbBool(plan.PhantomMode),
 		// Schedule is set in the next step
 	}
 
