@@ -769,3 +769,19 @@ Fix:
 Fix:
 
 * Bumped SDK to 1.1.1
+
+# Release 2.0.6
+
+### resource/coralogix_dashboard
+
+Fix:
+
+* Add promqlQueryType field to dashboard
+
+# Release 2.0.7
+
+### resource/coralogix_alert
+
+Fix:
+
+* Add PhantomMode field
