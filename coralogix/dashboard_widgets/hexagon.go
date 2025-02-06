@@ -124,6 +124,8 @@ func HexagonSchema() schema.Attribute {
 				Default: stringdefault.StaticString("unspecified"),
 			},
 			"thresholds": schema.SetNestedAttribute{
+				Optional: true,
+				Computed: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"from": schema.NumberAttribute{
@@ -149,6 +151,7 @@ func HexagonSchema() schema.Attribute {
 			},
 			"time_frame": TimeFrameSchema(),
 			"query": schema.SingleNestedAttribute{
+				Required: true,
 				Attributes: map[string]schema.Attribute{
 					"logs": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
@@ -253,7 +256,6 @@ func HexagonSchema() schema.Attribute {
 				path.MatchRelative().AtParent().AtParent().AtName("title"),
 			),
 		},
-		Optional: true,
 	}
 }
 
