@@ -44,7 +44,7 @@ func TestAccCoralogixResourceDataSet(t *testing.T) {
 	parent := filepath.Dir(wd)
 	filePath := parent + "/examples/resources/coralogix_data_set/date-to-day-of-the-week.csv"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckDataSetDestroy,
 		Steps: []resource.TestStep{
@@ -75,7 +75,7 @@ func TestAccCoralogixResourceDataSetWithUploadedFile(t *testing.T) {
 	parent := filepath.Dir(wd)
 	filePath := parent + "/examples/resources/coralogix_data_set/date-to-day-of-the-week.csv"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckDataSetDestroy,
 		Steps: []resource.TestStep{

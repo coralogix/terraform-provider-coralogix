@@ -31,7 +31,7 @@ var enrichmentResourceName = "coralogix_enrichment.test"
 func TestAccCoralogixResourceGeoIpEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckEnrichmentDestroy,
 		Steps: []resource.TestStep{
@@ -55,7 +55,7 @@ func TestAccCoralogixResourceGeoIpEnrichment(t *testing.T) {
 func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckEnrichmentDestroy,
 		Steps: []resource.TestStep{
@@ -81,7 +81,7 @@ func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 //	fieldName := "coralogix.metadata.sdkId"
 //	resourceType := ""
 //	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
+//		PreCheck:          func() { TestAccPreCheck(t) },
 //		ProviderFactories: testAccProviderFactories,
 //		CheckDestroy:      testAccCheckEnrichmentDestroy,
 //		Steps: []resource.TestStep{
@@ -105,7 +105,7 @@ func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 func TestAccCoralogixResourceCustomEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckCustomEnrichmentDestroy,
 		Steps: []resource.TestStep{
