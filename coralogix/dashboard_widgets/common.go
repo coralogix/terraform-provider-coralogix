@@ -22,8 +22,10 @@ import (
 	"time"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -259,6 +261,17 @@ var (
 	}
 	DashboardProtoToSchemaPromQLQueryType = utils.ReverseMap(DashboardSchemaToProtoPromQLQueryType)
 	DashboardValidPromQLQueryType         = utils.GetKeys(DashboardSchemaToProtoPromQLQueryType)
+
+	SupportedWidgetTypes = []string{
+		"data_table",
+		"gauge",
+		"hexagon",
+		"line_chart",
+		"pie_chart",
+		"bar_chart",
+		"horizontal_bar_chart",
+		"markdown",
+	}
 )
 
 type QueryMetricsModel struct {
@@ -1123,7 +1136,7 @@ func flattenAbsoluteTimeFrame(ctx context.Context, timeFrame *cxsdk.DashboardTim
 	}
 	flattenedTimeFrame := &TimeFrameModel{
 		Absolute: timeFrameObject,
-		Relative: types.ObjectNull(AbsoluteTimeFrameAttr()),
+		Relative: types.ObjectNull(RelativeTimeFrameAttr()),
 	}
 	return flattenedTimeFrame, nil
 }
@@ -1141,28 +1154,6 @@ func flattenRelativeTimeFrame(ctx context.Context, timeFrame *durationpb.Duratio
 		Absolute: types.ObjectNull(AbsoluteTimeFrameAttr()),
 	}
 	return flattenedTimeFrame, nil
-}
-
-func flattenSpansAggregation(aggregation *cxsdk.SpansAggregation) (*SpansAggregationModel, diag.Diagnostic) {
-	if aggregation == nil || aggregation.GetAggregation() == nil {
-		return nil, nil
-	}
-	switch aggregation := aggregation.GetAggregation().(type) {
-	case *cxsdk.SpansAggregationMetricAggregation:
-		return &SpansAggregationModel{
-			Type:            types.StringValue("metric"),
-			AggregationType: types.StringValue(DashboardProtoToSchemaSpansAggregationMetricAggregationType[aggregation.MetricAggregation.GetAggregationType()]),
-			Field:           types.StringValue(DashboardProtoToSchemaSpansAggregationMetricField[aggregation.MetricAggregation.GetMetricField()]),
-		}, nil
-	case *cxsdk.SpansAggregationDimensionAggregation:
-		return &SpansAggregationModel{
-			Type:            types.StringValue("dimension"),
-			AggregationType: types.StringValue(DashboardProtoToSchemaSpansAggregationDimensionAggregationType[aggregation.DimensionAggregation.GetAggregationType()]),
-			Field:           types.StringValue(DashboardSchemaToProtoSpansAggregationDimensionField[aggregation.DimensionAggregation.GetDimensionField()]),
-		}, nil
-	default:
-		return nil, diag.NewErrorDiagnostic("Error Flatten Span Aggregation", fmt.Sprintf("unknown aggregation type %T", aggregation))
-	}
 }
 
 func FlattenSpansFilters(ctx context.Context, filters []*cxsdk.DashboardFilterSpansFilter) (types.List, diag.Diagnostics) {
@@ -1757,4 +1748,14 @@ func expandAbsoluteTimeFrame(ctx context.Context, timeFrame types.Object) (*time
 	to := timestamppb.New(toTime)
 
 	return from, to, nil
+}
+
+func SupportedWidgetsValidatorWithout(current string) validator.Object {
+	matchers := make([]path.Expression, len(SupportedWidgetTypes)-1)
+	for _, name := range SupportedWidgetTypes {
+		if name != current {
+			matchers = append(matchers, path.MatchRelative().AtParent().AtName(name))
+		}
+	}
+	return objectvalidator.ExactlyOneOf(matchers...)
 }

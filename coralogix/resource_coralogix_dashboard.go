@@ -498,6 +498,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 														Required: true,
 														Attributes: map[string]schema.Attribute{
 															"line_chart": schema.SingleNestedAttribute{
+																Optional: true,
 																Attributes: map[string]schema.Attribute{
 																	"legend": dashboardwidgets.LegendSchema(),
 																	"tooltip": schema.SingleNestedAttribute{
@@ -518,6 +519,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																		Optional: true,
 																	},
 																	"query_definitions": schema.SingleNestedAttribute{
+																		Required: true,
 																		Attributes: map[string]schema.Attribute{
 																			"id": schema.StringAttribute{
 																				Computed: true, PlanModifiers: []planmodifier.String{
@@ -668,25 +670,14 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																				Default: stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																			},
 																		},
-																		Required: true,
 																	},
 																},
 																Validators: []validator.Object{
-																	objectvalidator.ExactlyOneOf(
-																		path.MatchRelative().AtParent().AtName("data_table"),
-																		path.MatchRelative().AtParent().AtName("gauge"),
-																		path.MatchRelative().AtParent().AtName("line_chart"),
-																		path.MatchRelative().AtParent().AtName("pie_chart"),
-																		path.MatchRelative().AtParent().AtName("bar_chart"),
-																		path.MatchRelative().AtParent().AtName("hexagon"),
-																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
-																		path.MatchRelative().AtParent().AtName("markdown"),
-																	),
+																	dashboardwidgets.SupportedWidgetsValidatorWithout("line_chart"),
 																	objectvalidator.AlsoRequires(
 																		path.MatchRelative().AtParent().AtParent().AtName("title"),
 																	),
 																},
-																Optional: true,
 															},
 															"hexagon": dashboardwidgets.HexagonSchema(),
 															"data_table": schema.SingleNestedAttribute{
@@ -895,15 +886,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	},
 																},
 																Validators: []validator.Object{
-																	objectvalidator.ExactlyOneOf(
-																		path.MatchRelative().AtParent().AtName("line_chart"),
-																		path.MatchRelative().AtParent().AtName("gauge"),
-																		path.MatchRelative().AtParent().AtName("pie_chart"),
-																		path.MatchRelative().AtParent().AtName("hexagon"),
-																		path.MatchRelative().AtParent().AtName("bar_chart"),
-																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
-																		path.MatchRelative().AtParent().AtName("markdown"),
-																	),
+																	dashboardwidgets.SupportedWidgetsValidatorWithout("data_table"),
 																	objectvalidator.AlsoRequires(
 																		path.MatchRelative().AtParent().AtParent().AtName("title"),
 																	),
@@ -1057,15 +1040,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	},
 																},
 																Validators: []validator.Object{
-																	objectvalidator.ExactlyOneOf(
-																		path.MatchRelative().AtParent().AtName("line_chart"),
-																		path.MatchRelative().AtParent().AtName("data_table"),
-																		path.MatchRelative().AtParent().AtName("pie_chart"),
-																		path.MatchRelative().AtParent().AtName("bar_chart"),
-																		path.MatchRelative().AtParent().AtName("hexagon"),
-																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
-																		path.MatchRelative().AtParent().AtName("markdown"),
-																	),
+																	dashboardwidgets.SupportedWidgetsValidatorWithout("gauge"),
 																	objectvalidator.AlsoRequires(
 																		path.MatchRelative().AtParent().AtParent().AtName("title"),
 																	),
@@ -1267,14 +1242,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	},
 																},
 																Validators: []validator.Object{
-																	objectvalidator.ExactlyOneOf(
-																		path.MatchRelative().AtParent().AtName("line_chart"),
-																		path.MatchRelative().AtParent().AtName("gauge"),
-																		path.MatchRelative().AtParent().AtName("data_table"),
-																		path.MatchRelative().AtParent().AtName("bar_chart"),
-																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
-																		path.MatchRelative().AtParent().AtName("markdown"),
-																	),
+																	dashboardwidgets.SupportedWidgetsValidatorWithout("pie_chart"),
 																},
 																Optional: true,
 															},
@@ -1483,14 +1451,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	},
 																},
 																Validators: []validator.Object{
-																	objectvalidator.ExactlyOneOf(
-																		path.MatchRelative().AtParent().AtName("data_table"),
-																		path.MatchRelative().AtParent().AtName("gauge"),
-																		path.MatchRelative().AtParent().AtName("pie_chart"),
-																		path.MatchRelative().AtParent().AtName("line_chart"),
-																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
-																		path.MatchRelative().AtParent().AtName("markdown"),
-																	),
+																	dashboardwidgets.SupportedWidgetsValidatorWithout("bar_chart"),
 																	objectvalidator.AlsoRequires(
 																		path.MatchRelative().AtParent().AtParent().AtName("title"),
 																	),
@@ -1632,14 +1593,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	},
 																},
 																Validators: []validator.Object{
-																	objectvalidator.ExactlyOneOf(
-																		path.MatchRelative().AtParent().AtName("data_table"),
-																		path.MatchRelative().AtParent().AtName("gauge"),
-																		path.MatchRelative().AtParent().AtName("pie_chart"),
-																		path.MatchRelative().AtParent().AtName("line_chart"),
-																		path.MatchRelative().AtParent().AtName("bar_chart"),
-																		path.MatchRelative().AtParent().AtName("markdown"),
-																	),
+																	dashboardwidgets.SupportedWidgetsValidatorWithout("horizontal_bar_chart"),
 																	objectvalidator.AlsoRequires(
 																		path.MatchRelative().AtParent().AtParent().AtName("title"),
 																	),
@@ -1656,15 +1610,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																	},
 																},
 																Validators: []validator.Object{
-																	objectvalidator.ExactlyOneOf(
-																		path.MatchRelative().AtParent().AtName("data_table"),
-																		path.MatchRelative().AtParent().AtName("gauge"),
-																		path.MatchRelative().AtParent().AtName("pie_chart"),
-																		path.MatchRelative().AtParent().AtName("line_chart"),
-																		path.MatchRelative().AtParent().AtName("hexagon"),
-																		path.MatchRelative().AtParent().AtName("bar_chart"),
-																		path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
-																	),
+																	dashboardwidgets.SupportedWidgetsValidatorWithout("markdown"),
 																	objectvalidator.ConflictsWith(
 																		path.MatchRelative().AtParent().AtParent().AtName("title"),
 																	),
@@ -1672,7 +1618,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																Optional: true,
 															},
 														},
-														MarkdownDescription: "The widget definition. Can contain one of 'line_chart', 'data_table', 'gauge', 'pie_chart', 'bar_chart', 'horizontal_bar_chart', 'markdown'.",
+														MarkdownDescription: fmt.Sprintf("The widget definition. Can contain one of %v", dashboardwidgets.SupportedWidgetTypes),
 													},
 													"width": schema.Int64Attribute{
 														Optional:            true,

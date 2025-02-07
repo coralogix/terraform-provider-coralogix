@@ -85,7 +85,7 @@ type HexagonThresholdModel struct {
 
 func HexagonSchema() schema.Attribute {
 	return schema.SingleNestedAttribute{
-		Required: true,
+		Optional: true,
 		Attributes: map[string]schema.Attribute{
 			"min": schema.NumberAttribute{
 				Optional: true,
@@ -243,15 +243,7 @@ func HexagonSchema() schema.Attribute {
 			},
 		},
 		Validators: []validator.Object{
-			objectvalidator.ExactlyOneOf(
-				path.MatchRelative().AtParent().AtName("data_table"),
-				path.MatchRelative().AtParent().AtName("gauge"),
-				path.MatchRelative().AtParent().AtName("line_chart"),
-				path.MatchRelative().AtParent().AtName("pie_chart"),
-				path.MatchRelative().AtParent().AtName("bar_chart"),
-				path.MatchRelative().AtParent().AtName("horizontal_bar_chart"),
-				path.MatchRelative().AtParent().AtName("markdown"),
-			),
+			SupportedWidgetsValidatorWithout("hexagon"),
 			objectvalidator.AlsoRequires(
 				path.MatchRelative().AtParent().AtParent().AtName("title"),
 			),
@@ -482,44 +474,6 @@ func flattenHexagonLogsQuery(ctx context.Context, logs *cxsdk.HexagonLogsQuery) 
 			Aggregation: aggregation,
 		},
 	}, timeframe, nil
-}
-
-func flattenGroupingAggregations(ctx context.Context, aggregations []*cxsdk.DashboardDataTableLogsQueryAggregation) (types.List, diag.Diagnostics) {
-	if len(aggregations) == 0 {
-		return types.ListNull(types.ObjectType{AttrTypes: GroupingAggregationModelAttr()}), nil
-	}
-
-	var diagnostics diag.Diagnostics
-	aggregationElements := make([]attr.Value, 0, len(aggregations))
-	for _, aggregation := range aggregations {
-		flattenedAggregation, diags := flattenGroupingAggregation(ctx, aggregation)
-		if diags.HasError() {
-			diagnostics.Append(diags...)
-			continue
-		}
-		aggregationElement, diags := types.ObjectValueFrom(ctx, GroupingAggregationModelAttr(), flattenedAggregation)
-		if diags.HasError() {
-			diagnostics.Append(diags...)
-			continue
-		}
-		aggregationElements = append(aggregationElements, aggregationElement)
-	}
-
-	return types.ListValueMust(types.ObjectType{AttrTypes: GroupingAggregationModelAttr()}, aggregationElements), diagnostics
-}
-
-func flattenGroupingAggregation(ctx context.Context, dataTableAggregation *cxsdk.DashboardDataTableLogsQueryAggregation) (*DataTableLogsAggregationModel, diag.Diagnostics) {
-	aggregation, diags := FlattenLogsAggregation(ctx, dataTableAggregation.GetAggregation())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &DataTableLogsAggregationModel{
-		ID:          utils.WrapperspbStringToTypeString(dataTableAggregation.GetId()),
-		Name:        utils.WrapperspbStringToTypeString(dataTableAggregation.GetName()),
-		IsVisible:   utils.WrapperspbBoolToTypeBool(dataTableAggregation.GetIsVisible()),
-		Aggregation: aggregation,
-	}, nil
 }
 
 func flattenHexagonMetricsQuery(ctx context.Context, metrics *cxsdk.HexagonMetricsQuery) (*HexagonQueryModel, *TimeFrameModel, diag.Diagnostics) {

@@ -120,15 +120,34 @@ func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
             title      = "hexagon"
             definition = {
               hexagon = {
-                query_definitions = [
-                  {
-                    query = {
-                      metrics = {
-                        promql_query = "http_requests_total{status!~\"4..\"}"
-                      }
-                    }
-                  },
-                ]
+                min = 0
+                max = 100
+                decimal = 2
+                threshold_type = "relative"
+                thresholds = [{
+                  from = 0
+                  color = "var(--c-severity-log-verbose)"
+                },
+                {
+                  from = 33
+                  color = "var(--c-severity-log-warning)"
+                },
+                {
+                  from = 66
+                  color = "var(--c-severity-log-error)"
+                }]
+                query = {
+                  logs = {
+                    aggregation = [{
+                      type = "count"
+                    }]
+                    group_by = [{
+                      keypath = ["subsystemname"]
+                      scope = "label"
+                    }]
+                  }
+                }
+                legend_by = "groups"
                 legend = {
                   is_visible = true
                 }
@@ -138,59 +157,33 @@ func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
           }`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "name", "test"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "description", "dashboards team is messing with this 🗿"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.name", "Status"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.color", "blue"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.description", "abc"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.collapsed", "false"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.height", "19"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "status 4XX"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.metrics.promql_query", "http_requests_total{status!~\"4..\"}"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.legend.is_visible", "true"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.legend.columns.0", "max"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.legend.columns.1", "last"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.width", "0"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.title", "count"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.line_chart.query_definitions.0.query.logs.aggregations.0.type", "count"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.line_chart.legend.is_visible", "true"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.line_chart.legend.columns.0", "min"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.line_chart.legend.columns.1", "max"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.line_chart.legend.columns.2", "sum"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.line_chart.legend.columns.3", "avg"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.definition.line_chart.legend.columns.4", "last"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.1.width", "10"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.2.title", "error throwing pods"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.2.definition.line_chart.query_definitions.0.query.logs.lucene_query", "coralogix.metadata.severity=5 OR coralogix.metadata.severity=\"6\" OR coralogix.metadata.severity=\"4\""),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.2.definition.line_chart.query_definitions.0.query.logs.group_by.0", "coralogix.metadata.subsystemName"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.2.definition.line_chart.query_definitions.0.query.logs.aggregations.0.type", "count"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.2.definition.line_chart.legend.is_visible", "true"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.2.definition.line_chart.legend.columns.0", "max"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.2.definition.line_chart.legend.columns.1", "last"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.2.width", "0"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.height", "28"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.title", "dashboards-api logz"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.description", "warnings, errors, criticals"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.query.logs.filters.0.field", "coralogix.metadata.applicationName"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.query.logs.filters.0.operator.type", "equals"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.query.logs.filters.0.operator.selected_values.0", "staging"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.results_per_page", "20"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.row_style", "one_line"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.columns.0.field", "coralogix.timestamp"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.columns.1.field", "textObject.textObject.textObject.kubernetes.pod_id"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.columns.2.field", "coralogix.text"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.columns.3.field", "coralogix.metadata.applicationName"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.columns.4.field", "coralogix.metadata.subsystemName"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.columns.5.field", "coralogix.metadata.sdkId"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.definition.data_table.columns.6.field", "textObject.log_obj.e2e_test.config"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.1.widgets.0.width", "0"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.name", "test_variable"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.selected_values.0", "1"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.selected_values.1", "2"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.selected_values.2", "3"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.constant_list.0", "1"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.constant_list.1", "2"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "variables.0.definition.multi_select.source.constant_list.2", "3"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.query.logs.aggregation.0.type", "count"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.query.logs.group_by.0.keypath.0", "subsystemname"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.query.logs.group_by.0.scope", "label"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.legend_by", "groups"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.min", "0"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.max", "100"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.decimal", "2"),
+
+					resource.TestCheckTypeSetElemNestedAttrs(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.thresholds.*",
+						map[string]string{
+							"from":  "0",
+							"color": "var(--c-severity-log-verbose)",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.thresholds.*",
+						map[string]string{
+							"from":  "33",
+							"color": "var(--c-severity-log-warning)",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.thresholds.*",
+						map[string]string{
+							"from":  "66",
+							"color": "var(--c-severity-log-error)",
+						},
+					),
 				),
 			},
 			{
@@ -489,7 +482,6 @@ layout = {
     }]
   }]
 }
-variables = []
 }
 `, widget)
 }
