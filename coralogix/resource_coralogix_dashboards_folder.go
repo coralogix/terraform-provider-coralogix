@@ -189,10 +189,7 @@ func (r *DashboardsFolderResource) Read(ctx context.Context, req resource.ReadRe
 		}
 	}
 	if dashboardsFolder == nil {
-		log.Printf("[ERROR] Could not find created folder with id: %s", state.ID.ValueString())
-		resp.Diagnostics.AddError(fmt.Sprintf("Dashboard folder %q is in state, but no longer exists in Coralogix backend", state.ID.ValueString()),
-			fmt.Sprintf("%s will be recreated when you apply", state.ID.ValueString()),
-		)
+		log.Printf("[WARNING] Dashboard folder %q is in state, but no longer exists in Coralogix backend. It will be recreated when you apply.", state.ID.ValueString())
 		resp.State.RemoveResource(ctx)
 		return
 	}
