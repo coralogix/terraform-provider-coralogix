@@ -29,7 +29,7 @@ description: |-
 - `folder` (Attributes) (see [below for nested schema](#nestedatt--folder))
 - `layout` (Attributes) Layout configuration for the dashboard's visual elements. (see [below for nested schema](#nestedatt--layout))
 - `name` (String) Display name of the dashboard.
-- `time_frame` (Attributes) Specifies the time frame for the dashboard's data. Can be either absolute or relative. (see [below for nested schema](#nestedatt--time_frame))
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--time_frame))
 - `variables` (Attributes List) List of variables that can be used within the dashboard for dynamic content. (see [below for nested schema](#nestedatt--variables))
 
 <a id="nestedatt--annotations"></a>
@@ -430,7 +430,7 @@ Read-Only:
 
 Read-Only:
 
-- `definition` (Attributes) The widget definition. Can contain one of 'line_chart', 'data_table', 'gauge', 'pie_chart', 'bar_chart', 'horizontal_bar_chart', 'markdown'. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
+- `definition` (Attributes) The widget definition. Can contain one of [data_table gauge hexagon line_chart pie_chart bar_chart horizontal_bar_chart markdown] (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition))
 - `description` (String) Widget description.
 - `id` (String)
 - `title` (String) Widget title. Required for all widgets except markdown.
@@ -444,6 +444,7 @@ Read-Only:
 - `bar_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart))
 - `data_table` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table))
 - `gauge` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge))
+- `hexagon` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon))
 - `horizontal_bar_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart))
 - `line_chart` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart))
 - `markdown` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--markdown))
@@ -922,6 +923,7 @@ Read-Only:
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters))
 - `grouping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping))
 - `lucene_query` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.filters`
@@ -998,6 +1000,32 @@ Read-Only:
 
 - `keypath` (List of String)
 - `scope` (String)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.logs.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
 
 
 
@@ -1372,6 +1400,330 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon`
+
+Read-Only:
+
+- `data_mode_type` (String)
+- `decimal` (Number)
+- `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--legend))
+- `legend_by` (String) The legend by. Valid values are: groups, thresholds, unspecified.
+- `max` (Number)
+- `min` (Number)
+- `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query))
+- `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
+- `thresholds` (Attributes Set) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--thresholds))
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--time_frame))
+- `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--legend"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.legend`
+
+Read-Only:
+
+- `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
+- `group_by_query` (Boolean)
+- `is_visible` (Boolean) Whether to display the legend. True by default.
+- `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query`
+
+Read-Only:
+
+- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime))
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime`
+
+Read-Only:
+
+- `dataprime_query` (String)
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters`
+
+Read-Only:
+
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs`
+
+Read-Only:
+
+- `field` (String) Field in the logs to apply the filter on.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--observation_field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--logs--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.logs.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.metrics`
+
+Read-Only:
+
+- `label` (String)
+- `metric_name` (String)
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--metrics--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--metrics--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.metrics.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans`
+
+Read-Only:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.field`
+
+Read-Only:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.spans.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs`
+
+Read-Only:
+
+- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--aggregation))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters))
+- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--group_by))
+- `lucene_query` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.aggregation`
+
+Read-Only:
+
+- `field` (String)
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--aggregation--observation_field))
+- `percent` (Number) The percentage of the aggregation to return. required when type is `percentile`.
+- `type` (String) The type of the aggregation. Can be one of ["count" "count_distinct" "sum" "avg" "min" "max" "percentile"]
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--aggregation--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.aggregation.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.filters`
+
+Read-Only:
+
+- `field` (String)
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--observation_field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.filters.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.filters.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--group_by"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.group_by`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.metrics`
+
+Read-Only:
+
+- `aggregation` (String)
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--filters))
+- `promql_query` (String)
+- `promql_query_type` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.metrics.filters`
+
+Read-Only:
+
+- `label` (String) Label associated with the metric.
+- `metric` (String) Metric name to apply the filter on.
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--filters--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.metrics.filters.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans`
+
+Read-Only:
+
+- `aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--aggregation))
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters))
+- `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--group_by))
+- `lucene_query` (String)
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--aggregation"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.aggregation`
+
+Read-Only:
+
+- `aggregation_type` (String) The type of the aggregation. When the aggregation type is `metrics`, can be one of ["avg" "max" "min" "percentile_50" "percentile_95" "percentile_99" "sum" "unspecified"]. When the aggregation type is `dimension`, can be one of ["error_count" "unique_count" "unspecified"].
+- `field` (String) The field to aggregate on. When the aggregation type is `metrics`, can be one of ["duration" "unspecified"]. When the aggregation type is `dimension`, can be one of ["trace_id" "unspecified"].
+- `type` (String) Can be one of ["metric" "dimension"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.filters`
+
+Read-Only:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.filters.field`
+
+Read-Only:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.filters.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--group_by"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.group_by`
+
+Read-Only:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--thresholds"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.thresholds`
+
+Read-Only:
+
+- `color` (String)
+- `from` (Number)
+- `label` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
+
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart`
 
@@ -1603,7 +1955,7 @@ Read-Only:
 
 - `columns` (List of String) The columns to display in the legend. Valid values are: avg, last, max, min, name, sum, unspecified.
 - `group_by_query` (Boolean)
-- `is_visible` (Boolean) Whether to display the legend. False by default.
+- `is_visible` (Boolean) Whether to display the legend. True by default.
 - `placement` (String) The placement of the legend. Valid values are: auto, bottom, hidden, side, unspecified.
 
 
@@ -1699,6 +2051,7 @@ Read-Only:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters))
 - `promql_query` (String)
+- `promql_query_type` (String)
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.filters`
