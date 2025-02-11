@@ -518,156 +518,136 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																		},
 																		Optional: true,
 																	},
-																	"query_definitions": schema.SingleNestedAttribute{
+																	"query_definitions": schema.ListNestedAttribute{
 																		Required: true,
-																		Attributes: map[string]schema.Attribute{
-																			"id": schema.StringAttribute{
-																				Computed: true, PlanModifiers: []planmodifier.String{
-																					stringplanmodifier.UseStateForUnknown(),
-																				},
-																			},
-																			"query": schema.SingleNestedAttribute{
-																				Attributes: map[string]schema.Attribute{
-																					"logs": schema.SingleNestedAttribute{
-																						Attributes: map[string]schema.Attribute{
-																							"lucene_query": schema.StringAttribute{
-																								Optional: true,
-																							},
-																							"group_by": schema.ListAttribute{
-																								ElementType: types.StringType,
-																								Optional:    true,
-																							},
-																							"filters":      dashboardwidgets.LogsFiltersSchema(),
-																							"aggregations": dashboardwidgets.LogsAggregationsSchema(),
-																						},
-																						Optional: true,
-																						Validators: []validator.Object{
-																							objectvalidator.ExactlyOneOf(
-																								path.MatchRelative().AtParent().AtName("metrics"),
-																								path.MatchRelative().AtParent().AtName("spans"),
-																							),
-																						},
-																					},
-																					"metrics": schema.SingleNestedAttribute{
-																						Attributes: map[string]schema.Attribute{
-																							"promql_query": schema.StringAttribute{
-																								Required: true,
-																							},
-																							"filters": dashboardwidgets.MetricFiltersSchema(),
-																						},
-																						Optional: true,
-																						Validators: []validator.Object{
-																							objectvalidator.ExactlyOneOf(
-																								path.MatchRelative().AtParent().AtName("logs"),
-																								path.MatchRelative().AtParent().AtName("spans"),
-																							),
-																						},
-																					},
-																					"spans": schema.SingleNestedAttribute{
-																						Attributes: map[string]schema.Attribute{
-																							"lucene_query": schema.StringAttribute{
-																								Optional: true,
-																							},
-																							"group_by":     dashboardwidgets.SpansFieldsSchema(),
-																							"aggregations": dashboardwidgets.SpansAggregationsSchema(),
-																							"filters":      dashboardwidgets.SpansFilterSchema(),
-																						},
-																						Optional: true,
-																						Validators: []validator.Object{
-																							objectvalidator.ExactlyOneOf(
-																								path.MatchRelative().AtParent().AtName("metrics"),
-																								path.MatchRelative().AtParent().AtName("logs"),
-																							),
-																						},
-																					},
-																					"dataprime": schema.SingleNestedAttribute{
-																						Attributes: map[string]schema.Attribute{
-																							"min": schema.NumberAttribute{
-																								Optional: true,
-																							},
-																							"max": schema.NumberAttribute{
-																								Optional: true,
-																							},
-																							"unit": dashboardwidgets.UnitSchema(),
-																							"custom_unit": schema.StringAttribute{
-																								Optional: true,
-																							},
-
-																							"dataprime_query": schema.StringAttribute{
-																								Optional: true,
-																							},
-																							"time_frame": dashboardwidgets.TimeFrameSchema(),
-																							"filters":    dashboardwidgets.SpansFilterSchema(),
-																						},
-																						Optional: true,
-																						Validators: []validator.Object{
-																							objectvalidator.ExactlyOneOf(
-																								path.MatchRelative().AtParent().AtName("metrics"),
-																								path.MatchRelative().AtParent().AtName("logs"),
-																							),
-																						},
+																		NestedObject: schema.NestedAttributeObject{
+																			Attributes: map[string]schema.Attribute{
+																				"id": schema.StringAttribute{
+																					Computed: true, PlanModifiers: []planmodifier.String{
+																						stringplanmodifier.UseStateForUnknown(),
 																					},
 																				},
-																				Required: true,
-																			},
-																			"series_name_template": schema.StringAttribute{
-																				Optional: true,
-																			},
-																			"series_count_limit": schema.Int64Attribute{
-																				Optional: true,
-																			},
-																			"unit": dashboardwidgets.UnitSchema(),
-																			"scale_type": schema.StringAttribute{
-																				Optional: true,
-																				Computed: true,
-																				Validators: []validator.String{
-																					stringvalidator.OneOf(dashboardwidgets.DashboardValidScaleTypes...),
-																				},
-																				Default:             stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
-																				MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(dashboardwidgets.DashboardValidScaleTypes, ", ")),
-																			},
-																			"name": schema.StringAttribute{
-																				Optional: true,
-																			},
-																			"is_visible": schema.BoolAttribute{
-																				Optional: true,
-																				Computed: true,
-																				Default:  booldefault.StaticBool(true),
-																			},
-																			"color_scheme": schema.StringAttribute{
-																				Optional: true,
-																				Validators: []validator.String{
-																					stringvalidator.OneOf(dashboardwidgets.DashboardValidColorSchemes...),
-																				},
-																			},
-																			"resolution": schema.SingleNestedAttribute{
-																				Attributes: map[string]schema.Attribute{
-																					"interval": schema.StringAttribute{
-																						Optional: true,
-																						Validators: []validator.String{
-																							stringvalidator.ExactlyOneOf(
-																								path.MatchRelative().AtParent().AtName("buckets_presented"),
-																							),
+																				"query": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{
+																						"logs": schema.SingleNestedAttribute{
+																							Attributes: map[string]schema.Attribute{
+																								"lucene_query": schema.StringAttribute{
+																									Optional: true,
+																								},
+																								"group_by": schema.ListAttribute{
+																									ElementType: types.StringType,
+																									Optional:    true,
+																								},
+																								"filters":      dashboardwidgets.LogsFiltersSchema(),
+																								"aggregations": dashboardwidgets.LogsAggregationsSchema(),
+																							},
+																							Optional: true,
+																							Validators: []validator.Object{
+																								objectvalidator.ExactlyOneOf(
+																									path.MatchRelative().AtParent().AtName("metrics"),
+																									path.MatchRelative().AtParent().AtName("spans"),
+																								),
+																							},
+																						},
+																						"metrics": schema.SingleNestedAttribute{
+																							Attributes: map[string]schema.Attribute{
+																								"promql_query": schema.StringAttribute{
+																									Required: true,
+																								},
+																								"filters": dashboardwidgets.MetricFiltersSchema(),
+																								"promql_query_type": schema.StringAttribute{
+																									Optional: true,
+																									Computed: true,
+																									Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																								},
+																							},
+																							Optional: true,
+																							Validators: []validator.Object{
+																								objectvalidator.ExactlyOneOf(
+																									path.MatchRelative().AtParent().AtName("logs"),
+																									path.MatchRelative().AtParent().AtName("spans"),
+																								),
+																							},
+																						},
+																						"spans": schema.SingleNestedAttribute{
+																							Attributes: map[string]schema.Attribute{
+																								"lucene_query": schema.StringAttribute{
+																									Optional: true,
+																								},
+																								"group_by":     dashboardwidgets.SpansFieldsSchema(),
+																								"aggregations": dashboardwidgets.SpansAggregationsSchema(),
+																								"filters":      dashboardwidgets.SpansFilterSchema(),
+																							},
+																							Optional: true,
+																							Validators: []validator.Object{
+																								objectvalidator.ExactlyOneOf(
+																									path.MatchRelative().AtParent().AtName("metrics"),
+																									path.MatchRelative().AtParent().AtName("logs"),
+																								),
+																							},
 																						},
 																					},
-																					"buckets_presented": schema.Int64Attribute{
-																						Optional: true,
-																						Validators: []validator.Int64{
-																							int64validator.ExactlyOneOf(
-																								path.MatchRelative().AtParent().AtName("interval"),
-																							),
-																						},
+																					Required: true,
+																				},
+																				"series_name_template": schema.StringAttribute{
+																					Optional: true,
+																				},
+																				"series_count_limit": schema.Int64Attribute{
+																					Optional: true,
+																				},
+																				"unit": dashboardwidgets.UnitSchema(),
+																				"scale_type": schema.StringAttribute{
+																					Optional: true,
+																					Computed: true,
+																					Validators: []validator.String{
+																						stringvalidator.OneOf(dashboardwidgets.DashboardValidScaleTypes...),
+																					},
+																					Default:             stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																					MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(dashboardwidgets.DashboardValidScaleTypes, ", ")),
+																				},
+																				"name": schema.StringAttribute{
+																					Optional: true,
+																				},
+																				"is_visible": schema.BoolAttribute{
+																					Optional: true,
+																					Computed: true,
+																					Default:  booldefault.StaticBool(true),
+																				},
+																				"color_scheme": schema.StringAttribute{
+																					Optional: true,
+																					Validators: []validator.String{
+																						stringvalidator.OneOf(dashboardwidgets.DashboardValidColorSchemes...),
 																					},
 																				},
-																				Optional: true,
-																			},
-																			"data_mode_type": schema.StringAttribute{
-																				Optional: true,
-																				Computed: true,
-																				Validators: []validator.String{
-																					stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
+																				"resolution": schema.SingleNestedAttribute{
+																					Attributes: map[string]schema.Attribute{
+																						"interval": schema.StringAttribute{
+																							Optional: true,
+																							Validators: []validator.String{
+																								stringvalidator.ExactlyOneOf(
+																									path.MatchRelative().AtParent().AtName("buckets_presented"),
+																								),
+																							},
+																						},
+																						"buckets_presented": schema.Int64Attribute{
+																							Optional: true,
+																							Validators: []validator.Int64{
+																								int64validator.ExactlyOneOf(
+																									path.MatchRelative().AtParent().AtName("interval"),
+																								),
+																							},
+																						},
+																					},
+																					Optional: true,
 																				},
-																				Default: stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																				"data_mode_type": schema.StringAttribute{
+																					Optional: true,
+																					Computed: true,
+																					Validators: []validator.String{
+																						stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
+																					},
+																					Default: stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																				},
 																			},
 																		},
 																	},
@@ -2176,7 +2156,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	}
 	dashboardStr := protojson.Format(createDashboardReq)
 	log.Printf("[INFO] Creating new Dashboard: %s", dashboardStr)
-	_, err := r.client.Create(ctx, createDashboardReq)
+	createResponse, err := r.client.Create(ctx, createDashboardReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -2187,7 +2167,7 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	getDashboardReq := &cxsdk.GetDashboardRequest{
-		DashboardId: createDashboardReq.Dashboard.Id,
+		DashboardId: createResponse.DashboardId,
 	}
 	getDashboardResp, err := r.client.Get(ctx, getDashboardReq)
 	if err != nil {
@@ -2244,7 +2224,11 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*cxsdk.
 		return nil, diags
 	}
 
-	id := wrapperspb.String(expand21LengthUUID(plan.ID).GetValue())
+	var id *wrapperspb.StringValue // the service auto-generates IDs if they are null
+	if !(plan.ID.IsNull() || plan.ID.IsUnknown()) {
+		id = wrapperspb.String(plan.ID.ValueString())
+	}
+
 	dashboard := &cxsdk.Dashboard{
 		Id:          id,
 		Name:        utils.TypeStringToWrapperspbString(plan.Name),
@@ -4183,7 +4167,7 @@ func expandDashboardFiltersSources(ctx context.Context, filters types.List) ([]*
 	return expandedFiltersSources, diags
 }
 
-func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *dashboardwidgets.DataTableQueryMetricsModel) (*cxsdk.DashboardDataTableQueryMetrics, diag.Diagnostics) {
+func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *dashboardwidgets.QueryMetricsModel) (*cxsdk.DashboardDataTableQueryMetrics, diag.Diagnostics) {
 	if dataTableQueryMetric == nil {
 		return nil, nil
 	}
@@ -5063,13 +5047,6 @@ func expandDashboardFolder(ctx context.Context, dashboard *cxsdk.Dashboard, fold
 	return dashboard, nil
 }
 
-func expand21LengthUUID(id types.String) *cxsdk.UUID {
-	if id.IsNull() || id.IsUnknown() {
-		return &cxsdk.UUID{Value: utils.RandStringBytes(21)}
-	}
-	return &cxsdk.UUID{Value: id.ValueString()}
-}
-
 func expandDashboardUUID(id types.String) *cxsdk.UUID {
 	if id.IsNull() || id.IsUnknown() {
 		return &cxsdk.UUID{Value: uuid.NewString()}
@@ -5246,75 +5223,7 @@ func widgetModelAttr() map[string]attr.Type {
 						},
 						"query_definitions": types.ListType{
 							ElemType: types.ObjectType{
-								AttrTypes: map[string]attr.Type{
-									"id": types.StringType,
-									"query": types.ObjectType{
-										AttrTypes: map[string]attr.Type{
-											"logs": types.ObjectType{
-												AttrTypes: map[string]attr.Type{
-													"lucene_query": types.StringType,
-													"group_by": types.ListType{
-														ElemType: types.StringType,
-													},
-													"aggregations": types.ListType{
-														ElemType: types.ObjectType{
-															AttrTypes: dashboardwidgets.AggregationModelAttr(),
-														},
-													},
-													"filters": types.ListType{
-														ElemType: types.ObjectType{
-															AttrTypes: dashboardwidgets.LogsFilterModelAttr(),
-														},
-													},
-												},
-											},
-											"metrics": types.ObjectType{
-												AttrTypes: map[string]attr.Type{
-													"promql_query": types.StringType,
-													"filters": types.ListType{
-														ElemType: types.ObjectType{
-															AttrTypes: dashboardwidgets.MetricsFilterModelAttr(),
-														},
-													},
-												},
-											},
-											"spans": types.ObjectType{
-												AttrTypes: map[string]attr.Type{
-													"lucene_query": types.StringType,
-													"group_by": types.ListType{
-														ElemType: types.ObjectType{
-															AttrTypes: dashboardwidgets.SpansFieldModelAttr(),
-														},
-													},
-													"aggregations": types.ListType{
-														ElemType: types.ObjectType{
-															AttrTypes: dashboardwidgets.SpansAggregationModelAttr(),
-														},
-													},
-													"filters": types.ListType{
-														ElemType: types.ObjectType{
-															AttrTypes: dashboardwidgets.SpansFilterModelAttr(),
-														},
-													},
-												},
-											},
-										},
-									},
-									"series_name_template": types.StringType,
-									"series_count_limit":   types.Int64Type,
-									"unit":                 types.StringType,
-									"scale_type":           types.StringType,
-									"name":                 types.StringType,
-									"is_visible":           types.BoolType,
-									"color_scheme":         types.StringType,
-									"resolution": types.ObjectType{
-										AttrTypes: map[string]attr.Type{
-											"interval":          types.StringType,
-											"buckets_presented": types.Int64Type,
-										},
-									},
-									"data_mode_type": types.StringType,
-								},
+								AttrTypes: lineChartQueryDefinitionModelAttr(),
 							},
 						},
 					},
@@ -5352,10 +5261,10 @@ func widgetModelAttr() map[string]attr.Type {
 												"group_bys": types.ListType{
 													ElemType: dashboardwidgets.ObservationFieldsObject(),
 												},
-												"time_frame": types.ObjectType{
-													AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
-												},
 											},
+										},
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
 										},
 									},
 								},
@@ -5392,13 +5301,13 @@ func widgetModelAttr() map[string]attr.Type {
 								},
 								"metrics": types.ObjectType{
 									AttrTypes: map[string]attr.Type{
-										"promql_query": types.StringType,
+										"promql_query":      types.StringType,
+										"promql_query_type": types.StringType,
 										"filters": types.ListType{
 											ElemType: types.ObjectType{
 												AttrTypes: dashboardwidgets.MetricsFilterModelAttr(),
 											},
 										},
-										"promql_query_type": types.StringType,
 									},
 								},
 								"data_prime": types.ObjectType{
@@ -5940,7 +5849,8 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 				},
 				"metrics": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
-						"promql_query": types.StringType,
+						"promql_query":      types.StringType,
+						"promql_query_type": types.StringType,
 						"filters": types.ListType{
 							ElemType: types.ObjectType{
 								AttrTypes: dashboardwidgets.MetricsFilterModelAttr(),
@@ -5958,11 +5868,7 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 						},
 						"aggregations": types.ListType{
 							ElemType: types.ObjectType{
-								AttrTypes: map[string]attr.Type{
-									"type":             types.StringType,
-									"aggregation_type": types.StringType,
-									"field":            types.StringType,
-								},
+								AttrTypes: dashboardwidgets.SpansAggregationModelAttr(),
 							},
 						},
 						"filters": types.ListType{
@@ -6615,8 +6521,9 @@ func flattenLineChartQueryMetrics(ctx context.Context, metrics *cxsdk.LineChartM
 
 	return &dashboardwidgets.LineChartQueryModel{
 		Metrics: &dashboardwidgets.QueryMetricsModel{
-			PromqlQuery: utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
-			Filters:     filters,
+			PromqlQuery:     utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
+			Filters:         filters,
+			PromqlQueryType: types.StringValue(dashboardwidgets.UNSPECIFIED),
 		},
 	}, nil
 }
@@ -6734,6 +6641,7 @@ func flattenDataTableLogsQuery(ctx context.Context, logs *cxsdk.DashboardDataTab
 			LuceneQuery: utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
 			Filters:     filters,
 			Grouping:    grouping,
+			// TimeFrame missing?
 		},
 	}, nil
 }
@@ -6809,7 +6717,7 @@ func flattenDataTableMetricsQuery(ctx context.Context, metrics *cxsdk.DashboardD
 	}
 
 	return &dashboardwidgets.DataTableQueryModel{
-		Metrics: &dashboardwidgets.DataTableQueryMetricsModel{
+		Metrics: &dashboardwidgets.QueryMetricsModel{
 			PromqlQueryType: types.StringValue(metrics.GetPromqlQueryType().String()),
 			PromqlQuery:     utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 			Filters:         filters,

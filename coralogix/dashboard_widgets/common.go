@@ -280,12 +280,6 @@ type QueryMetricsModel struct {
 	PromqlQueryType types.String `tfsdk:"promql_query_type"`
 }
 
-type DataTableQueryMetricsModel struct {
-	PromqlQuery     types.String `tfsdk:"promql_query"`
-	Filters         types.List   `tfsdk:"filters"` //MetricsFilterModel
-	PromqlQueryType types.String `tfsdk:"promql_query_type"`
-}
-
 type MetricFilterModel struct {
 	Metric   types.String         `tfsdk:"metric"`
 	Label    types.String         `tfsdk:"label"`
@@ -408,7 +402,7 @@ type DataTableQueryLogsModel struct {
 type LogsFilterModel struct {
 	Field            types.String         `tfsdk:"field"`
 	Operator         *FilterOperatorModel `tfsdk:"operator"`
-	ObservationField types.Object         `tfsdk:"observation_field"`
+	ObservationField types.Object         `tfsdk:"observation_field"` // ObservationFieldModel
 }
 
 type DataTableLogsQueryGroupingModel struct {
@@ -425,10 +419,10 @@ type DataTableLogsAggregationModel struct {
 }
 
 type DataTableQueryModel struct {
-	Logs      *DataTableQueryLogsModel    `tfsdk:"logs"`
-	Metrics   *DataTableQueryMetricsModel `tfsdk:"metrics"`
-	Spans     *DataTableQuerySpansModel   `tfsdk:"spans"`
-	DataPrime *DataPrimeModel             `tfsdk:"data_prime"`
+	Logs      *DataTableQueryLogsModel  `tfsdk:"logs"`
+	Metrics   *QueryMetricsModel        `tfsdk:"metrics"`
+	Spans     *DataTableQuerySpansModel `tfsdk:"spans"`
+	DataPrime *DataPrimeModel           `tfsdk:"data_prime"`
 }
 
 type MetricsFilterModel struct {

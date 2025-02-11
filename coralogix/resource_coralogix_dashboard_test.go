@@ -138,9 +138,9 @@ func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
                 }]
                 query = {
                   logs = {
-                    aggregation = [{
+                    aggregation = {
                       type = "count"
-                    }]
+                    }
                     group_by = [{
                       keypath = ["subsystemname"]
                       scope = "label"

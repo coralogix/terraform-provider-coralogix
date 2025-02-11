@@ -67,14 +67,14 @@ type HexagonQueryModel struct {
 	Logs      *HexagonQueryLogsModel `tfsdk:"logs"`
 	Metrics   *QueryMetricsModel     `tfsdk:"metrics"`
 	Spans     *QuerySpansModel       `tfsdk:"spans"`
-	DataPrime *DataPrimeModel        `tfsdk:"dataprime"`
+	DataPrime *DataPrimeModel        `tfsdk:"data_prime"`
 }
 
 type HexagonQueryLogsModel struct {
 	LuceneQuery types.String          `tfsdk:"lucene_query"`
-	GroupBy     types.List            `tfsdk:"group_by"`     //types.String
-	Aggregation *LogsAggregationModel `tfsdk:"aggregations"` //AggregationModel
-	Filters     types.List            `tfsdk:"filters"`      //FilterModel
+	GroupBy     types.List            `tfsdk:"group_by"`    //ObservationFieldModel
+	Aggregation *LogsAggregationModel `tfsdk:"aggregation"` //AggregationModel
+	Filters     types.List            `tfsdk:"filters"`     //FilterModel
 }
 
 type HexagonThresholdModel struct {
@@ -165,14 +165,14 @@ func HexagonSchema() schema.Attribute {
 								Optional: true,
 							},
 							"filters":     LogsFiltersSchema(),
-							"aggregation": LogsAggregationsSchema(),
+							"aggregation": LogsAggregationSchema(),
 						},
 						Optional: true,
 						Validators: []validator.Object{
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("metrics"),
 								path.MatchRelative().AtParent().AtName("spans"),
-								path.MatchRelative().AtParent().AtName("dataprime"),
+								path.MatchRelative().AtParent().AtName("data_prime"),
 							),
 						},
 					},
@@ -180,6 +180,11 @@ func HexagonSchema() schema.Attribute {
 						Attributes: map[string]schema.Attribute{
 							"promql_query": schema.StringAttribute{
 								Required: true,
+							},
+							"promql_query_type": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  stringdefault.StaticString(UNSPECIFIED),
 							},
 							"filters": MetricFiltersSchema(),
 							"aggregation": schema.StringAttribute{
@@ -196,7 +201,7 @@ func HexagonSchema() schema.Attribute {
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("logs"),
 								path.MatchRelative().AtParent().AtName("spans"),
-								path.MatchRelative().AtParent().AtName("dataprime"),
+								path.MatchRelative().AtParent().AtName("data_prime"),
 							),
 						},
 					},
@@ -214,11 +219,11 @@ func HexagonSchema() schema.Attribute {
 							objectvalidator.ExactlyOneOf(
 								path.MatchRelative().AtParent().AtName("metrics"),
 								path.MatchRelative().AtParent().AtName("logs"),
-								path.MatchRelative().AtParent().AtName("dataprime"),
+								path.MatchRelative().AtParent().AtName("data_prime"),
 							),
 						},
 					},
-					"dataprime": schema.SingleNestedAttribute{
+					"data_prime": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
 							"dataprime_query": schema.StringAttribute{
 								Optional: true,
@@ -287,7 +292,7 @@ func HexagonType() types.ObjectType {
 								},
 							},
 							"aggregation": types.ObjectType{
-								AttrTypes: SpansAggregationModelAttr(),
+								AttrTypes: AggregationModelAttr(), // something is odd with this. maybe needs its own flattening entirely.
 							},
 							"group_by": types.ListType{
 								ElemType: ObservationFieldsObject(),
@@ -296,14 +301,14 @@ func HexagonType() types.ObjectType {
 					},
 					"metrics": types.ObjectType{
 						AttrTypes: map[string]attr.Type{
-							"promql_query": types.StringType,
+							"promql_query":      types.StringType,
+							"promql_query_type": types.StringType,
 							"filters": types.ListType{
 								ElemType: types.ObjectType{
 									AttrTypes: MetricsFilterModelAttr(),
 								},
 							},
-							"promql_query_type": types.StringType,
-							"aggregation":       types.StringType,
+							"aggregation": types.StringType,
 						},
 					},
 					"spans": types.ObjectType{
@@ -493,8 +498,9 @@ func flattenHexagonMetricsQuery(ctx context.Context, metrics *cxsdk.HexagonMetri
 
 	return &HexagonQueryModel{
 		Metrics: &QueryMetricsModel{
-			PromqlQuery: utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
-			Filters:     filters,
+			PromqlQuery:     utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
+			Filters:         filters,
+			PromqlQueryType: types.StringValue(DashboardProtoToSchemaPromQLQueryType[metrics.PromqlQueryType]),
 		},
 	}, timeframe, nil
 }
@@ -699,11 +705,10 @@ func expandHexagonMetricsQuery(ctx context.Context, dataTableQueryMetric *QueryM
 
 	return &cxsdk.HexagonQueryMetrics{
 		Metrics: &cxsdk.HexagonMetricsQuery{
-			PromqlQuery: ExpandPromqlQuery(dataTableQueryMetric.PromqlQuery),
-			Filters:     filters,
-			TimeFrame:   timeframe,
-			//PromqlQueryType: &DashboardSchemaToProtoPromQLQueryType[dataTableQueryMetric.PromqlQueryType.ValueString()], // Coming soon?
-
+			PromqlQuery:     ExpandPromqlQuery(dataTableQueryMetric.PromqlQuery),
+			Filters:         filters,
+			TimeFrame:       timeframe,
+			PromqlQueryType: DashboardSchemaToProtoPromQLQueryType[dataTableQueryMetric.PromqlQueryType.ValueString()],
 		},
 	}, nil
 }

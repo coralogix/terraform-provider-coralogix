@@ -200,7 +200,7 @@ func TimeFrameSchema() schema.Attribute {
 func LogsAggregationSchema() schema.Attribute {
 	return schema.SingleNestedAttribute{
 		Required:   true,
-		Attributes: logsAggregationAttributes(),
+		Attributes: LogsAggregationAttributes(),
 		Validators: []validator.Object{
 			logsAggregationValidator{},
 		},
@@ -211,7 +211,7 @@ func LogsAggregationsSchema() schema.Attribute {
 	return schema.ListNestedAttribute{
 		Required: true,
 		NestedObject: schema.NestedAttributeObject{
-			Attributes: logsAggregationAttributes(),
+			Attributes: LogsAggregationAttributes(),
 			Validators: []validator.Object{
 				logsAggregationValidator{},
 			},
@@ -222,7 +222,7 @@ func LogsAggregationsSchema() schema.Attribute {
 	}
 }
 
-func logsAggregationAttributes() map[string]schema.Attribute {
+func LogsAggregationAttributes() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"type": schema.StringAttribute{
 			Required: true,
