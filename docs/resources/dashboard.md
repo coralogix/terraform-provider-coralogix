@@ -2211,6 +2211,7 @@ Required:
 
 Optional:
 
+- `custom_unit` (String) A custom unit
 - `data_mode_type` (String)
 - `decimal` (Number)
 - `legend` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--legend))

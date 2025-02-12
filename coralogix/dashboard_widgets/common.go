@@ -706,8 +706,8 @@ type TimeFrameRelativeModel struct {
 }
 
 type TimeFrameModel struct {
-	Absolute types.Object `tfsdk:"absolute"` //TimeFrameAbsoluteModel
-	Relative types.Object `tfsdk:"relative"` //TimeFrameRelativeModel
+	Absolute *TimeFrameAbsoluteModel `tfsdk:"absolute"` //TimeFrameAbsoluteModel
+	Relative *TimeFrameRelativeModel `tfsdk:"relative"` //TimeFrameRelativeModel
 }
 
 type spansFieldValidator struct{}
@@ -1071,9 +1071,11 @@ func FlattenDashboardTimeFrame(ctx context.Context, d *cxsdk.Dashboard) (*TimeFr
 	}
 	switch timeFrameType := d.GetTimeFrame().(type) {
 	case *cxsdk.DashboardAbsoluteTimeFrame:
-		return flattenAbsoluteTimeFrame(ctx, timeFrameType.AbsoluteTimeFrame)
+		//return flattenAbsoluteTimeFrame(ctx, timeFrameType.AbsoluteTimeFrame)
+		return nil, nil
 	case *cxsdk.DashboardRelativeTimeFrame:
-		return flattenRelativeTimeFrame(ctx, timeFrameType.RelativeTimeFrame)
+		//return flattenRelativeTimeFrame(ctx, timeFrameType.RelativeTimeFrame)
+		return nil, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Time Frame", fmt.Sprintf("unknown time frame type %T", timeFrameType))}
 	}
@@ -1124,13 +1126,9 @@ func flattenAbsoluteTimeFrame(ctx context.Context, timeFrame *cxsdk.DashboardTim
 		End:   types.StringValue(timeFrame.GetTo().String()),
 	}
 
-	timeFrameObject, dgs := types.ObjectValueFrom(ctx, AbsoluteTimeFrameAttr(), absoluteTimeFrame)
-	if dgs.HasError() {
-		return nil, dgs
-	}
 	flattenedTimeFrame := &TimeFrameModel{
-		Absolute: timeFrameObject,
-		Relative: types.ObjectNull(RelativeTimeFrameAttr()),
+		Relative: nil,
+		Absolute: absoluteTimeFrame,
 	}
 	return flattenedTimeFrame, nil
 }
@@ -1139,13 +1137,10 @@ func flattenRelativeTimeFrame(ctx context.Context, timeFrame *durationpb.Duratio
 	relativeTimeFrame := &TimeFrameRelativeModel{
 		Duration: flattenDuration(timeFrame),
 	}
-	timeFrameObject, dgs := types.ObjectValueFrom(ctx, RelativeTimeFrameAttr(), relativeTimeFrame)
-	if dgs.HasError() {
-		return nil, dgs
-	}
+
 	flattenedTimeFrame := &TimeFrameModel{
-		Relative: timeFrameObject,
-		Absolute: types.ObjectNull(AbsoluteTimeFrameAttr()),
+		Relative: relativeTimeFrame,
+		Absolute: nil,
 	}
 	return flattenedTimeFrame, nil
 }
@@ -1650,7 +1645,7 @@ func ExpandTimeFrameSelect(ctx context.Context, timeFrame *TimeFrameModel) (*cxs
 	tf := cxsdk.TimeframeSelect{}
 
 	switch {
-	case !utils.ObjIsNullOrUnknown(timeFrame.Relative):
+	case timeFrame.Relative != nil:
 		val, diags := expandRelativeTimeFrame(ctx, timeFrame.Relative)
 		if diags.HasError() {
 			return nil, diags
@@ -1658,7 +1653,7 @@ func ExpandTimeFrameSelect(ctx context.Context, timeFrame *TimeFrameModel) (*cxs
 		tf.Value = &cxsdk.TimeframeSelectRelative{
 			RelativeTimeFrame: val,
 		}
-	case !utils.ObjIsNullOrUnknown(timeFrame.Absolute):
+	case timeFrame.Absolute != nil:
 		from, to, diags := expandAbsoluteTimeFrame(ctx, timeFrame.Absolute)
 		if diags.HasError() {
 			return nil, diags
@@ -1678,7 +1673,7 @@ func ExpandTimeFrameSelect(ctx context.Context, timeFrame *TimeFrameModel) (*cxs
 func ExpandDashboardTimeFrame(ctx context.Context, dashboard *cxsdk.Dashboard, timeFrame *TimeFrameModel) (*cxsdk.Dashboard, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	switch {
-	case !utils.ObjIsNullOrUnknown(timeFrame.Relative):
+	case timeFrame.Relative != nil:
 		relative, diags := expandRelativeTimeFrame(ctx, timeFrame.Relative)
 		if diags.HasError() {
 			return nil, diags
@@ -1686,7 +1681,7 @@ func ExpandDashboardTimeFrame(ctx context.Context, dashboard *cxsdk.Dashboard, t
 		dashboard.TimeFrame = &cxsdk.DashboardRelativeTimeFrame{
 			RelativeTimeFrame: relative,
 		}
-	case !utils.ObjIsNullOrUnknown(timeFrame.Absolute):
+	case timeFrame.Absolute != nil:
 		from, to, diags := expandAbsoluteTimeFrame(ctx, timeFrame.Absolute)
 		if diags.HasError() {
 			return nil, diags
@@ -1703,39 +1698,22 @@ func ExpandDashboardTimeFrame(ctx context.Context, dashboard *cxsdk.Dashboard, t
 	return dashboard, diags
 }
 
-func expandRelativeTimeFrame(ctx context.Context, timeFrame types.Object) (*durationpb.Duration, diag.Diagnostics) {
-	if utils.ObjIsNullOrUnknown(timeFrame) {
-		return nil, nil
-	}
-	timeFrameModel := &TimeFrameRelativeModel{}
-	dgs := timeFrame.As(ctx, timeFrameModel, basetypes.ObjectAsOptions{})
-	if dgs.HasError() {
-		return nil, dgs
-	}
-	duration, dg := utils.ParseDuration(timeFrameModel.Duration.ValueString(), "Relative Dashboard Time Frame")
+func expandRelativeTimeFrame(ctx context.Context, timeFrame *TimeFrameRelativeModel) (*durationpb.Duration, diag.Diagnostics) {
+	duration, dg := utils.ParseDuration(timeFrame.Duration.ValueString(), "Relative Dashboard Time Frame")
 	if dg != nil {
 		return nil, diag.Diagnostics{dg}
 	}
 	return durationpb.New(*duration), nil
 }
 
-func expandAbsoluteTimeFrame(ctx context.Context, timeFrame types.Object) (*timestamppb.Timestamp, *timestamppb.Timestamp, diag.Diagnostics) {
-	if utils.ObjIsNullOrUnknown(timeFrame) {
-		return nil, nil, nil
-	}
-
-	timeFrameModel := &TimeFrameAbsoluteModel{}
-	dgs := timeFrame.As(ctx, timeFrameModel, basetypes.ObjectAsOptions{})
-	if dgs.HasError() {
-		return nil, nil, dgs
-	}
-	fromTime, err := time.Parse(time.RFC3339, timeFrameModel.Start.ValueString())
+func expandAbsoluteTimeFrame(ctx context.Context, timeFrame *TimeFrameAbsoluteModel) (*timestamppb.Timestamp, *timestamppb.Timestamp, diag.Diagnostics) {
+	fromTime, err := time.Parse(time.RFC3339, timeFrame.Start.ValueString())
 	if err != nil {
 		return nil, nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Absolute Dashboard Time Frame", fmt.Sprintf("Error parsing from time: %s", err.Error()))}
 	}
 	from := timestamppb.New(fromTime)
 
-	toTime, err := time.Parse(time.RFC3339, timeFrameModel.End.ValueString())
+	toTime, err := time.Parse(time.RFC3339, timeFrame.End.ValueString())
 	if err != nil {
 		return from, nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand Absolute Dashboard Time Frame", fmt.Sprintf("Error parsing from time: %s", err.Error()))}
 	}

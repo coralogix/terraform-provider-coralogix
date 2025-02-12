@@ -2137,6 +2137,7 @@ func JSONStringsEqualPlanModifier(_ context.Context, plan planmodifier.StringReq
 }
 
 func (r DashboardResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+
 	// Retrieve values from plan
 	var plan DashboardResourceModel
 	diags := req.Plan.Get(ctx, &plan)
@@ -2203,7 +2204,6 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*cxsdk.
 		}
 		return dashboard, nil
 	}
-
 	layout, diags := expandDashboardLayout(ctx, plan.Layout)
 	if diags.HasError() {
 		return nil, diags
@@ -2758,6 +2758,8 @@ func expandSectionOptions(_ context.Context, option SectionOptionsModel) (*cxsdk
 }
 
 func expandDashboardRows(ctx context.Context, rows types.List) ([]*cxsdk.DashboardRow, diag.Diagnostics) {
+	log.Printf("[INFO] Expanding Rows")
+
 	var rowsObjects []types.Object
 	var expandedRows []*cxsdk.DashboardRow
 	diags := rows.ElementsAs(ctx, &rowsObjects, true)
@@ -2799,18 +2801,25 @@ func expandRow(ctx context.Context, row RowModel) (*cxsdk.DashboardRow, diag.Dia
 }
 
 func expandDashboardWidgets(ctx context.Context, widgets types.List) ([]*cxsdk.DashboardWidget, diag.Diagnostics) {
+	log.Printf("[INFO] Expanding Widgets")
+
 	var widgetsObjects []types.Object
 	var expandedWidgets []*cxsdk.DashboardWidget
 	diags := widgets.ElementsAs(ctx, &widgetsObjects, true)
+	log.Printf("[INFO] BEFORE")
+
 	if diags.HasError() {
 		return nil, diags
 	}
+
 	for _, wo := range widgetsObjects {
+		log.Printf("[INFO] AFTER")
 		var widget WidgetModel
 		if dg := wo.As(ctx, &widget, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
 		}
+		log.Printf("[INFO] WIDGT")
 		expandedWidget, expandDiags := expandWidget(ctx, widget)
 		if expandDiags.HasError() {
 			diags.Append(expandDiags...)
@@ -2824,6 +2833,7 @@ func expandDashboardWidgets(ctx context.Context, widgets types.List) ([]*cxsdk.D
 
 func expandWidget(ctx context.Context, widget WidgetModel) (*cxsdk.DashboardWidget, diag.Diagnostics) {
 	id := expandDashboardUUID(widget.ID)
+
 	title := utils.TypeStringToWrapperspbString(widget.Title)
 	description := utils.TypeStringToWrapperspbString(widget.Description)
 	appearance := &cxsdk.DashboardWidgetAppearance{
@@ -2844,11 +2854,15 @@ func expandWidget(ctx context.Context, widget WidgetModel) (*cxsdk.DashboardWidg
 }
 
 func expandWidgetDefinition(ctx context.Context, definition *dashboardwidgets.WidgetDefinitionModel) (*cxsdk.WidgetDefinition, diag.Diagnostics) {
+	log.Printf("[INFO] Expanding Hexagon")
+
 	switch {
 	case definition.PieChart != nil:
 		return expandPieChart(ctx, definition.PieChart)
 	case definition.Gauge != nil:
 		return expandGauge(ctx, definition.Gauge)
+	case definition.Hexagon != nil:
+		return dashboardwidgets.ExpandHexagon(ctx, definition.Hexagon)
 	case definition.LineChart != nil:
 		return expandLineChart(ctx, definition.LineChart)
 	case definition.DataTable != nil:

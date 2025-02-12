@@ -17,6 +17,7 @@ package dashboardwidgets
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"terraform-provider-coralogix/coralogix/utils"
 
@@ -60,7 +61,7 @@ type HexagonModel struct {
 	Unit          types.String       `tfsdk:"unit"`
 	Legend        *LegendModel       `tfsdk:"legend"`
 	Query         *HexagonQueryModel `tfsdk:"query"`
-	TimeFrame     *TimeFrameModel    `tfdsk:"time_frame"`
+	TimeFrame     *TimeFrameModel    `tfsdk:"time_frame"`
 }
 
 type HexagonQueryModel struct {
@@ -114,6 +115,10 @@ func HexagonSchema() schema.Attribute {
 					stringvalidator.OneOf(DashboardValidUnits...),
 				},
 				MarkdownDescription: fmt.Sprintf("The unit. Valid values are: %s.", strings.Join(DashboardValidUnits, ", ")),
+			},
+			"custom_unit": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "A custom unit",
 			},
 			"data_mode_type": schema.StringAttribute{
 				Optional: true,
@@ -267,6 +272,7 @@ func HexagonType() types.ObjectType {
 			},
 			"legend_by":      types.StringType,
 			"unit":           types.StringType,
+			"custom_unit":    types.StringType,
 			"data_mode_type": types.StringType,
 			"thresholds": types.SetType{
 				ElemType: types.ObjectType{
@@ -534,7 +540,9 @@ func flattenHexagonSpansQuery(ctx context.Context, spans *cxsdk.HexagonSpansQuer
 	}, timeframe, nil
 }
 
-func ExpandHexagon(ctx context.Context, hexagon *HexagonModel) (*cxsdk.Hexagon, diag.Diagnostics) {
+func ExpandHexagon(ctx context.Context, hexagon *HexagonModel) (*cxsdk.WidgetDefinition, diag.Diagnostics) {
+	log.Printf("[INFO] Expanding Hexagon")
+
 	if hexagon == nil {
 		return nil, nil
 	}
@@ -556,23 +564,25 @@ func ExpandHexagon(ctx context.Context, hexagon *HexagonModel) (*cxsdk.Hexagon, 
 	if diags.HasError() {
 		return nil, diags
 	}
-	return &cxsdk.Hexagon{
-		Min:           utils.NumberTypeToWrapperspbDouble(hexagon.Min),
-		Max:           utils.NumberTypeToWrapperspbDouble(hexagon.Max),
-		CustomUnit:    utils.TypeStringToWrapperspbString(hexagon.CustomUnit),
-		Decimal:       utils.NumberTypeToWrapperspbInt32(hexagon.Decimal),
-		LegendBy:      DashboardSchemaToProtoLegendBy[hexagon.LegendBy.ValueString()],
-		ThresholdType: DashboardSchemaToProtoThresholdType[hexagon.ThresholdType.ValueString()],
-		Unit:          DashboardSchemaToProtoUnit[hexagon.Unit.ValueString()],
-		DataModeType:  DashboardSchemaToProtoDataModeType[hexagon.DataModeType.ValueString()],
-		Thresholds:    thresholds,
-		Legend:        legend,
-		Query:         query,
-	}, nil
+	return &cxsdk.WidgetDefinition{
+		Value: &cxsdk.WidgetDefinitionHexagon{
+			Hexagon: &cxsdk.Hexagon{
+				Min:           utils.NumberTypeToWrapperspbDouble(hexagon.Min),
+				Max:           utils.NumberTypeToWrapperspbDouble(hexagon.Max),
+				CustomUnit:    utils.TypeStringToWrapperspbString(hexagon.CustomUnit),
+				Decimal:       utils.NumberTypeToWrapperspbInt32(hexagon.Decimal),
+				LegendBy:      DashboardSchemaToProtoLegendBy[hexagon.LegendBy.ValueString()],
+				ThresholdType: DashboardSchemaToProtoThresholdType[hexagon.ThresholdType.ValueString()],
+				Unit:          DashboardSchemaToProtoUnit[hexagon.Unit.ValueString()],
+				DataModeType:  DashboardSchemaToProtoDataModeType[hexagon.DataModeType.ValueString()],
+				Thresholds:    thresholds,
+				Legend:        legend,
+				Query:         query,
+			}}}, nil
 }
 
 func expandThresholds(ctx context.Context, set types.Set) ([]*cxsdk.Threshold, diag.Diagnostics) {
-	thresholds := make([]*cxsdk.Threshold, 0, 0)
+	thresholds := make([]*cxsdk.Threshold, 0)
 	if set.IsNull() || set.IsUnknown() {
 		return thresholds, nil
 	}
