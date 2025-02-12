@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -66,7 +67,7 @@ func (d *RecordingRuleGroupSetDataSource) Schema(ctx context.Context, _ datasour
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *RecordingRuleGroupSetDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -91,7 +92,7 @@ func (d *RecordingRuleGroupSetDataSource) Read(ctx context.Context, req datasour
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
-				formatRpcErrors(err, getRuleGroupURL, protojson.Format(getReq)),
+				utils.FormatRpcErrors(err, getRuleGroupURL, protojson.Format(getReq)),
 			)
 		}
 		return

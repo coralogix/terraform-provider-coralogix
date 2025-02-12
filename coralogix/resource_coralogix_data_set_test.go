@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -43,7 +44,7 @@ func TestAccCoralogixResourceDataSet(t *testing.T) {
 	parent := filepath.Dir(wd)
 	filePath := parent + "/examples/resources/coralogix_data_set/date-to-day-of-the-week.csv"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckDataSetDestroy,
 		Steps: []resource.TestStep{
@@ -74,7 +75,7 @@ func TestAccCoralogixResourceDataSetWithUploadedFile(t *testing.T) {
 	parent := filepath.Dir(wd)
 	filePath := parent + "/examples/resources/coralogix_data_set/date-to-day-of-the-week.csv"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckDataSetDestroy,
 		Steps: []resource.TestStep{
@@ -170,9 +171,9 @@ func testAccCheckDataSetDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.Get(ctx, &cxsdk.GetDataSetRequest{Id: wrapperspb.UInt32(strToUint32(rs.Primary.ID))})
+		resp, err := client.Get(ctx, &cxsdk.GetDataSetRequest{Id: wrapperspb.UInt32(utils.StrToUint32(rs.Primary.ID))})
 		if err == nil {
-			if uint32ToStr(resp.GetCustomEnrichment().GetId()) == rs.Primary.ID {
+			if utils.Uint32ToStr(resp.GetCustomEnrichment().GetId()) == rs.Primary.ID {
 				return fmt.Errorf("enrichment still exists: %s", rs.Primary.ID)
 			}
 		}

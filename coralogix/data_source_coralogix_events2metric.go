@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -67,7 +68,7 @@ func (d *Events2MetricDataSource) Schema(ctx context.Context, _ datasource.Schem
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -92,7 +93,7 @@ func (d *Events2MetricDataSource) Read(ctx context.Context, req datasource.ReadR
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				formatRpcErrors(err, cxsdk.E2MGetRPC, protojson.Format(getE2MReq)),
+				utils.FormatRpcErrors(err, cxsdk.E2MGetRPC, protojson.Format(getE2MReq)),
 			)
 		}
 		return

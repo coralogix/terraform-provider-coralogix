@@ -28,7 +28,7 @@ import (
 
 func TestAccCoralogixResourceScope(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckScopeDestroy,
 		Steps: []resource.TestStep{

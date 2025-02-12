@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
@@ -321,14 +322,14 @@ func (r *TCOPoliciesTracesResource) Create(ctx context.Context, req resource.Cre
 	overwriteResp, err := r.client.OverwriteTCOTracesPolicies(ctx, overwriteReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if retryableStatusCode(status.Code(err)) {
+		if utils.RetryableStatusCode(status.Code(err)) {
 			log.Printf("[INFO] Retrying to overwrite tco-policies-traces list: %s", protojson.Format(overwriteResp))
 			overwriteResp, err = r.client.OverwriteTCOTracesPolicies(ctx, overwriteReq)
 			continue
 		}
 		resp.Diagnostics.AddError(
 			"Error overwriting tco-policies-traces",
-			formatRpcErrors(err, overrideTCOPoliciesLogsURL, protojson.Format(overwriteReq)),
+			utils.FormatRpcErrors(err, overrideTCOPoliciesLogsURL, protojson.Format(overwriteReq)),
 		)
 		return
 	}
@@ -352,14 +353,14 @@ func (r *TCOPoliciesTracesResource) Read(ctx context.Context, _ resource.ReadReq
 	getPoliciesResp, err := r.client.List(ctx, getPoliciesReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if retryableStatusCode(status.Code(err)) {
+		if utils.RetryableStatusCode(status.Code(err)) {
 			log.Print("[INFO] Retrying to read tco-policies-traces")
 			getPoliciesResp, err = r.client.List(ctx, getPoliciesReq)
 			continue
 		}
 		resp.Diagnostics.AddError(
 			"Error reading tco-policies",
-			formatRpcErrors(err, getCompanyPoliciesURL, protojson.Format(getPoliciesReq)),
+			utils.FormatRpcErrors(err, getCompanyPoliciesURL, protojson.Format(getPoliciesReq)),
 		)
 		return
 	}
@@ -394,14 +395,14 @@ func (r *TCOPoliciesTracesResource) Update(ctx context.Context, req resource.Upd
 	overwriteResp, err := r.client.OverwriteTCOTracesPolicies(ctx, overwriteReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if retryableStatusCode(status.Code(err)) {
+		if utils.RetryableStatusCode(status.Code(err)) {
 			log.Printf("[INFO] Retrying to overwrite tco-policies-traces list: %s", protojson.Format(overwriteResp))
 			overwriteResp, err = r.client.OverwriteTCOTracesPolicies(ctx, overwriteReq)
 			continue
 		}
 		resp.Diagnostics.AddError(
 			"Error overwriting tco-policies-traces",
-			formatRpcErrors(err, overrideTCOPoliciesLogsURL, protojson.Format(overwriteReq)),
+			utils.FormatRpcErrors(err, overrideTCOPoliciesLogsURL, protojson.Format(overwriteReq)),
 		)
 		return
 	}
@@ -425,14 +426,14 @@ func (r *TCOPoliciesTracesResource) Delete(ctx context.Context, _ resource.Delet
 	overwriteResp, err := r.client.OverwriteTCOTracesPolicies(ctx, overwriteReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if retryableStatusCode(status.Code(err)) {
+		if utils.RetryableStatusCode(status.Code(err)) {
 			log.Printf("[INFO] Retrying to overwrite tco-policies-traces list: %s", protojson.Format(overwriteResp))
 			overwriteResp, err = r.client.OverwriteTCOTracesPolicies(ctx, overwriteReq)
 			continue
 		}
 		resp.Diagnostics.AddError(
 			"Error overwriting tco-policies-traces",
-			formatRpcErrors(err, overrideTCOPoliciesLogsURL, protojson.Format(overwriteReq)),
+			utils.FormatRpcErrors(err, overrideTCOPoliciesLogsURL, protojson.Format(overwriteReq)),
 		)
 		return
 	}
@@ -476,8 +477,8 @@ func extractOverwriteTcoPoliciesTraces(ctx context.Context, plan *TCOPoliciesLis
 }
 
 func extractTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesModel) (*cxsdk.CreateSpanPolicyRequest, diag.Diagnostics) {
-	name := typeStringToWrapperspbString(plan.Name)
-	description := typeStringToWrapperspbString(plan.Description)
+	name := utils.TypeStringToWrapperspbString(plan.Name)
+	description := utils.TypeStringToWrapperspbString(plan.Description)
 	priority := tcoPoliciesPrioritySchemaToProto[plan.Priority.ValueString()]
 	applicationRule, diags := expandTCOPolicyRule(ctx, plan.Applications)
 	if diags.HasError() {
@@ -652,7 +653,7 @@ func flattenTCOPolicyTags(ctx context.Context, tags []*cxsdk.TCOPolicyTagRule) t
 		ruleType := types.StringValue(tcoPoliciesRuleTypeProtoToSchema[tag.GetRuleTypeId()])
 
 		values := strings.Split(tag.GetTagValue().GetValue(), ",")
-		valuesSet := stringSliceToTypeStringSet(values)
+		valuesSet := utils.StringSliceToTypeStringSet(values)
 
 		tagRule := TCORuleModel{RuleType: ruleType, Names: valuesSet}
 

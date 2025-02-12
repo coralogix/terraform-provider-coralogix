@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -228,7 +229,7 @@ func resourceCoralogixEnrichmentCreate(ctx context.Context, d *schema.ResourceDa
 	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().Add(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, cxsdk.AddEnrichmentsRPC, protojson.Format(createReq)))
+		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.AddEnrichmentsRPC, protojson.Format(createReq)))
 	}
 	log.Printf("[INFO] Submitted new enrichment: %s", enrichmentResp)
 	d.SetId(enrichmentTypeOrCustomId)
@@ -243,7 +244,7 @@ func resourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData
 	if customId == "" {
 		enrichments, err = EnrichmentsByType(ctx, meta.(*clientset.ClientSet).Enrichments(), enrichmentType)
 	} else {
-		enrichments, err = EnrichmentsByID(ctx, meta.(*clientset.ClientSet).Enrichments(), strToUint32(customId))
+		enrichments, err = EnrichmentsByID(ctx, meta.(*clientset.ClientSet).Enrichments(), utils.StrToUint32(customId))
 	}
 
 	if err != nil {
@@ -256,7 +257,7 @@ func resourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", customId),
 			}}
 		}
-		return diag.Errorf(formatRpcErrors(err, cxsdk.GetEnrichmentsRPC, protojson.Format(&cxsdk.GetEnrichmentsRequest{})))
+		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.GetEnrichmentsRPC, protojson.Format(&cxsdk.GetEnrichmentsRequest{})))
 	}
 	return setEnrichment(d, enrichmentType, enrichments)
 }
@@ -300,16 +301,16 @@ func resourceCoralogixEnrichmentUpdate(ctx context.Context, d *schema.ResourceDa
 		return diag.FromErr(err)
 	}
 	log.Print("[INFO] Updating enrichment")
-	deleteReq := &cxsdk.DeleteEnrichmentsRequest{EnrichmentIds: uint32SliceToWrappedUint32Slice(ids)}
+	deleteReq := &cxsdk.DeleteEnrichmentsRequest{EnrichmentIds: utils.Uint32SliceToWrappedUint32Slice(ids)}
 	if err = meta.(*clientset.ClientSet).Enrichments().Delete(ctx, deleteReq); err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, cxsdk.DeleteEnrichmentsRPC, protojson.Format(deleteReq)))
+		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.DeleteEnrichmentsRPC, protojson.Format(deleteReq)))
 	}
 	createReq := &cxsdk.AddEnrichmentsRequest{RequestEnrichments: enrichmentReq}
 	enrichmentResp, err := meta.(*clientset.ClientSet).Enrichments().Add(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, cxsdk.AddEnrichmentsRPC, protojson.Format(createReq)))
+		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.AddEnrichmentsRPC, protojson.Format(createReq)))
 	}
 	log.Printf("[INFO] Received enrichment: %s", enrichmentResp)
 	return resourceCoralogixEnrichmentRead(ctx, d, meta)
@@ -322,7 +323,7 @@ func resourceCoralogixEnrichmentDelete(ctx context.Context, d *schema.ResourceDa
 		enrichments, err := EnrichmentsByType(ctx, meta.(*clientset.ClientSet).Enrichments(), id)
 		if err != nil {
 			log.Printf("[ERROR] Received error: %s", err.Error())
-			return diag.Errorf(formatRpcErrors(err, cxsdk.GetEnrichmentsRPC, protojson.Format(&cxsdk.GetEnrichmentsRequest{})))
+			return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.GetEnrichmentsRPC, protojson.Format(&cxsdk.GetEnrichmentsRequest{})))
 		}
 		enrichmentIds := make([]*wrapperspb.UInt32Value, 0, len(enrichments))
 		for _, enrichment := range enrichments {
@@ -331,14 +332,14 @@ func resourceCoralogixEnrichmentDelete(ctx context.Context, d *schema.ResourceDa
 		deleteReq := &cxsdk.DeleteEnrichmentsRequest{EnrichmentIds: enrichmentIds}
 		if err = meta.(*clientset.ClientSet).Enrichments().Delete(ctx, deleteReq); err != nil {
 			log.Printf("[ERROR] Received error: %s", err.Error())
-			return diag.Errorf(formatRpcErrors(err, cxsdk.DeleteEnrichmentsRPC, protojson.Format(deleteReq)))
+			return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.DeleteEnrichmentsRPC, protojson.Format(deleteReq)))
 		}
 	} else {
 		ids := extractIdsFromEnrichment(d)
-		deleteReq := &cxsdk.DeleteEnrichmentsRequest{EnrichmentIds: uint32SliceToWrappedUint32Slice(ids)}
+		deleteReq := &cxsdk.DeleteEnrichmentsRequest{EnrichmentIds: utils.Uint32SliceToWrappedUint32Slice(ids)}
 		if err := meta.(*clientset.ClientSet).Enrichments().Delete(ctx, deleteReq); err != nil {
 			log.Printf("[ERROR] Received error: %s", err.Error())
-			return diag.Errorf(formatRpcErrors(err, cxsdk.DeleteEnrichmentsRPC, protojson.Format(deleteReq)))
+			return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.DeleteEnrichmentsRPC, protojson.Format(deleteReq)))
 		}
 	}
 
@@ -384,7 +385,7 @@ func setEnrichment(d *schema.ResourceData, enrichmentType string, enrichments []
 		}
 	case "custom":
 		flattenedEnrichment = map[string]interface{}{
-			"custom_enrichment_id": int(strToUint32(d.Id())),
+			"custom_enrichment_id": int(utils.StrToUint32(d.Id())),
 			"fields":               flattenEnrichment(enrichments),
 		}
 	default:
@@ -515,5 +516,5 @@ func expandCustom(v interface{}) ([]*cxsdk.EnrichmentRequestModel, string) {
 		result = append(result, e)
 	}
 
-	return result, uint32ToStr(uintId)
+	return result, utils.Uint32ToStr(uintId)
 }

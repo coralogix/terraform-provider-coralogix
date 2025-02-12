@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -71,7 +72,7 @@ func (d *WebhookDataSource) Schema(ctx context.Context, _ datasource.SchemaReque
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 
 	if idAttr, ok := resp.Schema.Attributes["id"].(schema.StringAttribute); ok {
 		idAttr.Required = false
@@ -117,7 +118,7 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			listWebhookReqStr := protojson.Format(listWebhookReq)
 			resp.Diagnostics.AddError(
 				"Error listing Webhooks",
-				formatRpcErrors(err, "List", listWebhookReqStr),
+				utils.FormatRpcErrors(err, "List", listWebhookReqStr),
 			)
 			return
 		}
@@ -180,7 +181,7 @@ func (d *WebhookDataSource) fetchWebhookByID(ctx context.Context, id string, res
 			reqStr := protojson.Format(getWebhookReq)
 			resp.Diagnostics.AddError(
 				"Error reading Webhook",
-				formatRpcErrors(err, "Webhook", reqStr),
+				utils.FormatRpcErrors(err, "Webhook", reqStr),
 			)
 		}
 		return nil, err

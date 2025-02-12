@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -34,7 +35,7 @@ func TestAccCoralogixResourceRuleGroup_minimal(t *testing.T) {
     alertResourceName := "coralogix_rules_group.test"
 
     resource.Test(t, resource.TestCase{
-        PreCheck:          func() { testAccPreCheck(t) },
+        PreCheck:          func() { TestAccPreCheck(t) },
         ProviderFactories: testAccProviderFactories,
         CheckDestroy:      testAccCheckRuleGroupDestroy,
         Steps: []resource.TestStep{
@@ -61,7 +62,7 @@ func TestAccCoralogixResourceRuleGroup_block(t *testing.T) {
 	regEx := `sql_error_code\\s*=\\s*28000`
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{
@@ -102,7 +103,7 @@ func TestAccCoralogixResourceRuleGroup_allow(t *testing.T) {
 	regEx := `sql_error_code\\s*=\\s*28000`
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{
@@ -142,7 +143,7 @@ func TestAccCoralogixResourceRuleGroup_jsonExtract(t *testing.T) {
 	destinationField := "Category"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{
@@ -183,7 +184,7 @@ func TestAccCoralogixResourceRuleGroup_replace(t *testing.T) {
 	resourceName := "coralogix_rules_group.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{
@@ -227,7 +228,7 @@ func TestAccCoralogixResourceRuleGroup_extractTimestamp(t *testing.T) {
 	resourceName := "coralogix_rules_group.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{
@@ -267,7 +268,7 @@ func TestAccCoralogixResourceRuleGroup_removeFields(t *testing.T) {
 	resourceName := "coralogix_rules_group.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{
@@ -305,7 +306,7 @@ func TestAccCoralogixResourceRuleGroup_jsonStringify(t *testing.T) {
 	keepSourceField := "true"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{
@@ -346,7 +347,7 @@ func TestAccCoralogixResourceRuleGroup_extract(t *testing.T) {
 	resourceName := "coralogix_rules_group.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{
@@ -387,7 +388,7 @@ func TestAccCoralogixResourceRuleGroup_parse(t *testing.T) {
 	resourceName := "coralogix_rules_group.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{
@@ -423,12 +424,12 @@ func TestAccCoralogixResourceRuleGroup_parse(t *testing.T) {
 
 func TestAccCoralogixResourceRuleGroup_parseJsonField(t *testing.T) {
 	r := getRandomRuleGroup()
-	keepSourceField := selectRandomlyFromSlice([]string{"true", "false"})
-	keepDestinationField := selectRandomlyFromSlice([]string{"true", "false"})
+	keepSourceField := utils.SelectRandomlyFromSlice([]string{"true", "false"})
+	keepDestinationField := utils.SelectRandomlyFromSlice([]string{"true", "false"})
 	resourceName := "coralogix_rules_group.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{
@@ -467,7 +468,7 @@ func TestAccCoralogixResourceRuleGroup_rules_combination(t *testing.T) {
 	resourceName := "coralogix_rules_group.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{
@@ -510,7 +511,7 @@ func TestAccCoralogixResourceRuleGroup_update(t *testing.T) {
 	resourceName := "coralogix_rules_group.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{
@@ -570,7 +571,7 @@ func TestAccCoralogixResourceRuleGroup_update_order_inside_rule_group(t *testing
 	resourceName := "coralogix_rules_group.test"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{
@@ -638,7 +639,7 @@ func TestAccCoralogixResourceRuleGroupOrder(t *testing.T) {
 		secondRuleGroupOrder = 1
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckRuleGroupDestroy,
 		Steps: []resource.TestStep{

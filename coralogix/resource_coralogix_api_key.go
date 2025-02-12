@@ -22,6 +22,7 @@ import (
 	"strconv"
 	"strings"
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
@@ -278,7 +279,7 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Api Key",
-			formatRpcErrors(err, cxsdk.CreateAPIKeyRPC, protojson.Format(createApiKeyRequest)),
+			utils.FormatRpcErrors(err, cxsdk.CreateAPIKeyRPC, protojson.Format(createApiKeyRequest)),
 		)
 		return
 	}
@@ -337,7 +338,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	if !reflect.DeepEqual(currentState.Permissions.Elements(), desiredState.Permissions.Elements()) {
-		permissions, diags := typeStringSliceToStringSlice(ctx, desiredState.Permissions.Elements())
+		permissions, diags := utils.TypeStringSliceToStringSlice(ctx, desiredState.Permissions.Elements())
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
@@ -348,7 +349,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	if !reflect.DeepEqual(currentState.Presets.Elements(), desiredState.Presets.Elements()) {
-		presets, diags := typeStringSliceToStringSlice(ctx, desiredState.Presets.Elements())
+		presets, diags := utils.TypeStringSliceToStringSlice(ctx, desiredState.Presets.Elements())
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
@@ -376,7 +377,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Api Key",
-			formatRpcErrors(err, cxsdk.UpdateAPIKeyRPC, protojson.Format(&updateApiKeyRequest)),
+			utils.FormatRpcErrors(err, cxsdk.UpdateAPIKeyRPC, protojson.Format(&updateApiKeyRequest)),
 		)
 		return
 	}
@@ -409,7 +410,7 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error getting Api Key",
-			formatRpcErrors(err, cxsdk.DeleteAPIKeyRPC, protojson.Format(deleteApiKeyRequest)),
+			utils.FormatRpcErrors(err, cxsdk.DeleteAPIKeyRPC, protojson.Format(deleteApiKeyRequest)),
 		)
 		return
 	}
@@ -435,7 +436,7 @@ func (r *ApiKeyResource) getKeyInfo(ctx context.Context, id *string, keyValue *s
 		} else {
 			diags.AddError(
 				"Error getting Api Key",
-				formatRpcErrors(err, cxsdk.GetAPIKeyRPC, protojson.Format(getApiKeyRequest)),
+				utils.FormatRpcErrors(err, cxsdk.GetAPIKeyRPC, protojson.Format(getApiKeyRequest)),
 			)
 		}
 		return nil, diags
@@ -463,7 +464,7 @@ func makeDeleteApi(apiKeyId *string) (*cxsdk.DeleteAPIKeyRequest, diag.Diagnosti
 func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *cxsdk.GetAPIKeyResponse, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
-	permissions := stringSliceToTypeStringSet(response.KeyInfo.KeyPermissions.Permissions)
+	permissions := utils.StringSliceToTypeStringSet(response.KeyInfo.KeyPermissions.Permissions)
 	if permissions.IsNull() {
 		permissions = types.SetValueMust(types.StringType, []attr.Value{})
 	}
@@ -501,12 +502,12 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *c
 }
 
 func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*cxsdk.CreateAPIKeyRequest, diag.Diagnostics) {
-	permissions, diags := typeStringSliceToStringSlice(ctx, apiKeyModel.Permissions.Elements())
+	permissions, diags := utils.TypeStringSliceToStringSlice(ctx, apiKeyModel.Permissions.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	presets, diags := typeStringSliceToStringSlice(ctx, apiKeyModel.Presets.Elements())
+	presets, diags := utils.TypeStringSliceToStringSlice(ctx, apiKeyModel.Presets.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -637,7 +638,7 @@ func mapRolesToPermissions(roles types.Set) (types.Set, diag.Diagnostics) {
 			}
 		}
 	}
-	return stringSliceToTypeStringSet(permissions), diag.Diagnostics{}
+	return utils.StringSliceToTypeStringSet(permissions), diag.Diagnostics{}
 }
 
 func mapRoleToPermission(role types.String) ([]string, diag.Diagnostics) {

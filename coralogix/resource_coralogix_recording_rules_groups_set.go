@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -383,7 +384,7 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating recording-rule-group-set",
-			formatRpcErrors(err, createRuleGroupURL, protojson.Format(createRequest)),
+			utils.FormatRpcErrors(err, createRuleGroupURL, protojson.Format(createRequest)),
 		)
 		return
 	}
@@ -404,7 +405,7 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
-				formatRpcErrors(err, getRuleGroupURL, protojson.Format(createRequest)),
+				utils.FormatRpcErrors(err, getRuleGroupURL, protojson.Format(createRequest)),
 			)
 		}
 		return
@@ -569,7 +570,7 @@ func (r *RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.R
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
-				formatRpcErrors(err, getRuleGroupURL, protojson.Format(getReq)),
+				utils.FormatRpcErrors(err, getRuleGroupURL, protojson.Format(getReq)),
 			)
 		}
 		return
@@ -605,7 +606,7 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating recording-rule-group-set",
-			formatRpcErrors(err, updateRuleGroupURL, protojson.Format(updateRequest)),
+			utils.FormatRpcErrors(err, updateRuleGroupURL, protojson.Format(updateRequest)),
 		)
 		return
 	}
@@ -624,7 +625,7 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading recording-rule-group-set",
-				formatRpcErrors(err, getRuleGroupURL, protojson.Format(getReq)),
+				utils.FormatRpcErrors(err, getRuleGroupURL, protojson.Format(getReq)),
 			)
 		}
 		return
@@ -662,7 +663,7 @@ func (r *RecordingRuleGroupSetResource) Delete(ctx context.Context, req resource
 		} else {
 			resp.Diagnostics.AddError(
 				"Error deleting recording-rule-group-set",
-				formatRpcErrors(err, deleteRuleGroupURL, protojson.Format(deleteReq)),
+				utils.FormatRpcErrors(err, deleteRuleGroupURL, protojson.Format(deleteReq)),
 			)
 		}
 		return
@@ -807,7 +808,7 @@ func expandRecordingRules(ctx context.Context, rules types.List) ([]*cxsdk.InRul
 }
 
 func expandRecordingRule(ctx context.Context, rule RecordingRuleModel) (*cxsdk.InRule, diag.Diagnostics) {
-	labels, diags := typeMapToStringMap(ctx, rule.Labels)
+	labels, diags := utils.TypeMapToStringMap(ctx, rule.Labels)
 	if diags.HasError() {
 		return nil, diags
 	}

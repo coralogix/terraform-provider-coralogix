@@ -21,6 +21,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -171,7 +172,7 @@ func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, r
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating User",
-			formatRpcErrors(err, r.client.BaseURL(), string(userStr)),
+			utils.FormatRpcErrors(err, r.client.BaseURL(), string(userStr)),
 		)
 		return
 	}
@@ -283,7 +284,7 @@ func (r *UserResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading User",
-				formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), ""),
+				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), ""),
 			)
 		}
 		return
@@ -338,7 +339,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating User",
-			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), userID), string(userStr)),
+			utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), userID), string(userStr)),
 		)
 		return
 	}
@@ -359,7 +360,7 @@ func (r *UserResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading User",
-				formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), string(userStr)),
+				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), string(userStr)),
 			)
 		}
 		return
@@ -391,7 +392,7 @@ func (r *UserResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	if err := r.client.Delete(ctx, id); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting User %s", id),
-			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), ""),
+			utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.BaseURL(), id), ""),
 		)
 		return
 	}

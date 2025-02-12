@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -146,7 +147,7 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating archive-logs",
-			formatRpcErrors(err, cxsdk.ArchiveLogsSetTargetRPC, protojson.Format(createReq)),
+			utils.FormatRpcErrors(err, cxsdk.ArchiveLogsSetTargetRPC, protojson.Format(createReq)),
 		)
 		return
 	}
@@ -216,7 +217,7 @@ func (r *ArchiveLogsResource) Read(ctx context.Context, req resource.ReadRequest
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading archive-logs",
-				formatRpcErrors(err, cxsdk.ArchiveLogsGetTargetRPC, ""),
+				utils.FormatRpcErrors(err, cxsdk.ArchiveLogsGetTargetRPC, ""),
 			)
 		}
 		return
@@ -249,7 +250,7 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating archive-logs",
-			formatRpcErrors(err, cxsdk.E2MCreateRPC, protojson.Format(updateReq)),
+			utils.FormatRpcErrors(err, cxsdk.E2MCreateRPC, protojson.Format(updateReq)),
 		)
 		return
 	}
@@ -260,7 +261,7 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading archive-logs",
-			formatRpcErrors(err, cxsdk.ArchiveLogsGetTargetRPC, ""),
+			utils.FormatRpcErrors(err, cxsdk.ArchiveLogsGetTargetRPC, ""),
 		)
 		return
 	}

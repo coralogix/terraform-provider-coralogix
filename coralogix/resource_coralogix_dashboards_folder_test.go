@@ -29,7 +29,7 @@ var dashboardsFolderResourceName = "coralogix_dashboards_folder.test"
 
 func TestAccCoralogixResourceDashboardsFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckDashboardsFolderDestroy,
 		Steps: []resource.TestStep{

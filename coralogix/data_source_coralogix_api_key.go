@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -65,7 +66,7 @@ func (d *ApiKeyDataSource) Schema(ctx context.Context, _ datasource.SchemaReques
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -94,7 +95,7 @@ func (d *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading API Keys",
-				formatRpcErrors(err, cxsdk.GetAPIKeyRPC, protojson.Format(getApiKey)),
+				utils.FormatRpcErrors(err, cxsdk.GetAPIKeyRPC, protojson.Format(getApiKey)),
 			)
 		}
 		return

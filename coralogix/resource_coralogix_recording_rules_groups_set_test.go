@@ -38,7 +38,7 @@ func TestAccCoralogixRecordingRulesGroupsSetFromYaml(t *testing.T) {
 	parent := filepath.Dir(wd)
 	filePath := parent + "/examples/resources/coralogix_recording_rules_groups_set/rule-group-set.yaml"
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckRecordingRulesGroupDestroy,
 		Steps: []resource.TestStep{
@@ -68,7 +68,7 @@ func TestAccCoralogixRecordingRulesGroupsSetFromYaml(t *testing.T) {
 
 func TestAccCoralogixRecordingRulesGroupsExplicit(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckRecordingRulesGroupDestroy,
 		Steps: []resource.TestStep{

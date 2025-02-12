@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -66,7 +67,7 @@ func (d *TCOPoliciesLogsDataSource) Schema(ctx context.Context, _ datasource.Sch
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	attributes := convertAttributes(resourceResp.Schema.Attributes)
+	attributes := utils.ConvertAttributes(resourceResp.Schema.Attributes)
 
 	resp.Schema = datasourceschema.Schema{
 		Attributes:          attributes,
@@ -85,14 +86,14 @@ func (d *TCOPoliciesLogsDataSource) Read(ctx context.Context, _ datasource.ReadR
 	getPoliciesResp, err := d.client.List(ctx, getPoliciesReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if retryableStatusCode(status.Code(err)) {
+		if utils.RetryableStatusCode(status.Code(err)) {
 			log.Print("[INFO] Retrying to read tco-policies-logs")
 			getPoliciesResp, err = d.client.List(ctx, getPoliciesReq)
 			continue
 		}
 		resp.Diagnostics.AddError(
 			"Error reading tco-policies",
-			formatRpcErrors(err, getCompanyPoliciesURL, protojson.Format(getPoliciesReq)),
+			utils.FormatRpcErrors(err, getCompanyPoliciesURL, protojson.Format(getPoliciesReq)),
 		)
 		return
 	}

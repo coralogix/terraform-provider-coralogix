@@ -36,7 +36,7 @@ func TestAccCoralogixDataSourceDataSet_basic(t *testing.T) {
 	filePath := parent + "/examples/resources/coralogix_data_set/date-to-day-of-the-week.csv"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckDataSetDestroy,
 		Steps: []resource.TestStep{

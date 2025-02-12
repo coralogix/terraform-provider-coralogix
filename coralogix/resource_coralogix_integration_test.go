@@ -34,7 +34,7 @@ var testRoleArn = os.Getenv("AWS_TEST_ROLE")
 
 func TestAccCoralogixResourceIntegrationWithoutSensitiveData(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckIntegrationDestroy,
 		Steps: []resource.TestStep{
@@ -59,7 +59,7 @@ func TestAccCoralogixResourceIntegrationWithoutSensitiveData(t *testing.T) {
 
 func TestAccCoralogixResourceIntegrationWithVariablesWithoutSensitiveData(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckIntegrationDestroy,
 		Steps: []resource.TestStep{
@@ -84,7 +84,7 @@ func TestAccCoralogixResourceIntegrationWithVariablesWithoutSensitiveData(t *tes
 
 func TestAccCoralogixResourceIntegrationWithSensitiveData(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckIntegrationDestroy,
 		Steps: []resource.TestStep{

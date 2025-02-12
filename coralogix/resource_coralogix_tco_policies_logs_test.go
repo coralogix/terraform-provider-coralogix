@@ -32,7 +32,7 @@ var tcoPoliciesResourceName = "coralogix_tco_policies_logs.test"
 
 func TestAccCoralogixResourceTCOPoliciesLogsCreate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccTCOPoliciesLogsCheckDestroy,
 		Steps: []resource.TestStep{

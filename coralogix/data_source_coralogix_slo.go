@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -65,7 +66,7 @@ func (d *SLODataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, 
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *SLODataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -90,7 +91,7 @@ func (d *SLODataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",
-				formatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(getSLOReq)),
+				utils.FormatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(getSLOReq)),
 			)
 		}
 		return

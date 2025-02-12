@@ -50,7 +50,7 @@ func TestProvider_impl(t *testing.T) {
 	var _ = OldProvider()
 }
 
-func testAccPreCheck(t *testing.T) {
+func TestAccPreCheck(t *testing.T) {
 	//ctx := context.TODO()
 
 	if os.Getenv("CORALOGIX_API_KEY") == "" {

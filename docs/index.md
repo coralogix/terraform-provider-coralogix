@@ -31,7 +31,7 @@ provider "coralogix" {
 
 - `api_key` (String, Sensitive) A key for using coralogix APIs (Auto Generated), appropriate for the defined environment. environment variable 'CORALOGIX_API_KEY' can be defined instead.
 - `domain` (String) The Coralogix domain. Conflict With 'env'. environment variable 'CORALOGIX_DOMAIN' can be defined instead.
-- `env` (String) The Coralogix API environment. can be one of ["EUROPE1" "APAC1" "AP2" "APAC3" "EU1" "EUROPE2" "USA1" "US2" "AP1" "APAC2" "AP3" "EU2" "US1" "USA2"]. environment variable 'CORALOGIX_ENV' can be defined instead.# Getting Started
+- `env` (String) The Coralogix API environment. can be one of ["AP1" "AP2" "AP3" "APAC1" "APAC2" "APAC3" "EU1" "EU2" "EUROPE1" "EUROPE2" "US1" "US2" "USA1" "USA2"]. environment variable 'CORALOGIX_ENV' can be defined instead.# Getting Started
 
 Check out our examples for how to configure the various resources offered by the provider. If you already have Coralogix set up and want to import any existing resources, check out our migration script: [https://github.com/coralogix/coralogix-management-sdk/tree/master/tools/terraform-importer]().
 

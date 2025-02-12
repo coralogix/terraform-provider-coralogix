@@ -27,3 +27,13 @@ resource "coralogix_integration" "example" {
     EnrichWithTags = true
   }
 }
+
+resource "coralogix_integration" "aws-resource-catalog" {
+  integration_key = "aws-resource-catalog"
+  version         = "0.1.0"
+
+  parameters = {
+    IntegrationName = "aws-resource-catalog"
+    AwsRoleArn = "arn:aws:iam::123456789012:role/S3Access"
+  }
+}

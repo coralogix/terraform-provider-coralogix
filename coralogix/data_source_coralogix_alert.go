@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -56,7 +57,7 @@ var _ datasource.DataSourceWithConfigure = &AlertDataSource{}
 // 	if err != nil {
 // 		reqStr := protojson.Format(getAlertRequest)
 // 		log.Printf("[ERROR] Received error: %s", err.Error())
-// 		return diag.Errorf(formatRpcErrors(err, getAlertURL, reqStr))
+// 		return diag.Errorf(utils.FormatRpcErrors(err, getAlertURL, reqStr))
 // 	}
 // 	alert := alertResp.GetAlert()
 // 	log.Printf("[INFO] Received alert: %s", protojson.Format(alert))
@@ -100,7 +101,7 @@ func (d *AlertDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *AlertDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -123,7 +124,7 @@ func (d *AlertDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Alert",
-				formatRpcErrors(err, getAlertURL, protojson.Format(getAlertReq)),
+				utils.FormatRpcErrors(err, getAlertURL, protojson.Format(getAlertReq)),
 			)
 		}
 		return

@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -30,7 +31,7 @@ var enrichmentResourceName = "coralogix_enrichment.test"
 func TestAccCoralogixResourceGeoIpEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckEnrichmentDestroy,
 		Steps: []resource.TestStep{
@@ -54,7 +55,7 @@ func TestAccCoralogixResourceGeoIpEnrichment(t *testing.T) {
 func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckEnrichmentDestroy,
 		Steps: []resource.TestStep{
@@ -80,7 +81,7 @@ func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 //	fieldName := "coralogix.metadata.sdkId"
 //	resourceType := ""
 //	resource.Test(t, resource.TestCase{
-//		PreCheck:          func() { testAccPreCheck(t) },
+//		PreCheck:          func() { TestAccPreCheck(t) },
 //		ProviderFactories: testAccProviderFactories,
 //		CheckDestroy:      testAccCheckEnrichmentDestroy,
 //		Steps: []resource.TestStep{
@@ -104,7 +105,7 @@ func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 func TestAccCoralogixResourceCustomEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckCustomEnrichmentDestroy,
 		Steps: []resource.TestStep{
@@ -186,7 +187,7 @@ func testAccCheckEnrichmentDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := EnrichmentsByID(ctx, client, strToUint32(rs.Primary.ID))
+		resp, err := EnrichmentsByID(ctx, client, utils.StrToUint32(rs.Primary.ID))
 
 		if err == nil {
 			if len(resp) != 0 {
@@ -208,7 +209,7 @@ func testAccCheckCustomEnrichmentDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := EnrichmentsByID(ctx, client, strToUint32(rs.Primary.ID))
+		resp, err := EnrichmentsByID(ctx, client, utils.StrToUint32(rs.Primary.ID))
 		if err == nil {
 			if len(resp) != 0 {
 				return fmt.Errorf("enrichment still exists: %s", rs.Primary.ID)

@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -56,23 +57,23 @@ var (
 		"post": cxsdk.GenericWebhookConfigPost,
 		"put":  cxsdk.GenericWebhookConfigPut,
 	}
-	webhooksProtoToSchemaMethod                = ReverseMap(webhooksSchemaToProtoMethod)
-	webhooksValidMethods                       = GetKeys(webhooksSchemaToProtoMethod)
+	webhooksProtoToSchemaMethod                = utils.ReverseMap(webhooksSchemaToProtoMethod)
+	webhooksValidMethods                       = utils.GetKeys(webhooksSchemaToProtoMethod)
 	webhooksSchemaToProtoSlackConfigDigestType = map[string]cxsdk.SlackConfigDigestType{
 		"error_and_critical_logs": cxsdk.SlackConfigErrorAndCriticalLogs,
 		"flow_anomalies":          cxsdk.SlackConfigFlowAnomalies,
 		"spike_anomalies":         cxsdk.SlackConfigSpikeAnomalies,
 		"data_usage":              cxsdk.SlackConfigDataUsage,
 	}
-	webhooksProtoToSchemaSlackConfigDigestType = ReverseMap(webhooksSchemaToProtoSlackConfigDigestType)
-	webhooksValidSlackConfigDigestTypes        = GetKeys(webhooksSchemaToProtoSlackConfigDigestType)
+	webhooksProtoToSchemaSlackConfigDigestType = utils.ReverseMap(webhooksSchemaToProtoSlackConfigDigestType)
+	webhooksValidSlackConfigDigestTypes        = utils.GetKeys(webhooksSchemaToProtoSlackConfigDigestType)
 	webhooksProtoToSchemaSlackAttachmentType   = map[string]cxsdk.SlackConfigAttachmentType{
 		"empty":           cxsdk.SlackConfigEmpty,
 		"metric_snapshot": cxsdk.SlackConfigMetricSnapshot,
 		"logs":            cxsdk.SlackConfigLogs,
 	}
-	webhooksSchemaToProtoSlackAttachmentType = ReverseMap(webhooksProtoToSchemaSlackAttachmentType)
-	webhooksValidSlackAttachmentTypes        = GetKeys(webhooksProtoToSchemaSlackAttachmentType)
+	webhooksSchemaToProtoSlackAttachmentType = utils.ReverseMap(webhooksProtoToSchemaSlackAttachmentType)
+	webhooksValidSlackAttachmentTypes        = utils.GetKeys(webhooksProtoToSchemaSlackAttachmentType)
 	customDefaultPayload                     = `{
     "uuid": "",
     "alert_id": "$ALERT_ID",
@@ -770,7 +771,7 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Webhook",
-			formatRpcErrors(err, cxsdk.OutgoingWebhookCreateRPC, webhookStr),
+			utils.FormatRpcErrors(err, cxsdk.OutgoingWebhookCreateRPC, webhookStr),
 		)
 		return
 	}
@@ -785,7 +786,7 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Webhook",
-			formatRpcErrors(err, cxsdk.OutgoingWebhookGetRPC, protojson.Format(readWebhookRequest)),
+			utils.FormatRpcErrors(err, cxsdk.OutgoingWebhookGetRPC, protojson.Format(readWebhookRequest)),
 		)
 		return
 	}
@@ -830,7 +831,7 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Webhook",
-				formatRpcErrors(err, cxsdk.OutgoingWebhookGetRPC, protojson.Format(readWebhookRequest)),
+				utils.FormatRpcErrors(err, cxsdk.OutgoingWebhookGetRPC, protojson.Format(readWebhookRequest)),
 			)
 		}
 		return
@@ -869,7 +870,7 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Webhook",
-			formatRpcErrors(err, cxsdk.OutgoingWebhookUpdateRPC, protojson.Format(webhookUpdateReq)),
+			utils.FormatRpcErrors(err, cxsdk.OutgoingWebhookUpdateRPC, protojson.Format(webhookUpdateReq)),
 		)
 		return
 	}
@@ -890,7 +891,7 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Webhook",
-				formatRpcErrors(err, cxsdk.OutgoingWebhookGetRPC, protojson.Format(getWebhookReq)),
+				utils.FormatRpcErrors(err, cxsdk.OutgoingWebhookGetRPC, protojson.Format(getWebhookReq)),
 			)
 		}
 		return
@@ -923,7 +924,7 @@ func (r WebhookResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error deleting Webhook",
-			formatRpcErrors(err, cxsdk.OutgoingWebhookDeleteRPC, protojson.Format(deleteReq)),
+			utils.FormatRpcErrors(err, cxsdk.OutgoingWebhookDeleteRPC, protojson.Format(deleteReq)),
 		)
 		return
 	}
@@ -932,7 +933,7 @@ func (r WebhookResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 func extractCreateWebhookRequest(ctx context.Context, plan *WebhookResourceModel) (*cxsdk.CreateOutgoingWebhookRequest, diag.Diagnostics) {
 	data := &cxsdk.OutgoingWebhookInputData{
-		Name: typeStringToWrapperspbString(plan.Name),
+		Name: utils.TypeStringToWrapperspbString(plan.Name),
 	}
 
 	data, diagnostics := expandWebhookType(ctx, plan, data)
@@ -947,7 +948,7 @@ func extractCreateWebhookRequest(ctx context.Context, plan *WebhookResourceModel
 
 func extractUpdateWebhookRequest(ctx context.Context, plan *WebhookResourceModel) (*cxsdk.UpdateOutgoingWebhookRequest, diag.Diagnostics) {
 	data := &cxsdk.OutgoingWebhookInputData{
-		Name: typeStringToWrapperspbString(plan.Name),
+		Name: utils.TypeStringToWrapperspbString(plan.Name),
 	}
 
 	data, diagnostics := expandWebhookType(ctx, plan, data)
@@ -1008,11 +1009,11 @@ func expandWebhookType(ctx context.Context, plan *WebhookResourceModel, data *cx
 func expandEventBridge(bridge *EventBridgeModel) *cxsdk.AwsEventBridgeWebhookInputData {
 	return &cxsdk.AwsEventBridgeWebhookInputData{
 		AwsEventBridge: &cxsdk.AwsEventBridgeConfig{
-			EventBusArn: typeStringToWrapperspbString(bridge.EventBusARN),
-			Detail:      typeStringToWrapperspbString(bridge.Detail),
-			DetailType:  typeStringToWrapperspbString(bridge.DetailType),
-			Source:      typeStringToWrapperspbString(bridge.Source),
-			RoleName:    typeStringToWrapperspbString(bridge.RoleName),
+			EventBusArn: utils.TypeStringToWrapperspbString(bridge.EventBusARN),
+			Detail:      utils.TypeStringToWrapperspbString(bridge.Detail),
+			DetailType:  utils.TypeStringToWrapperspbString(bridge.DetailType),
+			Source:      utils.TypeStringToWrapperspbString(bridge.Source),
+			RoleName:    utils.TypeStringToWrapperspbString(bridge.RoleName),
 		},
 	}
 }
@@ -1079,7 +1080,7 @@ func expandSlackAttachments(ctx context.Context, attachmentsList types.List) ([]
 		}
 		expandedAttachment := &cxsdk.SlackConfigAttachment{
 			Type:     webhooksProtoToSchemaSlackAttachmentType[attachmentModel.Type.ValueString()],
-			IsActive: typeBoolToWrapperspbBool(attachmentModel.Active),
+			IsActive: utils.TypeBoolToWrapperspbBool(attachmentModel.Active),
 		}
 		expandedAttachments = append(expandedAttachments, expandedAttachment)
 	}
@@ -1115,7 +1116,7 @@ func expandDigest(digest cxsdk.SlackConfigDigestType) *cxsdk.SlackConfigDigest {
 }
 
 func expandGenericWebhook(ctx context.Context, genericWebhook *CustomWebhookModel) (*cxsdk.GenericWebhookInputData, *wrapperspb.StringValue, diag.Diagnostics) {
-	headers, diags := typeMapToStringMap(ctx, genericWebhook.Headers)
+	headers, diags := utils.TypeMapToStringMap(ctx, genericWebhook.Headers)
 	if diags.HasError() {
 		return nil, nil, diags
 	}
@@ -1127,10 +1128,10 @@ func expandGenericWebhook(ctx context.Context, genericWebhook *CustomWebhookMode
 
 	return &cxsdk.GenericWebhookInputData{
 		GenericWebhook: &cxsdk.GenericWebhookConfig{
-			Uuid:    expandUuid(genericWebhook.UUID),
+			Uuid:    utils.ExpandUuid(genericWebhook.UUID),
 			Method:  webhooksSchemaToProtoMethod[genericWebhook.Method.ValueString()],
 			Headers: headers,
-			Payload: typeStringToWrapperspbString(genericWebhook.Payload),
+			Payload: utils.TypeStringToWrapperspbString(genericWebhook.Payload),
 		},
 	}, url, nil
 }
@@ -1138,7 +1139,7 @@ func expandGenericWebhook(ctx context.Context, genericWebhook *CustomWebhookMode
 func expandPagerDuty(pagerDuty *PagerDutyModel) *cxsdk.PagerDutyWebhookInputData {
 	return &cxsdk.PagerDutyWebhookInputData{
 		PagerDuty: &cxsdk.PagerDutyConfig{
-			ServiceKey: typeStringToWrapperspbString(pagerDuty.ServiceKey),
+			ServiceKey: utils.TypeStringToWrapperspbString(pagerDuty.ServiceKey),
 		},
 	}
 }
@@ -1151,14 +1152,14 @@ func expandSendLog(sendLog *SendLogModel) (*cxsdk.SendLogWebhookInputData, *wrap
 
 	return &cxsdk.SendLogWebhookInputData{
 		SendLog: &cxsdk.SendLogConfig{
-			Uuid:    expandUuid(sendLog.UUID),
-			Payload: typeStringToWrapperspbString(sendLog.Payload),
+			Uuid:    utils.ExpandUuid(sendLog.UUID),
+			Payload: utils.TypeStringToWrapperspbString(sendLog.Payload),
 		},
 	}, url
 }
 
 func expandEmailGroup(ctx context.Context, emailGroup *EmailGroupModel) (*cxsdk.EmailGroupWebhookInputData, diag.Diagnostics) {
-	emailAddresses, diags := typeStringSliceToWrappedStringSlice(ctx, emailGroup.Emails.Elements())
+	emailAddresses, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, emailGroup.Emails.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1178,9 +1179,9 @@ func expandJira(jira *JiraModel) (*cxsdk.JiraWebhookInputData, *wrapperspb.Strin
 
 	return &cxsdk.JiraWebhookInputData{
 		Jira: &cxsdk.JiraConfig{
-			ApiToken:   typeStringToWrapperspbString(jira.ApiKey),
-			Email:      typeStringToWrapperspbString(jira.Email),
-			ProjectKey: typeStringToWrapperspbString(jira.ProjectID),
+			ApiToken:   utils.TypeStringToWrapperspbString(jira.ApiKey),
+			Email:      utils.TypeStringToWrapperspbString(jira.Email),
+			ProjectKey: utils.TypeStringToWrapperspbString(jira.ProjectID),
 		},
 	}, url
 }
@@ -1204,8 +1205,8 @@ func expandDemisto(demisto *DemistoModel) (*cxsdk.DemistoWebhookInputData, *wrap
 
 	return &cxsdk.DemistoWebhookInputData{
 		Demisto: &cxsdk.DemistoConfig{
-			Uuid:    expandUuid(demisto.UUID),
-			Payload: typeStringToWrapperspbString(demisto.Payload),
+			Uuid:    utils.ExpandUuid(demisto.UUID),
+			Payload: utils.TypeStringToWrapperspbString(demisto.Payload),
 		},
 	}, url
 }
@@ -1213,9 +1214,9 @@ func expandDemisto(demisto *DemistoModel) (*cxsdk.DemistoWebhookInputData, *wrap
 // Temporary function to prevent the creation of depreacted resources
 func flattenWebhookWrite(ctx context.Context, webhook *cxsdk.OutgoingWebhook) (*WebhookResourceModel, diag.Diagnostics) {
 	result := &WebhookResourceModel{
-		ID:         wrapperspbStringToTypeString(webhook.Id),
+		ID:         utils.WrapperspbStringToTypeString(webhook.Id),
 		ExternalID: types.StringValue(strconv.Itoa(int(webhook.GetExternalId().GetValue()))),
-		Name:       wrapperspbStringToTypeString(webhook.Name),
+		Name:       utils.WrapperspbStringToTypeString(webhook.Name),
 	}
 
 	url := webhook.GetUrl()
@@ -1250,9 +1251,9 @@ func flattenWebhookWrite(ctx context.Context, webhook *cxsdk.OutgoingWebhook) (*
 
 func flattenWebhook(ctx context.Context, webhook *cxsdk.OutgoingWebhook) (*WebhookResourceModel, diag.Diagnostics) {
 	result := &WebhookResourceModel{
-		ID:         wrapperspbStringToTypeString(webhook.Id),
+		ID:         utils.WrapperspbStringToTypeString(webhook.Id),
 		ExternalID: types.StringValue(strconv.Itoa(int(webhook.GetExternalId().GetValue()))),
-		Name:       wrapperspbStringToTypeString(webhook.Name),
+		Name:       utils.WrapperspbStringToTypeString(webhook.Name),
 	}
 
 	url := webhook.GetUrl()
@@ -1290,11 +1291,11 @@ func flattenWebhook(ctx context.Context, webhook *cxsdk.OutgoingWebhook) (*Webho
 func flattenGenericWebhook(ctx context.Context, genericWebhook *cxsdk.GenericWebhookConfig, url *wrapperspb.StringValue) (*CustomWebhookModel, diag.Diagnostics) {
 	headers, diags := types.MapValueFrom(ctx, types.StringType, genericWebhook.Headers)
 	return &CustomWebhookModel{
-		UUID:    wrapperspbStringToTypeString(genericWebhook.Uuid),
+		UUID:    utils.WrapperspbStringToTypeString(genericWebhook.Uuid),
 		Method:  types.StringValue(webhooksProtoToSchemaMethod[genericWebhook.Method]),
 		Headers: headers,
-		Payload: wrapperspbStringToTypeString(genericWebhook.Payload),
-		URL:     wrapperspbStringToTypeString(url),
+		Payload: utils.WrapperspbStringToTypeString(genericWebhook.Payload),
+		URL:     utils.WrapperspbStringToTypeString(url),
 	}, diags
 }
 
@@ -1311,7 +1312,7 @@ func flattenSlack(ctx context.Context, slack *cxsdk.SlackConfig, url *wrapperspb
 
 	return &SlackModel{
 		NotifyAbout: digests,
-		URL:         wrapperspbStringToTypeString(url),
+		URL:         utils.WrapperspbStringToTypeString(url),
 		Attachments: attachments,
 	}, nil
 }
@@ -1360,65 +1361,65 @@ func flattenDigest(digest *cxsdk.SlackConfigDigest) types.String {
 
 func flattenPagerDuty(pagerDuty *cxsdk.PagerDutyConfig) *PagerDutyModel {
 	return &PagerDutyModel{
-		ServiceKey: wrapperspbStringToTypeString(pagerDuty.ServiceKey),
+		ServiceKey: utils.WrapperspbStringToTypeString(pagerDuty.ServiceKey),
 	}
 }
 
 func flattenSendLog(sendLog *cxsdk.SendLogConfig, url *wrapperspb.StringValue) *SendLogModel {
 	return &SendLogModel{
-		UUID:    wrapperspbStringToTypeString(sendLog.Uuid),
-		Payload: wrapperspbStringToTypeString(sendLog.Payload),
-		URL:     wrapperspbStringToTypeString(url),
+		UUID:    utils.WrapperspbStringToTypeString(sendLog.Uuid),
+		Payload: utils.WrapperspbStringToTypeString(sendLog.Payload),
+		URL:     utils.WrapperspbStringToTypeString(url),
 	}
 }
 
 func flattenEmailGroup(emailGroup *cxsdk.EmailGroupConfig) *EmailGroupModel {
 	return &EmailGroupModel{
-		Emails: wrappedStringSliceToTypeStringList(emailGroup.EmailAddresses),
+		Emails: utils.WrappedStringSliceToTypeStringList(emailGroup.EmailAddresses),
 	}
 }
 
 func flattenMsTeamsWorkflow(_ *cxsdk.MSTeamsWorkflowConfig, url *wrapperspb.StringValue) *MsTeamsWorkflowModel {
 	return &MsTeamsWorkflowModel{
-		URL: wrapperspbStringToTypeString(url),
+		URL: utils.WrapperspbStringToTypeString(url),
 	}
 }
 
 func flattenMicrosoftTeams(microsoftTeamsConfig *cxsdk.MicrosoftTeamsConfig, url *wrapperspb.StringValue) *MsTeamsWorkflowModel {
 	return &MsTeamsWorkflowModel{
-		URL: wrapperspbStringToTypeString(url),
+		URL: utils.WrapperspbStringToTypeString(url),
 	}
 }
 
 func flattenJira(jira *cxsdk.JiraConfig, url *wrapperspb.StringValue) *JiraModel {
 	return &JiraModel{
-		ApiKey:    wrapperspbStringToTypeString(jira.ApiToken),
-		Email:     wrapperspbStringToTypeString(jira.Email),
-		ProjectID: wrapperspbStringToTypeString(jira.ProjectKey),
-		URL:       wrapperspbStringToTypeString(url),
+		ApiKey:    utils.WrapperspbStringToTypeString(jira.ApiToken),
+		Email:     utils.WrapperspbStringToTypeString(jira.Email),
+		ProjectID: utils.WrapperspbStringToTypeString(jira.ProjectKey),
+		URL:       utils.WrapperspbStringToTypeString(url),
 	}
 }
 
 func flattenOpsgenie(_ *cxsdk.OpsgenieConfig, url *wrapperspb.StringValue) *OpsgenieModel {
 	return &OpsgenieModel{
-		URL: wrapperspbStringToTypeString(url),
+		URL: utils.WrapperspbStringToTypeString(url),
 	}
 }
 
 func flattenDemisto(demisto *cxsdk.DemistoConfig, url *wrapperspb.StringValue) *DemistoModel {
 	return &DemistoModel{
-		UUID:    wrapperspbStringToTypeString(demisto.Uuid),
-		Payload: wrapperspbStringToTypeString(demisto.Payload),
-		URL:     wrapperspbStringToTypeString(url),
+		UUID:    utils.WrapperspbStringToTypeString(demisto.Uuid),
+		Payload: utils.WrapperspbStringToTypeString(demisto.Payload),
+		URL:     utils.WrapperspbStringToTypeString(url),
 	}
 }
 
 func flattenEventBridge(bridge *cxsdk.AwsEventBridgeConfig) *EventBridgeModel {
 	return &EventBridgeModel{
-		EventBusARN: wrapperspbStringToTypeString(bridge.EventBusArn),
-		Detail:      wrapperspbStringToTypeString(bridge.Detail),
-		DetailType:  wrapperspbStringToTypeString(bridge.DetailType),
-		Source:      wrapperspbStringToTypeString(bridge.Source),
-		RoleName:    wrapperspbStringToTypeString(bridge.RoleName),
+		EventBusARN: utils.WrapperspbStringToTypeString(bridge.EventBusArn),
+		Detail:      utils.WrapperspbStringToTypeString(bridge.Detail),
+		DetailType:  utils.WrapperspbStringToTypeString(bridge.DetailType),
+		Source:      utils.WrapperspbStringToTypeString(bridge.Source),
+		RoleName:    utils.WrapperspbStringToTypeString(bridge.RoleName),
 	}
 }

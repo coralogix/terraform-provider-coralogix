@@ -30,7 +30,7 @@ var userResourceName = "coralogix_user.test"
 func TestAccCoralogixResourceUser(t *testing.T) {
 	userName := randUserName()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckUserDestroy,
 		Steps: []resource.TestStep{

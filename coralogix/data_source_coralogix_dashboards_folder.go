@@ -22,6 +22,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -64,7 +65,7 @@ func (d *DashboardsFolderDataSource) Schema(ctx context.Context, _ datasource.Sc
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *DashboardsFolderDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -81,7 +82,7 @@ func (d *DashboardsFolderDataSource) Read(ctx context.Context, req datasource.Re
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error listing dashboards-folders",
-			formatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(&cxsdk.ListDashboardFolderRequest{})),
+			utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(&cxsdk.ListDashboardFolderRequest{})),
 		)
 
 		return
