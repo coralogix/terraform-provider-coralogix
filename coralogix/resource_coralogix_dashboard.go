@@ -2758,8 +2758,6 @@ func expandSectionOptions(_ context.Context, option SectionOptionsModel) (*cxsdk
 }
 
 func expandDashboardRows(ctx context.Context, rows types.List) ([]*cxsdk.DashboardRow, diag.Diagnostics) {
-	log.Printf("[INFO] Expanding Rows")
-
 	var rowsObjects []types.Object
 	var expandedRows []*cxsdk.DashboardRow
 	diags := rows.ElementsAs(ctx, &rowsObjects, true)
@@ -2849,8 +2847,6 @@ func expandWidget(ctx context.Context, widget WidgetModel) (*cxsdk.DashboardWidg
 }
 
 func expandWidgetDefinition(ctx context.Context, definition *dashboardwidgets.WidgetDefinitionModel) (*cxsdk.WidgetDefinition, diag.Diagnostics) {
-	log.Printf("[INFO] Expanding Hexagon")
-
 	switch {
 	case definition.PieChart != nil:
 		return expandPieChart(ctx, definition.PieChart)
@@ -6135,7 +6131,7 @@ func flattenDashboardWidgetDefinition(ctx context.Context, definition *cxsdk.Wid
 	case *cxsdk.WidgetDefinitionLineChart:
 		return flattenLineChart(ctx, definition.GetLineChart())
 	case *cxsdk.WidgetDefinitionHexagon:
-		return flattenLineChart(ctx, definition.GetLineChart())
+		return dashboardwidgets.FlattenHexagon(ctx, definition.GetHexagon())
 	case *cxsdk.WidgetDefinitionDataTable:
 		return flattenDataTable(ctx, definition.GetDataTable())
 	case *cxsdk.WidgetDefinitionGauge:

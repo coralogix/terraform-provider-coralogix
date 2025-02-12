@@ -275,11 +275,7 @@ func HexagonType() types.ObjectType {
 			"data_mode_type": types.StringType,
 			"thresholds": types.SetType{
 				ElemType: types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"from":  types.NumberType,
-						"color": types.StringType,
-						"label": types.StringType,
-					},
+					AttrTypes: ThresholdAttr(),
 				},
 			},
 			"threshold_type": types.StringType,
