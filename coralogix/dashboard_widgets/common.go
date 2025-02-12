@@ -1071,11 +1071,9 @@ func FlattenDashboardTimeFrame(ctx context.Context, d *cxsdk.Dashboard) (*TimeFr
 	}
 	switch timeFrameType := d.GetTimeFrame().(type) {
 	case *cxsdk.DashboardAbsoluteTimeFrame:
-		//return flattenAbsoluteTimeFrame(ctx, timeFrameType.AbsoluteTimeFrame)
-		return nil, nil
+		return flattenAbsoluteTimeFrame(ctx, timeFrameType.AbsoluteTimeFrame)
 	case *cxsdk.DashboardRelativeTimeFrame:
-		//return flattenRelativeTimeFrame(ctx, timeFrameType.RelativeTimeFrame)
-		return nil, nil
+		return flattenRelativeTimeFrame(ctx, timeFrameType.RelativeTimeFrame)
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Time Frame", fmt.Sprintf("unknown time frame type %T", timeFrameType))}
 	}

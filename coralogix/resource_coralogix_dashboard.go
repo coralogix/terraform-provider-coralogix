@@ -2801,25 +2801,20 @@ func expandRow(ctx context.Context, row RowModel) (*cxsdk.DashboardRow, diag.Dia
 }
 
 func expandDashboardWidgets(ctx context.Context, widgets types.List) ([]*cxsdk.DashboardWidget, diag.Diagnostics) {
-	log.Printf("[INFO] Expanding Widgets")
-
 	var widgetsObjects []types.Object
 	var expandedWidgets []*cxsdk.DashboardWidget
 	diags := widgets.ElementsAs(ctx, &widgetsObjects, true)
-	log.Printf("[INFO] BEFORE")
 
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	for _, wo := range widgetsObjects {
-		log.Printf("[INFO] AFTER")
 		var widget WidgetModel
 		if dg := wo.As(ctx, &widget, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
 		}
-		log.Printf("[INFO] WIDGT")
 		expandedWidget, expandDiags := expandWidget(ctx, widget)
 		if expandDiags.HasError() {
 			diags.Append(expandDiags...)

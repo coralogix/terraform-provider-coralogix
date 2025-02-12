@@ -17,7 +17,6 @@ package dashboardwidgets
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"terraform-provider-coralogix/coralogix/utils"
 
@@ -541,8 +540,6 @@ func flattenHexagonSpansQuery(ctx context.Context, spans *cxsdk.HexagonSpansQuer
 }
 
 func ExpandHexagon(ctx context.Context, hexagon *HexagonModel) (*cxsdk.WidgetDefinition, diag.Diagnostics) {
-	log.Printf("[INFO] Expanding Hexagon")
-
 	if hexagon == nil {
 		return nil, nil
 	}
