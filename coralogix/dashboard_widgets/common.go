@@ -278,6 +278,7 @@ type QueryMetricsModel struct {
 	PromqlQuery     types.String `tfsdk:"promql_query"`
 	Filters         types.List   `tfsdk:"filters"` //MetricsFilterModel
 	PromqlQueryType types.String `tfsdk:"promql_query_type"`
+	Aggregation     types.String `tfsdk:"aggregation"`
 }
 
 type MetricFilterModel struct {
@@ -1669,6 +1670,10 @@ func ExpandTimeFrameSelect(ctx context.Context, timeFrame *TimeFrameModel) (*cxs
 }
 
 func ExpandDashboardTimeFrame(ctx context.Context, dashboard *cxsdk.Dashboard, timeFrame *TimeFrameModel) (*cxsdk.Dashboard, diag.Diagnostics) {
+	if timeFrame == nil {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("No time frame received", "time frame was nil")}
+	}
+
 	var diags diag.Diagnostics
 	switch {
 	case timeFrame.Relative != nil:
