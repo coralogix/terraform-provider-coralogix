@@ -139,7 +139,7 @@ func RulesGroupSchema() map[string]*schema.Schema {
 				Type:         schema.TypeString,
 				ValidateFunc: validation.StringInSlice(rulesValidSeverities, false),
 			},
-			Description: fmt.Sprintf("Rules will execute on logs that match the following severities. Can be one of %q", rulesValidSeverities),
+			Description: fmt.Sprintf("Rules will execute on logs that match the these severities. Can be one of %q", rulesValidSeverities),
 			Set:         schema.HashString,
 		},
 		"hidden": {
@@ -247,7 +247,7 @@ func RulesGroupSchema() map[string]*schema.Schema {
 									Elem: &schema.Resource{
 										Schema: jsonStringifyFieldsSchema(),
 									},
-									Description: "Convert JSON object to JSON string.",
+									Description: "Convert a JSON object to JSON string.",
 									MaxItems:    1,
 								},
 								"extract": {
@@ -265,7 +265,7 @@ func RulesGroupSchema() map[string]*schema.Schema {
 									Elem: &schema.Resource{
 										Schema: parseJsonFieldSchema(),
 									},
-									Description: "Convert JSON string to JSON object.",
+									Description: "Convert a JSON string to JSON object.",
 									MaxItems:    1,
 								},
 							},
@@ -274,7 +274,7 @@ func RulesGroupSchema() map[string]*schema.Schema {
 					},
 				},
 			},
-			Description: "List of rule-subgroups. Every rule-subgroup is list of rules with 'or' (||) operation between.",
+			Description: "List of rule-subgroups. Every rule-subgroup is a list of rules linked with a logical 'OR' (||) operation.",
 		},
 	}
 }
@@ -441,7 +441,7 @@ func commonRulesSchema() map[string]*schema.Schema {
 			Computed: true,
 			Optional: true,
 			Description: "Determines the index of the rule inside the rule-subgroup." +
-				"When not set, will be computed by the order it was declared. (1 based indexing).",
+				"If not set, will be computed by the order it was declared. (1 based indexing).",
 			ValidateFunc: validation.IntAtLeast(1),
 		},
 	}

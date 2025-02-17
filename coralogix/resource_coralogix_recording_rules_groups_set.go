@@ -316,7 +316,7 @@ func recordingRuleGroupSchema() schema.NestedAttributeObject {
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				Required:    true,
-				Description: "The rule-group name. Have to be unique.",
+				Description: "The (unique) rule-group name.",
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
 				},
@@ -332,7 +332,7 @@ func recordingRuleGroupSchema() schema.NestedAttributeObject {
 				Optional:    true,
 				Computed:    true,
 				Default:     int64default.StaticInt64(0),
-				Description: "Limit the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit.",
+				Description: "Limits the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit.",
 			},
 			"rules": schema.ListNestedAttribute{
 				Required:     true,

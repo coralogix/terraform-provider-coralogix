@@ -219,7 +219,7 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 									},
 								},
 							},
-							MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
+							MarkdownDescription: "The actions to apply the policy on. Applies the policy on all the actions by default.",
 						},
 						"services": schema.SingleNestedAttribute{
 							Optional: true,
@@ -240,7 +240,7 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 									},
 								},
 							},
-							MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
+							MarkdownDescription: "The services to apply the policy on. Applies the policy on all the services by default.",
 						},
 						"tags": schema.MapNestedAttribute{
 							Optional: true,
@@ -264,9 +264,9 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 								},
 							},
 							Validators: []validator.Map{
-								mapvalidator.KeysAre(stringvalidator.RegexMatches(regexp.MustCompile("tags.*"), "tag names must have 'tags.' prefix")),
+								mapvalidator.KeysAre(stringvalidator.RegexMatches(regexp.MustCompile("tags.*"), "tag names must have a 'tags.' prefix")),
 							},
-							MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
+							MarkdownDescription: "The tags to apply the policy on. Applies the policy on all the tags by default.",
 						},
 					},
 				},

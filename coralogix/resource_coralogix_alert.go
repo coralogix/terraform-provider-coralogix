@@ -687,7 +687,7 @@ func (r *AlertResource) Configure(_ context.Context, req resource.ConfigureReque
 func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version:             1,
-		MarkdownDescription: "Coralogix Alert. For more info please review - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.",
+		MarkdownDescription: "Coralogix Alert. For more info check - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed: true,
@@ -773,7 +773,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			// type is being inferred by the type_definition attribute
 			"type_definition": schema.SingleNestedAttribute{
 				Required:            true,
-				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold flow.",
+				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow.",
 				Attributes: map[string]schema.Attribute{
 					"logs_immediate": schema.SingleNestedAttribute{
 						Optional: true,

@@ -195,7 +195,7 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 								setvalidator.SizeAtLeast(1),
 								setvalidator.ValueStringsAre(stringvalidator.OneOf(validPolicySeverities...)),
 							},
-							MarkdownDescription: fmt.Sprintf("The severities to apply the policy on. Can be few of %q.", validPolicySeverities),
+							MarkdownDescription: fmt.Sprintf("The severities to apply the policy on. Valid severities are %q.", validPolicySeverities),
 						},
 						"applications": schema.SingleNestedAttribute{
 							Optional: true,

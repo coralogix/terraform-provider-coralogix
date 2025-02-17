@@ -108,7 +108,7 @@ func (r *IntegrationResource) Schema(ctx context.Context, req resource.SchemaReq
 			},
 			"parameters": schema.DynamicAttribute{
 				Required:            true,
-				MarkdownDescription: "Data required for the integration.",
+				MarkdownDescription: "Parameters required by the integration.",
 			},
 		},
 		MarkdownDescription: "A Coralogix Integration",

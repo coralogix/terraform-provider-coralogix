@@ -108,7 +108,7 @@ func (c *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 		},
-		MarkdownDescription: "Coralogix Custom cxsdk.",
+		MarkdownDescription: "Coralogix Custom Role.",
 	}
 }
 
