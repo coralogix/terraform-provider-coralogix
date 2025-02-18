@@ -64,10 +64,17 @@ type HexagonModel struct {
 }
 
 type HexagonQueryModel struct {
-	Logs      *HexagonQueryLogsModel `tfsdk:"logs"`
-	Metrics   *QueryMetricsModel     `tfsdk:"metrics"`
-	Spans     *QuerySpansModel       `tfsdk:"spans"`
-	DataPrime *DataPrimeModel        `tfsdk:"data_prime"`
+	Logs      *HexagonQueryLogsModel    `tfsdk:"logs"`
+	Metrics   *HexagonQueryMetricsModel `tfsdk:"metrics"`
+	Spans     *QuerySpansModel          `tfsdk:"spans"`
+	DataPrime *DataPrimeModel           `tfsdk:"data_prime"`
+}
+
+type HexagonQueryMetricsModel struct {
+	PromqlQuery     types.String `tfsdk:"promql_query"`
+	Filters         types.List   `tfsdk:"filters"` //MetricsFilterModel
+	PromqlQueryType types.String `tfsdk:"promql_query_type"`
+	Aggregation     types.String `tfsdk:"aggregation"`
 }
 
 type HexagonQueryLogsModel struct {
@@ -476,7 +483,7 @@ func flattenHexagonMetricsQuery(ctx context.Context, metrics *cxsdk.HexagonMetri
 	}
 
 	return &HexagonQueryModel{
-		Metrics: &QueryMetricsModel{
+		Metrics: &HexagonQueryMetricsModel{
 			PromqlQuery:     utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 			Filters:         filters,
 			PromqlQueryType: types.StringValue(DashboardProtoToSchemaPromQLQueryType[metrics.GetPromqlQueryType()]),

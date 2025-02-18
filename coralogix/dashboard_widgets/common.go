@@ -278,7 +278,6 @@ type QueryMetricsModel struct {
 	PromqlQuery     types.String `tfsdk:"promql_query"`
 	Filters         types.List   `tfsdk:"filters"` //MetricsFilterModel
 	PromqlQueryType types.String `tfsdk:"promql_query_type"`
-	Aggregation     types.String `tfsdk:"aggregation"`
 }
 
 type MetricFilterModel struct {
