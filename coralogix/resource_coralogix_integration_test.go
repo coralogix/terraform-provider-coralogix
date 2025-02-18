@@ -102,6 +102,25 @@ func TestAccCoralogixResourceIntegrationWithSensitiveData(t *testing.T) {
 		},
 	})
 }
+func TestAccCoralogixResourceIntegrations(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckIntegrationDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceIntegrations(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coralogix_integration.resource_catalog", "id"),
+					resource.TestCheckResourceAttr("coralogix_integration.resource_catalog", "integration_key", "aws-resource-catalog"),
+					resource.TestCheckResourceAttr("coralogix_integration.resource_catalog", "version", "0.1.0"),
+					resource.TestCheckResourceAttr("coralogix_integration.resource_catalog", "parameters.IntegrationName", "aws-resource-catalog"),
+					resource.TestCheckResourceAttr("coralogix_integration.variable_test", "parameters.AwsRoleArn", testRoleArn),
+				),
+			},
+		},
+	})
+}
 
 func testAccCheckIntegrationDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*clientset.ClientSet).Integrations()
@@ -198,4 +217,16 @@ variable "metrics_to_collect" {
 	]
   }
 	`, integrationWithoutSensitiveDataName, integrationWithoutSensitiveDataName, testRoleArn)
+}
+func testAccCoralogixResourceIntegrations() string {
+	return fmt.Sprintf(`resource "coralogix_integration" "resource_catalog" {
+integration_key = "aws-resource-catalog"
+version         = "0.1.0"
+
+parameters = {
+	IntegrationName = "aws-resource-catalog"
+		AwsRoleArn = "%v"
+	}
+}
+`, testRoleArn)
 }
