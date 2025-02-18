@@ -691,7 +691,7 @@ func expandDashboardFiltersSources(ctx context.Context, filters types.List) ([]*
 	return expandedFiltersSources, diags
 }
 
-func expandHexagonMetricsQuery(ctx context.Context, queryMetrics *QueryMetricsModel, timeframe *cxsdk.TimeframeSelect) (*cxsdk.HexagonQueryMetrics, diag.Diagnostics) {
+func expandHexagonMetricsQuery(ctx context.Context, queryMetrics *HexagonQueryMetricsModel, timeframe *cxsdk.TimeframeSelect) (*cxsdk.HexagonQueryMetrics, diag.Diagnostics) {
 	if queryMetrics == nil {
 		return nil, nil
 	}
