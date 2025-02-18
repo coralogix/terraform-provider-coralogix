@@ -22,7 +22,7 @@ jobs:
       - name: Clean up any resources
         env:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
-          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_API_KEY }}
+          CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_USER_API_KEY }}
           TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}          
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
         run: |
