@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -165,7 +166,7 @@ func (r *ArchiveRetentionsResource) Create(ctx context.Context, req resource.Cre
 	getArchiveRetentionsResp, err := r.client.Get(ctx, getArchiveRetentionsReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		formatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq))
+		utils.FormatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq))
 		return
 	}
 	log.Printf("[INFO] Received archive-retentions: %s", protojson.Format(getArchiveRetentionsResp))
@@ -182,7 +183,7 @@ func (r *ArchiveRetentionsResource) Create(ctx context.Context, req resource.Cre
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		diags.AddError(
 			"Error creating archive-retentions",
-			formatRpcErrors(err, cxsdk.ArchiveRetentionUpdateRetentionsRPC, archiveRetentionStr),
+			utils.FormatRpcErrors(err, cxsdk.ArchiveRetentionUpdateRetentionsRPC, archiveRetentionStr),
 		)
 		return
 	}
@@ -211,10 +212,10 @@ func flattenArchiveRetentions(ctx context.Context, retentions []*cxsdk.Retention
 	var retentionsObjects []types.Object
 	for _, retention := range retentions {
 		retentionModel := &ArchiveRetentionResourceModel{
-			ID:       wrapperspbStringToTypeString(retention.GetId()),
-			Order:    wrapperspbInt32ToTypeInt64(retention.GetOrder()),
-			Name:     wrapperspbStringToTypeString(retention.GetName()),
-			Editable: wrapperspbBoolToTypeBool(retention.GetEditable()),
+			ID:       utils.WrapperspbStringToTypeString(retention.GetId()),
+			Order:    utils.WrapperspbInt32ToTypeInt64(retention.GetOrder()),
+			Name:     utils.WrapperspbStringToTypeString(retention.GetName()),
+			Editable: utils.WrapperspbBoolToTypeBool(retention.GetEditable()),
 		}
 		retentionObject, flattenDiags := types.ObjectValueFrom(ctx, archiveRetentionAttributes(), retentionModel)
 		if flattenDiags.HasError() {
@@ -260,7 +261,7 @@ func extractCreateArchiveRetentions(ctx context.Context, plan *ArchiveRetentions
 		}
 		retentions = append(retentions, &cxsdk.RetentionUpdateElement{
 			Id:   wrapperspb.String(exitingRetentions[i].GetId().GetValue()),
-			Name: typeStringToWrapperspbString(retentionModel.Name),
+			Name: utils.TypeStringToWrapperspbString(retentionModel.Name),
 		})
 
 	}
@@ -288,8 +289,8 @@ func extractUpdateArchiveRetentions(ctx context.Context, plan, state *ArchiveRet
 			continue
 		}
 		retentions = append(retentions, &cxsdk.RetentionUpdateElement{
-			Id:   typeStringToWrapperspbString(stateRetentionModel.ID),
-			Name: typeStringToWrapperspbString(planRetentionModel.Name),
+			Id:   utils.TypeStringToWrapperspbString(stateRetentionModel.ID),
+			Name: utils.TypeStringToWrapperspbString(planRetentionModel.Name),
 		})
 	}
 	retentions[0].Name = wrapperspb.String("Default")
@@ -311,7 +312,7 @@ func (r *ArchiveRetentionsResource) Read(ctx context.Context, req resource.ReadR
 	getArchiveRetentionsResp, err := r.client.Get(ctx, getArchiveRetentionsReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		formatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq))
+		utils.FormatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq))
 		return
 	}
 	log.Printf("[INFO] Received archive-retentions: %s", protojson.Format(getArchiveRetentionsResp))
@@ -352,7 +353,7 @@ func (r *ArchiveRetentionsResource) Update(ctx context.Context, req resource.Upd
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating archive-retentions",
-			formatRpcErrors(err, cxsdk.ArchiveRetentionUpdateRetentionsRPC, protojson.Format(archiveRetentionsUpdateResp)),
+			utils.FormatRpcErrors(err, cxsdk.ArchiveRetentionUpdateRetentionsRPC, protojson.Format(archiveRetentionsUpdateResp)),
 		)
 		return
 	}
@@ -365,7 +366,7 @@ func (r *ArchiveRetentionsResource) Update(ctx context.Context, req resource.Upd
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading archive-retentions",
-			formatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq)),
+			utils.FormatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq)),
 		)
 		return
 	}
@@ -394,7 +395,7 @@ func (r *ArchiveRetentionsResource) Delete(ctx context.Context, req resource.Del
 	if _, err := r.client.Update(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting archive-retentions",
-			formatRpcErrors(err, cxsdk.ArchiveRetentionUpdateRetentionsRPC, protojson.Format(deleteReq)),
+			utils.FormatRpcErrors(err, cxsdk.ArchiveRetentionUpdateRetentionsRPC, protojson.Format(deleteReq)),
 		)
 		return
 	}

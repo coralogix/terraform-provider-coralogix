@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -64,7 +65,7 @@ func (d *AlertsSchedulerDataSource) Schema(ctx context.Context, _ datasource.Sch
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *AlertsSchedulerDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -83,7 +84,7 @@ func (d *AlertsSchedulerDataSource) Read(ctx context.Context, req datasource.Rea
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading alerts-scheduler",
-			formatRpcErrors(err, cxsdk.GetAlertSchedulerRuleRPC, protojson.Format(getAlertsSchedulerReq)),
+			utils.FormatRpcErrors(err, cxsdk.GetAlertSchedulerRuleRPC, protojson.Format(getAlertsSchedulerReq)),
 		)
 		return
 	}

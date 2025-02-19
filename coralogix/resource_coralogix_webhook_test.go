@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -82,7 +83,7 @@ func TestAccCoralogixResourceSlackWebhook(t *testing.T) {
 		},
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
@@ -111,10 +112,10 @@ func TestAccCoralogixResourceCustomWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := &customWebhookTestFields{
 		webhookTestFields: *getRandomWebhook(),
-		method:            selectRandomlyFromSlice(webhooksValidMethods),
+		method:            utils.SelectRandomlyFromSlice(webhooksValidMethods),
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
@@ -144,7 +145,7 @@ func TestAccCoralogixResourcePagerDutyWebhook(t *testing.T) {
 		serviceKey:        acctest.RandomWithPrefix("tf-acc-test"),
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
@@ -173,7 +174,7 @@ func TestAccCoralogixResourceEmailGroupWebhook(t *testing.T) {
 		emails:            []string{"example@coralogix.com"},
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
@@ -204,7 +205,7 @@ func TestAccCoralogixResourceJiraWebhook(t *testing.T) {
 		projectKey:        acctest.RandomWithPrefix("tf-acc-test"),
 	}
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
@@ -233,7 +234,7 @@ func TestAccCoralogixResourceMicrosoftTeamsWorkflowWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := getRandomWebhook()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
@@ -258,7 +259,7 @@ func TestAccCoralogixResourceSendLogWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := getRandomWebhook()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
@@ -282,7 +283,7 @@ func TestAccCoralogixResourceOpsgenieWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := getRandomWebhook()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
@@ -308,7 +309,7 @@ func TestAccCoralogixResourceDemistoWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := getRandomWebhook()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
@@ -342,7 +343,7 @@ func TestAccCoralogixResourceEventBridgeWebhook(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckWebhookDestroy,
 		Steps: []resource.TestStep{
@@ -445,7 +446,7 @@ email_group = {
 }
 }
 `,
-		w.name, sliceToString(w.emails))
+		w.name, utils.SliceToString(w.emails))
 }
 
 func testAccCoralogixResourceSendLogWebhook(w *webhookTestFields) string {

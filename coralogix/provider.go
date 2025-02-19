@@ -20,6 +20,7 @@ import (
 	"os"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -54,7 +55,7 @@ var (
 		"USA2":    "ng-api-grpc.cx498.coralogix.com:443",
 		"US2":     "ng-api-grpc.cx498.coralogix.com:443",
 	}
-	validEnvironmentAliases                   = getKeysStrings(terraformEnvironmentAliasToGrpcUrl)
+	validEnvironmentAliases                   = utils.GetKeys(terraformEnvironmentAliasToGrpcUrl)
 	terraformEnvironmentAliasToSdkEnvironment = map[string]string{
 		"APAC1":   "AP1",
 		"AP1":     "AP1",

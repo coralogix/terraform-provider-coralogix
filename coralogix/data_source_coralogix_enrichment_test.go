@@ -25,7 +25,7 @@ var enrichmentDataSourceName = "data." + enrichmentResourceName
 func TestAccCoralogixDataSourceEnrichment_basic(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { testAccPreCheck(t) },
+		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		CheckDestroy:      testAccCheckDataSetDestroy,
 		Steps: []resource.TestStep{

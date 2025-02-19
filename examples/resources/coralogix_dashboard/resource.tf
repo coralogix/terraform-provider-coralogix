@@ -623,6 +623,62 @@ resource "coralogix_dashboards_folder" "example" {
   name     = "example"
 }
 
+resource "coralogix_dashboard" widgets {
+  name        = "widget-examples"
+  description = "Widget testing"
+  time_frame = {
+    relative = {
+      duration = "seconds:900" # 15 minutes
+    }
+  }
+  layout = {
+    sections = [{
+      rows = [{
+        height = 19
+        widgets = [{
+          title      = "hexagon"
+          definition = {
+            hexagon = {
+              min = 0
+              max = 100
+              decimal = 2
+              threshold_type = "relative"
+              thresholds = [{
+                from = 0
+                color = "var(--c-severity-log-verbose)"
+              },
+              {
+                from = 33
+                color = "var(--c-severity-log-warning)"
+              },
+              {
+                from = 66
+                color = "var(--c-severity-log-error)"
+              }]
+              query = {
+                logs = {
+                  aggregation = {
+                    type = "count"
+                  }
+                  group_by = [{
+                    keypath = ["subsystemname"]
+                    scope = "label"
+                  }]
+                }
+              }
+              legend_by = "groups"
+              legend = {
+                is_visible = true
+              }
+            }
+          }
+          width = 0
+        }]
+      }]
+    }]
+  }
+}
+
 resource "coralogix_dashboard" dashboard_from_json {
   content_json = file("./dashboard.json")
 }

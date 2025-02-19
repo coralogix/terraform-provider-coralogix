@@ -21,6 +21,7 @@ import (
 	"math/big"
 	"slices"
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -158,7 +159,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Integration",
-			formatRpcErrors(err, createIntegrationsUrl, protojson.Format(createReq)),
+			utils.FormatRpcErrors(err, createIntegrationsUrl, protojson.Format(createReq)),
 		)
 		return
 	}
@@ -174,7 +175,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Integration",
-			formatRpcErrors(err, getIntegrationsUrl, protojson.Format(getIntegrationReq)),
+			utils.FormatRpcErrors(err, getIntegrationsUrl, protojson.Format(getIntegrationReq)),
 		)
 		return
 	}
@@ -406,7 +407,7 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Integration",
-				formatRpcErrors(err, getIntegrationsUrl, protojson.Format(getIntegrationReq)),
+				utils.FormatRpcErrors(err, getIntegrationsUrl, protojson.Format(getIntegrationReq)),
 			)
 		}
 		return
@@ -456,7 +457,7 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Integration",
-			formatRpcErrors(err, updateIntegrationsUrl, protojson.Format(updateReq)),
+			utils.FormatRpcErrors(err, updateIntegrationsUrl, protojson.Format(updateReq)),
 		)
 		return
 	}
@@ -471,7 +472,7 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Integration",
-			formatRpcErrors(err, getIntegrationsUrl, protojson.Format(getIntegrationReq)),
+			utils.FormatRpcErrors(err, getIntegrationsUrl, protojson.Format(getIntegrationReq)),
 		)
 		return
 	}
@@ -509,7 +510,7 @@ func (r *IntegrationResource) Delete(ctx context.Context, req resource.DeleteReq
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error deleting Integration",
-			formatRpcErrors(err, deleteIntegrationsUrl, protojson.Format(deleteReq)),
+			utils.FormatRpcErrors(err, deleteIntegrationsUrl, protojson.Format(deleteReq)),
 		)
 		return
 	}

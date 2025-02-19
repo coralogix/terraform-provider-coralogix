@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,6 +21,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 
@@ -125,7 +126,7 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Group",
-			formatRpcErrors(err, r.client.TargetUrl, string(groupStr)),
+			utils.FormatRpcErrors(err, r.client.TargetUrl, string(groupStr)),
 		)
 		return
 	}
@@ -202,7 +203,7 @@ func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Group",
-				formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), ""),
+				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), ""),
 			)
 		}
 		return
@@ -244,7 +245,7 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Group",
-			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, groupUpdateReq.ID), string(groupStr)),
+			utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, groupUpdateReq.ID), string(groupStr)),
 		)
 		return
 	}
@@ -265,7 +266,7 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Group",
-				formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), string(groupStr)),
+				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), string(groupStr)),
 			)
 		}
 		return
@@ -297,7 +298,7 @@ func (r *GroupResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	if err := r.client.DeleteGroup(ctx, id); err != nil {
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting Group %s", id),
-			formatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), ""),
+			utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), ""),
 		)
 		return
 	}

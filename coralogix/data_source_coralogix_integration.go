@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -68,7 +69,7 @@ func (d *IntegrationDataSource) Schema(ctx context.Context, _ datasource.SchemaR
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = frameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -88,7 +89,7 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading Integration",
-			formatRpcErrors(err, getIntegrationURL, protojson.Format(getIntegrationReq)),
+			utils.FormatRpcErrors(err, getIntegrationURL, protojson.Format(getIntegrationReq)),
 		)
 		return
 	}

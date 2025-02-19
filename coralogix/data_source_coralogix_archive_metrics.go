@@ -20,6 +20,7 @@ import (
 	"log"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -63,7 +64,7 @@ func (d *ArchiveMetricsDataSource) Schema(ctx context.Context, _ datasource.Sche
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = convertSchemaWithoutID(resourceResp.Schema)
+	resp.Schema = utils.ConvertSchemaWithoutID(resourceResp.Schema)
 }
 
 func (d *ArchiveMetricsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -80,7 +81,7 @@ func (d *ArchiveMetricsDataSource) Read(ctx context.Context, req datasource.Read
 
 		resp.Diagnostics.AddError(
 			"Error reading archive-metrics",
-			formatRpcErrors(err, cxsdk.ArchiveMetricsGetTenantConfigRPC, ""),
+			utils.FormatRpcErrors(err, cxsdk.ArchiveMetricsGetTenantConfigRPC, ""),
 		)
 	}
 	log.Printf("[INFO] Received archive-metrics: %s", protojson.Format(getResp))

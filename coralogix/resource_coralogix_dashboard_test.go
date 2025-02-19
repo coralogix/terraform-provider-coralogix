@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -34,7 +35,7 @@ var dashboardResourceName = "coralogix_dashboard.test"
 
 func TestAccCoralogixResourceDashboard(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckDashboardDestroy,
 		Steps: []resource.TestStep{
@@ -107,6 +108,93 @@ func TestAccCoralogixResourceDashboard(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+
+				Config: testAccCoralogixResourceDashboardWithWidget(`{
+            title      = "hexagon"
+            definition = {
+              hexagon = {
+                min = 0
+                max = 100
+                decimal = 2
+                threshold_type = "relative"
+                thresholds = [{
+                  from = 0
+                  color = "var(--c-severity-log-verbose)"
+                },
+                {
+                  from = 33
+                  color = "var(--c-severity-log-warning)"
+                },
+                {
+                  from = 66
+                  color = "var(--c-severity-log-error)"
+                }]
+                query = {
+                  logs = {
+                    aggregation = {
+                      type = "count"
+                    }
+                    group_by = [{
+                      keypath = ["subsystemname"]
+                      scope = "label"
+                    }]
+                  }
+                }
+                legend_by = "groups"
+                legend = {
+                  is_visible = true
+                }
+              }
+            }
+            width = 0
+          }`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "hexagon"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.query.logs.aggregation.type", "count"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.query.logs.group_by.0.keypath.0", "subsystemname"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.query.logs.group_by.0.scope", "label"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.legend_by", "groups"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.min", "0"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.max", "100"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.decimal", "2"),
+
+					resource.TestCheckTypeSetElemNestedAttrs(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.thresholds.*",
+						map[string]string{
+							"from":  "0",
+							"color": "var(--c-severity-log-verbose)",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.thresholds.*",
+						map[string]string{
+							"from":  "33",
+							"color": "var(--c-severity-log-warning)",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.thresholds.*",
+						map[string]string{
+							"from":  "66",
+							"color": "var(--c-severity-log-error)",
+						},
+					),
+				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
@@ -115,7 +203,7 @@ func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 	parent := filepath.Dir(wd)
 	filePath := parent + "/examples/resources/coralogix_dashboard/dashboard.json"
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckDashboardDestroy,
 		Steps: []resource.TestStep{
@@ -138,7 +226,7 @@ func TestAccCoralogixResourceDashboardFromJsonWithVar(t *testing.T) {
 	filePath := parent + "/examples/resources/coralogix_dashboard/dashboard_with_var_path.json"
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckDashboardDestroy,
 		Steps: []resource.TestStep{
@@ -365,7 +453,7 @@ resource "coralogix_dashboard" test {
 }
 
 func TestParseRelativeTimeDuration(t *testing.T) {
-	res, err := parseDuration("seconds:900", "relative")
+	res, err := utils.ParseDuration("seconds:900", "relative")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -373,4 +461,27 @@ func TestParseRelativeTimeDuration(t *testing.T) {
 	if res.Seconds() != 900 {
 		t.Fatalf("expected 900 seconds, got %f", res.Seconds())
 	}
+}
+
+func testAccCoralogixResourceDashboardWithWidget(widget string) string {
+	return fmt.Sprintf(`resource "coralogix_dashboard" test {
+name        = "test-the-widget"
+description = "Widget Tester!"
+time_frame = {
+  relative = {
+    duration = "seconds:900" # 15 minutes
+  }
+}
+layout = {
+  sections = [{
+    rows = [{
+      height = 19
+      widgets = [
+            %v
+      ]
+    }]
+  }]
+}
+}
+`, widget)
 }

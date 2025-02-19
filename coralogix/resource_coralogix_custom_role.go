@@ -21,6 +21,7 @@ import (
 	"strconv"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -131,7 +132,7 @@ func (c *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Custom Role",
-			formatRpcErrors(err, cxsdk.RolesCreateRoleRPC, protojson.Format(createCustomRoleRequest)),
+			utils.FormatRpcErrors(err, cxsdk.RolesCreateRoleRPC, protojson.Format(createCustomRoleRequest)),
 		)
 		return
 	}
@@ -170,7 +171,7 @@ func (c *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Custom Role",
-				formatRpcErrors(err, cxsdk.RolesGetCustomRoleRPC, protojson.Format(readReq)),
+				utils.FormatRpcErrors(err, cxsdk.RolesGetCustomRoleRPC, protojson.Format(readReq)),
 			)
 		}
 		return
@@ -217,7 +218,7 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	if !currentState.Permissions.Equal(desiredState.Permissions) {
-		permissions, diags := typeStringSliceToStringSlice(ctx, desiredState.Permissions.Elements())
+		permissions, diags := utils.TypeStringSliceToStringSlice(ctx, desiredState.Permissions.Elements())
 		if diags.HasError() {
 			diags.AddError("Custom role update error", "Error extracting permissions")
 			resp.Diagnostics.Append(diags...)
@@ -233,7 +234,7 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating custom role",
-			formatRpcErrors(err, cxsdk.RolesUpdateRoleRPC, protojson.Format(&updateRoleRequest)),
+			utils.FormatRpcErrors(err, cxsdk.RolesUpdateRoleRPC, protojson.Format(&updateRoleRequest)),
 		)
 		return
 	}
@@ -270,7 +271,7 @@ func (c *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteReques
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error deleting Custom Role",
-			formatRpcErrors(err, cxsdk.RolesDeleteRoleRPC, protojson.Format(&deleteRoleRequest)),
+			utils.FormatRpcErrors(err, cxsdk.RolesDeleteRoleRPC, protojson.Format(&deleteRoleRequest)),
 		)
 		return
 	}
@@ -279,7 +280,7 @@ func (c *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteReques
 }
 
 func makeCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) (*cxsdk.CreateRoleRequest, diag.Diagnostics) {
-	permissions, diags := typeStringSliceToStringSlice(ctx, roleModel.Permissions.Elements())
+	permissions, diags := utils.TypeStringSliceToStringSlice(ctx, roleModel.Permissions.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}

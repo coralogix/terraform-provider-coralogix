@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -136,7 +137,7 @@ func resourceCoralogixDataSetCreate(ctx context.Context, d *schema.ResourceData,
 	resp, err := meta.(*clientset.ClientSet).DataSet().Create(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, cxsdk.CreateDataSetRPC, protojson.Format(req)))
+		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.CreateDataSetRPC, protojson.Format(req)))
 	}
 
 	if uploadedFile, ok := d.GetOk("uploaded_file"); ok {
@@ -145,7 +146,7 @@ func resourceCoralogixDataSetCreate(ctx context.Context, d *schema.ResourceData,
 		}
 	}
 
-	id := uint32ToStr(resp.GetCustomEnrichment().GetId())
+	id := utils.Uint32ToStr(resp.GetCustomEnrichment().GetId())
 	d.SetId(id)
 
 	return resourceCoralogixDataSetRead(ctx, d, meta)
@@ -160,7 +161,7 @@ func setModificationTimeUploaded(d *schema.ResourceData, uploadedFile interface{
 
 func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
-	req := &cxsdk.GetDataSetRequest{Id: wrapperspb.UInt32(strToUint32(id))}
+	req := &cxsdk.GetDataSetRequest{Id: wrapperspb.UInt32(utils.StrToUint32(id))}
 
 	log.Print("[INFO] Reading enrichment-data")
 	DataSetResp, err := meta.(*clientset.ClientSet).DataSet().Get(ctx, req)
@@ -174,7 +175,7 @@ func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, m
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		return diag.Errorf(formatRpcErrors(err, cxsdk.GetDataSetRPC, protojson.Format(req)))
+		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.GetDataSetRPC, protojson.Format(req)))
 	}
 
 	log.Printf("[INFO] Received enrichment-data: %s", protojson.Format(DataSetResp))
@@ -191,7 +192,7 @@ func resourceCoralogixDataSetUpdate(ctx context.Context, d *schema.ResourceData,
 	_, err = meta.(*clientset.ClientSet).DataSet().Update(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, cxsdk.UpdateDataSetRPC, protojson.Format(req)))
+		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.UpdateDataSetRPC, protojson.Format(req)))
 	}
 
 	if uploadedFile, ok := d.GetOk("uploaded_file"); ok {
@@ -205,13 +206,13 @@ func resourceCoralogixDataSetUpdate(ctx context.Context, d *schema.ResourceData,
 
 func resourceCoralogixDataSetDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	id := d.Id()
-	req := &cxsdk.DeleteDataSetRequest{CustomEnrichmentId: wrapperspb.UInt32(strToUint32(id))}
+	req := &cxsdk.DeleteDataSetRequest{CustomEnrichmentId: wrapperspb.UInt32(utils.StrToUint32(id))}
 
 	log.Printf("[INFO] Deleting enrichment-data %s", id)
 	_, err := meta.(*clientset.ClientSet).DataSet().Delete(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(formatRpcErrors(err, cxsdk.DeleteDataSetRPC, protojson.Format(req)))
+		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.DeleteDataSetRPC, protojson.Format(req)))
 	}
 
 	log.Printf("[INFO] enrichment-data %s deleted", id)
@@ -258,7 +259,7 @@ func expandDataSetRequest(d *schema.ResourceData) (*cxsdk.CreateDataSetRequest, 
 }
 
 func expandUpdateDataSetRequest(d *schema.ResourceData) (*cxsdk.UpdateDataSetRequest, string, error) {
-	customEnrichmentId := wrapperspb.UInt32(strToUint32(d.Id()))
+	customEnrichmentId := wrapperspb.UInt32(utils.StrToUint32(d.Id()))
 	name, description, file, modificationTime, err := expandEnrichmentReq(d)
 	if err != nil {
 		return nil, "", err

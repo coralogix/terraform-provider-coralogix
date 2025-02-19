@@ -24,6 +24,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -65,7 +66,7 @@ func (d *ArchiveRetentionsDataSource) Schema(ctx context.Context, _ datasource.S
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = convertSchemaWithoutID(resourceResp.Schema)
+	resp.Schema = utils.ConvertSchemaWithoutID(resourceResp.Schema)
 }
 
 func (d *ArchiveRetentionsDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -83,7 +84,7 @@ func (d *ArchiveRetentionsDataSource) Read(ctx context.Context, req datasource.R
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading archive-retentions",
-			formatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq)),
+			utils.FormatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq)),
 		)
 
 		return

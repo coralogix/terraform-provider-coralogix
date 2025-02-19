@@ -40,7 +40,7 @@ var events2metricResourceName = "coralogix_events2metric.test"
 func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 	events2Metric := getRandomEvents2Metric()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckEvents2MetricDestroy,
 		Steps: []resource.TestStep{
@@ -85,7 +85,7 @@ func TestAccCoralogixResourceLogs2Metric(t *testing.T) {
 func TestAccCoralogixResourceSpans2Metric(t *testing.T) {
 	events2Metric := getRandomEvents2Metric()
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckEvents2MetricDestroy,
 		Steps: []resource.TestStep{

@@ -21,6 +21,7 @@ import (
 	"regexp"
 
 	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -57,8 +58,8 @@ var (
 		"Error":       cxsdk.L2MSeverityError,
 		"Critical":    cxsdk.L2MSeverityCritical,
 	}
-	severityProtoToSchema = ReverseMap(severitySchemaToProto)
-	validSeverities       = GetKeys(severitySchemaToProto)
+	severityProtoToSchema = utils.ReverseMap(severitySchemaToProto)
+	validSeverities       = utils.GetKeys(severitySchemaToProto)
 
 	protoToSchemaAggregationType = map[cxsdk.E2MAggregationType]string{
 		cxsdk.E2MAggregationTypeMin:       "min",
@@ -74,9 +75,9 @@ var (
 		"Max": cxsdk.E2MAggSampleTypeMax,
 	}
 
-	protoToSchemaAggregationSampleType = ReverseMap(schemaToProtoAggregationSampleType)
+	protoToSchemaAggregationSampleType = utils.ReverseMap(schemaToProtoAggregationSampleType)
 
-	validSampleTypes = GetKeys(schemaToProtoAggregationSampleType)
+	validSampleTypes = utils.GetKeys(schemaToProtoAggregationSampleType)
 )
 
 var (
@@ -860,7 +861,7 @@ func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateR
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating Events2Metric",
-			formatRpcErrors(err, cxsdk.E2MCreateRPC, protojson.Format(e2mCreateReq)),
+			utils.FormatRpcErrors(err, cxsdk.E2MCreateRPC, protojson.Format(e2mCreateReq)),
 		)
 	}
 	log.Printf("[INFO] Submitted new Events2metric: %s", protojson.Format(e2mCreateResp))
@@ -896,7 +897,7 @@ func (r *Events2MetricResource) Read(ctx context.Context, req resource.ReadReque
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				formatRpcErrors(err, cxsdk.E2MGetRPC, protojson.Format(getE2MReq)),
+				utils.FormatRpcErrors(err, cxsdk.E2MGetRPC, protojson.Format(getE2MReq)),
 			)
 		}
 		return
@@ -929,7 +930,7 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating Events2Metric",
-			formatRpcErrors(err, cxsdk.E2MReplaceRPC, protojson.Format(e2mUpdateReq)),
+			utils.FormatRpcErrors(err, cxsdk.E2MReplaceRPC, protojson.Format(e2mUpdateReq)),
 		)
 		return
 	}
@@ -949,7 +950,7 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Events2Metric",
-				formatRpcErrors(err, cxsdk.E2MGetRPC, protojson.Format(e2mUpdateReq)),
+				utils.FormatRpcErrors(err, cxsdk.E2MGetRPC, protojson.Format(e2mUpdateReq)),
 			)
 		}
 		return
@@ -977,7 +978,7 @@ func (r *Events2MetricResource) Delete(ctx context.Context, req resource.DeleteR
 	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
 		resp.Diagnostics.AddError(
 			"Error Deleting Events2Metric",
-			formatRpcErrors(err, cxsdk.E2MDeleteRPC, protojson.Format(deleteReq)),
+			utils.FormatRpcErrors(err, cxsdk.E2MDeleteRPC, protojson.Format(deleteReq)),
 		)
 		return
 	}
@@ -1009,8 +1010,8 @@ func flattenDescription(e2mDescription *wrapperspb.StringValue) types.String {
 }
 
 func extractCreateE2M(ctx context.Context, plan Events2MetricResourceModel) (*cxsdk.CreateE2MRequest, diag.Diagnostics) {
-	name := typeStringToWrapperspbString(plan.Name)
-	description := typeStringToWrapperspbString(plan.Description)
+	name := utils.TypeStringToWrapperspbString(plan.Name)
+	description := utils.TypeStringToWrapperspbString(plan.Description)
 	permutations := expandPermutations(plan.Permutations)
 	permutationsLimit := wrapperspb.Int32(permutations.GetLimit())
 	metricLabels, diags := expandE2MLabels(ctx, plan.MetricLabels)
@@ -1195,7 +1196,7 @@ func expandE2MAggregations(ctx context.Context, aggregationsModel *AggregationsM
 		aggregations = append(aggregations, aggregation)
 	}
 	if histogram := aggregationsModel.Histogram; histogram != nil {
-		buckets, diags := attrSliceToFloat32Slice(ctx, histogram.Buckets.Elements())
+		buckets, diags := utils.AttrSliceToFloat32Slice(ctx, histogram.Buckets.Elements())
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -1208,20 +1209,20 @@ func expandE2MAggregations(ctx context.Context, aggregationsModel *AggregationsM
 }
 
 func expandSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) (*cxsdk.E2MCreateParamsSpansQuery, diag.Diagnostics) {
-	lucene := typeStringToWrapperspbString(spansQuery.Lucene)
-	applications, diags := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Applications.Elements())
+	lucene := utils.TypeStringToWrapperspbString(spansQuery.Lucene)
+	applications, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Applications.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
-	subsystems, diags := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Subsystems.Elements())
+	subsystems, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Subsystems.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
-	actions, diags := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Actions.Elements())
+	actions, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Actions.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
-	services, diags := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Services.Elements())
+	services, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Services.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1238,12 +1239,12 @@ func expandSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) (*cxsdk.
 }
 
 func expandLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) (*cxsdk.E2MCreateParamsLogsQuery, diag.Diagnostics) {
-	searchQuery := typeStringToWrapperspbString(logsQuery.Lucene)
-	applications, diags := typeStringSliceToWrappedStringSlice(ctx, logsQuery.Applications.Elements())
+	searchQuery := utils.TypeStringToWrapperspbString(logsQuery.Lucene)
+	applications, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, logsQuery.Applications.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
-	subsystems, diags := typeStringSliceToWrappedStringSlice(ctx, logsQuery.Subsystems.Elements())
+	subsystems, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, logsQuery.Subsystems.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1263,20 +1264,20 @@ func expandLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) (*cxsdk.E2M
 }
 
 func expandUpdateSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) (*cxsdk.E2MSpansQuery, diag.Diagnostics) {
-	lucene := typeStringToWrapperspbString(spansQuery.Lucene)
-	applications, diags := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Applications.Elements())
+	lucene := utils.TypeStringToWrapperspbString(spansQuery.Lucene)
+	applications, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Applications.Elements())
 	if diags != nil {
 		return nil, diags
 	}
-	subsystems, diags := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Subsystems.Elements())
+	subsystems, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Subsystems.Elements())
 	if diags != nil {
 		return nil, diags
 	}
-	actions, diags := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Actions.Elements())
+	actions, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Actions.Elements())
 	if diags != nil {
 		return nil, diags
 	}
-	services, diags := typeStringSliceToWrappedStringSlice(ctx, spansQuery.Services.Elements())
+	services, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, spansQuery.Services.Elements())
 	if diags != nil {
 		return nil, diags
 	}
@@ -1294,11 +1295,11 @@ func expandUpdateSpansQuery(ctx context.Context, spansQuery *SpansQueryModel) (*
 
 func expandUpdateLogsQuery(ctx context.Context, logsQuery *LogsQueryModel) (*cxsdk.E2MLogsQuery, diag.Diagnostics) {
 	searchQuery := wrapperspb.String(logsQuery.Lucene.ValueString())
-	applications, diags := typeStringSliceToWrappedStringSlice(ctx, logsQuery.Applications.Elements())
+	applications, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, logsQuery.Applications.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
-	subsystems, diags := typeStringSliceToWrappedStringSlice(ctx, logsQuery.Subsystems.Elements())
+	subsystems, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, logsQuery.Subsystems.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1431,7 +1432,7 @@ func flattenE2MHistogramAggregation(ctx context.Context, aggregation *cxsdk.E2MA
 		return nil
 	}
 
-	buckets, diags := float32SliceTypeList(ctx, aggregation.GetHistogram().GetBuckets())
+	buckets, diags := utils.Float32SliceTypeList(ctx, aggregation.GetHistogram().GetBuckets())
 	if diags.HasError() {
 		return nil
 	}
@@ -1461,11 +1462,11 @@ func flattenSpansQuery(query *cxsdk.S2MSpansQuery) *SpansQueryModel {
 		return nil
 	}
 	return &SpansQueryModel{
-		Lucene:       wrapperspbStringToTypeString(query.GetLucene()),
-		Applications: wrappedStringSliceToTypeStringSet(query.GetApplicationnameFilters()),
-		Subsystems:   wrappedStringSliceToTypeStringSet(query.GetSubsystemnameFilters()),
-		Actions:      wrappedStringSliceToTypeStringSet(query.GetActionFilters()),
-		Services:     wrappedStringSliceToTypeStringSet(query.GetServiceFilters()),
+		Lucene:       utils.WrapperspbStringToTypeString(query.GetLucene()),
+		Applications: utils.WrappedStringSliceToTypeStringSet(query.GetApplicationnameFilters()),
+		Subsystems:   utils.WrappedStringSliceToTypeStringSet(query.GetSubsystemnameFilters()),
+		Actions:      utils.WrappedStringSliceToTypeStringSet(query.GetActionFilters()),
+		Services:     utils.WrappedStringSliceToTypeStringSet(query.GetServiceFilters()),
 	}
 }
 
@@ -1474,9 +1475,9 @@ func flattenLogsQuery(query *cxsdk.L2MLogsQuery) *LogsQueryModel {
 		return nil
 	}
 	return &LogsQueryModel{
-		Lucene:       wrapperspbStringToTypeString(query.GetLucene()),
-		Applications: wrappedStringSliceToTypeStringSet(query.GetApplicationnameFilters()),
-		Subsystems:   wrappedStringSliceToTypeStringSet(query.GetSubsystemnameFilters()),
+		Lucene:       utils.WrapperspbStringToTypeString(query.GetLucene()),
+		Applications: utils.WrappedStringSliceToTypeStringSet(query.GetApplicationnameFilters()),
+		Subsystems:   utils.WrappedStringSliceToTypeStringSet(query.GetSubsystemnameFilters()),
 		Severities:   flattenLogQuerySeverities(query.GetSeverityFilters()),
 	}
 }

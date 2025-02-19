@@ -33,7 +33,7 @@ var (
 
 func TestAccCoralogixResourceResourceAlertsScheduler(t *testing.T) {
 	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
+		PreCheck:                 func() { TestAccPreCheck(t) },
 		CheckDestroy:             testAccCheckAlertsSchedulerDestroy,
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
