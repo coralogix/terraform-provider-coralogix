@@ -49,8 +49,8 @@ var (
 	_                                resource.ResourceWithImportState      = &SLOResource{}
 	_                                resource.ResourceWithConfigValidators = &SLOResource{}
 	protoToSchemaThresholdSymbolType                                       = map[cxsdk.ThresholdSymbol]string{
-		cxsdk.SloThresholdSymbolGreater:        "greater_or_equal",
-		cxsdk.SloThresholdSymbolGreaterOrEqual: "greater",
+		cxsdk.SloThresholdSymbolGreaterOrEqual: "greater_or_equal",
+		cxsdk.SloThresholdSymbolGreater:        "greater",
 		cxsdk.SloThresholdSymbolLess:           "less",
 		cxsdk.SloThresholdSymbolLessOrEqual:    "less_or_equal",
 		cxsdk.SloThresholdSymbolEqual:          "equal",
