@@ -58,6 +58,29 @@ func TestAccCoralogixResourceSLOCreate(t *testing.T) {
 	)
 }
 
+func TestAccCoralogixResourceSpanSLOCreate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccSLOCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:  testAccCoralogixResourceSpanSLO(),
+				Destroy: false,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(sloResourceName, "name", "coralogix_slo_example_error_rate"),
+					resource.TestCheckResourceAttr(sloResourceName, "service_name", "service_name"),
+					resource.TestCheckResourceAttr(sloResourceName, "description", "description"),
+					resource.TestCheckResourceAttr(sloResourceName, "target_percentage", "80"),
+					resource.TestCheckResourceAttr(sloResourceName, "type", "error"),
+					resource.TestCheckResourceAttr(sloResourceName, "period", "7_days"),
+				),
+			},
+		},
+	},
+	)
+}
+
 func testAccSLOCheckDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*clientset.ClientSet).SLOs()
 	ctx := context.TODO()
@@ -98,4 +121,15 @@ resource "coralogix_slo" "test" {
 	}]
 }
 `
+}
+
+func testAccCoralogixResourceSpanSLO() string {
+	return `resource "coralogix_slo" "test" {
+	name 				= "coralogix_slo_example_error_rate"
+	service_name 		= "service_name"
+	description 		= "description"
+	type 				= "error"
+	period 				= "7_days"
+	target_percentage 	= 80
+}`
 }
