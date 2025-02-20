@@ -916,7 +916,11 @@ func FlattenSpansFields(ctx context.Context, spanFields []*cxsdk.SpanField) (typ
 		spanFieldElements = append(spanFieldElements, fieldElement)
 	}
 
-	return types.ListValueMust(types.ObjectType{AttrTypes: SpansFieldModelAttr()}, spanFieldElements), diagnostics
+	if diagnostics.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: SpansFieldModelAttr()}), diagnostics
+	}
+
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: SpansFieldModelAttr()}, spanFieldElements)
 }
 
 func FlattenSpansField(field *cxsdk.SpanField) (*SpansFieldModel, diag.Diagnostic) {

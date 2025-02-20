@@ -6390,7 +6390,10 @@ func flattenLineChartQueryDefinitions(ctx context.Context, definitions []*cxsdk.
 		definitionsElements = append(definitionsElements, definitionElement)
 	}
 
-	return types.ListValueMust(types.ObjectType{AttrTypes: lineChartQueryDefinitionModelAttr()}, definitionsElements), diagnostics
+	if diagnostics.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: lineChartQueryDefinitionModelAttr()}), diagnostics
+	}
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: lineChartQueryDefinitionModelAttr()}, definitionsElements)
 }
 
 func flattenLineChartQueryDefinition(ctx context.Context, definition *cxsdk.LineChartQueryDefinition) (*dashboardwidgets.LineChartQueryDefinitionModel, diag.Diagnostics) {
@@ -6510,8 +6513,10 @@ func flattenAggregations(ctx context.Context, aggregations []*cxsdk.LogsAggregat
 		}
 		aggregationsElements = append(aggregationsElements, aggregationElement)
 	}
-
-	return types.ListValueMust(types.ObjectType{AttrTypes: dashboardwidgets.AggregationModelAttr()}, aggregationsElements), diagnostics
+	if diagnostics.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: lineChartQueryDefinitionModelAttr()}), diagnostics
+	}
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dashboardwidgets.AggregationModelAttr()}, aggregationsElements)
 }
 
 func flattenLineChartQueryMetrics(ctx context.Context, metrics *cxsdk.LineChartMetricsQuery) (*dashboardwidgets.LineChartQueryModel, diag.Diagnostics) {
@@ -6548,11 +6553,17 @@ func flattenLineChartQuerySpans(ctx context.Context, spans *cxsdk.LineChartSpans
 		return nil, diags
 	}
 
+	aggregations, diags := flattenLineChartSpansAggregation(ctx, spans.GetAggregations())
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardwidgets.LineChartQueryModel{
 		Spans: &dashboardwidgets.LineChartQuerySpansModel{
-			LuceneQuery: utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
-			GroupBy:     groupBy,
-			Filters:     filters,
+			LuceneQuery:  utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
+			GroupBy:      groupBy,
+			Filters:      filters,
+			Aggregations: aggregations,
 		},
 	}, nil
 }
@@ -6793,7 +6804,12 @@ func flattenDataTableSpansQueryAggregations(ctx context.Context, aggregations []
 		}
 		aggregationElements = append(aggregationElements, aggregationElement)
 	}
-	return types.ListValueMust(types.ObjectType{AttrTypes: dashboardwidgets.SpansAggregationModelAttr()}, aggregationElements), diagnostics
+
+	if diagnostics.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansAggregationModelAttr()}), diagnostics
+	}
+
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dashboardwidgets.SpansAggregationModelAttr()}, aggregationElements)
 }
 
 func flattenDataTableSpansQueryAggregation(spanAggregation *cxsdk.DashboardDataTableSpansQueryAggregation) (*dashboardwidgets.DataTableSpansAggregationModel, diag.Diagnostic) {
@@ -6812,6 +6828,31 @@ func flattenDataTableSpansQueryAggregation(spanAggregation *cxsdk.DashboardDataT
 		IsVisible:   utils.WrapperspbBoolToTypeBool(spanAggregation.GetIsVisible()),
 		Aggregation: aggregation,
 	}, nil
+}
+
+func flattenLineChartSpansAggregation(ctx context.Context, aggregations []*cxsdk.SpansAggregation) (types.List, diag.Diagnostics) {
+	if aggregations == nil {
+		return types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansAggregationModelAttr()}), nil
+	}
+
+	var diagnostics diag.Diagnostics
+	columnElements := make([]attr.Value, 0, len(aggregations))
+	for _, column := range aggregations {
+		flattenedColumn, _ := flattenSpansAggregation(column)
+		columnElement, diags := types.ObjectValueFrom(ctx, dashboardwidgets.SpansAggregationModelAttr(), flattenedColumn)
+		if diags.HasError() {
+			diagnostics = append(diagnostics, diags...)
+			continue
+		}
+		columnElements = append(columnElements, columnElement)
+	}
+
+	if diagnostics.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansAggregationModelAttr()}), diagnostics
+	}
+
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dashboardwidgets.SpansAggregationModelAttr()}, columnElements)
+
 }
 
 func flattenSpansAggregation(aggregation *cxsdk.SpansAggregation) (*dashboardwidgets.SpansAggregationModel, diag.Diagnostic) {
@@ -6853,7 +6894,11 @@ func flattenDataTableColumns(ctx context.Context, columns []*cxsdk.DashboardData
 		columnElements = append(columnElements, columnElement)
 	}
 
-	return types.ListValueMust(types.ObjectType{AttrTypes: dataTableColumnModelAttr()}, columnElements), diagnostics
+	if diagnostics.HasError() {
+		return types.ListNull(types.ObjectType{AttrTypes: dataTableColumnModelAttr()}), diagnostics
+	}
+
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dataTableColumnModelAttr()}, columnElements)
 }
 
 func flattenDataTableColumn(column *cxsdk.DashboardDataTableColumn) *dashboardwidgets.DataTableColumnModel {

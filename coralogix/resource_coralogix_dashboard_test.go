@@ -195,6 +195,111 @@ func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+
+				Config: testAccCoralogixResourceDashboardWithWidget(`{
+            title      = "line-chart"
+            definition = {
+              line_chart = {
+                query_definitions = [{
+                  query = {
+                    spans = {
+                      aggregations = [{
+                        type             = "dimension"
+                        field            = "trace_id"
+                        aggregation_type = "unique_count"
+                      }]
+                      filters = [{
+                        field = {
+                          type  = "metadata"
+                          value = "operation_name"
+                        }
+                        operator = {
+                          type            = "equals"
+                          selected_values = ["device_status_update"]
+                        }
+                      },
+                      {
+                        field = {
+                          type  = "tag"
+                          value = "deviceStatus"
+                        }
+                        operator = {
+                          type            = "equals"
+                          selected_values = ["CANDYBOX_OFFLINE"]
+                        }
+                      }]
+                      group_by = [{
+                        type  = "tag"
+                        value = "deviceName"
+                      }]
+                    }
+                  }
+                  color_scheme = "classic"
+                  is_visible   = true
+                  scale_type   = "linear"
+                }]
+                legend = {
+                  is_visible     = true
+                  group_by_query = true
+                  placement      = "auto"
+                },
+                tooltip = {
+                  show_labels = false
+                  type        = "all"
+                }
+              }
+            }
+            width = 0
+          }`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "line-chart"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.aggregations.0.type", "dimension"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.0.type", "tag"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.0.value", "deviceName"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.color_scheme", "classic"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.is_visible", "true"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.scale_type", "linear"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.legend.is_visible", "true"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.legend.group_by_query", "true"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.legend.placement", "auto"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.tooltip.show_labels", "false"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.tooltip.type", "all"),
+
+					resource.TestCheckTypeSetElemNestedAttrs(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.filters.*",
+						map[string]string{
+							"field.type":                 "metadata",
+							"field.value":                "operation_name",
+							"operator.type":              "equals",
+							"operator.selected_values.#": "1",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.filters.*",
+						map[string]string{
+							"field.type":                 "tag",
+							"field.value":                "deviceStatus",
+							"operator.type":              "equals",
+							"operator.selected_values.#": "1",
+						},
+					),
+				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {
