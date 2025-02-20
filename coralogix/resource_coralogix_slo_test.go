@@ -124,7 +124,7 @@ resource "coralogix_slo" "test" {
 }
 
 func testAccCoralogixResourceSpanSLO() string {
-	return `resource "coralogix_slo" "slo_error" {
+	return `resource "coralogix_slo" "test" {
 	name 				= "coralogix_slo_example_error_rate"
 	service_name 		= "service_name"
 	description 		= "description"
