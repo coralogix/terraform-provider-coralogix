@@ -596,6 +596,7 @@ Required:
 
 Optional:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter))
 - `notification_payload_filter` (Set of String)
 
@@ -824,6 +825,7 @@ Required:
 
 Optional:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `denominator` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator))
 - `group_by_for` (String) Group by for. Valid values: ["Both" "Denominator Only" "Numerator Only"]. 'Both' by default.
 - `notification_payload_filter` (Set of String)
@@ -968,6 +970,7 @@ Required:
 
 Optional:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter))
 - `notification_payload_filter` (Set of String)
 - `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--undetected_values_management))
@@ -1069,6 +1072,7 @@ Required:
 
 Optional:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter))
 - `notification_payload_filter` (Set of String)
 - `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--undetected_values_management))
@@ -1252,6 +1256,10 @@ Required:
 - `metric_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--metric_filter))
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--rules))
 
+Optional:
+
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+
 <a id="nestedatt--type_definition--metric_anomaly--metric_filter"></a>
 ### Nested Schema for `type_definition.metric_anomaly.metric_filter`
 
@@ -1292,6 +1300,7 @@ Required:
 
 Optional:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--metric_threshold--metric_filter"></a>

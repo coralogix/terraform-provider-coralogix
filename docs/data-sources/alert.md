@@ -159,6 +159,7 @@ Read-Only:
 
 Read-Only:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter))
 - `notification_payload_filter` (Set of String)
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--rules))
@@ -358,6 +359,7 @@ Read-Only:
 
 Read-Only:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `denominator` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator))
 - `denominator_alias` (String)
 - `group_by_for` (String) Group by for. Valid values: ["Both" "Denominator Only" "Numerator Only"]. 'Both' by default.
@@ -489,6 +491,7 @@ Read-Only:
 
 Read-Only:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter))
 - `notification_payload_filter` (Set of String)
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--rules))
@@ -581,6 +584,7 @@ Read-Only:
 
 Read-Only:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter))
 - `notification_payload_filter` (Set of String)
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--rules))
@@ -747,6 +751,7 @@ Read-Only:
 
 Read-Only:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `metric_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--metric_filter))
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--rules))
 
@@ -784,6 +789,7 @@ Read-Only:
 
 Read-Only:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `metric_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--metric_filter))
 - `missing_values` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--missing_values))
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--rules))
