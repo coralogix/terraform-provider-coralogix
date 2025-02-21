@@ -151,6 +151,12 @@ func ConvertAttribute(resourceAttribute resourceschema.Attribute) datasourcesche
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 		}
+	case resourceschema.Int32Attribute:
+		return datasourceschema.Int32Attribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+		}
 	case resourceschema.NumberAttribute:
 		return datasourceschema.NumberAttribute{
 			Computed:            true,
