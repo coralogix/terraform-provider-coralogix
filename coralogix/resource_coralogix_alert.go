@@ -1311,6 +1311,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 func evaluationDelaySchema() schema.Attribute {
 	return schema.Int32Attribute{
 		Optional: true,
+		Computed: true,
 		Default:  int32default.StaticInt32(0),
 		Validators: []validator.Int32{
 			int32validator.AtLeast(0),
