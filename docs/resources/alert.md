@@ -1273,7 +1273,7 @@ Required:
 Required:
 
 - `condition_type` (String) Condition to evaluate the threshold with. Valid values: ["LESS_THAN" "MORE_THAN"].
-- `for_over_pct` (Number)
+- `for_over_pct` (Number) Percentage of metrics over the threshold. 0 means 'for at least once', 100 means 'for at least'.
 - `min_non_null_values_pct` (Number)
 - `of_the_last` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 - `threshold` (Number)
@@ -1325,7 +1325,7 @@ Required:
 Required:
 
 - `condition_type` (String) Condition to evaluate the threshold with. Valid values: ["LESS_THAN" "LESS_THAN_OR_EQUALS" "MORE_THAN" "MORE_THAN_OR_EQUALS"].
-- `for_over_pct` (Number)
+- `for_over_pct` (Number) Percentage of metrics over the threshold. 0 means 'for at least once', 100 means 'for at least'.
 - `of_the_last` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 - `threshold` (Number)
 

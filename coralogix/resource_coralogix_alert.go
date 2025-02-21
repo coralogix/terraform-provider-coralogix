@@ -1013,7 +1013,8 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 													Required: true,
 												},
 												"for_over_pct": schema.Int64Attribute{
-													Required: true,
+													Required:            true,
+													MarkdownDescription: "Percentage of metrics over the threshold. 0 means 'for at least once', 100 means 'for at least'. ",
 												},
 												"of_the_last": metricTimeWindowSchema(),
 												"condition_type": schema.StringAttribute{
@@ -1065,7 +1066,8 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 													Required: true,
 												},
 												"for_over_pct": schema.Int64Attribute{
-													Required: true,
+													Required:            true,
+													MarkdownDescription: "Percentage of metrics over the threshold. 0 means 'for at least once', 100 means 'for at least'. ",
 												},
 												"of_the_last": metricTimeWindowSchema(),
 												"condition_type": schema.StringAttribute{
