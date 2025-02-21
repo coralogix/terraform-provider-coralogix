@@ -3,12 +3,12 @@
 page_title: "coralogix_custom_role Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Custom cxsdk.
+  Coralogix Custom Role.
 ---
 
 # coralogix_custom_role (Data Source)
 
-Coralogix Custom cxsdk.
+Coralogix Custom Role.
 
 
 

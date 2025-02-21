@@ -186,8 +186,8 @@ resource "coralogix_rules_group" "parse_json_field_example" {
 - `description` (String) Rule-group description
 - `hidden` (Boolean)
 - `order` (Number) Determines the index of the rule-group between the other rule-groups. By default, will be added last. (1 based indexing).
-- `rule_subgroups` (Block List) List of rule-subgroups. Every rule-subgroup is list of rules with 'or' (||) operation between. (see [below for nested schema](#nestedblock--rule_subgroups))
-- `severities` (Set of String) Rules will execute on logs that match the following severities. Can be one of ["Critical" "Debug" "Error" "Info" "Verbose" "Warning"]
+- `rule_subgroups` (Block List) List of rule-subgroups. Every rule-subgroup is a list of rules linked with a logical 'OR' (||) operation. (see [below for nested schema](#nestedblock--rule_subgroups))
+- `severities` (Set of String) Rules will execute on logs that match the these severities. Can be one of ["Critical" "Debug" "Error" "Info" "Verbose" "Warning"]
 - `subsystems` (Set of String) Rules will execute on logs that match the following subsystems.
 - `timeouts` (Block, Optional) (see [below for nested schema](#nestedblock--timeouts))
 
@@ -220,9 +220,9 @@ Optional:
 - `extract` (Block List, Max: 1) Use a named RegEx group to extract specific values you need as JSON getKeysStrings without having to parse the entire log. (see [below for nested schema](#nestedblock--rule_subgroups--rules--extract))
 - `extract_timestamp` (Block List, Max: 1) Replace rules are used to replace logs timestamp with JSON field. (see [below for nested schema](#nestedblock--rule_subgroups--rules--extract_timestamp))
 - `json_extract` (Block List, Max: 1) Name a JSON field to extract its value directly into a Coralogix metadata field (see [below for nested schema](#nestedblock--rule_subgroups--rules--json_extract))
-- `json_stringify` (Block List, Max: 1) Convert JSON object to JSON string. (see [below for nested schema](#nestedblock--rule_subgroups--rules--json_stringify))
+- `json_stringify` (Block List, Max: 1) Convert a JSON object to JSON string. (see [below for nested schema](#nestedblock--rule_subgroups--rules--json_stringify))
 - `parse` (Block List, Max: 1) Parse unstructured logs into JSON format using named Regex groups. (see [below for nested schema](#nestedblock--rule_subgroups--rules--parse))
-- `parse_json_field` (Block List, Max: 1) Convert JSON string to JSON object. (see [below for nested schema](#nestedblock--rule_subgroups--rules--parse_json_field))
+- `parse_json_field` (Block List, Max: 1) Convert a JSON string to JSON object. (see [below for nested schema](#nestedblock--rule_subgroups--rules--parse_json_field))
 - `remove_fields` (Block List, Max: 1) Remove Fields allows to select fields that will not be indexed. (see [below for nested schema](#nestedblock--rule_subgroups--rules--remove_fields))
 - `replace` (Block List, Max: 1) Replace rules are used to strings in order to fix log structure, change log severity, or obscure information. (see [below for nested schema](#nestedblock--rule_subgroups--rules--replace))
 
@@ -241,7 +241,7 @@ Optional:
 - `blocking_all_matching_blocks` (Boolean) Block Logic. If true or nor set - blocking all matching blocks, if false - blocking all non-matching blocks.
 - `description` (String) The rule description.
 - `keep_blocked_logs` (Boolean) Determines if to view blocked logs in LiveTail and archive to S3.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
@@ -261,7 +261,7 @@ Optional:
 
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
@@ -282,7 +282,7 @@ Optional:
 
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
@@ -303,7 +303,7 @@ Optional:
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
 - `destination_field_text` (String) Required when destination_field is 'Text'. should be either 'text' or 'text.<some value>'
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
@@ -324,7 +324,7 @@ Optional:
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
 - `keep_source_field` (Boolean) Determines whether to keep or to delete the source field.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
@@ -345,7 +345,7 @@ Optional:
 
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
@@ -367,7 +367,7 @@ Optional:
 - `description` (String) The rule description.
 - `keep_destination_field` (Boolean) Determines whether to keep or to delete the destination field.
 - `keep_source_field` (Boolean) Determines whether to keep or to delete the source field.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
@@ -386,7 +386,7 @@ Optional:
 
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
 
 Read-Only:
 
@@ -407,7 +407,7 @@ Optional:
 
 - `active` (Boolean) Determines whether to rule will be active or not.
 - `description` (String) The rule description.
-- `order` (Number) Determines the index of the rule inside the rule-subgroup.When not set, will be computed by the order it was declared. (1 based indexing).
+- `order` (Number) Determines the index of the rule inside the rule-subgroup.If not set, will be computed by the order it was declared. (1 based indexing).
 - `replacement_string` (String) The string that will replace the matched RegEx
 
 Read-Only:

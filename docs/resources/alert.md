@@ -3,12 +3,12 @@
 page_title: "coralogix_alert Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Alert. For more info please review - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.
+  Coralogix Alert. For more info check - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.
 ---
 
 # coralogix_alert (Resource)
 
-Coralogix Alert. For more info please review - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.
+Coralogix Alert. For more info check - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.
 
 ## Example Usage
 
@@ -504,7 +504,7 @@ resource "coralogix_alert" "test" {
 
 - `name` (String) Alert name.
 - `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
-- `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold flow. (see [below for nested schema](#nestedatt--type_definition))
+- `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow. (see [below for nested schema](#nestedatt--type_definition))
 
 ### Optional
 
@@ -596,6 +596,7 @@ Required:
 
 Optional:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter))
 - `notification_payload_filter` (Set of String)
 
@@ -824,6 +825,7 @@ Required:
 
 Optional:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `denominator` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator))
 - `group_by_for` (String) Group by for. Valid values: ["Both" "Denominator Only" "Numerator Only"]. 'Both' by default.
 - `notification_payload_filter` (Set of String)
@@ -968,6 +970,7 @@ Required:
 
 Optional:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--logs_filter))
 - `notification_payload_filter` (Set of String)
 - `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_threshold--undetected_values_management))
@@ -1069,6 +1072,7 @@ Required:
 
 Optional:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter))
 - `notification_payload_filter` (Set of String)
 - `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--undetected_values_management))
@@ -1252,6 +1256,10 @@ Required:
 - `metric_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--metric_filter))
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--rules))
 
+Optional:
+
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+
 <a id="nestedatt--type_definition--metric_anomaly--metric_filter"></a>
 ### Nested Schema for `type_definition.metric_anomaly.metric_filter`
 
@@ -1273,7 +1281,7 @@ Required:
 Required:
 
 - `condition_type` (String) Condition to evaluate the threshold with. Valid values: ["LESS_THAN" "MORE_THAN"].
-- `for_over_pct` (Number)
+- `for_over_pct` (Number) Percentage of metrics over the threshold. 0 means 'for at least once', 100 means 'for at least'.
 - `min_non_null_values_pct` (Number)
 - `of_the_last` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 - `threshold` (Number)
@@ -1292,6 +1300,7 @@ Required:
 
 Optional:
 
+- `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `undetected_values_management` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold--undetected_values_management))
 
 <a id="nestedatt--type_definition--metric_threshold--metric_filter"></a>
@@ -1325,7 +1334,7 @@ Required:
 Required:
 
 - `condition_type` (String) Condition to evaluate the threshold with. Valid values: ["LESS_THAN" "LESS_THAN_OR_EQUALS" "MORE_THAN" "MORE_THAN_OR_EQUALS"].
-- `for_over_pct` (Number)
+- `for_over_pct` (Number) Percentage of metrics over the threshold. 0 means 'for at least once', 100 means 'for at least'.
 - `of_the_last` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 - `threshold` (Number)
 

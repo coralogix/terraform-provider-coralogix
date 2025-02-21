@@ -113,7 +113,7 @@ Optional:
 - `archive_retention_id` (String) Allowing logs with a specific retention to be tagged.
 - `description` (String) The policy description
 - `enabled` (Boolean) Determines weather the policy will be enabled. True by default.
-- `severities` (Set of String) The severities to apply the policy on. Can be few of ["critical" "debug" "error" "info" "verbose" "warning"].
+- `severities` (Set of String) The severities to apply the policy on. Valid severities are ["critical" "debug" "error" "info" "verbose" "warning"].
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
 
 Read-Only:

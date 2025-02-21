@@ -3,12 +3,12 @@
 page_title: "coralogix_integration Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  A Coralogix Integration
+  A Coralogix Integration. Check https://coralogix.com/docs/developer-portal/infrastructure-as-code/terraform-provider/integrations/aws-metrics-collector/ for available options.
 ---
 
 # coralogix_integration (Resource)
 
-A Coralogix Integration
+A Coralogix Integration. Check https://coralogix.com/docs/developer-portal/infrastructure-as-code/terraform-provider/integrations/aws-metrics-collector/ for available options.
 
 ## Example Usage
 
@@ -60,7 +60,7 @@ resource "coralogix_integration" "aws-resource-catalog" {
 ### Required
 
 - `integration_key` (String) Selector for the integration.
-- `parameters` (Dynamic) Data required for the integration.
+- `parameters` (Dynamic) Parameters required by the integration.
 - `version` (String) The integration version
 
 ### Read-Only
