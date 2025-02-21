@@ -816,6 +816,7 @@ func TestAccCoralogixResourceAlert_metric_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.custom_evaluation_delay", "100"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.missing_values.min_non_null_values_pct", "50"),
 
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.threshold", "2"),
@@ -2347,6 +2348,7 @@ func testAccCoralogixResourceAlertMetricMoreThan() string {
 
   type_definition = {
     metric_threshold = {
+        custom_evaluation_delay = 100
         metric_filter = {
             promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
         }

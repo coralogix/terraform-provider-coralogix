@@ -26,10 +26,12 @@ import (
 	"terraform-provider-coralogix/coralogix/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int32validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -406,12 +408,14 @@ type LogsThresholdModel struct {
 	LogsFilter                 types.Object `tfsdk:"logs_filter"`                  // AlertsLogsFilterModel
 	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
+	CustomEvaluationDelay      types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
 
 type LogsAnomalyModel struct {
 	Rules                     types.Set    `tfsdk:"rules"`                       // [] LogsAnomalyRuleModel
 	LogsFilter                types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
 	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
+	CustomEvaluationDelay     types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
 
 type LogsRatioThresholdModel struct {
@@ -422,6 +426,7 @@ type LogsRatioThresholdModel struct {
 	DenominatorAlias          types.String `tfsdk:"denominator_alias"`
 	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
 	GroupByFor                types.String `tfsdk:"group_by_for"`
+	CustomEvaluationDelay     types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
 
 type LogsNewValueModel struct {
@@ -452,6 +457,7 @@ type LogsTimeRelativeThresholdModel struct {
 	LogsFilter                 types.Object `tfsdk:"logs_filter"`                  // AlertsLogsFilterModel
 	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
+	CustomEvaluationDelay      types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
 
 type MetricAnomalyRuleModel struct {
@@ -471,6 +477,7 @@ type MetricThresholdModel struct {
 	MetricFilter               types.Object `tfsdk:"metric_filter"`                // MetricFilterModel
 	MissingValues              types.Object `tfsdk:"missing_values"`               // MissingValuesModel
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
+	CustomEvaluationDelay      types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
 
 type MissingValuesModel struct {
@@ -491,8 +498,9 @@ type MetricThresholdConditionModel struct {
 }
 
 type MetricAnomalyModel struct {
-	MetricFilter types.Object `tfsdk:"metric_filter"` // MetricFilterModel
-	Rules        types.Set    `tfsdk:"rules"`         // [] MetricAnomalyRuleModel
+	MetricFilter          types.Object `tfsdk:"metric_filter"` // MetricFilterModel
+	Rules                 types.Set    `tfsdk:"rules"`         // [] MetricAnomalyRuleModel
+	CustomEvaluationDelay types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
 
 type MetricImmediateModel struct {
@@ -820,11 +828,13 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							"notification_payload_filter":  notificationPayloadFilterSchema(),
 							"logs_filter":                  logsFilterSchema(),
 							"undetected_values_management": undetectedValuesManagementSchema(),
+							"custom_evaluation_delay":      evaluationDelaySchema(),
 						},
 					},
 					"logs_anomaly": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
+							"custom_evaluation_delay":     evaluationDelaySchema(),
 							"logs_filter":                 logsFilterSchema(),
 							"notification_payload_filter": notificationPayloadFilterSchema(),
 							"rules": schema.SetNestedAttribute{
@@ -891,6 +901,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 							"notification_payload_filter": notificationPayloadFilterSchema(),
 							"group_by_for":                logsRatioGroupByForSchema(),
+							"custom_evaluation_delay":     evaluationDelaySchema(),
 						},
 					},
 					"logs_new_value": schema.SingleNestedAttribute{
@@ -946,6 +957,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					"logs_time_relative_threshold": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
+							"custom_evaluation_delay":      evaluationDelaySchema(),
 							"logs_filter":                  logsFilterSchema(),
 							"notification_payload_filter":  notificationPayloadFilterSchema(),
 							"undetected_values_management": undetectedValuesManagementSchema(),
@@ -986,6 +998,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					"metric_threshold": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
+							"custom_evaluation_delay":      evaluationDelaySchema(),
 							"metric_filter":                metricFilterSchema(),
 							"undetected_values_management": undetectedValuesManagementSchema(),
 							"rules": schema.SetNestedAttribute{
@@ -1035,7 +1048,8 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 					"metric_anomaly": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"metric_filter": metricFilterSchema(),
+							"custom_evaluation_delay": evaluationDelaySchema(),
+							"metric_filter":           metricFilterSchema(),
 							"rules": schema.SetNestedAttribute{
 								Required:   true,
 								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
@@ -1291,6 +1305,17 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				ElementType: types.StringType,
 			},
 		},
+	}
+}
+
+func evaluationDelaySchema() schema.Attribute {
+	return schema.Int32Attribute{
+		Optional: true,
+		Default:  int32default.StaticInt32(0),
+		Validators: []validator.Int32{
+			int32validator.AtLeast(0),
+		},
+		MarkdownDescription: "Delay evaluation of the rules by n milliseconds. Defaults to 0.",
 	}
 }
 
@@ -2252,6 +2277,7 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *cxsdk.Al
 			Rules:                      rules,
 			NotificationPayloadFilter:  notificationPayloadFilter,
 			UndetectedValuesManagement: undetected,
+			EvaluationDelayMs:          wrapperspb.Int32(thresholdModel.CustomEvaluationDelay.ValueInt32()),
 		},
 	}
 
@@ -2368,6 +2394,7 @@ func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *cxsdk
 			LogsFilter:                logsFilter,
 			Rules:                     rules,
 			NotificationPayloadFilter: notificationPayloadFilter,
+			EvaluationDelayMs:         wrapperspb.Int32(anomalyModel.CustomEvaluationDelay.ValueInt32()),
 		},
 	}
 
@@ -2449,6 +2476,7 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *cxs
 			Rules:                     rules,
 			NotificationPayloadFilter: notificationPayloadFilter,
 			GroupByFor:                logsRatioGroupByForSchemaToProtoMap[ratioThresholdModel.GroupByFor.ValueString()],
+			EvaluationDelayMs:         wrapperspb.Int32(ratioThresholdModel.CustomEvaluationDelay.ValueInt32()),
 		},
 	}
 	properties.Type = cxsdk.AlertDefTypeLogsRatioThreshold
@@ -2724,6 +2752,7 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 			Rules:                      rules,
 			NotificationPayloadFilter:  notificationPayloadFilter,
 			UndetectedValuesManagement: undetected,
+			EvaluationDelayMs:          wrapperspb.Int32(relativeThresholdModel.CustomEvaluationDelay.ValueInt32()),
 		},
 	}
 	properties.Type = cxsdk.AlertDefTypeLogsTimeRelativeThreshold
@@ -2804,6 +2833,7 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *c
 			Rules:                      rules,
 			MissingValues:              missingValues,
 			UndetectedValuesManagement: undetected,
+			EvaluationDelayMs:          wrapperspb.Int32(metricThresholdModel.CustomEvaluationDelay.ValueInt32()),
 		},
 	}
 	properties.Type = cxsdk.AlertDefTypeMetricThreshold
@@ -3158,8 +3188,9 @@ func expandMetricAnomalyAlertTypeDefinition(ctx context.Context, properties *cxs
 
 	properties.TypeDefinition = &cxsdk.AlertDefPropertiesMetricAnomaly{
 		MetricAnomaly: &cxsdk.MetricAnomalyType{
-			MetricFilter: metricFilter,
-			Rules:        rules,
+			MetricFilter:      metricFilter,
+			Rules:             rules,
+			EvaluationDelayMs: wrapperspb.Int32(metricAnomalyModel.CustomEvaluationDelay.ValueInt32()),
 		},
 	}
 	properties.Type = cxsdk.AlertDefTypeMetricAnomaly
@@ -3725,6 +3756,7 @@ func flattenLogsThreshold(ctx context.Context, threshold *cxsdk.LogsThresholdTyp
 		Rules:                      rules,
 		NotificationPayloadFilter:  utils.WrappedStringSliceToTypeStringSet(threshold.GetNotificationPayloadFilter()),
 		UndetectedValuesManagement: undetected,
+		CustomEvaluationDelay:      utils.WrapperspbInt32ToTypeInt32(threshold.GetEvaluationDelayMs()),
 	}
 	return types.ObjectValueFrom(ctx, logsThresholdAttr(), logsMoreThanModel)
 }
@@ -3836,6 +3868,7 @@ func flattenLogsAnomaly(ctx context.Context, anomaly *cxsdk.LogsAnomalyType) (ty
 		LogsFilter:                logsFilter,
 		Rules:                     rules,
 		NotificationPayloadFilter: utils.WrappedStringSliceToTypeStringSet(anomaly.GetNotificationPayloadFilter()),
+		CustomEvaluationDelay:     utils.WrapperspbInt32ToTypeInt32(anomaly.GetEvaluationDelayMs()),
 	}
 	return types.ObjectValueFrom(ctx, logsAnomalyAttr(), logsMoreThanUsualModel)
 }
@@ -3880,6 +3913,7 @@ func flattenLogsRatioThreshold(ctx context.Context, ratioThreshold *cxsdk.LogsRa
 		Rules:                     rules,
 		NotificationPayloadFilter: utils.WrappedStringSliceToTypeStringSet(ratioThreshold.GetNotificationPayloadFilter()),
 		GroupByFor:                types.StringValue(logsRatioGroupByForProtoToSchemaMap[ratioThreshold.GetGroupByFor()]),
+		CustomEvaluationDelay:     utils.WrapperspbInt32ToTypeInt32(ratioThreshold.GetEvaluationDelayMs()),
 	}
 	return types.ObjectValueFrom(ctx, logsRatioThresholdAttr(), logsRatioMoreThanModel)
 }
@@ -4165,6 +4199,7 @@ func flattenLogsTimeRelativeThreshold(ctx context.Context, logsTimeRelativeThres
 		Rules:                      rules,
 		NotificationPayloadFilter:  utils.WrappedStringSliceToTypeStringSet(logsTimeRelativeThreshold.GetNotificationPayloadFilter()),
 		UndetectedValuesManagement: undetected,
+		CustomEvaluationDelay:      utils.WrapperspbInt32ToTypeInt32(logsTimeRelativeThreshold.GetEvaluationDelayMs()),
 	}
 
 	return types.ObjectValueFrom(ctx, logsTimeRelativeAttr(), logsTimeRelativeThresholdModel)
@@ -4231,6 +4266,7 @@ func flattenMetricThreshold(ctx context.Context, metricThreshold *cxsdk.MetricTh
 		Rules:                      rules,
 		MissingValues:              missingValues,
 		UndetectedValuesManagement: undetectedValuesManagement,
+		CustomEvaluationDelay:      utils.WrapperspbInt32ToTypeInt32(metricThreshold.GetEvaluationDelayMs()),
 	}
 	return types.ObjectValueFrom(ctx, metricThresholdAttr(), metricThresholdModel)
 }
@@ -4504,18 +4540,18 @@ func flattenTracingTimeWindow(timeWindow *cxsdk.TracingTimeWindow) types.String 
 	return types.StringValue(tracingTimeWindowProtoToSchemaMap[timeWindow.GetTracingTimeWindowValue()])
 }
 
-func flattenMetricAnomaly(ctx context.Context, metricMoreThanUsual *cxsdk.MetricAnomalyType) (types.Object, diag.Diagnostics) {
-	if metricMoreThanUsual == nil {
+func flattenMetricAnomaly(ctx context.Context, anomaly *cxsdk.MetricAnomalyType) (types.Object, diag.Diagnostics) {
+	if anomaly == nil {
 		return types.ObjectNull(metricAnomalyAttr()), nil
 	}
 
-	metricFilter, diags := flattenMetricFilter(ctx, metricMoreThanUsual.GetMetricFilter())
+	metricFilter, diags := flattenMetricFilter(ctx, anomaly.GetMetricFilter())
 	if diags.HasError() {
 		return types.ObjectNull(metricAnomalyAttr()), diags
 	}
 
-	rulesRaw := make([]MetricAnomalyRuleModel, len(metricMoreThanUsual.Rules))
-	for i, rule := range metricMoreThanUsual.Rules {
+	rulesRaw := make([]MetricAnomalyRuleModel, len(anomaly.Rules))
+	for i, rule := range anomaly.Rules {
 		condition, dgs := flattenMetricAnomalyCondition(ctx, rule.Condition)
 		if dgs.HasError() {
 			diags.Append(dgs...)
@@ -4533,11 +4569,12 @@ func flattenMetricAnomaly(ctx context.Context, metricMoreThanUsual *cxsdk.Metric
 	if diags.HasError() {
 		return types.ObjectNull(metricAnomalyAttr()), diags
 	}
-	metricMoreThanUsualModel := MetricAnomalyModel{
-		MetricFilter: metricFilter,
-		Rules:        rules,
+	anomalyModel := MetricAnomalyModel{
+		MetricFilter:          metricFilter,
+		Rules:                 rules,
+		CustomEvaluationDelay: utils.WrapperspbInt32ToTypeInt32(anomaly.GetEvaluationDelayMs()),
 	}
-	return types.ObjectValueFrom(ctx, metricAnomalyAttr(), metricMoreThanUsualModel)
+	return types.ObjectValueFrom(ctx, metricAnomalyAttr(), anomalyModel)
 }
 
 func flattenMetricAnomalyCondition(ctx context.Context, condition *cxsdk.MetricAnomalyCondition) (types.Object, diag.Diagnostics) {
@@ -4779,6 +4816,7 @@ func logsThresholdAttr() map[string]attr.Type {
 		"notification_payload_filter":  types.SetType{ElemType: types.StringType},
 		"rules":                        types.SetType{ElemType: types.ObjectType{AttrTypes: logsThresholdRulesAttr()}},
 		"undetected_values_management": types.ObjectType{AttrTypes: undetectedValuesManagementAttr()},
+		"custom_evaluation_delay":      types.Int32Type,
 	}
 }
 
@@ -4802,6 +4840,7 @@ func logsAnomalyAttr() map[string]attr.Type {
 		"logs_filter":                 types.ObjectType{AttrTypes: logsFilterAttr()},
 		"rules":                       types.SetType{ElemType: types.ObjectType{AttrTypes: logsAnomalyRulesAttr()}},
 		"notification_payload_filter": types.SetType{ElemType: types.StringType},
+		"custom_evaluation_delay":     types.Int32Type,
 	}
 }
 
@@ -4829,7 +4868,8 @@ func logsRatioThresholdAttr() map[string]attr.Type {
 		"notification_payload_filter": types.SetType{
 			ElemType: types.StringType,
 		},
-		"group_by_for": types.StringType,
+		"group_by_for":            types.StringType,
+		"custom_evaluation_delay": types.Int32Type,
 	}
 }
 
@@ -4930,6 +4970,7 @@ func logsTimeRelativeAttr() map[string]attr.Type {
 		"notification_payload_filter":  types.SetType{ElemType: types.StringType},
 		"undetected_values_management": types.ObjectType{AttrTypes: undetectedValuesManagementAttr()},
 		"rules":                        types.SetType{ElemType: types.ObjectType{AttrTypes: logsTimeRelativeRulesAttr()}},
+		"custom_evaluation_delay":      types.Int32Type,
 	}
 }
 
@@ -4958,6 +4999,7 @@ func metricThresholdAttr() map[string]attr.Type {
 		"undetected_values_management": types.ObjectType{AttrTypes: undetectedValuesManagementAttr()},
 		"rules":                        types.SetType{ElemType: types.ObjectType{AttrTypes: metricThresholdRulesAttr()}},
 		"missing_values":               types.ObjectType{AttrTypes: missingValuesAttr()},
+		"custom_evaluation_delay":      types.Int32Type,
 	}
 }
 
@@ -4996,8 +5038,9 @@ func metricFilterAttr() map[string]attr.Type {
 
 func metricAnomalyAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"metric_filter": types.ObjectType{AttrTypes: metricFilterAttr()},
-		"rules":         types.SetType{ElemType: types.ObjectType{AttrTypes: metricAnomalyRulesAttr()}},
+		"metric_filter":           types.ObjectType{AttrTypes: metricFilterAttr()},
+		"rules":                   types.SetType{ElemType: types.ObjectType{AttrTypes: metricAnomalyRulesAttr()}},
+		"custom_evaluation_delay": types.Int32Type,
 	}
 }
 

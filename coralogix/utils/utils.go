@@ -661,6 +661,14 @@ func WrapperspbUint32ToTypeInt64(num *wrapperspb.UInt32Value) types.Int64 {
 	return types.Int64Value(int64(num.GetValue()))
 }
 
+func WrapperspbInt32ToTypeInt32(num *wrapperspb.Int32Value) types.Int32 {
+	if num == nil {
+		return types.Int32Null()
+	}
+
+	return types.Int32Value(num.GetValue())
+}
+
 func WrapperspbDoubleToTypeFloat64(num *wrapperspb.DoubleValue) types.Float64 {
 	if num == nil {
 		return types.Float64Null()
