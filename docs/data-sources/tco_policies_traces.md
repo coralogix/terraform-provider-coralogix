@@ -31,7 +31,7 @@ data "coralogix_tco_policies_traces" "tco_policies_data" {
 
 Read-Only:
 
-- `actions` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--actions))
+- `actions` (Attributes) The actions to apply the policy on. Applies the policy on all the actions by default. (see [below for nested schema](#nestedatt--policies--actions))
 - `applications` (Attributes) The applications to apply the policy on. Applies the policy on all the applications by default. (see [below for nested schema](#nestedatt--policies--applications))
 - `archive_retention_id` (String) Allowing logs with a specific retention to be tagged.
 - `description` (String) The policy description
@@ -40,9 +40,9 @@ Read-Only:
 - `name` (String) tco-policy name.
 - `order` (Number) The policy's order between the other policies.
 - `priority` (String) The policy priority. Can be one of ["block" "high" "low" "medium"].
-- `services` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--services))
+- `services` (Attributes) The services to apply the policy on. Applies the policy on all the services by default. (see [below for nested schema](#nestedatt--policies--services))
 - `subsystems` (Attributes) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--subsystems))
-- `tags` (Attributes Map) The subsystems to apply the policy on. Applies the policy on all the subsystems by default. (see [below for nested schema](#nestedatt--policies--tags))
+- `tags` (Attributes Map) The tags to apply the policy on. Applies the policy on all the tags by default. (see [below for nested schema](#nestedatt--policies--tags))
 
 <a id="nestedatt--policies--actions"></a>
 ### Nested Schema for `policies.actions`

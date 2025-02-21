@@ -3,12 +3,12 @@
 page_title: "coralogix_alert Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Alert. For more info please review - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.
+  Coralogix Alert. For more info check - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.
 ---
 
 # coralogix_alert (Resource)
 
-Coralogix Alert. For more info please review - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.
+Coralogix Alert. For more info check - https://coralogix.com/docs/getting-started-with-coralogix-alerts/.
 
 ## Example Usage
 
@@ -504,7 +504,7 @@ resource "coralogix_alert" "test" {
 
 - `name` (String) Alert name.
 - `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
-- `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold flow. (see [below for nested schema](#nestedatt--type_definition))
+- `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow. (see [below for nested schema](#nestedatt--type_definition))
 
 ### Optional
 

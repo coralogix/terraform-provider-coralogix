@@ -34,8 +34,8 @@ data "coralogix_recording_rules_groups_set" "imported_recording_rules_groups_set
 Read-Only:
 
 - `interval` (Number) How often rules in the group are evaluated (in seconds).
-- `limit` (Number) Limit the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit.
-- `name` (String) The rule-group name. Have to be unique.
+- `limit` (Number) Limits the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit.
+- `name` (String) The (unique) rule-group name.
 - `rules` (Attributes List) (see [below for nested schema](#nestedatt--groups--rules))
 
 <a id="nestedatt--groups--rules"></a>
