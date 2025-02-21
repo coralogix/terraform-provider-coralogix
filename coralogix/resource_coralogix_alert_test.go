@@ -336,6 +336,7 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-more-than-usual alert example updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-more-than-usual alert from terraform updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_anomaly.custom_evaluation_delay", "100"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.#", "0"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "1"),
@@ -769,6 +770,8 @@ func TestAccCoralogixResourceAlert_logs_time_relative_less_than(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-time-relative-more-than alert example"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-time-relative-more-than alert from terraform"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.custom_evaluation_delay", "100"),
+
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P4"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.0.condition.threshold", "10"),
@@ -816,6 +819,7 @@ func TestAccCoralogixResourceAlert_metric_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
 
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.custom_evaluation_delay", "100"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.missing_values.min_non_null_values_pct", "50"),
 
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.threshold", "2"),
@@ -1772,16 +1776,15 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
 
   type_definition = {
     logs_anomaly = {
+      custom_evaluation_delay = 100
       logs_filter = {
         simple_filter = {
           lucene_query  = "message:\"updated_error\""
           label_filters = {
-            application_name = [
-              {
+            application_name = [{
                 operation = "IS"
                 value     = "nginx"
-              }
-            ]
+            }]
             subsystem_name = [
               {
                 operation = "IS"
@@ -1792,17 +1795,15 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
           }
         }
       }
-        rules = [
-              {
-                condition = {
-                    time_window = "1_HOUR"
-                    minimum_threshold = 20
-                }
-                override = {
-                    priority = "P2"
-                }
-            }
-    ]
+      rules = [{
+        condition = {
+            time_window = "1_HOUR"
+            minimum_threshold = 20
+        }
+        override = {
+            priority = "P2"
+        }
+      }]
     }
   }
 }
@@ -2293,18 +2294,19 @@ description = "Example of logs-time-relative-more-than alert from terraform"
 priority    = "P4"
 
 type_definition = {
-    logs_time_relative_threshold = {
-        rules = [{
-            condition = {
-                threshold        = 10
-                compared_to      = "Same Hour Yesterday"
-                condition_type   = "LESS_THAN"
-            }
-            override = {
-                priority = "P2"
-            }
-        }]
-    }
+  logs_time_relative_threshold = {
+    custom_evaluation_delay = 100
+    rules = [{
+        condition = {
+            threshold        = 10
+            compared_to      = "Same Hour Yesterday"
+            condition_type   = "LESS_THAN"
+        }
+        override = {
+            priority = "P2"
+        }
+    }]
+  }
 }
 }
 `
@@ -2347,6 +2349,7 @@ func testAccCoralogixResourceAlertMetricMoreThan() string {
 
   type_definition = {
     metric_threshold = {
+        custom_evaluation_delay = 100
         metric_filter = {
             promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
         }

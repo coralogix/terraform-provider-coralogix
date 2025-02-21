@@ -151,6 +151,12 @@ func ConvertAttribute(resourceAttribute resourceschema.Attribute) datasourcesche
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 		}
+	case resourceschema.Int32Attribute:
+		return datasourceschema.Int32Attribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+		}
 	case resourceschema.NumberAttribute:
 		return datasourceschema.NumberAttribute{
 			Computed:            true,
@@ -659,6 +665,14 @@ func WrapperspbUint32ToTypeInt64(num *wrapperspb.UInt32Value) types.Int64 {
 	}
 
 	return types.Int64Value(int64(num.GetValue()))
+}
+
+func WrapperspbInt32ToTypeInt32(num *wrapperspb.Int32Value) types.Int32 {
+	if num == nil {
+		return types.Int32Null()
+	}
+
+	return types.Int32Value(num.GetValue())
 }
 
 func WrapperspbDoubleToTypeFloat64(num *wrapperspb.DoubleValue) types.Float64 {
