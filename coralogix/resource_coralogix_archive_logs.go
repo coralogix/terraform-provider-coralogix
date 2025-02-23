@@ -188,7 +188,7 @@ func extractArchiveLogs(plan ArchiveLogsResourceModel) *cxsdk.SetTargetRequest {
 		TargetSpec: &cxsdk.SetTargetRequestS3{
 			S3: &cxsdk.S3TargetSpec{
 				Bucket: plan.Bucket.ValueString(),
-				Region: plan.Region.ValueStringPointer(),
+				Region: utils.TypeStringToStringPointer(plan.Region),
 			},
 		},
 	}
