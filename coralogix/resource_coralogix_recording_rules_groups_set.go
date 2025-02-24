@@ -850,7 +850,7 @@ func (v recordingRulesGroupYamlContentValidator) ValidateString(_ context.Contex
 			resp.Diagnostics.AddError("error on validating yaml_content", fmt.Sprintf("groups[%d] name can not be empty", i))
 		}
 		if group.Interval == nil {
-			resp.Diagnostics.AddError("error on validating yaml_content", fmt.Sprintf("groups[%d] limit have to be set", i))
+			resp.Diagnostics.AddError("error on validating yaml_content", fmt.Sprintf("groups[%d] interval can not be empty", i))
 		}
 	}
 }
