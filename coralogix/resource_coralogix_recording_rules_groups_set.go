@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
 
@@ -33,9 +35,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -322,17 +322,23 @@ func recordingRuleGroupSchema() schema.NestedAttributeObject {
 				},
 			},
 			"interval": schema.Int64Attribute{
-				Required:    true,
-				Description: "How often rules in the group are evaluated (in seconds).",
+				Optional:    true,
+				Computed:    true,
+				Description: "How often rules in the group are evaluated (in seconds). Default is 60 seconds.",
 				Validators: []validator.Int64{
-					int64validator.AtLeast(0),
+					int64validator.AtLeast(60),
+				},
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
 				},
 			},
 			"limit": schema.Int64Attribute{
 				Optional:    true,
 				Computed:    true,
-				Default:     int64default.StaticInt64(0),
 				Description: "Limits the number of alerts an alerting rule and series a recording-rule can produce. 0 is no limit.",
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"rules": schema.ListNestedAttribute{
 				Required:     true,
@@ -515,14 +521,14 @@ func flattenRecordingRules(ctx context.Context, rules []*cxsdk.OutRule) (types.L
 	var diags diag.Diagnostics
 	var rulesObjects []types.Object
 	for _, rule := range rules {
-		flattenedRule, expandDiags := flattenRecordingRule(ctx, rule)
-		if expandDiags.HasError() {
-			diags.Append(expandDiags...)
+		flattenedRule, flattenedDiags := flattenRecordingRule(ctx, rule)
+		if flattenedDiags.HasError() {
+			diags.Append(flattenedDiags...)
 			continue
 		}
-		ruleObject, expandDiags := types.ObjectValueFrom(ctx, recordingRuleAttributes(), flattenedRule)
-		if expandDiags.HasError() {
-			diags.Append(expandDiags...)
+		ruleObject, flattenedDiags := types.ObjectValueFrom(ctx, recordingRuleAttributes(), flattenedRule)
+		if flattenedDiags.HasError() {
+			diags.Append(flattenedDiags...)
 			continue
 		}
 		rulesObjects = append(rulesObjects, ruleObject)
@@ -630,6 +636,7 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		}
 		return
 	}
+	log.Printf("[INFO] Received recogring-rule-group-set: %s", protojson.Format(getResp))
 
 	plan, diags = flattenRecordingRuleGroupSet(ctx, plan, getResp)
 	if diags.HasError() {
@@ -769,8 +776,21 @@ func expandRecordingRulesGroups(ctx context.Context, groups types.Set) ([]*cxsdk
 }
 
 func expandRecordingRuleGroup(ctx context.Context, group RecordingRuleGroupModel) (*cxsdk.InRuleGroup, diag.Diagnostics) {
-	interval := uint32(group.Interval.ValueInt64())
-	limit := uint64(group.Limit.ValueInt64())
+	var interval *uint32
+	if !(group.Interval.IsNull() || group.Interval.IsUnknown()) {
+		interval = new(uint32)
+		*interval = uint32(group.Interval.ValueInt64())
+	} else {
+		interval = new(uint32)
+		*interval = 60
+	}
+
+	var limit *uint64
+	if !group.Limit.IsNull() {
+		limit = new(uint64)
+		*limit = uint64(group.Limit.ValueInt64())
+	}
+
 	rules, diags := expandRecordingRules(ctx, group.Rules)
 	if diags.HasError() {
 		return nil, diags
@@ -778,8 +798,8 @@ func expandRecordingRuleGroup(ctx context.Context, group RecordingRuleGroupModel
 
 	return &cxsdk.InRuleGroup{
 		Name:     group.Name.ValueString(),
-		Interval: &interval,
-		Limit:    &limit,
+		Interval: interval,
+		Limit:    limit,
 		Rules:    rules,
 	}, nil
 }
@@ -849,8 +869,8 @@ func (v recordingRulesGroupYamlContentValidator) ValidateString(_ context.Contex
 		if group.Name == "" {
 			resp.Diagnostics.AddError("error on validating yaml_content", fmt.Sprintf("groups[%d] name can not be empty", i))
 		}
-		if group.Interval == nil {
-			resp.Diagnostics.AddError("error on validating yaml_content", fmt.Sprintf("groups[%d] interval can not be empty", i))
-		}
+		//if group.Interval == nil {
+		//	resp.Diagnostics.AddError("error on validating yaml_content", fmt.Sprintf("groups[%d] interval can not be empty", i))
+		//}
 	}
 }
