@@ -821,13 +821,14 @@ Feat:
 
 # Release 2.0.9
 
-## resource/coralogix_tco_policies
+## resource/coralogix_recording_rules
 
 Fix: 
-* Recording dules attributes
-
+* Recording rules attributes
+* Remove validation for RuleGroupSet length
 
 ## resource/coralogix_archive_logs
 
 Fix: 
 * Invalid empty region
+
