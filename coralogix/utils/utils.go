@@ -31,6 +31,7 @@ import (
 	"strings"
 	"time"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	gouuid "github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
