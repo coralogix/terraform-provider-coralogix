@@ -47,7 +47,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/nsf/jsondiff"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -8568,7 +8567,7 @@ func (r *DashboardResource) Read(ctx context.Context, req resource.ReadRequest, 
 	getDashboardResp, err := r.client.Get(ctx, getDashboardReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Dashboard %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),

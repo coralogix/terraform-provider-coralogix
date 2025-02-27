@@ -28,7 +28,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
@@ -86,7 +85,7 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	getActionResp, err := d.client.Get(ctx, getActionReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(err.Error(),
 				fmt.Sprintf("Action %q is in state, but no longer exists in Coralogix backend", id))
 		} else {

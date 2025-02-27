@@ -39,7 +39,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -428,7 +427,7 @@ func (r *ApiKeyResource) getKeyInfo(ctx context.Context, id *string, keyValue *s
 
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			diags.AddError(
 				"Error getting Api Key",
 				fmt.Sprintf("Api Key with id %s not found", *id),

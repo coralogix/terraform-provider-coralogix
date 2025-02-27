@@ -43,12 +43,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func FormatRpcErrors(err error, url, requestStr string) string {
-	switch status.Code(err) {
+	switch cxsdk.Code(err) {
 	case codes.Internal:
 		return fmt.Sprintf("internal error in Coralogix backend.\nerror - %s\nurl - %s\nrequest - %s", err, url, requestStr)
 	case codes.InvalidArgument:

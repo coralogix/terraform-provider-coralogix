@@ -29,7 +29,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/float64planmodifier"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -207,7 +206,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	getTeamResp, err := r.client.Get(ctx, getTeamReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Team %q is in state, but no longer exists in Coralogix backend", intId),
 				fmt.Sprintf("%q will be recreated when you apply", intId),

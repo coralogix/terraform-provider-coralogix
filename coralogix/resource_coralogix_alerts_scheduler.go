@@ -38,7 +38,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -1109,7 +1108,7 @@ func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadReq
 	getAlertsSchedulerResp, err := r.client.Get(ctx, getAlertsSchedulerReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("alerts-scheduler %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -1174,7 +1173,7 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 	getAlertsSchedulerResp, err := r.client.Get(ctx, getAlertsSchedulerReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("alerts-scheduler %s is in state, but no longer exists in Coralogix backend", *id),
 				fmt.Sprintf("%s will be recreated when you apply", *id),

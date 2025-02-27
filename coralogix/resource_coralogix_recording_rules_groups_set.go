@@ -19,10 +19,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -41,7 +42,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"gopkg.in/yaml.v3"
 )
 
@@ -402,7 +402,7 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 	getResp, err := r.client.Get(ctx, &cxsdk.GetRuleGroupSetRequest{Id: id})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -567,7 +567,7 @@ func (r *RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.R
 	getResp, err := r.client.Get(ctx, getReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -622,7 +622,7 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 	getResp, err := r.client.Get(ctx, getReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", plan.ID.ValueString()),
 				fmt.Sprintf("%s will be recreated when you apply", plan.ID.ValueString()),
@@ -661,7 +661,7 @@ func (r *RecordingRuleGroupSetResource) Delete(ctx context.Context, req resource
 	_, err := r.client.Delete(ctx, deleteReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),

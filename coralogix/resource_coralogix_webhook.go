@@ -45,7 +45,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -822,7 +821,7 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 	getWebhookResp, err := r.client.Get(ctx, readWebhookRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Webhook %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -882,7 +881,7 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 	getWebhookResp, err := r.client.Get(ctx, getWebhookReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Webhook %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),

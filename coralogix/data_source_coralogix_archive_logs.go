@@ -28,7 +28,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -84,7 +83,7 @@ func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadReq
 	getResp, err := d.client.Get(ctx)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			data.ID = types.StringNull()
 			resp.Diagnostics.AddWarning(err.Error(),
 				fmt.Sprintf("archive-Logs %q is in state, but no longer exists in Coralogix backend", id),

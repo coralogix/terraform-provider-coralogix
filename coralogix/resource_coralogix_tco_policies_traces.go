@@ -43,7 +43,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"google.golang.org/grpc/status"
 )
 
 var (
@@ -322,7 +321,7 @@ func (r *TCOPoliciesTracesResource) Create(ctx context.Context, req resource.Cre
 	overwriteResp, err := r.client.OverwriteTCOTracesPolicies(ctx, overwriteReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if utils.RetryableStatusCode(status.Code(err)) {
+		if utils.RetryableStatusCode(cxsdk.Code(err)) {
 			log.Printf("[INFO] Retrying to overwrite tco-policies-traces list: %s", protojson.Format(overwriteResp))
 			overwriteResp, err = r.client.OverwriteTCOTracesPolicies(ctx, overwriteReq)
 			continue
@@ -353,7 +352,7 @@ func (r *TCOPoliciesTracesResource) Read(ctx context.Context, _ resource.ReadReq
 	getPoliciesResp, err := r.client.List(ctx, getPoliciesReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if utils.RetryableStatusCode(status.Code(err)) {
+		if utils.RetryableStatusCode(cxsdk.Code(err)) {
 			log.Print("[INFO] Retrying to read tco-policies-traces")
 			getPoliciesResp, err = r.client.List(ctx, getPoliciesReq)
 			continue
@@ -395,7 +394,7 @@ func (r *TCOPoliciesTracesResource) Update(ctx context.Context, req resource.Upd
 	overwriteResp, err := r.client.OverwriteTCOTracesPolicies(ctx, overwriteReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if utils.RetryableStatusCode(status.Code(err)) {
+		if utils.RetryableStatusCode(cxsdk.Code(err)) {
 			log.Printf("[INFO] Retrying to overwrite tco-policies-traces list: %s", protojson.Format(overwriteResp))
 			overwriteResp, err = r.client.OverwriteTCOTracesPolicies(ctx, overwriteReq)
 			continue
@@ -426,7 +425,7 @@ func (r *TCOPoliciesTracesResource) Delete(ctx context.Context, _ resource.Delet
 	overwriteResp, err := r.client.OverwriteTCOTracesPolicies(ctx, overwriteReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if utils.RetryableStatusCode(status.Code(err)) {
+		if utils.RetryableStatusCode(cxsdk.Code(err)) {
 			log.Printf("[INFO] Retrying to overwrite tco-policies-traces list: %s", protojson.Format(overwriteResp))
 			overwriteResp, err = r.client.OverwriteTCOTracesPolicies(ctx, overwriteReq)
 			continue

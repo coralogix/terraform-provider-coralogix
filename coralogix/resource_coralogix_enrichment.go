@@ -27,7 +27,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
@@ -249,7 +248,7 @@ func resourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData
 
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if customId != "" && status.Code(err) == codes.NotFound {
+		if customId != "" && cxsdk.Code(err) == codes.NotFound {
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{
 				Severity: diag.Warning,

@@ -29,7 +29,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 var _ datasource.DataSourceWithConfigure = &CustomRoleDataSource{}
@@ -94,7 +93,7 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	createCustomRoleResponse, err := d.client.Get(ctx, getCustomRoleReuest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				err.Error(),
 				fmt.Sprintf("Custom role  %q is in state, but no longer exists in Coralogix backend", roleId),

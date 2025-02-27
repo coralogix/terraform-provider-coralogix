@@ -31,7 +31,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -167,7 +166,7 @@ func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, m
 	DataSetResp, err := meta.(*clientset.ClientSet).DataSet().Get(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{
 				Severity: diag.Warning,
