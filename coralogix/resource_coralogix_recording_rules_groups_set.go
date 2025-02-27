@@ -860,12 +860,7 @@ func (v recordingRulesGroupYamlContentValidator) ValidateString(_ context.Contex
 		resp.Diagnostics.AddError("error on validating yaml_content", err.Error())
 	}
 
-	groups := set.Groups
-	if len(groups) == 0 {
-		resp.Diagnostics.AddError("error on validating yaml_content", "groups list can not be empty")
-	}
-
-	for i, group := range groups {
+	for i, group := range set.Groups {
 		if group.Name == "" {
 			resp.Diagnostics.AddError("error on validating yaml_content", fmt.Sprintf("groups[%d] name can not be empty", i))
 		}
