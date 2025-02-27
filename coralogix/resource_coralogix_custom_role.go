@@ -33,7 +33,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
@@ -162,7 +161,7 @@ func (c *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 	role, err := c.client.Get(ctx, readReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Custom Role %q is in state, but no longer exists in Coralogix backend", roleId),
 				fmt.Sprintf("%d will be recreated when you apply", roleId),

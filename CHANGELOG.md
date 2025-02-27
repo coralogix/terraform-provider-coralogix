@@ -832,3 +832,7 @@ Fix:
 Fix: 
 * Invalid empty region
 
+## resource/**
+
+Fix:
+* Replace when resource isn't found

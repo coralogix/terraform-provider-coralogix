@@ -23,10 +23,10 @@ import (
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 var _ datasource.DataSourceWithConfigure = &GroupDataSource{}
@@ -81,7 +81,7 @@ func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	getGroupResp, err := d.client.GetGroup(ctx, id)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				err.Error(),
 				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", id),

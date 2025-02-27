@@ -27,7 +27,6 @@ import (
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"google.golang.org/protobuf/encoding/protojson"
 
@@ -270,7 +269,7 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	getScopeResp, err := r.client.Get(ctx, getScopeReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Scope %v is in state, but no longer exists in Coralogix backend", plan.ID.ValueString()),
 				fmt.Sprintf("%q will be recreated when you apply", plan.ID.ValueString()),

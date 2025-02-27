@@ -30,7 +30,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/grpc/status"
 )
 
 var _ datasource.DataSourceWithConfigure = &TCOPoliciesTracesDataSource{}
@@ -88,7 +87,7 @@ func (d *TCOPoliciesTracesDataSource) Read(ctx context.Context, _ datasource.Rea
 	getPoliciesResp, err := d.client.List(ctx, getPoliciesReq)
 	for err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if utils.RetryableStatusCode(status.Code(err)) {
+		if utils.RetryableStatusCode(cxsdk.Code(err)) {
 			log.Print("[INFO] Retrying to read tco-policies-traces")
 			getPoliciesResp, err = d.client.List(ctx, getPoliciesReq)
 			continue

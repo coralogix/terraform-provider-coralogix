@@ -28,7 +28,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 var _ datasource.DataSourceWithConfigure = &RecordingRuleGroupSetDataSource{}
@@ -84,7 +83,7 @@ func (d *RecordingRuleGroupSetDataSource) Read(ctx context.Context, req datasour
 	getResp, err := d.client.Get(ctx, getReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				err.Error(),
 				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", id),

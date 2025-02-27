@@ -28,7 +28,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -503,7 +502,7 @@ func resourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceData
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().Get(ctx, getRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if status.Code(err) == codes.NotFound {
+		if cxsdk.Code(err) == codes.NotFound {
 			d.SetId("")
 			return diag.Diagnostics{diag.Diagnostic{
 				Severity: diag.Warning,
