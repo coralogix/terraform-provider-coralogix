@@ -36,7 +36,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	diag2 "github.com/hashicorp/terraform-plugin-framework/diag"
 	resourceschema "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -250,8 +249,8 @@ func InterfaceSliceToStringSlice(s []interface{}) []string {
 	return result
 }
 
-func AttrSliceToFloat32Slice(ctx context.Context, arr []attr.Value) ([]float32, diag2.Diagnostics) {
-	var diags diag2.Diagnostics
+func AttrSliceToFloat32Slice(ctx context.Context, arr []attr.Value) ([]float32, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	result := make([]float32, 0, len(arr))
 	for _, v := range arr {
 		val, err := v.ToTerraformValue(ctx)
@@ -270,7 +269,7 @@ func AttrSliceToFloat32Slice(ctx context.Context, arr []attr.Value) ([]float32, 
 	return result, diags
 }
 
-func Float32SliceTypeList(ctx context.Context, arr []float32) (types.List, diag2.Diagnostics) {
+func Float32SliceTypeList(ctx context.Context, arr []float32) (types.List, diag.Diagnostics) {
 	if len(arr) == 0 {
 		return types.ListNull(types.Float64Type), nil
 	}
@@ -329,8 +328,8 @@ func WrappedStringSliceToTypeStringList(s []*wrapperspb.StringValue) types.List 
 	return types.ListValueMust(types.StringType, elements)
 }
 
-func TypeStringSliceToWrappedStringSlice(ctx context.Context, s []attr.Value) ([]*wrapperspb.StringValue, diag2.Diagnostics) {
-	var diags diag2.Diagnostics
+func TypeStringSliceToWrappedStringSlice(ctx context.Context, s []attr.Value) ([]*wrapperspb.StringValue, diag.Diagnostics) {
+	var diags diag.Diagnostics
 	result := make([]*wrapperspb.StringValue, 0, len(s))
 	for _, v := range s {
 		val, err := v.ToTerraformValue(ctx)
@@ -392,9 +391,9 @@ func TypeBoolToWrapperspbBool(v types.Bool) *wrapperspb.BoolValue {
 	return wrapperspb.Bool(v.ValueBool())
 }
 
-func TypeStringSliceToStringSlice(ctx context.Context, s []attr.Value) ([]string, diag2.Diagnostics) {
+func TypeStringSliceToStringSlice(ctx context.Context, s []attr.Value) ([]string, diag.Diagnostics) {
 	result := make([]string, 0, len(s))
-	var diags diag2.Diagnostics
+	var diags diag.Diagnostics
 	for _, v := range s {
 		val, err := v.ToTerraformValue(ctx)
 		if err != nil {
@@ -414,9 +413,9 @@ func TypeStringSliceToStringSlice(ctx context.Context, s []attr.Value) ([]string
 	return result, nil
 }
 
-func TypeInt64SliceToInt32Slice(ctx context.Context, s []attr.Value) ([]int32, diag2.Diagnostics) {
+func TypeInt64SliceToInt32Slice(ctx context.Context, s []attr.Value) ([]int32, diag.Diagnostics) {
 	result := make([]int32, 0, len(s))
-	var diags diag2.Diagnostics
+	var diags diag.Diagnostics
 	for _, v := range s {
 		val, err := v.ToTerraformValue(ctx)
 		if err != nil {
@@ -504,7 +503,7 @@ func (u UrlValidationFuncFramework) ValidateString(ctx context.Context, req vali
 
 	if _, err := url.ParseRequestURI(value); err != nil {
 		resp.Diagnostics.Append(
-			diag2.NewAttributeErrorDiagnostic(
+			diag.NewAttributeErrorDiagnostic(
 				req.Path,
 				"Invalid Attribute Value Format",
 				fmt.Sprintf("Attribute %s in not a valid url - %s", req.Path, value),
@@ -731,7 +730,7 @@ func ParseNumUint32(desired string) uint32 {
 	return uint32(parsed)
 }
 
-func TypeMapToStringMap(ctx context.Context, m types.Map) (map[string]string, diag2.Diagnostics) {
+func TypeMapToStringMap(ctx context.Context, m types.Map) (map[string]string, diag.Diagnostics) {
 	var result map[string]string
 	diags := m.ElementsAs(ctx, &result, true)
 	return result, diags
@@ -771,10 +770,10 @@ func ConvertSchemaWithoutID(rs resourceschema.Schema) datasourceschema.Schema {
 	}
 }
 
-func TypeStringToWrapperspbUint32(str types.String) (*wrapperspb.UInt32Value, diag2.Diagnostics) {
+func TypeStringToWrapperspbUint32(str types.String) (*wrapperspb.UInt32Value, diag.Diagnostics) {
 	parsed, err := strconv.ParseUint(str.ValueString(), 10, 32)
 	if err != nil {
-		return nil, diag2.Diagnostics{diag2.NewErrorDiagnostic("Failed to convert string to uint32", err.Error())}
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Failed to convert string to uint32", err.Error())}
 	}
 	return wrapperspb.UInt32(uint32(parsed)), nil
 }
