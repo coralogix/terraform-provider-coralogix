@@ -792,3 +792,43 @@ Fix:
 Fix:
 
 * Add support for lists
+
+# Release 2.0.8
+
+## resource/coralogix_dashboard_folder
+
+Fix:
+
+* Do not fail on dashboards folder creation if the remote state differs
+
+## resource/coralgoix_dashboard
+
+Feature: 
+* Hexagon Dashboard widget
+
+Fix: 
+* Added aggregation for spans in line charts
+
+## resource/coralogix_slo
+
+Fix: 
+* SLO threshold operator issue
+
+## resource/coralogix_alert
+
+Feat:
+* Custom_evaluation_delay
+
+# Release 2.0.9
+
+## resource/coralogix_recording_rules
+
+Fix: 
+* Recording rules attributes
+* Remove validation for RuleGroupSet length
+
+## resource/coralogix_archive_logs
+
+Fix: 
+* Invalid empty region
+
