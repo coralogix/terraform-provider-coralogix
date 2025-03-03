@@ -70,134 +70,442 @@ CORALOGIX_API_KEY=cxup_ap1K3yap1K3yap1K3yap1K3yap1b5
 CORALOGIX_ENV=EU2
 ```
 
-# Summary
+Then, run the script and select "migration type 2":
 
-
-1. **Get the scripts**:
-   - 
-2. **Terraform Installed**:
-   - Ensure you have Terraform installed. You can download it [here](https://www.terraform.io/downloads).
-3. **Go Installed**:
-   - Install Go from [golang.org](https://golang.org/dl/).
-4. **Python Installed**:
-   - The script uses Python 3 for JSON processing, so make sure you have Python 3 installed.
-5. **`hcl2json` Installed**:
-   - Install the `hcl2json` utility. You can find it [here]().
-
----
-
-## Usage
-
-### 1. Script Purpose
-The script allows you to:
-- Migrate Terraform configurations based on:
-   - A folder containing a `terraform.tfstate` file.
-   - A specific resource type (e.g., `alert`, `dashboard`).
-- Generate a migration folder with cleaned and updated configurations.
-- Specify the provider version interactively during the process.
-
----
-
-### 2. Running the Script
-Before running the script, ensure you defined the required environment variables -  
-
-
-Use the script as follows:
 ```bash
-./generate_and_migrate.sh
-```
-
----
-
-### 3. Interactive Steps
-
-#### Step 1: Select Migration Type
-You will be prompted to choose the migration type:
-- **Option 1**: Migrate based on a folder containing a `terraform.tfstate` file.
-   - Provide the path to the folder.
-   - The script ensures that the folder contains a valid `terraform.tfstate` file.
-- **Option 2**: Migrate based on a specific resource type.
-   - A list of resource types will be displayed. Choose from options like:
-      - `alert`, `dashboard`, `archive_logs`, `events2metrics`, etc.
-   - Select the desired resource type from the list.
-
-#### Step 2: Specify Provider Version
-After selecting the migration type, you will be prompted to specify the Terraform provider version:
-- Example: `~>1.19.0`.
-- The script will default to `>=2.0.0` if no input is provided.
-
----
-
-### 4. What Happens Next
-
-#### Step 3: Generate Migration Folder
-- The script creates a new migration folder based on your input:
-   - For a folder, it appends `_migration` to the folder name.
-   - For a resource type, it creates a folder like `./<resource_type>_migration`.
-
-#### Step 4: Run `generate_imports.go`
-- The script runs a Go program (`generate_imports.go`) to generate an `imports.tf` file inside the migration folder.
-
-#### Step 5: Generate `provider.tf`
-- A `provider.tf` file is generated in the migration folder with the specified provider version.
-
-#### Step 6: Run `terraform init`
-- The script initializes Terraform inside the migration folder using `terraform init`.
-
-#### Step 7: Run `terraform plan`
-- The script runs `terraform plan` with the `-generate-config-out` flag to generate a new configuration file (`generated.tf`).
-
-#### Step 8: Remove Null Values
-- Python is used to clean the JSON file by removing null values, generating a cleaned JSON file (`cleaned_config.json`).
-
-#### Step 9: Apply the Configuration
-- The script applies the cleaned configuration using `terraform apply`.
-**Note**: The script will prompt you to confirm the apply action and will override your existing resources with the new configuration. 
-If you choose not to apply, the script will exit.
-
-#### Step 10: Cleanup
-- Temporary files are deleted.
-
----
-
-### 5. Example Outputs
-
-#### Migration Type Selection
-```plaintext
-[INFO] Select the migration type:
-[INFO] 1) Migrate based on a folder containing terraform.tfstate
-[INFO] 2) Migrate based on a specific resource name
+$ cd tools/terraform-importer/
+$ ./generate_and_migrate.sh
+2025-03-03 09:32:19 [INFO] Select the migration type:
+2025-03-03 09:32:19 [INFO] 1) Migrate based on a folder containing terraform.tfstate
+2025-03-03 09:32:19 [INFO] 2) Migrate based on a specific resource name
 Enter your choice (1 or 2): 2
 ```
 
-#### Provider Version Prompt
-```plaintext
-Enter the Terraform provider version to migrate to (e.g., ~>1.19.0): >=2.0.0
+Then, select the resource type you want to migrate. In this example we are picking `recording_rules_groups_set`, or nr 10:
+
+```bash
+2025-03-03 09:32:21 [INFO] Available resource types:
+1) alert			 8) events2metrics
+2) archive_logs			 9) group
+3) archive_metrics		10) recording_rules_groups_set
+4) archive_retentions		11) scope
+5) custom_role			12) tco_policies_logs
+6) dashboard			13) tco_policies_traces
+7) dashboards_folder		14) webhook
+#? 10
 ```
 
-#### Logs During Execution
-```plaintext
-2024-12-01 15:45:22 [INFO] Creating migration folder: ./alert_migration
-2024-12-01 15:45:22 [INFO] Running generate_imports.go with -type...
-2024-12-01 15:45:22 [INFO] Successfully generated imports.tf at ./alert_migration.
-2024-12-01 15:45:22 [INFO] Generating provider configuration in ./alert_migration/provider.tf...
-2024-12-01 15:45:22 [INFO] Provider configuration generated in ./alert_migration/provider.tf.
-2024-12-01 15:45:22 [INFO] Initializing Terraform in ./alert_migration...
-2024-12-01 15:45:22 [INFO] Running terraform plan in ./alert_migration...
-...
-2024-12-01 15:45:22 [INFO] Terraform apply completed.
-2024-12-01 15:45:22 [INFO] Cleanup completed.
-2024-12-01 15:45:22 [INFO] Script completed successfully.
+Once selected the script pulls all readable resources of that type. However, to output the right Terraform config, one other input is required: the version of the provider. In this example, we are using `~>2.0.0` which means that the output conforms to that provider version. Note that after generating the output, the script requires to confirm the apply step by typing `yes`, however applying is actually optional, the generated file will exist regardless:
+
+```bash
+Enter the Terraform provider version to migrate to (e.g., ~>2.0.0): ~>2.0.0
+2025-03-03 09:32:35 [INFO] Creating migration folder: ./recording_rules_groups_set_migration
+2025-03-03 09:32:35 [INFO] Running generate_imports.go with -type...
+
+`imports.tf` file has been generated at: %!s(*string=0x1400044a330)
+2025-03-03 09:32:36 [INFO] Successfully generated imports.tf at ./recording_rules_groups_set_migration.
+2025-03-03 09:32:36 [INFO] Generating provider configuration in ./recording_rules_groups_set_migration/provider.tf...
+2025-03-03 09:32:36 [INFO] Provider configuration generated in ./recording_rules_groups_set_migration/provider.tf.
+2025-03-03 09:32:36 [INFO] Initializing Terraform in ./recording_rules_groups_set_migration...
+-e 2025-03-03 09:32:37
+-e 2025-03-03 09:32:37  Initializing the backend...
+-e 2025-03-03 09:32:37
+-e 2025-03-03 09:32:37  Initializing provider plugins...
+-e 2025-03-03 09:32:37  - Finding coralogix/coralogix versions matching "~> 2.0.0"...
+-e 2025-03-03 09:32:39  - Installing coralogix/coralogix v2.0.9...
+-e 2025-03-03 09:32:41  - Installed coralogix/coralogix v2.0.9 (self-signed, key ID 020F3E2CF567DACB)
+-e 2025-03-03 09:32:41
+-e 2025-03-03 09:32:41  Partner and community providers are signed by their developers.
+-e 2025-03-03 09:32:41  If you'd like to know more about provider signing, you can read about it here:
+-e 2025-03-03 09:32:41  https://www.terraform.io/docs/cli/plugins/signing.html
+-e 2025-03-03 09:32:41
+-e 2025-03-03 09:32:41  Terraform has created a lock file .terraform.lock.hcl to record the provider
+-e 2025-03-03 09:32:41  selections it made above. Include this file in your version control repository
+-e 2025-03-03 09:32:41  so that Terraform can guarantee to make the same selections by default when
+-e 2025-03-03 09:32:41  you run "terraform init" in the future.
+-e 2025-03-03 09:32:41
+-e 2025-03-03 09:32:41  Terraform has been successfully initialized!
+-e 2025-03-03 09:32:41
+-e 2025-03-03 09:32:41  You may now begin working with Terraform. Try running "terraform plan" to see
+-e 2025-03-03 09:32:41  any changes that are required for your infrastructure. All Terraform commands
+-e 2025-03-03 09:32:41  should now work.
+-e 2025-03-03 09:32:41
+-e 2025-03-03 09:32:41  If you ever set or change modules or backend configuration for Terraform,
+-e 2025-03-03 09:32:41  rerun this command to reinitialize your working directory. If you forget, other
+-e 2025-03-03 09:32:41  commands will detect it and remind you to do so if necessary.
+2025-03-03 09:32:41 [INFO] Terraform initialization completed.
+2025-03-03 09:32:41 [INFO] Running terraform plan in ./recording_rules_groups_set_migration...
+-e 2025-03-03 09:32:42  coralogix_recording_rules_groups_set.examplee: Preparing import... [id=01JNDFBB4YFYYB1B9AF5W273WP]
+-e 2025-03-03 09:32:42  coralogix_recording_rules_groups_set.examplee: Refreshing state... [id=01JNDFBB4YFYYB1B9AF5W273WP]
+-e 2025-03-03 09:32:42
+-e 2025-03-03 09:32:42  Terraform will perform the following actions:
+-e 2025-03-03 09:32:42
+-e 2025-03-03 09:32:42    # coralogix_recording_rules_groups_set.examplee will be imported
+-e 2025-03-03 09:32:42    # (config will be generated)
+-e 2025-03-03 09:32:42      resource "coralogix_recording_rules_groups_set" "examplee" {
+-e 2025-03-03 09:32:42          groups = [
+-e 2025-03-03 09:32:42              {
+-e 2025-03-03 09:32:42                  interval = 180
+-e 2025-03-03 09:32:42                  limit    = 0
+-e 2025-03-03 09:32:42                  name     = "Foo"
+-e 2025-03-03 09:32:42                  rules    = [
+-e 2025-03-03 09:32:42                      {
+-e 2025-03-03 09:32:42                          expr   = "sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\"staging\",pod=~\"ts3db-live-ingester.*\"}[2m])) by (pod)"
+-e 2025-03-03 09:32:42                          record = "ts3db_live_ingester_write_latency:3m"
+-e 2025-03-03 09:32:42                      },
+-e 2025-03-03 09:32:42                      {
+-e 2025-03-03 09:32:42                          expr   = "sum(rate(http_requests_total[5m])) by (job)"
+-e 2025-03-03 09:32:42                          record = "job:http_requests_total:sum"
+-e 2025-03-03 09:32:42                      },
+-e 2025-03-03 09:32:42                  ]
+-e 2025-03-03 09:32:42              },
+-e 2025-03-03 09:32:42              {
+-e 2025-03-03 09:32:42                  interval = 60
+-e 2025-03-03 09:32:42                  limit    = 0
+-e 2025-03-03 09:32:42                  name     = "Bar"
+-e 2025-03-03 09:32:42                  rules    = [
+-e 2025-03-03 09:32:42                      {
+-e 2025-03-03 09:32:42                          expr   = "sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\"staging\",pod=~\"ts3db-live-ingester.*\"}[2m])) by (pod)"
+-e 2025-03-03 09:32:42                          record = "ts3db_live_ingester_write_latency:3m"
+-e 2025-03-03 09:32:42                      },
+-e 2025-03-03 09:32:42                      {
+-e 2025-03-03 09:32:42                          expr   = "sum(rate(http_requests_total[5m])) by (job)"
+-e 2025-03-03 09:32:42                          record = "job:http_requests_total:sum"
+-e 2025-03-03 09:32:42                      },
+-e 2025-03-03 09:32:42                  ]
+-e 2025-03-03 09:32:42              },
+-e 2025-03-03 09:32:42          ]
+-e 2025-03-03 09:32:42          id     = "01JNDFBB4YFYYB1B9AF5W273WP"
+-e 2025-03-03 09:32:42          name   = "Examplee"
+-e 2025-03-03 09:32:42      }
+-e 2025-03-03 09:32:42
+-e 2025-03-03 09:32:42  Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
+-e 2025-03-03 09:32:42  ╷
+-e 2025-03-03 09:32:42  │ Warning: Config generation is experimental
+-e 2025-03-03 09:32:42  │
+-e 2025-03-03 09:32:42  │ Generating configuration during import is currently experimental, and the
+-e 2025-03-03 09:32:42  │ generated configuration format may change in future versions.
+-e 2025-03-03 09:32:42  ╵
+-e 2025-03-03 09:32:42
+-e 2025-03-03 09:32:42  ─────────────────────────────────────────────────────────────────────────────
+-e 2025-03-03 09:32:42
+-e 2025-03-03 09:32:42  Terraform has generated configuration and written it to generated.tf. Please
+-e 2025-03-03 09:32:42  review the configuration and edit it as necessary before adding it to version
+-e 2025-03-03 09:32:42  control.
+-e 2025-03-03 09:32:42
+-e 2025-03-03 09:32:42  Note: You didn't use the -out option to save this plan, so Terraform can't
+-e 2025-03-03 09:32:42  guarantee to take exactly these actions if you run "terraform apply" now.
+2025-03-03 09:32:42 [INFO] Converting generated.tf to JSON...
+2025-03-03 09:32:42 [INFO] Removing null values from JSON...
+2025-03-03 09:32:42 [INFO] Cleaned JSON saved to cleaned_config.json.
+2025-03-03 09:32:42 [INFO] Navigating back to script's directory: /Users/cm/workspace/coralogix/coralogix-management-sdk/tools/terraform-importer
+2025-03-03 09:32:42 [INFO] Converting cleaned JSON back to HCL using Go program...
+Terraform configuration written to ./recording_rules_groups_set_migration/cleaned_config.tf
+2025-03-03 09:32:43 [INFO] Cleaned Terraform file saved as generated.tf
+2025-03-03 09:32:43 [INFO] Running terraform apply...
+-e 2025-03-03 09:32:43  coralogix_recording_rules_groups_set.examplee: Preparing import... [id=01JNDFBB4YFYYB1B9AF5W273WP]
+-e 2025-03-03 09:32:43  coralogix_recording_rules_groups_set.examplee: Refreshing state... [id=01JNDFBB4YFYYB1B9AF5W273WP]
+-e 2025-03-03 09:32:43
+-e 2025-03-03 09:32:43  Terraform will perform the following actions:
+-e 2025-03-03 09:32:43
+-e 2025-03-03 09:32:43    # coralogix_recording_rules_groups_set.examplee will be imported
+-e 2025-03-03 09:32:43      resource "coralogix_recording_rules_groups_set" "examplee" {
+-e 2025-03-03 09:32:43          groups = [
+-e 2025-03-03 09:32:43              {
+-e 2025-03-03 09:32:43                  interval = 180
+-e 2025-03-03 09:32:43                  limit    = 0
+-e 2025-03-03 09:32:43                  name     = "Foo"
+-e 2025-03-03 09:32:43                  rules    = [
+-e 2025-03-03 09:32:43                      {
+-e 2025-03-03 09:32:43                          expr   = "sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\"staging\",pod=~\"ts3db-live-ingester.*\"}[2m])) by (pod)"
+-e 2025-03-03 09:32:43                          record = "ts3db_live_ingester_write_latency:3m"
+-e 2025-03-03 09:32:43                      },
+-e 2025-03-03 09:32:43                      {
+-e 2025-03-03 09:32:43                          expr   = "sum(rate(http_requests_total[5m])) by (job)"
+-e 2025-03-03 09:32:43                          record = "job:http_requests_total:sum"
+-e 2025-03-03 09:32:43                      },
+-e 2025-03-03 09:32:43                  ]
+-e 2025-03-03 09:32:43              },
+-e 2025-03-03 09:32:43              {
+-e 2025-03-03 09:32:43                  interval = 60
+-e 2025-03-03 09:32:43                  limit    = 0
+-e 2025-03-03 09:32:43                  name     = "Bar"
+-e 2025-03-03 09:32:43                  rules    = [
+-e 2025-03-03 09:32:43                      {
+-e 2025-03-03 09:32:43                          expr   = "sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\"staging\",pod=~\"ts3db-live-ingester.*\"}[2m])) by (pod)"
+-e 2025-03-03 09:32:43                          record = "ts3db_live_ingester_write_latency:3m"
+-e 2025-03-03 09:32:43                      },
+-e 2025-03-03 09:32:43                      {
+-e 2025-03-03 09:32:43                          expr   = "sum(rate(http_requests_total[5m])) by (job)"
+-e 2025-03-03 09:32:43                          record = "job:http_requests_total:sum"
+-e 2025-03-03 09:32:43                      },
+-e 2025-03-03 09:32:43                  ]
+-e 2025-03-03 09:32:43              },
+-e 2025-03-03 09:32:43          ]
+-e 2025-03-03 09:32:43          id     = "01JNDFBB4YFYYB1B9AF5W273WP"
+-e 2025-03-03 09:32:43          name   = "Examplee"
+-e 2025-03-03 09:32:43      }
+-e 2025-03-03 09:32:43
+-e 2025-03-03 09:32:43  Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
+-e 2025-03-03 09:32:43
+-e 2025-03-03 09:32:43  Do you want to perform these actions?
+-e 2025-03-03 09:32:43    Terraform will perform the actions described above.
+-e 2025-03-03 09:32:43    Only 'yes' will be accepted to approve.
+-e 2025-03-03 09:32:43
+yes
+-e 2025-03-03 09:35:22    Enter a value:
+-e 2025-03-03 09:35:22  coralogix_recording_rules_groups_set.examplee: Importing... [id=01JNDFBB4YFYYB1B9AF5W273WP]
+-e 2025-03-03 09:35:22  coralogix_recording_rules_groups_set.examplee: Import complete [id=01JNDFBB4YFYYB1B9AF5W273WP]
+-e 2025-03-03 09:35:22
+-e 2025-03-03 09:35:22  Apply complete! Resources: 1 imported, 0 added, 0 changed, 0 destroyed.
+2025-03-03 09:35:22 [INFO] Terraform apply completed.
+2025-03-03 09:35:22 [INFO] Cleaning up temporary files...
+2025-03-03 09:35:22 [INFO] Cleanup completed.
+2025-03-03 09:35:22 [INFO] Script completed successfully.
 ```
 
----
+After acknowledging the terraform apply (by typing `yes`), the resulting files will be in a subdirectory named after the resource:
 
-### 6. Notes
-- **Customization**:
-   - Update the resource types in the script if new ones are added.
-   - Adjust the default provider version if needed.
-- **Error Handling**:
-   - The script will exit if any step fails (`set -e`).
-   - Logs are color-coded for better visibility (`INFO`, `ERROR`, `WARNING`, etc.).
+```bash
+$ tree recording_rules_groups_set_migration/
+recording_rules_groups_set_migration/
+├── generated.tf
+├── provider.tf
+└── terraform.tfstate
 
----
+1 directory, 3 files
+```
+
+The generated files looks like this (after formatting):
+
+```bash
+$ cat recording_rules_groups_set_migration/generated.tf
+resource "coralogix_recording_rules_groups_set" "examplee" {
+  groups = [{
+    interval = 180
+    limit    = 0
+    name     = "Foo"
+    rules = [{
+      expr   = "sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\"staging\",pod=~\"ts3db-live-ingester.*\"}[2m])) by (pod)"
+      record = "ts3db_live_ingester_write_latency:3m"
+      }, {
+      expr   = "sum(rate(http_requests_total[5m])) by (job)"
+      record = "job:http_requests_total:sum"
+    }]
+    }, {
+    interval = 60
+    limit    = 0
+    name     = "Bar"
+    rules = [{
+      expr   = "sum(rate(ts3db_live_ingester_write_latency_seconds_count{CX_LEVEL=\"staging\",pod=~\"ts3db-live-ingester.*\"}[2m])) by (pod)"
+      record = "ts3db_live_ingester_write_latency:3m"
+      }, {
+      expr   = "sum(rate(http_requests_total[5m])) by (job)"
+      record = "job:http_requests_total:sum"
+    }]
+  }]
+  name = "Examplee"
+}
+```
+
+As a next step, the generated resource can be used within a larger Terraform context or be the starting point to build one. Regardless, it's highly recommended to see if there are some improvements and adjustments for the specifics of the platform (variables, ...) that are not covered by the tool. 
+
+# Summary
+
+This tool was built to ease the migration to infrastructure as code style management of Coralogix, as well as an easy path to migrating between versions. Using the built-in feature of the Terraform CLI it allows for a quick and easy migrations between versions and onboarding infrastructure as code. 
+
+To recap, here is a video showing the importing of multiple alerts:
+
+<script src="https://asciinema.org/a/DhwLrzpB3XKuVyS7e906F69wG.js" id="asciicast-DhwLrzpB3XKuVyS7e906F69wG" async="true"></script>
+
+The resulting alerts are:
+
+```hcl
+resource "coralogix_alert" "updated-app-latency" {
+  notification_group = {
+
+  }
+  enabled  = true
+  group_by = ["destination_workload", "le"]
+  labels = {
+    severity = "critical"
+  }
+  name         = "updated-app-latency"
+  phantom_mode = false
+  priority     = "P1"
+  type_definition = {
+    metric_threshold = {
+      custom_evaluation_delay = 0
+      metric_filter = {
+        promql = "histogram_quantile(0.99, sum(irate(istio_request_duration_seconds_bucket{reporter=\"source\",destination_service=~\"ingress-annotation-test-svc.example-app.svc.cluster.local\"}[1m])) by (le, destination_workload)) > 0.2"
+      }
+      missing_values = {
+        min_non_null_values_pct = 0
+      }
+      rules = [{
+        condition = {
+          for_over_pct   = 100
+          of_the_last    = "5_MINUTES"
+          threshold      = 0
+          condition_type = "MORE_THAN"
+        }
+        override = {
+          priority = "P5"
+        }
+      }]
+      undetected_values_management = {
+        auto_retire_timeframe     = "NEVER"
+        trigger_undetected_values = false
+      }
+    }
+  }
+  description = "This is an updated alert"
+  incidents_settings = {
+    notify_on = "Triggered Only"
+    retriggering_period = {
+      minutes = 10
+    }
+  }
+}
+
+resource "coralogix_alert" "updated-app-latency_2" {
+  enabled = true
+  incidents_settings = {
+    notify_on = "Triggered Only"
+    retriggering_period = {
+      minutes = 10
+    }
+  }
+  type_definition = {
+    metric_threshold = {
+      custom_evaluation_delay = 0
+      metric_filter = {
+        promql = "histogram_quantile(0.99, sum(irate(istio_request_duration_seconds_bucket{reporter=\"source\",destination_service=~\"ingress-annotation-test-svc.example-app.svc.cluster.local\"}[1m])) by (le, destination_workload)) > 0.2"
+      }
+      missing_values = {
+        min_non_null_values_pct = 0
+      }
+      rules = [{
+        condition = {
+          threshold      = 0
+          condition_type = "MORE_THAN"
+          for_over_pct   = 100
+          of_the_last    = "15_MINUTES"
+        }
+        override = {
+          priority = "P5"
+        }
+      }]
+      undetected_values_management = {
+        auto_retire_timeframe     = "NEVER"
+        trigger_undetected_values = false
+      }
+    }
+  }
+  description = "This is an updated alert"
+  group_by    = ["destination_workload", "le"]
+  labels = {
+    severity = "info"
+  }
+  name = "updated-app-latency"
+  notification_group = {
+
+  }
+  phantom_mode = false
+  priority     = "P4"
+}
+
+resource "coralogix_alert" "updated-app-latency_3" {
+  description = "This is an updated alert"
+  enabled     = true
+  labels = {
+    severity = "critical"
+  }
+  name = "updated-app-latency"
+  notification_group = {
+
+  }
+  group_by = ["destination_workload", "le"]
+  incidents_settings = {
+    notify_on = "Triggered Only"
+    retriggering_period = {
+      minutes = 10
+    }
+  }
+  phantom_mode = false
+  priority     = "P1"
+  type_definition = {
+    metric_threshold = {
+      custom_evaluation_delay = 0
+      metric_filter = {
+        promql = "histogram_quantile(0.99, sum(irate(istio_request_duration_seconds_bucket{reporter=\"source\",destination_service=~\"ingress-annotation-test-svc.example-app.svc.cluster.local\"}[1m])) by (le, destination_workload)) > 0.2"
+      }
+      missing_values = {
+        min_non_null_values_pct = 0
+      }
+      rules = [{
+        condition = {
+          threshold      = 0
+          condition_type = "MORE_THAN"
+          for_over_pct   = 100
+          of_the_last    = "5_MINUTES"
+        }
+        override = {
+          priority = "P5"
+        }
+      }]
+      undetected_values_management = {
+        trigger_undetected_values = false
+        auto_retire_timeframe     = "NEVER"
+      }
+    }
+  }
+}
+
+resource "coralogix_alert" "updated-app-latency_4" {
+  group_by = ["destination_workload", "le"]
+  labels = {
+    severity = "info"
+  }
+  phantom_mode = false
+  description  = "This is an updated alert"
+  enabled      = true
+  incidents_settings = {
+    notify_on = "Triggered Only"
+    retriggering_period = {
+      minutes = 10
+    }
+  }
+  name = "updated-app-latency"
+  notification_group = {
+
+  }
+  priority = "P4"
+  type_definition = {
+    metric_threshold = {
+      custom_evaluation_delay = 0
+      metric_filter = {
+        promql = "histogram_quantile(0.99, sum(irate(istio_request_duration_seconds_bucket{reporter=\"source\",destination_service=~\"ingress-annotation-test-svc.example-app.svc.cluster.local\"}[1m])) by (le, destination_workload)) > 0.2"
+      }
+      missing_values = {
+        min_non_null_values_pct = 0
+      }
+      rules = [{
+        condition = {
+          threshold      = 0
+          condition_type = "MORE_THAN"
+          for_over_pct   = 100
+          of_the_last    = "15_MINUTES"
+        }
+        override = {
+          priority = "P5"
+        }
+      }]
+      undetected_values_management = {
+        auto_retire_timeframe     = "NEVER"
+        trigger_undetected_values = false
+      }
+    }
+  }
+}
+```
