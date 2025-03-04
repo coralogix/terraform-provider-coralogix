@@ -1045,9 +1045,12 @@ Required:
 
 Required:
 
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--filters--source--metrics--operator))
+
+Optional:
+
 - `label` (String)
 - `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--filters--source--metrics--operator))
 
 <a id="nestedatt--filters--source--metrics--operator"></a>
 ### Nested Schema for `filters.source.metrics.operator`
@@ -1270,9 +1273,12 @@ Required:
 
 Required:
 
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--metrics--operator))
+
+Optional:
+
 - `label` (String)
 - `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--metrics--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters--metrics--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters.metrics.operator`
@@ -1637,9 +1643,12 @@ Required:
 
 Required:
 
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--metrics--operator))
+
+Optional:
+
 - `label` (String)
 - `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--metrics--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters--metrics--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters.metrics.operator`
@@ -2040,9 +2049,12 @@ Required:
 
 Required:
 
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--metrics--operator))
+
+Optional:
+
 - `label` (String)
 - `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--metrics--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters--metrics--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters.metrics.operator`
@@ -2345,9 +2357,12 @@ Required:
 
 Required:
 
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--metrics--operator))
+
+Optional:
+
 - `label` (String)
 - `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--metrics--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters--metrics--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters.metrics.operator`
@@ -3220,9 +3235,12 @@ Required:
 
 Required:
 
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--metrics--operator))
+
+Optional:
+
 - `label` (String)
 - `metric_name` (String)
-- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--metrics--operator))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters--metrics--operator"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters.metrics.operator`
@@ -3561,6 +3579,9 @@ Optional:
 Required:
 
 - `label` (String)
+
+Optional:
+
 - `metric_name` (String)
 
 

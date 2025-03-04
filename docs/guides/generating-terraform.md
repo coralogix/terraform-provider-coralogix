@@ -46,6 +46,7 @@ Before starting, let's set some expectations. The script is not using any magic,
    - **References, variables:** Generated files will always use concrete values
    - **Blocks, modules, loops:** Generated files will produce a naive view of the resources without the assisstance of control structures
    - **Unexpected backend changes:** Mismatches between what the backend returns and the provider expect can happen and are considered bugs. Please create an issue [here](https://github.com/coralogix/terraform-provider-coralogix/issues) if you encounter one.
+   - **Not "listable":** Resources that don't support a list operation can't be part of the script. In this case use the regular import declarations in Terraform. 
 
 With these in mind, it's still possible to significantly speed up transitioning to an infrastructure as code setup using the migration script. Let's start by preparing the environment.
 
@@ -312,11 +313,11 @@ As a next step, the generated resource can be used within a larger Terraform con
 
 # Summary
 
-This tool was built to ease the migration to infrastructure as code style management of Coralogix, as well as an easy path to migrating between versions. Using the built-in feature of the Terraform CLI it allows for a quick and easy migrations between versions and onboarding infrastructure as code. 
+This tool was built to ease the migration to infrastructure as code style management of Coralogix, as well as an easy path to migrating between versions. Using the built-in feature of the Terraform CLI it allows for a quick and easy migrations between versions and onboarding infrastructure as code. Additionally, this can be an easy way to use the web UI to set preferred options and let the script handle the translation into Terraform. 
 
 To recap, here is a video showing the importing of multiple alerts:
 
-<script src="https://asciinema.org/a/DhwLrzpB3XKuVyS7e906F69wG.js" id="asciicast-DhwLrzpB3XKuVyS7e906F69wG" async="true"></script>
+<script src="https://asciinema.org/a/DhwLrzpB3XKuVyS7e906F69wG.js" id="asciicast-DhwLrzpB3XKuVyS7e906F69wG" async="true" data-cols="120" data-rows="30"></script>
 
 The resulting alerts are:
 
@@ -509,3 +510,5 @@ resource "coralogix_alert" "updated-app-latency_4" {
   }
 }
 ```
+
+Thank you for reading! Let us know any issues you encounter at https://github.com/coralogix/terraform-provider-coralogix/ 
