@@ -663,7 +663,7 @@ func expandRuleMatcher(d *schema.ResourceData) []*cxsdk.RuleMatcher {
 }
 
 func expandRuledSeverity(severity string) cxsdk.SeverityConstraintValue {
-	return cxsdk.SeverityConstraintValue(rulesSchemaSeverityToProtoSeverity[strings.ToLower(severity)])
+	return cxsdk.SeverityConstraintValue(rulesSchemaSeverityToProtoSeverity[strings.Title(severity)])
 }
 
 func expandRuleSubgroups(v interface{}) ([]*cxsdk.CreateRuleGroupRequestCreateRuleSubgroup, error) {
