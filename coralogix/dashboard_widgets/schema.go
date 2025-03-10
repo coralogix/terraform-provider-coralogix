@@ -361,10 +361,10 @@ func FiltersSourceSchema() map[string]schema.Attribute {
 		"metrics": schema.SingleNestedAttribute{
 			Attributes: map[string]schema.Attribute{
 				"metric_name": schema.StringAttribute{
-					Required: true,
+					Optional: true,
 				},
 				"label": schema.StringAttribute{
-					Required: true,
+					Optional: true,
 				},
 				"operator": FilterOperatorSchema(),
 			},

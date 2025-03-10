@@ -1696,7 +1696,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 											"metric_label": schema.SingleNestedAttribute{
 												Attributes: map[string]schema.Attribute{
 													"metric_name": schema.StringAttribute{
-														Required: true,
+														Optional: true,
 													},
 													"label": schema.StringAttribute{
 														Required: true,
