@@ -317,7 +317,7 @@ This tool was built to ease the migration to infrastructure as code style manage
 
 To recap, here is a video showing the importing of multiple alerts:
 
-<script src="https://asciinema.org/a/DhwLrzpB3XKuVyS7e906F69wG.js" id="asciicast-DhwLrzpB3XKuVyS7e906F69wG" async="true" data-cols="120" data-rows="30"></script>
+[![asciicast](https://asciinema.org/a/DhwLrzpB3XKuVyS7e906F69wG.svg)](https://asciinema.org/a/DhwLrzpB3XKuVyS7e906F69wG)
 
 The resulting alerts are:
 
