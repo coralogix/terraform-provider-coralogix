@@ -697,7 +697,6 @@ func expandRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroup
 		setName := plan.Name.ValueString()
 		return expandRecordingRulesGroupsSetFromYaml(yamlContent, setName)
 	}
-
 	return expandRecordingRulesGroupSetExplicitly(ctx, plan)
 }
 
