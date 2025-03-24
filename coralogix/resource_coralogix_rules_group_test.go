@@ -29,31 +29,38 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-/*
-func TestAccCoralogixResourceRuleGroup_minimal(t *testing.T) {
-    name := acctest.RandomWithPrefix("tf-acc-test")
-    alertResourceName := "coralogix_rules_group.test"
-
-    resource.Test(t, resource.TestCase{
-        PreCheck:          func() { TestAccPreCheck(t) },
-        ProviderFactories: testAccProviderFactories,
-        CheckDestroy:      testAccCheckRuleGroupDestroy,
-        Steps: []resource.TestStep{
-            {
-                Config: testAccCoralogixResourceRuleGroupMinimal(name),
-                Check: resource.ComposeAggregateTestCheckFunc(
-                    resource.TestCheckResourceAttrSet(alertResourceName, "id"),
-                ),
-            },
-            {
-                Config:   testAccCoralogixResourceRuleGroupMinimal(name),
-                PlanOnly: true,
-            },
-        },
-    })
-}*/
-
 var rulesGroupResourceName = "coralogix_rules_group.test"
+
+func TestAccCoralogixResourceRuleGroup_severities(t *testing.T) {
+	var rulesGroupResourceName = "coralogix_rules_group.bug_example"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { TestAccPreCheck(t) },
+		ProviderFactories: testAccProviderFactories,
+		CheckDestroy:      testAccCheckRuleGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceRuleGroupsSeverities(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "name", "Example parse-json-field rule-group from terraform"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "description", "rule_group created by coralogix terraform provider"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "severities.#", "3"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.name", "Example parse-json-field rule from terraform"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.description", "rule created by coralogix terraform provider"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.source_field", "text"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.destination_field", "text"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.keep_destination_field", "true"),
+					resource.TestCheckResourceAttr(rulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.0.keep_destination_field", "true"),
+				),
+			},
+			{
+				ResourceName:      rulesGroupResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
 
 func TestAccCoralogixResourceRuleGroup_block(t *testing.T) {
 	r := getRandomRuleGroup()
@@ -1042,4 +1049,28 @@ type ruleParams struct {
 type ruleGroupParams struct {
 	ruleParams
 	name, description, creator string
+}
+
+func testAccCoralogixResourceRuleGroupsSeverities() string {
+	return `resource "coralogix_rules_group" "bug_example" {
+  name         = "Example parse-json-field rule-group from terraform"
+  description  = "rule_group created by coralogix terraform provider"
+  applications = ["test"]
+  subsystems   = ["example"]
+  order = 1
+  severities =  ["Critical", "Debug", "Error"]
+  rule_subgroups {
+    rules {
+      parse_json_field {
+        name                   = "Example parse-json-field rule from terraform"
+        description            = "rule created by coralogix terraform provider"
+        source_field           = "text"
+        destination_field      = "text"
+        keep_source_field      = "true"
+        keep_destination_field = "true"
+      }
+    }
+  }
+}`
+
 }
