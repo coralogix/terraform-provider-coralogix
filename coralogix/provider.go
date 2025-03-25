@@ -129,6 +129,7 @@ func OldProvider() *oldSchema.Provider {
 					return nil, diag.Errorf("The Coralogix env must be one of %q", validEnvironmentAliases)
 				} else {
 					targetUrl = url
+					cxEnv = env.(string)
 				}
 			} else if domain, ok := d.GetOk("domain"); ok && domain.(string) != "" {
 				cxDomain = domain.(string)
