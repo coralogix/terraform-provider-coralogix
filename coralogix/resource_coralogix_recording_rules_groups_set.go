@@ -275,7 +275,6 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 				Validators: []validator.String{
 					stringvalidator.ConflictsWith(
 						path.MatchRelative().AtParent().AtName("groups"),
-						path.MatchRelative().AtParent().AtName("name"),
 					),
 					recordingRulesGroupYamlContentValidator{},
 				},
@@ -299,10 +298,6 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 			"name": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
-				Validators: []validator.String{
-					stringvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("yaml_content")),
-				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -699,15 +694,16 @@ type RecordingRuleModel struct {
 
 func expandRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroupSetResourceModel) (*cxsdk.CreateRuleGroupSetRequest, diag.Diagnostics) {
 	if yamlContent := plan.YamlContent.ValueString(); yamlContent != "" {
-		return expandRecordingRulesGroupsSetFromYaml(yamlContent)
+		setName := plan.Name.ValueString()
+		return expandRecordingRulesGroupsSetFromYaml(yamlContent, setName)
 	}
-
 	return expandRecordingRulesGroupSetExplicitly(ctx, plan)
 }
 
 func expandUpdateRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRuleGroupSetResourceModel) (*cxsdk.UpdateRuleGroupSetRequest, diag.Diagnostics) {
 	if yamlContent := plan.YamlContent.ValueString(); yamlContent != "" {
-		rrg, diags := expandRecordingRulesGroupsSetFromYaml(yamlContent)
+		// The name won't get updated anyways, so we just pass an empty string
+		rrg, diags := expandRecordingRulesGroupsSetFromYaml(yamlContent, "")
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -731,10 +727,13 @@ func expandUpdateRecordingRulesGroupsSet(ctx context.Context, plan *RecordingRul
 	}, nil
 }
 
-func expandRecordingRulesGroupsSetFromYaml(yamlContent string) (*cxsdk.CreateRuleGroupSetRequest, diag.Diagnostics) {
+func expandRecordingRulesGroupsSetFromYaml(yamlContent string, setName string) (*cxsdk.CreateRuleGroupSetRequest, diag.Diagnostics) {
 	var result cxsdk.CreateRuleGroupSetRequest
 	if err := yaml.Unmarshal([]byte(yamlContent), &result); err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error on unmarshal yaml_content", err.Error())}
+	}
+	if len(setName) > 0 {
+		result.Name = &setName
 	}
 	return &result, nil
 }

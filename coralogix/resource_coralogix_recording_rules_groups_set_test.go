@@ -66,6 +66,43 @@ func TestAccCoralogixRecordingRulesGroupsSetFromYaml(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixRecordingRulesGroupsSetFromYamlWithName(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	parent := filepath.Dir(wd)
+	filePath := parent + "/examples/resources/coralogix_recording_rules_groups_set/rule-group-set.yaml"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckRecordingRulesGroupDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceRecordingRulesGroupsSetFromYamlWithName(filePath),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(recordingRulesGroupsSetResourceName, "id"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "name", "Name"),
+					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "groups.*",
+						map[string]string{
+							"name":     "Foo",
+							"interval": "180",
+							"rules.#":  "2",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "groups.*",
+						map[string]string{
+							"name":     "Bar",
+							"interval": "60",
+							"rules.#":  "2",
+						},
+					),
+				),
+			},
+		},
+	})
+}
+
 func TestAccCoralogixRecordingRulesGroupsExplicit(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
@@ -115,6 +152,15 @@ func testAccCheckRecordingRulesGroupDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func testAccCoralogixResourceRecordingRulesGroupsSetFromYamlWithName(filePath string) string {
+	return fmt.Sprintf(
+		`resource "coralogix_recording_rules_groups_set" "test" {
+					yaml_content = file("%s")
+					name = "Name"
+				}
+`, filePath)
 }
 
 func testAccCoralogixResourceRecordingRulesGroupsSetFromYaml(filePath string) string {
