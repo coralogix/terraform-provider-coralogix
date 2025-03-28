@@ -836,3 +836,31 @@ Fix:
 
 Fix:
 * Replace when resource isn't found
+
+# Release 2.0.10
+
+## resource/coralogix_rules_groups
+
+Fix: 
+* Severities lookup
+
+# Release 2.0.11
+
+Internal:
+* Version constant update
+
+# Release 2.0.12
+
+Internal:
+* Updated SDK version
+* Docs updates
+
+# Release 2.0.13
+
+## resource/coralogix_rules_groups
+
+Feature: 
+* Custom name for when loading a rule group set from yaml file
+
+Internal:
+* Fixed environment variable reading for old providers
