@@ -47,6 +47,7 @@ Before starting, let's set some expectations. The script is not using any magic,
    - **Blocks, modules, loops:** Generated files will produce a naive view of the resources without the assisstance of control structures
    - **Unexpected backend changes:** Mismatches between what the backend returns and the provider expect can happen and are considered bugs. Please create an issue [here](https://github.com/coralogix/terraform-provider-coralogix/issues) if you encounter one.
    - **Not "listable":** Resources that don't support a list operation can't be part of the script. In this case use the regular import declarations in Terraform. 
+   - **Old Providers:** Some resources in the provider simply don't support generating Terraform config. In this case use the regular import declarations in Terraform. In v2.0 these are: `coralogix_rules_group`, `coralogix_enrichment`, `coralogix_data_set`, `coralogix_hosted_dashboard`, `coralogix_grafana_folder`, in 1.18 it also includes `resource_alert`
 
 With these in mind, it's still possible to significantly speed up transitioning to an infrastructure as code setup using the migration script. Let's start by preparing the environment.
 

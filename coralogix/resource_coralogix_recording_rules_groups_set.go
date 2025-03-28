@@ -281,6 +281,7 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplaceIf(JSONStringsEqualPlanModifier, "", ""),
 				},
+				MarkdownDescription: "YAML specification of rules. Cannot be used together with `groups`.",
 			},
 			"groups": schema.SetNestedAttribute{
 				Optional:     true,
@@ -301,6 +302,7 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+				MarkdownDescription: "The name of the rule group. Overrides the name specified in the YAML if provided.",
 			},
 		},
 	}
