@@ -74,8 +74,8 @@ resource "coralogix_recording_rules_groups_set" recording_rules_groups_set_expli
 ### Optional
 
 - `groups` (Attributes Set) (see [below for nested schema](#nestedatt--groups))
-- `name` (String)
-- `yaml_content` (String)
+- `name` (String) The name of the rule group. Overrides the name specified in the YAML if provided.
+- `yaml_content` (String) YAML specification of rules. Cannot be used together with `groups`.
 
 ### Read-Only
 
