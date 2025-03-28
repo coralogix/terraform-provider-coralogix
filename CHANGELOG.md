@@ -857,6 +857,12 @@ Internal:
 
 # Release 2.0.13
 
+## resource/coralogix_alert
+
+Fix:
+* Time zone math
+* Default alert overrides are not automatically P5
+
 ## resource/coralogix_rules_groups
 
 Feature: 
@@ -864,3 +870,4 @@ Feature:
 
 Internal:
 * Fixed environment variable reading for old providers
+* Docs updates
