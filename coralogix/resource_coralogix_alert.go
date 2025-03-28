@@ -1974,25 +1974,22 @@ func expandActiveOnSchedule(ctx context.Context, activeOnObject types.Object) (*
 	}
 	location := time.FixedZone("", offset)
 
-	startTimeUtc, e := time.ParseInLocation(TIME_FORMAT, activeOnModel.StartTime.ValueString(), time.UTC)
+	startTime, e := time.ParseInLocation(TIME_FORMAT, activeOnModel.StartTime.ValueString(), location)
 	if e != nil {
 		diags.AddError("Failed to parse start time", e.Error())
 	}
 
-	endTimeUtc, e := time.ParseInLocation(TIME_FORMAT, activeOnModel.EndTime.ValueString(), time.UTC)
+	endTime, e := time.ParseInLocation(TIME_FORMAT, activeOnModel.EndTime.ValueString(), location)
 	if e != nil {
 		diags.AddError("Failed to parse end time", e.Error())
 	}
-	if endTimeUtc.Before(startTimeUtc) {
+	if endTime.Before(startTime) {
 		diags.AddError("End time is before start time", "End time is before start time")
 	}
 
 	if diags.HasError() {
 		return nil, diags
 	}
-	// shift the clock
-	startTime := startTimeUtc.In(location)
-	endTime := endTimeUtc.In(location)
 
 	return &cxsdk.AlertDefScheduleActiveOn{
 		ActiveOn: &cxsdk.AlertDefActivitySchedule{
@@ -4131,14 +4128,13 @@ func flattenActiveOn(ctx context.Context, activeOn *cxsdk.AlertDefActivitySchedu
 	}
 	zoneName, offsetSecs := offset.Zone() // Name is probably empty
 	zone := time.FixedZone(zoneName, offsetSecs)
-	startTime := time.Date(2021, 2, 1, int(activeOn.StartTime.Hours), int(activeOn.StartTime.Minutes), 0, 0, zone)
-
-	endTime := time.Date(2021, 2, 1, int(activeOn.EndTime.Hours), int(activeOn.EndTime.Minutes), 0, 0, zone)
+	startTime := time.Date(2021, 2, 1, int(activeOn.StartTime.Hours), int(activeOn.StartTime.Minutes), 0, 0, time.UTC).In(zone)
+	endTime := time.Date(2021, 2, 1, int(activeOn.EndTime.Hours), int(activeOn.EndTime.Minutes), 0, 0, time.UTC).In(zone)
 
 	activeOnModel := ActiveOnModel{
 		DaysOfWeek: daysOfWeek,
-		StartTime:  types.StringValue(startTime.UTC().Format(TIME_FORMAT)),
-		EndTime:    types.StringValue(endTime.UTC().Format(TIME_FORMAT)),
+		StartTime:  types.StringValue(startTime.Format(TIME_FORMAT)),
+		EndTime:    types.StringValue(endTime.Format(TIME_FORMAT)),
 		UtcOffset:  types.StringValue(utcOffset),
 	}
 	return types.ObjectValueFrom(ctx, alertScheduleActiveOnAttr(), activeOnModel)

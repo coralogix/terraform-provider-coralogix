@@ -51,6 +51,7 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "08:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time", "20:30"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.utc_offset", "+0300"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_immediate.logs_filter.simple_filter.lucene_query", "message:\"error\""),
 				),
 			},
@@ -79,6 +80,7 @@ func TestAccCoralogixResourceAlert_logs_immediate(t *testing.T) {
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "schedule.active_on.days_of_week.*", "Thursday"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.start_time", "09:30"),
 					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.end_time", "21:30"),
+					resource.TestCheckResourceAttr(alertResourceName, "schedule.active_on.utc_offset", "+0300"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_immediate.logs_filter.simple_filter.lucene_query", "message:\"error\""),
 				),
 			},
@@ -1342,6 +1344,7 @@ func testAccCoralogixResourceAlertLogsImmediateUpdated() string {
       days_of_week = ["Wednesday", "Thursday"]
       start_time = "09:30"
       end_time   = "21:30"
+      utc_offset = "+0300"
     }
   }
 
@@ -1382,6 +1385,7 @@ func testAccCoralogixResourceAlertLogsImmediate() string {
       days_of_week = ["Wednesday", "Thursday"]
       start_time = "08:30"
       end_time = "20:30"
+      utc_offset = "+0300"
     }
   }
   type_definition = {
