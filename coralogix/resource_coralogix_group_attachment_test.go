@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
-var groupAttachmentResourceName = "coralogix_group_attachment.test"
 var userNameToAttach = randUserName()
 var membersBeforeRemove int
 
@@ -149,7 +148,7 @@ func testAccCoralogixResourceGroupAttachment(userName string) string {
 		user_name = "%s"
 	}
 	
-	data "coralogix_group" "example" {
+	data "coralogix_group" "test" {
        display_name = "ReadOnlyUsers"
     }
 
@@ -166,7 +165,7 @@ func testAccCoralogixResourceGroupAttachmentDeleted(userName string) string {
 		user_name = "%s"
 	}
 	
-	data "coralogix_group" "example" {
+	data "coralogix_group" "test" {
        display_name = "ReadOnlyUsers"
     }
 `, userName)
