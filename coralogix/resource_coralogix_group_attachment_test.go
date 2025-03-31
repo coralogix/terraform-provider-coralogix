@@ -39,7 +39,7 @@ func TestAccCoralogixResourceGroupAttachment(t *testing.T) {
 	})
 }
 
-func testAccCheckGroupDestroy(s *terraform.State) error {
+func testAccCheckGroupAttachmentDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*clientset.ClientSet).Groups()
 
 	ctx := context.TODO()
