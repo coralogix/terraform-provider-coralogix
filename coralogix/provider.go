@@ -380,6 +380,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewDashboardsFolderResource,
 		NewCustomRoleSource,
 		NewGroupResource,
+		NewGroupAttachmentResource,
 		NewUserResource,
 		NewScopeResource,
 		NewIntegrationResource,
