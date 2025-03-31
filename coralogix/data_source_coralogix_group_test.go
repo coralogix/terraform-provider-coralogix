@@ -39,7 +39,7 @@ func TestAccCoralogixDataSourceGroup_basic(t *testing.T) {
 	})
 }
 
-func TestAccCoralogixDataSourceGroupbyName(t *testing.T) {
+func TestAccCoralogixDataSourceGroupByName(t *testing.T) {
 	userName := randUserName()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
