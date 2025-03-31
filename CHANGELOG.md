@@ -871,3 +871,8 @@ Feature:
 Internal:
 * Fixed environment variable reading for old providers
 * Docs updates
+
+
+# Release 2.0.14
+
+Re-Release of 2.0.13 for the TF registry
