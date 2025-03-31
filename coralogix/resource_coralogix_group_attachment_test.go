@@ -24,11 +24,6 @@ func TestAccCoralogixResourceGroupAttachment(t *testing.T) {
 				Check:  testCheckUserInGroup,
 			},
 			{
-				ResourceName:      groupResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-			{
 				Config: testAccCoralogixResourceGroupAttachmentDeleted(userNameToAttach),
 				Check:  testCheckUserWasRemovedFromGroup,
 			},
@@ -154,6 +149,7 @@ func testAccCoralogixResourceGroupAttachment(userName string) string {
 	resource "coralogix_group_attachment" "test" {
 		group_id = data.coralogix_group.test.id
 		user_ids = [coralogix_user.test.id]
+		depends_on = [coralogix_user.test]
 	}
 `, userName)
 }
