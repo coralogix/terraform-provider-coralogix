@@ -18,7 +18,6 @@ func TestAccCoralogixResourceGroupAttachment(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckGroupDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceGroupAttachment(userNameToAttach),
