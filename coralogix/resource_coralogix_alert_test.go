@@ -2013,9 +2013,7 @@ func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
                 time_window = "10_MINUTES"
                 condition_type		 = "MORE_THAN"
             }
-            override = {
-                priority = "P2"
-            }
+            override = { }
         }]
     }
   }
@@ -2085,9 +2083,7 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
             threshold = 120
             condition_type = "MORE_THAN"
         }
-        override = {
-            priority = "P2"
-        }
+        override = {}
       }]
       group_by_for = "Numerator Only"
     }
