@@ -1365,21 +1365,15 @@ func (c PriorityOverrideFallback) MarkdownDescription(ctx context.Context) strin
 }
 
 func (c PriorityOverrideFallback) PlanModifyObject(ctx context.Context, req planmodifier.ObjectRequest, resp *planmodifier.ObjectResponse) {
-	prioPath, diags := req.Plan.PathMatches(ctx, path.MatchRoot("priority"))
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
 	var priority types.String
-	diags = req.Plan.GetAttribute(ctx, prioPath[0], &priority)
+	diags := req.Plan.GetAttribute(ctx, path.Root("priority"), &priority)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-
-	// No changes to priority
+	// Only change if there are changes to priority
 	if !(priority.IsNull() || priority.IsUnknown()) {
-		resp.RequiresReplace = true
+		resp.PlanValue = req.ConfigValue
 	}
 }
 
