@@ -1353,6 +1353,39 @@ func (g GroupByValidator) ValidateList(ctx context.Context, request validator.Li
 	}
 }
 
+type PriorityOverrideFallback struct {
+}
+
+func (c PriorityOverrideFallback) Description(ctx context.Context) string {
+	return "Fall back to top level priority for overrides."
+}
+
+func (c PriorityOverrideFallback) MarkdownDescription(ctx context.Context) string {
+	return "Fall back to top level priority for overrides."
+}
+
+func (c PriorityOverrideFallback) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	// if a priority override is provided, do nothing
+	if !(req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown()) {
+		return
+	}
+
+	var configPriority, StatePriority types.String
+	if diags := req.Config.GetAttribute(ctx, path.Root("priority"), &configPriority); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	if diags := req.State.GetAttribute(ctx, path.Root("priority"), &StatePriority); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	// Only change if there are changes to the top level priority
+	if !configPriority.Equal(StatePriority) {
+		resp.PlanValue = configPriority
+	}
+}
+
 type ComputedForSomeAlerts struct {
 }
 
@@ -1478,6 +1511,9 @@ func overrideAlertSchema() schema.SingleNestedAttribute {
 				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(validAlertPriorities...),
+				},
+				PlanModifiers: []planmodifier.String{
+					PriorityOverrideFallback{},
 				},
 				MarkdownDescription: fmt.Sprintf("Alert priority. Valid values: %q.", validAlertPriorities),
 			},
@@ -2042,13 +2078,13 @@ func expandAlertsTypeDefinition(ctx context.Context, alertProperties *cxsdk.Aler
 		alertProperties, diags = expandLogsImmediateAlertTypeDefinition(ctx, alertProperties, logsImmediate)
 	} else if logsThreshold := alertDefinitionModel.LogsThreshold; !utils.ObjIsNullOrUnknown(logsThreshold) {
 		// LogsThreshold
-		alertProperties, diags = expandLogsThresholdTypeDefinition(ctx, alertProperties, logsThreshold, &alertProperties.Priority)
+		alertProperties, diags = expandLogsThresholdTypeDefinition(ctx, alertProperties, logsThreshold)
 	} else if logsAnomaly := alertDefinitionModel.LogsAnomaly; !utils.ObjIsNullOrUnknown(logsAnomaly) {
 		// LogsAnomaly
 		alertProperties, diags = expandLogsAnomalyAlertTypeDefinition(ctx, alertProperties, logsAnomaly)
 	} else if logsRatioThreshold := alertDefinitionModel.LogsRatioThreshold; !utils.ObjIsNullOrUnknown(logsRatioThreshold) {
 		// LogsRatioThreshold
-		alertProperties, diags = expandLogsRatioThresholdTypeDefinition(ctx, alertProperties, logsRatioThreshold, &alertProperties.Priority)
+		alertProperties, diags = expandLogsRatioThresholdTypeDefinition(ctx, alertProperties, logsRatioThreshold)
 	} else if logsNewValue := alertDefinitionModel.LogsNewValue; !utils.ObjIsNullOrUnknown(logsNewValue) {
 		// LogsNewValue
 		alertProperties, diags = expandLogsNewValueAlertTypeDefinition(ctx, alertProperties, logsNewValue)
@@ -2057,10 +2093,10 @@ func expandAlertsTypeDefinition(ctx context.Context, alertProperties *cxsdk.Aler
 		alertProperties, diags = expandLogsUniqueCountAlertTypeDefinition(ctx, alertProperties, logsUniqueCount)
 	} else if logsTimeRelativeThreshold := alertDefinitionModel.LogsTimeRelativeThreshold; !utils.ObjIsNullOrUnknown(logsTimeRelativeThreshold) {
 		// LogsTimeRelativeThreshold
-		alertProperties, diags = expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx, alertProperties, logsTimeRelativeThreshold, &alertProperties.Priority)
+		alertProperties, diags = expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx, alertProperties, logsTimeRelativeThreshold)
 	} else if metricThreshold := alertDefinitionModel.MetricThreshold; !utils.ObjIsNullOrUnknown(metricThreshold) {
 		// MetricsThreshold
-		alertProperties, diags = expandMetricThresholdAlertTypeDefinition(ctx, alertProperties, metricThreshold, &alertProperties.Priority)
+		alertProperties, diags = expandMetricThresholdAlertTypeDefinition(ctx, alertProperties, metricThreshold)
 	} else if metricAnomaly := alertDefinitionModel.MetricAnomaly; !utils.ObjIsNullOrUnknown(metricAnomaly) {
 		// MetricsAnomaly
 		alertProperties, diags = expandMetricAnomalyAlertTypeDefinition(ctx, alertProperties, metricAnomaly)
@@ -2239,7 +2275,7 @@ func extractLogSeverities(ctx context.Context, elements []attr.Value) ([]cxsdk.L
 	return result, diags
 }
 
-func expandLogsThresholdTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, thresholdObject types.Object, defaultPrio *cxsdk.AlertDefPriority) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
+func expandLogsThresholdTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, thresholdObject types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
 	if utils.ObjIsNullOrUnknown(thresholdObject) {
 		return properties, nil
 	}
@@ -2259,7 +2295,7 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *cxsdk.Al
 		return nil, diags
 	}
 
-	rules, diags := extractThresholdRules(ctx, thresholdModel.Rules, defaultPrio)
+	rules, diags := extractThresholdRules(ctx, thresholdModel.Rules)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2282,7 +2318,7 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *cxsdk.Al
 	return properties, nil
 }
 
-func extractThresholdRules(ctx context.Context, elements types.Set, defaultPrio *cxsdk.AlertDefPriority) ([]*cxsdk.LogsThresholdRule, diag.Diagnostics) {
+func extractThresholdRules(ctx context.Context, elements types.Set) ([]*cxsdk.LogsThresholdRule, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 	rules := make([]*cxsdk.LogsThresholdRule, len(elements.Elements()))
 	var objs []types.Object
@@ -2299,7 +2335,7 @@ func extractThresholdRules(ctx context.Context, elements types.Set, defaultPrio 
 			continue
 		}
 
-		override, dg := extractAlertOverride(ctx, rule.Override, defaultPrio)
+		override, dg := extractAlertOverride(ctx, rule.Override)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -2435,7 +2471,7 @@ func extractAnomalyRules(ctx context.Context, elements types.Set) ([]*cxsdk.Logs
 	return rules, nil
 }
 
-func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, ratioThreshold types.Object, defaultPrio *cxsdk.AlertDefPriority) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
+func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, ratioThreshold types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
 	if utils.ObjIsNullOrUnknown(ratioThreshold) {
 		return properties, nil
 	}
@@ -2455,7 +2491,7 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *cxs
 		return nil, diags
 	}
 
-	rules, diags := extractRatioRules(ctx, ratioThresholdModel.Rules, defaultPrio)
+	rules, diags := extractRatioRules(ctx, ratioThresholdModel.Rules)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2480,7 +2516,7 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *cxs
 	return properties, nil
 }
 
-func extractRatioRules(ctx context.Context, elements types.Set, defaultPrio *cxsdk.AlertDefPriority) ([]*cxsdk.LogsRatioRules, diag.Diagnostics) {
+func extractRatioRules(ctx context.Context, elements types.Set) ([]*cxsdk.LogsRatioRules, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 	rules := make([]*cxsdk.LogsRatioRules, len(elements.Elements()))
 	var objs []types.Object
@@ -2496,7 +2532,7 @@ func extractRatioRules(ctx context.Context, elements types.Set, defaultPrio *cxs
 			diags.Append(dg...)
 			continue
 		}
-		override, dg := extractAlertOverride(ctx, rule.Override, defaultPrio)
+		override, dg := extractAlertOverride(ctx, rule.Override)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -2505,7 +2541,6 @@ func extractRatioRules(ctx context.Context, elements types.Set, defaultPrio *cxs
 			Condition: condition,
 			Override:  override,
 		}
-		log.Printf("[INFO] RULE %v: %v (default: %v)", i, rules[i], defaultPrio)
 	}
 	if diags.HasError() {
 		return nil, diags
@@ -2513,22 +2548,18 @@ func extractRatioRules(ctx context.Context, elements types.Set, defaultPrio *cxs
 	return rules, nil
 }
 
-func extractAlertOverride(ctx context.Context, override types.Object, defaultPrio *cxsdk.AlertDefPriority) (*cxsdk.AlertDefPriorityOverride, diag.Diagnostics) {
-	priority := *defaultPrio
-	if !utils.ObjIsNullOrUnknown(override) {
-
-		var overrideModel AlertOverrideModel
-		if diags := override.As(ctx, &overrideModel, basetypes.ObjectAsOptions{}); diags.HasError() {
-			return nil, diags
-		}
-
-		log.Printf("[INFO] SETTING PRIO: %v", overrideModel.Priority.ValueString())
-		if overrideModel.Priority.ValueString() != "" {
-			priority = alertPrioritySchemaToProtoMap[overrideModel.Priority.ValueString()]
-		}
+func extractAlertOverride(ctx context.Context, override types.Object) (*cxsdk.AlertDefPriorityOverride, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(override) {
+		return nil, nil
 	}
+
+	var overrideModel AlertOverrideModel
+	if diags := override.As(ctx, &overrideModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
 	return &cxsdk.AlertDefPriorityOverride{
-		Priority: priority,
+		Priority: alertPrioritySchemaToProtoMap[overrideModel.Priority.ValueString()],
 	}, nil
 }
 
@@ -2720,7 +2751,7 @@ func extractLogsUniqueCountCondition(ctx context.Context, condition types.Object
 	}, nil
 }
 
-func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, relativeThreshold types.Object, defaultPrio *cxsdk.AlertDefPriority) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
+func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, relativeThreshold types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
 	if utils.ObjIsNullOrUnknown(relativeThreshold) {
 		return properties, nil
 	}
@@ -2744,7 +2775,7 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 		return nil, diags
 	}
 
-	rules, diags := extractTimeRelativeThresholdRules(ctx, relativeThresholdModel.Rules, defaultPrio)
+	rules, diags := extractTimeRelativeThresholdRules(ctx, relativeThresholdModel.Rules)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2761,7 +2792,7 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 	return properties, nil
 }
 
-func extractTimeRelativeThresholdRules(ctx context.Context, elements types.Set, defaultPrio *cxsdk.AlertDefPriority) ([]*cxsdk.LogsTimeRelativeRule, diag.Diagnostics) {
+func extractTimeRelativeThresholdRules(ctx context.Context, elements types.Set) ([]*cxsdk.LogsTimeRelativeRule, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 	rules := make([]*cxsdk.LogsTimeRelativeRule, len(elements.Elements()))
 	var objs []types.Object
@@ -2779,7 +2810,7 @@ func extractTimeRelativeThresholdRules(ctx context.Context, elements types.Set, 
 			continue
 		}
 
-		override, dgs := extractAlertOverride(ctx, rule.Override, defaultPrio)
+		override, dgs := extractAlertOverride(ctx, rule.Override)
 		if dgs.HasError() {
 			diags.Append(dgs...)
 			continue
@@ -2800,7 +2831,7 @@ func extractTimeRelativeThresholdRules(ctx context.Context, elements types.Set, 
 	return rules, nil
 }
 
-func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, metricThreshold types.Object, defaultPrio *cxsdk.AlertDefPriority) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
+func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, metricThreshold types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
 	if utils.ObjIsNullOrUnknown(metricThreshold) {
 		return properties, nil
 	}
@@ -2815,7 +2846,7 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *c
 		return nil, diags
 	}
 
-	rules, diags := extractMetricThresholdRules(ctx, metricThresholdModel.Rules, defaultPrio)
+	rules, diags := extractMetricThresholdRules(ctx, metricThresholdModel.Rules)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2870,7 +2901,7 @@ func extractMetricThresholdMissingValues(ctx context.Context, values types.Objec
 	}
 }
 
-func extractMetricThresholdRules(ctx context.Context, elements types.Set, defaultPrio *cxsdk.AlertDefPriority) ([]*cxsdk.MetricThresholdRule, diag.Diagnostics) {
+func extractMetricThresholdRules(ctx context.Context, elements types.Set) ([]*cxsdk.MetricThresholdRule, diag.Diagnostics) {
 	diags := diag.Diagnostics{}
 	rules := make([]*cxsdk.MetricThresholdRule, len(elements.Elements()))
 	var objs []types.Object
@@ -2888,7 +2919,7 @@ func extractMetricThresholdRules(ctx context.Context, elements types.Set, defaul
 			continue
 		}
 
-		override, dg := extractAlertOverride(ctx, rule.Override, defaultPrio)
+		override, dg := extractAlertOverride(ctx, rule.Override)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
