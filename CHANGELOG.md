@@ -871,3 +871,13 @@ Feature:
 Internal:
 * Fixed environment variable reading for old providers
 * Docs updates
+
+# Release 2.0.15
+
+## data-source/coralogix_group
+Feature: 
+* Added support for searching by group `display_name`
+
+## resource/coralogix_group_attachment
+Feature:
+  New resource for attaching users to groups
