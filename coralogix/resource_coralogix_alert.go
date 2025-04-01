@@ -1353,6 +1353,36 @@ func (g GroupByValidator) ValidateList(ctx context.Context, request validator.Li
 	}
 }
 
+type PriorityOverrideFallback struct {
+}
+
+func (c PriorityOverrideFallback) Description(ctx context.Context) string {
+	return "Fall back to top level priority for overrides."
+}
+
+func (c PriorityOverrideFallback) MarkdownDescription(ctx context.Context) string {
+	return "Fall back to top level priority for overrides."
+}
+
+func (c PriorityOverrideFallback) PlanModifyObject(ctx context.Context, req planmodifier.ObjectRequest, resp *planmodifier.ObjectResponse) {
+	prioPath, diags := req.Plan.PathMatches(ctx, path.MatchRoot("priority"))
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	var priority types.String
+	diags = req.Plan.GetAttribute(ctx, prioPath[0], &priority)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	// No changes to priority
+	if !(priority.IsNull() || priority.IsUnknown()) {
+		resp.RequiresReplace = true
+	}
+}
+
 type ComputedForSomeAlerts struct {
 }
 
@@ -1472,6 +1502,9 @@ func logsTimeWindowSchema(validLogsTimeWindowValues []string) schema.StringAttri
 func overrideAlertSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Required: true,
+		PlanModifiers: []planmodifier.Object{
+			PriorityOverrideFallback{},
+		},
 		Attributes: map[string]schema.Attribute{
 			"priority": schema.StringAttribute{
 				Optional: true,
