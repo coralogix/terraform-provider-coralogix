@@ -1505,9 +1505,6 @@ func logsTimeWindowSchema(validLogsTimeWindowValues []string) schema.StringAttri
 func overrideAlertSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
 		Required: true,
-		// PlanModifiers: []planmodifier.Object{
-		// 	PriorityOverrideFallback{},
-		// },
 		Attributes: map[string]schema.Attribute{
 			"priority": schema.StringAttribute{
 				Optional: true,
