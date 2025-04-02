@@ -38,7 +38,7 @@ The script allows you to:
 
 ### 2. Running the Script
 Before running the script, ensure you defined the required environment variables -  
-`CORALOGIX_API_KEY` and `CORALOGIX_ENV` or `CORALOGIX_DOMAIN`.
+`CORALOGIX_API_KEY` and `CORALOGIX_ENV`.
 
 Use the script as follows:
 ```bash
