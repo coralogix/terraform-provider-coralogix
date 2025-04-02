@@ -56,7 +56,7 @@ With these in mind, it's still possible to significantly speed up transitioning 
 Whatever operating system (WSL on Windows is recommended) you use, make sure to run the script from within the `terraform-importer` directory from the SDK repository. Then, within that environment, set the following environment variables, just like with the Terraform provider itself:
 
    - `CORALOGIX_API_KEY`
-   - `CORALOGIX_ENV` or `CORALOGIX_DOMAIN`
+   - `CORALOGIX_ENV`
 
 !> Note that the provided API key has to have the required permissions for accessing the resources. 
 
