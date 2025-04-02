@@ -871,3 +871,9 @@ Feature:
 Internal:
 * Fixed environment variable reading for old providers
 * Docs updates
+
+# Release 2.1.0
+
+## resource/coralogix_dashboard
+
+Feature: allow to specify folder when creating a dashboard from json

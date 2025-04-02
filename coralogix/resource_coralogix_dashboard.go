@@ -2018,7 +2018,6 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 					path.MatchRelative().AtParent().AtName("variables"),
 					path.MatchRelative().AtParent().AtName("filters"),
 					path.MatchRelative().AtParent().AtName("time_frame"),
-					path.MatchRelative().AtParent().AtName("folder"),
 					path.MatchRelative().AtParent().AtName("annotations"),
 				),
 				ContentJsonValidator{},
@@ -2200,6 +2199,11 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*cxsdk.
 		dashboard := new(cxsdk.Dashboard)
 		if err := protojson.Unmarshal([]byte(plan.ContentJson.ValueString()), dashboard); err != nil {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error unmarshalling dashboard content json", err.Error())}
+		}
+
+		dashboard, diags := expandDashboardFolder(ctx, dashboard, plan.Folder)
+		if diags.HasError() {
+			return nil, diags
 		}
 		return dashboard, nil
 	}
@@ -5066,6 +5070,10 @@ func expandDashboardIDs(id types.String) *wrapperspb.StringValue {
 }
 
 func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboard *cxsdk.Dashboard) (*DashboardResourceModel, diag.Diagnostics) {
+	folder, diags := flattenDashboardFolder(ctx, plan.Folder, dashboard)
+	if diags.HasError() {
+		return nil, diags
+	}
 	if !(plan.ContentJson.IsNull() || plan.ContentJson.IsUnknown()) {
 		_, err := protojson.Marshal(dashboard)
 		if err != nil {
@@ -5085,7 +5093,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 			Variables:   types.ListNull(types.ObjectType{AttrTypes: dashboardsVariablesModelAttr()}),
 			Filters:     types.ListNull(types.ObjectType{AttrTypes: dashboardsFiltersModelAttr()}),
 			TimeFrame:   nil,
-			Folder:      types.ObjectNull(dashboardFolderModelAttr()),
+			Folder:      folder,
 			Annotations: types.ListNull(types.ObjectType{AttrTypes: dashboardsAnnotationsModelAttr()}),
 			AutoRefresh: types.ObjectNull(dashboardAutoRefreshModelAttr()),
 		}, nil
@@ -5108,11 +5116,6 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 	}
 
 	timeFrame, diags := dashboardwidgets.FlattenDashboardTimeFrame(ctx, dashboard)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	folder, diags := flattenDashboardFolder(ctx, plan.Folder, dashboard)
 	if diags.HasError() {
 		return nil, diags
 	}
