@@ -892,3 +892,9 @@ Feature:
 
 Fix:
 * Alert overrides were not updated when top level property changed
+
+# Release 2.1.0
+
+## resource/coralogix_dashboard
+
+Feature: allow to specify folder when creating a dashboard from jso
