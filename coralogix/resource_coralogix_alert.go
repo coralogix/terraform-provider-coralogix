@@ -717,6 +717,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Validators: []validator.String{
 					stringvalidator.OneOf(validAlertPriorities...),
 				},
+				DeprecationMessage:  "This field will be removed in the future in favor of the 'override' property where possible.",
 				MarkdownDescription: fmt.Sprintf("Alert priority. Valid values: %q.", validAlertPriorities),
 			},
 			"schedule": schema.SingleNestedAttribute{
@@ -1352,6 +1353,39 @@ func (g GroupByValidator) ValidateList(ctx context.Context, request validator.Li
 	}
 }
 
+type PriorityOverrideFallback struct {
+}
+
+func (c PriorityOverrideFallback) Description(ctx context.Context) string {
+	return "Fall back to top level priority for overrides."
+}
+
+func (c PriorityOverrideFallback) MarkdownDescription(ctx context.Context) string {
+	return "Fall back to top level priority for overrides."
+}
+
+func (c PriorityOverrideFallback) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	// if a priority override is provided, do nothing
+	if !(req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown()) {
+		return
+	}
+
+	var configPriority, StatePriority types.String
+	if diags := req.Config.GetAttribute(ctx, path.Root("priority"), &configPriority); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	if diags := req.State.GetAttribute(ctx, path.Root("priority"), &StatePriority); diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	// Only change if there are changes to the top level priority
+	if !configPriority.Equal(StatePriority) {
+		resp.PlanValue = configPriority
+	}
+}
+
 type ComputedForSomeAlerts struct {
 }
 
@@ -1479,7 +1513,7 @@ func overrideAlertSchema() schema.SingleNestedAttribute {
 					stringvalidator.OneOf(validAlertPriorities...),
 				},
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					PriorityOverrideFallback{},
 				},
 				MarkdownDescription: fmt.Sprintf("Alert priority. Valid values: %q.", validAlertPriorities),
 			},
@@ -2515,7 +2549,7 @@ func extractRatioRules(ctx context.Context, elements types.Set) ([]*cxsdk.LogsRa
 }
 
 func extractAlertOverride(ctx context.Context, override types.Object) (*cxsdk.AlertDefPriorityOverride, diag.Diagnostics) {
-	if override.IsNull() || override.IsUnknown() {
+	if utils.ObjIsNullOrUnknown(override) {
 		return nil, nil
 	}
 
@@ -2530,7 +2564,7 @@ func extractAlertOverride(ctx context.Context, override types.Object) (*cxsdk.Al
 }
 
 func extractLogsRatioCondition(ctx context.Context, condition types.Object) (*cxsdk.LogsRatioCondition, diag.Diagnostics) {
-	if condition.IsNull() || condition.IsUnknown() {
+	if utils.ObjIsNullOrUnknown(condition) {
 		return nil, nil
 	}
 

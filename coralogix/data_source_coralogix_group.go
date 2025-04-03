@@ -19,14 +19,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/grpc/codes"
 )
 
 var _ datasource.DataSourceWithConfigure = &GroupDataSource{}
@@ -36,7 +40,8 @@ func NewGroupDataSource() datasource.DataSource {
 }
 
 type GroupDataSource struct {
-	client *clientset.GroupsClient
+	client     *clientset.GroupsClient
+	grpcClient *cxsdk.GroupsClient
 }
 
 func (d *GroupDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -58,6 +63,7 @@ func (d *GroupDataSource) Configure(_ context.Context, req datasource.ConfigureR
 	}
 
 	d.client = clientSet.Groups()
+	d.grpcClient = clientSet.GroupGrpc()
 }
 
 func (d *GroupDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -66,6 +72,21 @@ func (d *GroupDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+
+	if idAttr, ok := resp.Schema.Attributes["id"].(schema.StringAttribute); ok {
+		idAttr.Required = false
+		idAttr.Optional = true
+		idAttr.Validators = []validator.String{
+			stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("display_name")),
+		}
+		resp.Schema.Attributes["id"] = idAttr
+	}
+
+	if nameAttr, ok := resp.Schema.Attributes["display_name"].(schema.StringAttribute); ok {
+		nameAttr.Required = false
+		nameAttr.Optional = true
+		resp.Schema.Attributes["display_name"] = nameAttr
+	}
 }
 
 func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -75,27 +96,50 @@ func (d *GroupDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		resp.Diagnostics.Append(diags...)
 		return
 	}
+
+	var groupID string
 	//Get refreshed Group value from Coralogix
-	id := data.ID.ValueString()
-	log.Printf("[INFO] Reading Group: %s", id)
-	getGroupResp, err := d.client.GetGroup(ctx, id)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
-			resp.Diagnostics.AddWarning(
-				err.Error(),
-				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", id),
-			)
-		} else {
+	if displayName := data.DisplayName.ValueString(); displayName != "" {
+		log.Printf("[INFO] Listing Groups to find by display name: %s", displayName)
+		listGroupReq := &cxsdk.GetTeamGroupsRequest{}
+		listGroupResp, err := d.grpcClient.List(ctx, listGroupReq)
+		if err != nil {
+			log.Printf("[ERROR] Received error when listing groups: %s", err.Error())
+			listGroupReqStr, _ := json.Marshal(listGroupReq)
 			resp.Diagnostics.AddError(
-				"Error reading Group",
-				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", d.client.TargetUrl, id), ""),
+				"Error listing Groups",
+				utils.FormatRpcErrors(err, "List", string(listGroupReqStr)),
 			)
+			return
 		}
+
+		for _, group := range listGroupResp.Groups {
+			if group.Name == data.DisplayName.ValueString() {
+				groupID = strconv.Itoa(int(group.GroupId.Id))
+				break
+			}
+		}
+
+		if groupID == "" {
+			resp.Diagnostics.AddError(fmt.Sprintf("Group with display name %q not found", displayName), "")
+			return
+		}
+	} else if id := data.ID.ValueString(); id != "" {
+		groupID = id
+	} else {
+		resp.Diagnostics.AddError("Group ID or display name must be set", "")
 		return
 	}
-	respStr, _ := json.Marshal(getGroupResp)
-	log.Printf("[INFO] Received Group: %s", string(respStr))
+
+	getGroupResp, err := d.client.GetGroup(ctx, groupID)
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get group", err.Error())
+		return
+	}
+	if getGroupResp == nil {
+		resp.Diagnostics.AddError("Group not found", "Group not found")
+		return
+	}
 
 	data, diags = flattenSCIMGroup(getGroupResp)
 	if diags.HasError() {

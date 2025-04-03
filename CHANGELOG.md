@@ -872,8 +872,29 @@ Internal:
 * Fixed environment variable reading for old providers
 * Docs updates
 
+# Release 2.0.14
+
+Re-Release of 2.0.13 for the TF registry
+
+# Release 2.0.15
+
+## data-source/coralogix_group
+
+Feature:
+* Added support for searching by group `display_name`
+
+## resource/coralogix_group_attachment
+
+Feature:
+* New resource for attaching users to groups
+
+## resource/coralogix_alert
+
+Fix:
+* Alert overrides were not updated when top level property changed
+
 # Release 2.1.0
 
 ## resource/coralogix_dashboard
 
-Feature: allow to specify folder when creating a dashboard from json
+Feature: allow to specify folder when creating a dashboard from jso

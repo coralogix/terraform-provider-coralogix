@@ -39,9 +39,33 @@ func TestAccCoralogixDataSourceGroup_basic(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixDataSourceGroupByName(t *testing.T) {
+	userName := randUserName()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceGroup(userName) +
+					testAccCoralogixDataSourceGroupByName_read(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(groupDataSourceName, "display_name", "example"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCoralogixDataSourceGroup_read() string {
 	return `data "coralogix_group" "test" {
 	id = coralogix_group.test.id
+}
+`
+}
+
+func testAccCoralogixDataSourceGroupByName_read() string {
+	return `data "coralogix_group" "test" {
+	display_name = coralogix_group.test.display_name
 }
 `
 }
