@@ -503,7 +503,6 @@ resource "coralogix_alert" "test" {
 ### Required
 
 - `name` (String) Alert name.
-- `priority` (String, Deprecated) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
 - `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow. (see [below for nested schema](#nestedatt--type_definition))
 
 ### Optional
@@ -515,6 +514,7 @@ resource "coralogix_alert" "test" {
 - `labels` (Map of String)
 - `notification_group` (Attributes) (see [below for nested schema](#nestedatt--notification_group))
 - `phantom_mode` (Boolean)
+- `priority` (String, Deprecated) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
 - `schedule` (Attributes) Alert schedule. Will be activated all the time if not specified. (see [below for nested schema](#nestedatt--schedule))
 
 ### Read-Only

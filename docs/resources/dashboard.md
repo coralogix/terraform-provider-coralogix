@@ -694,8 +694,11 @@ resource "coralogix_dashboard" widgets {
   }
 }
 
-resource "coralogix_dashboard" dashboard_from_json {
+resource "coralogix_dashboard" dashboard_from_json_with_folder {
   content_json = file("./dashboard.json")
+  folder = {
+    id = coralogix_dashboards_folder.example.id
+  }
 }
 ```
 
