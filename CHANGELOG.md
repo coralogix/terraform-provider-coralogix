@@ -897,4 +897,9 @@ Fix:
 
 ## resource/coralogix_dashboard
 
-Feature: allow to specify folder when creating a dashboard from jso
+Feature: allow to specify folder when creating a dashboard from json
+
+## resource/coralogix_alert
+
+Update:
+* coralogix_alert `priority` is now optional

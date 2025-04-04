@@ -713,9 +713,13 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				MarkdownDescription: "Alert enabled status. True by default.",
 			},
 			"priority": schema.StringAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(validAlertPriorities...),
+				},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 				DeprecationMessage:  "This field will be removed in the future in favor of the 'override' property where possible.",
 				MarkdownDescription: fmt.Sprintf("Alert priority. Valid values: %q.", validAlertPriorities),
