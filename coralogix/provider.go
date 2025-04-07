@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
@@ -83,7 +84,7 @@ func OldProvider() *oldSchema.Provider {
 				Optional: true,
 				//ForceNew: true,
 				//DefaultFunc:   oldSchema.EnvDefaultFunc("CORALOGIX_ENV", nil),
-				ValidateFunc:  validation.StringInSlice(validEnvironmentAliases, false),
+				ValidateFunc:  validation.StringInSlice(validEnvironmentAliases, true),
 				Description:   fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvironmentAliases),
 				ConflictsWith: []string{"domain"},
 			},
@@ -125,7 +126,7 @@ func OldProvider() *oldSchema.Provider {
 			var cxEnv string
 			var cxDomain string
 			if env, ok := d.GetOk("env"); ok && env.(string) != "" {
-				if url, ok := terraformEnvironmentAliasToGrpcUrl[env.(string)]; !ok {
+				if url, ok := terraformEnvironmentAliasToGrpcUrl[strings.ToUpper(env.(string))]; !ok {
 					return nil, diag.Errorf("The Coralogix env must be one of %q", validEnvironmentAliases)
 				} else {
 					targetUrl = url
@@ -135,7 +136,7 @@ func OldProvider() *oldSchema.Provider {
 				cxDomain = domain.(string)
 				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
 				cxEnv = targetUrl
-			} else if env = os.Getenv("CORALOGIX_ENV"); env != "" {
+			} else if env = strings.ToUpper(os.Getenv("CORALOGIX_ENV")); env != "" {
 				if url, ok := terraformEnvironmentAliasToGrpcUrl[env.(string)]; !ok {
 					return nil, diag.Errorf("The Coralogix env must be one of %q", validEnvironmentAliases)
 				} else {
@@ -192,7 +193,7 @@ func (p *coralogixProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 			"env": schema.StringAttribute{
 				Optional: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf(validEnvironmentAliases...),
+					stringvalidator.OneOfCaseInsensitive(validEnvironmentAliases...),
 					stringvalidator.ConflictsWith(path.MatchRelative().AtParent().AtName("domain")),
 				},
 				Description: fmt.Sprintf("The Coralogix API environment. can be one of %q. environment variable 'CORALOGIX_ENV' can be defined instead.", validEnvironmentAliases),
@@ -269,6 +270,7 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 	if !config.Env.IsNull() {
 		terraformEnvironmentAlias = config.Env.ValueString()
 	}
+	terraformEnvironmentAlias = strings.ToUpper(terraformEnvironmentAlias)
 
 	if !config.ApiKey.IsNull() {
 		apiKey = config.ApiKey.ValueString()
