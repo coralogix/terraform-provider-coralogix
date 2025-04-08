@@ -82,6 +82,7 @@ func LineChartSchema() schema.Attribute {
 										},
 										"filters":      LogsFiltersSchema(),
 										"aggregations": LogsAggregationsSchema(),
+										"time_frame":   TimeFrameSchema(),
 									},
 									Optional: true,
 									Validators: []validator.Object{
@@ -102,6 +103,7 @@ func LineChartSchema() schema.Attribute {
 											Computed: true,
 											Default:  stringdefault.StaticString(UNSPECIFIED),
 										},
+										"time_frame": TimeFrameSchema(),
 									},
 									Optional: true,
 									Validators: []validator.Object{
@@ -119,6 +121,7 @@ func LineChartSchema() schema.Attribute {
 										"group_by":     SpansFieldsSchema(),
 										"aggregations": SpansAggregationsSchema(),
 										"filters":      SpansFilterSchema(),
+										"time_frame":   TimeFrameSchema(),
 									},
 									Optional: true,
 									Validators: []validator.Object{
@@ -139,10 +142,10 @@ func LineChartSchema() schema.Attribute {
 											},
 											Optional: true,
 										},
+										"time_frame": TimeFrameSchema(),
 									},
 									Optional: true,
 								},
-								"time_frame": TimeFrameSchema(),
 							},
 							Required: true,
 						},
@@ -260,6 +263,9 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 								AttrTypes: LogsFilterModelAttr(),
 							},
 						},
+						"time_frame": types.ObjectType{
+							AttrTypes: TimeFrameModelAttr(),
+						},
 					},
 				},
 				"metrics": types.ObjectType{
@@ -270,6 +276,9 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 							ElemType: types.ObjectType{
 								AttrTypes: MetricsFilterModelAttr(),
 							},
+						},
+						"time_frame": types.ObjectType{
+							AttrTypes: TimeFrameModelAttr(),
 						},
 					},
 				},
@@ -291,6 +300,9 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 								AttrTypes: SpansFilterModelAttr(),
 							},
 						},
+						"time_frame": types.ObjectType{
+							AttrTypes: TimeFrameModelAttr(),
+						},
 					},
 				},
 				"data_prime": types.ObjectType{
@@ -301,10 +313,10 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 								AttrTypes: FilterSourceModelAttr(),
 							},
 						},
+						"time_frame": types.ObjectType{
+							AttrTypes: TimeFrameModelAttr(),
+						},
 					},
-				},
-				"time_frame": types.ObjectType{
-					AttrTypes: TimeFrameModelAttr(),
 				},
 			},
 		},
