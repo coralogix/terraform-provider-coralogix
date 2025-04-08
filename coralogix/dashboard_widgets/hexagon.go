@@ -156,7 +156,6 @@ func HexagonSchema() schema.Attribute {
 			"query": schema.SingleNestedAttribute{
 				Required: true,
 				Attributes: map[string]schema.Attribute{
-					"time_frame": TimeFrameSchema(),
 					"logs": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
 							"lucene_query": schema.StringAttribute{
@@ -170,6 +169,7 @@ func HexagonSchema() schema.Attribute {
 							},
 							"filters":     LogsFiltersSchema(),
 							"aggregation": LogsAggregationSchema(),
+							"time_frame":  TimeFrameSchema(),
 						},
 						Optional: true,
 						Validators: []validator.Object{
@@ -199,6 +199,7 @@ func HexagonSchema() schema.Attribute {
 									stringvalidator.OneOf(DashboardValidHexagonMetricAggregations...),
 								},
 							},
+							"time_frame": TimeFrameSchema(),
 						},
 						Optional: true,
 					},
@@ -210,6 +211,7 @@ func HexagonSchema() schema.Attribute {
 							"group_by":    SpansFieldsSchema(),
 							"aggregation": SpansAggregationSchema(),
 							"filters":     SpansFilterSchema(),
+							"time_frame":  TimeFrameSchema(),
 						},
 						Optional: true,
 					},
@@ -224,6 +226,7 @@ func HexagonSchema() schema.Attribute {
 								},
 								Optional: true,
 							},
+							"time_frame": TimeFrameSchema(),
 						},
 						Optional: true,
 					},
@@ -274,6 +277,9 @@ func HexagonType() types.ObjectType {
 							"group_by": types.ListType{
 								ElemType: ObservationFieldsObject(),
 							},
+							"time_frame": types.ObjectType{
+								AttrTypes: TimeFrameModelAttr(),
+							},
 						},
 					},
 					"metrics": types.ObjectType{
@@ -286,6 +292,9 @@ func HexagonType() types.ObjectType {
 								},
 							},
 							"aggregation": types.StringType,
+							"time_frame": types.ObjectType{
+								AttrTypes: TimeFrameModelAttr(),
+							},
 						},
 					},
 					"spans": types.ObjectType{
@@ -304,6 +313,9 @@ func HexagonType() types.ObjectType {
 							"aggregation": types.ObjectType{
 								AttrTypes: SpansAggregationModelAttr(),
 							},
+							"time_frame": types.ObjectType{
+								AttrTypes: TimeFrameModelAttr(),
+							},
 						},
 					},
 					"data_prime": types.ObjectType{
@@ -314,10 +326,10 @@ func HexagonType() types.ObjectType {
 									AttrTypes: FilterSourceModelAttr(),
 								},
 							},
+							"time_frame": types.ObjectType{
+								AttrTypes: TimeFrameModelAttr(),
+							},
 						},
-					},
-					"time_frame": types.ObjectType{
-						AttrTypes: TimeFrameModelAttr(),
 					},
 				},
 			},

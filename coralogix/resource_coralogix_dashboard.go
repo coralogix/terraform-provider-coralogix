@@ -591,6 +591,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																						},
 																						Optional: true,
 																					},
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -612,6 +613,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																						Computed: true,
 																						Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																					},
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -633,6 +635,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																						},
 																						Optional: true,
 																					},
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -643,7 +646,6 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					),
 																				},
 																			},
-																			"time_frame": dashboardwidgets.TimeFrameSchema(),
 																		},
 																		Required: true,
 																	},
@@ -722,6 +724,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"filters":          dashboardwidgets.LogsFiltersSchema(),
 																					"logs_aggregation": dashboardwidgets.LogsAggregationSchema(),
+																					"time_frame":       dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Validators: []validator.Object{
 																					objectvalidator.ExactlyOneOf(
@@ -746,7 +749,8 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																						Computed:            true,
 																						Default:             stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
 																					},
-																					"filters": dashboardwidgets.MetricFiltersSchema(),
+																					"filters":    dashboardwidgets.MetricFiltersSchema(),
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -764,6 +768,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					},
 																					"spans_aggregation": dashboardwidgets.SpansAggregationSchema(),
 																					"filters":           dashboardwidgets.SpansFilterSchema(),
+																					"time_frame":        dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -785,6 +790,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																						},
 																						Optional: true,
 																					},
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -795,7 +801,6 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					),
 																				},
 																			},
-																			"time_frame": dashboardwidgets.TimeFrameSchema(),
 																		},
 																		Required: true,
 																	},
@@ -897,6 +902,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																						Attributes: dashboardwidgets.ObservationFieldSchema(),
 																						Optional:   true,
 																					},
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -916,6 +922,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"filters":            dashboardwidgets.SpansFilterSchema(),
 																					"group_names":        dashboardwidgets.SpansFieldsSchema(),
 																					"stacked_group_name": dashboardwidgets.SpansFieldSchema(),
+																					"time_frame":         dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -939,6 +946,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"stacked_group_name": schema.StringAttribute{
 																						Optional: true,
 																					},
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -967,6 +975,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"stacked_group_name": schema.StringAttribute{
 																						Optional: true,
 																					},
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -977,7 +986,6 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					),
 																				},
 																			},
-																			"time_frame": dashboardwidgets.TimeFrameSchema(),
 																		},
 																		Required: true,
 																	},
@@ -1094,6 +1102,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																						Attributes: dashboardwidgets.ObservationFieldSchema(),
 																						Optional:   true,
 																					},
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -1117,6 +1126,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"stacked_group_name": schema.StringAttribute{
 																						Optional: true,
 																					},
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -1136,6 +1146,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"filters":            dashboardwidgets.SpansFilterSchema(),
 																					"group_names":        dashboardwidgets.SpansFieldsSchema(),
 																					"stacked_group_name": dashboardwidgets.SpansFieldSchema(),
+																					"time_frame":         dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -1164,6 +1175,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"stacked_group_name": schema.StringAttribute{
 																						Optional: true,
 																					},
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -1174,7 +1186,6 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					),
 																				},
 																			},
-																			"time_frame": dashboardwidgets.TimeFrameSchema(),
 																		},
 																		Optional: true,
 																	},
@@ -1310,6 +1321,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																						Attributes: dashboardwidgets.ObservationFieldSchema(),
 																						Optional:   true,
 																					},
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																			},
@@ -1326,6 +1338,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"stacked_group_name": schema.StringAttribute{
 																						Optional: true,
 																					},
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																			},
@@ -1338,6 +1351,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"filters":            dashboardwidgets.SpansFilterSchema(),
 																					"group_names":        dashboardwidgets.SpansFieldsSchema(),
 																					"stacked_group_name": dashboardwidgets.SpansFieldSchema(),
+																					"time_frame":         dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																			},
@@ -1359,6 +1373,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					"stacked_group_name": schema.StringAttribute{
 																						Optional: true,
 																					},
+																					"time_frame": dashboardwidgets.TimeFrameSchema(),
 																				},
 																				Optional: true,
 																				Validators: []validator.Object{
@@ -1369,7 +1384,6 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 																					),
 																				},
 																			},
-																			"time_frame": dashboardwidgets.TimeFrameSchema(),
 																		},
 																		Optional: true,
 																	},
@@ -4915,6 +4929,9 @@ func widgetModelAttr() map[string]attr.Type {
 												},
 											},
 										},
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+										},
 									},
 								},
 								"metrics": types.ObjectType{
@@ -4926,6 +4943,9 @@ func widgetModelAttr() map[string]attr.Type {
 												AttrTypes: dashboardwidgets.MetricsFilterModelAttr(),
 											},
 										},
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+										},
 									},
 								},
 								"data_prime": types.ObjectType{
@@ -4935,6 +4955,9 @@ func widgetModelAttr() map[string]attr.Type {
 											ElemType: types.ObjectType{
 												AttrTypes: dashboardwidgets.FilterSourceModelAttr(),
 											},
+										},
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
 										},
 									},
 								},
@@ -4971,6 +4994,9 @@ func widgetModelAttr() map[string]attr.Type {
 												AttrTypes: dashboardwidgets.LogsFilterModelAttr(),
 											},
 										},
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+										},
 									},
 								},
 								"metrics": types.ObjectType{
@@ -4981,6 +5007,9 @@ func widgetModelAttr() map[string]attr.Type {
 											ElemType: types.ObjectType{
 												AttrTypes: dashboardwidgets.MetricsFilterModelAttr(),
 											},
+										},
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
 										},
 									},
 								},
@@ -4995,6 +5024,9 @@ func widgetModelAttr() map[string]attr.Type {
 												AttrTypes: dashboardwidgets.SpansFilterModelAttr(),
 											},
 										},
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+										},
 									},
 								},
 								"data_prime": types.ObjectType{
@@ -5004,6 +5036,9 @@ func widgetModelAttr() map[string]attr.Type {
 											ElemType: types.ObjectType{
 												AttrTypes: dashboardwidgets.FilterSourceModelAttr(),
 											},
+										},
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
 										},
 									},
 								},
@@ -5046,6 +5081,9 @@ func widgetModelAttr() map[string]attr.Type {
 											ElemType: dashboardwidgets.ObservationFieldsObject(),
 										},
 										"stacked_group_name_field": dashboardwidgets.ObservationFieldsObject(),
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+										},
 									},
 								},
 								"metrics": types.ObjectType{
@@ -5060,6 +5098,9 @@ func widgetModelAttr() map[string]attr.Type {
 											ElemType: types.StringType,
 										},
 										"stacked_group_name": types.StringType,
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+										},
 									},
 								},
 								"spans": types.ObjectType{
@@ -5081,6 +5122,9 @@ func widgetModelAttr() map[string]attr.Type {
 										"stacked_group_name": types.ObjectType{
 											AttrTypes: dashboardwidgets.SpansFieldModelAttr(),
 										},
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+										},
 									},
 								},
 								"data_prime": types.ObjectType{
@@ -5095,6 +5139,9 @@ func widgetModelAttr() map[string]attr.Type {
 											ElemType: types.StringType,
 										},
 										"stacked_group_name": types.StringType,
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+										},
 									},
 								},
 							},
@@ -5193,6 +5240,9 @@ func widgetModelAttr() map[string]attr.Type {
 											ElemType: dashboardwidgets.ObservationFieldsObject(),
 										},
 										"stacked_group_name_field": dashboardwidgets.ObservationFieldsObject(),
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+										},
 									},
 								},
 								"metrics": types.ObjectType{
@@ -5207,6 +5257,9 @@ func widgetModelAttr() map[string]attr.Type {
 											ElemType: types.StringType,
 										},
 										"stacked_group_name": types.StringType,
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+										},
 									},
 								},
 								"spans": types.ObjectType{
@@ -5228,7 +5281,13 @@ func widgetModelAttr() map[string]attr.Type {
 										"stacked_group_name": types.ObjectType{
 											AttrTypes: dashboardwidgets.SpansFieldModelAttr(),
 										},
+										"time_frame": types.ObjectType{
+											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+										},
 									},
+								},
+								"data_prime": types.ObjectType{
+									AttrTypes: barChartDataPrimeQueryAttr(),
 								},
 							},
 						},
@@ -5281,6 +5340,9 @@ func barChartLogsQueryAttr() map[string]attr.Type {
 			ElemType: dashboardwidgets.ObservationFieldsObject(),
 		},
 		"stacked_group_name_field": dashboardwidgets.ObservationFieldsObject(),
+		"time_frame": types.ObjectType{
+			AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+		},
 	}
 }
 
@@ -5296,6 +5358,9 @@ func barChartMetricsQueryAttr() map[string]attr.Type {
 			ElemType: types.StringType,
 		},
 		"stacked_group_name": types.StringType,
+		"time_frame": types.ObjectType{
+			AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+		},
 	}
 }
 
@@ -5318,6 +5383,9 @@ func barChartSpansQueryAttr() map[string]attr.Type {
 		"stacked_group_name": types.ObjectType{
 			AttrTypes: dashboardwidgets.SpansFieldModelAttr(),
 		},
+		"time_frame": types.ObjectType{
+			AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+		},
 	}
 }
 
@@ -5333,6 +5401,9 @@ func barChartDataPrimeQueryAttr() map[string]attr.Type {
 			ElemType: types.StringType,
 		},
 		"stacked_group_name": types.StringType,
+		"time_frame": types.ObjectType{
+			AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
+		},
 	}
 }
 
