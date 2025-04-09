@@ -128,6 +128,7 @@ func flattenGrafanaFolder(folder gapi.Folder, d *schema.ResourceData, meta inter
 
 func UpdateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	folder := expandGrafanaFolder(d)
+	log.Printf("[INFO] Updating grafana-folder: %#v", folder)
 	resp, err := meta.(*clientset.ClientSet).Grafana().UpdateGrafanaFolder(ctx, folder)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
