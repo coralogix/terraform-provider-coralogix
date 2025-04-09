@@ -241,6 +241,155 @@ func HexagonSchema() schema.Attribute {
 		},
 	}
 }
+func HexagonSchemaV0() schema.Attribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Attributes: map[string]schema.Attribute{
+			"min": schema.NumberAttribute{
+				Optional: true,
+			},
+			"max": schema.NumberAttribute{
+				Optional: true,
+			},
+			"decimal": schema.NumberAttribute{
+				Optional: true,
+			},
+			"legend": LegendSchema(),
+			"legend_by": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString("unspecified"),
+				Validators: []validator.String{
+					stringvalidator.OneOf(DashboardValidLegendBys...),
+				},
+				MarkdownDescription: fmt.Sprintf("The legend by. Valid values are: %s.", strings.Join(DashboardValidLegendBys, ", ")),
+			},
+			"unit": UnitSchema(),
+			"custom_unit": schema.StringAttribute{
+				Optional:            true,
+				MarkdownDescription: "A custom unit",
+			},
+			"data_mode_type": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(DashboardValidDataModeTypes...),
+				},
+				Default: stringdefault.StaticString("unspecified"),
+			},
+			"thresholds": schema.SetNestedAttribute{
+				Optional: true,
+				Computed: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"from": schema.NumberAttribute{
+							Required: true,
+						},
+						"color": schema.StringAttribute{
+							Optional: true,
+						},
+						"label": schema.StringAttribute{
+							Optional: true,
+						},
+					},
+				},
+			},
+			"threshold_type": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(DashboardValidThresholdTypes...),
+				},
+				Default:             stringdefault.StaticString("unspecified"),
+				MarkdownDescription: fmt.Sprintf("The threshold type. Valid values are: %s.", strings.Join(DashboardValidThresholdTypes, ", ")),
+			},
+			"time_frame": TimeFrameSchema(),
+
+			"query": schema.SingleNestedAttribute{
+				Required: true,
+				Attributes: map[string]schema.Attribute{
+					"logs": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"lucene_query": schema.StringAttribute{
+								Optional: true,
+							},
+							"group_by": schema.ListNestedAttribute{
+								NestedObject: schema.NestedAttributeObject{
+									Attributes: ObservationFieldSchema(),
+								},
+								Optional: true,
+							},
+							"filters":     LogsFiltersSchema(),
+							"aggregation": LogsAggregationSchema(),
+						},
+						Optional: true,
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRelative().AtParent().AtName("metrics"),
+								path.MatchRelative().AtParent().AtName("spans"),
+								path.MatchRelative().AtParent().AtName("data_prime"),
+							),
+						},
+					},
+					"metrics": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"promql_query": schema.StringAttribute{
+								Required: true,
+							},
+							"promql_query_type": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  stringdefault.StaticString(UNSPECIFIED),
+							},
+							"filters": MetricFiltersSchema(),
+							"aggregation": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  stringdefault.StaticString("unspecified"),
+								Validators: []validator.String{
+									stringvalidator.OneOf(DashboardValidHexagonMetricAggregations...),
+								},
+							},
+						},
+						Optional: true,
+					},
+					"spans": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"lucene_query": schema.StringAttribute{
+								Optional: true,
+							},
+							"group_by":    SpansFieldsSchema(),
+							"aggregation": SpansAggregationSchema(),
+							"filters":     SpansFilterSchema(),
+							"time_frame":  TimeFrameSchema(),
+						},
+						Optional: true,
+					},
+					"data_prime": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"dataprime_query": schema.StringAttribute{
+								Optional: true,
+							},
+							"filters": schema.ListNestedAttribute{
+								NestedObject: schema.NestedAttributeObject{
+									Attributes: FiltersSourceSchema(),
+								},
+								Optional: true,
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+		},
+		Validators: []validator.Object{
+			SupportedWidgetsValidatorWithout("hexagon"),
+			objectvalidator.AlsoRequires(
+				path.MatchRelative().AtParent().AtParent().AtName("title"),
+			),
+		},
+	}
+}
 
 func HexagonType() types.ObjectType {
 	return types.ObjectType{
