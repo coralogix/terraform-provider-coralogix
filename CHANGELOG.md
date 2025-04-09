@@ -893,7 +893,12 @@ Feature:
 Fix:
 * Alert overrides were not updated when top level property changed
 
-# Release 2.1.0
+# Release 2.0.16
+
+## resource/coralogix_grafana_folder
+
+Fix:
+* Fixed 412 error for updating coralogix_grafana_folder
 
 ## resource/coralogix_dashboard
 
@@ -903,3 +908,8 @@ Feature: allow to specify folder when creating a dashboard from json
 
 Update:
 * coralogix_alert `priority` is now optional
+
+## General
+
+Making CORALOGIX_ENV case-insensitive
+
