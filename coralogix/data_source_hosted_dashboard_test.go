@@ -31,13 +31,14 @@ func TestAccCoralogixDataSourceGrafanaDashboard_basic(t *testing.T) {
 	}
 	parent := filepath.Dir(wd)
 	filePath := parent + "/examples/resources/coralogix_hosted_dashboard/grafana_acc_dashboard.json"
+	expectedFolderTitle := "Test Folder"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceGrafanaDashboard(filePath) +
+				Config: testAccCoralogixResourceGrafanaDashboard(filePath, expectedFolderTitle) +
 					testAccCoralogixDataSourceGrafanaDashboard_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(hostedDashboardDataSourceName, "uid"),

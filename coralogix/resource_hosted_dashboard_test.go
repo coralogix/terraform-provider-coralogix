@@ -29,6 +29,7 @@ import (
 )
 
 var hostedDashboardResourceName = "coralogix_hosted_dashboard.test"
+var hostedDashboardFolderResourceName = "coralogix_grafana_folder.test_folder"
 
 func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 	wd, err := os.Getwd()
@@ -42,6 +43,9 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 	expectedInitialConfig := `{"title":"Title test","uid":"UID"}`
 	expectedUpdatedTitleConfig := `{"title":"Updated Title","uid":"UID"}`
 
+	expectedFolderTitle := "Test Folder"
+	expectedFolderUpdateTitle := "Updated Folder Title"
+
 	var dashboard gapi.Dashboard
 
 	resource.Test(t, resource.TestCase{
@@ -51,21 +55,27 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Test resource creation.
-				Config: testAccCoralogixResourceGrafanaDashboard(filePath),
+				Config: testAccCoralogixResourceGrafanaDashboard(filePath, expectedFolderTitle),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists(hostedDashboardResourceName, &dashboard),
 					resource.TestCheckResourceAttr(
 						hostedDashboardResourceName, "grafana.0.config_json", expectedInitialConfig,
 					),
+					resource.TestCheckResourceAttrSet(
+						hostedDashboardResourceName, "grafana.0.folder",
+					),
+					resource.TestCheckResourceAttrSet(hostedDashboardFolderResourceName, "id"),
+					resource.TestCheckResourceAttr(hostedDashboardFolderResourceName, "title", expectedFolderTitle),
 				),
 			},
 			{
-				Config: testAccCoralogixResourceGrafanaDashboard(updatedFilePath),
+				Config: testAccCoralogixResourceGrafanaDashboard(updatedFilePath, expectedFolderUpdateTitle),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists(hostedDashboardResourceName, &dashboard),
 					resource.TestCheckResourceAttr(
 						hostedDashboardResourceName, "grafana.0.config_json", expectedUpdatedTitleConfig,
 					),
+					resource.TestCheckResourceAttr(hostedDashboardFolderResourceName, "title", expectedFolderUpdateTitle),
 				),
 			},
 		},
@@ -112,12 +122,17 @@ func testAccDashboardCheckDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCoralogixResourceGrafanaDashboard(filePath string) string {
+func testAccCoralogixResourceGrafanaDashboard(filePath, folderTitle string) string {
 	return fmt.Sprintf(
 		`resource "coralogix_hosted_dashboard" test {
  					grafana{
   						config_json = file("%s")
+						folder = coralogix_grafana_folder.test_folder.id
 					}
 				}
-`, filePath)
+				
+				resource "coralogix_grafana_folder" "test_folder" {
+  					title = "%s"
+				}
+`, filePath, folderTitle)
 }

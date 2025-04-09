@@ -903,3 +903,8 @@ Feature: allow to specify folder when creating a dashboard from json
 
 Update:
 * coralogix_alert `priority` is now optional
+
+## resource/coralogix_grafana_folder
+
+Fix:
+* Fixed 412 error for updating coralogix_grafana_folder
