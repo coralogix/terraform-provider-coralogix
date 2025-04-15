@@ -279,7 +279,7 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 					recordingRulesGroupYamlContentValidator{},
 				},
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplaceIf(JSONStringsEqualPlanModifier, "", ""),
+					stringplanmodifier.RequiresReplaceIf(utils.JSONStringsEqualPlanModifier, "", ""),
 				},
 				MarkdownDescription: "YAML specification of rules. Cannot be used together with `groups`.",
 			},

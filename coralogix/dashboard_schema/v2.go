@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 	dashboardwidgets "terraform-provider-coralogix/coralogix/dashboard_widgets"
+	"terraform-provider-coralogix/coralogix/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -1637,7 +1638,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 				ContentJsonValidator{},
 			},
 			PlanModifiers: []planmodifier.String{
-				stringplanmodifier.RequiresReplaceIf(JSONStringsEqualPlanModifier, "", ""),
+				stringplanmodifier.RequiresReplaceIf(utils.JSONStringsEqualPlanModifier, "", ""),
 			},
 			Description: "an option to set the dashboard content from a json file.",
 		},
