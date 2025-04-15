@@ -26,10 +26,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"github.com/nsf/jsondiff"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -72,13 +69,6 @@ func (c ContentJsonValidator) ValidateString(_ context.Context, request validato
 	if err != nil {
 		response.Diagnostics.Append(diag.NewErrorDiagnostic("content_json validation failed", fmt.Sprintf("json content is not matching layout schema. got an err while unmarshalling - %s", err)))
 	}
-}
-
-func JSONStringsEqualPlanModifier(_ context.Context, plan planmodifier.StringRequest, req *stringplanmodifier.RequiresReplaceIfFuncResponse) {
-	if diffType, _ := jsondiff.Compare([]byte(plan.PlanValue.ValueString()), []byte(plan.StateValue.ValueString()), &jsondiff.Options{}); !(diffType == jsondiff.FullMatch || diffType == jsondiff.SupersetMatch) {
-		req.RequiresReplace = false
-	}
-	req.RequiresReplace = true
 }
 
 func stringOrVariableSchema() schema.SingleNestedAttribute {
