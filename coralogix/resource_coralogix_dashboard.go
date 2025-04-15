@@ -285,36 +285,201 @@ func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.St
 }
 
 func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-	type DashboardResourceModelV2 struct {
-		ID          types.String `tfsdk:"id"`
-		Name        types.String `tfsdk:"name"`
-		Description types.String `tfsdk:"description"`
-		Layout      types.Object `tfsdk:"layout"`
-		Variables   types.List   `tfsdk:"variables"`
-		Filters     types.List   `tfsdk:"filters"`
-		TimeFrame   types.Object `tfsdk:"time_frame"`
-		Folder      types.Object `tfsdk:"folder"`
-		Annotations types.List   `tfsdk:"annotations"`
-		ContentJson types.String `tfsdk:"content_json"`
+
+	type DataPrimeModelV0 struct {
+		Query   types.String `tfsdk:"query"`
+		Filters types.List   `tfsdk:"filters"` //DashboardFilterSourceModel
 	}
 
-	var priorStateData DashboardResourceModelV2
+	type QuerySpansModelV0 struct {
+		LuceneQuery  types.String `tfsdk:"lucene_query"`
+		GroupBy      types.List   `tfsdk:"group_by"`     //SpansFieldModel
+		Aggregations types.List   `tfsdk:"aggregations"` //SpansAggregationModel
+		Filters      types.List   `tfsdk:"filters"`      //SpansFilterModel
+	}
+
+	type HexagonQueryMetricsModelV0 struct {
+		PromqlQuery     types.String `tfsdk:"promql_query"`
+		Filters         types.List   `tfsdk:"filters"` //MetricsFilterModel
+		PromqlQueryType types.String `tfsdk:"promql_query_type"`
+		Aggregation     types.String `tfsdk:"aggregation"`
+	}
+
+	type HexagonQueryLogsModelV0 struct {
+		LuceneQuery types.String                           `tfsdk:"lucene_query"`
+		GroupBy     types.List                             `tfsdk:"group_by"` //ObservationFieldModel
+		Aggregation *dashboardwidgets.LogsAggregationModel `tfsdk:"aggregation"`
+		Filters     types.List                             `tfsdk:"filters"` //LogsFilterModel
+	}
+
+	type HexagonQueryModelV0 struct {
+		Logs      *HexagonQueryLogsModelV0    `tfsdk:"logs"`
+		Metrics   *HexagonQueryMetricsModelV0 `tfsdk:"metrics"`
+		Spans     *QuerySpansModelV0          `tfsdk:"spans"`
+		DataPrime *DataPrimeModelV0           `tfsdk:"data_prime"`
+	}
+
+	type HexagonModelV0 struct {
+		CustomUnit    types.String                     `tfsdk:"custom_unit"`
+		LegendBy      types.String                     `tfsdk:"legend_by"`
+		Decimal       types.Number                     `tfsdk:"decimal"`
+		DataModeType  types.String                     `tfsdk:"data_mode_type"`
+		Thresholds    types.Set                        `tfsdk:"thresholds"` //HexagonThresholdModel
+		ThresholdType types.String                     `tfsdk:"threshold_type"`
+		Min           types.Number                     `tfsdk:"min"`
+		Max           types.Number                     `tfsdk:"max"`
+		Unit          types.String                     `tfsdk:"unit"`
+		Legend        *dashboardwidgets.LegendModel    `tfsdk:"legend"`
+		Query         *HexagonQueryModelV0             `tfsdk:"query"`
+		TimeFrame     *dashboardwidgets.TimeFrameModel `tfsdk:"time_frame"`
+	}
+
+	type WidgetDefinitionModelV0 struct {
+		LineChart          *dashboardwidgets.LineChartModel          `tfsdk:"line_chart"`
+		Hexagon            *HexagonModelV0                           `tfsdk:"hexagon"`
+		DataTable          *dashboardwidgets.DataTableModel          `tfsdk:"data_table"`
+		Gauge              *dashboardwidgets.GaugeModel              `tfsdk:"gauge"`
+		PieChart           *dashboardwidgets.PieChartModel           `tfsdk:"pie_chart"`
+		BarChart           *dashboardwidgets.BarChartModel           `tfsdk:"bar_chart"`
+		HorizontalBarChart *dashboardwidgets.HorizontalBarChartModel `tfsdk:"horizontal_bar_chart"`
+		Markdown           *dashboardwidgets.MarkdownModel           `tfsdk:"markdown"`
+	}
+
+	type WidgetModelV0 struct {
+		ID          types.String             `tfsdk:"id"`
+		Title       types.String             `tfsdk:"title"`
+		Description types.String             `tfsdk:"description"`
+		Definition  *WidgetDefinitionModelV0 `tfsdk:"definition"`
+		Width       types.Int64              `tfsdk:"width"`
+	}
+
+	var priorStateData DashboardResourceModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &priorStateData)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	annotations, diags := upgradeDashboardAnnotationsV0(ctx, priorStateData.Annotations)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+	var layout DashboardLayoutModel // this model did not change
+	if !utils.ObjIsNullOrUnknown(priorStateData.Layout) {
+		_ = priorStateData.Layout.As(ctx, layout, basetypes.ObjectAsOptions{})
+	}
+	var sections []SectionModel
+	diags := layout.Sections.ElementsAs(ctx, &sections, false)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
+	for _, sec := range sections {
+		var rows []RowModel
+		diags := sec.Rows.ElementsAs(ctx, &rows, false)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		for _, row := range rows {
+			var widgets []WidgetModelV0
+			diags := row.Widgets.ElementsAs(ctx, &widgets, false)
 
-	var timeframe *dashboardwidgets.TimeFrameModel
-	if !utils.ObjIsNullOrUnknown(priorStateData.TimeFrame) {
-		_ = priorStateData.TimeFrame.As(ctx, timeframe, basetypes.ObjectAsOptions{})
-	} else {
-		timeframe = nil
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			newWidgets := make([]attr.Value, len(widgets))
+
+			for _, widget := range widgets {
+				newWidget := WidgetModel{
+					ID:          widget.ID,
+					Title:       widget.Title,
+					Description: widget.Description,
+					Definition:  nil,
+					Width:       widget.Width,
+				}
+				if widget.Definition != nil {
+					var newHex *dashboardwidgets.HexagonModel
+					if widget.Definition.Hexagon != nil {
+						timeFrame := widget.Definition.Hexagon.TimeFrame
+
+						oldQuery := widget.Definition.Hexagon.Query
+
+						var logs *dashboardwidgets.HexagonQueryLogsModel
+						var metrics *dashboardwidgets.HexagonQueryMetricsModel
+						var dataprime *dashboardwidgets.DataPrimeModel
+						var spans *dashboardwidgets.QuerySpansModel
+						if oldQuery.DataPrime != nil {
+							dataprime = &dashboardwidgets.DataPrimeModel{
+								TimeFrame: timeFrame,
+								Query:     oldQuery.DataPrime.Query,
+								Filters:   oldQuery.DataPrime.Filters,
+							}
+						}
+						if oldQuery.Spans != nil {
+							spans = &dashboardwidgets.QuerySpansModel{
+								TimeFrame:    timeFrame,
+								LuceneQuery:  oldQuery.Spans.LuceneQuery,
+								Filters:      oldQuery.Spans.Filters,
+								Aggregations: oldQuery.Spans.Aggregations,
+								GroupBy:      oldQuery.Spans.GroupBy,
+							}
+						}
+						if oldQuery.Metrics != nil {
+							metrics = &dashboardwidgets.HexagonQueryMetricsModel{
+								TimeFrame:       timeFrame,
+								PromqlQuery:     oldQuery.Metrics.PromqlQuery,
+								PromqlQueryType: oldQuery.Metrics.PromqlQueryType,
+								Filters:         oldQuery.Metrics.Filters,
+								Aggregation:     oldQuery.Metrics.Aggregation,
+							}
+						}
+						if oldQuery.Logs != nil {
+							logs = &dashboardwidgets.HexagonQueryLogsModel{
+								TimeFrame:   timeFrame,
+								LuceneQuery: oldQuery.Logs.LuceneQuery,
+								Filters:     oldQuery.Logs.Filters,
+								Aggregation: oldQuery.Logs.Aggregation,
+								GroupBy:     oldQuery.Logs.GroupBy,
+							}
+						}
+
+						query := &dashboardwidgets.HexagonQueryModel{
+							Logs:      logs,
+							Metrics:   metrics,
+							DataPrime: dataprime,
+							Spans:     spans,
+						}
+						newHex = &dashboardwidgets.HexagonModel{
+							CustomUnit:    widget.Definition.Hexagon.CustomUnit,
+							LegendBy:      widget.Definition.Hexagon.LegendBy,
+							Decimal:       widget.Definition.Hexagon.Decimal,
+							DataModeType:  widget.Definition.Hexagon.DataModeType,
+							Thresholds:    widget.Definition.Hexagon.Thresholds,
+							ThresholdType: widget.Definition.Hexagon.ThresholdType,
+							Min:           widget.Definition.Hexagon.Min,
+							Max:           widget.Definition.Hexagon.Max,
+							Unit:          widget.Definition.Hexagon.Unit,
+							Legend:        widget.Definition.Hexagon.Legend,
+							Query:         query,
+						}
+					}
+					newWidget.Definition = &dashboardwidgets.WidgetDefinitionModel{
+						LineChart:          widget.Definition.LineChart,
+						Hexagon:            newHex,
+						DataTable:          widget.Definition.DataTable,
+						Gauge:              widget.Definition.Gauge,
+						PieChart:           widget.Definition.PieChart,
+						BarChart:           widget.Definition.BarChart,
+						HorizontalBarChart: widget.Definition.HorizontalBarChart,
+						Markdown:           widget.Definition.Markdown,
+					}
+				}
+				widgetElement, diags := types.ObjectValueFrom(ctx, widgetModelAttr(), newWidget)
+				if diags.HasError() {
+					resp.Diagnostics.Append(diags...)
+					continue
+				}
+				newWidgets = append(newWidgets, widgetElement)
+			}
+			row.Widgets = types.ListValueMust(types.ObjectType{AttrTypes: widgetModelAttr()}, newWidgets)
+		}
 	}
 
 	upgradedStateData := DashboardResourceModel{
@@ -324,10 +489,10 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 		Layout:      priorStateData.Layout,
 		Variables:   priorStateData.Variables,
 		Filters:     priorStateData.Filters,
-		TimeFrame:   timeframe,
+		TimeFrame:   priorStateData.TimeFrame,
 		Folder:      priorStateData.Folder,
-		Annotations: annotations,
-		AutoRefresh: types.ObjectNull(dashboardAutoRefreshModelAttr()),
+		Annotations: priorStateData.Annotations,
+		AutoRefresh: priorStateData.AutoRefresh,
 		ContentJson: priorStateData.ContentJson,
 	}
 
