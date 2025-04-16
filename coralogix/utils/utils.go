@@ -736,6 +736,9 @@ func ParseNumUint32(desired string) uint32 {
 func TypeMapToStringMap(ctx context.Context, m types.Map) (map[string]string, diag.Diagnostics) {
 	var result map[string]string
 	diags := m.ElementsAs(ctx, &result, true)
+	if result == nil {
+		panic("NIL")
+	}
 	return result, diags
 }
 
