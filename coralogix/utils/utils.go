@@ -808,3 +808,18 @@ func ParseDuration(ti, fieldsName string) (*time.Duration, diag.Diagnostic) {
 	}
 	return &duration, nil
 }
+
+func ExtractStringMap(ctx context.Context, typesMap types.Map) (map[string]string, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	extractedDetails := make(map[string]string)
+	if typesMap.IsNull() || typesMap.IsUnknown() {
+		return nil, diags
+	}
+
+	typesMap.ElementsAs(ctx, &extractedDetails, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return extractedDetails, diags
+}
