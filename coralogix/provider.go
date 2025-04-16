@@ -387,5 +387,8 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewScopeResource,
 		NewIntegrationResource,
 		NewAlertResource,
+		NewConnectorResource,
+		NewGlobalRouterResource,
+		NewPresetResource,
 	}
 }
