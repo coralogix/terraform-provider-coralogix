@@ -1493,6 +1493,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			},
 			"labels": schema.MapAttribute{
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
 			},
 		},
