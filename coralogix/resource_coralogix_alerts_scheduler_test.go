@@ -65,6 +65,38 @@ func TestAccCoralogixResourceResourceAlertsScheduler(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceResourceAlertsSchedulerAllAlerts(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		CheckDestroy:             testAccCheckAlertsSchedulerDestroy,
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertsSchedulerAllAlerts(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "name", "example"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "filter.what_expression", "source logs | filter true"),
+					resource.TestCheckNoResourceAttr(alertsSchedulerResourceName, "filter.alerts_unique_ids"),
+					resource.TestCheckNoResourceAttr(alertsSchedulerResourceName, "filter.meta_labels"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.operation", "active"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.repeat_every", "2"),
+					resource.TestCheckTypeSetElemAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.frequency.weekly.days.*", "Sunday"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.time_frame.start_time", "2021-01-04T00:00:00.000"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.time_frame.duration.for_over", "2"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.time_frame.duration.frequency", "hours"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.time_frame.time_zone", "UTC+2"),
+					resource.TestCheckResourceAttr(alertsSchedulerResourceName, "schedule.recurring.dynamic.termination_date", "2025-01-01T00:00:00.000"),
+				),
+			},
+			{
+				ResourceName:      alertsSchedulerResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccCheckAlertsSchedulerDestroy(s *terraform.State) error {
 	testAccProvider = OldProvider()
 	rc := terraform2.ResourceConfig{}
@@ -104,6 +136,39 @@ func testAccCoralogixResourceAlertsScheduler() string {
         value = "value"
       }
     ]
+  }
+  schedule = {
+    operation = "active"
+    recurring = {
+      dynamic = {
+        repeat_every = 2
+        frequency = {
+          weekly = {
+            days = ["Sunday"]
+          }
+        }
+        time_frame = {
+          start_time = "2021-01-04T00:00:00.000"
+          duration = {
+            for_over = 2
+            frequency = "hours"
+          }
+          time_zone = "UTC+2"
+        }
+        termination_date = "2025-01-01T00:00:00.000"
+      }
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertsSchedulerAllAlerts() string {
+	return `resource "coralogix_alerts_scheduler" "test" {
+  name        = "example"
+  description = "example"
+  filter      = {
+    what_expression = "source logs | filter true"
   }
   schedule = {
     operation = "active"
