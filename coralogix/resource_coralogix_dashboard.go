@@ -2025,7 +2025,7 @@ func dashboardSchemaAttributes() map[string]schema.Attribute {
 			PlanModifiers: []planmodifier.String{
 				stringplanmodifier.RequiresReplaceIf(JSONStringsEqualPlanModifier, "", ""),
 			},
-			Description: "an option to set the dashboard content from a json file.",
+			Description: "an option to set the dashboard content from a json file. NB: this is not fully compatible with the json that gets exported from the Coralogix UI.",
 		},
 	}
 }

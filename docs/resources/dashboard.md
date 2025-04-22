@@ -709,7 +709,7 @@ resource "coralogix_dashboard" dashboard_from_json_with_folder {
 
 - `annotations` (Attributes List) (see [below for nested schema](#nestedatt--annotations))
 - `auto_refresh` (Attributes) (see [below for nested schema](#nestedatt--auto_refresh))
-- `content_json` (String) an option to set the dashboard content from a json file.
+- `content_json` (String) an option to set the dashboard content from a json file. NB: this is not fully compatible with the json that gets exported from the Coralogix UI.
 - `description` (String) Brief description or summary of the dashboard's purpose or content.
 - `filters` (Attributes List) List of filters that can be applied to the dashboard's data. (see [below for nested schema](#nestedatt--filters))
 - `folder` (Attributes) (see [below for nested schema](#nestedatt--folder))
