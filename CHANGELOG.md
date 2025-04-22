@@ -913,3 +913,10 @@ Update:
 
 Making CORALOGIX_ENV case-insensitive
 
+# Release 2.0.17
+
+## resource/coralogix_dashboard
+
+Fix: Allow for dashboard JSON to set folder
+
+Docs: Update to reflect JSON incompatibility
