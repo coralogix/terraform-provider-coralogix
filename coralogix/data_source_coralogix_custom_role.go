@@ -26,8 +26,12 @@ import (
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"google.golang.org/grpc/codes"
 )
 
@@ -68,6 +72,21 @@ func (d *CustomRoleDataSource) Schema(ctx context.Context, _ datasource.SchemaRe
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+
+	if idAttr, ok := resp.Schema.Attributes["id"].(schema.StringAttribute); ok {
+		idAttr.Required = false
+		idAttr.Optional = true
+		idAttr.Validators = []validator.String{
+			stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("name")),
+		}
+		resp.Schema.Attributes["id"] = idAttr
+	}
+
+	if nameAttr, ok := resp.Schema.Attributes["name"].(schema.StringAttribute); ok {
+		nameAttr.Required = false
+		nameAttr.Optional = true
+		resp.Schema.Attributes["name"] = nameAttr
+	}
 }
 
 func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -80,17 +99,47 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	//Get refreshed Action value from Coralogix
-	roleId, err := strconv.Atoi(data.ID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Id", "Custom role id must be an int")
+	var customRole *cxsdk.CustomRole
+	if id := data.ID.ValueString(); id != "" {
+		roleId, err := strconv.Atoi(id)
+		if err != nil {
+			resp.Diagnostics.AddError("Invalid Id", "Custom role id must be an int")
+			return
+		}
+		log.Printf("[INFO] Reading Custom Role: %v", roleId)
+		customRole, err = getRoleById(ctx, resp, d.client, roleId)
+		if err != nil {
+			resp.Diagnostics.AddError("Error reading custom role", err.Error())
+			return
+		}
+	} else if name := data.Name.ValueString(); name != "" {
+		var err error
+		log.Printf("[INFO] Reading Custom Role: %v", name)
+		customRole, err = getRoleByName(ctx, resp, d.client, name)
+		if err != nil {
+			resp.Diagnostics.AddError("Error reading custom role", err.Error())
+			return
+		}
+	} else {
+		resp.Diagnostics.AddError("Invalid Id or Name", "Custom role id or name must be provided")
 		return
 	}
-	log.Printf("[INFO] Reading Custom Role: %v", roleId)
-	getCustomRoleReuest := &cxsdk.GetCustomRoleRequest{
-		RoleId: uint32(roleId),
+
+	model, diags := flattenCustomRole(ctx, customRole)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
 	}
 
-	createCustomRoleResponse, err := d.client.Get(ctx, getCustomRoleReuest)
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
+}
+
+func getRoleById(ctx context.Context, resp *datasource.ReadResponse, client *cxsdk.RolesClient, roleId int) (*cxsdk.CustomRole, error) {
+	getCustomRoleRequest := &cxsdk.GetCustomRoleRequest{
+		RoleId: uint32(roleId),
+	}
+	createCustomRoleResponse, err := client.Get(ctx, getCustomRoleRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if cxsdk.Code(err) == codes.NotFound {
@@ -101,19 +150,51 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading custom role",
-				utils.FormatRpcErrors(err, cxsdk.RolesGetCustomRoleRPC, protojson.Format(getCustomRoleReuest)),
+				utils.FormatRpcErrors(err, cxsdk.RolesGetCustomRoleRPC, protojson.Format(getCustomRoleRequest)),
 			)
 		}
-		return
+		return nil, err
 	}
 	log.Printf("[INFO] Received Custom Role: %s", protojson.Format(createCustomRoleResponse))
+	return createCustomRoleResponse.GetRole(), nil
+}
 
-	model, diags := flatterCustomRole(ctx, createCustomRoleResponse.GetRole())
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
+func getRoleByName(ctx context.Context, resp *datasource.ReadResponse, client *cxsdk.RolesClient, roleName string) (*cxsdk.CustomRole, error) {
+	listCustomRolesRequest := &cxsdk.ListCustomRolesRequest{}
+	listCustomRolesResponse, err := client.List(ctx, listCustomRolesRequest)
+	if err != nil {
+		log.Printf("[ERROR] Received error while listing custom roles: %s", err.Error())
+		resp.Diagnostics.AddError(
+			"Error listing custom roles",
+			utils.FormatRpcErrors(err, cxsdk.RolesListCustomRolesRPC, protojson.Format(listCustomRolesRequest)),
+		)
+		return nil, err
 	}
 
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
+	var found bool
+	var result *cxsdk.CustomRole
+	for _, role := range listCustomRolesResponse.GetRoles() {
+		if role.GetName() == roleName {
+			if found {
+				resp.Diagnostics.AddError(
+					"Multiple custom roles found",
+					fmt.Sprintf("Multiple custom roles found with name %q", roleName),
+				)
+				return nil, fmt.Errorf("multiple custom roles found with name %q", roleName)
+			}
+			found = true
+			result = role
+		}
+	}
+
+	if !found {
+		resp.Diagnostics.AddError(
+			"Custom role not found",
+			fmt.Sprintf("Custom role %q not found", roleName),
+		)
+		return nil, fmt.Errorf("custom role %q not found", roleName)
+	}
+
+	log.Printf("[INFO] Received Custom Role: %s", protojson.Format(result))
+	return result, nil
 }

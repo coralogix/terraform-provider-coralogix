@@ -20,7 +20,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-var customRoleSourceName = "data." + customRoleResourceName
+var (
+	customRoleSourceByID   = "data." + customRoleResourceName + "_by_id"
+	customRoleSourceByName = "data." + customRoleResourceName + "_by_name"
+)
 
 func TestAccCoralogixDataSourceCustomRole(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -29,20 +32,38 @@ func TestAccCoralogixDataSourceCustomRole(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testCustomRoleResource() +
-					testCustomRoleResource_read(),
+					testCustomRoleDataSourceByID(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(customRoleSourceName, "name", "Test Custom Role"),
-					resource.TestCheckResourceAttr(customRoleSourceName, "description", "This role is created with terraform!"),
-					resource.TestCheckResourceAttr(customRoleSourceName, "parent_role", "Standard User"),
+					resource.TestCheckResourceAttr(customRoleSourceByID, "name", "Test Custom Role"),
+					resource.TestCheckResourceAttr(customRoleSourceByID, "description", "This role is created with terraform!"),
+					resource.TestCheckResourceAttr(customRoleSourceByID, "parent_role", "Standard User"),
+				),
+			},
+			{
+				Config: testCustomRoleResource() +
+					testCustomRoleDataSourceByName(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(customRoleSourceByName, "name", "Test Custom Role"),
+					resource.TestCheckResourceAttr(customRoleSourceByName, "description", "This role is created with terraform!"),
+					resource.TestCheckResourceAttr(customRoleSourceByName, "parent_role", "Standard User"),
 				),
 			},
 		},
 	})
 }
 
-func testCustomRoleResource_read() string {
-	return `data "coralogix_custom_role" "test" {
-		  id = coralogix_custom_role.test.id
+func testCustomRoleDataSourceByID() string {
+	return `
+data "coralogix_custom_role" "test_by_id" {
+  id = coralogix_custom_role.test.id
+}
+`
+}
+
+func testCustomRoleDataSourceByName() string {
+	return `
+data "coralogix_custom_role" "test_by_name" {
+  name = coralogix_custom_role.test.name
 }
 `
 }

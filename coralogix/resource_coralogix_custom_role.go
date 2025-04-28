@@ -175,7 +175,7 @@ func (c *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 		}
 		return
 	}
-	flattenedRule, diags := flatterCustomRole(ctx, role.GetRole())
+	flattenedRule, diags := flattenCustomRole(ctx, role.GetRole())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -292,7 +292,7 @@ func makeCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) (*c
 	}, nil
 }
 
-func flatterCustomRole(ctx context.Context, customRole *cxsdk.CustomRole) (*RolesModel, diag.Diagnostics) {
+func flattenCustomRole(ctx context.Context, customRole *cxsdk.CustomRole) (*RolesModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	permissions, diags := types.SetValueFrom(ctx, types.StringType, customRole.Permissions)
