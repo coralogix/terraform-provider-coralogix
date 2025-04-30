@@ -52,13 +52,6 @@ var (
 	}
 	presetConnectorTypeProtoToSchema = utils.ReverseMap(presetConnectorTypeSchemaToProto)
 	validConnectorTypes              = utils.GetKeys(presetConnectorTypeSchemaToProto)
-	presetTypeSchemaToProto          = map[string]cxsdk.PresetType{
-		"unspecified": cxsdk.PresetTypeUnspecified,
-		"system":      cxsdk.PresetTypeSystem,
-		"custom":      cxsdk.PresetTypeCustom,
-	}
-	presetTypeProtoToSchema = utils.ReverseMap(presetTypeSchemaToProto)
-	validPresetTypes        = utils.GetKeys(presetTypeSchemaToProto)
 )
 
 func NewPresetResource() resource.Resource {
@@ -77,7 +70,6 @@ type PresetResourceModel struct {
 	Name            types.String `tfsdk:"name"`
 	ParentId        types.String `tfsdk:"parent_id"`
 	Description     types.String `tfsdk:"description"`
-	PresetType      types.String `tfsdk:"preset_type"`
 }
 
 type PresetConfigOverrideModel struct {
@@ -87,7 +79,12 @@ type PresetConfigOverrideModel struct {
 }
 
 type MessageConfigModel struct {
-	Fields types.List `tfsdk:"fields"` // MessageConfigFieldModel
+	Fields types.Set `tfsdk:"fields"` // MessageConfigFieldModel
+}
+
+type MessageConfigFieldModel struct {
+	FieldName types.String `tfsdk:"field_name"`
+	Template  types.String `tfsdk:"template"`
 }
 
 type PresetConditionTypeModel struct {
@@ -132,15 +129,22 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					stringplanmodifier.RequiresReplace(),
 				},
-				Description: "The ID of the Preset. Can be set to a custom value, or left empty to auto-generate.",
+				MarkdownDescription: "The ID of the Preset. Can be set to a custom value, or left empty to auto-generate. Requires recreation in case of change.",
+			},
+			"name": schema.StringAttribute{
+				Required: true,
 			},
 			"entity_type": schema.StringAttribute{
 				Required: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf(validPresetTypes...),
+					stringvalidator.OneOf(validNotificationsEntityTypes...),
 				},
-				Description: fmt.Sprintf("The type of entity for the preset. Valid values are: %s", strings.Join(validPresetTypes, ", ")),
+				MarkdownDescription: fmt.Sprintf("The type of entity for the preset. Valid values are: %s", strings.Join(validNotificationsEntityTypes, ", ")),
+			},
+			"description": schema.StringAttribute{
+				Optional: true,
 			},
 			"connector_type": schema.StringAttribute{
 				Required: true,
@@ -167,9 +171,6 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								"match_entity_type_and_sub_type": schema.SingleNestedAttribute{
 									Optional: true,
 									Attributes: map[string]schema.Attribute{
-										"entity_type": schema.StringAttribute{
-											Required: true,
-										},
 										"entity_sub_type": schema.StringAttribute{
 											Required: true,
 										},
@@ -177,24 +178,21 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								},
 							},
 						},
-						"output_schema_id": schema.StringAttribute{
+						"payload_type": schema.StringAttribute{
 							Optional: true,
 						},
 						"message_config": schema.SingleNestedAttribute{
 							Required: true,
 							Attributes: map[string]schema.Attribute{
-								"fields": schema.ListNestedAttribute{
+								"fields": schema.SetNestedAttribute{
 									Required: true,
 									NestedObject: schema.NestedAttributeObject{
 										Attributes: map[string]schema.Attribute{
 											"field_name": schema.StringAttribute{
 												Required: true,
 											},
-											"field_type": schema.StringAttribute{
+											"template": schema.StringAttribute{
 												Required: true,
-												Validators: []validator.String{
-													stringvalidator.OneOf("unspecified", "string", "number", "boolean", "json"),
-												},
 											},
 										},
 									},
@@ -204,20 +202,11 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					},
 				},
 			},
-			"name": schema.StringAttribute{
+			"parent_id": schema.StringAttribute{
 				Required: true,
 			},
-			"parent_id": schema.StringAttribute{
-				Optional: true,
-			},
-			"description": schema.StringAttribute{
-				Optional: true,
-			},
-			"preset_type": schema.StringAttribute{
-				Optional: true,
-			},
 		},
-		MarkdownDescription: "Coralogix Preset. For more info please review - https://coralogix.com/docs/coralogix-Preset-extension/.",
+		MarkdownDescription: "Coralogix Preset. Docs link TBD",
 	}
 }
 
@@ -370,43 +359,21 @@ func (r PresetResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 
 func extractPreset(ctx context.Context, plan *PresetResourceModel) (*cxsdk.Preset, diag.Diagnostics) {
 	configOverrides, diags := extractPresetConfigOverrides(ctx, plan.ConfigOverrides)
+	presetType := cxsdk.PresetTypeCustom
 	if diags.HasError() {
 		return nil, diags
 	}
-
-	var parent *cxsdk.Preset
-	if !plan.ParentId.IsNull() {
-		parent = &cxsdk.Preset{
-			Id: plan.ParentId.ValueStringPointer(),
-		}
-	}
-
-	var presetType *cxsdk.PresetType
-	if !plan.PresetType.IsNull() {
-		presetType = new(cxsdk.PresetType)
-		*presetType = presetTypeSchemaToProto[plan.PresetType.ValueString()]
-	}
-
 	return &cxsdk.Preset{
 		Id:              utils.TypeStringToStringPointer(plan.ID),
-		EntityType:      connectorEntityTypeSchemaToProto[plan.EntityType.ValueString()],
+		EntityType:      notificationCenterEntityTypeSchemaToProto[plan.EntityType.ValueString()],
 		ConnectorType:   presetConnectorTypeSchemaToProto[plan.ConnectorType.ValueString()],
 		Name:            plan.Name.ValueString(),
 		ConfigOverrides: configOverrides,
 		Description:     plan.Description.ValueString(),
-		PresetType:      presetType,
-		Parent:          parent,
+		PresetType:      &presetType,
+		ParentId:        utils.TypeStringToStringPointer(plan.ParentId),
 	}, nil
 }
-
-func flattenParentID(parent *cxsdk.Preset) types.String {
-	if parent == nil || parent.GetId() == "" {
-		return types.StringNull()
-	}
-
-	return types.StringValue(parent.GetId())
-}
-
 func extractPresetConfigOverrides(ctx context.Context, overrides types.List) ([]*cxsdk.ConfigOverrides, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var overrideObjects []types.Object
@@ -501,28 +468,49 @@ func extractMessageConfig(ctx context.Context, config types.Object) (*cxsdk.Mess
 	}, nil
 }
 
-func flattenPreset(ctx context.Context, preset *cxsdk.Preset) (*PresetResourceModel, diag.Diagnostics) {
-	parentId := flattenParentID(preset.Parent)
+func extractMessageConfigFields(ctx context.Context, configFields types.Set) ([]*cxsdk.MessageConfigField, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if configFields.IsNull() || configFields.IsUnknown() {
+		return nil, diags
+	}
 
+	var configFieldsObjects []types.Object
+	configFields.ElementsAs(ctx, &configFieldsObjects, true)
+	extractedConfigFields := make([]*cxsdk.MessageConfigField, 0, len(configFieldsObjects))
+	for _, field := range configFieldsObjects {
+		var fieldModel MessageConfigFieldModel
+		if dg := field.As(ctx, &fieldModel, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		extractedConfigField := &cxsdk.MessageConfigField{
+			FieldName: fieldModel.FieldName.ValueString(),
+			Template:  fieldModel.Template.ValueString(),
+		}
+		extractedConfigFields = append(extractedConfigFields, extractedConfigField)
+	}
+
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return extractedConfigFields, diags
+}
+
+func flattenPreset(ctx context.Context, preset *cxsdk.Preset) (*PresetResourceModel, diag.Diagnostics) {
 	configOverrides, diags := flattenPresetConfigOverrides(ctx, preset.ConfigOverrides)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	presetType := types.StringNull()
-	if pt := preset.PresetType; pt != nil {
-		presetType = types.StringValue(presetTypeProtoToSchema[*pt])
-	}
-
 	return &PresetResourceModel{
 		ID:              utils.StringPointerToTypeString(preset.Id),
-		EntityType:      types.StringValue(connectorEntityTypeProtoToSchema[preset.EntityType]),
+		EntityType:      types.StringValue(notificationCenterEntityTypeProtoToSchema[preset.EntityType]),
 		ConnectorType:   types.StringValue(presetConnectorTypeProtoToSchema[preset.ConnectorType]),
 		ConfigOverrides: configOverrides,
 		Name:            types.StringValue(preset.Name),
-		ParentId:        parentId,
+		ParentId:        utils.StringPointerToTypeString(preset.ParentId),
 		Description:     types.StringValue(preset.Description),
-		PresetType:      presetType,
 	}, nil
 
 }
@@ -561,6 +549,7 @@ func flattenPresetOverride(ctx context.Context, override *cxsdk.ConfigOverrides)
 	overrideObject := PresetConfigOverrideModel{
 		ConditionType: conditionType,
 		MessageConfig: messageConfig,
+		PayloadType:   utils.StringPointerToTypeString(override.PayloadType),
 	}
 
 	return types.ObjectValueFrom(ctx, presetConfigOverrideAttr(), overrideObject)
@@ -583,44 +572,79 @@ func flattenMessageConfig(ctx context.Context, config *cxsdk.MessageConfig) (typ
 	return types.ObjectValueFrom(ctx, messageConfigAttr(), messageConfig)
 }
 
+func flattenMessageConfigFields(ctx context.Context, configFields []*cxsdk.MessageConfigField) (types.Set, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if configFields == nil {
+		return types.SetNull(types.ObjectType{AttrTypes: configOverridesAttr()}), diags
+	}
+
+	configFieldsList := make([]MessageConfigFieldModel, 0, len(configFields))
+	for _, field := range configFields {
+		fieldModel := MessageConfigFieldModel{
+			FieldName: types.StringValue(field.GetFieldName()),
+			Template:  types.StringValue(field.GetTemplate()),
+		}
+		configFieldsList = append(configFieldsList, fieldModel)
+	}
+
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: configOverridesAttr()}, configFieldsList)
+}
+
 func flattenConditionType(ctx context.Context, condition *cxsdk.ConditionType) (types.Object, diag.Diagnostics) {
 	if condition == nil {
 		return types.ObjectNull(conditionTypeAttr()), nil
 	}
 
+	var presetCondition PresetConditionTypeModel
 	if matchEntityType := condition.GetMatchEntityType(); matchEntityType != nil {
-		return types.ObjectValueFrom(ctx, conditionTypeAttr(), MatchEntityTypeModel{})
+		matchEntityType, diags := types.ObjectValueFrom(ctx, matchEntityTypeTypeAttr(), MatchEntityTypeModel{})
+		if diags.HasError() {
+			return types.ObjectNull(conditionTypeAttr()), diags
+		}
+		presetCondition.MatchEntityType = matchEntityType
+		presetCondition.MatchEntityTypeAndSubType = types.ObjectNull(matchEntityTypeAndSubTypeAttr())
 	} else if matchEntityTypeAndSubType := condition.GetMatchEntityTypeAndSubType(); matchEntityTypeAndSubType != nil {
-		return types.ObjectValueFrom(ctx, conditionTypeAttr(), MatchEntityTypeAndSubTypeModel{
+		matchEntityTypeAndSubType, diags := types.ObjectValueFrom(ctx, matchEntityTypeAndSubTypeAttr(), MatchEntityTypeAndSubTypeModel{
 			EntitySubType: types.StringValue(matchEntityTypeAndSubType.EntitySubType),
 		})
+		if diags.HasError() {
+			return types.ObjectNull(conditionTypeAttr()), diags
+		}
+		presetCondition.MatchEntityTypeAndSubType = matchEntityTypeAndSubType
+		presetCondition.MatchEntityType = types.ObjectNull(matchEntityTypeTypeAttr())
+	} else {
+		return types.ObjectNull(conditionTypeAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid condition type", "Condition type must be either MatchEntityType or MatchEntityTypeAndSubType")}
 	}
 
-	return types.ObjectNull(conditionTypeAttr()), nil
+	return types.ObjectValueFrom(ctx, conditionTypeAttr(), presetCondition)
 
 }
 func presetConfigOverrideAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"condition_type":   types.ObjectType{AttrTypes: conditionTypeAttr()},
-		"output_schema_id": types.StringType,
-		"message_config":   types.ObjectType{AttrTypes: messageConfigAttr()},
+		"condition_type": types.ObjectType{AttrTypes: conditionTypeAttr()},
+		"payload_type":   types.StringType,
+		"message_config": types.ObjectType{AttrTypes: messageConfigAttr()},
 	}
 }
 
 func messageConfigAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"fields": types.ListType{ElemType: types.ObjectType{AttrTypes: messageConfigFieldAttr()}},
+		"fields": types.SetType{ElemType: types.ObjectType{AttrTypes: messageConfigFieldAttr()}},
 	}
 }
 
 func conditionTypeAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"match_entity_type": types.ObjectType{AttrTypes: matchEntityTypeAttr()},
+		"match_entity_type":              types.ObjectType{AttrTypes: matchEntityTypeTypeAttr()},
+		"match_entity_type_and_sub_type": types.ObjectType{AttrTypes: matchEntityTypeAndSubTypeAttr()},
 	}
 }
 
-func matchEntityTypeAttr() map[string]attr.Type {
+func matchEntityTypeTypeAttr() map[string]attr.Type {
+	return map[string]attr.Type{}
+}
+func matchEntityTypeAndSubTypeAttr() map[string]attr.Type {
 	return map[string]attr.Type{
-		"entity_type": types.StringType,
+		"entity_sub_type": types.StringType,
 	}
 }
