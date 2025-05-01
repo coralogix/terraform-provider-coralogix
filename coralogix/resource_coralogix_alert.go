@@ -374,8 +374,24 @@ type IncidentsSettingsModel struct {
 }
 
 type NotificationGroupModel struct {
-	GroupByKeys      types.List `tfsdk:"group_by_keys"`     // []types.String
-	WebhooksSettings types.Set  `tfsdk:"webhooks_settings"` // WebhooksSettingsModel
+	Destinations     types.List   `tfsdk:"destinations"`      // NotificationDestinationModel
+	Router           types.Object `tfsdk:"router"`            // NotificationRouterModel
+	GroupByKeys      types.List   `tfsdk:"group_by_keys"`     // []types.String
+	WebhooksSettings types.Set    `tfsdk:"webhooks_settings"` // WebhooksSettingsModel
+}
+
+type NotificationRouterModel struct {
+	NotifyOn types.String `tfsdk:"notify_on"`
+}
+
+type NotificationDestinationModel struct {
+	ConnectorId types.String `tfsdk:"connector_id"`
+	PresetId    types.String `tfsdk:"preset_id"`
+	NotifyOn    types.String `tfsdk:"notify_on"`
+}
+
+type NotificationRouter struct {
+	NotifyOn types.String `tfsdk:"notify_on"`
 }
 
 type WebhooksSettingsModel struct {
@@ -1255,7 +1271,16 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						"notify_on":      types.StringType,
 						"integration_id": types.StringType,
 						"recipients":     types.SetType{ElemType: types.StringType},
+					},
+					}),
+					"destinations": types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+						"connector_id": types.StringType,
+						"preset_id":    types.StringType,
+						"notify_on":    types.StringType,
 					}}),
+					"router": types.ObjectNull(map[string]attr.Type{
+						"notify_on": types.StringType,
+					}),
 				})),
 				Attributes: map[string]schema.Attribute{
 					"group_by_keys": schema.ListAttribute{
@@ -1301,6 +1326,42 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 							PlanModifiers: []planmodifier.Object{
 								objectplanmodifier.UseStateForUnknown(),
+							},
+						},
+					},
+					"destinations": schema.ListNestedAttribute{
+						Optional: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"connector_id": schema.StringAttribute{
+									Required:   true,
+									Validators: []validator.String{},
+								},
+								"preset_id": schema.StringAttribute{
+									Required:   true,
+									Validators: []validator.String{},
+								},
+								"notify_on": schema.StringAttribute{
+									Optional: true,
+									Computed: true,
+									Default:  stringdefault.StaticString("Triggered Only"),
+									Validators: []validator.String{
+										stringvalidator.OneOf(validNotifyOn...),
+									},
+								},
+							},
+						},
+					},
+					"router": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"notify_on": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  stringdefault.StaticString("Triggered Only"),
+								Validators: []validator.String{
+									stringvalidator.OneOf(validNotifyOn...),
+								},
 							},
 						},
 					},
@@ -1867,9 +1928,19 @@ func extractNotificationGroup(ctx context.Context, notificationGroupObject types
 	if diags.HasError() {
 		return nil, diags
 	}
+	destinations, diags := extractDestinations(ctx, notificationGroupModel.Destinations)
+	if diags.HasError() {
+		return nil, diags
+	}
+	router, diags := extractNotificationRouter(ctx, notificationGroupModel.Router)
+	if diags.HasError() {
+		return nil, diags
+	}
 	notificationGroup := &cxsdk.AlertDefNotificationGroup{
-		GroupByKeys: groupByFields,
-		Webhooks:    webhooks,
+		Destinations: destinations,
+		Router:       router,
+		GroupByKeys:  groupByFields,
+		Webhooks:     webhooks,
 	}
 
 	return notificationGroup, nil
@@ -1905,6 +1976,54 @@ func extractWebhooksSettings(ctx context.Context, webhooksSettings types.Set) ([
 	}
 
 	return expandedWebhooksSettings, nil
+}
+
+func extractDestinations(ctx context.Context, notificationDestinations types.List) ([]*cxsdk.NotificationDestination, diag.Diagnostics) {
+	if notificationDestinations.IsNull() || notificationDestinations.IsUnknown() {
+		return nil, nil
+	}
+
+	var notificationDestinationsObject []types.Object
+	diags := notificationDestinations.ElementsAs(ctx, &notificationDestinationsObject, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+	var expandedDestinations []*cxsdk.NotificationDestination
+	for _, destination := range notificationDestinationsObject {
+		var destinationModel NotificationDestinationModel
+		if diags := destination.As(ctx, &destinationModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+		presetId := destinationModel.PresetId.ValueString()
+		destination := &cxsdk.NotificationDestination{
+			ConnectorId: destinationModel.ConnectorId.ValueString(),
+			PresetId:    &presetId,
+			NotifyOn:    notifyOnSchemaToProtoMap[destinationModel.NotifyOn.ValueString()],
+		}
+		expandedDestinations = append(expandedDestinations, destination)
+	}
+
+	return expandedDestinations, nil
+}
+
+func extractNotificationRouter(ctx context.Context, routerObject types.Object) (*cxsdk.NotificationRouter, diag.Diagnostics) {
+	if routerObject.IsNull() || routerObject.IsUnknown() {
+		return nil, nil
+	}
+
+	var routerModel NotificationRouterModel
+	if diags := routerObject.As(ctx, &routerModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	notifyOn := notifyOnSchemaToProtoMap[routerModel.NotifyOn.ValueString()]
+
+	router := &cxsdk.NotificationRouter{
+		Id:       "router_default",
+		NotifyOn: &notifyOn,
+	}
+
+	return router, nil
 }
 
 func extractAdvancedTargetSetting(ctx context.Context, webhooksSettingsModel WebhooksSettingsModel) (*cxsdk.AlertDefWebhooksSettings, diag.Diagnostics) {
@@ -3516,10 +3635,21 @@ func flattenNotificationGroup(ctx context.Context, notificationGroup *cxsdk.Aler
 	if diags.HasError() {
 		return types.ObjectNull(notificationGroupAttr()), diags
 	}
+	destinations, diags := flattenNotificationDestinations(ctx, notificationGroup.GetDestinations())
+	if diags.HasError() {
+		return types.ObjectNull(notificationGroupAttr()), diags
+	}
+
+	router, diags := flattenNotificationRouter(ctx, notificationGroup.GetRouter())
+	if diags.HasError() {
+		return types.ObjectNull(notificationGroupAttr()), diags
+	}
 
 	notificationGroupModel := NotificationGroupModel{
 		GroupByKeys:      utils.WrappedStringSliceToTypeStringList(notificationGroup.GetGroupByKeys()),
 		WebhooksSettings: webhooksSettings,
+		Destinations:     destinations,
+		Router:           router,
 	}
 
 	return types.ObjectValueFrom(ctx, notificationGroupAttr(), notificationGroupModel)
@@ -3558,6 +3688,37 @@ func flattenAdvancedTargetSettings(ctx context.Context, webhooksSettings []*cxsd
 	}
 
 	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: webhooksSettingsAttr()}, notificationsModel)
+}
+
+func flattenNotificationDestinations(ctx context.Context, destinations []*cxsdk.NotificationDestination) (types.List, diag.Diagnostics) {
+	if destinations == nil {
+		return types.ListNull(types.ObjectType{AttrTypes: notificationDestinationsAttr()}), nil
+	}
+	var destinationModels []*NotificationDestinationModel
+	for _, destination := range destinations {
+		destinationModel := NotificationDestinationModel{
+			ConnectorId: types.StringValue(destination.GetConnectorId()),
+			PresetId:    types.StringValue(destination.GetPresetId()),
+			NotifyOn:    types.StringValue(notifyOnProtoToSchemaMap[destination.GetNotifyOn()]),
+		}
+		destinationModels = append(destinationModels, &destinationModel)
+	}
+	flattenedDestinations, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: notificationDestinationsAttr()}, destinationModels)
+	if diags.HasError() {
+		return types.ListNull(types.ListType{ElemType: types.ObjectType{AttrTypes: notificationDestinationsAttr()}}), diags
+	}
+	return flattenedDestinations, nil
+}
+
+func flattenNotificationRouter(ctx context.Context, notificationRouter *cxsdk.NotificationRouter) (types.Object, diag.Diagnostics) {
+	if notificationRouter == nil {
+		return types.ObjectNull(notificationRouterAttr()), nil
+	}
+
+	notificationRouterModel := NotificationRouterModel{
+		NotifyOn: types.StringValue(notifyOnProtoToSchemaMap[notificationRouter.GetNotifyOn()]),
+	}
+	return types.ObjectValueFrom(ctx, notificationRouterAttr(), notificationRouterModel)
 }
 
 func flattenRetriggeringPeriod(ctx context.Context, notifications *cxsdk.AlertDefWebhooksSettings) (types.Object, diag.Diagnostics) {
@@ -4745,6 +4906,14 @@ func notificationGroupAttr() map[string]attr.Type {
 				AttrTypes: webhooksSettingsAttr(),
 			},
 		},
+		"destinations": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: notificationDestinationsAttr(),
+			},
+		},
+		"router": types.ObjectType{
+			AttrTypes: notificationRouterAttr(),
+		},
 	}
 }
 
@@ -4756,6 +4925,20 @@ func webhooksSettingsAttr() map[string]attr.Type {
 		},
 		"integration_id": types.StringType,
 		"recipients":     types.SetType{ElemType: types.StringType},
+	}
+}
+
+func notificationDestinationsAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"connector_id": types.StringType,
+		"preset_id":    types.StringType,
+		"notify_on":    types.StringType,
+	}
+}
+
+func notificationRouterAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"notify_on": types.StringType,
 	}
 }
 
