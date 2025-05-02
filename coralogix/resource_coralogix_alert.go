@@ -27,6 +27,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -393,8 +394,9 @@ type NotificationDestinationModel struct {
 }
 
 type SourceOverridesModel struct {
-	ConnectorOverrides types.List `tfsdk:"connector_overrides"` // []ConfigurationOverrideModel
-	PresetOverrides    types.List `tfsdk:"preset_overrides"`    // []ConfigurationOverrideModel
+	ConnectorOverrides types.List   `tfsdk:"connector_overrides"` // []ConfigurationOverrideModel
+	PresetOverrides    types.List   `tfsdk:"preset_overrides"`    // []ConfigurationOverrideModel
+	OutputSchemaId     types.String `tfsdk:"output_schema_id"`
 }
 
 type ConfigurationOverrideModel struct {
@@ -1289,6 +1291,28 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						"connector_id": types.StringType,
 						"preset_id":    types.StringType,
 						"notify_on":    types.StringType,
+						"triggered_routing_overrides": types.ObjectType{AttrTypes: map[string]attr.Type{
+							"connector_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+								"field_name": types.StringType,
+								"template":   types.StringType,
+							}}},
+							"preset_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+								"field_name": types.StringType,
+								"template":   types.StringType,
+							}}},
+							"output_schema_id": types.StringType,
+						}},
+						"resolved_routing_overrides": types.ObjectType{AttrTypes: map[string]attr.Type{
+							"connector_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+								"field_name": types.StringType,
+								"template":   types.StringType,
+							}}},
+							"preset_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+								"field_name": types.StringType,
+								"template":   types.StringType,
+							}}},
+							"output_schema_id": types.StringType,
+						}},
 					}}),
 					"router": types.ObjectNull(map[string]attr.Type{
 						"notify_on": types.StringType,
@@ -1364,46 +1388,88 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								"triggered_routing_overrides": schema.SingleNestedAttribute{
 									Optional: true,
 									Attributes: map[string]schema.Attribute{
-										"connector_overrides": schema.ListAttribute{
+										"connector_overrides": schema.ListNestedAttribute{
 											Optional: true,
-											ElementType: types.ObjectType{
-												AttrTypes: map[string]attr.Type{
-													"field_name": types.StringType,
-													"template":   types.StringType,
+											Computed: true,
+											Default: listdefault.StaticValue(types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+												"field_name": types.StringType,
+												"template":   types.StringType,
+											}})),
+											NestedObject: schema.NestedAttributeObject{
+												Attributes: map[string]schema.Attribute{
+													"field_name": schema.StringAttribute{
+														Required: true,
+													},
+													"template": schema.StringAttribute{
+														Required: true,
+													},
 												},
 											},
 										},
-										"preset_overrides": schema.ListAttribute{
+										"preset_overrides": schema.ListNestedAttribute{
 											Optional: true,
-											ElementType: types.ObjectType{
-												AttrTypes: map[string]attr.Type{
-													"field_name": types.StringType,
-													"template":   types.StringType,
+											Computed: true,
+											Default: listdefault.StaticValue(types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+												"field_name": types.StringType,
+												"template":   types.StringType,
+											}})),
+											NestedObject: schema.NestedAttributeObject{
+												Attributes: map[string]schema.Attribute{
+													"field_name": schema.StringAttribute{
+														Required: true,
+													},
+													"template": schema.StringAttribute{
+														Required: true,
+													},
 												},
 											},
+										},
+										"output_schema_id": schema.StringAttribute{
+											Required: true,
 										},
 									},
 								},
 								"resolved_routing_overrides": schema.SingleNestedAttribute{
 									Optional: true,
 									Attributes: map[string]schema.Attribute{
-										"connector_overrides": schema.ListAttribute{
+										"connector_overrides": schema.ListNestedAttribute{
 											Optional: true,
-											ElementType: types.ObjectType{
-												AttrTypes: map[string]attr.Type{
-													"field_name": types.StringType,
-													"template":   types.StringType,
+											Computed: true,
+											Default: listdefault.StaticValue(types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+												"field_name": types.StringType,
+												"template":   types.StringType,
+											}})),
+											NestedObject: schema.NestedAttributeObject{
+												Attributes: map[string]schema.Attribute{
+													"field_name": schema.StringAttribute{
+														Required: true,
+													},
+													"template": schema.StringAttribute{
+														Required: true,
+													},
 												},
 											},
 										},
-										"preset_overrides": schema.ListAttribute{
+										"preset_overrides": schema.ListNestedAttribute{
 											Optional: true,
-											ElementType: types.ObjectType{
-												AttrTypes: map[string]attr.Type{
-													"field_name": types.StringType,
-													"template":   types.StringType,
+											Computed: true,
+											Default: listdefault.StaticValue(types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+												"field_name": types.StringType,
+												"template":   types.StringType,
+											}})),
+											NestedObject: schema.NestedAttributeObject{
+												Attributes: map[string]schema.Attribute{
+													"field_name": schema.StringAttribute{
+														Required: true,
+													},
+													"template": schema.StringAttribute{
+														Required: true,
+													},
 												},
 											},
+										},
+										"output_schema_id": schema.StringAttribute{
+											Required: true,
 										},
 									},
 								},
@@ -2098,6 +2164,7 @@ func extractRoutingOverrides(ctx context.Context, overridesObject types.Object) 
 	sourceOverrides := &cxsdk.SourceOverrides{
 		ConnectorConfigFields: connectorOverrides,
 		MessageConfigFields:   presetOverrides,
+		OutputSchemaId:        routingOverridesModel.OutputSchemaId.ValueString(),
 	}
 
 	return sourceOverrides, nil
@@ -3845,10 +3912,28 @@ func flattenNotificationDestinations(ctx context.Context, destinations []*cxsdk.
 	}
 	var destinationModels []*NotificationDestinationModel
 	for _, destination := range destinations {
+		var triggeredRoutingOverrides *cxsdk.SourceOverrides
+		if destination.TriggeredRoutingOverrides != nil {
+			triggeredRoutingOverrides = destination.TriggeredRoutingOverrides.ConfigOverrides
+		}
+		var resolvedRoutingOverrides *cxsdk.SourceOverrides
+		if destination.ResolvedRouteOverrides != nil {
+			resolvedRoutingOverrides = destination.ResolvedRouteOverrides.ConfigOverrides
+		}
+		flattenedTriggeredRoutingOverrides, diags := flattenRoutingOverrides(ctx, triggeredRoutingOverrides)
+		if diags.HasError() {
+			return types.ListNull(types.ObjectType{AttrTypes: notificationDestinationsAttr()}), diags
+		}
+		flattenedResolvedRoutingOverrides, diags := flattenRoutingOverrides(ctx, resolvedRoutingOverrides)
+		if diags.HasError() {
+			return types.ListNull(types.ObjectType{AttrTypes: notificationDestinationsAttr()}), diags
+		}
 		destinationModel := NotificationDestinationModel{
-			ConnectorId: types.StringValue(destination.GetConnectorId()),
-			PresetId:    types.StringValue(destination.GetPresetId()),
-			NotifyOn:    types.StringValue(notifyOnProtoToSchemaMap[destination.GetNotifyOn()]),
+			ConnectorId:               types.StringValue(destination.GetConnectorId()),
+			PresetId:                  types.StringValue(destination.GetPresetId()),
+			NotifyOn:                  types.StringValue(notifyOnProtoToSchemaMap[destination.GetNotifyOn()]),
+			TriggeredRoutingOverrides: flattenedTriggeredRoutingOverrides,
+			ResolvedRoutingOverrides:  flattenedResolvedRoutingOverrides,
 		}
 		destinationModels = append(destinationModels, &destinationModel)
 	}
@@ -3857,6 +3942,44 @@ func flattenNotificationDestinations(ctx context.Context, destinations []*cxsdk.
 		return types.ListNull(types.ListType{ElemType: types.ObjectType{AttrTypes: notificationDestinationsAttr()}}), diags
 	}
 	return flattenedDestinations, nil
+}
+
+func flattenRoutingOverrides(ctx context.Context, overrides *cxsdk.SourceOverrides) (types.Object, diag.Diagnostics) {
+	if overrides == nil {
+		return types.ObjectNull(routingOverridesAttr()), nil
+	}
+
+	var connectorOverrideModels []*ConfigurationOverrideModel
+	var presetOverrideModels []*ConfigurationOverrideModel
+	for _, connectorOverride := range overrides.ConnectorConfigFields {
+		connectorOverrideModel := ConfigurationOverrideModel{
+			FieldName: types.StringValue(connectorOverride.GetFieldName()),
+			Template:  types.StringValue(connectorOverride.GetTemplate()),
+		}
+		connectorOverrideModels = append(connectorOverrideModels, &connectorOverrideModel)
+	}
+	for _, presetOverride := range overrides.MessageConfigFields {
+		presetOverrideModel := ConfigurationOverrideModel{
+			FieldName: types.StringValue(presetOverride.GetFieldName()),
+			Template:  types.StringValue(presetOverride.GetTemplate()),
+		}
+		presetOverrideModels = append(presetOverrideModels, &presetOverrideModel)
+	}
+	flattenedConnectorOverrides, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: configurationOverridesAttr()}, connectorOverrideModels)
+	if diags.HasError() {
+		return types.ObjectNull(routingOverridesAttr()), diags
+	}
+	flattenedPresetOverrides, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: configurationOverridesAttr()}, presetOverrideModels)
+	if diags.HasError() {
+		return types.ObjectNull(routingOverridesAttr()), diags
+	}
+	overridesModel := SourceOverridesModel{
+		OutputSchemaId:     types.StringValue(overrides.GetOutputSchemaId()),
+		ConnectorOverrides: flattenedConnectorOverrides,
+		PresetOverrides:    flattenedPresetOverrides,
+	}
+	return types.ObjectValueFrom(ctx, routingOverridesAttr(), overridesModel)
+
 }
 
 func flattenNotificationRouter(ctx context.Context, notificationRouter *cxsdk.NotificationRouter) (types.Object, diag.Diagnostics) {
@@ -5103,6 +5226,7 @@ func routingOverridesAttr() map[string]attr.Type {
 				AttrTypes: configurationOverridesAttr(),
 			},
 		},
+		"output_schema_id": types.StringType,
 	}
 }
 
