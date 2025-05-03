@@ -24,18 +24,22 @@ var (
 	connectorResourceName = "coralogix_connector.test"
 )
 
-func TestConnector(t *testing.T) {
+func TestGeneriHttpsConnector(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testConnectorResource(),
+				Config: testAccResourceCoralogixGenericHttpsConnector(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(customRoleResourceName, "name", "Test Custom Role"),
-					resource.TestCheckResourceAttr(customRoleResourceName, "description", "This role is created with terraform!"),
-					resource.TestCheckResourceAttr(customRoleResourceName, "parent_role", "Standard User"),
-					resource.TestCheckTypeSetElemAttr(customRoleResourceName, "permissions.*", "spans.events2metrics:UpdateConfig"),
+					resource.TestCheckResourceAttr(connectorResourceName, "id", "generic_https_terraform_acceptance_test_connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "type", "generic_https"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", "generic-https-connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "description", "generic https connector"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.field_name", "url"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.value", "https://httpbin.org/post"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.field_name", "method"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.value", "post"),
 				),
 			},
 			{
@@ -44,30 +48,209 @@ func TestConnector(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testConnectorUpdateResource(),
+				Config: testAccResourceCoralogixGenericHttpsConnectorUpdate(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(customRoleResourceName, "name", "Test Custom Role Renamed"),
-					resource.TestCheckResourceAttr(customRoleResourceName, "description", "This role is renamed with terraform!"),
-					resource.TestCheckResourceAttr(customRoleResourceName, "parent_role", "Standard User"),
-					resource.TestCheckTypeSetElemAttr(customRoleResourceName, "permissions.*", "spans.events2metrics:UpdateConfig"),
-					resource.TestCheckTypeSetElemAttr(customRoleResourceName, "permissions.*", "spans.events2metrics:ReadConfig"),
+					resource.TestCheckResourceAttr(connectorResourceName, "id", "generic_https_terraform_acceptance_test_connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "type", "generic_https"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", "generic-https-connector-updated"),
+					resource.TestCheckResourceAttr(connectorResourceName, "description", "generic https connector"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.field_name", "url"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.value", "https://httpbin.org/post"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.field_name", "method"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.value", "post"),
 				),
 			},
 		},
 	})
 }
 
-func testConnectorResource() string {
+func TestSlackConnector(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceCoralogixSlackConnector(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(connectorResourceName, "id", "slack_terraform_acceptance_test_connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "type", "slack"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "description", "test connector"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.field_name", "integrationId"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.value", "iac-internal"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.field_name", "channel"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.value", "iac-internal"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.2.field_name", "fallbackChannel"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.2.value", "iac-internal"),
+				),
+			},
+			{
+				ResourceName:      connectorResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				Config: testAccResourceCoralogixSlackConnectorUpdate(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(connectorResourceName, "id", "slack_terraform_acceptance_test_connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "type", "slack"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "description", "test connector"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.field_name", "integrationId"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.value", "iac-internal-updated"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.field_name", "channel"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.value", "iac-internal-updated"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.2.field_name", "fallbackChannel"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.2.value", "iac-internal-updated"),
+				),
+			},
+		},
+	})
+}
+
+func TestPagerdutyConnector(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceCoralogixPagerdutyConnector(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(connectorResourceName, "id", "pagerduty_terraform_acceptance_test_connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "type", "pagerduty"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-pagerduty-connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "description", "test pagerduty connector"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.field_name", "integrationKey"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.value", "integration-key-example"),
+				),
+			},
+			{
+				ResourceName:      connectorResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				Config: testAccResourceCoralogixPagerdutyConnectorUpdate(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(connectorResourceName, "id", "pagerduty_terraform_acceptance_test_connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "type", "pagerduty"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-pagerduty-connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "description", "test pagerduty connector updated"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.field_name", "integrationKey"),
+					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.value", "integration-key-example"),
+				),
+			},
+		},
+	})
+}
+
+func testAccResourceCoralogixGenericHttpsConnector() string {
 	return `resource "coralogix_connector" "example" {
-   id               = "custom_id"
+   id               = "generic_https_terraform_acceptance_test_connector"
+   type             = "generic_https"
+   name             = "generic-https-connector"
+   description      = "generic https connector"
+   connector_config = {
+     fields = [
+	  {
+	    field_name = "url"
+	 	value      = "https://httpbin.org/post"
+	  },
+	  {
+	 	field_name = "method"
+	 	value      = "post"
+	  }
+     ]
+   }
+ }
+`
+}
+
+func testAccResourceCoralogixGenericHttpsConnectorUpdate() string {
+	return `resource "coralogix_connector" "example" {
+   id               = "generic_https_terraform_acceptance_test_connector"
+   type             = "generic_https"
+   name             = "generic-https-connector-updated"
+   description      = "generic https connector"
+   connector_config = {
+     fields = [
+	  {
+	    field_name = "url"
+	 	value      = "https://httpbin.org/post"
+	  },
+	  {
+	 	field_name = "method"
+	 	value      = "post"
+	  }
+     ]
+   }
+ }
+`
+}
+
+func testAccResourceCoralogixSlackConnector() string {
+	return `resource "coralogix_connector" "example" {
+   id               = "slack_terraform_acceptance_test_connector"
    type             = "slack"
    name             = "test-connector"
    description      = "test connector"
    connector_config = {
      fields = [
        {
-         field_name = "Slack-Notifications"
-         value      = "Slack-Notifications"
+         field_name = "integrationId"
+         value      = "iac-internal"
+       },
+	   {
+	   	  field_name = "channel"
+		  value      = "iac-internal"
+	   },
+	   {
+	   	  field_name = "fallbackChannel"
+		  value      = "iac-internal"
+	   },
+     ]
+   }
+ }
+`
+}
+
+func testAccResourceCoralogixSlackConnectorUpdate() string {
+	return `resource "coralogix_connector" "example" {
+   id               = "slack_terraform_acceptance_test_connector"
+   type             = "slack"
+   name             = "test-connector"
+   description      = "test connector"
+   connector_config = {
+     fields = [
+       {
+         field_name = "integrationId"
+         value      = "iac-internal-updated"
+       },
+	   {
+	   	  field_name = "channel"
+		  value      = "iac-internal-updated"
+	   },
+	   {
+	   	  field_name = "fallbackChannel"
+		  value      = "iac-internal-updated"
+	   },
+     ]
+   }
+ }
+`
+}
+
+func testAccResourceCoralogixPagerdutyConnector() string {
+	return `resource "coralogix_connector" "example" {
+   id               = "pagerduty_terraform_acceptance_test_connector"
+   type             = "pagerduty"
+   name             = "test-pagerduty-connector"
+   description      = "test pagerduty connector"
+   connector_config = {
+     fields = [
+       {
+         field_name = "integrationKey"
+         value      = "integration-key-example"
        }
      ]
    }
@@ -75,17 +258,17 @@ func testConnectorResource() string {
 `
 }
 
-func testConnectorUpdateResource() string {
+func testAccResourceCoralogixPagerdutyConnectorUpdate() string {
 	return `resource "coralogix_connector" "example" {
-   id               = "custom_id"
-   type             = "slack"
-   name             = "updated-test-connector"
-   description      = "updated test connector"
+   id               = "pagerduty_terraform_acceptance_test_connector"
+   type             = "pagerduty"
+   name             = "test-pagerduty-connector"
+   description      = "test pagerduty connector updated"
    connector_config = {
      fields = [
        {
-         field_name = "Slack-Notifications"
-         value      = "updated Slack-Notifications"
+         field_name = "integrationKey"
+         value      = "integration-key-example"
        }
      ]
    }
