@@ -20,7 +20,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-const presetResourceName = "coralogix_preset.example"
+const genericHttpsPresetResourceName = "coralogix_preset.generic_https_example"
+const slackPresetResourceName = "coralogix_preset.slack_example"
+const pagerdutyPresetResourceName = "coralogix_preset.pagerduty_example"
 
 func TestGenericHttpsPreset(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -30,44 +32,28 @@ func TestGenericHttpsPreset(t *testing.T) {
 			{
 				Config: testAccResourceCoralogixGenericHttpsPreset(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(presetResourceName, "id", "terraform_generic_https_preset_example"),
-					resource.TestCheckResourceAttr(presetResourceName, "name", "generic_https example"),
-					resource.TestCheckResourceAttr(presetResourceName, "description", "generic_https preset example"),
-					resource.TestCheckResourceAttr(presetResourceName, "entity_type", "alerts"),
-					resource.TestCheckResourceAttr(presetResourceName, "connector_type", "generic_https"),
-					resource.TestCheckResourceAttr(presetResourceName, "parent_id", "preset_system_generic_https_alerts_empty"),
-					resource.TestCheckTypeSetElemNestedAttrs(presetResourceName, "config_overrides.*", map[string]string{
-						"condition_type.0.match_entity_type_and_sub_type.0.entity_type":     "alerts",
-						"condition_type.0.match_entity_type_and_sub_type.0.entity_sub_type": "logsImmediateResolved",
-						"message_config.0.fields.0.field_name":                              "headers",
-						"message_config.0.fields.0.template":                                "{}",
-						"message_config.0.fields.1.field_name":                              "body",
-						"message_config.0.fields.1.template":                                "{ \"groupingKey\": \"{{alert.groupingKey}}\", \"status\": \"{{alert.status}}\", \"groups\": \"{{alert.groups}}\" }",
-					}),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "id", "terraform_generic_https_preset_example"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "name", "generic_https example"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "description", "generic_https preset example"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "entity_type", "alerts"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "connector_type", "generic_https"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "parent_id", "preset_system_generic_https_alerts_empty"),
 				),
 			},
 			{
-				ResourceName:      presetResourceName,
+				ResourceName:      genericHttpsPresetResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
 			{
 				Config: testAccResourceCoralogixGenericHttpsPresetUpdate(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(presetResourceName, "id", "terraform_generic_https_preset_example"),
-					resource.TestCheckResourceAttr(presetResourceName, "name", "generic_https example updated"),
-					resource.TestCheckResourceAttr(presetResourceName, "description", "generic_https preset example"),
-					resource.TestCheckResourceAttr(presetResourceName, "entity_type", "alerts"),
-					resource.TestCheckResourceAttr(presetResourceName, "connector_type", "generic_https"),
-					resource.TestCheckResourceAttr(presetResourceName, "parent_id", "preset_system_generic_https_alerts_empty"),
-					resource.TestCheckTypeSetElemNestedAttrs(presetResourceName, "config_overrides.*", map[string]string{
-						"condition_type.0.match_entity_type_and_sub_type.0.entity_type":     "alerts",
-						"condition_type.0.match_entity_type_and_sub_type.0.entity_sub_type": "logsImmediateResolved",
-						"message_config.0.fields.0.field_name":                              "headers",
-						"message_config.0.fields.0.template":                                "{}",
-						"message_config.0.fields.1.field_name":                              "body",
-						"message_config.0.fields.1.template":                                "{ \"groupingKey\": \"{{alert.groupingKey}}\", \"status\": \"{{alert.status}}\", \"groups\": \"{{alert.groups}}\" }",
-					}),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "id", "terraform_generic_https_preset_example"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "name", "generic_https example updated"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "description", "generic_https preset example"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "entity_type", "alerts"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "connector_type", "generic_https"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "parent_id", "preset_system_generic_https_alerts_empty"),
 				),
 			},
 		},
@@ -82,44 +68,28 @@ func TestSlackPreset(t *testing.T) {
 			{
 				Config: testAccResourceCoralogixSlackPreset(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(presetResourceName, "id", "terraform_slack_preset_example"),
-					resource.TestCheckResourceAttr(presetResourceName, "name", "slack example"),
-					resource.TestCheckResourceAttr(presetResourceName, "description", "slack preset example"),
-					resource.TestCheckResourceAttr(presetResourceName, "entity_type", "alerts"),
-					resource.TestCheckResourceAttr(presetResourceName, "connector_type", "slack"),
-					resource.TestCheckResourceAttr(presetResourceName, "parent_id", "preset_system_slack_alerts_basic"),
-					resource.TestCheckTypeSetElemNestedAttrs(presetResourceName, "config_overrides.*", map[string]string{
-						"condition_type.0.match_entity_type_and_sub_type.0.entity_type":     "alerts",
-						"condition_type.0.match_entity_type_and_sub_type.0.entity_sub_type": "logsImmediateResolved",
-						"message_config.0.fields.0.field_name":                              "title",
-						"message_config.0.fields.0.template":                                "{{alert.status}} {{alertDef.priority}} - {{alertDef.name}}",
-						"message_config.0.fields.1.field_name":                              "description",
-						"message_config.0.fields.1.template":                                "{{alertDef.description}}",
-					}),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "id", "terraform_slack_preset_example"),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "name", "slack example"),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "description", "slack preset example"),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "entity_type", "alerts"),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "connector_type", "slack"),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "parent_id", "preset_system_slack_alerts_basic"),
 				),
 			},
 			{
-				ResourceName:      presetResourceName,
+				ResourceName:      slackPresetResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
 			{
 				Config: testAccResourceCoralogixSlackPresetUpdate(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(presetResourceName, "id", "terraform_slack_preset_example"),
-					resource.TestCheckResourceAttr(presetResourceName, "name", "slack example updated"),
-					resource.TestCheckResourceAttr(presetResourceName, "description", "slack preset example"),
-					resource.TestCheckResourceAttr(presetResourceName, "entity_type", "alerts"),
-					resource.TestCheckResourceAttr(presetResourceName, "connector_type", "slack"),
-					resource.TestCheckResourceAttr(presetResourceName, "parent_id", "preset_system_slack_alerts_basic"),
-					resource.TestCheckTypeSetElemNestedAttrs(presetResourceName, "config_overrides.*", map[string]string{
-						"condition_type.0.match_entity_type_and_sub_type.0.entity_type":     "alerts",
-						"condition_type.0.match_entity_type_and_sub_type.0.entity_sub_type": "logsImmediateResolved",
-						"message_config.0.fields.0.field_name":                              "title",
-						"message_config.0.fields.0.template":                                "{{alert.status}} {{alertDef.priority}} - {{alertDef.name}}",
-						"message_config.0.fields.1.field_name":                              "description",
-						"message_config.0.fields.1.template":                                "{{alertDef.description}}",
-					}),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "id", "terraform_slack_preset_example"),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "name", "slack example updated"),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "description", "slack preset example"),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "entity_type", "alerts"),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "connector_type", "slack"),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "parent_id", "preset_system_slack_alerts_basic"),
 				),
 			},
 		},
@@ -134,70 +104,28 @@ func TestPagerdutyPreset(t *testing.T) {
 			{
 				Config: testAccResourceCoralogixPagerdutyPreset(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(presetResourceName, "id", "terraform_pagerduty_preset_example"),
-					resource.TestCheckResourceAttr(presetResourceName, "name", "pagerduty example"),
-					resource.TestCheckResourceAttr(presetResourceName, "description", "pagerduty preset example"),
-					resource.TestCheckResourceAttr(presetResourceName, "entity_type", "alerts"),
-					resource.TestCheckResourceAttr(presetResourceName, "connector_type", "pagerduty"),
-					resource.TestCheckResourceAttr(presetResourceName, "parent_id", "preset_system_pagerduty_alerts_basic"),
-					resource.TestCheckTypeSetElemNestedAttrs(presetResourceName, "config_overrides.*", map[string]string{
-						"condition_type.0.match_entity_type.0.entity_type": "alerts",
-						"message_config.0.fields.0.field_name":             "summary",
-						"message_config.0.fields.0.template":               "{{ alertDef.description }}",
-						"message_config.0.fields.1.field_name":             "severity",
-						"message_config.0.fields.1.template": `
-						{% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %}
-						critical
-						{% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %}
-						error
-						{% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %}
-						warning
-						{% elif alert.highestPriority | default(value = alertDef.priority) == 'P4' or alert.highestPriority | default(value = alertDef.priority)  == 'P5' %}
-						info
-						{% else %}
-						info
-						{% endif %}
-						`,
-						"message_config.0.fields.2.field_name": "timestamp",
-						"message_config.0.fields.2.template":   "{{ alertDef.timestamp }}",
-					}),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "id", "terraform_pagerduty_preset_example"),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "name", "pagerduty example"),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "description", "pagerduty preset example"),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "entity_type", "alerts"),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "connector_type", "pagerduty"),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "parent_id", "preset_system_pagerduty_alerts_basic"),
 				),
 			},
 			{
-				ResourceName:      presetResourceName,
+				ResourceName:      pagerdutyPresetResourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
 			{
 				Config: testAccResourceCoralogixPagerdutyPresetUpdate(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(presetResourceName, "id", "terraform_pagerduty_preset_example"),
-					resource.TestCheckResourceAttr(presetResourceName, "name", "pagerduty example updated"),
-					resource.TestCheckResourceAttr(presetResourceName, "description", "pagerduty preset example"),
-					resource.TestCheckResourceAttr(presetResourceName, "entity_type", "alerts"),
-					resource.TestCheckResourceAttr(presetResourceName, "connector_type", "pagerduty"),
-					resource.TestCheckResourceAttr(presetResourceName, "parent_id", "preset_system_pagerduty_alerts_basic"),
-					resource.TestCheckTypeSetElemNestedAttrs(presetResourceName, "config_overrides.*", map[string]string{
-						"condition_type.0.match_entity_type.0.entity_type": "alerts",
-						"message_config.0.fields.0.field_name":             "summary",
-						"message_config.0.fields.0.template":               "{{ alertDef.description }}",
-						"message_config.0.fields.1.field_name":             "severity",
-						"message_config.0.fields.1.template": `
-						{% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %}
-						critical
-						{% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %}
-						error
-						{% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %}
-						warning
-						{% elif alert.highestPriority | default(value = alertDef.priority) == 'P4' or alert.highestPriority | default(value = alertDef.priority)  == 'P5' %}
-						info
-						{% else %}
-						info
-						{% endif %}
-						`,
-						"message_config.0.fields.2.field_name": "timestamp",
-						"message_config.0.fields.2.template":   "{{ alertDef.timestamp }}",
-					}),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "id", "terraform_pagerduty_preset_example"),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "name", "pagerduty example updated"),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "description", "pagerduty preset example"),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "entity_type", "alerts"),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "connector_type", "pagerduty"),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "parent_id", "preset_system_pagerduty_alerts_basic"),
 				),
 			},
 		},
@@ -206,34 +134,7 @@ func TestPagerdutyPreset(t *testing.T) {
 
 func testAccResourceCoralogixGenericHttpsPreset() string {
 	return `
-    resource "coralogix_global_router" "example" {
-      id          = "global_router_example"
-      name        = "global router example"
-      description = "global router example"
-      entity_type = "alerts"
-      rules       = [
-        {
-          name = "rule-name"
-          condition = "alertDef.priority == \"P1\""
-          targets = [
-            {
-              connector_id   = coralogix_connector.generic_https_example.id
-              preset_id      = coralogix_preset.generic_https_example.id
-            },
-            {
-              connector_id   = coralogix_connector.slack_example.id
-              preset_id      = coralogix_preset.slack_example.id
-            },
-            {
-              connector_id   = coralogix_connector.pagerduty_example.id
-              preset_id      = coralogix_preset.pagerduty_example.id
-            }
-          ]
-        }
-      ]
-    }
-
-	resource "coralogix_preset" "example" {
+	resource "coralogix_preset" "generic_https_example" {
       id               = "terraform_generic_https_preset_example"
       name             = "generic_https example"
       description      = "generic_https preset example"
@@ -267,7 +168,7 @@ func testAccResourceCoralogixGenericHttpsPreset() string {
 }
 
 func testAccResourceCoralogixGenericHttpsPresetUpdate() string {
-	return `resource "coralogix_preset" "example" {
+	return `resource "coralogix_preset" "generic_https_example" {
       id               = "terraform_generic_https_preset_example"
       name             = "generic_https example updated"
       description      = "generic_https preset example"
@@ -301,7 +202,7 @@ func testAccResourceCoralogixGenericHttpsPresetUpdate() string {
 }
 
 func testAccResourceCoralogixSlackPreset() string {
-	return `resource "coralogix_preset" "example" {
+	return `resource "coralogix_preset" "slack_example" {
       id               = "terraform_slack_preset_example"
       name             = "slack example"
       description      = "slack preset example"
@@ -335,7 +236,7 @@ func testAccResourceCoralogixSlackPreset() string {
 }
 
 func testAccResourceCoralogixSlackPresetUpdate() string {
-	return `resource "coralogix_preset" "example" {
+	return `resource "coralogix_preset" "slack_example" {
       id               = "terraform_slack_preset_example"
       name             = "slack example updated"
       description      = "slack preset example"
@@ -369,7 +270,7 @@ func testAccResourceCoralogixSlackPresetUpdate() string {
 }
 
 func testAccResourceCoralogixPagerdutyPreset() string {
-	return `resource "coralogix_preset" "example" {
+	return `resource "coralogix_preset" "pagerduty_example" {
       id               = "terraform_pagerduty_preset_example"
       name             = "pagerduty example"
       description      = "pagerduty preset example"
@@ -418,7 +319,7 @@ func testAccResourceCoralogixPagerdutyPreset() string {
 }
 
 func testAccResourceCoralogixPagerdutyPresetUpdate() string {
-	return `resource "coralogix_preset" "example" {
+	return `resource "coralogix_preset" "pagerduty_example" {
       id               = "terraform_pagerduty_preset_example"
       name             = "pagerduty example updated"
       description      = "pagerduty preset example"

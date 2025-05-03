@@ -30,7 +30,6 @@ func TestGlobalRouter(t *testing.T) {
 			{
 				Config: testAccResourceCoralogixGlobalRouter(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(globalRouterResourceName, "id", "terraform_global_router_example"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "name", "global router example"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "description", "global router example"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "entity_type", "alerts"),
@@ -60,7 +59,6 @@ func TestGlobalRouter(t *testing.T) {
 			{
 				Config: testAccResourceCoralogixGlobalRouterUpdate(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(globalRouterResourceName, "id", "terraform_global_router_example"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "name", "global router example updated"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "description", "global router example"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "entity_type", "alerts"),
@@ -255,7 +253,6 @@ func testAccResourceCoralogixGlobalRouter() string {
     }
 
     resource "coralogix_global_router" "example" {
-      id          = "terraform_global_router_example"
       name        = "global router example"
       description = "global router example"
       entity_type = "alerts"
@@ -452,7 +449,6 @@ func testAccResourceCoralogixGlobalRouterUpdate() string {
     }
 
     resource "coralogix_global_router" "example" {
-      id          = "terraform_global_router_example"
       name        = "global router example updated"
       description = "global router example"
       entity_type = "alerts"

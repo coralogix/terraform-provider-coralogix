@@ -21,10 +21,10 @@ import (
 )
 
 var (
-	connectorResourceName = "coralogix_connector.test"
+	connectorResourceName = "coralogix_connector.example"
 )
 
-func TestGeneriHttpsConnector(t *testing.T) {
+func TestGenericHttpsConnector(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -36,10 +36,14 @@ func TestGeneriHttpsConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "generic_https"),
 					resource.TestCheckResourceAttr(connectorResourceName, "name", "generic-https-connector"),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "generic https connector"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.field_name", "url"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.value", "https://httpbin.org/post"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.field_name", "method"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.value", "post"),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "method",
+						"value":      "post",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "url",
+						"value":      "https://httpbin.org/post",
+					}),
 				),
 			},
 			{
@@ -54,10 +58,14 @@ func TestGeneriHttpsConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "generic_https"),
 					resource.TestCheckResourceAttr(connectorResourceName, "name", "generic-https-connector-updated"),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "generic https connector"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.field_name", "url"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.value", "https://httpbin.org/post"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.field_name", "method"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.value", "post"),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "method",
+						"value":      "post",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "url",
+						"value":      "https://httpbin.org/post",
+					}),
 				),
 			},
 		},
@@ -76,12 +84,18 @@ func TestSlackConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "slack"),
 					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-connector"),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test connector"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.field_name", "integrationId"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.value", "iac-internal"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.field_name", "channel"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.value", "iac-internal"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.2.field_name", "fallbackChannel"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.2.value", "iac-internal"),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "integrationId",
+						"value":      "iac-internal",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "channel",
+						"value":      "iac-internal",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "fallbackChannel",
+						"value":      "iac-internal",
+					}),
 				),
 			},
 			{
@@ -96,12 +110,18 @@ func TestSlackConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "slack"),
 					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-connector"),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test connector"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.field_name", "integrationId"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.value", "iac-internal-updated"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.field_name", "channel"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.1.value", "iac-internal-updated"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.2.field_name", "fallbackChannel"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.2.value", "iac-internal-updated"),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "integrationId",
+						"value":      "iac-internal-updated",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "channel",
+						"value":      "iac-internal-updated",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "fallbackChannel",
+						"value":      "iac-internal-updated",
+					}),
 				),
 			},
 		},
@@ -120,8 +140,10 @@ func TestPagerdutyConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "pagerduty"),
 					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-pagerduty-connector"),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test pagerduty connector"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.field_name", "integrationKey"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.value", "integration-key-example"),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "integrationKey",
+						"value":      "integration-key-example",
+					}),
 				),
 			},
 			{
@@ -136,8 +158,10 @@ func TestPagerdutyConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "pagerduty"),
 					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-pagerduty-connector"),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test pagerduty connector updated"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.field_name", "integrationKey"),
-					resource.TestCheckTypeSetElemAttr(connectorResourceName, "connector_config.fields.0.value", "integration-key-example"),
+					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
+						"field_name": "integrationKey",
+						"value":      "integration-key-example",
+					}),
 				),
 			},
 		},

@@ -26,6 +26,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -35,8 +38,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
-	"terraform-provider-coralogix/coralogix/clientset"
-	"terraform-provider-coralogix/coralogix/utils"
 )
 
 var (
@@ -213,12 +214,12 @@ func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRe
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	createGlobalRouterRequest := &cxsdk.CreateGlobalRouterRequest{
+	createGlobalRouterRequest := &cxsdk.CreateOrReplaceGlobalRouterRequest{
 		Router: router,
 	}
 
 	log.Printf("[INFO] Creating new GlobalRouter: %s", protojson.Format(createGlobalRouterRequest))
-	createResp, err := r.client.CreateGlobalRouter(ctx, createGlobalRouterRequest)
+	createResp, err := r.client.CreateOrReplaceGlobalRouter(ctx, createGlobalRouterRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err)
 		resp.Diagnostics.AddError("Error creating GlobalRouter",
@@ -229,6 +230,10 @@ func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRe
 	}
 	log.Printf("[INFO] Submitted new GlobalRouter: %s", protojson.Format(createResp))
 	plan, diags = flattenGlobalRouter(ctx, createResp.Router)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
@@ -363,8 +368,9 @@ func extractRouter(ctx context.Context, plan *GlobalRouterResourceModel) (*cxsdk
 		return nil, diags
 	}
 
+	routerId := "router_default"
 	return &cxsdk.GlobalRouter{
-		Id:           utils.TypeStringToStringPointer(plan.ID),
+		Id:           &routerId,
 		EntityType:   notificationsEntityTypeSchemaToProto[plan.EntityType.ValueString()],
 		Name:         plan.Name.ValueString(),
 		Description:  plan.Description.ValueString(),
