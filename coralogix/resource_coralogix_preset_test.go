@@ -205,7 +205,35 @@ func TestPagerdutyPreset(t *testing.T) {
 }
 
 func testAccResourceCoralogixGenericHttpsPreset() string {
-	return `resource "coralogix_preset" "example" {
+	return `
+    resource "coralogix_global_router" "example" {
+      id          = "global_router_example"
+      name        = "global router example"
+      description = "global router example"
+      entity_type = "alerts"
+      rules       = [
+        {
+          name = "rule-name"
+          condition = "alertDef.priority == \"P1\""
+          targets = [
+            {
+              connector_id   = coralogix_connector.generic_https_example.id
+              preset_id      = coralogix_preset.generic_https_example.id
+            },
+            {
+              connector_id   = coralogix_connector.slack_example.id
+              preset_id      = coralogix_preset.slack_example.id
+            },
+            {
+              connector_id   = coralogix_connector.pagerduty_example.id
+              preset_id      = coralogix_preset.pagerduty_example.id
+            }
+          ]
+        }
+      ]
+    }
+
+	resource "coralogix_preset" "example" {
       id               = "terraform_generic_https_preset_example"
       name             = "generic_https example"
       description      = "generic_https preset example"

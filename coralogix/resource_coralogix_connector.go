@@ -19,6 +19,9 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
+
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -33,8 +36,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
-	"terraform-provider-coralogix/coralogix/clientset"
-	"terraform-provider-coralogix/coralogix/utils"
 )
 
 var (
@@ -275,6 +276,10 @@ func (r *ConnectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 	log.Printf("[INFO] Received Connector: %s", protojson.Format(getConnectorResp))
 
 	state, diags = flattenConnector(ctx, getConnectorResp.GetConnector())
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 	//
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -304,8 +309,8 @@ func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateReques
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Connector %q is in state, but no longer exists in Coralogix backend", connectorUpdateReq.Connector.Id),
-				fmt.Sprintf("%s will be recreated when you apply", connectorUpdateReq.Connector.Id),
+				fmt.Sprintf("Connector %q is in state, but no longer exists in Coralogix backend", *connectorUpdateReq.Connector.Id),
+				fmt.Sprintf("%s will be recreated when you apply", *connectorUpdateReq.Connector.Id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
