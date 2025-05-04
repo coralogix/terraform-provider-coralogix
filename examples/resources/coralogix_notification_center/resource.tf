@@ -12,8 +12,9 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
+//Examples of connectors
 resource "coralogix_connector" "generic_https_example" {
-  id               = "generic_https_example"
+  id               = "generic_https_example" //This field is optional, if not provided a random id will be generated
   type             = "generic_https"
   name             = "generic-https connector"
   description      = "generic-https connector example"
@@ -21,18 +22,66 @@ resource "coralogix_connector" "generic_https_example" {
     fields = [
       {
         field_name = "url"
-        value      = "https://httpbin.org/post"
+        value      = "https://api.opsgenie.com/v2/alerts"
       },
       {
         field_name = "method"
-        value      = "post"
+        value      = "POST"
+      },
+      {
+        field_name = "additionalHeaders"
+        value      = jsonencode(
+          {
+            "Authorization" : "GenieKey <key>",
+            "Content-Type" : "application/json"
+          })
+      },
+      {
+        field_name = "additionalBodyFields"
+        value      = jsonencode(
+          {
+            alias = "{{alert.groupingKey}}"
+          })
       }
     ]
   }
+  config_overrides = [
+    {
+      entity_type = "alerts"
+      fields      = [
+        {
+          field_name = "url"
+          template   = <<EOF
+            {% if alert.status == 'Triggered' %}
+            https://api.opsgenie.com/v2/alerts
+            {% else %}
+            https://api.opsgenie.com/v2/alerts/{{alert.groupingKey}}/close?identifierType=alias
+            {% endif %}
+EOF
+        },
+        {
+          field_name = "additionalHeaders"
+          template   = <<EOF
+                {
+                 "Authorization": "GenieKey some-key",
+                 "Content-Type": "application/json"
+              }
+EOF
+        },
+        {
+          field_name : "additionalBodyFields"
+          template : <<EOF
+          {
+            "alias": "{{alert.groupingKey}}"
+          }
+EOF
+        }
+      ]
+    }
+  ]
 }
 
 resource "coralogix_connector" "slack_example" {
-  id               = "slack_example"
   type             = "slack"
   name             = "slack connector"
   description      = "slack connector example"
@@ -52,10 +101,28 @@ resource "coralogix_connector" "slack_example" {
       }
     ]
   }
+  config_overrides = [
+    {
+      entity_type = "alerts"
+      fields      = [
+        {
+          field_name = "channel"
+          template   = <<EOF
+            {% if alert.groups[0].keyValues[alertDef.groupByKeys[1]]|lower == "sample" %}
+            sample-channel
+            {% elif alert.groups[0].keyValues[alertDef.groupByKeys[1]]|lower == "another" %}
+            another-channel
+            {% else %}
+            generic-channel
+            {% endif %}
+EOF
+        }
+      ]
+    }
+  ]
 }
 
 resource "coralogix_connector" "pagerduty_example" {
-  id               = "pagerduty_example"
   type             = "pagerduty"
   name             = "pagerduty connector"
   description      = "pagerduty connector example"
@@ -63,13 +130,33 @@ resource "coralogix_connector" "pagerduty_example" {
     fields = [
       {
         field_name = "integrationKey"
-        value      = "integrationKey-eample"
+        value      = "integrationKey-example"
       }
     ]
   }
+  config_overrides = [
+    {
+      entity_type = "alerts"
+      fields      = [
+        {
+          field_name = "integrationKey"
+          template   = <<EOF
+            {% if alert.groups[0].keyValues[alertDef.groupByKeys[1]]|lower == "sample" %}
+            sample-integration-key
+            {% elif alert.groups[0].keyValues[alertDef.groupByKeys[1]]|lower == "another" %}
+            another-integrations-key
+            {% else %}
+            generic-integration-key
+            {% endif %}
+EOF
+        }
+      ]
+    }
+  ]
 }
 
 
+//Examples of presets
 resource "coralogix_preset" "generic_https_example" {
   id               = "generic_https_example"
   name             = "generic_https example"
@@ -81,8 +168,8 @@ resource "coralogix_preset" "generic_https_example" {
     {
       condition_type = {
         match_entity_type_and_sub_type = {
-          entity_type = "alerts"
-          entity_sub_type    = "logsImmediateResolved"
+          entity_type     = "alerts"
+          entity_sub_type = "logsImmediateResolved"
         }
       }
       message_config = {
@@ -112,11 +199,11 @@ resource "coralogix_preset" "slack_example" {
     {
       condition_type = {
         match_entity_type_and_sub_type = {
-          entity_type = "alerts"
-          entity_sub_type    = "logsImmediateResolved"
+          entity_type     = "alerts"
+          entity_sub_type = "logsImmediateResolved"
         }
       }
-      message_config =    {
+      message_config = {
         fields = [
           {
             field_name = "title"
@@ -178,27 +265,27 @@ resource "coralogix_preset" "pagerduty_example" {
   ]
 }
 
+//Examples of global router
 resource "coralogix_global_router" "example" {
-  id          = "global_router_example"
   name        = "global router example"
   description = "global router example"
   entity_type = "alerts"
   rules       = [
     {
-      name = "rule-name"
+      name      = "rule-name"
       condition = "alertDef.priority == \"P1\""
-      targets = [
+      targets   = [
         {
-          connector_id   = coralogix_connector.generic_https_example.id
-          preset_id      = coralogix_preset.generic_https_example.id
+          connector_id = coralogix_connector.generic_https_example.id
+          preset_id    = coralogix_preset.generic_https_example.id
         },
         {
-          connector_id   = coralogix_connector.slack_example.id
-          preset_id      = coralogix_preset.slack_example.id
+          connector_id = coralogix_connector.slack_example.id
+          preset_id    = coralogix_preset.slack_example.id
         },
         {
-          connector_id   = coralogix_connector.pagerduty_example.id
-          preset_id      = coralogix_preset.pagerduty_example.id
+          connector_id = coralogix_connector.pagerduty_example.id
+          preset_id    = coralogix_preset.pagerduty_example.id
         }
       ]
     }
