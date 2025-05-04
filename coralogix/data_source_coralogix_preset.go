@@ -96,35 +96,35 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 
 	var presetID string
 	//Get refreshed preset value from Coralogix
-	if displayName := data.Name.ValueString(); displayName != "" {
-		log.Printf("[INFO] Listing presets to find by display name: %s", displayName)
-		listPresetReq := &cxsdk.BatchGetPresetsRequest{}
-		listPresetResp, err := d.client.BatchGetPresets(ctx, listPresetReq)
+	if name := data.Name.ValueString(); name != "" {
+		log.Printf("[INFO] Listing presets to find by name: %s", name)
+		listPresetReq := &cxsdk.ListPresetSummariesRequest{EntityType: cxsdk.EntityTypeAlerts}
+		listPresetResp, err := d.client.ListPresetSummaries(ctx, listPresetReq)
 		if err != nil {
 			log.Printf("[ERROR] Received error when listing presets: %s", err.Error())
-			listpresetReqStr, _ := json.Marshal(listPresetResp)
+			listPresetReqStr, _ := json.Marshal(listPresetResp)
 			resp.Diagnostics.AddError(
 				"Error listing presets",
-				utils.FormatRpcErrors(err, "List", string(listpresetReqStr)),
+				utils.FormatRpcErrors(err, "List", string(listPresetReqStr)),
 			)
 			return
 		}
 
-		for _, preset := range listPresetResp.Presets {
+		for _, preset := range listPresetResp.PresetSummaries {
 			if preset.Name == data.Name.ValueString() {
-				presetID = *preset.Id
+				presetID = preset.Id
 				break
 			}
 		}
 
 		if presetID == "" {
-			resp.Diagnostics.AddError(fmt.Sprintf("preset with display name %q not found", displayName), "")
+			resp.Diagnostics.AddError(fmt.Sprintf("preset with name %q not found", name), "")
 			return
 		}
 	} else if id := data.ID.ValueString(); id != "" {
 		presetID = id
 	} else {
-		resp.Diagnostics.AddError("preset ID or display name must be set", "")
+		resp.Diagnostics.AddError("preset id or name must be set", "")
 		return
 	}
 

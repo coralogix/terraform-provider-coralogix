@@ -96,20 +96,20 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 
 	var globalRouterID string
 	//Get refreshed GlobalRouter value from Coralogix
-	if displayName := data.Name.ValueString(); displayName != "" {
-		log.Printf("[INFO] Listing GlobalRouters to find by display name: %s", displayName)
-		listglobalRouterResp, err := d.client.BatchGetGlobalRouters(ctx, &cxsdk.BatchGetGlobalRoutersRequest{})
+	if name := data.Name.ValueString(); name != "" {
+		log.Printf("[INFO] Listing GlobalRouters to find by name: %s", name)
+		listGlobalRouterResp, err := d.client.ListGlobalRouters(ctx, &cxsdk.ListGlobalRoutersRequest{})
 		if err != nil {
 			log.Printf("[ERROR] Received error when listing globalRouters: %s", err.Error())
-			listglobalRouterReqStr, _ := json.Marshal(listglobalRouterResp)
+			listGlobalRouterReqStr, _ := json.Marshal(listGlobalRouterResp)
 			resp.Diagnostics.AddError(
 				"Error listing GlobalRouters",
-				utils.FormatRpcErrors(err, "List", string(listglobalRouterReqStr)),
+				utils.FormatRpcErrors(err, "List", string(listGlobalRouterReqStr)),
 			)
 			return
 		}
 
-		for _, globalRouter := range listglobalRouterResp.Routers {
+		for _, globalRouter := range listGlobalRouterResp.Routers {
 			if globalRouter.Name == data.Name.ValueString() {
 				globalRouterID = *globalRouter.Id
 				break
@@ -117,13 +117,13 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 		}
 
 		if globalRouterID == "" {
-			resp.Diagnostics.AddError(fmt.Sprintf("globalRouter with display name %q not found", displayName), "")
+			resp.Diagnostics.AddError(fmt.Sprintf("globalRouter with name %q not found", name), "")
 			return
 		}
 	} else if id := data.ID.ValueString(); id != "" {
 		globalRouterID = id
 	} else {
-		resp.Diagnostics.AddError("globalRouter ID or display name must be set", "")
+		resp.Diagnostics.AddError("globalRouter ID or name must be set", "")
 		return
 	}
 

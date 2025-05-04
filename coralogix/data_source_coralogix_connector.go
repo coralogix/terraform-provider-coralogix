@@ -96,15 +96,15 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	var connectorID string
 	//Get refreshed connector value from Coralogix
-	if displayName := data.Name.ValueString(); displayName != "" {
-		log.Printf("[INFO] Listing connectors to find by display name: %s", displayName)
-		listConnectorResp, err := d.client.BatchGetConnectors(ctx, &cxsdk.BatchGetConnectorsRequest{})
+	if name := data.Name.ValueString(); name != "" {
+		log.Printf("[INFO] Listing connectors to find by name: %s", name)
+		listConnectorResp, err := d.client.ListConnectors(ctx, &cxsdk.ListConnectorsRequest{})
 		if err != nil {
 			log.Printf("[ERROR] Received error when listing connectors: %s", err.Error())
-			listconnectorReqStr, _ := json.Marshal(listConnectorResp)
+			listConnectorReqStr, _ := json.Marshal(listConnectorResp)
 			resp.Diagnostics.AddError(
 				"Error listing connectors",
-				utils.FormatRpcErrors(err, "List", string(listconnectorReqStr)),
+				utils.FormatRpcErrors(err, "List", string(listConnectorReqStr)),
 			)
 			return
 		}
@@ -117,13 +117,13 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 		}
 
 		if connectorID == "" {
-			resp.Diagnostics.AddError(fmt.Sprintf("connector with display name %q not found", displayName), "")
+			resp.Diagnostics.AddError(fmt.Sprintf("connector with name %q not found", name), "")
 			return
 		}
 	} else if id := data.ID.ValueString(); id != "" {
 		connectorID = id
 	} else {
-		resp.Diagnostics.AddError("connector ID or display name must be set", "")
+		resp.Diagnostics.AddError("connector ID or name must be set", "")
 		return
 	}
 
