@@ -43,10 +43,14 @@ func TestAccCoralogixResourceGenericHttpsPreset(t *testing.T) {
 						"condition_type.match_entity_type_and_sub_type.entity_type":     "alerts",
 						"condition_type.match_entity_type_and_sub_type.entity_sub_type": "logsImmediateResolved",
 						"message_config.fields.#":                                       "2",
-						"message_config.fields.0.field_name":                            "headers",
-						"message_config.fields.0.template":                              "{}",
-						"message_config.fields.1.field_name":                            "body",
-						"message_config.fields.1.template":                              "{ \"groupingKey\": \"{{alert.groupingKey}}\", \"status\": \"{{alert.status}}\", \"groups\": \"{{alert.groups}}\" }",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(genericHttpsPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "headers",
+						"template":   "{}",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(genericHttpsPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "body",
+						"template":   `{ "groupingKey": "{{alert.groupingKey}}", "status": "{{alert.status}}", "groups": "{{alert.groups}}" }`,
 					}),
 				),
 			},
@@ -69,15 +73,20 @@ func TestAccCoralogixResourceGenericHttpsPreset(t *testing.T) {
 						"condition_type.match_entity_type_and_sub_type.entity_type":     "alerts",
 						"condition_type.match_entity_type_and_sub_type.entity_sub_type": "logsImmediateResolved",
 						"message_config.fields.#":                                       "2",
-						"message_config.fields.0.field_name":                            "headers",
-						"message_config.fields.0.template":                              "{}",
-						"message_config.fields.1.field_name":                            "body",
-						"message_config.fields.1.template":                              "{ \"groupingKey\": \"{{alert.groupingKey}}\", \"status\": \"{{alert.status}}\", \"groups\": \"{{alert.groups}}\" }",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(genericHttpsPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "headers",
+						"template":   "{}",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(genericHttpsPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "body",
+						"template":   `{ "groupingKey": "{{alert.groupingKey}}", "status": "{{alert.status}}", "groups": "{{alert.groups}}" }`,
 					}),
 				),
 			},
 		},
-	})
+	},
+	)
 }
 
 func TestAccCoralogixResourceSlackPreset(t *testing.T) {
@@ -99,10 +108,14 @@ func TestAccCoralogixResourceSlackPreset(t *testing.T) {
 						"condition_type.match_entity_type_and_sub_type.entity_type":     "alerts",
 						"condition_type.match_entity_type_and_sub_type.entity_sub_type": "logsImmediateResolved",
 						"message_config.fields.#":                                       "2",
-						"message_config.fields.0.field_name":                            "title",
-						"message_config.fields.0.template":                              "{{alert.status}} {{alertDef.priority}} - {{alertDef.name}}",
-						"message_config.fields.1.field_name":                            "description",
-						"message_config.fields.1.template":                              "{{alertDef.description}}",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(slackPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "title",
+						"template":   "{{alert.status}} {{alertDef.priority}} - {{alertDef.name}}",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(slackPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "description",
+						"template":   "{{alertDef.description}}",
 					}),
 				),
 			},
@@ -125,10 +138,14 @@ func TestAccCoralogixResourceSlackPreset(t *testing.T) {
 						"condition_type.match_entity_type_and_sub_type.entity_type":     "alerts",
 						"condition_type.match_entity_type_and_sub_type.entity_sub_type": "logsImmediateResolved",
 						"message_config.fields.#":                                       "2",
-						"message_config.fields.0.field_name":                            "title",
-						"message_config.fields.0.template":                              "{{alert.status}} {{alertDef.priority}} - {{alertDef.name}}",
-						"message_config.fields.1.field_name":                            "description",
-						"message_config.fields.1.template":                              "{{alertDef.description}}",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(slackPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "title",
+						"template":   "{{alert.status}} {{alertDef.priority}} - {{alertDef.name}}",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(slackPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "description",
+						"template":   "{{alertDef.description}}",
 					}),
 				),
 			},
@@ -154,12 +171,18 @@ func TestAccCoralogixResourcePagerdutyPreset(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs(pagerdutyPresetResourceName, "config_overrides.*", map[string]string{
 						"condition_type.match_entity_type.entity_type": "alerts",
 						"message_config.fields.#":                      "3",
-						"message_config.fields.0.field_name":           "summary",
-						"message_config.fields.0.template":             "{{ alertDef.description }}",
-						"message_config.fields.1.field_name":           "severity",
-						"message_config.fields.1.template":             "{{% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %}}critical{{% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %}}error{{% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %}}warning{{% elif alert.highestPriority | default(value = alertDef.priority) == 'P4' or alert.highestPriority | default(value = alertDef.priority)  == 'P5' %}}info{{% else %}}info{{% endif %}}",
-						"message_config.fields.2.field_name":           "timestamp",
-						"message_config.fields.2.template":             "{{ alertDef.timestamp }}",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(pagerdutyPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "summary",
+						"template":   "{{ alertDef.description }}",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(pagerdutyPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "severity",
+						"template":   `{{% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %}}critical{{% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %}}error{{% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %}}warning{{% elif alert.highestPriority | default(value = alertDef.priority) == 'P4' or alert.highestPriority | default(value = alertDef.priority) == 'P5' %}}info{{% else %}}info{{% endif %}}`,
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(pagerdutyPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "timestamp",
+						"template":   "{{ alertDef.timestamp }}",
 					}),
 				),
 			},
@@ -181,12 +204,18 @@ func TestAccCoralogixResourcePagerdutyPreset(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs(pagerdutyPresetResourceName, "config_overrides.*", map[string]string{
 						"condition_type.match_entity_type.entity_type": "alerts",
 						"message_config.fields.#":                      "3",
-						"message_config.fields.0.field_name":           "summary",
-						"message_config.fields.0.template":             "{{ alertDef.description }}",
-						"message_config.fields.1.field_name":           "severity",
-						"message_config.fields.1.template":             "{{% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %}}critical{{% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %}}error{{% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %}}warning{{% elif alert.highestPriority | default(value = alertDef.priority) == 'P4' or alert.highestPriority | default(value = alertDef.priority)  == 'P5' %}}info{{% else %}}info{{% endif %}}",
-						"message_config.fields.2.field_name":           "timestamp",
-						"message_config.fields.2.template":             "{{ alertDef.timestamp }}",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(pagerdutyPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "summary",
+						"template":   "{{ alertDef.description }}",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(pagerdutyPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "severity",
+						"template":   `{{% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %}}critical{{% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %}}error{{% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %}}warning{{% elif alert.highestPriority | default(value = alertDef.priority) == 'P4' or alert.highestPriority | default(value = alertDef.priority) == 'P5' %}}info{{% else %}}info{{% endif %}}`,
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(pagerdutyPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "timestamp",
+						"template":   "{{ alertDef.timestamp }}",
 					}),
 				),
 			},
