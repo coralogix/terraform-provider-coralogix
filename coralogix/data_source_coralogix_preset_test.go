@@ -55,14 +55,14 @@ func TestAccCoralogixDataSourcePresetByName(t *testing.T) {
 }
 
 func testAccCoralogixDataSourcepreset_read() string {
-	return `data "coralogix_preset" "example" {
-	id = coralogix_preset.example.id
+	return `data "coralogix_preset" "generic_https_example" {
+	id = coralogix_preset.generic_https_example.id
 }
 `
 }
 
 func testAccCoralogixDataSourcepresetByName_read() string {
-	return `data "coralogix_preset" "example" {
+	return `data "coralogix_preset" "generic_https_example" {
 	name = "generic_https example"
 }
 `
