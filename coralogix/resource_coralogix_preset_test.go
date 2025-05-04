@@ -164,9 +164,9 @@ func TestAccCoralogixResourcePagerdutyPreset(t *testing.T) {
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "connector_type", "pagerduty"),
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "parent_id", "preset_system_pagerduty_alerts_basic"),
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "config_overrides.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(pagerdutyPresetResourceName, "config_overrides.*", map[string]string{
-						"condition_type.match_entity_type.entity_type": "alerts",
-						"message_config.fields.#":                      "3",
+					resource.TestCheckTypeSetElemNestedAttrs("coralogix_preset.pagerduty_example", "config_overrides.*", map[string]string{
+						"condition_type.match_entity_type.%": "0",
+						"message_config.fields.#":            "3",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(pagerdutyPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
 						"field_name": "summary",
@@ -197,9 +197,9 @@ func TestAccCoralogixResourcePagerdutyPreset(t *testing.T) {
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "connector_type", "pagerduty"),
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "parent_id", "preset_system_pagerduty_alerts_basic"),
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "config_overrides.#", "1"),
-					resource.TestCheckTypeSetElemNestedAttrs(pagerdutyPresetResourceName, "config_overrides.*", map[string]string{
-						"condition_type.match_entity_type.entity_type": "alerts",
-						"message_config.fields.#":                      "3",
+					resource.TestCheckTypeSetElemNestedAttrs("coralogix_preset.pagerduty_example", "config_overrides.*", map[string]string{
+						"condition_type.match_entity_type.%": "0",
+						"message_config.fields.#":            "3",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(pagerdutyPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
 						"field_name": "summary",
