@@ -20,50 +20,50 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-var connectorDataSourceName = "data." + connectorResourceName
+var presetDataSourceName = "data." + genericHttpsPresetResourceName
 
-func TestAccCoralogixDataSourceConnector_basic(t *testing.T) {
+func TestAccCoralogixDataSourcePreset_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixGenericHttpsConnector() +
-					testAccCoralogixDataSourceconnector_read(),
+				Config: testAccResourceCoralogixGenericHttpsPreset() +
+					testAccCoralogixDataSourcepreset_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(connectorDataSourceName, "name", "generic-https-connector"),
+					resource.TestCheckResourceAttr(presetDataSourceName, "name", "generic_https example"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccCoralogixDataSourceConnectorByName(t *testing.T) {
+func TestAccCoralogixDataSourcePresetByName(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixGenericHttpsConnector() +
-					testAccCoralogixDataSourceconnectorByName_read(),
+				Config: testAccResourceCoralogixGenericHttpsPreset() +
+					testAccCoralogixDataSourcepresetByName_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(connectorDataSourceName, "name", "generic-https-connector"),
+					resource.TestCheckResourceAttr(presetDataSourceName, "name", "generic_https example"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCoralogixDataSourceconnector_read() string {
-	return `data "coralogix_connector" "example" {
-	id = coralogix_connector.example.id
+func testAccCoralogixDataSourcepreset_read() string {
+	return `data "coralogix_preset" "example" {
+	id = coralogix_preset.example.id
 }
 `
 }
 
-func testAccCoralogixDataSourceconnectorByName_read() string {
-	return `data "coralogix_connector" "example" {
-	name = "generic-https-connector"
+func testAccCoralogixDataSourcepresetByName_read() string {
+	return `data "coralogix_preset" "example" {
+	name = "generic_https example"
 }
 `
 }

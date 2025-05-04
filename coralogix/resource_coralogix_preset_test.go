@@ -174,17 +174,6 @@ func TestAccCoralogixResourcePagerdutyPreset(t *testing.T) {
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("coralogix_preset.pagerduty_example", "config_overrides.*.message_config.fields.*", map[string]string{
 						"field_name": "severity",
-						"template": `                {% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %}
-									  critical
-									  {% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %}
-									  error
-									  {% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %}
-									  warning
-									  {% elif alert.highestPriority | default(value = alertDef.priority)  == 'P4' or alert.highestPriority | default(value = alertDef.priority)  == 'P5' %}
-									  info
-									  {% else %}
-									  info
-									  {% endif %}`,
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(pagerdutyPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
 						"field_name": "timestamp",

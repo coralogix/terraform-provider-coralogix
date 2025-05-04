@@ -55,14 +55,14 @@ func TestAccCoralogixDataSourceglobalRouterByName(t *testing.T) {
 }
 
 func testAccCoralogixDataSourceglobalRouter_read() string {
-	return `data "coralogix_global_router" "test" {
-	id = coralogix_global_router.test.id
+	return `data "coralogix_global_router" "example" {
+	id = coralogix_global_router.example.id
 }
 `
 }
 
 func testAccCoralogixDataSourceglobalRouterByName_read() string {
-	return `data "coralogix_global_router" "test" {
+	return `data "coralogix_global_router" "example" {
 	name = "global router example"
 }
 `
