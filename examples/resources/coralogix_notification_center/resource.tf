@@ -228,7 +228,6 @@ resource "coralogix_preset" "pagerduty_example" {
     {
       condition_type = {
         match_entity_type = {
-          entity_type = "alerts"
         }
       }
       message_config = {

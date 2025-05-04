@@ -215,7 +215,6 @@ func testAccResourceCoralogixGlobalRouter() string {
         {
           condition_type = {
             match_entity_type = {
-              entity_type = "alerts"
             }
           }
           message_config = {
@@ -409,7 +408,6 @@ func testAccResourceCoralogixGlobalRouterUpdate() string {
         {
           condition_type = {
             match_entity_type = {
-              entity_type = "alerts"
             }
           }
           message_config = {
