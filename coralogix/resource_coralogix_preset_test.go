@@ -24,7 +24,7 @@ const genericHttpsPresetResourceName = "coralogix_preset.generic_https_example"
 const slackPresetResourceName = "coralogix_preset.slack_example"
 const pagerdutyPresetResourceName = "coralogix_preset.pagerduty_example"
 
-func TestGenericHttpsPreset(t *testing.T) {
+func TestAccCoralogixResourceGenericHttpsPreset(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -60,7 +60,7 @@ func TestGenericHttpsPreset(t *testing.T) {
 	})
 }
 
-func TestSlackPreset(t *testing.T) {
+func TestAccCoralogixResourceSlackPreset(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -96,7 +96,7 @@ func TestSlackPreset(t *testing.T) {
 	})
 }
 
-func TestPagerdutyPreset(t *testing.T) {
+func TestAccCoralogixResourcePagerdutyPreset(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

@@ -24,7 +24,7 @@ var (
 	connectorResourceName = "coralogix_connector.example"
 )
 
-func TestGenericHttpsConnector(t *testing.T) {
+func TestAccCoralogixResourceGenericHttpsConnector(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -72,7 +72,7 @@ func TestGenericHttpsConnector(t *testing.T) {
 	})
 }
 
-func TestSlackConnector(t *testing.T) {
+func TestAccCoralogixResourceSlackConnector(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -128,7 +128,7 @@ func TestSlackConnector(t *testing.T) {
 	})
 }
 
-func TestPagerdutyConnector(t *testing.T) {
+func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

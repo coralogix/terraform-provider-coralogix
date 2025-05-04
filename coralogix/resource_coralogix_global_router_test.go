@@ -22,7 +22,7 @@ import (
 
 const globalRouterResourceName = "coralogix_global_router.example"
 
-func TestGlobalRouter(t *testing.T) {
+func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
