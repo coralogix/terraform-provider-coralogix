@@ -168,7 +168,6 @@ resource "coralogix_preset" "generic_https_example" {
     {
       condition_type = {
         match_entity_type_and_sub_type = {
-          entity_type     = "alerts"
           entity_sub_type = "logsImmediateResolved"
         }
       }
@@ -199,7 +198,6 @@ resource "coralogix_preset" "slack_example" {
     {
       condition_type = {
         match_entity_type_and_sub_type = {
-          entity_type     = "alerts"
           entity_sub_type = "logsImmediateResolved"
         }
       }

@@ -155,7 +155,6 @@ func testAccResourceCoralogixGlobalRouter() string {
         {
           condition_type = {
             match_entity_type_and_sub_type = {
-              entity_type = "alerts"
               entity_sub_type    = "logsImmediateResolved"
             }
           }
@@ -186,7 +185,6 @@ func testAccResourceCoralogixGlobalRouter() string {
         {
           condition_type = {
             match_entity_type_and_sub_type = {
-              entity_type = "alerts"
               entity_sub_type    = "logsImmediateResolved"
             }
           }
@@ -351,7 +349,6 @@ func testAccResourceCoralogixGlobalRouterUpdate() string {
         {
           condition_type = {
             match_entity_type_and_sub_type = {
-              entity_type = "alerts"
               entity_sub_type    = "logsImmediateResolved"
             }
           }
@@ -382,7 +379,6 @@ func testAccResourceCoralogixGlobalRouterUpdate() string {
         {
           condition_type = {
             match_entity_type_and_sub_type = {
-              entity_type = "alerts"
               entity_sub_type    = "logsImmediateResolved"
             }
           }

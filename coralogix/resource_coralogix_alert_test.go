@@ -1868,7 +1868,6 @@ func testAccCoralogixResourceAlertLogsLessThanWithDestination() string {
       {
         condition_type = {
           match_entity_type_and_sub_type = {
-            entity_type = "alerts"
             entity_sub_type    = "logsImmediateResolved"
           }
         }
@@ -2011,7 +2010,6 @@ func testAccCoralogixResourceAlertLogsLessThanWithDestinationUpdated() string {
       {
         condition_type = {
           match_entity_type_and_sub_type = {
-            entity_type = "alerts"
             entity_sub_type    = "logsImmediateResolved"
           }
         }
@@ -2146,7 +2144,6 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated() string {
       {
         condition_type = {
           match_entity_type_and_sub_type = {
-            entity_type = "alerts"
             entity_sub_type    = "logsImmediateResolved"
           }
         }
@@ -2289,7 +2286,6 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter() string {
       {
         condition_type = {
           match_entity_type_and_sub_type = {
-            entity_type = "alerts"
             entity_sub_type    = "logsImmediateResolved"
           }
         }
@@ -2438,7 +2434,6 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouterUpdated() string {
       {
         condition_type = {
           match_entity_type_and_sub_type = {
-            entity_type = "alerts"
             entity_sub_type    = "logsImmediateResolved"
           }
         }

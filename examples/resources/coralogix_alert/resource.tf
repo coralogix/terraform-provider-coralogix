@@ -81,7 +81,6 @@ resource "coralogix_preset" "slack_example" {
     {
       condition_type = {
         match_entity_type_and_sub_type = {
-          entity_type = "alerts"
           entity_sub_type    = "logsImmediateResolved"
         }
       }
@@ -424,25 +423,25 @@ resource "coralogix_alert" "test" {
   }
 }
 
-resource "coralogix_alert" "test" { 
-  name        = "metric_anomaly alert example" 
-  description = "Example of metric_anomaly alert from terraform" 
-  priority    = "P1" 
-  type_definition = { 
-      metric_anomaly = { 
-          metric_filter = { 
-              promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)" 
-          } 
-          rules = [{ 
-              condition = { 
-                  threshold = 2 
-                  for_over_pct = 10 
-                  of_the_last = "10_MINUTES" 
-                  condition_type = "LESS_THAN" 
-                  min_non_null_values_pct = 50 
-              } 
-          }] 
-      } 
+resource "coralogix_alert" "test" {
+  name        = "metric_anomaly alert example"
+  description = "Example of metric_anomaly alert from terraform"
+  priority    = "P1"
+  type_definition = {
+      metric_anomaly = {
+          metric_filter = {
+              promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
+          }
+          rules = [{
+              condition = {
+                  threshold = 2
+                  for_over_pct = 10
+                  of_the_last = "10_MINUTES"
+                  condition_type = "LESS_THAN"
+                  min_non_null_values_pct = 50
+              }
+          }]
+      }
   }
 }
 
@@ -563,7 +562,7 @@ resource "coralogix_alert" "test_1"{
     name        = "logs immediate alert 1"
     priority    = "P1"
     type_definition = {
-        logs_immediate = { 
+        logs_immediate = {
         }
     }
 }

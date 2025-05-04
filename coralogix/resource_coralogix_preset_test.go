@@ -40,9 +40,8 @@ func TestAccCoralogixResourceGenericHttpsPreset(t *testing.T) {
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "parent_id", "preset_system_generic_https_alerts_empty"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "config_overrides.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(genericHttpsPresetResourceName, "config_overrides.*", map[string]string{
-						"condition_type.match_entity_type_and_sub_type.entity_type":     "alerts",
 						"condition_type.match_entity_type_and_sub_type.entity_sub_type": "logsImmediateResolved",
-						"message_config.fields.#":                                       "2",
+						"message_config.fields.#": "2",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(genericHttpsPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
 						"field_name": "headers",
@@ -70,9 +69,8 @@ func TestAccCoralogixResourceGenericHttpsPreset(t *testing.T) {
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "parent_id", "preset_system_generic_https_alerts_empty"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "config_overrides.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(genericHttpsPresetResourceName, "config_overrides.*", map[string]string{
-						"condition_type.match_entity_type_and_sub_type.entity_type":     "alerts",
 						"condition_type.match_entity_type_and_sub_type.entity_sub_type": "logsImmediateResolved",
-						"message_config.fields.#":                                       "2",
+						"message_config.fields.#": "2",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(genericHttpsPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
 						"field_name": "headers",
@@ -105,9 +103,8 @@ func TestAccCoralogixResourceSlackPreset(t *testing.T) {
 					resource.TestCheckResourceAttr(slackPresetResourceName, "parent_id", "preset_system_slack_alerts_basic"),
 					resource.TestCheckResourceAttr(slackPresetResourceName, "config_overrides.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(slackPresetResourceName, "config_overrides.*", map[string]string{
-						"condition_type.match_entity_type_and_sub_type.entity_type":     "alerts",
 						"condition_type.match_entity_type_and_sub_type.entity_sub_type": "logsImmediateResolved",
-						"message_config.fields.#":                                       "2",
+						"message_config.fields.#": "2",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(slackPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
 						"field_name": "title",
@@ -135,9 +132,8 @@ func TestAccCoralogixResourceSlackPreset(t *testing.T) {
 					resource.TestCheckResourceAttr(slackPresetResourceName, "parent_id", "preset_system_slack_alerts_basic"),
 					resource.TestCheckResourceAttr(slackPresetResourceName, "config_overrides.#", "1"),
 					resource.TestCheckTypeSetElemNestedAttrs(slackPresetResourceName, "config_overrides.*", map[string]string{
-						"condition_type.match_entity_type_and_sub_type.entity_type":     "alerts",
 						"condition_type.match_entity_type_and_sub_type.entity_sub_type": "logsImmediateResolved",
-						"message_config.fields.#":                                       "2",
+						"message_config.fields.#": "2",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(slackPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
 						"field_name": "title",
@@ -236,7 +232,6 @@ func testAccResourceCoralogixGenericHttpsPreset() string {
         {
           condition_type = {
             match_entity_type_and_sub_type = {
-              entity_type = "alerts"
               entity_sub_type    = "logsImmediateResolved"
             }
           }
@@ -270,7 +265,6 @@ func testAccResourceCoralogixGenericHttpsPresetUpdate() string {
         {
           condition_type = {
             match_entity_type_and_sub_type = {
-              entity_type = "alerts"
               entity_sub_type    = "logsImmediateResolved"
             }
           }
@@ -304,7 +298,6 @@ func testAccResourceCoralogixSlackPreset() string {
         {
           condition_type = {
             match_entity_type_and_sub_type = {
-              entity_type = "alerts"
               entity_sub_type    = "logsImmediateResolved"
             }
           }
@@ -338,7 +331,6 @@ func testAccResourceCoralogixSlackPresetUpdate() string {
         {
           condition_type = {
             match_entity_type_and_sub_type = {
-              entity_type = "alerts"
               entity_sub_type    = "logsImmediateResolved"
             }
           }
