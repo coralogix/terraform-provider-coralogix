@@ -360,6 +360,8 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewScopeDataSource,
 		NewIntegrationDataSource,
 		NewAlertDataSource,
+		NewConnectorDataSource,
+		NewGlobalRouterDataSource,
 		NewPresetDataSource,
 	}
 }
