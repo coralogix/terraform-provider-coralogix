@@ -3,12 +3,12 @@
 page_title: "coralogix_connector Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Connector. For more info please review - https://coralogix.com/docs/coralogix-Connector-extension/.
+  Coralogix Connector. Note: This resource is in alpha stage.
 ---
 
 # coralogix_connector (Resource)
 
-Coralogix Connector. For more info please review - https://coralogix.com/docs/coralogix-Connector-extension/.
+Coralogix Connector. **Note:** This resource is in alpha stage.
 
 ## Example Usage
 
@@ -162,7 +162,7 @@ EOF
 ### Required
 
 - `name` (String) Connector name.
-- `type` (String)
+- `type` (String) Connector type. Valid values are: [generic_https pagerduty slack unspecified]
 
 ### Optional
 

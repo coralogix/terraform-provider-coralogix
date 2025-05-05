@@ -151,6 +151,7 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Validators: []validator.String{
 					stringvalidator.OneOf(validConnectorTypes...),
 				},
+				MarkdownDescription: fmt.Sprintf("The type of connector for the preset. Valid values are: %s", strings.Join(validConnectorTypes, ", ")),
 			},
 			"config_overrides": schema.ListNestedAttribute{
 				Optional: true,
@@ -177,6 +178,7 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 									},
 								},
 							},
+							MarkdownDescription: "Condition type for the preset. Must be either match_entity_type or match_entity_type_and_sub_type.",
 						},
 						"payload_type": schema.StringAttribute{
 							Optional: true,
@@ -206,7 +208,7 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Required: true,
 			},
 		},
-		MarkdownDescription: "Coralogix Preset. Docs link TBD",
+		MarkdownDescription: "Coralogix Preset. **NOTE:** This resource is in alpha stage.",
 	}
 }
 

@@ -146,6 +146,7 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Validators: []validator.String{
 					stringvalidator.OneOf(validConnectorTypesSchemaToProto...),
 				},
+				MarkdownDescription: fmt.Sprintf("Connector type. Valid values are: %s", validConnectorTypesSchemaToProto),
 			},
 			"connector_config": schema.SingleNestedAttribute{
 				Optional: true,
@@ -193,7 +194,7 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				},
 			},
 		},
-		MarkdownDescription: "Coralogix Connector. For more info please review - https://coralogix.com/docs/coralogix-Connector-extension/.",
+		MarkdownDescription: "Coralogix Connector. **Note:** This resource is in alpha stage.",
 	}
 }
 

@@ -107,7 +107,7 @@ func (r *GlobalRouterResource) Schema(_ context.Context, _ resource.SchemaReques
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Computed:      true,
-				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown(), stringplanmodifier.RequiresReplace()},
+				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 				Description:   "The ID of the GlobalRouter.",
 			},
 			"name": schema.StringAttribute{
@@ -192,7 +192,7 @@ func (r *GlobalRouterResource) Schema(_ context.Context, _ resource.SchemaReques
 				ElementType: types.StringType,
 			},
 		},
-		MarkdownDescription: "Coralogix GlobalRouter. Docs link TBD",
+		MarkdownDescription: "Coralogix GlobalRouter. **Note:** This resource is in alpha stage.",
 	}
 }
 

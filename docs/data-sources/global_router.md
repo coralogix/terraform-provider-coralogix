@@ -3,12 +3,12 @@
 page_title: "coralogix_global_router Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix GlobalRouter. Docs link TBD
+  Coralogix GlobalRouter. Note: This resource is in alpha stage.
 ---
 
 # coralogix_global_router (Data Source)
 
-Coralogix GlobalRouter. Docs link TBD
+Coralogix GlobalRouter. **Note:** This resource is in alpha stage.
 
 ## Example Usage
 

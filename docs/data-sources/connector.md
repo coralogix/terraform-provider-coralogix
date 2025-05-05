@@ -3,12 +3,12 @@
 page_title: "coralogix_connector Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Connector. For more info please review - https://coralogix.com/docs/coralogix-Connector-extension/.
+  Coralogix Connector. Note: This resource is in alpha stage.
 ---
 
 # coralogix_connector (Data Source)
 
-Coralogix Connector. For more info please review - https://coralogix.com/docs/coralogix-Connector-extension/.
+Coralogix Connector. **Note:** This resource is in alpha stage.
 
 ## Example Usage
 
@@ -35,7 +35,7 @@ data "coralogix_connector" "generic_https_example_data_by_name" {
 - `config_overrides` (Attributes List) (see [below for nested schema](#nestedatt--config_overrides))
 - `connector_config` (Attributes) (see [below for nested schema](#nestedatt--connector_config))
 - `description` (String)
-- `type` (String)
+- `type` (String) Connector type. Valid values are: [generic_https pagerduty slack unspecified]
 
 <a id="nestedatt--config_overrides"></a>
 ### Nested Schema for `config_overrides`

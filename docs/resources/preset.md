@@ -3,12 +3,12 @@
 page_title: "coralogix_preset Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Preset. Docs link TBD
+  Coralogix Preset. NOTE: This resource is in alpha stage.
 ---
 
 # coralogix_preset (Resource)
 
-Coralogix Preset. Docs link TBD
+Coralogix Preset. **NOTE:** This resource is in alpha stage.
 
 ## Example Usage
 
@@ -124,7 +124,7 @@ resource "coralogix_preset" "pagerduty_example" {
 
 ### Required
 
-- `connector_type` (String)
+- `connector_type` (String) The type of connector for the preset. Valid values are: generic_https, pagerduty, slack, unspecified
 - `entity_type` (String) The type of entity for the preset. Valid values are: alerts, unspecified
 - `name` (String)
 - `parent_id` (String)
@@ -140,7 +140,7 @@ resource "coralogix_preset" "pagerduty_example" {
 
 Required:
 
-- `condition_type` (Attributes) (see [below for nested schema](#nestedatt--config_overrides--condition_type))
+- `condition_type` (Attributes) Condition type for the preset. Must be either match_entity_type or match_entity_type_and_sub_type. (see [below for nested schema](#nestedatt--config_overrides--condition_type))
 - `message_config` (Attributes) (see [below for nested schema](#nestedatt--config_overrides--message_config))
 
 Optional:
