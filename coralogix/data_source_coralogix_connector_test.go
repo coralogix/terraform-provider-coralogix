@@ -63,7 +63,7 @@ func testAccCoralogixDataSourceconnector_read() string {
 
 func testAccCoralogixDataSourceconnectorByName_read() string {
 	return `data "coralogix_connector" "example" {
-	name = "generic-https-connector"
+	name = coralogix_connector.example.name
 }
 `
 }

@@ -63,7 +63,7 @@ func testAccCoralogixDataSourcepreset_read() string {
 
 func testAccCoralogixDataSourcepresetByName_read() string {
 	return `data "coralogix_preset" "generic_https_example" {
-	name = "generic_https example"
+	name = coralogix_preset.generic_https_example.name
 }
 `
 }

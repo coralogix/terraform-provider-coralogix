@@ -539,6 +539,10 @@ func flattenCustomDetails(ctx context.Context, details map[string]string) (types
 }
 
 func flattenRoutingTargets(ctx context.Context, targets []*cxsdk.RoutingTarget) (types.List, diag.Diagnostics) {
+	if targets == nil {
+		return types.ListNull(types.ObjectType{AttrTypes: routingTargetAttr()}), nil
+	}
+
 	var diags diag.Diagnostics
 	targetsList := make([]types.Object, 0, len(targets))
 	for _, target := range targets {

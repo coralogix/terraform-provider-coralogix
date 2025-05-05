@@ -38,7 +38,7 @@ func TestAccCoralogixDataSourceGlobalRouter_basic(t *testing.T) {
 	})
 }
 
-func TestAccCoralogixDataSourceglobalRouterByName(t *testing.T) {
+func TestAccCoralogixDataSourceGlobalRouterByName(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -63,7 +63,7 @@ func testAccCoralogixDataSourceglobalRouter_read() string {
 
 func testAccCoralogixDataSourceglobalRouterByName_read() string {
 	return `data "coralogix_global_router" "example" {
-	name = "global router example"
+	name = coralogix_global_router.example.name
 }
 `
 }
