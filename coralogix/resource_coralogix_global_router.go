@@ -295,11 +295,11 @@ func (r GlobalRouterResource) Update(ctx context.Context, req resource.UpdateReq
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	updateRouter := &cxsdk.ReplaceGlobalRouterRequest{
+	updateRouter := &cxsdk.CreateOrReplaceGlobalRouterRequest{
 		Router: router,
 	}
 	log.Printf("[INFO] Updating GlobalRouter: %s", protojson.Format(updateRouter))
-	updateRouterResp, err := r.client.ReplaceGlobalRouter(ctx, updateRouter)
+	updateRouterResp, err := r.client.CreateOrReplaceGlobalRouter(ctx, updateRouter)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if cxsdk.Code(err) == codes.NotFound {
