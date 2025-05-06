@@ -27,6 +27,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -374,8 +375,37 @@ type IncidentsSettingsModel struct {
 }
 
 type NotificationGroupModel struct {
-	GroupByKeys      types.List `tfsdk:"group_by_keys"`     // []types.String
-	WebhooksSettings types.Set  `tfsdk:"webhooks_settings"` // WebhooksSettingsModel
+	Destinations     types.List   `tfsdk:"destinations"`      // NotificationDestinationModel
+	Router           types.Object `tfsdk:"router"`            // NotificationRouterModel
+	GroupByKeys      types.List   `tfsdk:"group_by_keys"`     // []types.String
+	WebhooksSettings types.Set    `tfsdk:"webhooks_settings"` // WebhooksSettingsModel
+}
+
+type NotificationRouterModel struct {
+	NotifyOn types.String `tfsdk:"notify_on"`
+}
+
+type NotificationDestinationModel struct {
+	ConnectorId               types.String `tfsdk:"connector_id"`
+	PresetId                  types.String `tfsdk:"preset_id"`
+	NotifyOn                  types.String `tfsdk:"notify_on"`
+	TriggeredRoutingOverrides types.Object `tfsdk:"triggered_routing_overrides"` // SourceOverridesModel
+	ResolvedRoutingOverrides  types.Object `tfsdk:"resolved_routing_overrides"`  // SourceOverridesModel
+}
+
+type SourceOverridesModel struct {
+	ConnectorOverrides types.List   `tfsdk:"connector_overrides"` // []ConfigurationOverrideModel
+	PresetOverrides    types.List   `tfsdk:"preset_overrides"`    // []ConfigurationOverrideModel
+	OutputSchemaId     types.String `tfsdk:"output_schema_id"`
+}
+
+type ConfigurationOverrideModel struct {
+	FieldName types.String `tfsdk:"field_name"`
+	Template  types.String `tfsdk:"template"`
+}
+
+type NotificationRouter struct {
+	NotifyOn types.String `tfsdk:"notify_on"`
 }
 
 type WebhooksSettingsModel struct {
@@ -1255,7 +1285,38 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 						"notify_on":      types.StringType,
 						"integration_id": types.StringType,
 						"recipients":     types.SetType{ElemType: types.StringType},
+					},
+					}),
+					"destinations": types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+						"connector_id": types.StringType,
+						"preset_id":    types.StringType,
+						"notify_on":    types.StringType,
+						"triggered_routing_overrides": types.ObjectType{AttrTypes: map[string]attr.Type{
+							"connector_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+								"field_name": types.StringType,
+								"template":   types.StringType,
+							}}},
+							"preset_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+								"field_name": types.StringType,
+								"template":   types.StringType,
+							}}},
+							"output_schema_id": types.StringType,
+						}},
+						"resolved_routing_overrides": types.ObjectType{AttrTypes: map[string]attr.Type{
+							"connector_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+								"field_name": types.StringType,
+								"template":   types.StringType,
+							}}},
+							"preset_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
+								"field_name": types.StringType,
+								"template":   types.StringType,
+							}}},
+							"output_schema_id": types.StringType,
+						}},
 					}}),
+					"router": types.ObjectNull(map[string]attr.Type{
+						"notify_on": types.StringType,
+					}),
 				})),
 				Attributes: map[string]schema.Attribute{
 					"group_by_keys": schema.ListAttribute{
@@ -1301,6 +1362,130 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 							},
 							PlanModifiers: []planmodifier.Object{
 								objectplanmodifier.UseStateForUnknown(),
+							},
+						},
+					},
+					"destinations": schema.ListNestedAttribute{
+						Optional: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"connector_id": schema.StringAttribute{
+									Required:   true,
+									Validators: []validator.String{},
+								},
+								"preset_id": schema.StringAttribute{
+									Required:   true,
+									Validators: []validator.String{},
+								},
+								"notify_on": schema.StringAttribute{
+									Optional: true,
+									Computed: true,
+									Default:  stringdefault.StaticString("Triggered Only"),
+									Validators: []validator.String{
+										stringvalidator.OneOf(validNotifyOn...),
+									},
+								},
+								"triggered_routing_overrides": schema.SingleNestedAttribute{
+									Optional: true,
+									Attributes: map[string]schema.Attribute{
+										"connector_overrides": schema.ListNestedAttribute{
+											Optional: true,
+											Computed: true,
+											Default: listdefault.StaticValue(types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+												"field_name": types.StringType,
+												"template":   types.StringType,
+											}})),
+											NestedObject: schema.NestedAttributeObject{
+												Attributes: map[string]schema.Attribute{
+													"field_name": schema.StringAttribute{
+														Required: true,
+													},
+													"template": schema.StringAttribute{
+														Required: true,
+													},
+												},
+											},
+										},
+										"preset_overrides": schema.ListNestedAttribute{
+											Optional: true,
+											Computed: true,
+											Default: listdefault.StaticValue(types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+												"field_name": types.StringType,
+												"template":   types.StringType,
+											}})),
+											NestedObject: schema.NestedAttributeObject{
+												Attributes: map[string]schema.Attribute{
+													"field_name": schema.StringAttribute{
+														Required: true,
+													},
+													"template": schema.StringAttribute{
+														Required: true,
+													},
+												},
+											},
+										},
+										"output_schema_id": schema.StringAttribute{
+											Required: true,
+										},
+									},
+								},
+								"resolved_routing_overrides": schema.SingleNestedAttribute{
+									Optional: true,
+									Attributes: map[string]schema.Attribute{
+										"connector_overrides": schema.ListNestedAttribute{
+											Optional: true,
+											Computed: true,
+											Default: listdefault.StaticValue(types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+												"field_name": types.StringType,
+												"template":   types.StringType,
+											}})),
+											NestedObject: schema.NestedAttributeObject{
+												Attributes: map[string]schema.Attribute{
+													"field_name": schema.StringAttribute{
+														Required: true,
+													},
+													"template": schema.StringAttribute{
+														Required: true,
+													},
+												},
+											},
+										},
+										"preset_overrides": schema.ListNestedAttribute{
+											Optional: true,
+											Computed: true,
+											Default: listdefault.StaticValue(types.ListNull(types.ObjectType{AttrTypes: map[string]attr.Type{
+												"field_name": types.StringType,
+												"template":   types.StringType,
+											}})),
+											NestedObject: schema.NestedAttributeObject{
+												Attributes: map[string]schema.Attribute{
+													"field_name": schema.StringAttribute{
+														Required: true,
+													},
+													"template": schema.StringAttribute{
+														Required: true,
+													},
+												},
+											},
+										},
+										"output_schema_id": schema.StringAttribute{
+											Required: true,
+										},
+									},
+								},
+							},
+						},
+					},
+					"router": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"notify_on": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  stringdefault.StaticString("Triggered Only"),
+								Validators: []validator.String{
+									stringvalidator.OneOf(validNotifyOn...),
+								},
 							},
 						},
 					},
@@ -1867,9 +2052,19 @@ func extractNotificationGroup(ctx context.Context, notificationGroupObject types
 	if diags.HasError() {
 		return nil, diags
 	}
+	destinations, diags := extractDestinations(ctx, notificationGroupModel.Destinations)
+	if diags.HasError() {
+		return nil, diags
+	}
+	router, diags := extractNotificationRouter(ctx, notificationGroupModel.Router)
+	if diags.HasError() {
+		return nil, diags
+	}
 	notificationGroup := &cxsdk.AlertDefNotificationGroup{
-		GroupByKeys: groupByFields,
-		Webhooks:    webhooks,
+		Destinations: destinations,
+		Router:       router,
+		GroupByKeys:  groupByFields,
+		Webhooks:     webhooks,
 	}
 
 	return notificationGroup, nil
@@ -1905,6 +2100,146 @@ func extractWebhooksSettings(ctx context.Context, webhooksSettings types.Set) ([
 	}
 
 	return expandedWebhooksSettings, nil
+}
+
+func extractDestinations(ctx context.Context, notificationDestinations types.List) ([]*cxsdk.NotificationDestination, diag.Diagnostics) {
+	if notificationDestinations.IsNull() || notificationDestinations.IsUnknown() {
+		return nil, nil
+	}
+
+	var notificationDestinationsObject []types.Object
+	diags := notificationDestinations.ElementsAs(ctx, &notificationDestinationsObject, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+	var expandedDestinations []*cxsdk.NotificationDestination
+	for _, destination := range notificationDestinationsObject {
+		var destinationModel NotificationDestinationModel
+		if diags := destination.As(ctx, &destinationModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+		presetId := destinationModel.PresetId.ValueString()
+		triggeredRoutingOverrides, diags := extractRoutingOverrides(ctx, destinationModel.TriggeredRoutingOverrides)
+		if diags.HasError() {
+			return nil, diags
+		}
+		resolvedRoutingOverrides, diags := extractRoutingOverrides(ctx, destinationModel.ResolvedRoutingOverrides)
+		if diags.HasError() {
+			return nil, diags
+		}
+		destination := &cxsdk.NotificationDestination{
+			ConnectorId: destinationModel.ConnectorId.ValueString(),
+			PresetId:    &presetId,
+			NotifyOn:    notifyOnSchemaToProtoMap[destinationModel.NotifyOn.ValueString()],
+			TriggeredRoutingOverrides: &cxsdk.NotificationRouting{
+				ConfigOverrides: triggeredRoutingOverrides,
+			},
+			ResolvedRouteOverrides: &cxsdk.NotificationRouting{
+				ConfigOverrides: resolvedRoutingOverrides,
+			},
+		}
+		expandedDestinations = append(expandedDestinations, destination)
+	}
+
+	return expandedDestinations, nil
+}
+
+func extractRoutingOverrides(ctx context.Context, overridesObject types.Object) (*cxsdk.SourceOverrides, diag.Diagnostics) {
+	if overridesObject.IsNull() || overridesObject.IsUnknown() {
+		return nil, nil
+	}
+
+	var routingOverridesModel SourceOverridesModel
+	if diags := overridesObject.As(ctx, &routingOverridesModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+	connectorOverrides, diags := extractConnectorOverrides(ctx, routingOverridesModel.ConnectorOverrides)
+	if diags.HasError() {
+		return nil, diags
+	}
+	presetOverrides, diags := extractPresetOverrides(ctx, routingOverridesModel.PresetOverrides)
+	if diags.HasError() {
+		return nil, diags
+	}
+	sourceOverrides := &cxsdk.SourceOverrides{
+		ConnectorConfigFields: connectorOverrides,
+		MessageConfigFields:   presetOverrides,
+		OutputSchemaId:        routingOverridesModel.OutputSchemaId.ValueString(),
+	}
+
+	return sourceOverrides, nil
+}
+
+func extractConnectorOverrides(ctx context.Context, overridesObject types.List) ([]*cxsdk.ConnectorOverride, diag.Diagnostics) {
+	if overridesObject.IsNull() || overridesObject.IsUnknown() {
+		return nil, nil
+	}
+
+	var configurationOverridesModel []types.Object
+	diags := overridesObject.ElementsAs(ctx, &configurationOverridesModel, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+	var connectorOverrides []*cxsdk.ConnectorOverride
+	for _, override := range configurationOverridesModel {
+		var connectorOverrideModel ConfigurationOverrideModel
+		if diags := override.As(ctx, &connectorOverrideModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+		connectorOverride := &cxsdk.ConnectorOverride{
+			FieldName: connectorOverrideModel.FieldName.ValueString(),
+			Template:  connectorOverrideModel.Template.ValueString(),
+		}
+		connectorOverrides = append(connectorOverrides, connectorOverride)
+	}
+
+	return connectorOverrides, nil
+}
+
+func extractPresetOverrides(ctx context.Context, overridesObject types.List) ([]*cxsdk.PresetOverride, diag.Diagnostics) {
+	if overridesObject.IsNull() || overridesObject.IsUnknown() {
+		return nil, nil
+	}
+
+	var configurationOverridesModel []types.Object
+	diags := overridesObject.ElementsAs(ctx, &configurationOverridesModel, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+	var connectorOverrides []*cxsdk.PresetOverride
+	for _, override := range configurationOverridesModel {
+		var connectorOverrideModel ConfigurationOverrideModel
+		if diags := override.As(ctx, &connectorOverrideModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+		connectorOverride := &cxsdk.PresetOverride{
+			FieldName: connectorOverrideModel.FieldName.ValueString(),
+			Template:  connectorOverrideModel.Template.ValueString(),
+		}
+		connectorOverrides = append(connectorOverrides, connectorOverride)
+	}
+
+	return connectorOverrides, nil
+}
+
+func extractNotificationRouter(ctx context.Context, routerObject types.Object) (*cxsdk.NotificationRouter, diag.Diagnostics) {
+	if routerObject.IsNull() || routerObject.IsUnknown() {
+		return nil, nil
+	}
+
+	var routerModel NotificationRouterModel
+	if diags := routerObject.As(ctx, &routerModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	notifyOn := notifyOnSchemaToProtoMap[routerModel.NotifyOn.ValueString()]
+
+	router := &cxsdk.NotificationRouter{
+		Id:       "router_default",
+		NotifyOn: &notifyOn,
+	}
+
+	return router, nil
 }
 
 func extractAdvancedTargetSetting(ctx context.Context, webhooksSettingsModel WebhooksSettingsModel) (*cxsdk.AlertDefWebhooksSettings, diag.Diagnostics) {
@@ -3516,10 +3851,21 @@ func flattenNotificationGroup(ctx context.Context, notificationGroup *cxsdk.Aler
 	if diags.HasError() {
 		return types.ObjectNull(notificationGroupAttr()), diags
 	}
+	destinations, diags := flattenNotificationDestinations(ctx, notificationGroup.GetDestinations())
+	if diags.HasError() {
+		return types.ObjectNull(notificationGroupAttr()), diags
+	}
+
+	router, diags := flattenNotificationRouter(ctx, notificationGroup.GetRouter())
+	if diags.HasError() {
+		return types.ObjectNull(notificationGroupAttr()), diags
+	}
 
 	notificationGroupModel := NotificationGroupModel{
 		GroupByKeys:      utils.WrappedStringSliceToTypeStringList(notificationGroup.GetGroupByKeys()),
 		WebhooksSettings: webhooksSettings,
+		Destinations:     destinations,
+		Router:           router,
 	}
 
 	return types.ObjectValueFrom(ctx, notificationGroupAttr(), notificationGroupModel)
@@ -3558,6 +3904,93 @@ func flattenAdvancedTargetSettings(ctx context.Context, webhooksSettings []*cxsd
 	}
 
 	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: webhooksSettingsAttr()}, notificationsModel)
+}
+
+func flattenNotificationDestinations(ctx context.Context, destinations []*cxsdk.NotificationDestination) (types.List, diag.Diagnostics) {
+	if destinations == nil {
+		return types.ListNull(types.ObjectType{AttrTypes: notificationDestinationsAttr()}), nil
+	}
+	var destinationModels []*NotificationDestinationModel
+	for _, destination := range destinations {
+		var triggeredRoutingOverrides *cxsdk.SourceOverrides
+		if destination.TriggeredRoutingOverrides != nil {
+			triggeredRoutingOverrides = destination.TriggeredRoutingOverrides.ConfigOverrides
+		}
+		var resolvedRoutingOverrides *cxsdk.SourceOverrides
+		if destination.ResolvedRouteOverrides != nil {
+			resolvedRoutingOverrides = destination.ResolvedRouteOverrides.ConfigOverrides
+		}
+		flattenedTriggeredRoutingOverrides, diags := flattenRoutingOverrides(ctx, triggeredRoutingOverrides)
+		if diags.HasError() {
+			return types.ListNull(types.ObjectType{AttrTypes: notificationDestinationsAttr()}), diags
+		}
+		flattenedResolvedRoutingOverrides, diags := flattenRoutingOverrides(ctx, resolvedRoutingOverrides)
+		if diags.HasError() {
+			return types.ListNull(types.ObjectType{AttrTypes: notificationDestinationsAttr()}), diags
+		}
+		destinationModel := NotificationDestinationModel{
+			ConnectorId:               types.StringValue(destination.GetConnectorId()),
+			PresetId:                  types.StringValue(destination.GetPresetId()),
+			NotifyOn:                  types.StringValue(notifyOnProtoToSchemaMap[destination.GetNotifyOn()]),
+			TriggeredRoutingOverrides: flattenedTriggeredRoutingOverrides,
+			ResolvedRoutingOverrides:  flattenedResolvedRoutingOverrides,
+		}
+		destinationModels = append(destinationModels, &destinationModel)
+	}
+	flattenedDestinations, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: notificationDestinationsAttr()}, destinationModels)
+	if diags.HasError() {
+		return types.ListNull(types.ListType{ElemType: types.ObjectType{AttrTypes: notificationDestinationsAttr()}}), diags
+	}
+	return flattenedDestinations, nil
+}
+
+func flattenRoutingOverrides(ctx context.Context, overrides *cxsdk.SourceOverrides) (types.Object, diag.Diagnostics) {
+	if overrides == nil {
+		return types.ObjectNull(routingOverridesAttr()), nil
+	}
+
+	var connectorOverrideModels []*ConfigurationOverrideModel
+	var presetOverrideModels []*ConfigurationOverrideModel
+	for _, connectorOverride := range overrides.ConnectorConfigFields {
+		connectorOverrideModel := ConfigurationOverrideModel{
+			FieldName: types.StringValue(connectorOverride.GetFieldName()),
+			Template:  types.StringValue(connectorOverride.GetTemplate()),
+		}
+		connectorOverrideModels = append(connectorOverrideModels, &connectorOverrideModel)
+	}
+	for _, presetOverride := range overrides.MessageConfigFields {
+		presetOverrideModel := ConfigurationOverrideModel{
+			FieldName: types.StringValue(presetOverride.GetFieldName()),
+			Template:  types.StringValue(presetOverride.GetTemplate()),
+		}
+		presetOverrideModels = append(presetOverrideModels, &presetOverrideModel)
+	}
+	flattenedConnectorOverrides, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: configurationOverridesAttr()}, connectorOverrideModels)
+	if diags.HasError() {
+		return types.ObjectNull(routingOverridesAttr()), diags
+	}
+	flattenedPresetOverrides, diags := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: configurationOverridesAttr()}, presetOverrideModels)
+	if diags.HasError() {
+		return types.ObjectNull(routingOverridesAttr()), diags
+	}
+	overridesModel := SourceOverridesModel{
+		OutputSchemaId:     types.StringValue(overrides.GetOutputSchemaId()),
+		ConnectorOverrides: flattenedConnectorOverrides,
+		PresetOverrides:    flattenedPresetOverrides,
+	}
+	return types.ObjectValueFrom(ctx, routingOverridesAttr(), overridesModel)
+
+}
+
+func flattenNotificationRouter(ctx context.Context, notificationRouter *cxsdk.NotificationRouter) (types.Object, diag.Diagnostics) {
+	if notificationRouter == nil {
+		return types.ObjectNull(notificationRouterAttr()), nil
+	}
+
+	notificationRouterModel := NotificationRouterModel{
+		NotifyOn: types.StringValue(notifyOnProtoToSchemaMap[notificationRouter.GetNotifyOn()]),
+	}
+	return types.ObjectValueFrom(ctx, notificationRouterAttr(), notificationRouterModel)
 }
 
 func flattenRetriggeringPeriod(ctx context.Context, notifications *cxsdk.AlertDefWebhooksSettings) (types.Object, diag.Diagnostics) {
@@ -4745,6 +5178,14 @@ func notificationGroupAttr() map[string]attr.Type {
 				AttrTypes: webhooksSettingsAttr(),
 			},
 		},
+		"destinations": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: notificationDestinationsAttr(),
+			},
+		},
+		"router": types.ObjectType{
+			AttrTypes: notificationRouterAttr(),
+		},
 	}
 }
 
@@ -4756,6 +5197,49 @@ func webhooksSettingsAttr() map[string]attr.Type {
 		},
 		"integration_id": types.StringType,
 		"recipients":     types.SetType{ElemType: types.StringType},
+	}
+}
+
+func notificationDestinationsAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"connector_id": types.StringType,
+		"preset_id":    types.StringType,
+		"notify_on":    types.StringType,
+		"triggered_routing_overrides": types.ObjectType{
+			AttrTypes: routingOverridesAttr(),
+		},
+		"resolved_routing_overrides": types.ObjectType{
+			AttrTypes: routingOverridesAttr(),
+		},
+	}
+}
+
+func routingOverridesAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"connector_overrides": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: configurationOverridesAttr(),
+			},
+		},
+		"preset_overrides": types.ListType{
+			ElemType: types.ObjectType{
+				AttrTypes: configurationOverridesAttr(),
+			},
+		},
+		"output_schema_id": types.StringType,
+	}
+}
+
+func configurationOverridesAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"field_name": types.StringType,
+		"template":   types.StringType,
+	}
+}
+
+func notificationRouterAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"notify_on": types.StringType,
 	}
 }
 

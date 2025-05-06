@@ -44,6 +44,7 @@ type ClientSet struct {
 	customRole          *cxsdk.RolesClient
 	events2Metrics      *cxsdk.Events2MetricsClient
 	groupGrpc           *cxsdk.GroupsClient
+	notifications       *cxsdk.NotificationsClient
 
 	grafana *GrafanaClient
 	groups  *GroupsClient
@@ -148,6 +149,11 @@ func (c *ClientSet) GroupGrpc() *cxsdk.GroupsClient {
 	return c.groupGrpc
 }
 
+func (c *ClientSet) GetNotifications() *cxsdk.NotificationsClient {
+	return c.notifications
+
+}
+
 func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	apiKeySdk := cxsdk.NewCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
@@ -176,6 +182,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		customRole:          cxsdk.NewRolesClient(apiKeySdk),
 		events2Metrics:      cxsdk.NewEvents2MetricsClient(apiKeySdk),
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
+		notifications:       cxsdk.NewNotificationsClient(apiKeySdk),
 
 		grafana: NewGrafanaClient(apikeyCPC),
 		groups:  NewGroupsClient(apikeyCPC),
