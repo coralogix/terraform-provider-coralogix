@@ -920,3 +920,18 @@ Making CORALOGIX_ENV case-insensitive
 Fix: Allow for dashboard JSON to set folder
 
 Docs: Update to reflect JSON incompatibility
+
+# Release 2.0.18
+
+## New resources and data-sources ()
+* [coralogix_connector](docs/resources/connector.md) 
+* [coralogix_global_router](docs/resources/global_router.md)
+* [coralogix_preset](docs/resources/preset.md).
+
+## resource/coralogix_alert
+Feature:  adding support for `notification_group.destinations` 
+
+## data_source/coralogix_custom_role 
+Feature: adding support for import by name.
+
+
