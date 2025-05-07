@@ -301,7 +301,7 @@ Read-Only:
 
 - `condition_type` (String)
 - `minimum_threshold` (Number)
-- `time_window` (String)
+- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 
@@ -427,7 +427,7 @@ Read-Only:
 Read-Only:
 
 - `keypath_to_track` (String)
-- `time_window` (String)
+- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["12_HOURS" "1_MONTH" "1_WEEK" "24_HOURS" "2_MONTHS" "3_MONTHS" "48_HOURS" "72_HOURS"].
 
 
 
@@ -551,7 +551,7 @@ Read-Only:
 
 - `condition_type` (String) Condition to evaluate the threshold with. Valid values: ["LESS_THAN" "MORE_THAN"].
 - `threshold` (Number)
-- `time_window` (String)
+- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--rules--override"></a>
@@ -635,7 +635,7 @@ Read-Only:
 
 - `condition_type` (String) Condition to evaluate the threshold with. Valid values: ["LESS_THAN" "MORE_THAN"].
 - `threshold` (Number)
-- `time_window` (String)
+- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 <a id="nestedatt--type_definition--logs_threshold--rules--override"></a>
@@ -819,7 +819,7 @@ Read-Only:
 Read-Only:
 
 - `max_unique_count` (Number)
-- `time_window` (String)
+- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "1_MINUTE" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 
@@ -1035,7 +1035,7 @@ Read-Only:
 
 - `condition_type` (String)
 - `span_amount` (Number)
-- `time_window` (String)
+- `time_window` (String) Time window to evaluate the threshold with. Valid values: ["10_MINUTES" "12_HOURS" "15_MINUTES" "1_HOUR" "20_MINUTES" "24_HOURS" "2_HOURS" "30_MINUTES" "36_HOURS" "4_HOURS" "5_MINUTES" "6_HOURS"].
 
 
 
