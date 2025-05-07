@@ -1688,6 +1688,7 @@ func logsTimeWindowSchema(validLogsTimeWindowValues []string) schema.StringAttri
 		Validators: []validator.String{
 			stringvalidator.OneOf(validLogsTimeWindowValues...),
 		},
+		MarkdownDescription: fmt.Sprintf("Time window to evaluate the threshold with. Valid values: %q.", validLogsTimeWindowValues),
 	}
 }
 
