@@ -361,7 +361,12 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 
 	var layout DashboardLayoutModel // this model did not change
 	if !utils.ObjIsNullOrUnknown(priorStateData.Layout) {
-		_ = priorStateData.Layout.As(ctx, layout, basetypes.ObjectAsOptions{})
+		_ = priorStateData.Layout.As(ctx, &layout, basetypes.ObjectAsOptions{})
+	}
+
+	if layout.Sections.IsNull() || layout.Sections.IsUnknown() {
+		resp.Diagnostics.Append(resp.State.Set(ctx, priorStateData)...)
+		return
 	}
 	var sections []SectionModel
 	diags := layout.Sections.ElementsAs(ctx, &sections, false)
@@ -377,8 +382,10 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 			return
 		}
 		for _, row := range rows {
+			log.Print("ROWS")
 			var widgets []WidgetModelV0
 			diags := row.Widgets.ElementsAs(ctx, &widgets, false)
+			log.Printf("WIDGETS: %v | %v", diags, row.Widgets)
 
 			resp.Diagnostics.Append(diags...)
 			if resp.Diagnostics.HasError() {
@@ -387,6 +394,7 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 			newWidgets := make([]attr.Value, len(widgets))
 
 			for _, widget := range widgets {
+				log.Print("WIDGETS")
 				newWidget := WidgetModel{
 					ID:          widget.ID,
 					Title:       widget.Title,
@@ -395,6 +403,7 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 					Width:       widget.Width,
 				}
 				if widget.Definition != nil {
+					log.Print("HEXAGON")
 					var newHex *dashboardwidgets.HexagonModel
 					if widget.Definition.Hexagon != nil {
 						timeFrame := widget.Definition.Hexagon.TimeFrame
@@ -496,6 +505,7 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 		ContentJson: priorStateData.ContentJson,
 	}
 
+	log.Printf("UPGRADED %v", upgradedStateData)
 	resp.Diagnostics.Append(resp.State.Set(ctx, upgradedStateData)...)
 }
 
