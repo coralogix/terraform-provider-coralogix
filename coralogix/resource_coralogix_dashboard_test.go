@@ -138,6 +138,11 @@ func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
                   color = "var(--c-severity-log-error)"
                 }]
                 query = {
+				  time_frame = {
+					relative = {
+				      duration = "seconds:900" # 15 minutes
+					}
+				  }
                   logs = {
                     aggregation = {
                       type = "count"
@@ -241,7 +246,12 @@ func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
                         value = "deviceName"
                       }]
                     }
-                  }
+					time_frame = {
+						relative = {
+						  duration = "seconds:900" # 15 minutes
+						}
+					}                  
+				  }
                   color_scheme = "classic"
                   is_visible   = true
                   scale_type   = "linear"

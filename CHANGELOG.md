@@ -902,7 +902,9 @@ Fix:
 
 ## resource/coralogix_dashboard
 
-Feature: allow to specify folder when creating a dashboard from json
+Feature: 
+* allow to specify folder when creating a dashboard from json
+
 
 ## resource/coralogix_alert
 
@@ -935,3 +937,12 @@ Feature:  adding support for `notification_group.destinations`
 Feature: adding support for import by name.
 
 
+# Release 2.1.0
+
+## resource/coralogix_dashboard
+
+Breaking: time_frame property of the Hexagon widget moved into the query for consistency with others
+
+Feature: 
+* time_frame is now supported by all widgets
+* dataprime query type has been added to line charts
