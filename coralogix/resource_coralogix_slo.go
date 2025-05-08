@@ -469,6 +469,14 @@ func (r *SLOResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 	}
 
 	slo := readSloResp.GetSlo()
+	if slo == nil {
+		resp.State.RemoveResource(ctx)
+		resp.Diagnostics.AddWarning(
+			fmt.Sprintf("SLO %q is in tf state, but no longer exists in Coralogix backend", id),
+			fmt.Sprintf("%s will be recreated when you apply", id),
+		)
+		return
+	}
 	log.Printf("[INFO] Received SLO: %s", protojson.Format(slo))
 	state, diags = flattenSLO(ctx, slo)
 	if diags.HasError() {
