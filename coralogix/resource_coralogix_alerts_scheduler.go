@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
@@ -201,6 +202,9 @@ func (r *AlertsSchedulerResource) Schema(_ context.Context, _ resource.SchemaReq
 					"what_expression": schema.StringAttribute{
 						Required:            true,
 						MarkdownDescription: "DataPrime query expression. - [DataPrime query language](https://coralogix.com/docs/dataprime-query-language/).",
+						Validators: []validator.String{
+							stringvalidator.RegexMatches(regexp.MustCompile(`^source.*filter.*$`), "must be a valid DataPrime query expression"),
+						},
 					},
 					"meta_labels": schema.SetNestedAttribute{
 						NestedObject: schema.NestedAttributeObject{
@@ -219,7 +223,7 @@ func (r *AlertsSchedulerResource) Schema(_ context.Context, _ resource.SchemaReq
 						},
 					},
 				},
-				Optional:            true,
+				Required:            true,
 				MarkdownDescription: "Alert Scheduler filter. Only one of `meta_labels` or `alerts_unique_ids` can be set. If none of them set, all alerts will be affected.",
 			},
 			"schedule": schema.SingleNestedAttribute{
@@ -301,7 +305,7 @@ func (r *AlertsSchedulerResource) Schema(_ context.Context, _ resource.SchemaReq
 						},
 					},
 				},
-				Optional:            true,
+				Required:            true,
 				MarkdownDescription: "Exactly one of `one_time` or `recurring` must be set.",
 			},
 			"enabled": schema.BoolAttribute{
@@ -870,7 +874,14 @@ func extractFilter(ctx context.Context, filter types.Object) (*cxsdk.AlertSchedu
 		}, nil
 	}
 
-	return nil, nil
+	return &cxsdk.AlertSchedulerFilter{
+		WhatExpression: whatExpression,
+		WhichAlerts: &cxsdk.AlertSchedulerFilterUniqueIDs{
+			AlertUniqueIds: &cxsdk.AlertUniqueIDs{
+				Value: nil,
+			},
+		},
+	}, nil
 }
 
 func extractSchedule(ctx context.Context, schedule types.Object) (*cxsdk.Schedule, diag.Diagnostics) {
