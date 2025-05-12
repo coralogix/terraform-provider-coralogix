@@ -934,4 +934,10 @@ Feature:  adding support for `notification_group.destinations`
 ## data_source/coralogix_custom_role 
 Feature: adding support for import by name.
 
+# Release 2.0.19
+
+## resource/coralogix_preset
+Bug Fix:
+changing `config_overrides.*.payload_type` to Computed (in addition to Optional) - Will be computed if not set.
+
 

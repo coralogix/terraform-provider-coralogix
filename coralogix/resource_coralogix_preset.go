@@ -182,6 +182,10 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						},
 						"payload_type": schema.StringAttribute{
 							Optional: true,
+							Computed: true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"message_config": schema.SingleNestedAttribute{
 							Required: true,
