@@ -13,28 +13,26 @@ provider "coralogix" {
 }
 
 resource "coralogix_slo" "example" {
-  name            = "coralogix_slo_example"
-  service_name    = "service_name"
-  description     = "description"
-  target_percentage = 30
-  type            = "error"
-  period          = "7_days"
-}
-
-resource "coralogix_slo" "example_2" {
-  name            = "coralogix_slo_example"
-  service_name    = "service_name"
-  description     = "description"
-  target_percentage = 30
-  type            = "latency"
-  threshold_microseconds = 1000000
-  threshold_symbol_type = "greater"
-  period          = "7_days"
-  filters = [
+  name        = "coralogix_slo_example"
+  description = "description"
+  labels = {
+    "key1" = "value1"
+    "key2" = "value2"
+  }
+  target_threshold_percentage = 30
+  sli = [
     {
-      field = "severity"
-      compare_type = "is"
-      field_values = ["error", "warning"]
-    },
+      good_events = {
+        query = "query"
+      }
+      total_events = {
+        query = "query"
+      }
+      group_by_labels = ["label1", "label2"]
+    }
   ]
+
+  window = {
+    slo_time_frame = "7_days"
+  }
 }
