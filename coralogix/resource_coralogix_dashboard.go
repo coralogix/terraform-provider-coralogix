@@ -489,12 +489,13 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 			row.Widgets = types.ListValueMust(types.ObjectType{AttrTypes: widgetModelAttr()}, newWidgets)
 		}
 	}
+	newLayout, _ := types.ObjectValueFrom(ctx, layoutModelAttr(), layout)
 
 	upgradedStateData := DashboardResourceModel{
 		ID:          priorStateData.ID,
 		Name:        priorStateData.Name,
 		Description: priorStateData.Description,
-		Layout:      priorStateData.Layout,
+		Layout:      newLayout,
 		Variables:   priorStateData.Variables,
 		Filters:     priorStateData.Filters,
 		TimeFrame:   priorStateData.TimeFrame,
@@ -504,7 +505,6 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 		ContentJson: priorStateData.ContentJson,
 	}
 
-	log.Printf("UPGRADED %v", upgradedStateData)
 	resp.Diagnostics.Append(resp.State.Set(ctx, upgradedStateData)...)
 }
 
