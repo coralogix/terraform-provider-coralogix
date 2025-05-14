@@ -382,19 +382,15 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 			return
 		}
 		for _, row := range rows {
-			log.Print("ROWS")
 			var widgets []WidgetModelV0
 			diags := row.Widgets.ElementsAs(ctx, &widgets, false)
-			log.Printf("WIDGETS: %v | %v", diags, row.Widgets)
-
 			resp.Diagnostics.Append(diags...)
 			if resp.Diagnostics.HasError() {
 				return
 			}
-			newWidgets := make([]attr.Value, len(widgets))
+			newWidgets := make([]attr.Value, 0)
 
 			for _, widget := range widgets {
-				log.Print("WIDGETS")
 				newWidget := WidgetModel{
 					ID:          widget.ID,
 					Title:       widget.Title,
@@ -403,7 +399,6 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 					Width:       widget.Width,
 				}
 				if widget.Definition != nil {
-					log.Print("HEXAGON")
 					var newHex *dashboardwidgets.HexagonModel
 					if widget.Definition.Hexagon != nil {
 						timeFrame := widget.Definition.Hexagon.TimeFrame
@@ -469,6 +464,7 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 							Query:         query,
 						}
 					}
+
 					newWidget.Definition = &dashboardwidgets.WidgetDefinitionModel{
 						LineChart:          widget.Definition.LineChart,
 						Hexagon:            newHex,
@@ -481,11 +477,14 @@ func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateR
 					}
 				}
 				widgetElement, diags := types.ObjectValueFrom(ctx, widgetModelAttr(), newWidget)
+
 				if diags.HasError() {
 					resp.Diagnostics.Append(diags...)
 					continue
 				}
-				newWidgets = append(newWidgets, widgetElement)
+				if !utils.ObjIsNullOrUnknown(widgetElement) {
+					newWidgets = append(newWidgets, widgetElement)
+				}
 			}
 			row.Widgets = types.ListValueMust(types.ObjectType{AttrTypes: widgetModelAttr()}, newWidgets)
 		}
@@ -3421,7 +3420,7 @@ func flattenDashboardSections(ctx context.Context, sections []*cxsdk.DashboardSe
 	}
 
 	var diagnostics diag.Diagnostics
-	sectionsElements := make([]attr.Value, 0, len(sections))
+	sectionsElements := make([]attr.Value, 0)
 	for _, section := range sections {
 		flattenedSection, diags := flattenDashboardSection(ctx, section)
 		if diags.HasError() {
@@ -4273,7 +4272,7 @@ func flattenDashboardRows(ctx context.Context, rows []*cxsdk.DashboardRow) (type
 	}
 
 	var diagnostics diag.Diagnostics
-	rowsElements := make([]attr.Value, 0, len(rows))
+	rowsElements := make([]attr.Value, 0)
 	for _, row := range rows {
 		flattenedRow, diags := flattenDashboardRow(ctx, row)
 		if diags.HasError() {
@@ -4313,7 +4312,7 @@ func flattenDashboardWidgets(ctx context.Context, widgets []*cxsdk.DashboardWidg
 	}
 
 	var diagnostics diag.Diagnostics
-	widgetsElements := make([]attr.Value, 0, len(widgets))
+	widgetsElements := make([]attr.Value, 0)
 	for _, widget := range widgets {
 		flattenedWidget, diags := flattenDashboardWidget(ctx, widget)
 		if diags.HasError() {
@@ -4690,7 +4689,7 @@ func flattenGroupingAggregations(ctx context.Context, aggregations []*cxsdk.Dash
 	}
 
 	var diagnostics diag.Diagnostics
-	aggregationElements := make([]attr.Value, 0, len(aggregations))
+	aggregationElements := make([]attr.Value, 0)
 	for _, aggregation := range aggregations {
 		flattenedAggregation, diags := flattenGroupingAggregation(ctx, aggregation)
 		if diags.HasError() {
@@ -4790,7 +4789,7 @@ func flattenDataTableSpansQueryAggregations(ctx context.Context, aggregations []
 		return types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansAggregationModelAttr()}), nil
 	}
 	var diagnostics diag.Diagnostics
-	aggregationElements := make([]attr.Value, 0, len(aggregations))
+	aggregationElements := make([]attr.Value, 0)
 	for _, aggregation := range aggregations {
 		flattenedAggregation, dg := flattenDataTableSpansQueryAggregation(aggregation)
 		if dg != nil {
@@ -4836,7 +4835,7 @@ func flattenDataTableColumns(ctx context.Context, columns []*cxsdk.DashboardData
 	}
 
 	var diagnostics diag.Diagnostics
-	columnElements := make([]attr.Value, 0, len(columns))
+	columnElements := make([]attr.Value, 0)
 	for _, column := range columns {
 		flattenedColumn := flattenDataTableColumn(column)
 		columnElement, diags := types.ObjectValueFrom(ctx, dataTableColumnModelAttr(), flattenedColumn)
@@ -4910,7 +4909,7 @@ func flattenGaugeThresholds(ctx context.Context, thresholds []*cxsdk.GaugeThresh
 	}
 
 	var diagnostics diag.Diagnostics
-	thresholdElements := make([]attr.Value, 0, len(thresholds))
+	thresholdElements := make([]attr.Value, 0)
 	for _, threshold := range thresholds {
 		flattenedThreshold := flattenGaugeThreshold(threshold)
 		thresholdElement, diags := types.ObjectValueFrom(ctx, gaugeThresholdModelAttr(), flattenedThreshold)
@@ -5470,7 +5469,7 @@ func flattenDashboardVariables(ctx context.Context, variables []*cxsdk.Dashboard
 	}
 
 	var diagnostics diag.Diagnostics
-	variablesElements := make([]attr.Value, 0, len(variables))
+	variablesElements := make([]attr.Value, 0)
 	for _, variable := range variables {
 		flattenedVariable, diags := flattenDashboardVariable(ctx, variable)
 		if diags.HasError() {
@@ -5764,7 +5763,7 @@ func flattenDashboardVariableDefinitionMultiSelectQueryMetricsLabelValueModel(ct
 
 func flattenMultiSelectQueryMetricsQueryMetricsLabelFilters(ctx context.Context, filters []*cxsdk.MultiSelectQueryMetricsQueryMetricsLabelFilter) (types.List, diag.Diagnostics) {
 	var diagnostics diag.Diagnostics
-	flattenedFilters := make([]attr.Value, 0, len(filters))
+	flattenedFilters := make([]attr.Value, 0)
 	for _, filter := range filters {
 		flattenedFilter, diags := flattenMultiSelectQueryMetricsQueryMetricsLabelFilter(ctx, filter)
 		if diags.HasError() {
@@ -5837,7 +5836,7 @@ func flattenMultiSelectQueryMetricsQueryMetricsLabelFilterOperator(ctx context.C
 
 func flattenMultiSelectQueryMetricsQueryOperatorSelectedValues(ctx context.Context, values []*cxsdk.MultiSelectQueryMetricsQueryStringOrVariable) (types.List, diag.Diagnostics) {
 	var diagnostics diag.Diagnostics
-	flattenedValues := make([]types.Object, 0, len(values))
+	flattenedValues := make([]types.Object, 0)
 	for _, value := range values {
 		flattenedValue, diags := flattenMultiSelectQueryMetricsQueryStringOrVariable(ctx, value)
 		if diags.HasError() {
@@ -6073,7 +6072,7 @@ func flattenDashboardFilters(ctx context.Context, filters []*cxsdk.DashboardFilt
 	}
 
 	var diagnostics diag.Diagnostics
-	filtersElements := make([]attr.Value, 0, len(filters))
+	filtersElements := make([]attr.Value, 0)
 	for _, filter := range filters {
 		flattenedFilter, dgs := flattenDashboardFilter(ctx, filter)
 		if dgs.HasError() {
@@ -6148,7 +6147,7 @@ func flattenDashboardAnnotations(ctx context.Context, annotations []*cxsdk.Annot
 	}
 
 	var diagnostics diag.Diagnostics
-	annotationsElements := make([]attr.Value, 0, len(annotations))
+	annotationsElements := make([]attr.Value, 0)
 	for _, annotation := range annotations {
 		flattenedAnnotation, diags := flattenDashboardAnnotation(ctx, annotation)
 		if diags.HasError() {
