@@ -273,7 +273,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																	),
 																},
 															},
-															"hexagon": dashboardwidgets.HexagonSchema(),
+															"hexagon": dashboardwidgets.HexagonSchemaV0(),
 															"data_table": schema.SingleNestedAttribute{
 																Attributes: map[string]schema.Attribute{
 																	"query": schema.SingleNestedAttribute{

@@ -82,7 +82,7 @@ type HexagonQueryLogsModel struct {
 	GroupBy     types.List            `tfsdk:"group_by"` //ObservationFieldModel
 	Aggregation *LogsAggregationModel `tfsdk:"aggregation"`
 	Filters     types.List            `tfsdk:"filters"` //LogsFilterModel
-	TimeFrame   *TimeFrameModel       `tfdsk:"time_frame"`
+	TimeFrame   *TimeFrameModel       `tfsdk:"time_frame"`
 }
 
 type HexagonThresholdModel struct {
