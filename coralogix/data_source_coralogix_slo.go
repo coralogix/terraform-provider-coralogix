@@ -28,7 +28,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func NewSLODataSource() datasource.DataSource {
@@ -78,7 +77,7 @@ func (d *SLODataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 	//Get refreshed sli value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading SLO: %s", id)
-	getSLOReq := &cxsdk.GetServiceSloRequest{Id: wrapperspb.String(id)}
+	getSLOReq := &cxsdk.GetServiceSloRequest{Id: id}
 	getSLOResp, err := d.client.Get(ctx, getSLOReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
