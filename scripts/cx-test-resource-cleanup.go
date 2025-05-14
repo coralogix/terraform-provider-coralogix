@@ -205,4 +205,52 @@ func main() {
 	} else {
 		log.Fatal("Error listing groups:", err)
 	}
+	// Connectors
+	notificationClient := cxsdk.NewNotificationsClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	listConnectorsRes, err := notificationClient.ListConnectors(context.Background(), &cxsdk.ListConnectorsRequest{})
+	if err == nil {
+		log.Println("Deleting all connectors")
+		for _, connector := range listConnectorsRes.Connectors {
+			notificationClient.DeleteConnector(context.Background(), &cxsdk.DeleteConnectorRequest{Id: connector.GetId()})
+		}
+	} else {
+		log.Fatal("Error listing connectors:", err)
+	}
+
+	// Presets
+	listPresetsRes, err := notificationClient.ListPresetSummaries(context.Background(),
+		&cxsdk.ListPresetSummariesRequest{EntityType: cxsdk.EntityTypeAlerts})
+	if err == nil {
+		log.Println("Deleting all presets")
+		for _, preset := range listPresetsRes.PresetSummaries {
+			notificationClient.DeleteCustomPreset(context.Background(), &cxsdk.DeleteCustomPresetRequest{Id: preset.GetId()})
+		}
+	} else {
+		log.Fatal("Error listing presets:", err)
+	}
+
+	// Global Routers
+	listRoutersRes, err := notificationClient.ListGlobalRouters(context.Background(), &cxsdk.ListGlobalRoutersRequest{})
+	if err == nil {
+		log.Println("Deleting all global routers")
+		for _, router := range listRoutersRes.Routers {
+			notificationClient.DeleteGlobalRouter(context.Background(), &cxsdk.DeleteGlobalRouterRequest{Id: router.GetId()})
+		}
+	} else {
+		log.Fatal("Error listing global routers:", err)
+	}
+
+	// Users
+	usersClient := cxsdk.NewUsersClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	users, err := usersClient.List(context.Background())
+	if err == nil {
+		log.Println("Deleting all users")
+		for _, user := range users {
+			if user.ID != nil {
+				usersClient.Delete(context.Background(), *user.ID)
+			}
+		}
+	} else {
+		log.Fatal("Error listing users:", err)
+	}
 }
