@@ -318,7 +318,7 @@ This tool was built to ease the migration to infrastructure as code style manage
 
 To recap, here is a video showing the importing of multiple alerts:
 
-[![asciicast](https://asciinema.org/a/DhwLrzpB3XKuVyS7e906F69wG.svg)](https://asciinema.org/a/DhwLrzpB3XKuVyS7e906F69wG)
+[![asciicast](https://asciinema.org/a/719391.svg)](https://asciinema.org/a/719391)
 
 The resulting alerts are:
 
