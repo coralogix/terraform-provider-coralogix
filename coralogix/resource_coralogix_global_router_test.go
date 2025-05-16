@@ -241,7 +241,7 @@ func testAccResourceCoralogixGlobalRouter() string {
               },
               {
                 field_name = "timestamp"
-                template   = "{{ alertDef.timestamp }}"
+                template   = "{{ alert.timestamp }}"
               }
             ]
           }
@@ -434,7 +434,7 @@ func testAccResourceCoralogixGlobalRouterUpdate() string {
               },
               {
                 field_name = "timestamp"
-                template   = "{{ alertDef.timestamp }}"
+                template   = "{{ alert.timestamp }}"
               }
             ]
           }

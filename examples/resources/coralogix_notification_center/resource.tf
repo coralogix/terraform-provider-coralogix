@@ -254,7 +254,7 @@ resource "coralogix_preset" "pagerduty_example" {
           },
           {
             field_name = "timestamp"
-            template   = "{{ alertDef.timestamp }}"
+            template   = "{{ alert.timestamp }}"
           }
         ]
       }
