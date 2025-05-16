@@ -388,7 +388,7 @@ func testAccResourceCoralogixPagerdutyPreset() string {
               },
               {
                 field_name = "timestamp"
-                template   = "{{ alertDef.timestamp }}"
+                template   = "{{ alert.timestamp }}"
               }
             ]
           }
@@ -436,7 +436,7 @@ func testAccResourceCoralogixPagerdutyPresetUpdate() string {
               },
               {
                 field_name = "timestamp"
-                template   = "{{ alertDef.timestamp }}"
+                template   = "{{ alert.timestamp }}"
               }
             ]
           }
