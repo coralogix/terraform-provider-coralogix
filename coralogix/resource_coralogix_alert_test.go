@@ -1843,15 +1843,15 @@ func testAccCoralogixResourceAlertLogsLessThanWithDestination() string {
       fields = [
         {
           field_name = "integrationId"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         },
         {
           field_name = "fallbackChannel"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         },
         {
           field_name = "channel"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         }
       ]
     }
@@ -1985,15 +1985,15 @@ func testAccCoralogixResourceAlertLogsLessThanWithDestinationUpdated() string {
       fields = [
         {
           field_name = "integrationId"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         },
         {
           field_name = "fallbackChannel"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         },
         {
           field_name = "channel"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         }
       ]
     }
@@ -2119,15 +2119,15 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated() string {
       fields = [
         {
           field_name = "integrationId"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         },
         {
           field_name = "fallbackChannel"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         },
         {
           field_name = "channel"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         }
       ]
     }
@@ -2261,15 +2261,15 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter() string {
       fields = [
         {
           field_name = "integrationId"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         },
         {
           field_name = "fallbackChannel"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         },
         {
           field_name = "channel"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         }
       ]
     }
@@ -2409,15 +2409,15 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouterUpdated() string {
       fields = [
         {
           field_name = "integrationId"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         },
         {
           field_name = "fallbackChannel"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         },
         {
           field_name = "channel"
-          value      = "iac-internal"
+          value      = "luigis-testing-grounds"
         }
       ]
     }

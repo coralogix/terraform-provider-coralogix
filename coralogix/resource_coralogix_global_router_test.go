@@ -114,15 +114,15 @@ func testAccResourceCoralogixGlobalRouter() string {
         fields = [
           {
             field_name = "integrationId"
-            value      = "iac-internal"
+            value      = "luigis-testing-grounds"
           },
           {
             field_name = "fallbackChannel"
-            value      = "iac-internal"
+            value      = "luigis-testing-grounds"
           },
           {
             field_name = "channel"
-            value      = "iac-internal"
+            value      = "luigis-testing-grounds"
           }
         ]
       }
@@ -307,15 +307,15 @@ func testAccResourceCoralogixGlobalRouterUpdate() string {
         fields = [
           {
             field_name = "integrationId"
-            value      = "iac-internal"
+            value      = "luigis-testing-grounds"
           },
           {
             field_name = "fallbackChannel"
-            value      = "iac-internal"
+            value      = "luigis-testing-grounds"
           },
           {
             field_name = "channel"
-            value      = "iac-internal"
+            value      = "luigis-testing-grounds"
           }
         ]
       }

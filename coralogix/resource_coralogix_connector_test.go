@@ -86,15 +86,15 @@ func TestAccCoralogixResourceSlackConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test connector"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "integrationId",
-						"value":      "iac-internal",
+						"value":      "luigis-testing-grounds",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "channel",
-						"value":      "iac-internal",
+						"value":      "luigis-testing-grounds",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "fallbackChannel",
-						"value":      "iac-internal",
+						"value":      "luigis-testing-grounds",
 					}),
 				),
 			},
@@ -112,15 +112,15 @@ func TestAccCoralogixResourceSlackConnector(t *testing.T) {
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test connector"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "integrationId",
-						"value":      "iac-internal-updated",
+						"value":      "luigis-testing-grounds-updated",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "channel",
-						"value":      "iac-internal-updated",
+						"value":      "luigis-testing-grounds-updated",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "fallbackChannel",
-						"value":      "iac-internal-updated",
+						"value":      "luigis-testing-grounds-updated",
 					}),
 				),
 			},
@@ -222,15 +222,15 @@ func testAccResourceCoralogixSlackConnector() string {
      fields = [
        {
          field_name = "integrationId"
-         value      = "iac-internal"
+         value      = "luigis-testing-grounds"
        },
 	   {
 	   	  field_name = "channel"
-		  value      = "iac-internal"
+		  value      = "luigis-testing-grounds"
 	   },
 	   {
 	   	  field_name = "fallbackChannel"
-		  value      = "iac-internal"
+		  value      = "luigis-testing-grounds"
 	   },
      ]
    }
@@ -248,15 +248,15 @@ func testAccResourceCoralogixSlackConnectorUpdate() string {
      fields = [
        {
          field_name = "integrationId"
-         value      = "iac-internal-updated"
+         value      = "luigis-testing-grounds-updated"
        },
 	   {
 	   	  field_name = "channel"
-		  value      = "iac-internal-updated"
+		  value      = "luigis-testing-grounds-updated"
 	   },
 	   {
 	   	  field_name = "fallbackChannel"
-		  value      = "iac-internal-updated"
+		  value      = "luigis-testing-grounds-updated"
 	   },
      ]
    }
