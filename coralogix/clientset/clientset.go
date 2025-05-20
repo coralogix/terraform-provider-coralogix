@@ -163,7 +163,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		actions:             cxsdk.NewActionsClient(apiKeySdk),
 		integrations:        cxsdk.NewIntegrationsClient(apiKeySdk),
 		enrichments:         cxsdk.NewEnrichmentClient(apiKeySdk),
-		alerts:              cxsdk.NewAlertsClient(apiKeySdk),
+		alerts:              cxsdk.NewAlertsClientWithCustomLabels(apiKeySdk, map[string]string{}),
 		dataSet:             cxsdk.NewDataSetClient(apiKeySdk),
 		webhooks:            cxsdk.NewWebhooksClient(apiKeySdk),
 		slos:                cxsdk.NewSLOsClient(apiKeySdk),
