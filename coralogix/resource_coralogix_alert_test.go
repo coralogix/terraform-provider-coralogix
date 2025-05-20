@@ -1053,7 +1053,7 @@ func TestAccCoralogixResourceAlert_metric_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.missing_values.replace_with_zero", "true"),
 
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.threshold", "10"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.of_the_last", "1_HOUR"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.of_the_last", "1h15m"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.for_over_pct", "15"),
 				),
 			},
@@ -1103,7 +1103,7 @@ func TestAccCoralogixResourceAlert_metric_less_than(t *testing.T) {
 
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.threshold", "5"),
-					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.of_the_last", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.of_the_last", "10m"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.for_over_pct", "15"),
 				),
 			},
@@ -3322,7 +3322,7 @@ func testAccCoralogixResourceAlertMetricMoreThanUpdated() string {
             condition = {
                 threshold    = 10
                 for_over_pct = 15
-                of_the_last  = "1_HOUR"
+                of_the_last  = "1h15m"
                 condition_type = "MORE_THAN"
             }
         }]
@@ -3388,7 +3388,7 @@ func testAccCoralogixResourceAlertMetricLessThanUpdated() string {
             condition = {
                 threshold    = 5
                 for_over_pct = 15
-                of_the_last  = "10_MINUTES"
+                of_the_last  = "10m"
                 condition_type = "LESS_THAN"
             }
         }]
