@@ -941,3 +941,7 @@ Bug Fix:
 changing `config_overrides.*.payload_type` to Computed (in addition to Optional) - Will be computed if not set.
 
 
+# Release 2.0.20
+## resource/coralogix_alert
+Feature: adding support for dynamic duration format for metric alerts time-window (`of_the_last`).
+

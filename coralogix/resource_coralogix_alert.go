@@ -1103,7 +1103,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 													Required:            true,
 													MarkdownDescription: "Percentage of metrics over the threshold. 0 means 'for at least once', 100 means 'for at least'. ",
 												},
-												"of_the_last": metricTimeWindowSchema(),
+												"of_the_last": anomalyMetricTimeWindowSchema(),
 												"condition_type": schema.StringAttribute{
 													Required: true,
 													Validators: []validator.String{
@@ -1673,6 +1673,19 @@ func (c ComputedForSomeAlerts) PlanModifyList(ctx context.Context, request planm
 }
 
 func metricTimeWindowSchema() schema.StringAttribute {
+	return schema.StringAttribute{
+		Required: true,
+		Validators: []validator.String{
+			stringvalidator.Any(
+				stringvalidator.OneOf(validMetricTimeWindowValues...),
+				stringvalidator.RegexMatches(regexp.MustCompile(`^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$`), ""),
+			),
+		},
+		MarkdownDescription: fmt.Sprintf("Time window to evaluate the threshold with. Valid values: %q.\nOr having valid time duration - Supported units: y, w, d, h, m, s, ms.\nExamples: `30s`, `1m`, `1h20m15s`, `15d`", validMetricTimeWindowValues),
+	}
+}
+
+func anomalyMetricTimeWindowSchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Required: true,
 		Validators: []validator.String{
@@ -3267,13 +3280,9 @@ func extractMetricThresholdRules(ctx context.Context, elements types.Set) ([]*cx
 
 		rules[i] = &cxsdk.MetricThresholdRule{
 			Condition: &cxsdk.MetricThresholdCondition{
-				Threshold:  utils.TypeFloat64ToWrapperspbDouble(condition.Threshold),
-				ForOverPct: utils.TypeInt64ToWrappedUint32(condition.ForOverPct),
-				OfTheLast: &cxsdk.MetricTimeWindow{
-					Type: &cxsdk.MetricTimeWindowSpecificValue{
-						MetricTimeWindowSpecificValue: metricTimeWindowValueSchemaToProtoMap[condition.OfTheLast.ValueString()],
-					},
-				},
+				Threshold:     utils.TypeFloat64ToWrapperspbDouble(condition.Threshold),
+				ForOverPct:    utils.TypeInt64ToWrappedUint32(condition.ForOverPct),
+				OfTheLast:     expandMetricTimeWindow(condition.OfTheLast),
 				ConditionType: metricsThresholdConditionToProtoMap[condition.ConditionType.ValueString()],
 			},
 			Override: override,
@@ -3607,6 +3616,27 @@ func extractMetricAnomalyRules(ctx context.Context, elements types.Set) ([]*cxsd
 		return nil, diags
 	}
 	return rules, nil
+}
+
+func expandMetricTimeWindow(metricTimeWindow types.String) *cxsdk.MetricTimeWindow {
+	if metricTimeWindow.IsNull() || metricTimeWindow.IsUnknown() {
+		return nil
+	}
+
+	timeWindowStr := metricTimeWindow.ValueString()
+	if timeWindowVal, ok := metricTimeWindowValueSchemaToProtoMap[timeWindowStr]; ok {
+		return &cxsdk.MetricTimeWindow{
+			Type: &cxsdk.MetricTimeWindowSpecificValue{
+				MetricTimeWindowSpecificValue: timeWindowVal,
+			},
+		}
+	} else {
+		return &cxsdk.MetricTimeWindow{
+			Type: &cxsdk.MetricTimeWindowDynamicDuration{
+				MetricTimeWindowDynamicDuration: wrapperspb.String(timeWindowStr),
+			},
+		}
+	}
 }
 
 func expandFlowAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, flow types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
@@ -4778,6 +4808,12 @@ func flattenMetricTimeWindow(timeWindow *cxsdk.MetricTimeWindow) types.String {
 		return types.StringNull()
 	}
 
+	switch timeWindowType := timeWindow.GetType().(type) {
+	case *cxsdk.MetricTimeWindowSpecificValue:
+		return types.StringValue(metricFilterOperationTypeProtoToSchemaMap[timeWindowType.MetricTimeWindowSpecificValue])
+	case *cxsdk.MetricTimeWindowDynamicDuration:
+		return types.StringValue(timeWindowType.MetricTimeWindowDynamicDuration.GetValue())
+	}
 	return types.StringValue(metricFilterOperationTypeProtoToSchemaMap[timeWindow.GetMetricTimeWindowSpecificValue()])
 }
 

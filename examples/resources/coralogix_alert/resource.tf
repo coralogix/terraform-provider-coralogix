@@ -459,7 +459,7 @@ resource "coralogix_alert" "test" {
             condition = {
                 threshold    = 2
                 for_over_pct = 10
-                of_the_last = "10_MINUTES"
+                of_the_last = "1h15m"
                 condition_type = "MORE_THAN_OR_EQUALS"
             }
             override = {
