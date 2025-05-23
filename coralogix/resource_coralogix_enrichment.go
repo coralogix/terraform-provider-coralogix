@@ -231,7 +231,7 @@ func (r *EnrichmentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 								},
 								"selected_columns": schema.SetAttribute{
 									ElementType: types.StringType,
-									Required:    false,
+									Optional:    true,
 								},
 							},
 						},
@@ -288,7 +288,7 @@ func enrichmentFieldSchema() map[string]schema.Attribute {
 		},
 		"selected_columns": schema.SetAttribute{
 			ElementType: types.StringType,
-			Required:    false,
+			Optional:    true,
 		},
 		"id": schema.Int64Attribute{
 			Optional: true,
