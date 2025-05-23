@@ -27,8 +27,6 @@ import (
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -173,52 +171,47 @@ func (r *EnrichmentResource) Configure(_ context.Context, req resource.Configure
 func (r *EnrichmentResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 0,
-		Attributes: map[string]schema.Attribute{
-			"geo_ip": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"fields": schema.SetNestedAttribute{
-						NestedObject: schema.NestedAttributeObject{
+		Blocks: map[string]schema.Block{
+			"geo_ip": schema.SingleNestedBlock{
+				Blocks: map[string]schema.Block{
+					"fields": schema.ListNestedBlock{
+						NestedObject: schema.NestedBlockObject{
 							Attributes: enrichmentFieldSchema(),
 						},
-						Optional:            true,
+						// Optional:            true,
 						MarkdownDescription: "Set of fields to enrich with geo_ip information.",
 					},
 				},
-				Optional: true,
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("suspicious_ip"),
-						path.MatchRelative().AtParent().AtName("aws"),
-					),
-				},
+				// Optional: true,
+				// Validators: []validator.Object{
+				// 	objectvalidator.ExactlyOneOf(
+				// 		path.MatchRelative().AtParent().AtName("suspicious_ip"),
+				// 		path.MatchRelative().AtParent().AtName("aws"),
+				// 		path.MatchRelative().AtParent().AtName("custom"),
+				// 	),
+				// },
 				MarkdownDescription: "Coralogix allows you to enrich your logs with location data by automatically converting IPs to Geo-points which can be used to aggregate logs by location and create Map visualizations in Kibana.",
 			},
-			"suspicious_ip": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"fields": schema.ListNestedAttribute{
-						NestedObject: schema.NestedAttributeObject{
+			"suspicious_ip": schema.SingleNestedBlock{
+				Blocks: map[string]schema.Block{
+					"fields": schema.ListNestedBlock{
+						NestedObject: schema.NestedBlockObject{
 							Attributes: enrichmentFieldSchema(),
 						},
 						Validators: []validator.List{
 							listvalidator.SizeAtLeast(1),
 						},
-						Optional:            true,
+						// Optional:            true,
 						MarkdownDescription: "Set of fields to enrich with suspicious_ip information.",
 					},
 				},
-				Optional: true,
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("suspicious_ip"),
-						path.MatchRelative().AtParent().AtName("aws"),
-					),
-				},
+				// Optional: true,
 				MarkdownDescription: "Coralogix allows you to automatically discover threats on your web servers by enriching your logs with the most updated IP blacklists.",
 			},
-			"aws": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"fields": schema.ListNestedAttribute{
-						NestedObject: schema.NestedAttributeObject{
+			"aws": schema.SingleNestedBlock{
+				Blocks: map[string]schema.Block{
+					"fields": schema.ListNestedBlock{
+						NestedObject: schema.NestedBlockObject{
 							Attributes: map[string]schema.Attribute{
 								"resource": schema.StringAttribute{
 									Required: true,
@@ -238,38 +231,27 @@ func (r *EnrichmentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 						Validators: []validator.List{
 							listvalidator.SizeAtLeast(1),
 						},
-						Optional:            true,
+						// Optional:            true,
 						MarkdownDescription: "Set of fields to enrich with aws information.",
 					},
 				},
-				Optional: true,
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("suspicious_ip"),
-						path.MatchRelative().AtParent().AtName("aws"),
-					),
-				},
+				// Optional: true,
 				MarkdownDescription: "Coralogix allows you to enrich your logs with the data from a chosen AWS resource. The feature enriches every log that contains a particular resourceId, associated with the metadata of a chosen AWS resource.",
 			},
-			"custom": schema.SingleNestedAttribute{
+			"custom": schema.SingleNestedBlock{
 				Attributes: map[string]schema.Attribute{
 					"custom_enrichment_id": schema.Int64Attribute{
-						Required: true,
-					},
-					"fields": schema.ListNestedAttribute{
-						NestedObject: schema.NestedAttributeObject{
-							Attributes: enrichmentFieldSchema(),
-						},
-						Optional:            true,
-						MarkdownDescription: "Set of fields to enrich with the custom information.",
+						Optional: true,
 					},
 				},
-				Optional: true,
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("suspicious_ip"),
-						path.MatchRelative().AtParent().AtName("aws"),
-					),
+				Blocks: map[string]schema.Block{
+					"fields": schema.ListNestedBlock{
+						NestedObject: schema.NestedBlockObject{
+							Attributes: enrichmentFieldSchema(),
+						},
+						MarkdownDescription: "Set of fields to enrich with the custom information.",
+						// Optional: true,
+					},
 				},
 				MarkdownDescription: "Custom Log Enrichment with Coralogix enables you to easily enrich your log data.",
 			},
@@ -284,7 +266,7 @@ func enrichmentFieldSchema() map[string]schema.Attribute {
 			Required: true,
 		},
 		"enriched_field_name": schema.StringAttribute{
-			Required: true,
+			Optional: true,
 		},
 		"selected_columns": schema.SetAttribute{
 			ElementType: types.StringType,
