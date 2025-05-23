@@ -268,8 +268,7 @@ func (r *ConnectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Connector",
-				//TODO: add the proper url
-				utils.FormatRpcErrors(err, "", protojson.Format(getConnectorReq)),
+				utils.FormatRpcErrors(err, cxsdk.ConnectorsGetRPC, protojson.Format(getConnectorReq)),
 			)
 		}
 		return

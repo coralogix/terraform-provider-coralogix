@@ -18,56 +18,95 @@ import (
 	"context"
 	"fmt"
 	"log"
-
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"google.golang.org/protobuf/encoding/protojson"
-
-	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"google.golang.org/grpc/codes"
 )
 
-func dataSourceCoralogixEnrichment() *schema.Resource {
-	enrichmentSchema := utils.DatasourceSchemaFromResourceSchema(EnrichmentSchema())
-	enrichmentSchema["id"] = &schema.Schema{
-		Type:     schema.TypeString,
-		Required: true,
-	}
+var _ datasource.DataSourceWithConfigure = &EnrichmentDataSource{}
 
-	return &schema.Resource{
-		ReadContext: dataSourceCoralogixEnrichmentRead,
-
-		Schema: enrichmentSchema,
-	}
+func NewEnrichmentDataSource() datasource.DataSource {
+	return &EnrichmentDataSource{}
 }
 
-func dataSourceCoralogixEnrichmentRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	id := d.Get("id").(string)
-	log.Print("[INFO] Reading enrichment")
-	var enrichmentResp []*cxsdk.Enrichment
-	var err error
-	var enrichmentType string
-	if id == "geo_ip" || id == "suspicious_ip" || id == "aws" {
-		enrichmentType = id
-		enrichmentResp, err = EnrichmentsByType(ctx, meta.(*clientset.ClientSet).Enrichments(), id)
-	} else {
-		enrichmentType = "custom"
-		enrichmentResp, err = EnrichmentsByID(ctx, meta.(*clientset.ClientSet).Enrichments(), utils.StrToUint32(id))
-	}
-	if err != nil {
-		reqStr := protojson.Format(&cxsdk.GetEnrichmentsRequest{})
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.GetEnrichmentsRPC, reqStr))
+type EnrichmentDataSource struct {
+	client *cxsdk.EnrichmentsClient
+}
+
+func (d *EnrichmentDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_enrichment"
+}
+
+func (d *EnrichmentDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	if req.ProviderData == nil {
+		return
 	}
 
-	var enrichmentStr string
-	for _, enrichment := range enrichmentResp {
-		enrichmentStr += fmt.Sprintf("%s\n", protojson.Format(enrichment))
+	clientSet, ok := req.ProviderData.(*clientset.ClientSet)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *clientset.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
 	}
-	log.Printf("[INFO] Received enrichment: %s", enrichmentStr)
-	d.SetId(id)
-	return setEnrichment(d, enrichmentType, enrichmentResp)
+
+	d.client = clientSet.Enrichments()
+}
+
+type EnrichmentReadableModel struct {
+	ID types.String `tfsdk:"id"`
+}
+
+func (d *EnrichmentDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	var r EnrichmentResource
+	var resourceResp resource.SchemaResponse
+	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
+
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+}
+
+func (d *EnrichmentDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data EnrichmentReadableModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	//Get refreshed Enrichment value from Coralogix
+	id := data.ID.ValueString()
+
+	log.Printf("[INFO] Reading Enrichment: %s", id)
+	var err error
+	var enrichments []*cxsdk.Enrichment
+	if id == AWS_TYPE || id == GEOIP_TYPE || id == SUSIP_TYPE {
+		enrichments, err = EnrichmentsByType(ctx, d.client, id)
+	} else {
+		enrichments, err = EnrichmentsByID(ctx, d.client, utils.StrToUint32(id))
+	}
+
+	if err != nil {
+		log.Printf("[ERROR] Received error: %s", err.Error())
+		if cxsdk.Code(err) == codes.NotFound {
+			resp.Diagnostics.AddWarning(err.Error(),
+				fmt.Sprintf("Enrichment %q is in state, but no longer exists in Coralogix backend", id))
+		} else {
+			resp.Diagnostics.AddError(
+				"Error reading Enrichment",
+				utils.FormatRpcErrors(err, cxsdk.GetEnrichmentsRPC, id),
+			)
+		}
+		return
+	}
+
+	state := flattenEnrichments(enrichments)
+
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
