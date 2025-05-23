@@ -6,7 +6,7 @@ toolchain go1.24.0
 
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
-	github.com/coralogix/coralogix-management-sdk v1.5.2
+	github.com/coralogix/coralogix-management-sdk v1.5.3-0.20250523135731-438422b1d0c9
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/hashicorp/terraform-plugin-docs v0.20.1
@@ -18,7 +18,7 @@ require (
 	github.com/hashicorp/terraform-plugin-testing v1.11.0
 	github.com/nsf/jsondiff v0.0.0-20230430225905-43f6cf3098c1
 	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848
-	google.golang.org/grpc v1.71.1
+	google.golang.org/grpc v1.72.1
 	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v3 v3.0.1
 )
