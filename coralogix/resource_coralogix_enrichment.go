@@ -332,7 +332,7 @@ func (r *EnrichmentResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	enrichmentType, customId := getEnrichmentTypeAndId(state)
 
-	log.Printf("[INFO] Reading enrichment of type %v (id: %s)", enrichmentType, customId)
+	log.Printf("[INFO] Reading enrichment of type %v (id: %v)", enrichmentType, customId)
 	var enrichments []*cxsdk.Enrichment
 	var err error
 	if customId == 0 {
