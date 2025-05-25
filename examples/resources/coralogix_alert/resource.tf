@@ -633,4 +633,130 @@ resource "coralogix_alert" "test" {
     }
 }
 
+resource "coralogix_alert" "slo_alert_burn_rate" {
+  name        = "SLO burn rate alert"
+  description = "Alert based on SLO burn rate threshold"
+  priority    = "P1"
+  phantom_mode = false
+  labels = {
+    alert_type        = "security"
+    security_severity = "high"
+  }
+  notification_group = {
+    webhooks_settings = [{
+      retriggering_period = {
+        minutes = 5
+      }
+      notify_on  = "Triggered and Resolved"
+      recipients = ["example@coralogix.com"]
+    }]
+  }
+  schedule = {
+    active_on = {
+      days_of_week = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+  }
+  type_definition = {
+    slo_threshold = {
+      slo_definition = {
+        slo_id = coralogix_slo_v2.example.id
+      }
+      burn_rate = {
+        rules = [
+          {
+            condition = {
+              threshold = 1.0
+            }
+            override = {
+              priority = "P1"
+            }
+          },
+          {
+            condition = {
+              threshold = 1.3
+            }
+            override = {
+              priority = "P2"
+            }
+          }
+        ]
+        single = {
+          time_duration = {
+            duration = 1
+            unit     = "HOURS"
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "coralogix_alert" "slo_alert_error_budget" {
+  name         = "SLO error budget alert"
+  description  = "Alert based on SLO error budget threshold"
+  priority     = "P2"
+  phantom_mode = false
+  labels = {
+    alert_type        = "performance"
+    security_severity = "medium"
+  }
+  notification_group = {
+    webhooks_settings = [{
+      retriggering_period = {
+        minutes = 10
+      }
+      notify_on  = "Triggered and Resolved"
+      recipients = ["example@coralogix.com"]
+    }]
+  }
+  schedule = {
+    active_on = {
+      days_of_week = ["Monday", "Friday"]
+      start_time   = "09:00"
+      end_time     = "18:00"
+    }
+  }
+  type_definition = {
+    slo_threshold = {
+      slo_definition = {
+        slo_id = coralogix_slo_v2.example.id
+      }
+      error_budget = {
+        rules = [{
+          condition = {
+            threshold = 0.8
+          }
+          override = {
+            priority = "P2"
+          }
+        }]
+      }
+    }
+  }
+}
+
+resource "coralogix_slo_v2" "example" {
+  name        = "coralogix_slo_go_example"
+  description = "My SLO for CPU usage"
+  target_threshold_percentage = 30
+  sli = {
+    request_based_metric_sli = {
+      good_events = {
+        query = "avg(rate(cpu_usage_seconds_total[5m])) by (instance)"
+      }
+      total_events = {
+        query = "avg(rate(cpu_usage_seconds_total[5m])) by (instance)"
+      }
+    }
+  }
+
+  window = {
+    slo_time_frame = "7_days"
+  }
+  labels = {
+    label1 = "value1"
+  }
+}
 

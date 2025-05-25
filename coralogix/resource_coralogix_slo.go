@@ -85,7 +85,7 @@ func NewSLOResource() resource.Resource {
 }
 
 type SLOResource struct {
-	client *cxsdk.SLOsClient
+	client *cxsdk.LegacySLOsClient
 }
 
 func (r *SLOResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
@@ -161,7 +161,7 @@ func (r *SLOResource) Configure(_ context.Context, req resource.ConfigureRequest
 		return
 	}
 
-	r.client = clientSet.SLOs()
+	r.client = clientSet.LegacySLOs()
 }
 
 func (r *SLOResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -281,7 +281,7 @@ func (r *SLOResource) Create(ctx context.Context, req resource.CreateRequest, re
 		resp.Diagnostics = diags
 		return
 	}
-	createSloReq := &cxsdk.CreateServiceSloRequest{Slo: slo}
+	createSloReq := &cxsdk.CreateLegacySloRequest{Slo: slo}
 	log.Printf("[INFO] Creating new SLO: %s", protojson.Format(createSloReq))
 	createResp, err := r.client.Create(ctx, createSloReq)
 	if err != nil {
@@ -449,7 +449,7 @@ func (r *SLOResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 
 	//Get refreshed SLO value from Coralogix
 	id := state.ID.ValueString()
-	readSloReq := &cxsdk.GetServiceSloRequest{Id: wrapperspb.String(id)}
+	readSloReq := &cxsdk.GetLegacySloRequest{Id: wrapperspb.String(id)}
 	readSloResp, err := r.client.Get(ctx, readSloReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
@@ -495,7 +495,7 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		resp.Diagnostics = diags
 		return
 	}
-	updateSloReq := &cxsdk.ReplaceServiceSloRequest{Slo: slo}
+	updateSloReq := &cxsdk.ReplaceLegacySloRequest{Slo: slo}
 	log.Printf("[INFO] Updating SLO: %s", protojson.Format(updateSloReq))
 	updateSloResp, err := r.client.Update(ctx, updateSloReq)
 	if err != nil {
@@ -510,7 +510,7 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 
 	// Get refreshed SLO value from Coralogix
 	id := plan.ID.ValueString()
-	getSloReq := &cxsdk.GetServiceSloRequest{Id: wrapperspb.String(id)}
+	getSloReq := &cxsdk.GetLegacySloRequest{Id: wrapperspb.String(id)}
 	getSloResp, err := r.client.Get(ctx, getSloReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
@@ -552,7 +552,7 @@ func (r *SLOResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting SLO %s\n", id)
-	deleteReq := &cxsdk.DeleteServiceSloRequest{Id: wrapperspb.String(id)}
+	deleteReq := &cxsdk.DeleteLegacySloRequest{Id: wrapperspb.String(id)}
 	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
 		reqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(

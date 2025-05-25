@@ -29,6 +29,7 @@ type ClientSet struct {
 	dataSet             *cxsdk.DataSetClient
 	webhooks            *cxsdk.WebhooksClient
 	slos                *cxsdk.SLOsClient
+	legacySlos          *cxsdk.LegacySLOsClient
 	teams               *cxsdk.TeamsClient
 	scopes              *cxsdk.ScopesClient
 	dashboards          *cxsdk.DashboardsClient
@@ -154,6 +155,10 @@ func (c *ClientSet) GetNotifications() *cxsdk.NotificationsClient {
 
 }
 
+func (c *ClientSet) LegacySLOs() *cxsdk.LegacySLOsClient {
+	return c.legacySlos
+}
+
 func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	apiKeySdk := cxsdk.NewCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
@@ -167,6 +172,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		dataSet:             cxsdk.NewDataSetClient(apiKeySdk),
 		webhooks:            cxsdk.NewWebhooksClient(apiKeySdk),
 		slos:                cxsdk.NewSLOsClient(apiKeySdk),
+		legacySlos:          cxsdk.NewLegacySLOsClient(apiKeySdk),
 		teams:               cxsdk.NewTeamsClient(apiKeySdk),
 		scopes:              cxsdk.NewScopesClient(apiKeySdk),
 		dashboards:          cxsdk.NewDashboardsClient(apiKeySdk),

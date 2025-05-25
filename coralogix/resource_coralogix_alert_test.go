@@ -1493,6 +1493,41 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceAlert_sloBurnRate(t *testing.T) {
+	sloName := "coralogix_slo_go_example"
+	alertName := "SLO burn rate alert"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertSloBurnRate(sloName, alertName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("coralogix_alert.slo_alert_burn_rate", "name", alertName),
+					resource.TestCheckResourceAttr("coralogix_alert.slo_alert_burn_rate", "description", "Alert based on SLO burn rate threshold"),
+					resource.TestCheckResourceAttr("coralogix_alert.slo_alert_burn_rate", "priority", "P1"),
+					resource.TestCheckResourceAttr("coralogix_alert.slo_alert_burn_rate", "labels.alert_type", "security"),
+					resource.TestCheckResourceAttr("coralogix_alert.slo_alert_burn_rate", "labels.security_severity", "high"),
+					resource.TestCheckResourceAttr("coralogix_alert.slo_alert_burn_rate", "notification_group.webhooks_settings.#", "1"),
+					resource.TestCheckTypeSetElemAttr("coralogix_alert.slo_alert_burn_rate", "notification_group.webhooks_settings.*.recipients.*", "example@coralogix.com"),
+					resource.TestCheckResourceAttr("coralogix_alert.slo_alert_burn_rate", "schedule.active_on.days_of_week.#", "2"),
+					resource.TestCheckResourceAttr("coralogix_alert.slo_alert_burn_rate", "schedule.active_on.start_time", "08:30"),
+					resource.TestCheckResourceAttr("coralogix_alert.slo_alert_burn_rate", "schedule.active_on.end_time", "20:30"),
+					resource.TestCheckResourceAttr("coralogix_alert.slo_alert_burn_rate", "type_definition.slo_threshold.burn_rate.rules.#", "2"),
+					resource.TestCheckResourceAttr("coralogix_alert.slo_alert_burn_rate", "type_definition.slo_threshold.burn_rate.rules.0.condition.threshold", "1"),
+					resource.TestCheckResourceAttr("coralogix_alert.slo_alert_burn_rate", "type_definition.slo_threshold.burn_rate.rules.1.condition.threshold", "1.3"),
+				),
+			},
+			{
+				ResourceName: "coralogix_alert.slo_alert_burn_rate",
+				ImportState:  true,
+			},
+		},
+	})
+}
+
 func testAccCheckAlertDestroy(s *terraform.State) error {
 	meta := testAccProvider.Meta()
 	if meta == nil {
@@ -3951,4 +3986,97 @@ resource "coralogix_alert" "test" {
     }
 }
 `
+}
+
+func testAccCoralogixResourceAlertSloBurnRate(sloName, alertName string) string {
+	return fmt.Sprintf(`
+resource "coralogix_slo_v2" "example" {
+  name        = "%[1]s"
+  description = "My SLO for CPU usage"
+  target_threshold_percentage = 30
+
+  sli = {
+    request_based_metric_sli = {
+      good_events = {
+        query = "avg(rate(cpu_usage_seconds_total[5m])) by (instance)"
+      }
+      total_events = {
+        query = "avg(rate(cpu_usage_seconds_total[5m])) by (instance)"
+      }
+    }
+  }
+
+  window = {
+    slo_time_frame = "7_days"
+  }
+
+  labels = {
+    label1 = "value1"
+  }
+}
+
+resource "coralogix_alert" "slo_alert_burn_rate" {
+  name         = "%[2]s"
+  description  = "Alert based on SLO burn rate threshold"
+  priority     = "P1"
+  phantom_mode = false
+
+  labels = {
+    alert_type        = "security"
+    security_severity = "high"
+  }
+
+  notification_group = {
+    webhooks_settings = [{
+      retriggering_period = {
+        minutes = 5
+      }
+      notify_on  = "Triggered and Resolved"
+      recipients = ["example@coralogix.com"]
+    }]
+  }
+
+  schedule = {
+    active_on = {
+      days_of_week = ["Wednesday", "Thursday"]
+      start_time   = "08:30"
+      end_time     = "20:30"
+    }
+  }
+
+  type_definition = {
+    slo_threshold = {
+      slo_definition = {
+        slo_id = coralogix_slo_v2.example.id
+      }
+      burn_rate = {
+        rules = [
+          {
+            condition = {
+              threshold = 1.0
+            }
+            override = {
+              priority = "P1"
+            }
+          },
+          {
+            condition = {
+              threshold = 1.3
+            }
+            override = {
+              priority = "P2"
+            }
+          }
+        ]
+        single = {
+          time_duration = {
+            duration = 1
+            unit     = "HOURS"
+          }
+        }
+      }
+    }
+  }
+}
+`, sloName, alertName)
 }
