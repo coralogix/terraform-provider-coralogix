@@ -32,7 +32,7 @@ Coralogix Alert. For more info check - https://coralogix.com/docs/getting-starte
 - `phantom_mode` (Boolean)
 - `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
 - `schedule` (Attributes) Alert schedule. Will be activated all the time if not specified. (see [below for nested schema](#nestedatt--schedule))
-- `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow. (see [below for nested schema](#nestedatt--type_definition))
+- `type_definition` (Attributes) Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold. (see [below for nested schema](#nestedatt--type_definition))
 
 <a id="nestedatt--incidents_settings"></a>
 ### Nested Schema for `incidents_settings`
@@ -191,6 +191,7 @@ Read-Only:
 - `logs_unique_count` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_unique_count))
 - `metric_anomaly` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly))
 - `metric_threshold` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_threshold))
+- `slo_threshold` (Attributes) SLO threshold alert type definition. (see [below for nested schema](#nestedatt--type_definition--slo_threshold))
 - `tracing_immediate` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_immediate))
 - `tracing_threshold` (Attributes) (see [below for nested schema](#nestedatt--type_definition--tracing_threshold))
 
@@ -927,6 +928,126 @@ Read-Only:
 
 - `auto_retire_timeframe` (String) Auto retire timeframe. Valid values: ["10_MINUTES" "12_HOURS" "1_HOUR" "24_HOURS" "2_HOURS" "5_MINUTES" "6_HOURS" "NEVER"].
 - `trigger_undetected_values` (Boolean)
+
+
+
+<a id="nestedatt--type_definition--slo_threshold"></a>
+### Nested Schema for `type_definition.slo_threshold`
+
+Read-Only:
+
+- `burn_rate` (Attributes) Burn rate threshold configuration. (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate))
+- `error_budget` (Attributes) Error budget threshold configuration. (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget))
+- `slo_definition` (Attributes) Configuration for the referenced SLO. (see [below for nested schema](#nestedatt--type_definition--slo_threshold--slo_definition))
+
+<a id="nestedatt--type_definition--slo_threshold--burn_rate"></a>
+### Nested Schema for `type_definition.slo_threshold.burn_rate`
+
+Read-Only:
+
+- `dual` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--dual))
+- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--rules))
+- `single` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--single))
+
+<a id="nestedatt--type_definition--slo_threshold--burn_rate--dual"></a>
+### Nested Schema for `type_definition.slo_threshold.burn_rate.dual`
+
+Read-Only:
+
+- `time_duration` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--dual--time_duration))
+
+<a id="nestedatt--type_definition--slo_threshold--burn_rate--dual--time_duration"></a>
+### Nested Schema for `type_definition.slo_threshold.burn_rate.dual.time_duration`
+
+Read-Only:
+
+- `duration` (Number)
+- `unit` (String)
+
+
+
+<a id="nestedatt--type_definition--slo_threshold--burn_rate--rules"></a>
+### Nested Schema for `type_definition.slo_threshold.burn_rate.rules`
+
+Read-Only:
+
+- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--rules--condition))
+- `override` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--rules--override))
+
+<a id="nestedatt--type_definition--slo_threshold--burn_rate--rules--condition"></a>
+### Nested Schema for `type_definition.slo_threshold.burn_rate.rules.condition`
+
+Read-Only:
+
+- `threshold` (Number)
+
+
+<a id="nestedatt--type_definition--slo_threshold--burn_rate--rules--override"></a>
+### Nested Schema for `type_definition.slo_threshold.burn_rate.rules.override`
+
+Read-Only:
+
+- `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+
+
+
+<a id="nestedatt--type_definition--slo_threshold--burn_rate--single"></a>
+### Nested Schema for `type_definition.slo_threshold.burn_rate.single`
+
+Read-Only:
+
+- `time_duration` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--single--time_duration))
+
+<a id="nestedatt--type_definition--slo_threshold--burn_rate--single--time_duration"></a>
+### Nested Schema for `type_definition.slo_threshold.burn_rate.single.time_duration`
+
+Read-Only:
+
+- `duration` (Number)
+- `unit` (String)
+
+
+
+
+<a id="nestedatt--type_definition--slo_threshold--error_budget"></a>
+### Nested Schema for `type_definition.slo_threshold.error_budget`
+
+Read-Only:
+
+- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget--rules))
+
+<a id="nestedatt--type_definition--slo_threshold--error_budget--rules"></a>
+### Nested Schema for `type_definition.slo_threshold.error_budget.rules`
+
+Read-Only:
+
+- `condition` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget--rules--condition))
+- `override` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget--rules--override))
+
+<a id="nestedatt--type_definition--slo_threshold--error_budget--rules--condition"></a>
+### Nested Schema for `type_definition.slo_threshold.error_budget.rules.condition`
+
+Read-Only:
+
+- `threshold` (Number)
+
+
+<a id="nestedatt--type_definition--slo_threshold--error_budget--rules--override"></a>
+### Nested Schema for `type_definition.slo_threshold.error_budget.rules.override`
+
+Read-Only:
+
+- `priority` (String) Alert priority. Valid values: ["P1" "P2" "P3" "P4" "P5"].
+
+
+
+
+<a id="nestedatt--type_definition--slo_threshold--slo_definition"></a>
+### Nested Schema for `type_definition.slo_threshold.slo_definition`
+
+Read-Only:
+
+- `slo_id` (String) The SLO ID.
 
 
 

@@ -83,14 +83,14 @@ func TestAccCoralogixResourceSpanSLOCreate(t *testing.T) {
 }
 
 func testAccSLOCheckDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).SLOs()
+	client := testAccProvider.Meta().(*clientset.ClientSet).LegacySLOs()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "coralogix_slo" {
 			continue
 		}
 
-		if resp, err := client.Get(ctx, &cxsdk.GetServiceSloRequest{Id: wrapperspb.String(rs.Primary.ID)}); err == nil {
+		if resp, err := client.Get(ctx, &cxsdk.GetLegacySloRequest{Id: wrapperspb.String(rs.Primary.ID)}); err == nil {
 			if resp.GetSlo().GetId().GetValue() == rs.Primary.ID {
 				return fmt.Errorf("slo still exists: %s", rs.Primary.ID)
 			}

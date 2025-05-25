@@ -141,6 +141,12 @@ func ConvertAttribute(resourceAttribute resourceschema.Attribute) datasourcesche
 			Description:         attr.Description,
 			MarkdownDescription: attr.MarkdownDescription,
 		}
+	case resourceschema.Float32Attribute:
+		return datasourceschema.Float32Attribute{
+			Computed:            true,
+			Description:         attr.Description,
+			MarkdownDescription: attr.MarkdownDescription,
+		}
 	case resourceschema.Float64Attribute:
 		return datasourceschema.Float64Attribute{
 			Computed:            true,
