@@ -956,3 +956,4 @@ Breaking: time_frame property of the Hexagon widget moved into the query for con
 Feature: 
 * time_frame is now supported by all widgets
 * dataprime query type has been added to line charts
+* gauge now has the "decimal" and "display series name" properties
