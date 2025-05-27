@@ -172,7 +172,7 @@ func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.max", "100"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.decimal", "2"),
 
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.query_definitions.0.query.logs.time_frame.relative.duration", "900s"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.query.logs.time_frame.relative.duration", "seconds:900"),
 					resource.TestCheckTypeSetElemNestedAttrs(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.thresholds.*",
 						map[string]string{
 							"from":  "0",
@@ -285,7 +285,7 @@ func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.tooltip.show_labels", "false"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.tooltip.type", "all"),
 
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.time_frame.relative.duration", "900s"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.time_frame.relative.duration", "seconds:900"),
 
 					resource.TestCheckTypeSetElemNestedAttrs(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.filters.*",
 						map[string]string{
@@ -323,7 +323,6 @@ func TestAccCoralogixResourceDashboardGaugeWidget(t *testing.T) {
 			{
 
 				Config: testAccCoralogixResourceDashboardWithWidget(`{
-              gauge = {
                 title      = "gauge"
                 definition = {
                   gauge = {
@@ -336,7 +335,7 @@ func TestAccCoralogixResourceDashboardGaugeWidget(t *testing.T) {
                         aggregation  = "unspecified"
 						time_frame = {
 						  relative = {
-						     duration = "900s" 
+						     duration = "seconds:900" 
 						  }
 						}
                       }
@@ -351,7 +350,7 @@ func TestAccCoralogixResourceDashboardGaugeWidget(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.query.metrics.aggregation", "unspecified"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.display_series_name", "false"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.decimal", "2"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.query_definitions.query.metrics.time_frame.relative.duration", "900s"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.query_definitions.query.metrics.time_frame.relative.duration", "seconds:900"),
 				),
 			},
 			{
