@@ -1510,15 +1510,17 @@ func expandGauge(ctx context.Context, gauge *dashboardwidgets.GaugeModel) (*cxsd
 	return &cxsdk.WidgetDefinition{
 		Value: &cxsdk.WidgetDefinitionGauge{
 			Gauge: &cxsdk.Gauge{
-				Query:        query,
-				Min:          utils.TypeFloat64ToWrapperspbDouble(gauge.Min),
-				Max:          utils.TypeFloat64ToWrapperspbDouble(gauge.Max),
-				ShowInnerArc: utils.TypeBoolToWrapperspbBool(gauge.ShowInnerArc),
-				ShowOuterArc: utils.TypeBoolToWrapperspbBool(gauge.ShowOuterArc),
-				Unit:         dashboardwidgets.DashboardSchemaToProtoGaugeUnit[gauge.Unit.ValueString()],
-				Thresholds:   thresholds,
-				DataModeType: dashboardwidgets.DashboardSchemaToProtoDataModeType[gauge.DataModeType.ValueString()],
-				ThresholdBy:  dashboardwidgets.DashboardSchemaToProtoGaugeThresholdBy[gauge.ThresholdBy.ValueString()],
+				Query:             query,
+				Min:               utils.TypeFloat64ToWrapperspbDouble(gauge.Min),
+				Max:               utils.TypeFloat64ToWrapperspbDouble(gauge.Max),
+				ShowInnerArc:      utils.TypeBoolToWrapperspbBool(gauge.ShowInnerArc),
+				ShowOuterArc:      utils.TypeBoolToWrapperspbBool(gauge.ShowOuterArc),
+				Unit:              dashboardwidgets.DashboardSchemaToProtoGaugeUnit[gauge.Unit.ValueString()],
+				Thresholds:        thresholds,
+				DataModeType:      dashboardwidgets.DashboardSchemaToProtoDataModeType[gauge.DataModeType.ValueString()],
+				ThresholdBy:       dashboardwidgets.DashboardSchemaToProtoGaugeThresholdBy[gauge.ThresholdBy.ValueString()],
+				DisplaySeriesName: utils.TypeBoolToWrapperspbBool(gauge.DisplaySeriesName),
+				Decimal:           utils.NumberTypeToWrapperspbInt32(gauge.Decimal),
 			},
 		},
 	}, nil
@@ -3670,8 +3672,10 @@ func widgetModelAttr() map[string]attr.Type {
 								AttrTypes: gaugeThresholdModelAttr(),
 							},
 						},
-						"data_mode_type": types.StringType,
-						"threshold_by":   types.StringType,
+						"data_mode_type":      types.StringType,
+						"threshold_by":        types.StringType,
+						"display_series_name": types.BoolType,
+						"decimal":             types.NumberType,
 					},
 				},
 				"pie_chart": types.ObjectType{
@@ -4890,15 +4894,16 @@ func flattenGauge(ctx context.Context, gauge *cxsdk.Gauge) (*dashboardwidgets.Wi
 
 	return &dashboardwidgets.WidgetDefinitionModel{
 		Gauge: &dashboardwidgets.GaugeModel{
-			Query:        query,
-			Min:          utils.WrapperspbDoubleToTypeFloat64(gauge.GetMin()),
-			Max:          utils.WrapperspbDoubleToTypeFloat64(gauge.GetMax()),
-			ShowInnerArc: utils.WrapperspbBoolToTypeBool(gauge.GetShowInnerArc()),
-			ShowOuterArc: utils.WrapperspbBoolToTypeBool(gauge.GetShowOuterArc()),
-			Unit:         types.StringValue(dashboardwidgets.DashboardProtoToSchemaGaugeUnit[gauge.GetUnit()]),
-			Thresholds:   thresholds,
-			DataModeType: types.StringValue(dashboardwidgets.DashboardProtoToSchemaDataModeType[gauge.GetDataModeType()]),
-			ThresholdBy:  types.StringValue(dashboardwidgets.DashboardProtoToSchemaGaugeThresholdBy[gauge.GetThresholdBy()]),
+			Query:             query,
+			Min:               utils.WrapperspbDoubleToTypeFloat64(gauge.GetMin()),
+			Max:               utils.WrapperspbDoubleToTypeFloat64(gauge.GetMax()),
+			ShowInnerArc:      utils.WrapperspbBoolToTypeBool(gauge.GetShowInnerArc()),
+			ShowOuterArc:      utils.WrapperspbBoolToTypeBool(gauge.GetShowOuterArc()),
+			Unit:              types.StringValue(dashboardwidgets.DashboardProtoToSchemaGaugeUnit[gauge.GetUnit()]),
+			Thresholds:        thresholds,
+			DataModeType:      types.StringValue(dashboardwidgets.DashboardProtoToSchemaDataModeType[gauge.GetDataModeType()]),
+			ThresholdBy:       types.StringValue(dashboardwidgets.DashboardProtoToSchemaGaugeThresholdBy[gauge.GetThresholdBy()]),
+			DisplaySeriesName: utils.WrapperspbBoolToTypeBool(gauge.GetDisplaySeriesName()),
 		},
 	}, nil
 }

@@ -478,6 +478,15 @@ func dashboardSchemaAttributesV3() map[string]schema.Attribute {
 																		},
 																		MarkdownDescription: fmt.Sprintf("The threshold by. Can be one of %q.", dashboardwidgets.DashboardValidGaugeThresholdBy),
 																	},
+																	"display_series_name": schema.BoolAttribute{
+																		Optional: true,
+																		Computed: true,
+																		Default:  booldefault.StaticBool(true),
+																	},
+																	"decimal": schema.NumberAttribute{
+																		Optional: true,
+																		Computed: true,
+																	},
 																},
 																Validators: []validator.Object{
 																	dashboardwidgets.SupportedWidgetsValidatorWithout("gauge"),

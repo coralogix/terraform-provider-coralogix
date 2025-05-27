@@ -467,15 +467,17 @@ type DataTableSpansQueryGroupingModel struct {
 }
 
 type GaugeModel struct {
-	Query        *GaugeQueryModel `tfsdk:"query"`
-	Min          types.Float64    `tfsdk:"min"`
-	Max          types.Float64    `tfsdk:"max"`
-	ShowInnerArc types.Bool       `tfsdk:"show_inner_arc"`
-	ShowOuterArc types.Bool       `tfsdk:"show_outer_arc"`
-	Unit         types.String     `tfsdk:"unit"`
-	Thresholds   types.List       `tfsdk:"thresholds"` //GaugeThresholdModel
-	DataModeType types.String     `tfsdk:"data_mode_type"`
-	ThresholdBy  types.String     `tfsdk:"threshold_by"`
+	Query             *GaugeQueryModel `tfsdk:"query"`
+	Min               types.Float64    `tfsdk:"min"`
+	Max               types.Float64    `tfsdk:"max"`
+	ShowInnerArc      types.Bool       `tfsdk:"show_inner_arc"`
+	ShowOuterArc      types.Bool       `tfsdk:"show_outer_arc"`
+	Unit              types.String     `tfsdk:"unit"`
+	Thresholds        types.List       `tfsdk:"thresholds"` //GaugeThresholdModel
+	DataModeType      types.String     `tfsdk:"data_mode_type"`
+	ThresholdBy       types.String     `tfsdk:"threshold_by"`
+	DisplaySeriesName types.Bool       `tfsdk:"display_series_name"`
+	Decimal           types.Number     `tfsdk:"decimal"`
 }
 
 type GaugeQueryModel struct {
