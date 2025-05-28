@@ -345,7 +345,7 @@ func TestAccCoralogixResourceDashboardGaugeWidget(t *testing.T) {
           }`),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "line-chart"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "gauge"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.query.metrics.promql_query", "vector(1)"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.query.metrics.aggregation", "unspecified"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.display_series_name", "false"),
