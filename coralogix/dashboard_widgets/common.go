@@ -404,7 +404,7 @@ type DataTableQueryLogsModel struct {
 	LuceneQuery types.String                     `tfsdk:"lucene_query"`
 	Filters     types.List                       `tfsdk:"filters"` //LogsFilterModel
 	Grouping    *DataTableLogsQueryGroupingModel `tfsdk:"grouping"`
-	Timeframe   *TimeFrameModel                  `tfsdk:"time_frame"`
+	TimeFrame   *TimeFrameModel                  `tfsdk:"time_frame"`
 }
 
 type LogsFilterModel struct {

@@ -2635,10 +2635,16 @@ func expandDataTableDataPrimeQuery(ctx context.Context, dataPrime *dashboardwidg
 		}
 	}
 
+	timeFrame, diags := dashboardwidgets.ExpandTimeFrameSelect(ctx, dataPrime.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &cxsdk.DashboardDataTableQueryDataprime{
 		Dataprime: &cxsdk.DashboardDataTableDataprimeQuery{
 			DataprimeQuery: dataPrimeQuery,
 			Filters:        filters,
+			TimeFrame:      timeFrame,
 		},
 	}, nil
 }
@@ -2677,11 +2683,17 @@ func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *dash
 		return nil, diags
 	}
 
+	timeFrame, diags := dashboardwidgets.ExpandTimeFrameSelect(ctx, dataTableQueryMetric.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &cxsdk.DashboardDataTableQueryMetrics{
 		Metrics: &cxsdk.DashboardDataTableMetricsQuery{
 			PromqlQuery:     dashboardwidgets.ExpandPromqlQuery(dataTableQueryMetric.PromqlQuery),
 			Filters:         filters,
 			PromqlQueryType: expandPromqlQueryType(dataTableQueryMetric.PromqlQueryType),
+			TimeFrame:       timeFrame,
 		},
 	}, nil
 }
@@ -2710,7 +2722,7 @@ func expandDataTableLogsQuery(ctx context.Context, dataTableQueryLogs *dashboard
 		return nil, diags
 	}
 
-	timeframe, diags := dashboardwidgets.ExpandTimeFrameSelect(ctx, dataTableQueryLogs.Timeframe)
+	timeframe, diags := dashboardwidgets.ExpandTimeFrameSelect(ctx, dataTableQueryLogs.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2809,11 +2821,17 @@ func expandDataTableSpansQuery(ctx context.Context, dataTableQuerySpans *dashboa
 		return nil, diags
 	}
 
+	timeFrame, diags := dashboardwidgets.ExpandTimeFrameSelect(ctx, dataTableQuerySpans.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &cxsdk.DashboardDataTableQuerySpans{
 		Spans: &cxsdk.DashboardDataTableSpansQuery{
 			LuceneQuery: dashboardwidgets.ExpandLuceneQuery(dataTableQuerySpans.LuceneQuery),
 			Filters:     filters,
 			Grouping:    grouping,
+			TimeFrame:   timeFrame,
 		},
 	}, nil
 }
@@ -4475,6 +4493,11 @@ func flattenHorizontalBarChartQueryLogs(ctx context.Context, logs *cxsdk.Horizon
 		return nil, diags
 	}
 
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, logs.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	logsModel := &dashboardwidgets.BarChartQueryLogsModel{
 		LuceneQuery:           utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
 		Aggregation:           aggregation,
@@ -4483,6 +4506,7 @@ func flattenHorizontalBarChartQueryLogs(ctx context.Context, logs *cxsdk.Horizon
 		StackedGroupName:      utils.WrapperspbStringToTypeString(logs.GetStackedGroupName()),
 		GroupNamesFields:      groupNamesFields,
 		StackedGroupNameField: stackedGroupNameField,
+		TimeFrame:             timeFrame,
 	}
 
 	logsObject, diags := types.ObjectValueFrom(ctx, barChartLogsQueryAttr(), logsModel)
@@ -4506,12 +4530,17 @@ func flattenHorizontalBarChartQueryMetrics(ctx context.Context, metrics *cxsdk.H
 	if diags.HasError() {
 		return nil, diags
 	}
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, metrics.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	flattenedMetrics := &dashboardwidgets.BarChartQueryMetricsModel{
 		PromqlQuery:      utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 		Filters:          filters,
 		GroupNames:       utils.WrappedStringSliceToTypeStringList(metrics.GetGroupNames()),
 		StackedGroupName: utils.WrapperspbStringToTypeString(metrics.GetStackedGroupName()),
+		TimeFrame:        timeFrame,
 	}
 
 	metricsObject, diags := types.ObjectValueFrom(ctx, barChartMetricsQueryAttr(), flattenedMetrics)
@@ -4551,12 +4580,18 @@ func flattenHorizontalBarChartQuerySpans(ctx context.Context, spans *cxsdk.Horiz
 		return nil, diag.Diagnostics{dg}
 	}
 
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, spans.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	flattenedSpans := &dashboardwidgets.BarChartQuerySpansModel{
 		LuceneQuery:      utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
 		Aggregation:      aggregation,
 		Filters:          filters,
 		GroupNames:       groupNames,
 		StackedGroupName: stackedGroupName,
+		TimeFrame:        timeFrame,
 	}
 
 	spansObject, diags := types.ObjectValueFrom(ctx, barChartSpansQueryAttr(), flattenedSpans)
@@ -4632,10 +4667,16 @@ func flattenDataTableDataPrimeQuery(ctx context.Context, dataPrime *cxsdk.Dashbo
 		return nil, diags
 	}
 
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, dataPrime.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardwidgets.DataTableQueryModel{
 		DataPrime: &dashboardwidgets.DataPrimeModel{
-			Query:   dataPrimeQuery,
-			Filters: filters,
+			Query:     dataPrimeQuery,
+			Filters:   filters,
+			TimeFrame: timeFrame,
 		},
 	}, nil
 }
@@ -4655,12 +4696,17 @@ func flattenDataTableLogsQuery(ctx context.Context, logs *cxsdk.DashboardDataTab
 		return nil, diags
 	}
 
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, metrics.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardwidgets.DataTableQueryModel{
 		Logs: &dashboardwidgets.DataTableQueryLogsModel{
 			LuceneQuery: utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
 			Filters:     filters,
 			Grouping:    grouping,
-			// TimeFrame missing?
+			TimeFrame:   timeFrame,
 		},
 	}, nil
 }
@@ -4734,12 +4780,17 @@ func flattenDataTableMetricsQuery(ctx context.Context, metrics *cxsdk.DashboardD
 	if diags.HasError() {
 		return nil, diags
 	}
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, metrics.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	return &dashboardwidgets.DataTableQueryModel{
 		Metrics: &dashboardwidgets.QueryMetricsModel{
 			PromqlQueryType: types.StringValue(metrics.GetPromqlQueryType().String()),
 			PromqlQuery:     utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 			Filters:         filters,
+			TimeFrame:       timeFrame,
 		},
 	}, nil
 }
@@ -4759,11 +4810,17 @@ func flattenDataTableSpansQuery(ctx context.Context, spans *cxsdk.DashboardDataT
 		return nil, diags
 	}
 
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, spans.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardwidgets.DataTableQueryModel{
 		Spans: &dashboardwidgets.DataTableQuerySpansModel{
 			LuceneQuery: utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
 			Filters:     filters,
 			Grouping:    grouping,
+			TimeFrame:   timeFrame,
 		},
 	}, nil
 }
@@ -4962,11 +5019,17 @@ func flattenGaugeQueryMetrics(ctx context.Context, metrics *cxsdk.GaugeMetricsQu
 		return nil, diags
 	}
 
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, metrics.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardwidgets.GaugeQueryModel{
 		Metrics: &dashboardwidgets.GaugeQueryMetricsModel{
 			PromqlQuery: utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 			Aggregation: types.StringValue(dashboardwidgets.DashboardProtoToSchemaGaugeAggregation[metrics.GetAggregation()]),
 			Filters:     filters,
+			TimeFrame:   timeFrame,
 		},
 	}, nil
 }
@@ -4985,12 +5048,17 @@ func flattenGaugeQueryLogs(ctx context.Context, logs *cxsdk.GaugeLogsQuery) (*da
 	if diags.HasError() {
 		return nil, diags
 	}
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, logs.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	return &dashboardwidgets.GaugeQueryModel{
 		Logs: &dashboardwidgets.GaugeQueryLogsModel{
 			LuceneQuery:     utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
 			LogsAggregation: logsAggregation,
 			Filters:         filters,
+			TimeFrame:       timeFrame,
 		},
 	}, nil
 }
@@ -5009,12 +5077,17 @@ func flattenGaugeQuerySpans(ctx context.Context, spans *cxsdk.GaugeSpansQuery) (
 	if dg != nil {
 		return nil, diag.Diagnostics{dg}
 	}
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, spans.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	return &dashboardwidgets.GaugeQueryModel{
 		Spans: &dashboardwidgets.GaugeQuerySpansModel{
 			LuceneQuery:      utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
 			Filters:          filters,
 			SpansAggregation: spansAggregation,
+			TimeFrame:        timeFrame,
 		},
 	}, nil
 }
@@ -5097,6 +5170,10 @@ func flattenPieChartQueryMetrics(ctx context.Context, metrics *cxsdk.PieChartMet
 	if diags.HasError() {
 		return nil, diags
 	}
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, metrics.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	return &dashboardwidgets.PieChartQueryModel{
 		Metrics: &dashboardwidgets.PieChartQueryMetricsModel{
@@ -5104,6 +5181,7 @@ func flattenPieChartQueryMetrics(ctx context.Context, metrics *cxsdk.PieChartMet
 			Filters:          filters,
 			GroupNames:       utils.WrappedStringSliceToTypeStringList(metrics.GetGroupNames()),
 			StackedGroupName: utils.WrapperspbStringToTypeString(metrics.GetStackedGroupName()),
+			TimeFrame:        timeFrame,
 		},
 	}, nil
 }
@@ -5133,6 +5211,11 @@ func flattenPieChartQueryLogs(ctx context.Context, logs *cxsdk.PieChartLogsQuery
 		return nil, diags
 	}
 
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, logs.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardwidgets.PieChartQueryModel{
 		Logs: &dashboardwidgets.PieChartQueryLogsModel{
 			LuceneQuery:           utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
@@ -5142,6 +5225,7 @@ func flattenPieChartQueryLogs(ctx context.Context, logs *cxsdk.PieChartLogsQuery
 			StackedGroupName:      utils.WrapperspbStringToTypeString(logs.GetStackedGroupName()),
 			GroupNamesFields:      groupNamesFields,
 			StackedGroupNameField: stackedGroupNameField,
+			TimeFrame:             timeFrame,
 		},
 	}, nil
 }
@@ -5171,6 +5255,11 @@ func flattenPieChartQuerySpans(ctx context.Context, spans *cxsdk.PieChartSpansQu
 		return nil, diags
 	}
 
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, spans.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardwidgets.PieChartQueryModel{
 		Spans: &dashboardwidgets.PieChartQuerySpansModel{
 			LuceneQuery:      utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
@@ -5178,6 +5267,7 @@ func flattenPieChartQuerySpans(ctx context.Context, spans *cxsdk.PieChartSpansQu
 			Aggregation:      aggregation,
 			GroupNames:       groupNames,
 			StackedGroupName: stackedGroupName,
+			TimeFrame:        timeFrame,
 		},
 	}, nil
 }
@@ -5192,12 +5282,18 @@ func flattenPieChartDataPrimeQuery(ctx context.Context, dataPrime *cxsdk.PieChar
 		return nil, diags
 	}
 
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, dataPrime.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	return &dashboardwidgets.PieChartQueryModel{
 		DataPrime: &dashboardwidgets.PieChartQueryDataPrimeModel{
 			Query:            types.StringValue(dataPrime.GetDataprimeQuery().GetText()),
 			Filters:          filters,
 			GroupNames:       utils.WrappedStringSliceToTypeStringList(dataPrime.GetGroupNames()),
 			StackedGroupName: utils.WrapperspbStringToTypeString(dataPrime.GetStackedGroupName()),
+			TimeFrame:        timeFrame,
 		},
 	}, nil
 }
@@ -5306,6 +5402,11 @@ func flattenBarChartQueryLogs(ctx context.Context, logs *cxsdk.BarChartLogsQuery
 		return nil, diags
 	}
 
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, logs.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	flattenedLogs := &dashboardwidgets.BarChartQueryLogsModel{
 		LuceneQuery:           utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
 		Filters:               filters,
@@ -5314,6 +5415,7 @@ func flattenBarChartQueryLogs(ctx context.Context, logs *cxsdk.BarChartLogsQuery
 		StackedGroupName:      utils.WrapperspbStringToTypeString(logs.GetStackedGroupName()),
 		GroupNamesFields:      groupNamesFields,
 		StackedGroupNameField: stackedGroupNameField,
+		TimeFrame:             timeFrame,
 	}
 
 	logsObject, diags := types.ObjectValueFrom(ctx, barChartLogsQueryAttr(), flattenedLogs)
@@ -5353,12 +5455,18 @@ func flattenBarChartQuerySpans(ctx context.Context, spans *cxsdk.BarChartSpansQu
 		return nil, diag.Diagnostics{dg}
 	}
 
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, spans.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	flattenedSpans := &dashboardwidgets.BarChartQuerySpansModel{
 		LuceneQuery:      utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
 		Aggregation:      aggregation,
 		Filters:          filters,
 		GroupNames:       groupNames,
 		StackedGroupName: stackedGroupName,
+		TimeFrame:        timeFrame,
 	}
 	spansObject, diags := types.ObjectValueFrom(ctx, barChartSpansQueryAttr(), flattenedSpans)
 	if diags.HasError() {
@@ -5383,11 +5491,17 @@ func flattenBarChartQueryMetrics(ctx context.Context, metrics *cxsdk.BarChartMet
 		return nil, diags
 	}
 
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, metrics.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	flattenedMetric := &dashboardwidgets.BarChartQueryMetricsModel{
 		PromqlQuery:      utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 		Filters:          filters,
 		GroupNames:       utils.WrappedStringSliceToTypeStringList(metrics.GetGroupNames()),
 		StackedGroupName: utils.WrapperspbStringToTypeString(metrics.GetStackedGroupName()),
+		TimeFrame:        timeFrame,
 	}
 
 	metricObject, diags := types.ObjectValueFrom(ctx, barChartMetricsQueryAttr(), flattenedMetric)
@@ -5412,11 +5526,17 @@ func flattenBarChartQueryDataPrime(ctx context.Context, dataPrime *cxsdk.BarChar
 		return nil, diags
 	}
 
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, dataPrime.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	flattenedDataPrime := &dashboardwidgets.BarChartQueryDataPrimeModel{
 		Query:            types.StringValue(dataPrime.GetDataprimeQuery().GetText()),
 		Filters:          filters,
 		GroupNames:       utils.WrappedStringSliceToTypeStringList(dataPrime.GetGroupNames()),
 		StackedGroupName: utils.WrapperspbStringToTypeString(dataPrime.GetStackedGroupName()),
+		TimeFrame:        timeFrame,
 	}
 
 	dataPrimeObject, diags := types.ObjectValueFrom(ctx, barChartDataPrimeQueryAttr(), flattenedDataPrime)
