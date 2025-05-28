@@ -350,7 +350,7 @@ func TestAccCoralogixResourceDashboardGaugeWidget(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.query.metrics.aggregation", "unspecified"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.display_series_name", "false"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.decimal", "2"),
-					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.query_definitions.query.metrics.time_frame.relative.duration", "seconds:900"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.query.metrics.time_frame.relative.duration", "seconds:900"),
 				),
 			},
 			{
