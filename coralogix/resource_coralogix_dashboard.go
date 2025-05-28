@@ -4779,7 +4779,7 @@ func flattenDataTableLogsQuery(ctx context.Context, logs *cxsdk.DashboardDataTab
 		return nil, diags
 	}
 
-	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, metrics.TimeFrame)
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, logs.TimeFrame)
 	if diags.HasError() {
 		return nil, diags
 	}
