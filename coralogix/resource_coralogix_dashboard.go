@@ -4904,6 +4904,7 @@ func flattenGauge(ctx context.Context, gauge *cxsdk.Gauge) (*dashboardwidgets.Wi
 			DataModeType:      types.StringValue(dashboardwidgets.DashboardProtoToSchemaDataModeType[gauge.GetDataModeType()]),
 			ThresholdBy:       types.StringValue(dashboardwidgets.DashboardProtoToSchemaGaugeThresholdBy[gauge.GetThresholdBy()]),
 			DisplaySeriesName: utils.WrapperspbBoolToTypeBool(gauge.GetDisplaySeriesName()),
+			Decimal:           utils.WrappedInt32TotypeNumber(gauge.GetDecimal()),
 		},
 	}, nil
 }
