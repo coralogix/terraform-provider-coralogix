@@ -139,6 +139,11 @@ func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
                 }]
                 query = {
                   logs = {
+				    time_frame = {
+					  relative = {
+					    duration = "seconds:900" # 15 minutes
+					  }
+					}
                     aggregation = {
                       type = "count"
                     }
@@ -167,6 +172,7 @@ func TestAccCoralogixResourceDashboardHexagonWidget(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.max", "100"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.decimal", "2"),
 
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.query.logs.time_frame.relative.duration", "seconds:900"),
 					resource.TestCheckTypeSetElemNestedAttrs(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.hexagon.thresholds.*",
 						map[string]string{
 							"from":  "0",
@@ -240,8 +246,13 @@ func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
                         type  = "tag"
                         value = "deviceName"
                       }]
+					  time_frame = {
+						relative = {
+						  duration = "seconds:900" # 15 minutes
+						}
+					  }               
                     }
-                  }
+				  }
                   color_scheme = "classic"
                   is_visible   = true
                   scale_type   = "linear"
@@ -274,6 +285,8 @@ func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.tooltip.show_labels", "false"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.tooltip.type", "all"),
 
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.time_frame.relative.duration", "seconds:900"),
+
 					resource.TestCheckTypeSetElemNestedAttrs(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.filters.*",
 						map[string]string{
 							"field.type":                 "metadata",
@@ -290,6 +303,54 @@ func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
 							"operator.selected_values.#": "1",
 						},
 					),
+				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceDashboardGaugeWidget(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+
+				Config: testAccCoralogixResourceDashboardWithWidget(`{
+                title      = "gauge"
+                definition = {
+                  gauge = {
+                    unit  = "milliseconds"
+					decimal = 2
+					display_series_name = false
+                    query = {
+                      metrics = {
+                        promql_query = "vector(1)"
+                        aggregation  = "unspecified"
+						time_frame = {
+						  relative = {
+						     duration = "seconds:900" 
+						  }
+						}
+                      }
+                    }
+                  }
+                }
+          }`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "gauge"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.query.metrics.promql_query", "vector(1)"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.query.metrics.aggregation", "unspecified"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.display_series_name", "false"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.decimal", "2"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.gauge.query.metrics.time_frame.relative.duration", "seconds:900"),
 				),
 			},
 			{

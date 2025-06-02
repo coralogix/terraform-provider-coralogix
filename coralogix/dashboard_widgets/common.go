@@ -22,6 +22,7 @@ import (
 	"time"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -31,6 +32,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // Protobuf default value
@@ -275,9 +277,10 @@ var (
 )
 
 type QueryMetricsModel struct {
-	PromqlQuery     types.String `tfsdk:"promql_query"`
-	Filters         types.List   `tfsdk:"filters"` //MetricsFilterModel
-	PromqlQueryType types.String `tfsdk:"promql_query_type"`
+	PromqlQuery     types.String    `tfsdk:"promql_query"`
+	Filters         types.List      `tfsdk:"filters"` //MetricsFilterModel
+	PromqlQueryType types.String    `tfsdk:"promql_query_type"`
+	TimeFrame       *TimeFrameModel `tfsdk:"time_frame"`
 }
 
 type MetricFilterModel struct {
@@ -287,10 +290,11 @@ type MetricFilterModel struct {
 }
 
 type QuerySpansModel struct {
-	LuceneQuery  types.String `tfsdk:"lucene_query"`
-	GroupBy      types.List   `tfsdk:"group_by"`     //SpansFieldModel
-	Aggregations types.List   `tfsdk:"aggregations"` //SpansAggregationModel
-	Filters      types.List   `tfsdk:"filters"`      //SpansFilterModel
+	LuceneQuery  types.String    `tfsdk:"lucene_query"`
+	GroupBy      types.List      `tfsdk:"group_by"`     //SpansFieldModel
+	Aggregations types.List      `tfsdk:"aggregations"` //SpansAggregationModel
+	Filters      types.List      `tfsdk:"filters"`      //SpansFilterModel
+	TimeFrame    *TimeFrameModel `tfsdk:"time_frame"`
 }
 
 type SpansFieldModel struct {
@@ -306,8 +310,9 @@ type LogsAggregationModel struct {
 }
 
 type DataPrimeModel struct {
-	Query   types.String `tfsdk:"query"`
-	Filters types.List   `tfsdk:"filters"` //DashboardFilterSourceModel
+	Query     types.String    `tfsdk:"query"`
+	Filters   types.List      `tfsdk:"filters"` //DashboardFilterSourceModel
+	TimeFrame *TimeFrameModel `tfsdk:"time_frame"`
 }
 
 type SpansAggregationModel struct {
@@ -358,16 +363,18 @@ type LineChartResolutionModel struct {
 }
 
 type LineChartQueryModel struct {
-	Logs    *LineChartQueryLogsModel  `tfsdk:"logs"`
-	Metrics *QueryMetricsModel        `tfsdk:"metrics"`
-	Spans   *LineChartQuerySpansModel `tfsdk:"spans"`
+	Logs      *LineChartQueryLogsModel  `tfsdk:"logs"`
+	Metrics   *QueryMetricsModel        `tfsdk:"metrics"`
+	Spans     *LineChartQuerySpansModel `tfsdk:"spans"`
+	DataPrime *DataPrimeModel           `tfsdk:"data_prime"`
 }
 
 type LineChartQueryLogsModel struct {
-	LuceneQuery  types.String `tfsdk:"lucene_query"`
-	GroupBy      types.List   `tfsdk:"group_by"`     //types.String
-	Aggregations types.List   `tfsdk:"aggregations"` //AggregationModel
-	Filters      types.List   `tfsdk:"filters"`      //FilterModel
+	LuceneQuery  types.String    `tfsdk:"lucene_query"`
+	GroupBy      types.List      `tfsdk:"group_by"`     //types.String
+	Aggregations types.List      `tfsdk:"aggregations"` //AggregationModel
+	Filters      types.List      `tfsdk:"filters"`      //FilterModel
+	TimeFrame    *TimeFrameModel `tfsdk:"time_frame"`
 }
 
 type QueryMetricFilterModel struct {
@@ -377,10 +384,11 @@ type QueryMetricFilterModel struct {
 }
 
 type LineChartQuerySpansModel struct {
-	LuceneQuery  types.String `tfsdk:"lucene_query"`
-	GroupBy      types.List   `tfsdk:"group_by"`     //SpansFieldModel
-	Aggregations types.List   `tfsdk:"aggregations"` //SpansAggregationModel
-	Filters      types.List   `tfsdk:"filters"`      //SpansFilterModel
+	LuceneQuery  types.String    `tfsdk:"lucene_query"`
+	GroupBy      types.List      `tfsdk:"group_by"`     //SpansFieldModel
+	Aggregations types.List      `tfsdk:"aggregations"` //SpansAggregationModel
+	Filters      types.List      `tfsdk:"filters"`      //SpansFilterModel
+	TimeFrame    *TimeFrameModel `tfsdk:"time_frame"`
 }
 
 type DataTableModel struct {
@@ -396,7 +404,7 @@ type DataTableQueryLogsModel struct {
 	LuceneQuery types.String                     `tfsdk:"lucene_query"`
 	Filters     types.List                       `tfsdk:"filters"` //LogsFilterModel
 	Grouping    *DataTableLogsQueryGroupingModel `tfsdk:"grouping"`
-	Timeframe   *TimeFrameModel                  `tfsdk:"time_frame"`
+	TimeFrame   *TimeFrameModel                  `tfsdk:"time_frame"`
 }
 
 type LogsFilterModel struct {
@@ -445,6 +453,7 @@ type DataTableQuerySpansModel struct {
 	LuceneQuery types.String                      `tfsdk:"lucene_query"`
 	Filters     types.List                        `tfsdk:"filters"` //SpansFilterModel
 	Grouping    *DataTableSpansQueryGroupingModel `tfsdk:"grouping"`
+	TimeFrame   *TimeFrameModel                   `tfsdk:"time_frame"`
 }
 
 type SpansFilterModel struct {
@@ -458,15 +467,17 @@ type DataTableSpansQueryGroupingModel struct {
 }
 
 type GaugeModel struct {
-	Query        *GaugeQueryModel `tfsdk:"query"`
-	Min          types.Float64    `tfsdk:"min"`
-	Max          types.Float64    `tfsdk:"max"`
-	ShowInnerArc types.Bool       `tfsdk:"show_inner_arc"`
-	ShowOuterArc types.Bool       `tfsdk:"show_outer_arc"`
-	Unit         types.String     `tfsdk:"unit"`
-	Thresholds   types.List       `tfsdk:"thresholds"` //GaugeThresholdModel
-	DataModeType types.String     `tfsdk:"data_mode_type"`
-	ThresholdBy  types.String     `tfsdk:"threshold_by"`
+	Query             *GaugeQueryModel `tfsdk:"query"`
+	Min               types.Float64    `tfsdk:"min"`
+	Max               types.Float64    `tfsdk:"max"`
+	ShowInnerArc      types.Bool       `tfsdk:"show_inner_arc"`
+	ShowOuterArc      types.Bool       `tfsdk:"show_outer_arc"`
+	Unit              types.String     `tfsdk:"unit"`
+	Thresholds        types.List       `tfsdk:"thresholds"` //GaugeThresholdModel
+	DataModeType      types.String     `tfsdk:"data_mode_type"`
+	ThresholdBy       types.String     `tfsdk:"threshold_by"`
+	DisplaySeriesName types.Bool       `tfsdk:"display_series_name"`
+	Decimal           types.Number     `tfsdk:"decimal"`
 }
 
 type GaugeQueryModel struct {
@@ -480,18 +491,21 @@ type GaugeQueryLogsModel struct {
 	LuceneQuery     types.String          `tfsdk:"lucene_query"`
 	LogsAggregation *LogsAggregationModel `tfsdk:"logs_aggregation"`
 	Filters         types.List            `tfsdk:"filters"` //LogsFilterModel
+	TimeFrame       *TimeFrameModel       `tfsdk:"time_frame"`
 }
 
 type GaugeQueryMetricsModel struct {
-	PromqlQuery types.String `tfsdk:"promql_query"`
-	Aggregation types.String `tfsdk:"aggregation"`
-	Filters     types.List   `tfsdk:"filters"` //MetricsFilterModel
+	PromqlQuery types.String    `tfsdk:"promql_query"`
+	Aggregation types.String    `tfsdk:"aggregation"`
+	Filters     types.List      `tfsdk:"filters"` //MetricsFilterModel
+	TimeFrame   *TimeFrameModel `tfsdk:"time_frame"`
 }
 
 type GaugeQuerySpansModel struct {
 	LuceneQuery      types.String           `tfsdk:"lucene_query"`
 	SpansAggregation *SpansAggregationModel `tfsdk:"spans_aggregation"`
 	Filters          types.List             `tfsdk:"filters"` //SpansFilterModel
+	TimeFrame        *TimeFrameModel        `tfsdk:"time_frame"`
 }
 
 type GaugeThresholdModel struct {
@@ -532,13 +546,15 @@ type PieChartQueryLogsModel struct {
 	StackedGroupName      types.String          `tfsdk:"stacked_group_name"`
 	GroupNamesFields      types.List            `tfsdk:"group_names_fields"`       //ObservationFieldModel
 	StackedGroupNameField types.Object          `tfsdk:"stacked_group_name_field"` //ObservationFieldModel
+	TimeFrame             *TimeFrameModel       `tfsdk:"time_frame"`
 }
 
 type PieChartQueryMetricsModel struct {
-	PromqlQuery      types.String `tfsdk:"promql_query"`
-	Filters          types.List   `tfsdk:"filters"`     //MetricsFilterModel
-	GroupNames       types.List   `tfsdk:"group_names"` //types.String
-	StackedGroupName types.String `tfsdk:"stacked_group_name"`
+	PromqlQuery      types.String    `tfsdk:"promql_query"`
+	Filters          types.List      `tfsdk:"filters"`     //MetricsFilterModel
+	GroupNames       types.List      `tfsdk:"group_names"` //types.String
+	StackedGroupName types.String    `tfsdk:"stacked_group_name"`
+	TimeFrame        *TimeFrameModel `tfsdk:"time_frame"`
 }
 
 type PieChartQuerySpansModel struct {
@@ -547,13 +563,15 @@ type PieChartQuerySpansModel struct {
 	Filters          types.List             `tfsdk:"filters"`     //SpansFilterModel
 	GroupNames       types.List             `tfsdk:"group_names"` //SpansFieldModel
 	StackedGroupName *SpansFieldModel       `tfsdk:"stacked_group_name"`
+	TimeFrame        *TimeFrameModel        `tfsdk:"time_frame"`
 }
 
 type PieChartQueryDataPrimeModel struct {
-	Query            types.String `tfsdk:"query"`
-	Filters          types.List   `tfsdk:"filters"`     //DashboardFilterSourceModel
-	GroupNames       types.List   `tfsdk:"group_names"` //types.String
-	StackedGroupName types.String `tfsdk:"stacked_group_name"`
+	Query            types.String    `tfsdk:"query"`
+	Filters          types.List      `tfsdk:"filters"`     //DashboardFilterSourceModel
+	GroupNames       types.List      `tfsdk:"group_names"` //types.String
+	StackedGroupName types.String    `tfsdk:"stacked_group_name"`
+	TimeFrame        *TimeFrameModel `tfsdk:"time_frame"`
 }
 
 type LabelDefinitionModel struct {
@@ -593,6 +611,7 @@ type BarChartQueryLogsModel struct {
 	StackedGroupName      types.String          `tfsdk:"stacked_group_name"`
 	GroupNamesFields      types.List            `tfsdk:"group_names_fields"`       //ObservationFieldModel
 	StackedGroupNameField types.Object          `tfsdk:"stacked_group_name_field"` //ObservationFieldModel
+	TimeFrame             *TimeFrameModel       `tfsdk:"time_frame"`
 }
 
 type ObservationFieldModel struct {
@@ -601,10 +620,11 @@ type ObservationFieldModel struct {
 }
 
 type BarChartQueryMetricsModel struct {
-	PromqlQuery      types.String `tfsdk:"promql_query"`
-	Filters          types.List   `tfsdk:"filters"`     //MetricsFilterModel
-	GroupNames       types.List   `tfsdk:"group_names"` //types.String
-	StackedGroupName types.String `tfsdk:"stacked_group_name"`
+	PromqlQuery      types.String    `tfsdk:"promql_query"`
+	Filters          types.List      `tfsdk:"filters"`     //MetricsFilterModel
+	GroupNames       types.List      `tfsdk:"group_names"` //types.String
+	StackedGroupName types.String    `tfsdk:"stacked_group_name"`
+	TimeFrame        *TimeFrameModel `tfsdk:"time_frame"`
 }
 
 type BarChartQuerySpansModel struct {
@@ -613,13 +633,15 @@ type BarChartQuerySpansModel struct {
 	Filters          types.List             `tfsdk:"filters"`     //SpansFilterModel
 	GroupNames       types.List             `tfsdk:"group_names"` //SpansFieldModel
 	StackedGroupName *SpansFieldModel       `tfsdk:"stacked_group_name"`
+	TimeFrame        *TimeFrameModel        `tfsdk:"time_frame"`
 }
 
 type BarChartQueryDataPrimeModel struct {
-	Query            types.String `tfsdk:"query"`
-	Filters          types.List   `tfsdk:"filters"`     //DashboardFilterSourceModel
-	GroupNames       types.List   `tfsdk:"group_names"` //types.String
-	StackedGroupName types.String `tfsdk:"stacked_group_name"`
+	Query            types.String    `tfsdk:"query"`
+	Filters          types.List      `tfsdk:"filters"`     //DashboardFilterSourceModel
+	GroupNames       types.List      `tfsdk:"group_names"` //types.String
+	StackedGroupName types.String    `tfsdk:"stacked_group_name"`
+	TimeFrame        *TimeFrameModel `tfsdk:"time_frame"`
 }
 
 type DataTableSpansAggregationModel struct {
@@ -663,9 +685,10 @@ type HorizontalBarChartModel struct {
 }
 
 type HorizontalBarChartQueryModel struct {
-	Logs    types.Object `tfsdk:"logs"`    //BarChartQueryLogsModel
-	Metrics types.Object `tfsdk:"metrics"` //BarChartQueryMetricsModel
-	Spans   types.Object `tfsdk:"spans"`   //BarChartQuerySpansModel
+	Logs      types.Object `tfsdk:"logs"`       //BarChartQueryLogsModel
+	Metrics   types.Object `tfsdk:"metrics"`    //BarChartQueryMetricsModel
+	Spans     types.Object `tfsdk:"spans"`      //BarChartQuerySpansModel
+	DataPrime types.Object `tfsdk:"data_prime"` //BarChartQueryDataPrimeModel
 }
 
 type MarkdownModel struct {
@@ -1736,4 +1759,66 @@ func SupportedWidgetsValidatorWithout(current string) validator.Object {
 		}
 	}
 	return objectvalidator.ExactlyOneOf(matchers...)
+}
+
+func FlattenSpansAggregation(aggregation *cxsdk.SpansAggregation) (*SpansAggregationModel, diag.Diagnostic) {
+	if aggregation == nil || aggregation.GetAggregation() == nil {
+		return nil, nil
+	}
+	switch aggregation := aggregation.GetAggregation().(type) {
+	case *cxsdk.SpansAggregationMetricAggregation:
+		return &SpansAggregationModel{
+			Type:            types.StringValue("metric"),
+			AggregationType: types.StringValue(DashboardProtoToSchemaSpansAggregationMetricAggregationType[aggregation.MetricAggregation.GetAggregationType()]),
+			Field:           types.StringValue(DashboardProtoToSchemaSpansAggregationMetricField[aggregation.MetricAggregation.GetMetricField()]),
+		}, nil
+	case *cxsdk.SpansAggregationDimensionAggregation:
+		return &SpansAggregationModel{
+			Type:            types.StringValue("dimension"),
+			AggregationType: types.StringValue(DashboardProtoToSchemaSpansAggregationDimensionAggregationType[aggregation.DimensionAggregation.GetAggregationType()]),
+			Field:           types.StringValue(DashboardSchemaToProtoSpansAggregationDimensionField[aggregation.DimensionAggregation.GetDimensionField()]),
+		}, nil
+	default:
+		return nil, diag.NewErrorDiagnostic("Error Flatten Span Aggregation", fmt.Sprintf("unknown aggregation type %T", aggregation))
+	}
+}
+
+func ExpandResolution(ctx context.Context, resolution types.Object) (*cxsdk.LineChartResolution, diag.Diagnostics) {
+	if resolution.IsNull() || resolution.IsUnknown() {
+		return nil, nil
+	}
+
+	var resolutionModel LineChartResolutionModel
+	if diags := resolution.As(ctx, &resolutionModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	if !(resolutionModel.Interval.IsNull() || resolutionModel.Interval.IsUnknown()) {
+		interval, dg := utils.ParseDuration(resolutionModel.Interval.ValueString(), "resolution.interval")
+		if dg != nil {
+			return nil, diag.Diagnostics{dg}
+		}
+
+		return &cxsdk.LineChartResolution{
+			Interval: durationpb.New(*interval),
+		}, nil
+	}
+
+	return &cxsdk.LineChartResolution{
+		BucketsPresented: utils.TypeInt64ToWrappedInt32(resolutionModel.BucketsPresented),
+	}, nil
+}
+
+func ExpandDashboardUUID(id types.String) *cxsdk.UUID {
+	if id.IsNull() || id.IsUnknown() {
+		return &cxsdk.UUID{Value: uuid.NewString()}
+	}
+	return &cxsdk.UUID{Value: id.ValueString()}
+}
+
+func ExpandDashboardIDs(id types.String) *wrapperspb.StringValue {
+	if id.IsNull() || id.IsUnknown() {
+		return &wrapperspb.StringValue{Value: uuid.NewString()}
+	}
+	return &wrapperspb.StringValue{Value: id.ValueString()}
 }
