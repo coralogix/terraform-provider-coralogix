@@ -2168,6 +2168,8 @@ Required:
 Optional:
 
 - `data_mode_type` (String) The data mode type. Can be one of ["archive" "unspecified"].
+- `decimal` (Number)
+- `display_series_name` (Boolean)
 - `max` (Number)
 - `min` (Number)
 - `show_inner_arc` (Boolean)

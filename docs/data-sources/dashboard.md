@@ -1332,6 +1332,8 @@ Read-Only:
 Read-Only:
 
 - `data_mode_type` (String) The data mode type. Can be one of ["archive" "unspecified"].
+- `decimal` (Number)
+- `display_series_name` (Boolean)
 - `max` (Number)
 - `min` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query))
