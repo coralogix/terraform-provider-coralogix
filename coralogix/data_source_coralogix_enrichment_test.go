@@ -25,9 +25,9 @@ var enrichmentDataSourceName = "data." + enrichmentResourceName
 func TestAccCoralogixDataSourceEnrichment_basic(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { TestAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckDataSetDestroy,
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDataSetDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceGeoIpEnrichment(fieldName) +

@@ -31,9 +31,9 @@ var enrichmentResourceName = "coralogix_enrichment.test"
 func TestAccCoralogixResourceGeoIpEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { TestAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckEnrichmentDestroy,
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckEnrichmentDestroy,
 		Steps: []resource.TestStep{
 			{
 
@@ -55,9 +55,9 @@ func TestAccCoralogixResourceGeoIpEnrichment(t *testing.T) {
 func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { TestAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckEnrichmentDestroy,
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckEnrichmentDestroy,
 		Steps: []resource.TestStep{
 			{
 
@@ -82,7 +82,7 @@ func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 //	resourceType := ""
 //	resource.Test(t, resource.TestCase{
 //		PreCheck:          func() { TestAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
+//		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 //		CheckDestroy:      testAccCheckEnrichmentDestroy,
 //		Steps: []resource.TestStep{
 //			{
@@ -105,9 +105,9 @@ func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 func TestAccCoralogixResourceCustomEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { TestAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckCustomEnrichmentDestroy,
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckCustomEnrichmentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceCustomEnrichment(fieldName),
