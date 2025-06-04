@@ -23,7 +23,7 @@ description: |-
 
 - `annotations` (Attributes List) (see [below for nested schema](#nestedatt--annotations))
 - `auto_refresh` (Attributes) (see [below for nested schema](#nestedatt--auto_refresh))
-- `content_json` (String) an option to set the dashboard content from a json file. NB: this is not fully compatible with the json that gets exported from the Coralogix UI.
+- `content_json` (String) an option to set the dashboard content from a json file.
 - `description` (String) Brief description or summary of the dashboard's purpose or content.
 - `filters` (Attributes List) List of filters that can be applied to the dashboard's data. (see [below for nested schema](#nestedatt--filters))
 - `folder` (Attributes) (see [below for nested schema](#nestedatt--folder))
@@ -486,6 +486,7 @@ Read-Only:
 - `group_names` (List of String)
 - `query` (String)
 - `stacked_group_name` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.filters`
@@ -571,6 +572,32 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--data_prime--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.data_prime.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs`
@@ -584,6 +611,7 @@ Read-Only:
 - `lucene_query` (String)
 - `stacked_group_name` (String)
 - `stacked_group_name_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--stacked_group_name_field))
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.aggregation`
@@ -651,6 +679,32 @@ Read-Only:
 - `scope` (String)
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--logs--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.logs.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.metrics`
@@ -661,6 +715,7 @@ Read-Only:
 - `group_names` (List of String)
 - `promql_query` (String)
 - `stacked_group_name` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.metrics.filters`
@@ -681,6 +736,32 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.metrics.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.metrics.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--metrics--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.metrics.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans`
@@ -692,6 +773,7 @@ Read-Only:
 - `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--group_names))
 - `lucene_query` (String)
 - `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--stacked_group_name))
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.aggregation`
@@ -746,6 +828,32 @@ Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--bar_chart--query--spans--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.bar_chart.query.spans.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
 
 
 
@@ -829,6 +937,7 @@ Read-Only:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters))
 - `query` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.filters`
@@ -911,6 +1020,32 @@ Read-Only:
 - `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
 - `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
 
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--data_prime--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.data_prime.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
 
 
 
@@ -1038,6 +1173,7 @@ Read-Only:
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters))
 - `promql_query` (String)
 - `promql_query_type` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.metrics.filters`
@@ -1058,6 +1194,32 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.metrics.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.metrics.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--metrics--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.metrics.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans`
@@ -1067,6 +1229,7 @@ Read-Only:
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters))
 - `grouping` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--grouping))
 - `lucene_query` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.filters`
@@ -1134,6 +1297,32 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--spans--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.data_table.query.spans.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 
 
@@ -1143,6 +1332,8 @@ Read-Only:
 Read-Only:
 
 - `data_mode_type` (String) The data mode type. Can be one of ["archive" "unspecified"].
+- `decimal` (Number)
+- `display_series_name` (Boolean)
 - `max` (Number)
 - `min` (Number)
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query))
@@ -1169,6 +1360,7 @@ Read-Only:
 
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters))
 - `query` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.filters`
@@ -1254,6 +1446,32 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--data_prime--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.data_prime.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs`
@@ -1263,6 +1481,7 @@ Read-Only:
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters))
 - `logs_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--logs_aggregation))
 - `lucene_query` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.filters`
@@ -1312,6 +1531,32 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--logs--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.logs.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.metrics`
@@ -1321,6 +1566,7 @@ Read-Only:
 - `aggregation` (String) The type of aggregation. Can be one of ["avg" "last" "max" "min" "sum" "unspecified"].
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters))
 - `promql_query` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.metrics.filters`
@@ -1341,6 +1587,32 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.metrics.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.metrics.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--metrics--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.metrics.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans`
@@ -1350,6 +1622,7 @@ Read-Only:
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters))
 - `lucene_query` (String)
 - `spans_aggregation` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--spans_aggregation))
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.filters`
@@ -1388,6 +1661,32 @@ Read-Only:
 - `type` (String) Can be one of ["metric" "dimension"]
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--gauge--query--spans--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.gauge.query.spans.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--gauge--thresholds"></a>
@@ -1415,7 +1714,6 @@ Read-Only:
 - `query` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query))
 - `threshold_type` (String) The threshold type. Valid values are: absolute, relative, unspecified.
 - `thresholds` (Attributes Set) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--thresholds))
-- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--time_frame))
 - `unit` (String) The unit. Valid values are: bytes, bytes_iec, custom, euro, euro_cents, gbytes, gibytes, kbytes, kibytes, mbytes, mibytes, microseconds, milliseconds, nanoseconds, percent01, percent100, seconds, unspecified, usd, usd_cents.
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--legend"></a>
@@ -1446,6 +1744,7 @@ Read-Only:
 
 - `dataprime_query` (String)
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters))
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.filters`
@@ -1531,6 +1830,32 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.data_prime.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs`
@@ -1541,6 +1866,7 @@ Read-Only:
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--filters))
 - `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--group_by))
 - `lucene_query` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.aggregation`
@@ -1599,6 +1925,32 @@ Read-Only:
 - `scope` (String)
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--logs--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.logs.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.metrics`
@@ -1609,6 +1961,7 @@ Read-Only:
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--filters))
 - `promql_query` (String)
 - `promql_query_type` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.metrics.filters`
@@ -1629,6 +1982,32 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.metrics.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.metrics.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--metrics--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.metrics.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans`
@@ -1639,6 +2018,7 @@ Read-Only:
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--filters))
 - `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--group_by))
 - `lucene_query` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.aggregation`
@@ -1686,6 +2066,32 @@ Read-Only:
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--spans--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.query.spans.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--thresholds"></a>
@@ -1696,32 +2102,6 @@ Read-Only:
 - `color` (String)
 - `from` (Number)
 - `label` (String)
-
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--time_frame"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.time_frame`
-
-Read-Only:
-
-- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--time_frame--absolute))
-- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--time_frame--relative))
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--time_frame--absolute"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.time_frame.absolute`
-
-Read-Only:
-
-- `end` (String)
-- `start` (String)
-
-
-<a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--time_frame--relative"></a>
-### Nested Schema for `layout.sections.rows.widgets.definition.hexagon.time_frame.relative`
-
-Read-Only:
-
-- `duration` (String)
-
 
 
 
@@ -1748,9 +2128,132 @@ Read-Only:
 
 Read-Only:
 
+- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime))
 - `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs))
 - `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics))
 - `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime`
+
+Read-Only:
+
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters))
+- `group_names` (List of String)
+- `query` (String)
+- `stacked_group_name` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--time_frame))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters`
+
+Read-Only:
+
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs`
+
+Read-Only:
+
+- `field` (String) Field in the logs to apply the filter on.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--observation_field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--logs--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.logs.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.metrics`
+
+Read-Only:
+
+- `label` (String)
+- `metric_name` (String)
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--metrics--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--metrics--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.metrics.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans`
+
+Read-Only:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.field`
+
+Read-Only:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.filters.spans.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--data_prime--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.data_prime.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs`
@@ -1764,6 +2267,7 @@ Read-Only:
 - `lucene_query` (String)
 - `stacked_group_name` (String)
 - `stacked_group_name_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--stacked_group_name_field))
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.aggregation`
@@ -1831,6 +2335,32 @@ Read-Only:
 - `scope` (String)
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--logs--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.logs.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics`
@@ -1841,6 +2371,7 @@ Read-Only:
 - `group_names` (List of String)
 - `promql_query` (String)
 - `stacked_group_name` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.filters`
@@ -1861,6 +2392,32 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--metrics--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.metrics.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans`
@@ -1872,6 +2429,7 @@ Read-Only:
 - `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--group_names))
 - `lucene_query` (String)
 - `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--stacked_group_name))
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.aggregation`
@@ -1928,6 +2486,32 @@ Read-Only:
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--query--spans--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.horizontal_bar_chart.query.spans.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--horizontal_bar_chart--stack_definition"></a>
@@ -1982,9 +2566,130 @@ Read-Only:
 
 Read-Only:
 
+- `data_prime` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime))
 - `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs))
 - `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics))
 - `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime`
+
+Read-Only:
+
+- `dataprime_query` (String)
+- `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters))
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters`
+
+Read-Only:
+
+- `logs` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs))
+- `metrics` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--metrics))
+- `spans` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs`
+
+Read-Only:
+
+- `field` (String) Field in the logs to apply the filter on.
+- `observation_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--observation_field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--observation_field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs.observation_field`
+
+Read-Only:
+
+- `keypath` (List of String)
+- `scope` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--logs--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.logs.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--metrics"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.metrics`
+
+Read-Only:
+
+- `label` (String)
+- `metric_name` (String)
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--metrics--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--metrics--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.metrics.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans`
+
+Read-Only:
+
+- `field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans--field))
+- `operator` (Attributes) Operator to use for filtering. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans--operator))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans--field"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.field`
+
+Read-Only:
+
+- `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
+- `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters--spans--operator"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.filters.spans.operator`
+
+Read-Only:
+
+- `selected_values` (List of String) the values to filter by. When the type is `equals`, this field is optional, the filter will match only the selected values, and all the values if not set. When the type is `not_equals`, this field is required, and the filter will match spans without the selected values.
+- `type` (String) The type of the operator. Can be one of `equals` or `not_equals`.
+
+
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.data_prime.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs`
@@ -1995,6 +2700,7 @@ Read-Only:
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--filters))
 - `group_by` (List of String)
 - `lucene_query` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--aggregations"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.aggregations`
@@ -2044,6 +2750,32 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--logs--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.logs.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics`
@@ -2053,6 +2785,7 @@ Read-Only:
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters))
 - `promql_query` (String)
 - `promql_query_type` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.filters`
@@ -2073,6 +2806,32 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--metrics--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.metrics.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans`
@@ -2083,6 +2842,7 @@ Read-Only:
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--filters))
 - `group_by` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--group_by))
 - `lucene_query` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--aggregations"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.aggregations`
@@ -2128,6 +2888,32 @@ Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--spans--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.line_chart.query_definitions.query.spans.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
 
 
 
@@ -2208,6 +2994,7 @@ Read-Only:
 - `group_names` (List of String)
 - `query` (String)
 - `stacked_group_name` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.filters`
@@ -2293,6 +3080,32 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--data_prime--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.data_prime.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs`
@@ -2306,6 +3119,7 @@ Read-Only:
 - `lucene_query` (String)
 - `stacked_group_name` (String)
 - `stacked_group_name_field` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--stacked_group_name_field))
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.aggregation`
@@ -2373,6 +3187,32 @@ Read-Only:
 - `scope` (String)
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--logs--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.logs.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.metrics`
@@ -2383,6 +3223,7 @@ Read-Only:
 - `group_names` (List of String)
 - `promql_query` (String)
 - `stacked_group_name` (String)
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--filters"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.metrics.filters`
@@ -2403,6 +3244,32 @@ Read-Only:
 
 
 
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.metrics.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.metrics.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--metrics--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.metrics.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
+
+
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans`
@@ -2414,6 +3281,7 @@ Read-Only:
 - `group_names` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--group_names))
 - `lucene_query` (String)
 - `stacked_group_name` (Attributes) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--stacked_group_name))
+- `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--aggregation"></a>
 ### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.aggregation`
@@ -2468,6 +3336,32 @@ Read-Only:
 
 - `type` (String) The type of the field. Can be one of ["metadata" "tag" "process_tag"]
 - `value` (String) The value of the field. When the field type is `metadata`, can be one of ["application_name" "operation_name" "service_name" "subsystem_name" "unspecified"]
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.time_frame`
+
+Read-Only:
+
+- `absolute` (Attributes) Absolute time frame specifying a fixed start and end time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame--absolute))
+- `relative` (Attributes) Relative time frame specifying a duration from the current time. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame--relative))
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame--absolute"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.time_frame.absolute`
+
+Read-Only:
+
+- `end` (String)
+- `start` (String)
+
+
+<a id="nestedatt--layout--sections--rows--widgets--definition--pie_chart--query--spans--time_frame--relative"></a>
+### Nested Schema for `layout.sections.rows.widgets.definition.pie_chart.query.spans.time_frame.relative`
+
+Read-Only:
+
+- `duration` (String)
+
 
 
 
