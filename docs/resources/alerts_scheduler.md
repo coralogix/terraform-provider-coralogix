@@ -88,15 +88,15 @@ resource "coralogix_alerts_scheduler" "example_2" {
 
 ### Required
 
+- `filter` (Attributes) Alert Scheduler filter. Only one of `meta_labels` or `alerts_unique_ids` can be set. If none of them set, all alerts will be affected. (see [below for nested schema](#nestedatt--filter))
 - `name` (String) Alert Scheduler name.
+- `schedule` (Attributes) Exactly one of `one_time` or `recurring` must be set. (see [below for nested schema](#nestedatt--schedule))
 
 ### Optional
 
 - `description` (String) Alert Scheduler description.
 - `enabled` (Boolean) Alert Scheduler enabled. If set to `false`, the alert scheduler will be disabled. True by default.
-- `filter` (Attributes) Alert Scheduler filter. Only one of `meta_labels` or `alerts_unique_ids` can be set. If none of them set, all alerts will be affected. (see [below for nested schema](#nestedatt--filter))
 - `meta_labels` (Attributes Set) Alert Scheduler meta labels. (see [below for nested schema](#nestedatt--meta_labels))
-- `schedule` (Attributes) Exactly one of `one_time` or `recurring` must be set. (see [below for nested schema](#nestedatt--schedule))
 
 ### Read-Only
 
@@ -125,18 +125,6 @@ Optional:
 
 - `value` (String)
 
-
-
-<a id="nestedatt--meta_labels"></a>
-### Nested Schema for `meta_labels`
-
-Required:
-
-- `key` (String)
-
-Optional:
-
-- `value` (String)
 
 
 <a id="nestedatt--schedule"></a>
@@ -252,3 +240,19 @@ Required:
 
 - `for_over` (Number) The number of time units to wait before the alert is triggered. For example, if the frequency is set to `hours` and the value is set to `2`, the alert will be triggered after 2 hours.
 - `frequency` (String) The time unit to wait before the alert is triggered. Can be `minutes`, `hours` or `days`.
+
+
+
+
+
+
+<a id="nestedatt--meta_labels"></a>
+### Nested Schema for `meta_labels`
+
+Required:
+
+- `key` (String)
+
+Optional:
+
+- `value` (String)
