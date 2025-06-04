@@ -130,10 +130,11 @@ func testAccCoralogixResourceGeoIpEnrichment(fieldName string) string {
               geo_ip {
                 fields {
                       name = "%s"
+					  enriched_field_name = "%s_enriched"
                 }
             }
         }
-        `, fieldName)
+        `, fieldName, fieldName)
 }
 
 func testAccCoralogixResourceSuspiciousIpEnrichment(fieldName string) string {
@@ -141,10 +142,11 @@ func testAccCoralogixResourceSuspiciousIpEnrichment(fieldName string) string {
             suspicious_ip {
                 fields {
                       name = "%s"
+					  enriched_field_name = "%s_enriched"
                 }
             }
         }
-        `, fieldName)
+        `, fieldName, fieldName)
 }
 
 //func testAccCoralogixResourceAwsEnrichment(fieldName, resourceType string) string {
@@ -171,10 +173,11 @@ func testAccCoralogixResourceCustomEnrichment(fieldName string) string {
             custom_enrichment_id = coralogix_data_set.test.id
             fields {
                     name = "%s"
+					enriched_field_name = "%s_enriched"
                 }
         }
     }
-    `, fieldName)
+    `, fieldName, fieldName)
 }
 
 func testAccCheckEnrichmentDestroy(s *terraform.State) error {
