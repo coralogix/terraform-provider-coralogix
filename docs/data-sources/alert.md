@@ -946,7 +946,7 @@ Read-Only:
 Read-Only:
 
 - `dual` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--dual))
-- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--rules))
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--rules))
 - `single` (Attributes) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--single))
 
 <a id="nestedatt--type_definition--slo_threshold--burn_rate--dual"></a>
@@ -1014,7 +1014,7 @@ Read-Only:
 
 Read-Only:
 
-- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget--rules))
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget--rules))
 
 <a id="nestedatt--type_definition--slo_threshold--error_budget--rules"></a>
 ### Nested Schema for `type_definition.slo_threshold.error_budget.rules`

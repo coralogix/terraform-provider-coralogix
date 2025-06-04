@@ -74,9 +74,9 @@ var (
 	schemaToProtoSLOPeriod = utils.ReverseMap(protoToSchemaSLOPeriod)
 	validSLOPeriods        = utils.GetKeys(schemaToProtoSLOPeriod)
 	protoToSchemaSLOStatus = map[cxsdk.SloStatus]string{
-		cxsdk.SloStatusUnspecified: "unspecified",
-		cxsdk.SloStatusOk:          "ok",
-		cxsdk.SloStatusBreached:    "breached",
+		cxsdk.LegacySloStatusUnspecified: "unspecified",
+		cxsdk.LegacySloStatusOk:          "ok",
+		cxsdk.LegacySloStatusBreached:    "breached",
 	}
 )
 
@@ -288,7 +288,7 @@ func (r *SLOResource) Create(ctx context.Context, req resource.CreateRequest, re
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating SLO",
-			utils.FormatRpcErrors(err, cxsdk.SloCreateRPC, protojson.Format(createSloReq)),
+			utils.FormatRpcErrors(err, cxsdk.LegacySloCreateRPC, protojson.Format(createSloReq)),
 		)
 		return
 	}
@@ -462,7 +462,7 @@ func (r *SLOResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",
-				utils.FormatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(readSloReq)),
+				utils.FormatRpcErrors(err, cxsdk.LegacySloGetRPC, protojson.Format(readSloReq)),
 			)
 		}
 		return
@@ -502,7 +502,7 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating SLO",
-			utils.FormatRpcErrors(err, cxsdk.SloReplaceRPC, protojson.Format(updateSloReq)),
+			utils.FormatRpcErrors(err, cxsdk.LegacySloReplaceRPC, protojson.Format(updateSloReq)),
 		)
 		return
 	}
@@ -523,7 +523,7 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",
-				utils.FormatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(getSloReq)),
+				utils.FormatRpcErrors(err, cxsdk.LegacySloGetRPC, protojson.Format(getSloReq)),
 			)
 		}
 		return
@@ -557,7 +557,7 @@ func (r *SLOResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 		reqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting SLO %s", state.ID.ValueString()),
-			utils.FormatRpcErrors(err, cxsdk.SloDeleteRPC, reqStr),
+			utils.FormatRpcErrors(err, cxsdk.LegacySloDeleteRPC, reqStr),
 		)
 		return
 	}

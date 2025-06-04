@@ -1665,7 +1665,7 @@ Required:
 
 Required:
 
-- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--rules))
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--burn_rate--rules))
 
 Optional:
 
@@ -1737,7 +1737,7 @@ Required:
 
 Required:
 
-- `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget--rules))
+- `rules` (Attributes List) (see [below for nested schema](#nestedatt--type_definition--slo_threshold--error_budget--rules))
 
 <a id="nestedatt--type_definition--slo_threshold--error_budget--rules"></a>
 ### Nested Schema for `type_definition.slo_threshold.error_budget.rules`
