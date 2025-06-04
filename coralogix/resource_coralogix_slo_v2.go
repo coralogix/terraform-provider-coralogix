@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
 
@@ -132,15 +133,16 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				MarkdownDescription: "Optional map of labels to attach to the SLO. ",
 			},
 			"grouping": schema.SingleNestedAttribute{
-				Optional: true,
 				Computed: true,
 				Attributes: map[string]schema.Attribute{
 					"labels": schema.ListAttribute{
 						ElementType:         types.StringType,
-						Optional:            true,
 						Computed:            true,
 						MarkdownDescription: "List of labels to group SLO evaluations by.",
 					},
+				},
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
 				},
 				MarkdownDescription: "Optional grouping configuration for SLO evaluations.",
 			},
@@ -327,12 +329,6 @@ func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*cxsdk.Slo, di
 		return nil, diags
 	}
 	slo.Labels = labels
-
-	grouping, diags := extractGrouping(ctx, plan.Grouping)
-	if diags.HasError() {
-		return nil, diags
-	}
-	slo.Grouping = grouping
 
 	window, diags := extractWindow(ctx, plan.Window)
 	if diags.HasError() {
