@@ -38,9 +38,32 @@ func TestAccCoralogixDataSourceDashboardsFolder_basic(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixDataSourceDashboardsFolder_by_name(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceDashboardsFolder() +
+					testAccCoralogixDataSourceDashboardsFolder_read_by_name(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardsFolderDataSourceName, "name"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCoralogixDataSourceDashboardsFolder_read() string {
 	return `data "coralogix_dashboards_folder" "test" {
 		id = coralogix_dashboards_folder.test.id
+	}
+`
+}
+
+func testAccCoralogixDataSourceDashboardsFolder_read_by_name() string {
+	return `data "coralogix_dashboards_folder" "test" {
+		name = coralogix_dashboards_folder.test.name
 	}
 `
 }
