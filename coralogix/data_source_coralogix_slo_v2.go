@@ -28,22 +28,21 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-func NewSLODataSource() datasource.DataSource {
-	return &SLODataSource{}
+func NewSLOV2DataSource() datasource.DataSource {
+	return &SLOV2DataSource{}
 }
 
-type SLODataSource struct {
-	client *cxsdk.LegacySLOsClient
+type SLOV2DataSource struct {
+	client *cxsdk.SLOsClient
 }
 
-func (d *SLODataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_slo"
+func (d *SLOV2DataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_slo_v2"
 }
 
-func (d *SLODataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *SLOV2DataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -57,19 +56,19 @@ func (d *SLODataSource) Configure(_ context.Context, req datasource.ConfigureReq
 		return
 	}
 
-	d.client = clientSet.LegacySLOs()
+	d.client = clientSet.SLOs()
 }
 
-func (d *SLODataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r SLOResource
+func (d *SLOV2DataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	var r SLOV2Resource
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
-func (d *SLODataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *SLOResourceModel
+func (d *SLOV2DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data *SLOV2ResourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -78,7 +77,7 @@ func (d *SLODataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 	//Get refreshed sli value from Coralogix
 	id := data.ID.ValueString()
 	log.Printf("[INFO] Reading SLO: %s", id)
-	getSLOReq := &cxsdk.GetLegacySloRequest{Id: wrapperspb.String(id)}
+	getSLOReq := &cxsdk.GetServiceSloRequest{Id: id}
 	getSLOResp, err := d.client.Get(ctx, getSLOReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
@@ -98,7 +97,7 @@ func (d *SLODataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 	slo := getSLOResp.GetSlo()
 	log.Printf("[INFO] Received SLO: %s", protojson.Format(slo))
 
-	data, diags := flattenSLO(ctx, slo)
+	data, diags := flattenSLOV2(ctx, slo)
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return
