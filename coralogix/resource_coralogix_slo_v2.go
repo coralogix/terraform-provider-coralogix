@@ -419,35 +419,6 @@ func extractWindowBasedSLI(ctx context.Context, winBased types.Object) (*cxsdk.S
 	}, nil
 }
 
-func extractGrouping(ctx context.Context, grouping types.Object) (*cxsdk.SloGrouping, diag.Diagnostics) {
-	if grouping.IsNull() || grouping.IsUnknown() {
-		return nil, nil
-	}
-
-	groupingModel := &GroupingModel{}
-	diags := grouping.As(ctx, groupingModel, basetypes.ObjectAsOptions{})
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	var labels []string
-	if !groupingModel.Labels.IsNull() && !groupingModel.Labels.IsUnknown() {
-		var elements []types.String
-		diags = groupingModel.Labels.ElementsAs(ctx, &elements, true)
-		if diags.HasError() {
-			return nil, diags
-		}
-		for _, e := range elements {
-			labels = append(labels, e.ValueString())
-		}
-	}
-
-	return &cxsdk.SloGrouping{
-		Labels: labels,
-	}, nil
-
-}
-
 func extractWindow(ctx context.Context, rule types.Object) (*cxsdk.SloTimeframe, diag.Diagnostics) {
 	if rule.IsNull() || rule.IsUnknown() {
 		return nil, nil
