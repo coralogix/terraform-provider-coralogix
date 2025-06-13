@@ -57,8 +57,9 @@ func resourceCoralogixDataSet() *schema.Resource {
 			Update: schema.DefaultTimeout(120 * time.Second),
 			Delete: schema.DefaultTimeout(30 * time.Second),
 		},
-
-		Schema: DataSetSchema(),
+		Description:        "**Note:** Data Sets will be removed in a future version of the Terraform Provider. Please use the API directly for creating custom enrichments: https://github.com/coralogix/coralogix-management-sdk/",
+		Schema:             DataSetSchema(),
+		DeprecationMessage: "Data Sets will be removed in a future version of the Terraform Provider. Please use the API directly for creating custom enrichments: https://github.com/coralogix/coralogix-management-sdk/",
 	}
 }
 
