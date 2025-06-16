@@ -635,7 +635,7 @@ func validateTCORuleModelModel(rule types.Object, root string, resp *resource.Va
 		resp.Diagnostics.AddAttributeWarning(
 			path.Root(root),
 			"Conflicting Attributes Values Configuration",
-			fmt.Sprintf("Currently, rule_type \"%s\" is supportred with only one value, but \"names\" includes %d elements.", ruleType, nameLength),
+			fmt.Sprintf("Currently, rule_type \"%s\" supports only one value, but \"names\" has %d elements. Remove all but one to remove this warning.", ruleType, nameLength),
 		)
 	}
 }
