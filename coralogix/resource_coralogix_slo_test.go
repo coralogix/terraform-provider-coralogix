@@ -44,7 +44,6 @@ func TestAccCoralogixResourceSLOCreate(t *testing.T) {
 					resource.TestCheckResourceAttr(sloResourceName, "description", "description"),
 					resource.TestCheckResourceAttr(sloResourceName, "target_percentage", "30"),
 					resource.TestCheckResourceAttr(sloResourceName, "type", "latency"),
-					// resource.TestCheckResourceAttr(sloResourceName, "threshold_microseconds", "1000000"),
 					resource.TestCheckResourceAttr(sloResourceName, "threshold_symbol_type", "greater"),
 					resource.TestCheckResourceAttr(sloResourceName, "period", "7_days"),
 					resource.TestCheckResourceAttr(sloResourceName, "filters.0.field", "severity"),
@@ -102,8 +101,8 @@ func testAccSLOCheckDestroy(s *terraform.State) error {
 func testAccCoralogixResourceSLO() string {
 	return `
 variable "test" {
-	type 		= number
-	default 	= 10
+	type 		= string
+	default 	= "greater"
 }
 resource "coralogix_slo" "test" {
 	name            		= "coralogix_slo_example"
@@ -111,8 +110,7 @@ resource "coralogix_slo" "test" {
 	description     		= "description"
 	target_percentage 		= 30
 	type            		= "latency"
-	threshold_microseconds 	= var.test
-	threshold_symbol_type 	= "greater"
+	threshold_symbol_type 	= var.test
 	period			        = "7_days"
 	filters = [{
 		field = "severity"
