@@ -14,9 +14,10 @@
 
 package coralogix
 
-var sloDataSourceName = "data." + sloResourceName
-
 // TODO Re-enable with new SLO
+
+// var sloDataSourceName = "data." + sloResourceName
+
 //
 // func TestAccCoralogixDataSourceSLO_basic(t *testing.T) {
 // 	resource.Test(t, resource.TestCase{
