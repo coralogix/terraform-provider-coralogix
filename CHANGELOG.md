@@ -957,3 +957,8 @@ Feature:
 * time_frame is now supported by all widgets
 * dataprime query type has been added to line charts
 * gauge now has the "decimal" and "display series name" properties
+
+## data_source/coralogix_dashboard_folder
+
+Feature:
+* Import by `name` is now available
