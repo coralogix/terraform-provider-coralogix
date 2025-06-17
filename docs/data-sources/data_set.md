@@ -3,12 +3,12 @@
 page_title: "coralogix_data_set Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  
+  Note: Data Sets will be removed in a future version of the Terraform Provider. Please use the API directly for creating custom enrichments: https://github.com/coralogix/coralogix-management-sdk/
 ---
 
 # coralogix_data_set (Data Source)
 
-
+**Note:** Data Sets will be removed in a future version of the Terraform Provider. Please use the API directly for creating custom enrichments: https://github.com/coralogix/coralogix-management-sdk/
 
 
 

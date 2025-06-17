@@ -37,9 +37,10 @@ func dataSourceCoralogixDataSet() *schema.Resource {
 	}
 
 	return &schema.Resource{
-		ReadContext: dataSourceCoralogixDataSetRead,
-
-		Schema: dataSetSchema,
+		ReadContext:        dataSourceCoralogixDataSetRead,
+		Description:        "**Note:** Data Sets will be removed in a future version of the Terraform Provider. Please use the API directly for creating custom enrichments: https://github.com/coralogix/coralogix-management-sdk/",
+		Schema:             dataSetSchema,
+		DeprecationMessage: "Data Sets will be removed in a future version of the Terraform Provider. Please use the API directly for creating custom enrichments: https://github.com/coralogix/coralogix-management-sdk/",
 	}
 }
 

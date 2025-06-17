@@ -949,6 +949,14 @@ Feature: adding support for dynamic duration format for metric alerts time-windo
 
 # Release 2.1.0
 
+## resource/data_set
+
+- Deprecation notice
+
+## data_source/data_set
+
+- Deprecation notice
+
 ## resource/coralogix_dashboard
 
 Breaking: time_frame property of the Hexagon widget moved into the query for consistency with others
