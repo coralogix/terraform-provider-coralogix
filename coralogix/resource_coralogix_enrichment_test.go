@@ -31,9 +31,9 @@ var enrichmentResourceName = "coralogix_enrichment.test"
 func TestAccCoralogixResourceGeoIpEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { TestAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckEnrichmentDestroy,
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckEnrichmentDestroy,
 		Steps: []resource.TestStep{
 			{
 
@@ -55,9 +55,9 @@ func TestAccCoralogixResourceGeoIpEnrichment(t *testing.T) {
 func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { TestAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckEnrichmentDestroy,
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckEnrichmentDestroy,
 		Steps: []resource.TestStep{
 			{
 
@@ -82,7 +82,7 @@ func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 //	resourceType := ""
 //	resource.Test(t, resource.TestCase{
 //		PreCheck:          func() { TestAccPreCheck(t) },
-//		ProviderFactories: testAccProviderFactories,
+//		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 //		CheckDestroy:      testAccCheckEnrichmentDestroy,
 //		Steps: []resource.TestStep{
 //			{
@@ -105,9 +105,9 @@ func TestAccCoralogixResourceSuspiciousIpEnrichment(t *testing.T) {
 func TestAccCoralogixResourceCustomEnrichment(t *testing.T) {
 	fieldName := "coralogix.metadata.sdkId"
 	resource.Test(t, resource.TestCase{
-		PreCheck:          func() { TestAccPreCheck(t) },
-		ProviderFactories: testAccProviderFactories,
-		CheckDestroy:      testAccCheckCustomEnrichmentDestroy,
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckCustomEnrichmentDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceCustomEnrichment(fieldName),
@@ -130,10 +130,11 @@ func testAccCoralogixResourceGeoIpEnrichment(fieldName string) string {
               geo_ip {
                 fields {
                       name = "%s"
+					  enriched_field_name = "%s_enriched"
                 }
             }
         }
-        `, fieldName)
+        `, fieldName, fieldName)
 }
 
 func testAccCoralogixResourceSuspiciousIpEnrichment(fieldName string) string {
@@ -141,10 +142,11 @@ func testAccCoralogixResourceSuspiciousIpEnrichment(fieldName string) string {
             suspicious_ip {
                 fields {
                       name = "%s"
+					  enriched_field_name = "%s_enriched"
                 }
             }
         }
-        `, fieldName)
+        `, fieldName, fieldName)
 }
 
 //func testAccCoralogixResourceAwsEnrichment(fieldName, resourceType string) string {
@@ -171,10 +173,11 @@ func testAccCoralogixResourceCustomEnrichment(fieldName string) string {
             custom_enrichment_id = coralogix_data_set.test.id
             fields {
                     name = "%s"
+					enriched_field_name = "%s_enriched"
                 }
         }
     }
-    `, fieldName)
+    `, fieldName, fieldName)
 }
 
 func testAccCheckEnrichmentDestroy(s *terraform.State) error {
