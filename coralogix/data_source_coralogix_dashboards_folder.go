@@ -25,8 +25,12 @@ import (
 	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
 var _ datasource.DataSourceWithConfigure = &DashboardsFolderDataSource{}
@@ -66,6 +70,21 @@ func (d *DashboardsFolderDataSource) Schema(ctx context.Context, _ datasource.Sc
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+
+	if idAttr, ok := resp.Schema.Attributes["id"].(schema.StringAttribute); ok {
+		idAttr.Required = false
+		idAttr.Optional = true
+		idAttr.Validators = []validator.String{
+			stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("name")),
+		}
+		resp.Schema.Attributes["id"] = idAttr
+	}
+
+	if nameAttr, ok := resp.Schema.Attributes["name"].(schema.StringAttribute); ok {
+		nameAttr.Required = false
+		nameAttr.Optional = true
+		resp.Schema.Attributes["name"] = nameAttr
+	}
 }
 
 func (d *DashboardsFolderDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -90,7 +109,8 @@ func (d *DashboardsFolderDataSource) Read(ctx context.Context, req datasource.Re
 	log.Printf("[INFO] Received dashboards-folders: %s", protojson.Format(getDashboardsFolders))
 	var dashboardsFolder *cxsdk.DashboardFolder
 	for _, folder := range getDashboardsFolders.GetFolder() {
-		if folder.GetId().GetValue() == data.ID.ValueString() {
+		if folder.GetId().GetValue() == data.ID.ValueString() ||
+			folder.Name.GetValue() == data.Name.ValueString() {
 			dashboardsFolder = folder
 			break
 		}
