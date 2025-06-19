@@ -244,6 +244,7 @@ func (r *SLOResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 			},
 		},
 		MarkdownDescription: "Coralogix SLO.",
+		DeprecationMessage:  "This resource is deprecated in favor of coralogix_slo_v2.",
 	}
 }
 
