@@ -949,6 +949,26 @@ Feature: adding support for dynamic duration format for metric alerts time-windo
 
 # Release 2.1.0
 
+
+## data_source/coralogix_slo
+
+- Deprecation notice
+
+## resource/coralogix_slo
+
+- Deprecation notice
+
+## data_source/coralogix_slo_v2
+
+Feature: 
+- added new SLO type independent of APM
+
+## resource/coralogix_slo_v2
+
+Feature: 
+- added new SLO type independent of APM
+
+
 ## resource/data_set
 
 - Deprecation notice
