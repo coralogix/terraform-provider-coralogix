@@ -48,28 +48,28 @@ var (
 	_                                resource.ResourceWithImportState      = &SLOResource{}
 	_                                resource.ResourceWithConfigValidators = &SLOResource{}
 	protoToSchemaThresholdSymbolType                                       = map[cxsdk.ThresholdSymbol]string{
-		cxsdk.SloThresholdSymbolGreaterOrEqual: "greater_or_equal",
-		cxsdk.SloThresholdSymbolGreater:        "greater",
-		cxsdk.SloThresholdSymbolLess:           "less",
-		cxsdk.SloThresholdSymbolLessOrEqual:    "less_or_equal",
-		cxsdk.SloThresholdSymbolEqual:          "equal",
+		cxsdk.LegacySloThresholdSymbolGreaterOrEqual: "greater_or_equal",
+		cxsdk.LegacySloThresholdSymbolGreater:        "greater",
+		cxsdk.LegacySloThresholdSymbolLess:           "less",
+		cxsdk.LegacySloThresholdSymbolLessOrEqual:    "less_or_equal",
+		cxsdk.LegacySloThresholdSymbolEqual:          "equal",
 	}
 	schemaToProtoThresholdSymbolType = utils.ReverseMap(protoToSchemaThresholdSymbolType)
 	validThresholdSymbolTypes        = utils.GetKeys(schemaToProtoThresholdSymbolType)
 	protoToSchemaSLOCompareType      = map[cxsdk.CompareType]string{
-		cxsdk.SloCompareTypeUnspecified: "unspecified",
-		cxsdk.SloCompareTypeIs:          "is",
-		cxsdk.SloCompareTypeStartsWith:  "starts_with",
-		cxsdk.SloCompareTypeEndsWith:    "ends_with",
-		cxsdk.SloCompareTypeIncludes:    "includes",
+		cxsdk.LegacySloCompareTypeUnspecified: "unspecified",
+		cxsdk.LegacySloCompareTypeIs:          "is",
+		cxsdk.LegacySloCompareTypeStartsWith:  "starts_with",
+		cxsdk.LegacySloCompareTypeEndsWith:    "ends_with",
+		cxsdk.LegacySloCompareTypeIncludes:    "includes",
 	}
 	schemaToProtoSLOCompareType = utils.ReverseMap(protoToSchemaSLOCompareType)
 	validSLOCompareTypes        = utils.GetKeys(schemaToProtoSLOCompareType)
-	protoToSchemaSLOPeriod      = map[cxsdk.SloPeriod]string{
-		cxsdk.SloPeriodUnspecified: "unspecified",
-		cxsdk.SloPeriod7Days:       "7_days",
-		cxsdk.SloPeriod14Days:      "14_days",
-		cxsdk.SloPeriod30Days:      "30_days",
+	protoToSchemaSLOPeriod      = map[cxsdk.LegacySloPeriod]string{
+		cxsdk.LegacySloPeriodUnspecified: "unspecified",
+		cxsdk.LegacySloPeriod7Days:       "7_days",
+		cxsdk.LegacySloPeriod14Days:      "14_days",
+		cxsdk.LegacySloPeriod30Days:      "30_days",
 	}
 	schemaToProtoSLOPeriod = utils.ReverseMap(protoToSchemaSLOPeriod)
 	validSLOPeriods        = utils.GetKeys(schemaToProtoSLOPeriod)

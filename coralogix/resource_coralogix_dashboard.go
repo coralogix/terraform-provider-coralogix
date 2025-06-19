@@ -4548,9 +4548,45 @@ func flattenHorizontalBarChartQueryDefinitions(ctx context.Context, query *cxsdk
 		return flattenHorizontalBarChartQueryMetrics(ctx, query.GetMetrics())
 	case *cxsdk.HorizontalBarChartQuerySpans:
 		return flattenHorizontalBarChartQuerySpans(ctx, query.GetSpans())
+	case *cxsdk.HorizontalBarChartQueryDataprime:
+		return flattenHorizontalBarChartQueryDataPrime(ctx, query.GetDataprime())
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Horizontal Bar Chart Query", "unknown horizontal bar chart query type")}
 	}
+}
+
+func flattenHorizontalBarChartQueryDataPrime(ctx context.Context, dataPrime *cxsdk.HorizontalBarChartDataPrimeQuery) (*dashboardwidgets.HorizontalBarChartQueryModel, diag.Diagnostics) {
+	if dataPrime == nil {
+		return nil, nil
+	}
+
+	filters, diags := dashboardwidgets.FlattenDashboardFiltersSources(ctx, dataPrime.GetFilters())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, dataPrime.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+	query := &dashboardwidgets.BarChartQueryDataPrimeModel{
+		Query:            types.StringValue(dataPrime.GetDataprimeQuery().GetText()),
+		Filters:          filters,
+		GroupNames:       utils.WrappedStringSliceToTypeStringList(dataPrime.GetGroupNames()),
+		StackedGroupName: utils.WrapperspbStringToTypeString(dataPrime.GetStackedGroupName()),
+		TimeFrame:        timeFrame,
+	}
+
+	queryObj, diags := types.ObjectValueFrom(ctx, barChartDataPrimeQueryAttr(), query)
+	if diags.HasError() {
+		return nil, diags
+	}
+	return &dashboardwidgets.HorizontalBarChartQueryModel{
+		Logs:      types.ObjectNull(barChartLogsQueryAttr()),
+		Spans:     types.ObjectNull(barChartSpansQueryAttr()),
+		Metrics:   types.ObjectNull(barChartMetricsQueryAttr()),
+		DataPrime: queryObj,
+	}, nil
 }
 
 func flattenHorizontalBarChartQueryLogs(ctx context.Context, logs *cxsdk.HorizontalBarChartLogsQuery) (*dashboardwidgets.HorizontalBarChartQueryModel, diag.Diagnostics) {
@@ -4600,9 +4636,10 @@ func flattenHorizontalBarChartQueryLogs(ctx context.Context, logs *cxsdk.Horizon
 	}
 
 	return &dashboardwidgets.HorizontalBarChartQueryModel{
-		Logs:    logsObject,
-		Metrics: types.ObjectNull(barChartMetricsQueryAttr()),
-		Spans:   types.ObjectNull(barChartSpansQueryAttr()),
+		Logs:      logsObject,
+		Metrics:   types.ObjectNull(barChartMetricsQueryAttr()),
+		Spans:     types.ObjectNull(barChartSpansQueryAttr()),
+		DataPrime: types.ObjectNull(barChartDataPrimeQueryAttr()),
 	}, nil
 }
 
@@ -4634,9 +4671,10 @@ func flattenHorizontalBarChartQueryMetrics(ctx context.Context, metrics *cxsdk.H
 	}
 
 	return &dashboardwidgets.HorizontalBarChartQueryModel{
-		Metrics: metricsObject,
-		Logs:    types.ObjectNull(barChartLogsQueryAttr()),
-		Spans:   types.ObjectNull(barChartSpansQueryAttr()),
+		Metrics:   metricsObject,
+		Logs:      types.ObjectNull(barChartLogsQueryAttr()),
+		Spans:     types.ObjectNull(barChartSpansQueryAttr()),
+		DataPrime: types.ObjectNull(barChartDataPrimeQueryAttr()),
 	}, nil
 }
 
@@ -4685,9 +4723,10 @@ func flattenHorizontalBarChartQuerySpans(ctx context.Context, spans *cxsdk.Horiz
 	}
 
 	return &dashboardwidgets.HorizontalBarChartQueryModel{
-		Spans:   spansObject,
-		Logs:    types.ObjectNull(barChartLogsQueryAttr()),
-		Metrics: types.ObjectNull(barChartMetricsQueryAttr()),
+		Spans:     spansObject,
+		Logs:      types.ObjectNull(barChartLogsQueryAttr()),
+		Metrics:   types.ObjectNull(barChartMetricsQueryAttr()),
+		DataPrime: types.ObjectNull(barChartDataPrimeQueryAttr()),
 	}, nil
 }
 
