@@ -48,28 +48,28 @@ var (
 	_                                resource.ResourceWithImportState      = &SLOResource{}
 	_                                resource.ResourceWithConfigValidators = &SLOResource{}
 	protoToSchemaThresholdSymbolType                                       = map[cxsdk.ThresholdSymbol]string{
-		cxsdk.LegacySloThresholdSymbolGreaterOrEqual: "greater_or_equal",
-		cxsdk.LegacySloThresholdSymbolGreater:        "greater",
-		cxsdk.LegacySloThresholdSymbolLess:           "less",
-		cxsdk.LegacySloThresholdSymbolLessOrEqual:    "less_or_equal",
-		cxsdk.LegacySloThresholdSymbolEqual:          "equal",
+		cxsdk.SloThresholdSymbolGreaterOrEqual: "greater_or_equal",
+		cxsdk.SloThresholdSymbolGreater:        "greater",
+		cxsdk.SloThresholdSymbolLess:           "less",
+		cxsdk.SloThresholdSymbolLessOrEqual:    "less_or_equal",
+		cxsdk.SloThresholdSymbolEqual:          "equal",
 	}
 	schemaToProtoThresholdSymbolType = utils.ReverseMap(protoToSchemaThresholdSymbolType)
 	validThresholdSymbolTypes        = utils.GetKeys(schemaToProtoThresholdSymbolType)
 	protoToSchemaSLOCompareType      = map[cxsdk.CompareType]string{
-		cxsdk.LegacySloCompareTypeUnspecified: "unspecified",
-		cxsdk.LegacySloCompareTypeIs:          "is",
-		cxsdk.LegacySloCompareTypeStartsWith:  "starts_with",
-		cxsdk.LegacySloCompareTypeEndsWith:    "ends_with",
-		cxsdk.LegacySloCompareTypeIncludes:    "includes",
+		cxsdk.SloCompareTypeUnspecified: "unspecified",
+		cxsdk.SloCompareTypeIs:          "is",
+		cxsdk.SloCompareTypeStartsWith:  "starts_with",
+		cxsdk.SloCompareTypeEndsWith:    "ends_with",
+		cxsdk.SloCompareTypeIncludes:    "includes",
 	}
 	schemaToProtoSLOCompareType = utils.ReverseMap(protoToSchemaSLOCompareType)
 	validSLOCompareTypes        = utils.GetKeys(schemaToProtoSLOCompareType)
-	protoToSchemaSLOPeriod      = map[cxsdk.LegacySloPeriod]string{
-		cxsdk.LegacySloPeriodUnspecified: "unspecified",
-		cxsdk.LegacySloPeriod7Days:       "7_days",
-		cxsdk.LegacySloPeriod14Days:      "14_days",
-		cxsdk.LegacySloPeriod30Days:      "30_days",
+	protoToSchemaSLOPeriod      = map[cxsdk.SloPeriod]string{
+		cxsdk.SloPeriodUnspecified: "unspecified",
+		cxsdk.SloPeriod7Days:       "7_days",
+		cxsdk.SloPeriod14Days:      "14_days",
+		cxsdk.SloPeriod30Days:      "30_days",
 	}
 	schemaToProtoSLOPeriod = utils.ReverseMap(protoToSchemaSLOPeriod)
 	validSLOPeriods        = utils.GetKeys(schemaToProtoSLOPeriod)
@@ -289,7 +289,7 @@ func (r *SLOResource) Create(ctx context.Context, req resource.CreateRequest, re
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating SLO",
-			utils.FormatRpcErrors(err, cxsdk.LegacySloCreateRPC, protojson.Format(createSloReq)),
+			utils.FormatRpcErrors(err, cxsdk.SloCreateRPC, protojson.Format(createSloReq)),
 		)
 		return
 	}
@@ -463,7 +463,7 @@ func (r *SLOResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",
-				utils.FormatRpcErrors(err, cxsdk.LegacySloGetRPC, protojson.Format(readSloReq)),
+				utils.FormatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(readSloReq)),
 			)
 		}
 		return
@@ -503,7 +503,7 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating SLO",
-			utils.FormatRpcErrors(err, cxsdk.LegacySloReplaceRPC, protojson.Format(updateSloReq)),
+			utils.FormatRpcErrors(err, cxsdk.SloReplaceRPC, protojson.Format(updateSloReq)),
 		)
 		return
 	}
@@ -524,7 +524,7 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",
-				utils.FormatRpcErrors(err, cxsdk.LegacySloGetRPC, protojson.Format(getSloReq)),
+				utils.FormatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(getSloReq)),
 			)
 		}
 		return
@@ -558,7 +558,7 @@ func (r *SLOResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 		reqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting SLO %s", state.ID.ValueString()),
-			utils.FormatRpcErrors(err, cxsdk.LegacySloDeleteRPC, reqStr),
+			utils.FormatRpcErrors(err, cxsdk.SloDeleteRPC, reqStr),
 		)
 		return
 	}
