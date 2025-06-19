@@ -732,9 +732,11 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*cxsdk.
 		Annotations: annotations,
 	}
 
-	dashboard, diags = dashboardwidgets.ExpandDashboardTimeFrame(ctx, dashboard, plan.TimeFrame)
-	if diags.HasError() {
-		return nil, diags
+	if plan.TimeFrame != nil {
+		dashboard, diags = dashboardwidgets.ExpandDashboardTimeFrame(ctx, dashboard, plan.TimeFrame)
+		if diags.HasError() {
+			return nil, diags
+		}
 	}
 
 	dashboard, diags = expandDashboardFolder(ctx, dashboard, plan.Folder)
