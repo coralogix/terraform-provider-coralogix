@@ -1528,14 +1528,24 @@ func (g GroupByValidator) ValidateList(ctx context.Context, request validator.Li
 		response.Diagnostics.Append(diags...)
 		return
 	}
-	var typeDefinition AlertTypeDefinitionModel
+	var typeDefinition types.Object
 	diags = request.Config.GetAttribute(ctx, paths[0], &typeDefinition)
 	if diags.HasError() {
 		response.Diagnostics.Append(diags...)
 		return
 	}
 
-	if !utils.ObjIsNullOrUnknown(typeDefinition.LogsImmediate) || !utils.ObjIsNullOrUnknown(typeDefinition.LogsNewValue) || !utils.ObjIsNullOrUnknown(typeDefinition.TracingImmediate) {
+	if typeDefinition.IsNull() || typeDefinition.IsUnknown() {
+		return
+	}
+
+	var typeDefinitionModel AlertTypeDefinitionModel
+	if diags = typeDefinition.As(ctx, &typeDefinitionModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		response.Diagnostics.Append(diags...)
+		return
+	}
+
+	if !utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsImmediate) || !utils.ObjIsNullOrUnknown(typeDefinitionModel.LogsNewValue) || !utils.ObjIsNullOrUnknown(typeDefinitionModel.TracingImmediate) {
 		if !(request.ConfigValue.IsNull() || request.ConfigValue.IsUnknown()) {
 			response.Diagnostics.AddError("group_by", "Group by is not allowed for logs_immediate, logs_new_value, tracing_immediate alert types.")
 		}
