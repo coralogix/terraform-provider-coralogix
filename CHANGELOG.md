@@ -970,3 +970,8 @@ Feature:
 
 Feature:
 * Import by `name` is now available
+
+## resource/coralogix_alert
+
+Fix:
+* fixing type conversion for `alert_type` using `foreach`
