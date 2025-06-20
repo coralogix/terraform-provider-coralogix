@@ -75,6 +75,7 @@ func LineChartSchema() schema.Attribute {
 				Validators: []validator.String{
 					stringvalidator.OneOf(DashboardValidLineChartStackedLineOptions...),
 				},
+				MarkdownDescription: fmt.Sprintf("Option to show lines as stacked. Possible values: %v", strings.Join(DashboardValidLineChartStackedLineOptions, ", ")),
 			},
 			"query_definitions": schema.ListNestedAttribute{
 				Required: true,

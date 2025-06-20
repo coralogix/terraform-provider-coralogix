@@ -485,7 +485,6 @@ func dashboardSchemaAttributesV3() map[string]schema.Attribute {
 																	},
 																	"decimal": schema.NumberAttribute{
 																		Optional: true,
-																		Computed: true,
 																	},
 																},
 																Validators: []validator.Object{
