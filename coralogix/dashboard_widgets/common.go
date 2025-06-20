@@ -336,6 +336,7 @@ type LineChartModel struct {
 	Legend           *LegendModel  `tfsdk:"legend"`
 	Tooltip          *TooltipModel `tfsdk:"tooltip"`
 	QueryDefinitions types.List    `tfsdk:"query_definitions"` //LineChartQueryDefinitionModel
+	StackedLine      types.String  `tfsdk:"stacked_line"`
 }
 
 type TooltipModel struct {
@@ -355,7 +356,6 @@ type LineChartQueryDefinitionModel struct {
 	ColorScheme        types.String         `tfsdk:"color_scheme"`
 	Resolution         types.Object         `tfsdk:"resolution"` //LineChartResolutionModel
 	DataModeType       types.String         `tfsdk:"data_mode_type"`
-	StackedLine        types.Object         `tfsdk:"stacked_line"`
 }
 
 type LineChartResolutionModel struct {

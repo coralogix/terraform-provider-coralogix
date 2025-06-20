@@ -38,6 +38,15 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
+var (
+	lineChartStackedLineProtoToSchemaMap = map[cxsdk.LineChartStackedLine]string{
+		cxsdk.LineChartStackedLineAbsolute: "absolute",
+		cxsdk.LineChartStackedLineRelative: "relative",
+	}
+	lineChartStackedLineSchemaToProtoMap      = utils.ReverseMap(lineChartStackedLineProtoToSchemaMap)
+	DashboardValidLineChartStackedLineOptions = utils.GetKeys(lineChartStackedLineSchemaToProtoMap)
+)
+
 func LineChartSchema() schema.Attribute {
 	return schema.SingleNestedAttribute{
 		Optional: true,
@@ -59,6 +68,12 @@ func LineChartSchema() schema.Attribute {
 					},
 				},
 				Optional: true,
+			},
+			"stacked_line": schema.StringAttribute{
+				Optional: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(DashboardValidLineChartStackedLineOptions...),
+				},
 			},
 			"query_definitions": schema.ListNestedAttribute{
 				Required: true,
@@ -233,6 +248,7 @@ func LineChartType() types.ObjectType {
 					"type":        types.StringType,
 				},
 			},
+			"stacked_line": types.StringType,
 			"query_definitions": types.ListType{
 				ElemType: types.ObjectType{
 					AttrTypes: lineChartQueryDefinitionModelAttr(),
@@ -347,11 +363,19 @@ func FlattenLineChart(ctx context.Context, lineChart *cxsdk.LineChart) (*WidgetD
 		return nil, diags
 	}
 
+	var stackedLine types.String
+	if lineChart.StackedLine != cxsdk.LineChartStackedLineUnspecified {
+		stackedLine = lineChartStackedLineSchemaToProtoMap[lineChart.StackedLine]
+	} else {
+		stackedLine = types.StringNull()
+	}
+
 	return &WidgetDefinitionModel{
 		LineChart: &LineChartModel{
 			Legend:           FlattenLegend(lineChart.GetLegend()),
 			Tooltip:          flattenTooltip(lineChart.GetTooltip()),
 			QueryDefinitions: queryDefinitions,
+			StackedLine:      stackedLine,
 		},
 	}, nil
 }
@@ -653,13 +677,20 @@ func ExpandLineChart(ctx context.Context, lineChart *LineChartModel) (*cxsdk.Wid
 		return nil, diags
 	}
 
+	var stackedLine cxsdk.LineChartStackedLine
+	if !lineChart.StackedLine.IsNull() {
+		stackedLine = lineChartStackedLineProtoToSchemaMap[lineChart.StackedLine]
+	} else {
+		stackedLine = cxsdk.LineChartStackedLineUnspecified
+	}
+
 	return &cxsdk.WidgetDefinition{
 		Value: &cxsdk.WidgetDefinitionLineChart{
 			LineChart: &cxsdk.LineChart{
 				Legend:           legend,
 				Tooltip:          expandLineChartTooltip(lineChart.Tooltip),
 				QueryDefinitions: queryDefinitions,
-				// TODO: Stacked Line
+				StackedLine:      stackedLine,
 			},
 		},
 	}, nil
