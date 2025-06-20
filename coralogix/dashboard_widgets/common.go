@@ -355,6 +355,7 @@ type LineChartQueryDefinitionModel struct {
 	ColorScheme        types.String         `tfsdk:"color_scheme"`
 	Resolution         types.Object         `tfsdk:"resolution"` //LineChartResolutionModel
 	DataModeType       types.String         `tfsdk:"data_mode_type"`
+	StackedLine        types.Object         `tfsdk:"stacked_line"`
 }
 
 type LineChartResolutionModel struct {
