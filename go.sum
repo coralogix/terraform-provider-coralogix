@@ -38,8 +38,10 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/cloudflare/circl v1.3.7 h1:qlCDlTPz2n9fu58M0Nh1J/JzcFpfgkFHHX3O35r5vcU=
 github.com/cloudflare/circl v1.3.7/go.mod h1:sRTcRWXGLrKw6yIGJ+l7amYJFfAXbZG0kBSc8r4zxgA=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
-github.com/coralogix/coralogix-management-sdk v1.5.2 h1:rr7nGLDKfNWQTyuwFLXjwW8TZGF0OYaQTwWZ3hO0UWU=
-github.com/coralogix/coralogix-management-sdk v1.5.2/go.mod h1:cA+K/oKJeCDr7ElL0fORtLoLAG/00o/yabQnEjph+R0=
+github.com/coralogix/coralogix-management-sdk v1.5.3-0.20250525173300-69b86b5ba284 h1:0ZFu++34SZguTLhZAIr6yvyN0hUpuEuZAcXl8of5Xko=
+github.com/coralogix/coralogix-management-sdk v1.5.3-0.20250525173300-69b86b5ba284/go.mod h1:cA+K/oKJeCDr7ElL0fORtLoLAG/00o/yabQnEjph+R0=
+github.com/coralogix/coralogix-management-sdk v1.5.3-0.20250529072629-99ecd32fe4f4 h1:PKkSJXi4Bt7FHwumcZ4VZ2l6zFHjQDxohvALkPcR5VQ=
+github.com/coralogix/coralogix-management-sdk v1.5.3-0.20250529072629-99ecd32fe4f4/go.mod h1:cA+K/oKJeCDr7ElL0fORtLoLAG/00o/yabQnEjph+R0=
 github.com/cyphar/filepath-securejoin v0.2.4 h1:Ugdm7cg7i6ZK6x3xDF1oEu1nfkyfH53EtKeQYTC3kyg=
 github.com/cyphar/filepath-securejoin v0.2.4/go.mod h1:aPGpWjXOXUn2NCNjFvBE6aRxGGx79pTxQpKOJNYHHl4=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

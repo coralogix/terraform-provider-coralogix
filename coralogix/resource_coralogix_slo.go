@@ -74,9 +74,9 @@ var (
 	schemaToProtoSLOPeriod = utils.ReverseMap(protoToSchemaSLOPeriod)
 	validSLOPeriods        = utils.GetKeys(schemaToProtoSLOPeriod)
 	protoToSchemaSLOStatus = map[cxsdk.SloStatus]string{
-		cxsdk.SloStatusUnspecified: "unspecified",
-		cxsdk.SloStatusOk:          "ok",
-		cxsdk.SloStatusBreached:    "breached",
+		cxsdk.LegacySloStatusUnspecified: "unspecified",
+		cxsdk.LegacySloStatusOk:          "ok",
+		cxsdk.LegacySloStatusBreached:    "breached",
 	}
 )
 
@@ -85,7 +85,7 @@ func NewSLOResource() resource.Resource {
 }
 
 type SLOResource struct {
-	client *cxsdk.SLOsClient
+	client *cxsdk.LegacySLOsClient
 }
 
 func (r *SLOResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
@@ -161,7 +161,7 @@ func (r *SLOResource) Configure(_ context.Context, req resource.ConfigureRequest
 		return
 	}
 
-	r.client = clientSet.SLOs()
+	r.client = clientSet.LegacySLOs()
 }
 
 func (r *SLOResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -244,6 +244,7 @@ func (r *SLOResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 			},
 		},
 		MarkdownDescription: "Coralogix SLO.",
+		DeprecationMessage:  "This resource is deprecated in favor of coralogix_slo_v2.",
 	}
 }
 
@@ -281,14 +282,14 @@ func (r *SLOResource) Create(ctx context.Context, req resource.CreateRequest, re
 		resp.Diagnostics = diags
 		return
 	}
-	createSloReq := &cxsdk.CreateServiceSloRequest{Slo: slo}
+	createSloReq := &cxsdk.CreateLegacySloRequest{Slo: slo}
 	log.Printf("[INFO] Creating new SLO: %s", protojson.Format(createSloReq))
 	createResp, err := r.client.Create(ctx, createSloReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error creating SLO",
-			utils.FormatRpcErrors(err, cxsdk.SloCreateRPC, protojson.Format(createSloReq)),
+			utils.FormatRpcErrors(err, cxsdk.LegacySloCreateRPC, protojson.Format(createSloReq)),
 		)
 		return
 	}
@@ -449,7 +450,7 @@ func (r *SLOResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 
 	//Get refreshed SLO value from Coralogix
 	id := state.ID.ValueString()
-	readSloReq := &cxsdk.GetServiceSloRequest{Id: wrapperspb.String(id)}
+	readSloReq := &cxsdk.GetLegacySloRequest{Id: wrapperspb.String(id)}
 	readSloResp, err := r.client.Get(ctx, readSloReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
@@ -462,7 +463,7 @@ func (r *SLOResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",
-				utils.FormatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(readSloReq)),
+				utils.FormatRpcErrors(err, cxsdk.LegacySloGetRPC, protojson.Format(readSloReq)),
 			)
 		}
 		return
@@ -495,14 +496,14 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		resp.Diagnostics = diags
 		return
 	}
-	updateSloReq := &cxsdk.ReplaceServiceSloRequest{Slo: slo}
+	updateSloReq := &cxsdk.ReplaceLegacySloRequest{Slo: slo}
 	log.Printf("[INFO] Updating SLO: %s", protojson.Format(updateSloReq))
 	updateSloResp, err := r.client.Update(ctx, updateSloReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating SLO",
-			utils.FormatRpcErrors(err, cxsdk.SloReplaceRPC, protojson.Format(updateSloReq)),
+			utils.FormatRpcErrors(err, cxsdk.LegacySloReplaceRPC, protojson.Format(updateSloReq)),
 		)
 		return
 	}
@@ -510,7 +511,7 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 
 	// Get refreshed SLO value from Coralogix
 	id := plan.ID.ValueString()
-	getSloReq := &cxsdk.GetServiceSloRequest{Id: wrapperspb.String(id)}
+	getSloReq := &cxsdk.GetLegacySloRequest{Id: wrapperspb.String(id)}
 	getSloResp, err := r.client.Get(ctx, getSloReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
@@ -523,7 +524,7 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading SLO",
-				utils.FormatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(getSloReq)),
+				utils.FormatRpcErrors(err, cxsdk.LegacySloGetRPC, protojson.Format(getSloReq)),
 			)
 		}
 		return
@@ -552,12 +553,12 @@ func (r *SLOResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting SLO %s\n", id)
-	deleteReq := &cxsdk.DeleteServiceSloRequest{Id: wrapperspb.String(id)}
+	deleteReq := &cxsdk.DeleteLegacySloRequest{Id: wrapperspb.String(id)}
 	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
 		reqStr := protojson.Format(deleteReq)
 		resp.Diagnostics.AddError(
 			fmt.Sprintf("Error Deleting SLO %s", state.ID.ValueString()),
-			utils.FormatRpcErrors(err, cxsdk.SloDeleteRPC, reqStr),
+			utils.FormatRpcErrors(err, cxsdk.LegacySloDeleteRPC, reqStr),
 		)
 		return
 	}

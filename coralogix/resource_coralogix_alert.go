@@ -324,6 +324,13 @@ var (
 	}
 	logsAnomalyConditionSchemaToProtoMap = utils.ReverseMap(logsAnomalyConditionMap)
 	// logsAnomalyConditionValues           = utils.GetValues(logsAnomalyConditionMap)
+
+	durationUnitProtoToSchemaMap = map[cxsdk.SloDurationUnit]string{
+		cxsdk.DurationUnitUnspecified: "UNSPECIFIED",
+		cxsdk.DurationUnitHours:       "HOURS",
+	}
+	durationUnitSchemaToProtoMap = utils.ReverseMap(durationUnitProtoToSchemaMap)
+	validDurationUnits           = utils.GetKeys(durationUnitSchemaToProtoMap)
 )
 
 func NewAlertResource() resource.Resource {
@@ -367,6 +374,7 @@ type AlertTypeDefinitionModel struct {
 	TracingImmediate          types.Object `tfsdk:"tracing_immediate"`            // TracingImmediateModel
 	TracingThreshold          types.Object `tfsdk:"tracing_threshold"`            // TracingThresholdModel
 	Flow                      types.Object `tfsdk:"flow"`                         // FlowModel
+	SloThreshold              types.Object `tfsdk:"slo_threshold"`                // SloThresholdModel
 }
 
 type IncidentsSettingsModel struct {
@@ -692,6 +700,44 @@ type TracingSpanFieldsFilterModel struct {
 	FilterType types.Object `tfsdk:"filter_type"` // TracingFilterTypeModel
 }
 
+type SloThresholdModel struct {
+	SloDefinition types.Object `tfsdk:"slo_definition"` // SloDefinitionObject
+	ErrorBudget   types.Object `tfsdk:"error_budget"`   // SloThresholdErrorBudgetModel
+	BurnRate      types.Object `tfsdk:"burn_rate"`      // SloThresholdBurnRateModel
+}
+
+type SloDefinitionObject struct {
+	SloId types.String `tfsdk:"slo_id"`
+}
+
+type SloThresholdErrorBudgetModel struct {
+	Rules types.List `tfsdk:"rules"` // []SloThresholdRuleModel
+}
+
+type SloThresholdBurnRateModel struct {
+	Rules  types.List   `tfsdk:"rules"`  // []SloThresholdRuleModel
+	Dual   types.Object `tfsdk:"dual"`   // SloThresholdDurationWrapperModel
+	Single types.Object `tfsdk:"single"` // SloThresholdDurationWrapperModel
+}
+
+type SloThresholdRuleModel struct {
+	Condition types.Object `tfsdk:"condition"` // SloThresholdConditionModel
+	Override  types.Object `tfsdk:"override"`  // AlertOverrideModel
+}
+
+type SloThresholdConditionModel struct {
+	Threshold types.Float64 `tfsdk:"threshold"`
+}
+
+type SloThresholdDurationWrapperModel struct {
+	TimeDuration types.Object `tfsdk:"time_duration"` // SloDurationModel
+}
+
+type SloDurationModel struct {
+	Duration types.Int64  `tfsdk:"duration"`
+	Unit     types.String `tfsdk:"unit"`
+}
+
 func (r *AlertResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_alert"
 }
@@ -807,7 +853,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 			// type is being inferred by the type_definition attribute
 			"type_definition": schema.SingleNestedAttribute{
 				Required:            true,
-				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow.",
+				MarkdownDescription: "Alert type definition. Exactly one of the following must be specified: logs_immediate, logs_threshold, logs_anomaly, logs_ratio_threshold, logs_new_value, logs_unique_count, logs_time_relative_threshold, metric_threshold, metric_anomaly, tracing_immediate, tracing_threshold, flow, slo_threshold.",
 				Attributes: map[string]schema.Attribute{
 					"logs_immediate": schema.SingleNestedAttribute{
 						Optional: true,
@@ -828,6 +874,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								path.MatchRoot("type_definition").AtName("tracing_immediate"),
 								path.MatchRoot("type_definition").AtName("tracing_threshold"),
 								path.MatchRoot("type_definition").AtName("flow"),
+								path.MatchRoot("type_definition").AtName("slo_threshold"),
 							),
 						},
 					},
@@ -1222,6 +1269,60 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								Default:  booldefault.StaticBool(false),
 							},
 						},
+					},
+					"slo_threshold": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"slo_definition": schema.SingleNestedAttribute{
+								Required: true,
+								Attributes: map[string]schema.Attribute{
+									"slo_id": schema.StringAttribute{
+										Required:            true,
+										MarkdownDescription: "The SLO ID.",
+									},
+								},
+								MarkdownDescription: "Configuration for the referenced SLO.",
+							},
+							"error_budget": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"rules": sloThresholdRulesAttribute(),
+								},
+								Validators: []validator.Object{
+									objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("burn_rate")),
+								},
+								MarkdownDescription: "Error budget threshold configuration.",
+							},
+							"burn_rate": schema.SingleNestedAttribute{
+								Optional: true,
+								Attributes: map[string]schema.Attribute{
+									"rules": sloThresholdRulesAttribute(),
+									"dual": schema.SingleNestedAttribute{
+										Optional: true,
+										Attributes: map[string]schema.Attribute{
+											"time_duration": timeDurationAttribute(),
+										},
+										Validators: []validator.Object{
+											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("single")),
+										},
+									},
+									"single": schema.SingleNestedAttribute{
+										Optional: true,
+										Attributes: map[string]schema.Attribute{
+											"time_duration": timeDurationAttribute(),
+										},
+										Validators: []validator.Object{
+											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("dual")),
+										},
+									},
+								},
+								Validators: []validator.Object{
+									objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("error_budget")),
+								},
+								MarkdownDescription: "Burn rate threshold configuration.",
+							},
+						},
+						MarkdownDescription: "SLO threshold alert type definition.",
 					},
 				},
 			},
@@ -1729,6 +1830,42 @@ func overrideAlertSchema() schema.SingleNestedAttribute {
 					PriorityOverrideFallback{},
 				},
 				MarkdownDescription: fmt.Sprintf("Alert priority. Valid values: %q.", validAlertPriorities),
+			},
+		},
+	}
+}
+
+func timeDurationAttribute() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Required: true,
+		Attributes: map[string]schema.Attribute{
+			"duration": schema.Int64Attribute{
+				Required: true,
+			},
+			"unit": schema.StringAttribute{
+				Required: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(validDurationUnits...),
+				},
+			},
+		},
+	}
+}
+
+func sloThresholdRulesAttribute() schema.ListNestedAttribute {
+	return schema.ListNestedAttribute{
+		Required: true,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"condition": schema.SingleNestedAttribute{
+					Required: true,
+					Attributes: map[string]schema.Attribute{
+						"threshold": schema.Float64Attribute{
+							Required: true,
+						},
+					},
+				},
+				"override": overrideAlertSchema(),
 			},
 		},
 	}
@@ -2472,6 +2609,9 @@ func expandAlertsTypeDefinition(ctx context.Context, alertProperties *cxsdk.Aler
 	} else if flow := alertDefinitionModel.Flow; !utils.ObjIsNullOrUnknown(flow) {
 		// Flow
 		alertProperties, diags = expandFlowAlertTypeDefinition(ctx, alertProperties, flow)
+	} else if sloThreshold := alertDefinitionModel.SloThreshold; !utils.ObjIsNullOrUnknown(sloThreshold) {
+		// SLOThreshold
+		alertProperties, diags = expandSloThresholdAlertTypeDefinition(ctx, alertProperties, sloThreshold)
 	} else {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Alert Type Definition", "Alert Type Definition is not valid")}
 	}
@@ -3765,6 +3905,161 @@ func extractFlowStagesGroup(ctx context.Context, object types.Object) (*cxsdk.Fl
 
 }
 
+func expandSloThresholdAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefProperties, sloThreshold types.Object) (*cxsdk.AlertDefProperties, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(sloThreshold) {
+		return properties, nil
+	}
+
+	var model SloThresholdModel
+	if diags := sloThreshold.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	sloDef, diags := extractSloDefinition(ctx, model.SloDefinition)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	sloThresholdType := &cxsdk.SloThresholdType{
+		SloDefinition: sloDef,
+	}
+
+	if !utils.ObjIsNullOrUnknown(model.ErrorBudget) {
+		errorBudget, diags := extractSloErrorBudgetThreshold(ctx, model.ErrorBudget)
+		if diags.HasError() {
+			return nil, diags
+		}
+		sloThresholdType.Threshold = &cxsdk.SloErrorBudgetThresholdType{ErrorBudget: errorBudget}
+	} else if !utils.ObjIsNullOrUnknown(model.BurnRate) {
+		burnRate, diags := extractSloBurnRateThreshold(ctx, model.BurnRate)
+		if diags.HasError() {
+			return nil, diags
+		}
+		sloThresholdType.Threshold = &cxsdk.SloBurnRateThresholdType{BurnRate: burnRate}
+	} else {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid SLO Threshold Type", "SLO Threshold must have either ErrorBudget or BurnRate defined")}
+	}
+
+	properties.TypeDefinition = &cxsdk.AlertDefPropertiesSlo{
+		SloThreshold: sloThresholdType,
+	}
+	properties.Type = cxsdk.AlertDefTypeSloThreshold
+	return properties, nil
+}
+
+func extractSloDefinition(ctx context.Context, obj types.Object) (*cxsdk.AlertSloDefinition, diag.Diagnostics) {
+	var model SloDefinitionObject
+	if diags := obj.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	return &cxsdk.AlertSloDefinition{
+		SloId: wrapperspb.String(model.SloId.ValueString()),
+	}, nil
+}
+
+func extractSloErrorBudgetThreshold(ctx context.Context, obj types.Object) (*cxsdk.SloErrorBudgetThreshold, diag.Diagnostics) {
+	var model SloThresholdErrorBudgetModel
+	if diags := obj.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	rules, diags := extractSloThresholdRules(ctx, model.Rules)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &cxsdk.SloErrorBudgetThreshold{Rules: rules}, nil
+}
+
+func extractSloBurnRateThreshold(ctx context.Context, obj types.Object) (*cxsdk.SloBurnRateThreshold, diag.Diagnostics) {
+	var model SloThresholdBurnRateModel
+	if diags := obj.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	rules, diags := extractSloThresholdRules(ctx, model.Rules)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	burnRate := &cxsdk.SloBurnRateThreshold{Rules: rules}
+
+	if !utils.ObjIsNullOrUnknown(model.Dual) {
+		timeDuration, diags := extractSloTimeDuration(ctx, model.Dual)
+		if diags.HasError() {
+			return nil, diags
+		}
+		burnRate.Type = &cxsdk.DualBurnRateThresholdType{Dual: &cxsdk.DualBurnRateThreshold{TimeDuration: timeDuration}}
+	} else if !utils.ObjIsNullOrUnknown(model.Single) {
+		timeDuration, diags := extractSloTimeDuration(ctx, model.Single)
+		if diags.HasError() {
+			return nil, diags
+		}
+		burnRate.Type = &cxsdk.SingleBurnRateThresholdType{Single: &cxsdk.SingleBurnRateThreshold{TimeDuration: timeDuration}}
+	} else {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid SLO Burn Rate Type", "SLO Burn Rate must have either Dual or Single defined")}
+	}
+
+	return burnRate, nil
+}
+
+func extractSloThresholdRules(ctx context.Context, rules types.List) ([]*cxsdk.SloThresholdRule, diag.Diagnostics) {
+	if rules.IsNull() || rules.IsUnknown() {
+		return nil, nil
+	}
+
+	var ruleObjs []types.Object
+	diags := rules.ElementsAs(ctx, &ruleObjs, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	var result []*cxsdk.SloThresholdRule
+	for _, obj := range ruleObjs {
+		var model SloThresholdRuleModel
+		if diags := obj.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+
+		var condModel SloThresholdConditionModel
+		if diags := model.Condition.As(ctx, &condModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+			return nil, diags
+		}
+
+		override, diags := extractAlertOverride(ctx, model.Override)
+		if diags.HasError() {
+			return nil, diags
+		}
+
+		result = append(result, &cxsdk.SloThresholdRule{
+			Condition: &cxsdk.SloThresholdCondition{
+				Threshold: wrapperspb.Double(condModel.Threshold.ValueFloat64()),
+			},
+			Override: override,
+		})
+	}
+
+	return result, nil
+}
+
+func extractSloTimeDuration(ctx context.Context, obj types.Object) (*cxsdk.TimeDuration, diag.Diagnostics) {
+	var model SloThresholdDurationWrapperModel
+	if diags := obj.As(ctx, &model, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	var durationModel SloDurationModel
+	if diags := model.TimeDuration.As(ctx, &durationModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	return &cxsdk.TimeDuration{
+		Duration: wrapperspb.UInt64(uint64(durationModel.Duration.ValueInt64())),
+		Unit:     durationUnitSchemaToProtoMap[durationModel.Unit.ValueString()],
+	}, nil
+}
+
 func extractAlertDefs(ctx context.Context, defs types.Set) ([]*cxsdk.FlowStagesGroupsAlertDefs, diag.Diagnostics) {
 	if defs.IsNull() || defs.IsUnknown() {
 		return nil, nil
@@ -4098,6 +4393,7 @@ func flattenAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefP
 		TracingImmediate:          types.ObjectNull(tracingImmediateAttr()),
 		TracingThreshold:          types.ObjectNull(tracingThresholdAttr()),
 		Flow:                      types.ObjectNull(flowAttr()),
+		SloThreshold:              types.ObjectNull(sloThresholdAttr()),
 	}
 	var diags diag.Diagnostics
 	switch alertTypeDefinition := properties.TypeDefinition.(type) {
@@ -4125,6 +4421,8 @@ func flattenAlertTypeDefinition(ctx context.Context, properties *cxsdk.AlertDefP
 		alertTypeDefinitionModel.TracingThreshold, diags = flattenTracingThreshold(ctx, alertTypeDefinition.TracingThreshold)
 	case *cxsdk.AlertDefPropertiesFlow:
 		alertTypeDefinitionModel.Flow, diags = flattenFlow(ctx, alertTypeDefinition.Flow)
+	case *cxsdk.AlertDefPropertiesSlo:
+		alertTypeDefinitionModel.SloThreshold, diags = flattenSloThreshold(ctx, alertTypeDefinition.SloThreshold)
 	default:
 		return types.ObjectNull(alertTypeDefinitionAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Alert Type Definition", fmt.Sprintf("Alert Type '%v' Definition is not valid", alertTypeDefinition))}
 	}
@@ -5200,6 +5498,104 @@ func flattenAlertDefs(ctx context.Context, defs []*cxsdk.FlowStagesGroupsAlertDe
 	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: alertDefsAttr()}, alertDefs)
 }
 
+func flattenSloThreshold(ctx context.Context, slo *cxsdk.SloThresholdType) (types.Object, diag.Diagnostics) {
+	if slo == nil {
+		return types.ObjectNull(sloThresholdAttr()), nil
+	}
+
+	sloDefinition := types.ObjectValueMust(sloDefinitionAttr(), map[string]attr.Value{
+		"slo_id": utils.WrapperspbStringToTypeString(slo.GetSloDefinition().GetSloId()),
+	})
+
+	sloModel := SloThresholdModel{
+		SloDefinition: sloDefinition,
+		ErrorBudget:   types.ObjectNull(sloErrorBudgetAttr()),
+		BurnRate:      types.ObjectNull(sloBurnRateAttr()),
+	}
+
+	switch t := slo.GetThreshold().(type) {
+	case *cxsdk.SloErrorBudgetThresholdType:
+		errBudget, diags := flattenSloErrorBudget(ctx, t.ErrorBudget)
+		if diags.HasError() {
+			return types.ObjectNull(sloThresholdAttr()), diags
+		}
+		sloModel.ErrorBudget = errBudget
+	case *cxsdk.SloBurnRateThresholdType:
+		burnRate, diags := flattenSloBurnRate(ctx, t.BurnRate)
+		if diags.HasError() {
+			return types.ObjectNull(sloThresholdAttr()), diags
+		}
+		sloModel.BurnRate = burnRate
+	}
+
+	return types.ObjectValueFrom(ctx, sloThresholdAttr(), sloModel)
+}
+
+func flattenSloErrorBudget(ctx context.Context, errBudget *cxsdk.SloErrorBudgetThreshold) (types.Object, diag.Diagnostics) {
+	rules, diags := flattenSloThresholdRules(ctx, errBudget.GetRules())
+	if diags.HasError() {
+		return types.ObjectNull(sloErrorBudgetAttr()), diags
+	}
+	return types.ObjectValueFrom(ctx, sloErrorBudgetAttr(), SloThresholdErrorBudgetModel{Rules: rules})
+}
+
+func flattenSloBurnRate(ctx context.Context, burnRate *cxsdk.SloBurnRateThreshold) (types.Object, diag.Diagnostics) {
+	rules, diags := flattenSloThresholdRules(ctx, burnRate.GetRules())
+	if diags.HasError() {
+		return types.ObjectNull(sloBurnRateAttr()), diags
+	}
+
+	burnRateModel := SloThresholdBurnRateModel{
+		Rules:  rules,
+		Dual:   types.ObjectNull(sloDurationWrapperAttr()),
+		Single: types.ObjectNull(sloDurationWrapperAttr()),
+	}
+
+	switch bt := burnRate.GetType().(type) {
+	case *cxsdk.DualBurnRateThresholdType:
+		td, diags := flattenSloTimeDuration(ctx, bt.Dual.GetTimeDuration())
+		if diags.HasError() {
+			return types.ObjectNull(sloBurnRateAttr()), diags
+		}
+		burnRateModel.Dual = td
+	case *cxsdk.SingleBurnRateThresholdType:
+		td, diags := flattenSloTimeDuration(ctx, bt.Single.GetTimeDuration())
+		if diags.HasError() {
+			return types.ObjectNull(sloBurnRateAttr()), diags
+		}
+		burnRateModel.Single = td
+	}
+
+	return types.ObjectValueFrom(ctx, sloBurnRateAttr(), burnRateModel)
+}
+
+func flattenSloThresholdRules(ctx context.Context, rules []*cxsdk.SloThresholdRule) (types.List, diag.Diagnostics) {
+	var models []SloThresholdRuleModel
+	for _, rule := range rules {
+		override, diags := flattenAlertOverride(ctx, rule.GetOverride())
+		if diags.HasError() {
+			return types.ListNull(types.ObjectType{AttrTypes: sloThresholdRuleAttr()}), diags
+		}
+		ruleModel := SloThresholdRuleModel{
+			Condition: types.ObjectValueMust(sloThresholdConditionAttr(), map[string]attr.Value{
+				"threshold": types.Float64Value(rule.GetCondition().GetThreshold().GetValue()),
+			}),
+			Override: override,
+		}
+		models = append(models, ruleModel)
+	}
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: sloThresholdRuleAttr()}, models)
+}
+
+func flattenSloTimeDuration(ctx context.Context, td *cxsdk.TimeDuration) (types.Object, diag.Diagnostics) {
+	return types.ObjectValueFrom(ctx, sloDurationWrapperAttr(), SloThresholdDurationWrapperModel{
+		TimeDuration: types.ObjectValueMust(sloDurationAttr(), map[string]attr.Value{
+			"duration": types.Int64Value(int64(td.GetDuration().GetValue())),
+			"unit":     types.StringValue(durationUnitProtoToSchemaMap[td.GetUnit()]),
+		}),
+	})
+}
+
 func retriggeringPeriodAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"minutes": types.Int64Type,
@@ -5327,6 +5723,9 @@ func alertTypeDefinitionAttr() map[string]attr.Type {
 		},
 		"flow": types.ObjectType{
 			AttrTypes: flowAttr(),
+		},
+		"slo_threshold": types.ObjectType{
+			AttrTypes: sloThresholdAttr(),
 		},
 	}
 }
@@ -5695,6 +6094,64 @@ func alertDefsAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"id":  types.StringType,
 		"not": types.BoolType,
+	}
+}
+
+func sloThresholdAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"slo_definition": types.ObjectType{AttrTypes: sloDefinitionAttr()},
+		"error_budget":   types.ObjectType{AttrTypes: sloErrorBudgetAttr()},
+		"burn_rate":      types.ObjectType{AttrTypes: sloBurnRateAttr()},
+	}
+}
+
+func sloDefinitionAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"slo_id": types.StringType,
+	}
+}
+
+func sloErrorBudgetAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"rules": types.ListType{
+			ElemType: types.ObjectType{AttrTypes: sloThresholdRuleAttr()},
+		},
+	}
+}
+
+func sloBurnRateAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"rules": types.ListType{
+			ElemType: types.ObjectType{AttrTypes: sloThresholdRuleAttr()},
+		},
+		"dual":   types.ObjectType{AttrTypes: sloDurationWrapperAttr()},
+		"single": types.ObjectType{AttrTypes: sloDurationWrapperAttr()},
+	}
+}
+
+func sloDurationWrapperAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"time_duration": types.ObjectType{AttrTypes: sloDurationAttr()},
+	}
+}
+
+func sloDurationAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"duration": types.Int64Type,
+		"unit":     types.StringType,
+	}
+}
+
+func sloThresholdRuleAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"condition": types.ObjectType{AttrTypes: sloThresholdConditionAttr()},
+		"override":  types.ObjectType{AttrTypes: alertOverrideAttr()},
+	}
+}
+
+func sloThresholdConditionAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"threshold": types.Float64Type,
 	}
 }
 
