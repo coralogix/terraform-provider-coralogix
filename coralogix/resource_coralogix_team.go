@@ -107,6 +107,7 @@ func (r *TeamResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 			},
 		},
 		MarkdownDescription: "Coralogix Team.",
+		DeprecationMessage:  "This resource is broken and will be removed in an upcoming release.",
 	}
 }
 
