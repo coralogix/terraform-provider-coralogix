@@ -975,3 +975,7 @@ Feature:
 
 Fix:
 * fixing type conversion for `alert_type` using `foreach`
+
+## resource/coralogix_team
+
+- Deprecation notice
