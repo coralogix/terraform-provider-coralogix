@@ -4555,7 +4555,7 @@ func flattenHorizontalBarChartQueryDefinitions(ctx context.Context, query *cxsdk
 	}
 }
 
-func flattenHorizontalBarChartQueryDataPrime(ctx context.Context, dataPrime *cxsdk.HorizontalBarChartDataPrimeQuery) (*dashboardwidgets.HorizontalBarChartQueryModel, diag.Diagnostics) {
+func flattenHorizontalBarChartQueryDataPrime(ctx context.Context, dataPrime *cxsdk.HorizontalBarChartDataprimeQuery) (*dashboardwidgets.HorizontalBarChartQueryModel, diag.Diagnostics) {
 	if dataPrime == nil {
 		return nil, nil
 	}
