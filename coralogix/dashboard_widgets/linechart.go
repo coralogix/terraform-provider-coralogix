@@ -71,6 +71,7 @@ func LineChartSchema() schema.Attribute {
 			},
 			"stacked_line": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(DashboardValidLineChartStackedLineOptions...),
 				},
@@ -678,7 +679,7 @@ func ExpandLineChart(ctx context.Context, lineChart *LineChartModel) (*cxsdk.Wid
 	}
 
 	var stackedLine cxsdk.LineChartStackedLine
-	if !lineChart.StackedLine.IsNull() {
+	if !(lineChart.StackedLine.IsNull() || lineChart.StackedLine.IsUnknown()) {
 		stackedLine = lineChartStackedLineProtoToSchemaMap[lineChart.StackedLine]
 	} else {
 		stackedLine = cxsdk.LineChartStackedLineUnspecified
