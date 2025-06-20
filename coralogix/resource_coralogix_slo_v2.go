@@ -19,9 +19,10 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
+
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
@@ -52,7 +53,6 @@ var (
 		cxsdk.SloTimeframe14Days:      "14_days",
 		cxsdk.SloTimeframe21Days:      "21_days",
 		cxsdk.SloTimeframe28Days:      "28_days",
-		cxsdk.SloTimeframe90Days:      "90_days",
 	}
 	schemaToProtoSLOTimeFrame = utils.ReverseMap(protoToSchemaSloTimeFrame)
 	validSLOTimeFrame         = utils.GetKeys(schemaToProtoSLOTimeFrame)

@@ -209,11 +209,11 @@ func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
 		CheckDestroy:             testAccCheckDashboardDestroy,
 		Steps: []resource.TestStep{
 			{
-
 				Config: testAccCoralogixResourceDashboardWithWidget(`{
             title      = "line-chart"
             definition = {
               line_chart = {
+				stacked_line = "relative"
                 query_definitions = [{
                   query = {
                     spans = {
