@@ -366,7 +366,7 @@ func FlattenLineChart(ctx context.Context, lineChart *cxsdk.LineChart) (*WidgetD
 
 	var stackedLine types.String
 	if lineChart.StackedLine != cxsdk.LineChartStackedLineUnspecified {
-		stackedLine = lineChartStackedLineSchemaToProtoMap[lineChart.StackedLine]
+		stackedLine = types.StringValue(lineChartStackedLineProtoToSchemaMap[lineChart.StackedLine])
 	} else {
 		stackedLine = types.StringNull()
 	}
@@ -680,7 +680,7 @@ func ExpandLineChart(ctx context.Context, lineChart *LineChartModel) (*cxsdk.Wid
 
 	var stackedLine cxsdk.LineChartStackedLine
 	if !(lineChart.StackedLine.IsNull() || lineChart.StackedLine.IsUnknown()) {
-		stackedLine = lineChartStackedLineProtoToSchemaMap[lineChart.StackedLine]
+		stackedLine = lineChartStackedLineSchemaToProtoMap[lineChart.StackedLine.ValueString()]
 	} else {
 		stackedLine = cxsdk.LineChartStackedLineUnspecified
 	}
