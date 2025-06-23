@@ -987,6 +987,10 @@ Feature:
 * gauge now has the "decimal" and "display series name" properties
 * Stacked line is now available in line charts
 
+Fix:
+* resolve "Value Conversion Error" during variable generation with `selected_values`
+* resolve "Inconsistent Result Error" in `promql_query_type`
+
 ## data_source/coralogix_dashboard_folder
 
 Feature:
