@@ -6093,7 +6093,7 @@ func flattenMultiSelectQueryMetricsQueryOperatorSelectedValues(ctx context.Conte
 			diagnostics.Append(diags...)
 			continue
 		}
-		valuesElement, diags := types.ObjectValueFrom(ctx, multiSelectQueryMetricsQueryMetricsLabelFilterOperatorAttr(), flattenedValue)
+		valuesElement, diags := types.ObjectValueFrom(ctx, multiSelectQueryStringOrValueAttr(), flattenedValue)
 		if diags.HasError() {
 			diagnostics.Append(diags...)
 			continue
@@ -6102,10 +6102,10 @@ func flattenMultiSelectQueryMetricsQueryOperatorSelectedValues(ctx context.Conte
 	}
 
 	if diagnostics.HasError() {
-		return types.ListNull(types.ObjectType{AttrTypes: multiSelectQueryMetricsQueryMetricsLabelFilterOperatorAttr()}), diagnostics
+		return types.ListNull(types.ObjectType{AttrTypes: multiSelectQueryStringOrValueAttr()}), diagnostics
 	}
 
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: multiSelectQueryMetricsQueryMetricsLabelFilterOperatorAttr()}, flattenedValues)
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: multiSelectQueryStringOrValueAttr()}, flattenedValues)
 }
 
 func flattenMultiSelectQueryMetricsQueryStringOrVariable(ctx context.Context, stringOrVariable *cxsdk.MultiSelectQueryMetricsQueryStringOrVariable) (types.Object, diag.Diagnostics) {
