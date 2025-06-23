@@ -4911,7 +4911,7 @@ func flattenDataTableMetricsQuery(ctx context.Context, metrics *cxsdk.DashboardD
 
 	return &dashboardwidgets.DataTableQueryModel{
 		Metrics: &dashboardwidgets.QueryMetricsModel{
-			PromqlQueryType: types.StringValue(metrics.GetPromqlQueryType().String()),
+			PromqlQueryType: types.StringValue(dashboardwidgets.DashboardProtoToSchemaPromQLQueryType[metrics.GetPromqlQueryType()]),
 			PromqlQuery:     utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 			Filters:         filters,
 			TimeFrame:       timeFrame,
