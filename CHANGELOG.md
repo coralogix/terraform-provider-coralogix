@@ -987,6 +987,9 @@ Feature:
 * gauge now has the "decimal" and "display series name" properties
 * Stacked line is now available in line charts
 
+Fix: 
+* JSON import won't fail on unknown keys
+
 ## data_source/coralogix_dashboard_folder
 
 Feature:

@@ -3431,13 +3431,18 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 		var unmarshalledDashboard = new(cxsdk.Dashboard)
 		// Users can set the folder in the dashbaord's json. In that case, the server will return a folder, but we're not supposed to set it in the plan,
 		// or terraform will panic.
-		err := protojson.Unmarshal([]byte(plan.ContentJson.ValueString()), unmarshalledDashboard)
+		unmarshaller := protojson.UnmarshalOptions{
+			DiscardUnknown: true,
+			AllowPartial:   true,
+		}
+		err := unmarshaller.Unmarshal([]byte(plan.ContentJson.ValueString()), unmarshalledDashboard)
 		if err != nil {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Unmarshal Dashboard", err.Error())}
 		}
 		if unmarshalledDashboard.GetFolder() != nil {
 			folder = types.ObjectNull(dashboardFolderModelAttr())
 		}
+
 		_, err = protojson.Marshal(dashboard)
 		if err != nil {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard", err.Error())}
