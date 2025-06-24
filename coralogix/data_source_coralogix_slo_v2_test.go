@@ -23,6 +23,7 @@ import (
 var sloV2DataSourceName = "data." + sloV2ResourceName
 
 func TestAccCoralogixDataSourceSLOV2_basic(t *testing.T) {
+	t.Skip("SLOv2 is deactivated for now")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
