@@ -1496,7 +1496,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 func TestAccCoralogixResourceAlert_sloBurnRate(t *testing.T) {
 	sloName := "coralogix_slo_go_example"
 	alertName := "SLO burn rate alert"
-
+	t.Skip("SLOv2 is deactivated for now")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
