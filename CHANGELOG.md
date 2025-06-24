@@ -988,6 +988,7 @@ Feature:
 * Stacked line is now available in line charts
 
 Fix:
+* JSON import won't fail on unknown keys
 * resolve "Value Conversion Error" during variable generation with `selected_values`
 * resolve "Inconsistent Result Error" in `promql_query_type`
 

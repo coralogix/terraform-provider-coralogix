@@ -1,6 +1,7 @@
 {
   "name": "OpenTelemetry Collector Dashboard",
   "description": "Gives insights into your Collector stats.",
+  "unknownKey": "should-not-fail",
   "layout": {
     "sections": [
       {
