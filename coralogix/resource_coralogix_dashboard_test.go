@@ -652,6 +652,46 @@ func testAccCoralogixResourceDashboard() string {
         }
       }
     },
+    {
+      name         = "test_variable2"
+      display_name = "Test Variable 2"
+      definition = {
+        multi_select = {
+          source = {
+            query = {
+              query = {
+                metrics = {
+                  label_value = {
+                    label_filters = [
+                      {
+                        label = {
+                          string_value = "service_name"
+                        },
+                        operator = {
+                          type = "equals"
+                          selected_values = [
+                            {
+                              string_value = "service_name"
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                    metric_name = {
+                      string_value = "test_metric"
+                    }
+                    label_name = {
+                      string_value = "region"
+                    }
+                  }
+                }
+              }
+            }
+          }
+          values_order_direction = "asc"
+        }
+      }
+    },
   ]
 }
 `
