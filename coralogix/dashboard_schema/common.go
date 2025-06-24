@@ -21,13 +21,20 @@ import (
 	"time"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"google.golang.org/protobuf/encoding/protojson"
+)
+
+var (
+	JSONUnmarshal = protojson.UnmarshalOptions{
+		DiscardUnknown: true,
+		AllowPartial:   true,
+	}
 )
 
 type intervalValidator struct{}
@@ -65,7 +72,7 @@ func (c ContentJsonValidator) ValidateString(_ context.Context, request validato
 		return
 	}
 
-	err := protojson.Unmarshal([]byte(request.ConfigValue.ValueString()), &cxsdk.Dashboard{})
+	err := JSONUnmarshal.Unmarshal([]byte(request.ConfigValue.ValueString()), &cxsdk.Dashboard{})
 	if err != nil {
 		response.Diagnostics.Append(diag.NewErrorDiagnostic("content_json validation failed", fmt.Sprintf("json content is not matching layout schema. got an err while unmarshalling - %s", err)))
 	}
