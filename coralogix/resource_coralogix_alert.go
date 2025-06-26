@@ -1681,7 +1681,9 @@ func (c PriorityOverrideFallback) PlanModifyString(ctx context.Context, req plan
 	}
 
 	// Only change if there are changes to the top level priority
-	if !configPriority.Equal(StatePriority) {
+	if configPriority.IsNull() {
+		resp.PlanValue = types.StringValue("P5")
+	} else if !configPriority.Equal(StatePriority) || req.ConfigValue.IsNull() {
 		resp.PlanValue = configPriority
 	}
 }
