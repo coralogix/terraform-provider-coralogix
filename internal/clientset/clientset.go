@@ -51,6 +51,7 @@ type ClientSet struct {
 	groupGrpc           *cxsdk.GroupsClient
 	notifications       *cxsdk.NotificationsClient
 	ipaccess            *ipaccess.IPAccessServiceAPIService
+	views               *cxsdk.ViewsClient
 
 	grafana *GrafanaClient
 	groups  *GroupsClient
@@ -164,6 +165,10 @@ func (c *ClientSet) LegacySLOs() *cxsdk.LegacySLOsClient {
 	return c.legacySlos
 }
 
+func (c *ClientSet) Views() *cxsdk.ViewsClient {
+	return c.views
+}
+
 func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	apiKeySdk := cxsdk.NewSDKCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
@@ -197,6 +202,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
 		notifications:       cxsdk.NewNotificationsClient(apiKeySdk),
 		ipaccess:            cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
+		views:               cxsdk.NewViewsClient(apiKeySdk),
 
 		grafana: NewGrafanaClient(apikeyCPC),
 		groups:  NewGroupsClient(apikeyCPC),
