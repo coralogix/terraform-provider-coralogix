@@ -52,7 +52,7 @@ func dataSourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData,
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		reqStr := protojson.Format(req)
-		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.GetDataSetRPC, reqStr))
+		return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.GetDataSetRPC, reqStr))
 	}
 	log.Printf("[INFO] Received custom-enrichment-data: %s", protojson.Format(enrichmentResp))
 
