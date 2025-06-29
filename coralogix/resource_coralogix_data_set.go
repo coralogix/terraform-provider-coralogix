@@ -137,7 +137,7 @@ func resourceCoralogixDataSetCreate(ctx context.Context, d *schema.ResourceData,
 	resp, err := meta.(*clientset.ClientSet).DataSet().Create(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.CreateDataSetRPC, protojson.Format(req)))
+		return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.CreateDataSetRPC, protojson.Format(req)))
 	}
 
 	if uploadedFile, ok := d.GetOk("uploaded_file"); ok {
@@ -175,7 +175,7 @@ func resourceCoralogixDataSetRead(ctx context.Context, d *schema.ResourceData, m
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.GetDataSetRPC, protojson.Format(req)))
+		return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.GetDataSetRPC, protojson.Format(req)))
 	}
 
 	log.Printf("[INFO] Received enrichment-data: %s", protojson.Format(DataSetResp))
@@ -192,7 +192,7 @@ func resourceCoralogixDataSetUpdate(ctx context.Context, d *schema.ResourceData,
 	_, err = meta.(*clientset.ClientSet).DataSet().Update(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.UpdateDataSetRPC, protojson.Format(req)))
+		return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.UpdateDataSetRPC, protojson.Format(req)))
 	}
 
 	if uploadedFile, ok := d.GetOk("uploaded_file"); ok {
@@ -212,7 +212,7 @@ func resourceCoralogixDataSetDelete(ctx context.Context, d *schema.ResourceData,
 	_, err := meta.(*clientset.ClientSet).DataSet().Delete(ctx, req)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.DeleteDataSetRPC, protojson.Format(req)))
+		return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.DeleteDataSetRPC, protojson.Format(req)))
 	}
 
 	log.Printf("[INFO] enrichment-data %s deleted", id)
