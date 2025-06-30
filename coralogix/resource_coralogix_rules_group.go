@@ -483,7 +483,7 @@ func resourceCoralogixRulesGroupCreate(ctx context.Context, d *schema.ResourceDa
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().Create(ctx, createRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.RuleGroupsCreateRuleGroupRPC, protojson.Format(createRuleGroupRequest)))
+		return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.RuleGroupsGetRuleGroupRPC, protojson.Format(createRuleGroupRequest)))
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
 	log.Printf("[INFO] Submitted new rule-group: %s", protojson.Format(ruleGroup))
@@ -510,7 +510,7 @@ func resourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceData
 				Detail:   fmt.Sprintf("%s will be recreated when you apply", id),
 			}}
 		}
-		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.RuleGroupsGetRuleGroupRPC, protojson.Format(getRuleGroupRequest)))
+		return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.RuleGroupsGetRuleGroupRPC, protojson.Format(getRuleGroupRequest)))
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
 	log.Printf("[INFO] Received rule-group: %s", protojson.Format(ruleGroup))
@@ -534,7 +534,7 @@ func resourceCoralogixRulesGroupUpdate(ctx context.Context, d *schema.ResourceDa
 	ruleGroupResp, err := meta.(*clientset.ClientSet).RuleGroups().Update(ctx, updateRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.RuleGroupsUpdateRuleGroupRPC, protojson.Format(updateRuleGroupRequest)))
+		return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.RuleGroupsUpdateRuleGroupRPC, protojson.Format(updateRuleGroupRequest)))
 	}
 	log.Printf("[INFO] Submitted updated rule-group: %s", protojson.Format(ruleGroupResp))
 
@@ -551,7 +551,7 @@ func resourceCoralogixRulesGroupDelete(ctx context.Context, d *schema.ResourceDa
 	_, err := meta.(*clientset.ClientSet).RuleGroups().Delete(ctx, deleteRuleGroupRequest)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.RuleGroupsDeleteRuleGroupRPC, protojson.Format(deleteRuleGroupRequest)))
+		return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.RuleGroupsDeleteRuleGroupRPC, protojson.Format(deleteRuleGroupRequest)))
 	}
 	log.Printf("[INFO] rule-group %s deleted", id)
 
