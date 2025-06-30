@@ -53,7 +53,7 @@ func dataSourceCoralogixRulesGroupRead(ctx context.Context, d *schema.ResourceDa
 	if err != nil {
 		reqStr := protojson.Format(getRuleGroupRequest)
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		return diag.Errorf(utils.FormatRpcErrors(err, cxsdk.RuleGroupsGetRuleGroupRPC, reqStr))
+		return diag.Errorf("%s", utils.FormatRpcErrors(err, cxsdk.RuleGroupsGetRuleGroupRPC, reqStr))
 	}
 	ruleGroup := ruleGroupResp.GetRuleGroup()
 	log.Printf("[INFO] Received rule-group: %s", protojson.Format(ruleGroup))
