@@ -30,7 +30,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -136,7 +136,7 @@ func flattenView(ctx context.Context, view *cxsdk.View) (*ViewModel, diag.Diagno
 	return &ViewModel{
 		Filters:       filters,
 		FolderId:      utils.WrapperspbStringToTypeString(view.FolderId),
-		Id:            utils.WrapperspbInt32ToTypeInt64(view.Id),
+		Id:            utils.WrapperspbInt32ToTypeInt32(view.Id),
 		IsCompactMode: utils.WrapperspbBoolToTypeBool(view.IsCompactMode),
 		Name:          utils.WrapperspbStringToTypeString(view.Name),
 		SearchQuery:   searchQuery,
@@ -309,7 +309,7 @@ func extractUpdateView(ctx context.Context, data *ViewModel) (*cxsdk.ReplaceView
 
 	return &cxsdk.ReplaceViewRequest{
 		View: &cxsdk.View{
-			Id:            wrapperspb.Int32(int32(data.Id.ValueInt64())),
+			Id:            wrapperspb.Int32(data.Id.ValueInt32()),
 			Name:          utils.TypeStringToWrapperspbString(data.Name),
 			SearchQuery:   searchQuery,
 			TimeSelection: timeSelection,
@@ -533,7 +533,7 @@ func (r *ViewResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	id := data.Id.ValueInt64()
+	id := data.Id.ValueInt32()
 	readReq := &cxsdk.GetViewRequest{
 		Id: wrapperspb.Int32(int32(id)),
 	}
@@ -610,19 +610,20 @@ func (r *ViewResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
-	_, err := r.client.Delete(ctx, &cxsdk.DeleteViewRequest{Id: wrapperspb.Int32(int32(data.Id.ValueInt64()))})
+	id := data.Id.ValueInt32()
+	_, err := r.client.Delete(ctx, &cxsdk.DeleteViewRequest{Id: wrapperspb.Int32(id)})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("View %q is in state, but no longer exists in Coralogix backend", data.Id.ValueInt64()),
-				fmt.Sprintf("%d will be removed from state", data.Id.ValueInt64()),
+				fmt.Sprintf("View %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%d will be removed from state", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error deleting view",
-				utils.FormatRpcErrors(err, cxsdk.DeleteViewRPC, fmt.Sprintf("ID: %d", data.Id.ValueInt64())),
+				utils.FormatRpcErrors(err, cxsdk.DeleteViewRPC, fmt.Sprintf("ID: %d", id)),
 			)
 		}
 		return
@@ -681,12 +682,12 @@ func ViewResourceSchema(ctx context.Context) schema.Schema {
 					stringvalidator.RegexMatches(regexp.MustCompile("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"), ""),
 				},
 			},
-			"id": schema.Int64Attribute{
+			"id": schema.Int32Attribute{
 				Computed:            true,
 				Description:         "id",
 				MarkdownDescription: "id",
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.Int32{
+					int32planmodifier.UseStateForUnknown(),
 				},
 			},
 			"is_compact_mode": schema.BoolAttribute{
@@ -762,7 +763,7 @@ func ViewResourceSchema(ctx context.Context) schema.Schema {
 type ViewModel struct {
 	Filters       types.Object `tfsdk:"filters"` //FiltersModel
 	FolderId      types.String `tfsdk:"folder_id"`
-	Id            types.Int64  `tfsdk:"id"`
+	Id            types.Int32  `tfsdk:"id"`
 	IsCompactMode types.Bool   `tfsdk:"is_compact_mode"`
 	Name          types.String `tfsdk:"name"`
 	SearchQuery   types.Object `tfsdk:"search_query"`   //SearchQueryModel

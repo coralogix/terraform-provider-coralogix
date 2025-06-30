@@ -17,7 +17,7 @@ description: |-
 
 ### Required
 
-- `id` (String) id
+- `id` (Number) id
 
 ### Read-Only
 

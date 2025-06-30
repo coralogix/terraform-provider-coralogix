@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"log"
 
+	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
 
@@ -65,7 +67,22 @@ func (d *ViewDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest,
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+	attributes := utils.ConvertAttributes(resourceResp.Schema.Attributes)
+	if idSchema, ok := resourceResp.Schema.Attributes["id"]; ok {
+		attributes["id"] = datasourceschema.Int32Attribute{
+			Required:            true,
+			Description:         idSchema.GetDescription(),
+			MarkdownDescription: idSchema.GetMarkdownDescription(),
+		}
+	}
+
+	resp.Schema = datasourceschema.Schema{
+		Attributes: attributes,
+		//Blocks: convertBlocks(rs.Blocks),
+		Description:         resourceResp.Schema.Description,
+		MarkdownDescription: resourceResp.Schema.MarkdownDescription,
+		DeprecationMessage:  resourceResp.Schema.DeprecationMessage,
+	}
 }
 
 func (d *ViewDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -76,9 +93,9 @@ func (d *ViewDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 	//Get refreshed View value from Coralogix
-	id := data.Id.ValueInt64()
+	id := data.Id.ValueInt32()
 	log.Printf("[INFO] Reading view: %d", id)
-	getViewResp, err := d.client.Get(ctx, &cxsdk.GetViewRequest{Id: utils.TypeInt64ToWrappedInt32(data.Id)})
+	getViewResp, err := d.client.Get(ctx, &cxsdk.GetViewRequest{Id: wrapperspb.Int32(id)})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if cxsdk.Code(err) == codes.NotFound {
