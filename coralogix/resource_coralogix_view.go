@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"strconv"
 	"time"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
@@ -29,10 +30,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -139,7 +140,7 @@ func flattenView(ctx context.Context, view *cxsdk.View) (*ViewModel, diag.Diagno
 	return &ViewModel{
 		Filters:       filters,
 		FolderId:      utils.WrapperspbStringToTypeString(view.FolderId),
-		Id:            utils.WrapperspbInt32ToTypeInt32(view.Id),
+		Id:            types.StringValue(strconv.Itoa(int(view.Id.Value))),
 		Name:          utils.WrapperspbStringToTypeString(view.Name),
 		SearchQuery:   searchQuery,
 		TimeSelection: timeSelection,
@@ -309,9 +310,19 @@ func extractUpdateView(ctx context.Context, data *ViewModel) (*cxsdk.ReplaceView
 		return nil, diags
 	}
 
+	id, err := strconv.Atoi(data.Id.ValueString())
+	if err != nil {
+		return nil, diag.Diagnostics{
+			diag.NewErrorDiagnostic(
+				"Invalid View ID",
+				fmt.Sprintf("ID '%s' is not a valid integer: %s", data.Id.ValueString(), err.Error()),
+			),
+		}
+	}
+
 	return &cxsdk.ReplaceViewRequest{
 		View: &cxsdk.View{
-			Id:            wrapperspb.Int32(data.Id.ValueInt32()),
+			Id:            wrapperspb.Int32(int32(id)),
 			Name:          utils.TypeStringToWrapperspbString(data.Name),
 			SearchQuery:   searchQuery,
 			TimeSelection: timeSelection,
@@ -535,18 +546,27 @@ func (r *ViewResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		return
 	}
 
-	id := data.Id.ValueInt32()
-	readReq := &cxsdk.GetViewRequest{
-		Id: wrapperspb.Int32(id),
+	idStr := data.Id.ValueString()
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid View ID",
+			fmt.Sprintf("ID '%s' is not a valid integer: %s", idStr, err.Error()),
+		)
+		return
 	}
-	log.Printf("[INFO] Reading view with ID: %d", id)
+
+	readReq := &cxsdk.GetViewRequest{
+		Id: wrapperspb.Int32(int32(id)),
+	}
+	log.Printf("[INFO] Reading view with ID: %d", idStr)
 	readResp, err := r.client.Get(ctx, readReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("View %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%d will be recreated when you apply", id),
+				fmt.Sprintf("View %q is in state, but no longer exists in Coralogix backend", idStr),
+				fmt.Sprintf("%d will be recreated when you apply", idStr),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
@@ -612,8 +632,17 @@ func (r *ViewResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
-	id := data.Id.ValueInt32()
-	_, err := r.client.Delete(ctx, &cxsdk.DeleteViewRequest{Id: wrapperspb.Int32(id)})
+	idStr := data.Id.ValueString()
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid View ID",
+			fmt.Sprintf("ID '%s' is not a valid integer: %s", idStr, err.Error()),
+		)
+		return
+	}
+
+	_, err = r.client.Delete(ctx, &cxsdk.DeleteViewRequest{Id: wrapperspb.Int32(int32(id))})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if cxsdk.Code(err) == codes.NotFound {
@@ -684,12 +713,12 @@ func ViewResourceSchema(ctx context.Context) schema.Schema {
 					stringvalidator.RegexMatches(regexp.MustCompile("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"), ""),
 				},
 			},
-			"id": schema.Int32Attribute{
+			"id": schema.StringAttribute{
 				Computed:            true,
 				Description:         "id",
 				MarkdownDescription: "id",
-				PlanModifiers: []planmodifier.Int32{
-					int32planmodifier.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"name": schema.StringAttribute{
@@ -759,7 +788,7 @@ func ViewResourceSchema(ctx context.Context) schema.Schema {
 type ViewModel struct {
 	Filters       types.Object `tfsdk:"filters"` //FiltersModel
 	FolderId      types.String `tfsdk:"folder_id"`
-	Id            types.Int32  `tfsdk:"id"`
+	Id            types.String `tfsdk:"id"`
 	Name          types.String `tfsdk:"name"`
 	SearchQuery   types.Object `tfsdk:"search_query"`   //SearchQueryModel
 	TimeSelection types.Object `tfsdk:"time_selection"` // TimeSelectionModel
