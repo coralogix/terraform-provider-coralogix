@@ -23,7 +23,6 @@ description: |-
 
 - `filters` (Attributes) (see [below for nested schema](#nestedatt--filters))
 - `folder_id` (String) Unique identifier for folders
-- `is_compact_mode` (Boolean)
 - `name` (String) View name
 - `search_query` (Attributes) (see [below for nested schema](#nestedatt--search_query))
 - `time_selection` (Attributes) (see [below for nested schema](#nestedatt--time_selection))

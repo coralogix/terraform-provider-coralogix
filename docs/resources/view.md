@@ -29,7 +29,6 @@ description: |-
 ### Read-Only
 
 - `id` (Number) id
-- `is_compact_mode` (Boolean)
 
 <a id="nestedatt--time_selection"></a>
 ### Nested Schema for `time_selection`

@@ -29,7 +29,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
@@ -137,7 +136,6 @@ func flattenView(ctx context.Context, view *cxsdk.View) (*ViewModel, diag.Diagno
 		Filters:       filters,
 		FolderId:      utils.WrapperspbStringToTypeString(view.FolderId),
 		Id:            utils.WrapperspbInt32ToTypeInt32(view.Id),
-		IsCompactMode: utils.WrapperspbBoolToTypeBool(view.IsCompactMode),
 		Name:          utils.WrapperspbStringToTypeString(view.Name),
 		SearchQuery:   searchQuery,
 		TimeSelection: timeSelection,
@@ -690,12 +688,6 @@ func ViewResourceSchema(ctx context.Context) schema.Schema {
 					int32planmodifier.UseStateForUnknown(),
 				},
 			},
-			"is_compact_mode": schema.BoolAttribute{
-				Computed: true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
-			},
 			"name": schema.StringAttribute{
 				Required:            true,
 				Description:         "View name",
@@ -764,7 +756,6 @@ type ViewModel struct {
 	Filters       types.Object `tfsdk:"filters"` //FiltersModel
 	FolderId      types.String `tfsdk:"folder_id"`
 	Id            types.Int32  `tfsdk:"id"`
-	IsCompactMode types.Bool   `tfsdk:"is_compact_mode"`
 	Name          types.String `tfsdk:"name"`
 	SearchQuery   types.Object `tfsdk:"search_query"`   //SearchQueryModel
 	TimeSelection types.Object `tfsdk:"time_selection"` // TimeSelectionModel

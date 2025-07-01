@@ -38,7 +38,7 @@ func TestAccCoralogixDataSourceView_basic(t *testing.T) {
 
 func testAccCoralogixDataSourceView_read() string {
 	return `data "coralogix_view" "test" {
-	id = coralogix_view.test.id
+		id = coralogix_view.test.id
 	}
 `
 }
