@@ -559,14 +559,14 @@ func (r *ViewResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 	readReq := &cxsdk.GetViewRequest{
 		Id: wrapperspb.Int32(int32(id)),
 	}
-	log.Printf("[INFO] Reading view with ID: %d", idStr)
+	log.Printf("[INFO] Reading view with ID: %s", idStr)
 	readResp, err := r.client.Get(ctx, readReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("View %q is in state, but no longer exists in Coralogix backend", idStr),
-				fmt.Sprintf("%d will be recreated when you apply", idStr),
+				fmt.Sprintf("%s will be recreated when you apply", idStr),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
