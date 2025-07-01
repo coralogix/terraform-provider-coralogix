@@ -19,8 +19,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 
-	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
@@ -67,22 +67,7 @@ func (d *ViewDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest,
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
-	attributes := utils.ConvertAttributes(resourceResp.Schema.Attributes)
-	if idSchema, ok := resourceResp.Schema.Attributes["id"]; ok {
-		attributes["id"] = datasourceschema.Int32Attribute{
-			Required:            true,
-			Description:         idSchema.GetDescription(),
-			MarkdownDescription: idSchema.GetMarkdownDescription(),
-		}
-	}
-
-	resp.Schema = datasourceschema.Schema{
-		Attributes: attributes,
-		//Blocks: convertBlocks(rs.Blocks),
-		Description:         resourceResp.Schema.Description,
-		MarkdownDescription: resourceResp.Schema.MarkdownDescription,
-		DeprecationMessage:  resourceResp.Schema.DeprecationMessage,
-	}
+	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
 func (d *ViewDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
@@ -93,9 +78,18 @@ func (d *ViewDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 		return
 	}
 	//Get refreshed View value from Coralogix
-	id := data.Id.ValueInt32()
+	idStr := data.Id.ValueString()
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid View ID",
+			fmt.Sprintf("ID '%s' is not a valid integer: %s", idStr, err.Error()),
+		)
+		return
+	}
+
 	log.Printf("[INFO] Reading view: %d", id)
-	getViewResp, err := d.client.Get(ctx, &cxsdk.GetViewRequest{Id: wrapperspb.Int32(id)})
+	getViewResp, err := d.client.Get(ctx, &cxsdk.GetViewRequest{Id: wrapperspb.Int32(int32(id))})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if cxsdk.Code(err) == codes.NotFound {

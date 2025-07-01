@@ -28,7 +28,7 @@ description: |-
 
 ### Read-Only
 
-- `id` (Number) id
+- `id` (String) id
 
 <a id="nestedatt--time_selection"></a>
 ### Nested Schema for `time_selection`
