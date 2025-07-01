@@ -1666,23 +1666,21 @@ func (c PriorityOverrideFallback) MarkdownDescription(ctx context.Context) strin
 
 func (c PriorityOverrideFallback) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
 	// if a priority override is provided, do nothing
-	if !(req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown()) {
+	if !req.ConfigValue.IsNull() {
 		return
 	}
 
-	var configPriority, StatePriority types.String
-	if diags := req.Config.GetAttribute(ctx, path.Root("priority"), &configPriority); diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	if diags := req.State.GetAttribute(ctx, path.Root("priority"), &StatePriority); diags.HasError() {
+	var topLevelPriorityConfig types.String
+	if diags := req.Config.GetAttribute(ctx, path.Root("priority"), &topLevelPriorityConfig); diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	// Only change if there are changes to the top level priority
-	if !configPriority.Equal(StatePriority) {
-		resp.PlanValue = configPriority
+	// if the top level priority and the override priority are both null, set the plan value to "P5". If the top level priority is not null, use that value for the override priority
+	if topLevelPriorityConfig.IsNull() {
+		resp.PlanValue = types.StringValue("P5")
+	} else {
+		resp.PlanValue = topLevelPriorityConfig
 	}
 }
 

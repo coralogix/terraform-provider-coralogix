@@ -1001,6 +1001,7 @@ Feature:
 
 Fix:
 * fixing type conversion for `alert_type` using `foreach`
+* setting the rule's priority to the alert's priority if not set.
 
 ## resource/coralogix_team
 
