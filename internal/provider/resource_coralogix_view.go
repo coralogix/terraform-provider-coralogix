@@ -79,6 +79,10 @@ func (r *ViewResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 	resp.Schema = ViewResourceSchema(ctx)
 }
 
+func (r *ViewResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
 func (r *ViewResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var data *ViewModel
 
@@ -533,7 +537,7 @@ func (r *ViewResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 	id := data.Id.ValueInt32()
 	readReq := &cxsdk.GetViewRequest{
-		Id: wrapperspb.Int32(int32(id)),
+		Id: wrapperspb.Int32(id),
 	}
 	log.Printf("[INFO] Reading view with ID: %d", id)
 	readResp, err := r.client.Get(ctx, readReq)
