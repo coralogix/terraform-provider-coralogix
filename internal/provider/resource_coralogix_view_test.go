@@ -24,9 +24,9 @@ func TestAccCoralogixResourceView(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coralogix_view.test", "id"),
 					resource.TestCheckResourceAttr("coralogix_view.test", "name", "Example View"),
-					resource.TestCheckResourceAttr("coralogix_view.test", "time_selection.0.custom_selection.0.from_time", "2023-01-01T00:00:00Z"),
-					resource.TestCheckResourceAttr("coralogix_view.test", "time_selection.0.custom_selection.0.to_time", "2023-01-02T00:00:00Z"),
-					resource.TestCheckResourceAttr("coralogix_view.test", "search_query.0.query", "error OR warning"),
+					resource.TestCheckResourceAttr("coralogix_view.test", "time_selection.custom_selection.from_time", "2023-01-01T00:00:00Z"),
+					resource.TestCheckResourceAttr("coralogix_view.test", "time_selection.custom_selection.to_time", "2023-01-02T00:00:00Z"),
+					resource.TestCheckResourceAttr("coralogix_view.test", "search_query.query", "error OR warning"),
 				),
 			},
 			{
@@ -39,8 +39,8 @@ func TestAccCoralogixResourceView(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coralogix_view.test", "id"),
 					resource.TestCheckResourceAttr("coralogix_view.test", "name", "Example View Updated"),
-					resource.TestCheckResourceAttr("coralogix_view.test", "time_selection.0.quick_selection.0.seconds", "86400"), // 24 hours in seconds
-					resource.TestCheckResourceAttr("coralogix_view.test", "search_query.0.query", "error OR warning"),
+					resource.TestCheckResourceAttr("coralogix_view.test", "time_selection.quick_selection.seconds", "86400"), // 24 hours in seconds
+					resource.TestCheckResourceAttr("coralogix_view.test", "search_query.query", "error OR warning"),
 				),
 			},
 		},
