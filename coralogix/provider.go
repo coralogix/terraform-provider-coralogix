@@ -364,6 +364,8 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		NewConnectorDataSource,
 		NewGlobalRouterDataSource,
 		NewPresetDataSource,
+		NewViewDataSource,
+		NewViewsFolderDataSource,
 	}
 }
 
@@ -395,5 +397,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		NewConnectorResource,
 		NewGlobalRouterResource,
 		NewPresetResource,
+		NewViewResource,
+		NewViewsFolderResource,
 	}
 }
