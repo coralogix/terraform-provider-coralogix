@@ -47,6 +47,7 @@ type ClientSet struct {
 	groupGrpc           *cxsdk.GroupsClient
 	notifications       *cxsdk.NotificationsClient
 	views               *cxsdk.ViewsClient
+	viewsFolders        *cxsdk.ViewFoldersClient
 
 	grafana *GrafanaClient
 	groups  *GroupsClient
@@ -164,6 +165,10 @@ func (c *ClientSet) Views() *cxsdk.ViewsClient {
 	return c.views
 }
 
+func (c *ClientSet) ViewsFolders() *cxsdk.ViewFoldersClient {
+	return c.viewsFolders
+}
+
 func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	apiKeySdk := cxsdk.NewCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
@@ -195,6 +200,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
 		notifications:       cxsdk.NewNotificationsClient(apiKeySdk),
 		views:               cxsdk.NewViewsClient(apiKeySdk),
+		viewsFolders:        cxsdk.NewViewFoldersClient(apiKeySdk),
 
 		grafana: NewGrafanaClient(apikeyCPC),
 		groups:  NewGroupsClient(apikeyCPC),

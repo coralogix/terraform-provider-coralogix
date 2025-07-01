@@ -22,7 +22,6 @@ resource "coralogix_view" "example_view" {
   }
   search_query = {
     query = "error OR warning"
-
   }
   filters = {
     filters = [
