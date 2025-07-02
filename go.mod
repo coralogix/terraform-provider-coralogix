@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
-	github.com/coralogix/coralogix-management-sdk v1.5.3-0.20250620130140-c7c923ebdd58
+	github.com/coralogix/coralogix-management-sdk v1.6.0
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/hashicorp/terraform-plugin-docs v0.20.1
@@ -38,7 +38,7 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.1 // indirect
 	github.com/hashicorp/cli v1.1.6 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-checkpoint v0.5.0 // indirect

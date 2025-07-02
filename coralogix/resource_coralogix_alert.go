@@ -404,7 +404,7 @@ type NotificationDestinationModel struct {
 type SourceOverridesModel struct {
 	ConnectorOverrides types.List   `tfsdk:"connector_overrides"` // []ConfigurationOverrideModel
 	PresetOverrides    types.List   `tfsdk:"preset_overrides"`    // []ConfigurationOverrideModel
-	OutputSchemaId     types.String `tfsdk:"output_schema_id"`
+	PayloadType        types.String `tfsdk:"payload_type"`
 }
 
 type ConfigurationOverrideModel struct {
@@ -1401,7 +1401,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								"field_name": types.StringType,
 								"template":   types.StringType,
 							}}},
-							"output_schema_id": types.StringType,
+							"payload_type": types.StringType,
 						}},
 						"resolved_routing_overrides": types.ObjectType{AttrTypes: map[string]attr.Type{
 							"connector_overrides": types.ListType{ElemType: types.ObjectType{AttrTypes: map[string]attr.Type{
@@ -1412,7 +1412,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 								"field_name": types.StringType,
 								"template":   types.StringType,
 							}}},
-							"output_schema_id": types.StringType,
+							"payload_type": types.StringType,
 						}},
 					}}),
 					"router": types.ObjectNull(map[string]attr.Type{
@@ -1525,7 +1525,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 												},
 											},
 										},
-										"output_schema_id": schema.StringAttribute{
+										"payload_type": schema.StringAttribute{
 											Required: true,
 										},
 									},
@@ -1569,7 +1569,7 @@ func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 												},
 											},
 										},
-										"output_schema_id": schema.StringAttribute{
+										"payload_type": schema.StringAttribute{
 											Required: true,
 										},
 									},
@@ -2323,7 +2323,7 @@ func extractRoutingOverrides(ctx context.Context, overridesObject types.Object) 
 	sourceOverrides := &cxsdk.SourceOverrides{
 		ConnectorConfigFields: connectorOverrides,
 		MessageConfigFields:   presetOverrides,
-		OutputSchemaId:        routingOverridesModel.OutputSchemaId.ValueString(),
+		PayloadType:           routingOverridesModel.PayloadType.ValueString(),
 	}
 
 	return sourceOverrides, nil
@@ -4308,7 +4308,7 @@ func flattenRoutingOverrides(ctx context.Context, overrides *cxsdk.SourceOverrid
 		return types.ObjectNull(routingOverridesAttr()), diags
 	}
 	overridesModel := SourceOverridesModel{
-		OutputSchemaId:     types.StringValue(overrides.GetOutputSchemaId()),
+		PayloadType:        types.StringValue(overrides.GetPayloadType()),
 		ConnectorOverrides: flattenedConnectorOverrides,
 		PresetOverrides:    flattenedPresetOverrides,
 	}
@@ -5667,7 +5667,7 @@ func routingOverridesAttr() map[string]attr.Type {
 				AttrTypes: configurationOverridesAttr(),
 			},
 		},
-		"output_schema_id": types.StringType,
+		"payload_type": types.StringType,
 	}
 }
 

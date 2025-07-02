@@ -209,7 +209,7 @@ resource "coralogix_alert" "test_with_destination" {
             template = "{{alertDef.priority}}"
           }
         ]
-        output_schema_id = "slack_raw"
+        payload_type = "slack_raw"
       }
     }]
   }
@@ -2045,7 +2045,7 @@ Optional:
 
 Required:
 
-- `output_schema_id` (String)
+- `payload_type` (String)
 
 Optional:
 
@@ -2076,7 +2076,7 @@ Required:
 
 Required:
 
-- `output_schema_id` (String)
+- `payload_type` (String)
 
 Optional:
 
