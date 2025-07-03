@@ -17,6 +17,7 @@ package alertschema
 import (
 	"fmt"
 	"regexp"
+	alerttypes "terraform-provider-coralogix/coralogix/alert_types"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/boolvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
@@ -71,13 +72,13 @@ func V2() schema.Schema {
 				Optional: true,
 				Computed: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf(validAlertPriorities...),
+					stringvalidator.OneOf(alerttypes.ValidAlertPriorities...),
 				},
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 				DeprecationMessage:  "This field will be removed in the future in favor of the 'override' property where possible.",
-				MarkdownDescription: fmt.Sprintf("Alert priority. Valid values: %q.", validAlertPriorities),
+				MarkdownDescription: fmt.Sprintf("Alert priority. Valid values: %q.", alerttypes.ValidAlertPriorities),
 			},
 			"schedule": schema.SingleNestedAttribute{
 				Optional: true,
@@ -90,10 +91,10 @@ func V2() schema.Schema {
 								ElementType: types.StringType,
 								Validators: []validator.Set{
 									setvalidator.ValueStringsAre(
-										stringvalidator.OneOf(validDaysOfWeek...),
+										stringvalidator.OneOf(alerttypes.ValidDaysOfWeek...),
 									),
 								},
-								MarkdownDescription: fmt.Sprintf("Days of the week. Valid values: %q.", validDaysOfWeek),
+								MarkdownDescription: fmt.Sprintf("Days of the week. Valid values: %q.", alerttypes.ValidDaysOfWeek),
 							},
 							"start_time": schema.StringAttribute{
 								Required: true,
@@ -137,8 +138,8 @@ func V2() schema.Schema {
 					"logs_immediate": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"logs_filter":                 logsFilterSchema(),
-							"notification_payload_filter": notificationPayloadFilterSchema(),
+							"logs_filter":                 LogsFilterSchema(),
+							"notification_payload_filter": NotificationPayloadFilterSchema(),
 						},
 						Validators: []validator.Object{
 							objectvalidator.ExactlyOneOf(
@@ -171,32 +172,32 @@ func V2() schema.Schema {
 												"threshold": schema.Float64Attribute{
 													Required: true,
 												},
-												"time_window": logsTimeWindowSchema(validLogsTimeWindowValues),
+												"time_window": LogsTimeWindowSchema(alerttypes.ValidLogsTimeWindowValues),
 												"condition_type": schema.StringAttribute{
 													Required: true,
 													Validators: []validator.String{
-														stringvalidator.OneOf(logsThresholdConditionValues...),
+														stringvalidator.OneOf(alerttypes.LogsThresholdConditionValues...),
 													},
-													MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", logsThresholdConditionValues),
+													MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", alerttypes.LogsThresholdConditionValues),
 												},
 											},
 										},
-										"override": overrideAlertSchema(),
+										"override": OverrideAlertSchema(),
 									},
 								},
 							},
-							"notification_payload_filter":  notificationPayloadFilterSchema(),
-							"logs_filter":                  logsFilterSchema(),
-							"undetected_values_management": undetectedValuesManagementSchema(),
-							"custom_evaluation_delay":      evaluationDelaySchema(),
+							"notification_payload_filter":  NotificationPayloadFilterSchema(),
+							"logs_filter":                  LogsFilterSchema(),
+							"undetected_values_management": UndetectedValuesManagementSchema(),
+							"custom_evaluation_delay":      EvaluationDelaySchema(),
 						},
 					},
 					"logs_anomaly": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"custom_evaluation_delay":     evaluationDelaySchema(),
-							"logs_filter":                 logsFilterSchema(),
-							"notification_payload_filter": notificationPayloadFilterSchema(),
+							"custom_evaluation_delay":     EvaluationDelaySchema(),
+							"logs_filter":                 LogsFilterSchema(),
+							"notification_payload_filter": NotificationPayloadFilterSchema(),
 							"rules": schema.SetNestedAttribute{
 								Required:   true,
 								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
@@ -205,7 +206,7 @@ func V2() schema.Schema {
 										"condition": schema.SingleNestedAttribute{
 											Required: true,
 											Attributes: map[string]schema.Attribute{
-												"time_window": logsTimeWindowSchema(validLogsTimeWindowValues),
+												"time_window": LogsTimeWindowSchema(alerttypes.ValidLogsTimeWindowValues),
 												"minimum_threshold": schema.Float64Attribute{
 													Required: true,
 												},
@@ -237,31 +238,31 @@ func V2() schema.Schema {
 												"threshold": schema.Float64Attribute{
 													Required: true,
 												},
-												"time_window": logsTimeWindowSchema(validLogsRatioTimeWindowValues),
+												"time_window": LogsTimeWindowSchema(alerttypes.ValidLogsRatioTimeWindowValues),
 												"condition_type": schema.StringAttribute{
 													Required: true,
 													Validators: []validator.String{
-														stringvalidator.OneOf(logsRatioConditionMapValues...),
+														stringvalidator.OneOf(alerttypes.LogsRatioConditionMapValues...),
 													},
-													MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", logsRatioConditionMapValues),
+													MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", alerttypes.LogsRatioConditionMapValues),
 												},
 											},
 										},
-										"override": overrideAlertSchema(),
+										"override": OverrideAlertSchema(),
 									},
 								},
 							},
-							"numerator": logsFilterSchema(),
+							"numerator": LogsFilterSchema(),
 							"numerator_alias": schema.StringAttribute{
 								Required: true,
 							},
-							"denominator": logsFilterSchema(),
+							"denominator": LogsFilterSchema(),
 							"denominator_alias": schema.StringAttribute{
 								Required: true,
 							},
-							"notification_payload_filter": notificationPayloadFilterSchema(),
-							"group_by_for":                logsRatioGroupByForSchema(),
-							"custom_evaluation_delay":     evaluationDelaySchema(),
+							"notification_payload_filter": NotificationPayloadFilterSchema(),
+							"group_by_for":                LogsRatioGroupByForSchema(),
+							"custom_evaluation_delay":     EvaluationDelaySchema(),
 						},
 					},
 					"logs_new_value": schema.SingleNestedAttribute{
@@ -276,21 +277,21 @@ func V2() schema.Schema {
 											Required: true,
 											Attributes: map[string]schema.Attribute{
 												"keypath_to_track": schema.StringAttribute{Required: true},
-												"time_window":      logsTimeWindowSchema(validLogsNewValueTimeWindowValues),
+												"time_window":      LogsTimeWindowSchema(alerttypes.ValidLogsNewValueTimeWindowValues),
 											},
 										},
 									},
 								},
 							},
-							"logs_filter":                 logsFilterSchema(),
-							"notification_payload_filter": notificationPayloadFilterSchema(),
+							"logs_filter":                 LogsFilterSchema(),
+							"notification_payload_filter": NotificationPayloadFilterSchema(),
 						},
 					},
 					"logs_unique_count": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"logs_filter":                 logsFilterSchema(),
-							"notification_payload_filter": notificationPayloadFilterSchema(),
+							"logs_filter":                 LogsFilterSchema(),
+							"notification_payload_filter": NotificationPayloadFilterSchema(),
 							"rules": schema.SetNestedAttribute{
 								Required:   true,
 								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
@@ -299,7 +300,7 @@ func V2() schema.Schema {
 										"condition": schema.SingleNestedAttribute{
 											Required: true,
 											Attributes: map[string]schema.Attribute{
-												"time_window":      logsTimeWindowSchema(validLogsUniqueCountTimeWindowValues),
+												"time_window":      LogsTimeWindowSchema(alerttypes.ValidLogsUniqueCountTimeWindowValues),
 												"max_unique_count": schema.Int64Attribute{Required: true},
 											},
 										},
@@ -317,10 +318,10 @@ func V2() schema.Schema {
 					"logs_time_relative_threshold": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"custom_evaluation_delay":      evaluationDelaySchema(),
-							"logs_filter":                  logsFilterSchema(),
-							"notification_payload_filter":  notificationPayloadFilterSchema(),
-							"undetected_values_management": undetectedValuesManagementSchema(),
+							"custom_evaluation_delay":      EvaluationDelaySchema(),
+							"logs_filter":                  LogsFilterSchema(),
+							"notification_payload_filter":  NotificationPayloadFilterSchema(),
+							"undetected_values_management": UndetectedValuesManagementSchema(),
 							"rules": schema.SetNestedAttribute{
 								Required:   true,
 								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
@@ -332,9 +333,9 @@ func V2() schema.Schema {
 												"condition_type": schema.StringAttribute{
 													Required: true,
 													Validators: []validator.String{
-														stringvalidator.OneOf(logsTimeRelativeConditionValues...),
+														stringvalidator.OneOf(alerttypes.LogsTimeRelativeConditionValues...),
 													},
-													MarkdownDescription: fmt.Sprintf("Condition . Valid values: %q.", logsTimeRelativeConditionValues),
+													MarkdownDescription: fmt.Sprintf("Condition . Valid values: %q.", alerttypes.LogsTimeRelativeConditionValues),
 												},
 												"threshold": schema.Float64Attribute{
 													Required: true,
@@ -342,13 +343,13 @@ func V2() schema.Schema {
 												"compared_to": schema.StringAttribute{
 													Required: true,
 													Validators: []validator.String{
-														stringvalidator.OneOf(validLogsTimeRelativeComparedTo...),
+														stringvalidator.OneOf(alerttypes.ValidLogsTimeRelativeComparedTo...),
 													},
-													MarkdownDescription: fmt.Sprintf("Compared to a different time frame. Valid values: %q.", validLogsTimeRelativeComparedTo),
+													MarkdownDescription: fmt.Sprintf("Compared to a different time frame. Valid values: %q.", alerttypes.ValidLogsTimeRelativeComparedTo),
 												},
 											},
 										},
-										"override": overrideAlertSchema(),
+										"override": OverrideAlertSchema(),
 									},
 								},
 							},
@@ -358,9 +359,9 @@ func V2() schema.Schema {
 					"metric_threshold": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"custom_evaluation_delay":      evaluationDelaySchema(),
-							"metric_filter":                metricFilterSchema(),
-							"undetected_values_management": undetectedValuesManagementSchema(),
+							"custom_evaluation_delay":      EvaluationDelaySchema(),
+							"metric_filter":                MetricFilterSchema(),
+							"undetected_values_management": UndetectedValuesManagementSchema(),
 							"rules": schema.SetNestedAttribute{
 								Required:   true,
 								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
@@ -376,17 +377,17 @@ func V2() schema.Schema {
 													Required:            true,
 													MarkdownDescription: "Percentage of metrics over the threshold. 0 means 'for at least once', 100 means 'for at least'. ",
 												},
-												"of_the_last": metricTimeWindowSchema(),
+												"of_the_last": MetricTimeWindowSchema(),
 												"condition_type": schema.StringAttribute{
 													Required: true,
 													Validators: []validator.String{
-														stringvalidator.OneOf(metricsThresholdConditionValues...),
+														stringvalidator.OneOf(alerttypes.MetricsThresholdConditionValues...),
 													},
-													MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", metricsThresholdConditionValues),
+													MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", alerttypes.MetricsThresholdConditionValues),
 												},
 											},
 										},
-										"override": overrideAlertSchema(),
+										"override": OverrideAlertSchema(),
 									},
 								},
 							},
@@ -409,8 +410,8 @@ func V2() schema.Schema {
 					"metric_anomaly": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"custom_evaluation_delay": evaluationDelaySchema(),
-							"metric_filter":           metricFilterSchema(),
+							"custom_evaluation_delay": EvaluationDelaySchema(),
+							"metric_filter":           MetricFilterSchema(),
 							"rules": schema.SetNestedAttribute{
 								Required:   true,
 								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
@@ -429,13 +430,13 @@ func V2() schema.Schema {
 													Required:            true,
 													MarkdownDescription: "Percentage of metrics over the threshold. 0 means 'for at least once', 100 means 'for at least'. ",
 												},
-												"of_the_last": anomalyMetricTimeWindowSchema(),
+												"of_the_last": AnomalyMetricTimeWindowSchema(),
 												"condition_type": schema.StringAttribute{
 													Required: true,
 													Validators: []validator.String{
-														stringvalidator.OneOf(metricAnomalyConditionValues...),
+														stringvalidator.OneOf(alerttypes.MetricAnomalyConditionValues...),
 													},
-													MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", metricAnomalyConditionValues),
+													MarkdownDescription: fmt.Sprintf("Condition to evaluate the threshold with. Valid values: %q.", alerttypes.MetricAnomalyConditionValues),
 												},
 											},
 										},
@@ -448,15 +449,15 @@ func V2() schema.Schema {
 					"tracing_immediate": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"tracing_filter":              tracingQuerySchema(),
-							"notification_payload_filter": notificationPayloadFilterSchema(),
+							"tracing_filter":              TracingQuerySchema(),
+							"notification_payload_filter": NotificationPayloadFilterSchema(),
 						},
 					},
 					"tracing_threshold": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"tracing_filter":              tracingQuerySchema(),
-							"notification_payload_filter": notificationPayloadFilterSchema(),
+							"tracing_filter":              TracingQuerySchema(),
+							"notification_payload_filter": NotificationPayloadFilterSchema(),
 							"rules": schema.SetNestedAttribute{
 								Required:   true,
 								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
@@ -468,7 +469,7 @@ func V2() schema.Schema {
 												"span_amount": schema.Float64Attribute{
 													Required: true,
 												},
-												"time_window": logsTimeWindowSchema(validTracingTimeWindow),
+												"time_window": LogsTimeWindowSchema(alerttypes.ValidTracingTimeWindow),
 												"condition_type": schema.StringAttribute{
 													Computed: true,
 													Default:  stringdefault.StaticString("MORE_THAN"),
@@ -514,16 +515,16 @@ func V2() schema.Schema {
 													"next_op": schema.StringAttribute{
 														Required: true,
 														Validators: []validator.String{
-															stringvalidator.OneOf(validFlowStagesGroupNextOps...),
+															stringvalidator.OneOf(alerttypes.ValidFlowStagesGroupNextOps...),
 														},
-														MarkdownDescription: fmt.Sprintf("Next operation. Valid values: %q.", validFlowStagesGroupNextOps),
+														MarkdownDescription: fmt.Sprintf("Next operation. Valid values: %q.", alerttypes.ValidFlowStagesGroupNextOps),
 													},
 													"alerts_op": schema.StringAttribute{
 														Required: true,
 														Validators: []validator.String{
-															stringvalidator.OneOf(validFlowStagesGroupAlertsOps...),
+															stringvalidator.OneOf(alerttypes.ValidFlowStagesGroupAlertsOps...),
 														},
-														MarkdownDescription: fmt.Sprintf("Alerts operation. Valid values: %q.", validFlowStagesGroupAlertsOps),
+														MarkdownDescription: fmt.Sprintf("Alerts operation. Valid values: %q.", alerttypes.ValidFlowStagesGroupAlertsOps),
 													},
 												},
 											},
@@ -536,7 +537,7 @@ func V2() schema.Schema {
 										"timeframe_type": schema.StringAttribute{
 											Required: true,
 											Validators: []validator.String{
-												stringvalidator.OneOf(validFlowStageTimeFrameTypes...),
+												stringvalidator.OneOf(alerttypes.ValidFlowStageTimeFrameTypes...),
 											},
 										},
 									},
@@ -565,7 +566,7 @@ func V2() schema.Schema {
 							"error_budget": schema.SingleNestedAttribute{
 								Optional: true,
 								Attributes: map[string]schema.Attribute{
-									"rules": sloThresholdRulesAttribute(),
+									"rules": SloThresholdRulesAttribute(),
 								},
 								Validators: []validator.Object{
 									objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("burn_rate")),
@@ -575,11 +576,11 @@ func V2() schema.Schema {
 							"burn_rate": schema.SingleNestedAttribute{
 								Optional: true,
 								Attributes: map[string]schema.Attribute{
-									"rules": sloThresholdRulesAttribute(),
+									"rules": SloThresholdRulesAttribute(),
 									"dual": schema.SingleNestedAttribute{
 										Optional: true,
 										Attributes: map[string]schema.Attribute{
-											"time_duration": timeDurationAttribute(),
+											"time_duration": TimeDurationAttribute(),
 										},
 										Validators: []validator.Object{
 											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("single")),
@@ -588,7 +589,7 @@ func V2() schema.Schema {
 									"single": schema.SingleNestedAttribute{
 										Optional: true,
 										Attributes: map[string]schema.Attribute{
-											"time_duration": timeDurationAttribute(),
+											"time_duration": TimeDurationAttribute(),
 										},
 										Validators: []validator.Object{
 											objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("dual")),
@@ -639,9 +640,9 @@ func V2() schema.Schema {
 					"notify_on": schema.StringAttribute{
 						Required: true,
 						Validators: []validator.String{
-							stringvalidator.OneOf(validNotifyOn...),
+							stringvalidator.OneOf(alerttypes.ValidNotifyOn...),
 						},
-						MarkdownDescription: fmt.Sprintf("Notify on. Valid values: %q.", validNotifyOn),
+						MarkdownDescription: fmt.Sprintf("Notify on. Valid values: %q.", alerttypes.ValidNotifyOn),
 					},
 					"retriggering_period": schema.SingleNestedAttribute{
 						Required: true,
@@ -656,7 +657,7 @@ func V2() schema.Schema {
 			"notification_group": schema.SingleNestedAttribute{
 				Optional: true,
 				Computed: true,
-				Default: objectdefault.StaticValue(types.ObjectValueMust(notificationGroupAttr(), map[string]attr.Value{
+				Default: objectdefault.StaticValue(types.ObjectValueMust(NotificationGroupAttr(), map[string]attr.Value{
 					"group_by_keys": types.ListNull(types.StringType),
 					"webhooks_settings": types.SetNull(types.ObjectType{AttrTypes: map[string]attr.Type{
 						"retriggering_period": types.ObjectType{AttrTypes: map[string]attr.Type{
@@ -710,7 +711,7 @@ func V2() schema.Schema {
 								"retriggering_period": schema.SingleNestedAttribute{
 									Optional: true,
 									Computed: true,
-									Default: objectdefault.StaticValue(types.ObjectValueMust(retriggeringPeriodAttr(), map[string]attr.Value{
+									Default: objectdefault.StaticValue(types.ObjectValueMust(RetriggeringPeriodAttr(), map[string]attr.Value{
 										"minutes": types.Int64Value(10),
 									})),
 									Attributes: map[string]schema.Attribute{
@@ -725,9 +726,9 @@ func V2() schema.Schema {
 									Computed: true,
 									Default:  stringdefault.StaticString("Triggered Only"),
 									Validators: []validator.String{
-										stringvalidator.OneOf(validNotifyOn...),
+										stringvalidator.OneOf(alerttypes.ValidNotifyOn...),
 									},
-									MarkdownDescription: fmt.Sprintf("Notify on. Valid values: %q. Triggered Only by default.", validNotifyOn),
+									MarkdownDescription: fmt.Sprintf("Notify on. Valid values: %q. Triggered Only by default.", alerttypes.ValidNotifyOn),
 								},
 								"integration_id": schema.StringAttribute{
 									Optional: true,
@@ -762,7 +763,7 @@ func V2() schema.Schema {
 									Computed: true,
 									Default:  stringdefault.StaticString("Triggered Only"),
 									Validators: []validator.String{
-										stringvalidator.OneOf(validNotifyOn...),
+										stringvalidator.OneOf(alerttypes.ValidNotifyOn...),
 									},
 								},
 								"triggered_routing_overrides": schema.SingleNestedAttribute{
@@ -864,7 +865,7 @@ func V2() schema.Schema {
 								Computed: true,
 								Default:  stringdefault.StaticString("Triggered Only"),
 								Validators: []validator.String{
-									stringvalidator.OneOf(validNotifyOn...),
+									stringvalidator.OneOf(alerttypes.ValidNotifyOn...),
 								},
 							},
 						},
