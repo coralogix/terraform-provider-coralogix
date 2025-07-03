@@ -999,6 +999,8 @@ Feature:
 
 ## resource/coralogix_alert
 
+Breaking: `output_schema_id` was renamed to `payload_id` for users of notification center alerts
+
 Fix:
 * fixing type conversion for `alert_type` using `foreach`
 * setting the rule's priority to the alert's priority if not set.

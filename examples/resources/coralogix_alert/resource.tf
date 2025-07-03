@@ -194,7 +194,7 @@ resource "coralogix_alert" "test_with_destination" {
             template = "{{alertDef.priority}}"
           }
         ]
-        output_schema_id = "slack_raw"
+        payload_type = "slack_raw"
       }
     }]
   }

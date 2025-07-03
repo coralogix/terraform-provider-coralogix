@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	alerttypes "terraform-provider-coralogix/coralogix/alert_types"
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
 
@@ -69,7 +70,7 @@ func (d *AlertDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest
 }
 
 func (d *AlertDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *AlertResourceModel
+	var data *alerttypes.AlertResourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return

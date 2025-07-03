@@ -306,7 +306,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_with_destination(t *testing.T)
 							"notify_on":    "Triggered and Resolved",
 							"triggered_routing_overrides.connector_overrides.0.field_name": "channel",
 							"triggered_routing_overrides.connector_overrides.0.template":   "{{alertDef.priority}}",
-							"triggered_routing_overrides.output_schema_id":                 "slack_raw",
+							"triggered_routing_overrides.payload_type":                     "slack_raw",
 						},
 					),
 					resource.TestCheckResourceAttr(alertResourceName, "incidents_settings.notify_on", "Triggered and Resolved"),
@@ -367,7 +367,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_with_destination(t *testing.T)
 							"notify_on":    "Triggered and Resolved",
 							"triggered_routing_overrides.connector_overrides.0.field_name": "channel",
 							"triggered_routing_overrides.connector_overrides.0.template":   "{{alertDef.priority}}",
-							"triggered_routing_overrides.output_schema_id":                 "slack_raw",
+							"triggered_routing_overrides.payload_type":                     "slack_raw",
 						},
 					),
 
@@ -1949,7 +1949,7 @@ func testAccCoralogixResourceAlertLogsLessThanWithDestination() string {
             template = "{{alertDef.priority}}"
           }
         ]
-        output_schema_id = "slack_raw"
+        payload_type = "slack_raw"
       }
     }]
   }
@@ -2086,7 +2086,7 @@ func testAccCoralogixResourceAlertLogsLessThanWithDestinationUpdated() string {
             template = "{{alertDef.priority}}"
           }
         ]
-        output_schema_id = "slack_raw"
+        payload_type = "slack_raw"
       }
     }]
   }

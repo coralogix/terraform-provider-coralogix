@@ -78,7 +78,7 @@ Read-Only:
 Read-Only:
 
 - `connector_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides--connector_overrides))
-- `output_schema_id` (String)
+- `payload_type` (String)
 - `preset_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides--preset_overrides))
 
 <a id="nestedatt--notification_group--destinations--resolved_routing_overrides--connector_overrides"></a>
@@ -106,7 +106,7 @@ Read-Only:
 Read-Only:
 
 - `connector_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides--connector_overrides))
-- `output_schema_id` (String)
+- `payload_type` (String)
 - `preset_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides--preset_overrides))
 
 <a id="nestedatt--notification_group--destinations--triggered_routing_overrides--connector_overrides"></a>
