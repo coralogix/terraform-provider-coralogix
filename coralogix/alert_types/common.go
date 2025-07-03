@@ -18,6 +18,8 @@ import (
 	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var (
@@ -280,3 +282,400 @@ var (
 	DurationUnitSchemaToProtoMap = utils.ReverseMap(DurationUnitProtoToSchemaMap)
 	ValidDurationUnits           = utils.GetKeys(DurationUnitSchemaToProtoMap)
 )
+
+type AlertResourceModel struct {
+	ID                types.String `tfsdk:"id"`
+	Name              types.String `tfsdk:"name"`
+	Description       types.String `tfsdk:"description"`
+	Enabled           types.Bool   `tfsdk:"enabled"`
+	Priority          types.String `tfsdk:"priority"`
+	Schedule          types.Object `tfsdk:"schedule"`        // AlertScheduleModel
+	TypeDefinition    types.Object `tfsdk:"type_definition"` // AlertTypeDefinitionModel
+	PhantomMode       types.Bool   `tfsdk:"phantom_mode"`
+	Deleted           types.Bool   `tfsdk:"deleted"`
+	GroupBy           types.List   `tfsdk:"group_by"`           // []types.String
+	IncidentsSettings types.Object `tfsdk:"incidents_settings"` // IncidentsSettingsModel
+	NotificationGroup types.Object `tfsdk:"notification_group"` // NotificationGroupModel
+	Labels            types.Map    `tfsdk:"labels"`             // map[string]string
+}
+
+type AlertScheduleModel struct {
+	ActiveOn types.Object `tfsdk:"active_on"` // ActiveOnModel
+}
+
+type AlertTypeDefinitionModel struct {
+	LogsImmediate             types.Object `tfsdk:"logs_immediate"`               // LogsImmediateModel
+	LogsThreshold             types.Object `tfsdk:"logs_threshold"`               // LogsThresholdModel
+	LogsAnomaly               types.Object `tfsdk:"logs_anomaly"`                 // LogsAnomalyModel
+	LogsRatioThreshold        types.Object `tfsdk:"logs_ratio_threshold"`         // LogsRatioThresholdModel
+	LogsNewValue              types.Object `tfsdk:"logs_new_value"`               // LogsNewValueModel
+	LogsUniqueCount           types.Object `tfsdk:"logs_unique_count"`            // LogsUniqueCountModel
+	LogsTimeRelativeThreshold types.Object `tfsdk:"logs_time_relative_threshold"` // LogsTimeRelativeThresholdModel
+	MetricThreshold           types.Object `tfsdk:"metric_threshold"`             // MetricThresholdModel
+	MetricAnomaly             types.Object `tfsdk:"metric_anomaly"`               // MetricAnomalyModel
+	TracingImmediate          types.Object `tfsdk:"tracing_immediate"`            // TracingImmediateModel
+	TracingThreshold          types.Object `tfsdk:"tracing_threshold"`            // TracingThresholdModel
+	Flow                      types.Object `tfsdk:"flow"`                         // FlowModel
+	SloThreshold              types.Object `tfsdk:"slo_threshold"`                // SloThresholdModel
+}
+
+type IncidentsSettingsModel struct {
+	NotifyOn           types.String `tfsdk:"notify_on"`
+	RetriggeringPeriod types.Object `tfsdk:"retriggering_period"` // RetriggeringPeriodModel
+}
+
+type NotificationGroupModel struct {
+	Destinations     types.List   `tfsdk:"destinations"`      // NotificationDestinationModel
+	Router           types.Object `tfsdk:"router"`            // NotificationRouterModel
+	GroupByKeys      types.List   `tfsdk:"group_by_keys"`     // []types.String
+	WebhooksSettings types.Set    `tfsdk:"webhooks_settings"` // WebhooksSettingsModel
+}
+
+type NotificationRouterModel struct {
+	NotifyOn types.String `tfsdk:"notify_on"`
+}
+
+type NotificationDestinationModel struct {
+	ConnectorId               types.String `tfsdk:"connector_id"`
+	PresetId                  types.String `tfsdk:"preset_id"`
+	NotifyOn                  types.String `tfsdk:"notify_on"`
+	TriggeredRoutingOverrides types.Object `tfsdk:"triggered_routing_overrides"` // SourceOverridesModel
+	ResolvedRoutingOverrides  types.Object `tfsdk:"resolved_routing_overrides"`  // SourceOverridesModel
+}
+
+type SourceOverridesModel struct {
+	ConnectorOverrides types.List   `tfsdk:"connector_overrides"` // []ConfigurationOverrideModel
+	PresetOverrides    types.List   `tfsdk:"preset_overrides"`    // []ConfigurationOverrideModel
+	PayloadType        types.String `tfsdk:"payload_type"`
+}
+
+type ConfigurationOverrideModel struct {
+	FieldName types.String `tfsdk:"field_name"`
+	Template  types.String `tfsdk:"template"`
+}
+
+type NotificationRouter struct {
+	NotifyOn types.String `tfsdk:"notify_on"`
+}
+
+type WebhooksSettingsModel struct {
+	RetriggeringPeriod types.Object `tfsdk:"retriggering_period"` // RetriggeringPeriodModel
+	NotifyOn           types.String `tfsdk:"notify_on"`
+	IntegrationID      types.String `tfsdk:"integration_id"`
+	Recipients         types.Set    `tfsdk:"recipients"` //[]types.String
+}
+
+type ActiveOnModel struct {
+	DaysOfWeek types.Set    `tfsdk:"days_of_week"` // []types.String
+	StartTime  types.String `tfsdk:"start_time"`
+	EndTime    types.String `tfsdk:"end_time"`
+	UtcOffset  types.String `tfsdk:"utc_offset"`
+}
+
+type RetriggeringPeriodModel struct {
+	Minutes types.Int64 `tfsdk:"minutes"`
+}
+
+// Alert Types:
+type LogsImmediateModel struct {
+	LogsFilter                types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
+	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
+}
+
+type LogsThresholdModel struct {
+	Rules                      types.Set    `tfsdk:"rules"`                        // [] LogsThresholdRuleModel
+	LogsFilter                 types.Object `tfsdk:"logs_filter"`                  // AlertsLogsFilterModel
+	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
+	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
+	CustomEvaluationDelay      types.Int32  `tfsdk:"custom_evaluation_delay"`
+}
+
+type LogsAnomalyModel struct {
+	Rules                     types.Set    `tfsdk:"rules"`                       // [] LogsAnomalyRuleModel
+	LogsFilter                types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
+	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
+	CustomEvaluationDelay     types.Int32  `tfsdk:"custom_evaluation_delay"`
+}
+
+type LogsRatioThresholdModel struct {
+	Rules                     types.Set    `tfsdk:"rules"`     // []LogsRatioThresholdRuleModel
+	Numerator                 types.Object `tfsdk:"numerator"` // AlertsLogsFilterModel
+	NumeratorAlias            types.String `tfsdk:"numerator_alias"`
+	Denominator               types.Object `tfsdk:"denominator"` // AlertsLogsFilterModel
+	DenominatorAlias          types.String `tfsdk:"denominator_alias"`
+	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
+	GroupByFor                types.String `tfsdk:"group_by_for"`
+	CustomEvaluationDelay     types.Int32  `tfsdk:"custom_evaluation_delay"`
+}
+
+type LogsNewValueModel struct {
+	Rules                     types.Set    `tfsdk:"rules"`                       // []NewValueRuleModel
+	LogsFilter                types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
+	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
+}
+
+type LogsUniqueCountModel struct {
+	Rules                       types.Set    `tfsdk:"rules"`                       // [] LogsUniqueCountRuleModel
+	LogsFilter                  types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
+	NotificationPayloadFilter   types.Set    `tfsdk:"notification_payload_filter"` // []types.String
+	MaxUniqueCountPerGroupByKey types.Int64  `tfsdk:"max_unique_count_per_group_by_key"`
+	UniqueCountKeypath          types.String `tfsdk:"unique_count_keypath"`
+}
+
+type LogsUniqueCountRuleModel struct {
+	Condition types.Object `tfsdk:"condition"` // LogsUniqueCountConditionModel
+}
+
+type LogsUniqueCountConditionModel struct {
+	MaxUniqueCount types.Int64  `tfsdk:"max_unique_count"`
+	TimeWindow     types.String `tfsdk:"time_window"`
+}
+
+type LogsTimeRelativeThresholdModel struct {
+	Rules                      types.Set    `tfsdk:"rules"`                        // [] LogsTimeRelativeRuleModel
+	LogsFilter                 types.Object `tfsdk:"logs_filter"`                  // AlertsLogsFilterModel
+	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
+	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
+	CustomEvaluationDelay      types.Int32  `tfsdk:"custom_evaluation_delay"`
+}
+
+type MetricAnomalyRuleModel struct {
+	Condition types.Object `tfsdk:"condition"` // MetricAnomalyConditionModel
+}
+
+type MetricAnomalyConditionModel struct {
+	MinNonNullValuesPct types.Int64   `tfsdk:"min_non_null_values_pct"`
+	Threshold           types.Float64 `tfsdk:"threshold"`
+	ForOverPct          types.Int64   `tfsdk:"for_over_pct"`
+	OfTheLast           types.String  `tfsdk:"of_the_last"`
+	ConditionType       types.String  `tfsdk:"condition_type"`
+}
+
+type MetricThresholdModel struct {
+	Rules                      types.Set    `tfsdk:"rules"`                        // [] MetricThresholdRuleModel
+	MetricFilter               types.Object `tfsdk:"metric_filter"`                // MetricFilterModel
+	MissingValues              types.Object `tfsdk:"missing_values"`               // MissingValuesModel
+	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
+	CustomEvaluationDelay      types.Int32  `tfsdk:"custom_evaluation_delay"`
+}
+
+type MissingValuesModel struct {
+	ReplaceWithZero     types.Bool  `tfsdk:"replace_with_zero"`
+	MinNonNullValuesPct types.Int64 `tfsdk:"min_non_null_values_pct"`
+}
+
+type MetricThresholdRuleModel struct {
+	Condition types.Object `tfsdk:"condition"` // MetricThresholdConditionModel
+	Override  types.Object `tfsdk:"override"`  // AlertOverrideModel
+}
+
+type MetricThresholdConditionModel struct {
+	Threshold     types.Float64 `tfsdk:"threshold"`
+	ForOverPct    types.Int64   `tfsdk:"for_over_pct"`
+	OfTheLast     types.String  `tfsdk:"of_the_last"`
+	ConditionType types.String  `tfsdk:"condition_type"`
+}
+
+type MetricAnomalyModel struct {
+	MetricFilter          types.Object `tfsdk:"metric_filter"` // MetricFilterModel
+	Rules                 types.Set    `tfsdk:"rules"`         // [] MetricAnomalyRuleModel
+	CustomEvaluationDelay types.Int32  `tfsdk:"custom_evaluation_delay"`
+}
+
+type MetricImmediateModel struct {
+	MetricFilter              types.Object `tfsdk:"metric_filter"`               // TracingFilterModel
+	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
+}
+
+type TracingImmediateModel struct {
+	TracingFilter             types.Object `tfsdk:"tracing_filter"`              // TracingFilterModel
+	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
+}
+
+type TracingThresholdModel struct {
+	TracingFilter             types.Object `tfsdk:"tracing_filter"`              // TracingFilterModel
+	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
+	Rules                     types.Set    `tfsdk:"rules"`                       // [] TracingThresholdRuleModel
+}
+
+type TracingThresholdRuleModel struct {
+	Condition types.Object `tfsdk:"condition"` // TracingThresholdConditionModel
+}
+
+type TracingThresholdConditionModel struct {
+	TimeWindow    types.String  `tfsdk:"time_window"`
+	SpanAmount    types.Float64 `tfsdk:"span_amount"`
+	ConditionType types.String  `tfsdk:"condition_type"`
+}
+
+type FlowModel struct {
+	Stages             types.List `tfsdk:"stages"` // FlowStageModel
+	EnforceSuppression types.Bool `tfsdk:"enforce_suppression"`
+}
+
+type FlowStageModel struct {
+	FlowStagesGroups types.List   `tfsdk:"flow_stages_groups"` // FlowStagesGroupModel
+	TimeframeMs      types.Int64  `tfsdk:"timeframe_ms"`
+	TimeframeType    types.String `tfsdk:"timeframe_type"`
+}
+
+type FlowStagesGroupModel struct {
+	AlertDefs types.Set    `tfsdk:"alert_defs"` // FlowStagesGroupsAlertDefsModel
+	NextOp    types.String `tfsdk:"next_op"`
+	AlertsOp  types.String `tfsdk:"alerts_op"`
+}
+
+type FlowStagesGroupsAlertDefsModel struct {
+	Id  types.String `tfsdk:"id"`
+	Not types.Bool   `tfsdk:"not"`
+}
+
+type AlertsLogsFilterModel struct {
+	SimpleFilter types.Object `tfsdk:"simple_filter"` // SimpleFilterModel
+}
+
+type SimpleFilterModel struct {
+	LuceneQuery  types.String `tfsdk:"lucene_query"`
+	LabelFilters types.Object `tfsdk:"label_filters"` // LabelFiltersModel
+}
+
+type LabelFiltersModel struct {
+	ApplicationName types.Set `tfsdk:"application_name"` // LabelFilterTypeModel
+	SubsystemName   types.Set `tfsdk:"subsystem_name"`   // LabelFilterTypeModel
+	Severities      types.Set `tfsdk:"severities"`       // []types.String
+}
+
+type LabelFilterTypeModel struct {
+	Value     types.String `tfsdk:"value"`
+	Operation types.String `tfsdk:"operation"`
+}
+
+type NotificationPayloadFilterModel struct {
+	Filter types.String `tfsdk:"filter"`
+}
+
+type UndetectedValuesManagementModel struct {
+	TriggerUndetectedValues types.Bool   `tfsdk:"trigger_undetected_values"`
+	AutoRetireTimeframe     types.String `tfsdk:"auto_retire_timeframe"`
+}
+
+type MetricFilterModel struct {
+	Promql types.String `tfsdk:"promql"`
+}
+
+type NewValueRuleModel struct {
+	Condition types.Object `tfsdk:"condition"` // NewValueConditionModel
+}
+
+type NewValueConditionModel struct {
+	TimeWindow     types.String `tfsdk:"time_window"`
+	KeypathToTrack types.String `tfsdk:"keypath_to_track"`
+}
+
+type LogsTimeRelativeRuleModel struct {
+	Condition types.Object `tfsdk:"condition"` // LogsTimeRelativeConditionModel
+	Override  types.Object `tfsdk:"override"`  // AlertOverrideModel
+}
+
+type LogsTimeRelativeConditionModel struct {
+	Threshold     types.Float64 `tfsdk:"threshold"`
+	ComparedTo    types.String  `tfsdk:"compared_to"`
+	ConditionType types.String  `tfsdk:"condition_type"`
+}
+
+type LogsRatioThresholdRuleModel struct {
+	Condition types.Object `tfsdk:"condition"` // LogsRatioConditionModel
+	Override  types.Object `tfsdk:"override"`  // AlertOverrideModel
+}
+
+type AlertOverrideModel struct {
+	Priority types.String `tfsdk:"priority"`
+}
+
+type LogsRatioConditionModel struct {
+	Threshold     types.Float64 `tfsdk:"threshold"`
+	TimeWindow    types.String  `tfsdk:"time_window"`
+	ConditionType types.String  `tfsdk:"condition_type"`
+}
+
+type LogsAnomalyRuleModel struct {
+	Condition types.Object `tfsdk:"condition"` // LogsAnomalyConditionModel
+}
+
+type LogsAnomalyConditionModel struct {
+	MinimumThreshold types.Float64 `tfsdk:"minimum_threshold"`
+	TimeWindow       types.String  `tfsdk:"time_window"`
+	ConditionType    types.String  `tfsdk:"condition_type"`
+}
+
+type LogsThresholdRuleModel struct {
+	Condition types.Object `tfsdk:"condition"` // LogsThresholdConditionModel
+	Override  types.Object `tfsdk:"override"`  // AlertOverrideModel
+}
+
+type LogsThresholdConditionModel struct {
+	Threshold     types.Float64 `tfsdk:"threshold"`
+	TimeWindow    types.String  `tfsdk:"time_window"`
+	ConditionType types.String  `tfsdk:"condition_type"`
+}
+
+type TracingFilterModel struct {
+	LatencyThresholdMs  types.Number `tfsdk:"latency_threshold_ms"`
+	TracingLabelFilters types.Object `tfsdk:"tracing_label_filters"` // TracingLabelFiltersModel
+}
+
+type TracingLabelFiltersModel struct {
+	ApplicationName types.Set `tfsdk:"application_name"` // TracingFilterTypeModel
+	SubsystemName   types.Set `tfsdk:"subsystem_name"`   // TracingFilterTypeModel
+	ServiceName     types.Set `tfsdk:"service_name"`     // TracingFilterTypeModel
+	OperationName   types.Set `tfsdk:"operation_name"`   // TracingFilterTypeModel
+	SpanFields      types.Set `tfsdk:"span_fields"`      // TracingSpanFieldsFilterModel
+}
+
+type TracingFilterTypeModel struct {
+	Values    types.Set    `tfsdk:"values"` // []types.String
+	Operation types.String `tfsdk:"operation"`
+}
+
+type TracingSpanFieldsFilterModel struct {
+	Key        types.String `tfsdk:"key"`
+	FilterType types.Object `tfsdk:"filter_type"` // TracingFilterTypeModel
+}
+
+type SloThresholdModel struct {
+	SloDefinition types.Object `tfsdk:"slo_definition"` // SloDefinitionObject
+	ErrorBudget   types.Object `tfsdk:"error_budget"`   // SloThresholdErrorBudgetModel
+	BurnRate      types.Object `tfsdk:"burn_rate"`      // SloThresholdBurnRateModel
+}
+
+type SloDefinitionObject struct {
+	SloId types.String `tfsdk:"slo_id"`
+}
+
+type SloThresholdErrorBudgetModel struct {
+	Rules types.List `tfsdk:"rules"` // []SloThresholdRuleModel
+}
+
+type SloThresholdBurnRateModel struct {
+	Rules  types.List   `tfsdk:"rules"`  // []SloThresholdRuleModel
+	Dual   types.Object `tfsdk:"dual"`   // SloThresholdDurationWrapperModel
+	Single types.Object `tfsdk:"single"` // SloThresholdDurationWrapperModel
+}
+
+type SloThresholdRuleModel struct {
+	Condition types.Object `tfsdk:"condition"` // SloThresholdConditionModel
+	Override  types.Object `tfsdk:"override"`  // AlertOverrideModel
+}
+
+type SloThresholdConditionModel struct {
+	Threshold types.Float64 `tfsdk:"threshold"`
+}
+
+type SloThresholdDurationWrapperModel struct {
+	TimeDuration types.Object `tfsdk:"time_duration"` // SloDurationModel
+}
+
+type SloDurationModel struct {
+	Duration types.Int64  `tfsdk:"duration"`
+	Unit     types.String `tfsdk:"unit"`
+}
