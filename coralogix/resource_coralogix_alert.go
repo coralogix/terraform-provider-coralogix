@@ -94,24 +94,54 @@ func (r AlertResource) UpgradeState(_ context.Context) map[int64]resource.StateU
 	priorSchema := alertschema.V1()
 	return map[int64]resource.StateUpgrader{
 		1: {
-			PriorSchema:   &priorSchema,
-			StateUpgrader: upgradeAlertStateV1ToV2,
+			PriorSchema: &priorSchema,
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				// Generic state upgrade, simply fetches the alert again and updates the state
+				var state types.String
+				resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &state)...)
+				//Get refreshed Alert value from Coralogix
+				id := state.ValueString()
+				log.Printf("[INFO] Reading Alert: %s", id)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
+				var schedule types.Object
+				resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("schedule"), &schedule)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
+				getAlertReq := &cxsdk.GetAlertDefRequest{Id: wrapperspb.String(id)}
+				getAlertResp, err := r.client.Get(ctx, getAlertReq)
+				if err != nil {
+					log.Printf("[ERROR] Received error: %s", err.Error())
+					if cxsdk.Code(err) == codes.NotFound {
+						resp.Diagnostics.AddWarning(
+							fmt.Sprintf("Alert %q is in state, but no longer exists in Coralogix backend", id),
+							fmt.Sprintf("%s will be recreated when you apply", id),
+						)
+						resp.State.RemoveResource(ctx)
+					} else {
+						resp.Diagnostics.AddError(
+							"Error reading Alert",
+							utils.FormatRpcErrors(err, getAlertURL, protojson.Format(getAlertReq)),
+						)
+					}
+					return
+				}
+				alert := getAlertResp.GetAlertDef()
+				log.Printf("[INFO] Received Alert: %s", protojson.Format(alert))
+
+				newState, diags := flattenAlert(ctx, alert, &schedule)
+				if diags.HasError() {
+					resp.Diagnostics.Append(diags...)
+					return
+				}
+
+				resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
+			},
 		},
-	}
-}
-
-func upgradeAlertStateV1ToV2(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-	oldField := types.StringNull()
-	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("routing_override").AtName("output_schema_id"), &oldField)...)
-
-	if !oldField.IsNull() {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("routing_override").AtName("payload_type"), oldField)...)
-	}
-	oldField = types.StringNull()
-	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("resolved_routing_overrides").AtName("output_schema_id"), &oldField)...)
-
-	if !oldField.IsNull() {
-		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("resolved_routing_overrides").AtName("payload_type"), oldField)...)
 	}
 }
 

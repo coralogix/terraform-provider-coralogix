@@ -927,6 +927,6 @@ func RoutingOverridesV2Attr() map[string]attr.Type {
 				AttrTypes: ConfigurationOverridesAttr(),
 			},
 		},
-		"output_schema_id": types.StringType,
+		"payload_type": types.StringType,
 	}
 }
