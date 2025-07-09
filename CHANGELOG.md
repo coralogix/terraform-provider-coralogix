@@ -1008,3 +1008,5 @@ Fix:
 ## resource/coralogix_team
 
 - Deprecation notice
+
+# Release 2.1.1
