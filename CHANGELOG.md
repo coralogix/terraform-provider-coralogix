@@ -1010,3 +1010,15 @@ Fix:
 - Deprecation notice
 
 # Release 2.1.1
+
+Fix:
+
+## provider
+
+* Fixed environment alias mapping to correctly handle both shorthand and longhand environment names (e.g., AP1/APAC1, EU1/EUROPE1, US1/USA1)
+
+Docs:
+
+## resource/coralogix_slo_v2
+
+* Enhanced field documentation for some attributes
