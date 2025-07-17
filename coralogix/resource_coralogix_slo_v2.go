@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
@@ -202,12 +203,12 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 							},
 							"window": schema.StringAttribute{
 								Required:            true,
-								MarkdownDescription: "Time window type for evaluation. One of: `1_minute`, `5_minutes`.",
+								MarkdownDescription: fmt.Sprintf("Time window type for evaluation. One of: %v.", strings.Join(validWindows, ", ")),
 								Validators:          []validator.String{stringvalidator.OneOf(validWindows...)},
 							},
 							"comparison_operator": schema.StringAttribute{
 								Required:            true,
-								MarkdownDescription: "Comparison operator used to evaluate the threshold. One of: `greater_than`, `less_than`, `greater_than_or_equals`, `less_than_or_equals`.",
+								MarkdownDescription: fmt.Sprintf("Comparison operator used to evaluate the threshold. One of: %v", strings.Join(validComparisonOperators, ",")),
 								Validators:          []validator.String{stringvalidator.OneOf(validComparisonOperators...)},
 							},
 							"threshold": schema.Float32Attribute{
@@ -226,11 +227,11 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Attributes: map[string]schema.Attribute{
 					"slo_time_frame": schema.StringAttribute{
 						Required:            true,
-						MarkdownDescription: "Time window for the SLO. One of: 7_days, 14_days, 21_days, 28_days, 90_days.",
+						MarkdownDescription: fmt.Sprintf("SLO time window. One of: %v.", strings.Join(validSLOTimeFrame, ", ")),
 						Validators:          []validator.String{stringvalidator.OneOf(validSLOTimeFrame...)},
 					},
 				},
-				MarkdownDescription: "SLO time window. One of: 7_days, 14_days, 21_days, 28_days, 90_days.",
+				MarkdownDescription: fmt.Sprintf("SLO time window. One of: %v.", strings.Join(validSLOTimeFrame, ", ")),
 			},
 		},
 		MarkdownDescription: "Coralogix New SLO.",
