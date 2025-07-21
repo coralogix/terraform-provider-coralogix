@@ -30,7 +30,6 @@ type ClientSet struct {
 	webhooks            *cxsdk.WebhooksClient
 	slos                *cxsdk.SLOsClient
 	legacySlos          *cxsdk.LegacySLOsClient
-	teams               *cxsdk.TeamsClient
 	scopes              *cxsdk.ScopesClient
 	dashboards          *cxsdk.DashboardsClient
 	archiveLogs         *cxsdk.ArchiveLogsClient
@@ -114,10 +113,6 @@ func (c *ClientSet) AlertSchedulers() *cxsdk.AlertSchedulerClient {
 	return c.alertScheduler
 }
 
-func (c *ClientSet) Teams() *cxsdk.TeamsClient {
-	return c.teams
-}
-
 func (c *ClientSet) CustomRoles() *cxsdk.RolesClient {
 	return c.customRole
 }
@@ -173,7 +168,6 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		webhooks:            cxsdk.NewWebhooksClient(apiKeySdk),
 		slos:                cxsdk.NewSLOsClient(apiKeySdk),
 		legacySlos:          cxsdk.NewLegacySLOsClient(apiKeySdk),
-		teams:               cxsdk.NewTeamsClient(apiKeySdk),
 		scopes:              cxsdk.NewScopesClient(apiKeySdk),
 		dashboards:          cxsdk.NewDashboardsClient(apiKeySdk),
 		archiveLogs:         cxsdk.NewArchiveLogsClient(apiKeySdk),
