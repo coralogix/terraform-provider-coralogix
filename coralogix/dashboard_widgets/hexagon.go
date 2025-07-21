@@ -805,7 +805,7 @@ func expandHexagonDataPrimeQuery(ctx context.Context, dataPrime *DataPrimeModel)
 		return nil, nil
 	}
 
-	filters, diags := expandDashboardFiltersSources(ctx, dataPrime.Filters)
+	filters, diags := ExpandDashboardFiltersSources(ctx, dataPrime.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -829,31 +829,6 @@ func expandHexagonDataPrimeQuery(ctx context.Context, dataPrime *DataPrimeModel)
 			TimeFrame:      timeframe,
 		},
 	}, nil
-}
-
-func expandDashboardFiltersSources(ctx context.Context, filters types.List) ([]*cxsdk.DashboardFilterSource, diag.Diagnostics) {
-	var filtersObjects []types.Object
-	var expandedFiltersSources []*cxsdk.DashboardFilterSource
-	diags := filters.ElementsAs(ctx, &filtersObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	for _, fo := range filtersObjects {
-		var filterSource DashboardFilterSourceModel
-		if dg := fo.As(ctx, &filterSource, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedFilter, expandDiags := ExpandFilterSource(ctx, &filterSource)
-		if expandDiags.HasError() {
-			diags.Append(expandDiags...)
-			continue
-		}
-		expandedFiltersSources = append(expandedFiltersSources, expandedFilter)
-	}
-
-	return expandedFiltersSources, diags
 }
 
 func expandHexagonMetricsQuery(ctx context.Context, queryMetrics *HexagonQueryMetricsModel) (*cxsdk.HexagonQueryMetrics, diag.Diagnostics) {
