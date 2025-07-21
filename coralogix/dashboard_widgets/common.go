@@ -119,11 +119,11 @@ var (
 
 	DashboardSchemaToProtoGaugeUnit = map[string]cxsdk.GaugeUnit{
 		UNSPECIFIED:    cxsdk.GaugeUnitUnspecified,
-		"none":         cxsdk.GaugeUnitMicroseconds,
-		"percent":      cxsdk.GaugeUnitMilliseconds,
-		"microseconds": cxsdk.GaugeUnitNanoseconds,
-		"milliseconds": cxsdk.GaugeUnitNumber,
-		"nanoseconds":  cxsdk.GaugeUnitPercent,
+		"none":         cxsdk.GaugeUnitUnspecified,
+		"percent":      cxsdk.GaugeUnitPercent,
+		"microseconds": cxsdk.GaugeUnitMicroseconds,
+		"milliseconds": cxsdk.GaugeUnitMilliseconds,
+		"nanoseconds":  cxsdk.GaugeUnitNanoseconds,
 		"seconds":      cxsdk.GaugeUnitSeconds,
 		"bytes":        cxsdk.GaugeUnitBytes,
 		"kbytes":       cxsdk.GaugeUnitKbytes,

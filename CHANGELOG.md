@@ -1022,3 +1022,9 @@ Docs:
 ## resource/coralogix_slo_v2
 
 * Enhanced field documentation for some attributes
+
+## resource/coralogix_dashboard
+
+Fix: 
+
+* Incorrect mapping for gauge widget units in dashboards 
