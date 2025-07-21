@@ -415,7 +415,6 @@ type LogsFilterModel struct {
 }
 
 type DataTableLogsQueryGroupingModel struct {
-	GroupBy      types.List `tfsdk:"group_by"`     //types.String
 	Aggregations types.List `tfsdk:"aggregations"` //DataTableLogsAggregationModel
 	GroupBys     types.List `tfsdk:"group_bys"`    //types.String
 }
@@ -1822,4 +1821,29 @@ func ExpandDashboardIDs(id types.String) *wrapperspb.StringValue {
 		return &wrapperspb.StringValue{Value: uuid.NewString()}
 	}
 	return &wrapperspb.StringValue{Value: id.ValueString()}
+}
+
+func ExpandDashboardFiltersSources(ctx context.Context, filters types.List) ([]*cxsdk.DashboardFilterSource, diag.Diagnostics) {
+	var filtersObjects []types.Object
+	var expandedFiltersSources []*cxsdk.DashboardFilterSource
+	diags := filters.ElementsAs(ctx, &filtersObjects, true)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	for _, fo := range filtersObjects {
+		var filterSource DashboardFilterSourceModel
+		if dg := fo.As(ctx, &filterSource, basetypes.ObjectAsOptions{}); dg.HasError() {
+			diags.Append(dg...)
+			continue
+		}
+		expandedFilter, expandDiags := ExpandFilterSource(ctx, &filterSource)
+		if expandDiags.HasError() {
+			diags.Append(expandDiags...)
+			continue
+		}
+		expandedFiltersSources = append(expandedFiltersSources, expandedFilter)
+	}
+
+	return expandedFiltersSources, diags
 }
