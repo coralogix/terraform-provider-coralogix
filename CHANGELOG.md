@@ -1022,3 +1022,10 @@ Docs:
 ## resource/coralogix_slo_v2
 
 * Enhanced field documentation for some attributes
+
+# Release 2.2.0
+
+## resource/coralogix_team
+## data_source/coralogix_team
+
+- Fully removed
