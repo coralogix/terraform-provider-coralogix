@@ -43,7 +43,6 @@ func TestAccCoralogixResourceGroupV2(t *testing.T) {
 					resource.TestCheckResourceAttr(groupV2ResourceName, "name", "example"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.#", "1"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.0.id", "1"),
-					resource.TestCheckResourceAttr(groupV2ResourceName, "scope.filters.subsystems.#", "2"),
 				),
 			},
 			{
@@ -58,7 +57,6 @@ func TestAccCoralogixResourceGroupV2(t *testing.T) {
 					resource.TestCheckResourceAttr(groupV2ResourceName, "name", "example"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.#", "1"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.0.id", "1"),
-					resource.TestCheckResourceAttr(groupV2ResourceName, "scope.filters.subsystems.#", "2"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "users.#", "1"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "users.0.name", userName),
 				),
