@@ -31,7 +31,7 @@ Coralogix group.
 ### Read-Only
 
 - `id` (String) Group ID.
-- `users` (Set of String) Set of user IDs that are members of the group. This is a computed value and will be populated after the group is created or updated. Users can be added to (or removed from) the group using the `coralogix_group_attachment` resource.
+- `users` (Attributes Set) Set of users in the group. This is a computed attribute and will be populated after the group is created or updated. For managing the group's users use the `coralogix_group_attachment` resource. (see [below for nested schema](#nestedatt--users))
 
 <a id="nestedatt--roles"></a>
 ### Nested Schema for `roles`
@@ -81,3 +81,17 @@ Required:
 
 - `filter_type` (String) Filter type for the scope filter. Valid values are: contains, ends_with, exact, starts_with
 - `term` (String)
+
+
+
+
+<a id="nestedatt--users"></a>
+### Nested Schema for `users`
+
+Read-Only:
+
+- `first_name` (String)
+- `id` (String)
+- `last_name` (String)
+- `user_account_id` (String)
+- `user_name` (String)
