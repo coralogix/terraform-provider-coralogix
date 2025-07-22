@@ -20,21 +20,37 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"google.golang.org/protobuf/encoding/protojson"
 	"terraform-provider-coralogix/coralogix/clientset"
 	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"google.golang.org/grpc/codes"
+)
+
+var (
+	FilterTypeSchemaToProto = map[string]cxsdk.FilterType{
+		"starts_with": cxsdk.FilterTypeStartsWith,
+		"ends_with":   cxsdk.FilterTypeEndsWith,
+		"contains":    cxsdk.FilterTypeContains,
+		"exact":       cxsdk.FilterTypeExact,
+	}
+	FilterTypeProtoToSchema = utils.ReverseMap(FilterTypeSchemaToProto)
+	validFilterTypes        = utils.GetKeys(FilterTypeSchemaToProto)
 )
 
 func NewGroupV2Resource() resource.Resource {
@@ -77,27 +93,88 @@ func (r *GroupV2Resource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 				MarkdownDescription: "Group ID.",
 			},
-			"display_name": schema.StringAttribute{
-				Required: true,
-				Validators: []validator.String{
-					stringvalidator.LengthAtLeast(1),
+			"name": schema.StringAttribute{
+				Required:            true,
+				MarkdownDescription: "Group name.",
+			},
+			"team_id": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+					stringplanmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "Group display name.",
+				MarkdownDescription: "Team ID to which the group belongs.",
 			},
-			"members": schema.SetAttribute{
-				Optional:    true,
-				ElementType: types.StringType,
-			},
-			"role": schema.StringAttribute{
-				Required: true,
-			},
-			"scope_id": schema.StringAttribute{
+			"description": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "Scope attached to the group.",
 				Computed:            true,
+				Default:             stringdefault.StaticString(""),
+				MarkdownDescription: "Group description.",
+			},
+			"external_id": schema.StringAttribute{
+				Optional: true,
+			},
+			"roles": schema.SetNestedAttribute{
+				Optional: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id":          schema.StringAttribute{Required: true},
+						"name":        schema.StringAttribute{Computed: true},
+						"description": schema.StringAttribute{Computed: true},
+					},
+				},
+			},
+			"users": schema.SetAttribute{
+				Computed:            true,
+				ElementType:         types.StringType,
+				MarkdownDescription: "Set of user IDs that are members of the group. This is a computed value and will be populated after the group is created or updated. Users can be added to (or removed from) the group using the `coralogix_group_attachment` resource.",
+			},
+			"scope": schema.SingleNestedAttribute{
+				Optional: true,
+				Attributes: map[string]schema.Attribute{
+					"id": schema.StringAttribute{
+						Computed: true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"filters": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"subsystems":   ScopeFilterSchema(),
+							"applications": ScopeFilterSchema(),
+						},
+					},
+				},
+				MarkdownDescription: "Group scope. If not provided, the group will not have a scope.",
+			},
+			"next_gen_scope_id": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
 			},
 		},
 		MarkdownDescription: "Coralogix group.",
+	}
+}
+
+func ScopeFilterSchema() schema.SetNestedAttribute {
+	return schema.SetNestedAttribute{
+		Optional: true,
+		NestedObject: schema.NestedAttributeObject{
+			Attributes: map[string]schema.Attribute{
+				"term": schema.StringAttribute{
+					Required: true,
+				},
+				"filter_type": schema.StringAttribute{
+					Required: true,
+					Validators: []validator.String{
+						stringvalidator.OneOf(validFilterTypes...),
+					},
+					MarkdownDescription: "Filter type for the scope filter. Valid values are: " + strings.Join(validFilterTypes, ", "),
+				},
+			},
+		},
 	}
 }
 
@@ -113,7 +190,7 @@ func (r *GroupV2Resource) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	createGroupRequest, diags := extractGroupV2(ctx, plan)
+	createGroupRequest, diags := extractCreateGroupV2(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -132,7 +209,14 @@ func (r *GroupV2Resource) Create(ctx context.Context, req resource.CreateRequest
 	getResp, err := r.client.Get(ctx, &cxsdk.GetTeamGroupRequest{GroupId: createResp.GroupId})
 	groupStr, _ = json.Marshal(getResp)
 	log.Printf("[INFO] Getting group: %s", groupStr)
-	state, diags := flattenGroup(getResp)
+
+	users, diag := getGroupUsers(ctx, r.client, createResp.GroupId)
+	if diag != nil {
+		resp.Diagnostics.Append(diag)
+		return
+	}
+
+	state, diags := flattenGroupV2(ctx, getResp.Group, users)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -141,43 +225,6 @@ func (r *GroupV2Resource) Create(ctx context.Context, req resource.CreateRequest
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
-}
-
-func flattenGroup(group *cxsdk.GetTeamGroupResponse) (*GroupV2ResourceModel, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	state := &GroupV2ResourceModel{
-		TeamId:         types.StringValue(group),
-		Name:           types.StringValue(group.Name),
-		Description:    types.StringValue(group.Description),
-		ExternalId:     types.StringValue(group.ExternalId),
-		NextGenScopeId: types.StringValue(group.NextGenScopeId),
-	}
-
-	if group.TeamId != nil {
-		state.TeamId = types.StringValue(strconv.Itoa(int(group.TeamId.Id)))
-	} else {
-		state.TeamId = types.StringNull()
-	}
-
-	if group.RoleIds != nil {
-		state.RoleIds, diags = flattenSCIMGroupMembers(group.RoleIds)
-		if diags.HasError() {
-			return nil, diags
-		}
-	} else {
-		state.RoleIds = types.SetNull(types.StringType)
-	}
-
-	if group.Members != nil {
-		state.UserIds, diags = flattenSCIMGroupMembers(group.Members)
-		if diags.HasError() {
-			return nil, diags
-		}
-	} else {
-		state.UserIds = types.SetNull(types.StringType)
-	}
-
-	return state, diags
 }
 
 func (r *GroupV2Resource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -189,29 +236,50 @@ func (r *GroupV2Resource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	//Get refreshed Group value from Coralogix
-	id := state.ID.ValueString()
-	log.Printf("[INFO] Reading Group: %s", id)
-	getGroupResp, err := r.client.GetGroup(ctx, id)
+	id, err := strconv.Atoi(state.ID.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid Group ID",
+			fmt.Sprintf("Failed to convert group ID %s to integer: %s", state.ID.ValueString(), err.Error()),
+		)
+		return
+	}
+
+	teamGroupId := &cxsdk.TeamGroupID{
+		Id: uint32(id),
+	}
+	getGroupReq := &cxsdk.GetTeamGroupRequest{
+		GroupId: teamGroupId,
+	}
+	log.Printf("[INFO] Reading Group: %d", id)
+	getGroupResp, err := r.client.Get(ctx, getGroupReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
+				fmt.Sprintf("Group %d is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("Group %d will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Group",
-				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), ""),
+				utils.FormatRpcErrors(err, cxsdk.GetTeamGroupRPC, protojson.Format(getGroupReq)),
 			)
 		}
 		return
 	}
+
 	respStr, _ := json.Marshal(getGroupResp)
 	log.Printf("[INFO] Received Group: %s", string(respStr))
 
-	state, diags = flattenSCIMGroup(getGroupResp)
+	users, diag := getGroupUsers(ctx, r.client, getGroupResp.Group.GroupId)
+	if diag != nil {
+		resp.Diagnostics.Append(diag)
+		return
+	}
+
+	state, diags = flattenGroupV2(ctx, getGroupResp.Group, users)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -220,6 +288,33 @@ func (r *GroupV2Resource) Read(ctx context.Context, req resource.ReadRequest, re
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
+}
+
+func getGroupUsers(ctx context.Context, groupsClient *cxsdk.GroupsClient, teamGroupId *cxsdk.TeamGroupID) ([]*cxsdk.GroupsUser, diag.Diagnostic) {
+	var users []*cxsdk.GroupsUser
+	getGroupUsersReq := &cxsdk.GetGroupUsersRequest{
+		GroupId: teamGroupId,
+	}
+
+	for {
+		getUsersResp, err := groupsClient.GetUsers(ctx, getGroupUsersReq)
+		if err != nil {
+			log.Printf("[ERROR] Received error: %s", err.Error())
+			return nil, diag.NewErrorDiagnostic(
+				"Error getting group users",
+				utils.FormatRpcErrors(err, cxsdk.GetGroupUsersRPC, protojson.Format(getGroupUsersReq)),
+			)
+		}
+		users = append(users, getUsersResp.GetUsers()...)
+		switch nextPage := getUsersResp.GetNextPage().(type) {
+		case *cxsdk.GetGroupUsersResponseNoMorePages:
+			return users, nil
+		case *cxsdk.GetGroupUsersResponseToken:
+			getGroupUsersReq.PageToken = &nextPage.Token.NextPageToken
+			// continue loop to fetch next page
+			continue
+		}
+	}
 }
 
 func (r *GroupV2Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -231,7 +326,7 @@ func (r *GroupV2Resource) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	groupUpdateReq, diags := extractGroup(ctx, plan)
+	groupUpdateReq, diags := extractUpdateGroupV2(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -239,42 +334,55 @@ func (r *GroupV2Resource) Update(ctx context.Context, req resource.UpdateRequest
 
 	groupStr, _ := json.Marshal(groupUpdateReq)
 	log.Printf("[INFO] Updating Group: %s", string(groupStr))
-	groupID := plan.ID.ValueString()
-	groupUpdateResp, err := r.client.UpdateGroup(ctx, groupID, groupUpdateReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error updating Group",
-			utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, groupUpdateReq.ID), string(groupStr)),
-		)
-		return
-	}
-	groupStr, _ = json.Marshal(groupUpdateResp)
-	log.Printf("[INFO] Submitted updated Group: %s", string(groupStr))
+	// Set the ID for the update request
 
-	// Get refreshed Group value from Coralogix
-	id := plan.ID.ValueString()
-	getGroupResp, err := r.client.GetGroup(ctx, id)
+	_, err := r.client.Update(ctx, groupUpdateReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if cxsdk.Code(err) == codes.NotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
+				err.Error(),
+				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", plan.ID.ValueString()),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error updating Group",
+				utils.FormatRpcErrors(err, cxsdk.UpdateTeamGroupRPC, string(groupStr)),
+			)
+		}
+		return
+	}
+
+	getResp, err := r.client.Get(ctx, &cxsdk.GetTeamGroupRequest{GroupId: groupUpdateReq.GroupId})
+	if err != nil {
+		log.Printf("[ERROR] Received error: %s", err.Error())
+		if cxsdk.Code(err) == codes.NotFound {
+			resp.Diagnostics.AddWarning(
+				err.Error(),
+				fmt.Sprintf("Group %q is in state, but no longer exists in Coralogix backend", plan.ID.ValueString()),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError(
 				"Error reading Group",
-				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), string(groupStr)),
+				utils.FormatRpcErrors(err, "Get", fmt.Sprintf("Group ID: %s", plan.ID.ValueString())),
 			)
+			resp.Diagnostics.AddError("Failed to get group", err.Error())
 		}
 		return
 	}
-	groupStr, _ = json.Marshal(getGroupResp)
-	log.Printf("[INFO] Received Group: %s", string(groupStr))
 
-	state, diags := flattenSCIMGroup(getGroupResp)
+	groupStr, _ = json.Marshal(getResp)
+	log.Printf("[INFO] Getting group: %s", groupStr)
+
+	users, diag := getGroupUsers(ctx, r.client, groupUpdateReq.GroupId)
+	if diag != nil {
+		resp.Diagnostics.Append(diag)
+		return
+	}
+
+	state, diags := flattenGroupV2(ctx, getResp.Group, users)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -293,33 +401,232 @@ func (r *GroupV2Resource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting Group %s", id)
-	if err := r.client.DeleteGroup(ctx, id); err != nil {
+	id, err := strconv.Atoi(state.ID.ValueString())
+	if err != nil {
 		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting Group %s", id),
-			utils.FormatRpcErrors(err, fmt.Sprintf("%s/%s", r.client.TargetUrl, id), ""),
+			"Invalid Group ID",
+			fmt.Sprintf("Failed to convert group ID %s to integer: %s", state.ID.ValueString(), err.Error()),
 		)
 		return
+	}
+	log.Printf("[INFO] Deleting Group %d", id)
+	if _, err = r.client.Delete(ctx, &cxsdk.DeleteTeamGroupRequest{GroupId: &cxsdk.TeamGroupID{Id: uint32(id)}}); err != nil {
+		if cxsdk.Code(err) == codes.NotFound {
+			log.Printf("[WARN] Group %d not found, assuming it has already been deleted", id)
+			return
+		}
+		log.Printf("[ERROR] Received error: %s", err.Error())
+		resp.Diagnostics.AddError(
+			"Error deleting Group",
+			utils.FormatRpcErrors(err, cxsdk.DeleteTeamGroupRPC, fmt.Sprintf("Group ID: %d", id)),
+		)
 	}
 	log.Printf("[INFO] Group %s deleted", id)
 }
 
+func flattenGroupV2(ctx context.Context, group *cxsdk.TeamGroup, users []*cxsdk.GroupsUser) (*GroupV2ResourceModel, diag.Diagnostics) {
+	roles, diags := flattenRoles(ctx, group.Roles)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	scopes, diags := flattenScopes(ctx, group.Scope)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	state := &GroupV2ResourceModel{
+		ID:             flattenGroupId(group.GroupId),
+		Name:           types.StringValue(group.Name),
+		TeamId:         flattenTeamId(group.TeamId),
+		Description:    utils.StringPointerToTypeString(group.Description),
+		ExternalId:     utils.StringPointerToTypeString(group.ExternalId),
+		Roles:          roles,
+		Users:          flattenGroupUsers(users),
+		Scope:          scopes,
+		NextGenScopeId: utils.StringPointerToTypeString(group.NextGenScopeId),
+	}
+
+	return state, nil
+}
+
+func flattenGroupUsers(users []*cxsdk.GroupsUser) types.Set {
+	if users == nil {
+		return types.SetNull(types.StringType)
+	}
+
+	flattenedUsers := make([]attr.Value, 0, len(users))
+	for _, user := range users {
+		flattenedUsers = append(flattenedUsers, types.StringValue(user.UserId.Id))
+	}
+
+	return types.SetValueMust(types.StringType, flattenedUsers)
+}
+
+func flattenRoles(ctx context.Context, roles []*cxsdk.Role) (types.Set, diag.Diagnostics) {
+	if roles == nil {
+		return types.SetNull(types.ObjectType{AttrTypes: RolesAttrs()}), nil
+	}
+
+	flattenedRoles := make([]*GroupRolesModel, 0, len(roles))
+	for _, role := range roles {
+		flattenedRoles = append(flattenedRoles, &GroupRolesModel{
+			ID:          types.StringValue(strconv.Itoa(int(role.RoleId.Id))),
+			Name:        types.StringValue(role.Name),
+			Description: types.StringValue(role.Description),
+		})
+	}
+
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: RolesAttrs()}, flattenedRoles)
+}
+
+func flattenScopes(ctx context.Context, scope *cxsdk.GroupScope) (types.Object, diag.Diagnostics) {
+	if scope == nil {
+		return types.ObjectNull(ScopeAttrs()), nil
+	}
+
+	filters, diags := flattenGroupScopeFilters(ctx, scope.Filters)
+	if diags.HasError() {
+		return types.ObjectNull(ScopeAttrs()), diags
+	}
+
+	scopeModel := ScopeModel{
+		ID:      flattenScopeId(scope.Id),
+		Filters: filters,
+	}
+
+	return types.ObjectValueFrom(ctx, ScopeAttrs(), scopeModel)
+}
+
+func flattenGroupScopeFilters(ctx context.Context, filters *cxsdk.ScopeFilters) (types.Object, diag.Diagnostics) {
+	if filters == nil {
+		return types.ObjectNull(ScopeFiltersAttrs()), nil
+	}
+
+	subsystems, diags := flattenGroupScopeFiltersList(ctx, filters.Subsystems)
+	if diags.HasError() {
+		return types.ObjectNull(ScopeFiltersAttrs()), diags
+	}
+
+	applications, diags := flattenGroupScopeFiltersList(ctx, filters.Applications)
+	if diags.HasError() {
+		return types.ObjectNull(ScopeFiltersAttrs()), diags
+	}
+
+	scopeFiltersModel := ScopeFiltersModel{
+		Subsystems:   subsystems,
+		Applications: applications,
+	}
+
+	return types.ObjectValueFrom(ctx, ScopeFiltersAttrs(), scopeFiltersModel)
+}
+
+func flattenGroupScopeFiltersList(ctx context.Context, filters []*cxsdk.GroupScopeFilter) (types.Set, diag.Diagnostics) {
+	if filters == nil {
+		return types.SetNull(types.ObjectType{AttrTypes: GroupScopeFilterAttrs()}), nil
+	}
+
+	flattenedFilters := make([]GroupScopeFilterModel, 0, len(filters))
+	for _, filter := range filters {
+		flattenedFilters = append(flattenedFilters, GroupScopeFilterModel{
+			Term:       types.StringValue(filter.Term),
+			FilterType: types.StringValue(FilterTypeProtoToSchema[filter.FilterType]),
+		})
+	}
+
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: GroupScopeFilterAttrs()}, flattenedFilters)
+}
+
+func flattenGroupId(id *cxsdk.TeamGroupID) types.String {
+	if id == nil {
+		return types.StringNull()
+	}
+
+	return types.StringValue(strconv.Itoa(int(id.Id)))
+}
+
+func flattenTeamId(id *cxsdk.GroupsTeamID) types.String {
+	if id == nil {
+		return types.StringNull()
+	}
+
+	return types.StringValue(strconv.Itoa(int(id.Id)))
+}
+
+func flattenScopeId(id *cxsdk.ScopeID) types.String {
+	if id == nil {
+		return types.StringNull()
+	}
+
+	return types.StringValue(strconv.Itoa(int(id.Id)))
+
+}
+
 type GroupV2ResourceModel struct {
+	ID             types.String `tfsdk:"id"`
 	Name           types.String `tfsdk:"name"`
 	TeamId         types.String `tfsdk:"team_id"`
 	Description    types.String `tfsdk:"description"`
 	ExternalId     types.String `tfsdk:"external_id"`
-	RoleIds        types.Set    `tfsdk:"role_ids"`
-	UserIds        types.Set    `tfsdk:"user_ids"`
-	ScopeFilters   types.Object `tfsdk:"scope_filters"` // ScopeFiltersModel
+	Roles          types.Set    `tfsdk:"roles"` // GroupRolesModel
+	Users          types.Set    `tfsdk:"users"` // types.String
+	Scope          types.Object `tfsdk:"scope"` // ScopeModel
 	NextGenScopeId types.String `tfsdk:"next_gen_scope_id"`
 }
 
-type ScopeFiltersModel struct {
+type GroupRolesModel struct {
+	ID          types.String `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	Description types.String `tfsdk:"description"`
 }
 
-func extractGroupV2(ctx context.Context, plan *GroupV2ResourceModel) (*cxsdk.CreateTeamGroupRequest, diag.Diagnostics) {
+func RolesAttrs() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id":          types.StringType,
+		"name":        types.StringType,
+		"description": types.StringType,
+	}
+}
+
+type ScopeModel struct {
+	ID      types.String `tfsdk:"id"`
+	Filters types.Object `tfsdk:"filters"` // ScopeFiltersModel
+}
+
+func ScopeAttrs() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id": types.StringType,
+		"filters": types.ObjectType{
+			AttrTypes: ScopeFiltersAttrs(),
+		},
+	}
+}
+
+func ScopeFiltersAttrs() map[string]attr.Type {
+	return map[string]attr.Type{
+		"subsystems":   types.SetType{ElemType: types.ObjectType{AttrTypes: GroupScopeFilterAttrs()}},
+		"applications": types.SetType{ElemType: types.ObjectType{AttrTypes: GroupScopeFilterAttrs()}},
+	}
+}
+
+type ScopeFiltersModel struct {
+	Subsystems   types.Set `tfsdk:"subsystems"`   // GroupScopeFilterModel
+	Applications types.Set `tfsdk:"applications"` // GroupScopeFilterModel
+}
+
+type GroupScopeFilterModel struct {
+	Term       types.String `tfsdk:"term"`
+	FilterType types.String `tfsdk:"filter_type"`
+}
+
+func GroupScopeFilterAttrs() map[string]attr.Type {
+	return map[string]attr.Type{
+		"term":        types.StringType,
+		"filter_type": types.StringType,
+	}
+}
+
+func extractCreateGroupV2(ctx context.Context, plan *GroupV2ResourceModel) (*cxsdk.CreateTeamGroupRequest, diag.Diagnostics) {
 	teamID, err := extractTeamId(plan.TeamId)
 	if err != nil {
 		return nil, diag.Diagnostics{
@@ -330,9 +637,62 @@ func extractGroupV2(ctx context.Context, plan *GroupV2ResourceModel) (*cxsdk.Cre
 		}
 	}
 
+	roleIds, diags := extractRoleIds(ctx, plan.Roles)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	//userIds, diags := extractUserIds(plan.Users)
+	//if diags.HasError() {
+	//	return nil, diags
+	//}
+
+	scopeFilters, diags := extractScope(ctx, plan.Scope)
+
 	return &cxsdk.CreateTeamGroupRequest{
-		Name:   plan.Name.ValueString(),
-		TeamId: teamID,
+		Name:        plan.Name.ValueString(),
+		TeamId:      teamID,
+		Description: utils.TypeStringToStringPointer(plan.Description),
+		ExternalId:  utils.TypeStringToStringPointer(plan.ExternalId),
+		RoleIds:     roleIds,
+		//UserIds:      userIds,
+		ScopeFilters:   scopeFilters,
+		NextGenScopeId: utils.TypeStringToStringPointer(plan.NextGenScopeId),
+	}, nil
+}
+
+func extractUpdateGroupV2(ctx context.Context, plan *GroupV2ResourceModel) (*cxsdk.UpdateTeamGroupRequest, diag.Diagnostics) {
+	groupId, err := extractGroupId(plan.ID)
+	if err != nil {
+		return nil, diag.Diagnostics{
+			diag.NewErrorDiagnostic(
+				"Invalid Team ID",
+				fmt.Sprintf("Failed to extract team ID from %s: %s", plan.TeamId.ValueString(), err.Error()),
+			),
+		}
+	}
+
+	roleIds, diags := extractRoleIds(ctx, plan.Roles)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	//userIds, diags := extractUserIds(plan.Users)
+	//if diags.HasError() {
+	//	return nil, diags
+	//}
+
+	scopeFilters, diags := extractScope(ctx, plan.Scope)
+
+	return &cxsdk.UpdateTeamGroupRequest{
+		GroupId:     groupId,
+		Name:        plan.Name.ValueString(),
+		Description: utils.TypeStringToStringPointer(plan.Description),
+		ExternalId:  utils.TypeStringToStringPointer(plan.ExternalId),
+		RoleUpdates: &cxsdk.UpdateTeamGroupRequestRoleUpdates{RoleIds: roleIds},
+		//UserUpdates:  &cxsdk.UpdateTeamGroupRequestUserUpdates{UserIds: userIds},
+		ScopeFilters:   scopeFilters,
+		NextGenScopeId: utils.TypeStringToStringPointer(plan.NextGenScopeId),
 	}, nil
 }
 
@@ -351,26 +711,152 @@ func extractTeamId(teamId types.String) (*cxsdk.GroupsTeamID, error) {
 	}, nil
 }
 
-func extractGroupMembers(ctx context.Context, members types.Set) ([]clientset.SCIMGroupMember, diag.Diagnostics) {
-	membersElements := members.Elements()
-	groupMembers := make([]clientset.SCIMGroupMember, 0, len(membersElements))
-	var diags diag.Diagnostics
-	for _, member := range membersElements {
-		val, err := member.ToTerraformValue(ctx)
-		if err != nil {
-			diags.AddError("Failed to convert value to Terraform", err.Error())
-			continue
-		}
-		var str string
-
-		if err = val.As(&str); err != nil {
-			diags.AddError("Failed to convert value to string", err.Error())
-			continue
-		}
-		groupMembers = append(groupMembers, clientset.SCIMGroupMember{Value: str})
+func extractGroupId(groupId types.String) (*cxsdk.TeamGroupID, error) {
+	if groupId.IsNull() || groupId.IsUnknown() {
+		return nil, nil
 	}
+
+	id, err := strconv.Atoi(groupId.ValueString())
+	if err != nil {
+		return nil, fmt.Errorf("invalid group ID: %s", groupId.ValueString())
+	}
+
+	return &cxsdk.TeamGroupID{
+		Id: uint32(id),
+	}, nil
+}
+
+func extractRoleIds(ctx context.Context, rolesIds types.Set) ([]*cxsdk.RoleID, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if rolesIds.IsNull() || rolesIds.IsUnknown() {
+		return nil, diags
+	}
+
+	roleElements := rolesIds.Elements()
+	roleSet := make([]*cxsdk.RoleID, 0, len(roleElements))
+	for _, roleElement := range roleElements {
+		role, ok := roleElement.(types.Object)
+		if !ok {
+			diags.AddError(
+				"Invalid Role ID",
+				fmt.Sprintf("Expected role ID to be of type object, got: %T", roleElement),
+			)
+			return nil, diags
+		}
+
+		var roleModel GroupRolesModel
+		if roleDiags := role.As(ctx, &roleModel, basetypes.ObjectAsOptions{}); roleDiags.HasError() {
+			diags.Append(roleDiags...)
+			return nil, diags
+		}
+
+		id, err := strconv.Atoi(roleModel.ID.ValueString())
+		if err != nil {
+			diags.AddError(
+				"Invalid Role ID",
+				fmt.Sprintf("Failed to convert role ID %s to integer: %s", roleModel.ID.ValueString(), err.Error()),
+			)
+			return nil, diags
+		}
+
+		roleSet = append(roleSet, &cxsdk.RoleID{Id: uint32(id)})
+	}
+
+	return roleSet, diags
+}
+
+//func extractUserIds(usersIds types.Set) ([]*cxsdk.UserID, diag.Diagnostics) {
+//	var diags diag.Diagnostics
+//	if usersIds.IsNull() || usersIds.IsUnknown() {
+//		return nil, diags
+//	}
+//
+//	userElements := usersIds.Elements()
+//	userSet := make([]*cxsdk.UserID, 0, len(userElements))
+//	for _, userElement := range userElements {
+//		user, ok := userElement.(types.String)
+//		if !ok {
+//			diags.AddError(
+//				"Invalid User ID",
+//				fmt.Sprintf("Expected user ID to be of type string, got: %T", userElement),
+//			)
+//			return nil, diags
+//		}
+//
+//		userSet = append(userSet, &cxsdk.UserID{Id: user.ValueString()})
+//	}
+//
+//	return userSet, diags
+//}
+
+func extractScope(ctx context.Context, scope types.Object) (*cxsdk.ScopeFilters, diag.Diagnostics) {
+	if scope.IsNull() || scope.IsUnknown() {
+		return nil, nil
+	}
+
+	var scopeModel ScopeModel
+	if diags := scope.As(ctx, &scopeModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	return extractScopeFilters(ctx, scopeModel.Filters)
+}
+
+func extractScopeFilters(ctx context.Context, scopeFilters types.Object) (*cxsdk.ScopeFilters, diag.Diagnostics) {
+	if scopeFilters.IsNull() || scopeFilters.IsUnknown() {
+		return nil, nil
+	}
+
+	var scopeFilterModel ScopeFiltersModel
+	if diags := scopeFilters.As(ctx, &scopeFilterModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+
+	subsystems, diags := extractScopeFilterList(ctx, scopeFilterModel.Subsystems)
 	if diags.HasError() {
 		return nil, diags
 	}
-	return groupMembers, nil
+
+	applications, diags := extractScopeFilterList(ctx, scopeFilterModel.Applications)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &cxsdk.ScopeFilters{
+		Subsystems:   subsystems,
+		Applications: applications,
+	}, diags
+}
+
+func extractScopeFilterList(ctx context.Context, filters types.Set) ([]*cxsdk.GroupScopeFilter, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if filters.IsNull() || filters.IsUnknown() {
+		return nil, diags
+	}
+
+	filterElements := filters.Elements()
+	filterSet := make([]*cxsdk.GroupScopeFilter, 0, len(filterElements))
+	for _, filterElement := range filterElements {
+		filter, ok := filterElement.(types.Object)
+		if !ok {
+			diags.AddError(
+				"Invalid Group Scope Filter",
+				fmt.Sprintf("Expected group scope filter to be of type object, got: %T", filterElement),
+			)
+			return nil, diags
+		}
+
+		var filterModel GroupScopeFilterModel
+		if filterDiags := filter.As(ctx, &filterModel, basetypes.ObjectAsOptions{}); filterDiags.HasError() {
+			diags.Append(filterDiags...)
+			return nil, diags
+		}
+
+		filterSet = append(filterSet, &cxsdk.GroupScopeFilter{
+			Term:       filterModel.Term.ValueString(),
+			FilterType: FilterTypeSchemaToProto[filterModel.FilterType.ValueString()],
+		})
+	}
+
+	return filterSet, diags
 }
