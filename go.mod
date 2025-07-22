@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
-	github.com/coralogix/coralogix-management-sdk v1.6.0
+	github.com/coralogix/coralogix-management-sdk v1.6.1-0.20250721103355-8d4463b203dc
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/hashicorp/terraform-plugin-docs v0.20.1
