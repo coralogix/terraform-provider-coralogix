@@ -271,6 +271,7 @@ type DashboardResource struct {
 func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
 	schemaV1 := dashboardschema.V1()
 	schemaV2 := dashboardschema.V2()
+	schemaV3 := dashboardschema.V3()
 
 	return map[int64]resource.StateUpgrader{
 		1: {
@@ -281,7 +282,55 @@ func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.St
 			PriorSchema:   &schemaV2,
 			StateUpgrader: upgradeDashboardStateV2ToV3,
 		},
+		3: {
+			PriorSchema: &schemaV3,
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				upgradeDashboardStateV3ToV4(ctx, req, resp, r.client)
+			},
+		},
 	}
+}
+
+func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse, client *cxsdk.DashboardsClient) {
+	var state DashboardResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	//Get refreshed Dashboard value from Coralogix
+	id := state.ID.ValueString()
+	log.Printf("[INFO] Reading Dashboard: %s", id)
+	getDashboardReq := &cxsdk.GetDashboardRequest{DashboardId: wrapperspb.String(id)}
+	getDashboardResp, err := client.Get(ctx, getDashboardReq)
+	if err != nil {
+		log.Printf("[ERROR] Received error: %s", err.Error())
+		if cxsdk.Code(err) == codes.NotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("Dashboard %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error reading Dashboard",
+				utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(getDashboardReq)),
+			)
+		}
+		return
+	}
+	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
+
+	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp.GetDashboard())
+	if diags != nil {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	state = *flattenedDashboard
+
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
 }
 
 func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
@@ -621,7 +670,7 @@ func (r DashboardResource) Metadata(_ context.Context, req resource.MetadataRequ
 }
 
 func (r *DashboardResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = dashboardschema.V3()
+	resp.Schema = dashboardschema.V4()
 }
 
 func (r DashboardResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -1352,7 +1401,7 @@ func expandWidgetDefinition(ctx context.Context, definition *dashboardwidgets.Wi
 	case definition.LineChart != nil:
 		return dashboardwidgets.ExpandLineChart(ctx, definition.LineChart)
 	case definition.DataTable != nil:
-		return expandDataTable(ctx, definition.DataTable)
+		return dashboardwidgets.ExpandDataTable(ctx, definition.DataTable)
 	case definition.BarChart != nil:
 		return expandBarChart(ctx, definition.BarChart)
 	case definition.HorizontalBarChart != nil:
@@ -1555,6 +1604,7 @@ func expandGaugeThreshold(gaugeThresholds *dashboardwidgets.GaugeThresholdModel)
 	return &cxsdk.GaugeThreshold{
 		From:  utils.TypeFloat64ToWrapperspbDouble(gaugeThresholds.From),
 		Color: utils.TypeStringToWrapperspbString(gaugeThresholds.Color),
+		Label: utils.TypeStringToWrapperspbString(gaugeThresholds.Label),
 	}
 }
 
@@ -2585,7 +2635,7 @@ func expandBarChartDataPrimeQuery(ctx context.Context, dataPrime types.Object) (
 		return nil, diags
 	}
 
-	filters, diags := expandDashboardFiltersSources(ctx, dataPrimeObject.Filters)
+	filters, diags := dashboardwidgets.ExpandDashboardFiltersSources(ctx, dataPrimeObject.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2610,391 +2660,6 @@ func expandBarChartDataPrimeQuery(ctx context.Context, dataPrime types.Object) (
 		StackedGroupName: utils.TypeStringToWrapperspbString(dataPrimeObject.StackedGroupName),
 		TimeFrame:        timeFrame,
 	}, nil
-}
-
-func expandDataTable(ctx context.Context, table *dashboardwidgets.DataTableModel) (*cxsdk.WidgetDefinition, diag.Diagnostics) {
-	query, diags := expandDataTableQuery(ctx, table.Query)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	columns, diags := expandDataTableColumns(ctx, table.Columns)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.WidgetDefinition{
-		Value: &cxsdk.WidgetDefinitionDataTable{
-			DataTable: &cxsdk.DashboardDataTable{
-				Query:          query,
-				ResultsPerPage: utils.TypeInt64ToWrappedInt32(table.ResultsPerPage),
-				RowStyle:       dashboardwidgets.DashboardRowStyleSchemaToProto[table.RowStyle.ValueString()],
-				Columns:        columns,
-				OrderBy:        expandOrderBy(table.OrderBy),
-				DataModeType:   dashboardwidgets.DashboardSchemaToProtoDataModeType[table.DataModeType.ValueString()],
-			},
-		},
-	}, nil
-}
-
-func expandDataTableQuery(ctx context.Context, dataTableQuery *dashboardwidgets.DataTableQueryModel) (*cxsdk.DashboardDataTableQuery, diag.Diagnostics) {
-	if dataTableQuery == nil {
-		return nil, nil
-	}
-	switch {
-	case dataTableQuery.Metrics != nil:
-		metrics, diags := expandDataTableMetricsQuery(ctx, dataTableQuery.Metrics)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &cxsdk.DashboardDataTableQuery{
-			Value: metrics,
-		}, nil
-	case dataTableQuery.Logs != nil:
-		logs, diags := expandDataTableLogsQuery(ctx, dataTableQuery.Logs)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &cxsdk.DashboardDataTableQuery{
-			Value: logs,
-		}, nil
-	case dataTableQuery.Spans != nil:
-		spans, diags := expandDataTableSpansQuery(ctx, dataTableQuery.Spans)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &cxsdk.DashboardDataTableQuery{
-			Value: spans,
-		}, nil
-	case dataTableQuery.DataPrime != nil:
-		dataPrime, diags := expandDataTableDataPrimeQuery(ctx, dataTableQuery.DataPrime)
-		if diags.HasError() {
-			return nil, diags
-		}
-		return &cxsdk.DashboardDataTableQuery{
-			Value: dataPrime,
-		}, nil
-	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand DataTable Query", fmt.Sprintf("unknown data table query type %#v", dataTableQuery))}
-	}
-}
-
-func expandDataTableDataPrimeQuery(ctx context.Context, dataPrime *dashboardwidgets.DataPrimeModel) (*cxsdk.DashboardDataTableQueryDataprime, diag.Diagnostics) {
-	if dataPrime == nil {
-		return nil, nil
-	}
-
-	filters, diags := expandDashboardFiltersSources(ctx, dataPrime.Filters)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	var dataPrimeQuery *cxsdk.DashboardDataprimeQuery
-	if !dataPrime.Query.IsNull() {
-		dataPrimeQuery = &cxsdk.DashboardDataprimeQuery{
-			Text: dataPrime.Query.ValueString(),
-		}
-	}
-
-	timeFrame, diags := dashboardwidgets.ExpandTimeFrameSelect(ctx, dataPrime.TimeFrame)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardDataTableQueryDataprime{
-		Dataprime: &cxsdk.DashboardDataTableDataprimeQuery{
-			DataprimeQuery: dataPrimeQuery,
-			Filters:        filters,
-			TimeFrame:      timeFrame,
-		},
-	}, nil
-}
-
-func expandDashboardFiltersSources(ctx context.Context, filters types.List) ([]*cxsdk.DashboardFilterSource, diag.Diagnostics) {
-	var filtersObjects []types.Object
-	var expandedFiltersSources []*cxsdk.DashboardFilterSource
-	diags := filters.ElementsAs(ctx, &filtersObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-	for _, fo := range filtersObjects {
-		var filterSource dashboardwidgets.DashboardFilterSourceModel
-		if dg := fo.As(ctx, &filterSource, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedFilter, expandDiags := dashboardwidgets.ExpandFilterSource(ctx, &filterSource)
-		if expandDiags.HasError() {
-			diags.Append(expandDiags...)
-			continue
-		}
-		expandedFiltersSources = append(expandedFiltersSources, expandedFilter)
-	}
-
-	return expandedFiltersSources, diags
-}
-
-func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *dashboardwidgets.QueryMetricsModel) (*cxsdk.DashboardDataTableQueryMetrics, diag.Diagnostics) {
-	if dataTableQueryMetric == nil {
-		return nil, nil
-	}
-
-	filters, diags := dashboardwidgets.ExpandMetricsFilters(ctx, dataTableQueryMetric.Filters)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	timeFrame, diags := dashboardwidgets.ExpandTimeFrameSelect(ctx, dataTableQueryMetric.TimeFrame)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardDataTableQueryMetrics{
-		Metrics: &cxsdk.DashboardDataTableMetricsQuery{
-			PromqlQuery:     dashboardwidgets.ExpandPromqlQuery(dataTableQueryMetric.PromqlQuery),
-			Filters:         filters,
-			PromqlQueryType: expandPromqlQueryType(dataTableQueryMetric.PromqlQueryType),
-			TimeFrame:       timeFrame,
-		},
-	}, nil
-}
-
-func expandPromqlQueryType(promqlQueryType basetypes.StringValue) cxsdk.PromQLQueryType {
-	if promqlQueryType.ValueString() == "PROM_QL_QUERY_TYPE_INSTANT" {
-		return cxsdk.PromQLQueryTypeInstant
-	} else if promqlQueryType.ValueString() == "PROM_QL_QUERY_TYPE_RANGE" {
-		return cxsdk.PromQLQueryTypeRange
-	}
-	return cxsdk.PromQLQueryTypeUnspecified
-}
-
-func expandDataTableLogsQuery(ctx context.Context, dataTableQueryLogs *dashboardwidgets.DataTableQueryLogsModel) (*cxsdk.DashboardDataTableQueryLogs, diag.Diagnostics) {
-	if dataTableQueryLogs == nil {
-		return nil, nil
-	}
-
-	filters, diags := dashboardwidgets.ExpandLogsFilters(ctx, dataTableQueryLogs.Filters)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	grouping, diags := expandDataTableLogsGrouping(ctx, dataTableQueryLogs.Grouping)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	timeframe, diags := dashboardwidgets.ExpandTimeFrameSelect(ctx, dataTableQueryLogs.TimeFrame)
-	if diags.HasError() {
-		return nil, diags
-	}
-	return &cxsdk.DashboardDataTableQueryLogs{
-		Logs: &cxsdk.DashboardDataTableLogsQuery{
-			LuceneQuery: dashboardwidgets.ExpandLuceneQuery(dataTableQueryLogs.LuceneQuery),
-			Filters:     filters,
-			Grouping:    grouping,
-			TimeFrame:   timeframe,
-		},
-	}, nil
-}
-
-func expandDataTableLogsGrouping(ctx context.Context, grouping *dashboardwidgets.DataTableLogsQueryGroupingModel) (*cxsdk.DashboardDataTableLogsQueryGrouping, diag.Diagnostics) {
-	if grouping == nil {
-		return nil, nil
-	}
-
-	groupBy, diags := utils.TypeStringSliceToWrappedStringSlice(ctx, grouping.GroupBy.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	aggregations, diags := expandDataTableLogsAggregations(ctx, grouping.Aggregations)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	groupBys, diags := dashboardwidgets.ExpandObservationFields(ctx, grouping.GroupBys)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardDataTableLogsQueryGrouping{
-		GroupBy:      groupBy,
-		Aggregations: aggregations,
-		GroupBys:     groupBys,
-	}, nil
-
-}
-
-func expandDataTableLogsAggregations(ctx context.Context, aggregations types.List) ([]*cxsdk.DashboardDataTableLogsQueryAggregation, diag.Diagnostics) {
-	var aggregationsObjects []types.Object
-	var expandedAggregations []*cxsdk.DashboardDataTableLogsQueryAggregation
-	diags := aggregations.ElementsAs(ctx, &aggregationsObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-	for _, ao := range aggregationsObjects {
-		var aggregation dashboardwidgets.DataTableLogsAggregationModel
-		if dg := ao.As(ctx, &aggregation, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedAggregation, expandDiags := expandDataTableLogsAggregation(ctx, &aggregation)
-		if expandDiags.HasError() {
-			diags.Append(expandDiags...)
-			continue
-		}
-		expandedAggregations = append(expandedAggregations, expandedAggregation)
-	}
-
-	return expandedAggregations, diags
-}
-
-func expandDataTableLogsAggregation(ctx context.Context, aggregation *dashboardwidgets.DataTableLogsAggregationModel) (*cxsdk.DashboardDataTableLogsQueryAggregation, diag.Diagnostics) {
-	if aggregation == nil {
-		return nil, nil
-	}
-
-	logsAggregation, diags := dashboardwidgets.ExpandLogsAggregation(ctx, aggregation.Aggregation)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardDataTableLogsQueryAggregation{
-		Id:          utils.TypeStringToWrapperspbString(aggregation.ID),
-		Name:        utils.TypeStringToWrapperspbString(aggregation.Name),
-		IsVisible:   utils.TypeBoolToWrapperspbBool(aggregation.IsVisible),
-		Aggregation: logsAggregation,
-	}, nil
-}
-
-func expandDataTableSpansQuery(ctx context.Context, dataTableQuerySpans *dashboardwidgets.DataTableQuerySpansModel) (*cxsdk.DashboardDataTableQuerySpans, diag.Diagnostics) {
-	if dataTableQuerySpans == nil {
-		return nil, nil
-	}
-
-	filters, diags := dashboardwidgets.ExpandSpansFilters(ctx, dataTableQuerySpans.Filters)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	grouping, diags := expandDataTableSpansGrouping(ctx, dataTableQuerySpans.Grouping)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	timeFrame, diags := dashboardwidgets.ExpandTimeFrameSelect(ctx, dataTableQuerySpans.TimeFrame)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardDataTableQuerySpans{
-		Spans: &cxsdk.DashboardDataTableSpansQuery{
-			LuceneQuery: dashboardwidgets.ExpandLuceneQuery(dataTableQuerySpans.LuceneQuery),
-			Filters:     filters,
-			Grouping:    grouping,
-			TimeFrame:   timeFrame,
-		},
-	}, nil
-}
-
-func expandDataTableSpansGrouping(ctx context.Context, grouping *dashboardwidgets.DataTableSpansQueryGroupingModel) (*cxsdk.DashboardDataTableSpansQueryGrouping, diag.Diagnostics) {
-	if grouping == nil {
-		return nil, nil
-	}
-
-	groupBy, diags := dashboardwidgets.ExpandSpansFields(ctx, grouping.GroupBy)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	aggregations, diags := expandDataTableSpansAggregations(ctx, grouping.Aggregations)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &cxsdk.DashboardDataTableSpansQueryGrouping{
-		GroupBy:      groupBy,
-		Aggregations: aggregations,
-	}, nil
-}
-
-func expandDataTableSpansAggregations(ctx context.Context, spansAggregations types.List) ([]*cxsdk.DashboardDataTableSpansQueryAggregation, diag.Diagnostics) {
-	var spansAggregationsObjects []types.Object
-	var expandedSpansAggregations []*cxsdk.DashboardDataTableSpansQueryAggregation
-	diags := spansAggregations.ElementsAs(ctx, &spansAggregationsObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-	for _, sfo := range spansAggregationsObjects {
-		var aggregation dashboardwidgets.DataTableSpansAggregationModel
-		if dg := sfo.As(ctx, &aggregation, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedSpansAggregation, expandDiag := expandDataTableSpansAggregation(&aggregation)
-		if expandDiag != nil {
-			diags.Append(expandDiag)
-			continue
-		}
-		expandedSpansAggregations = append(expandedSpansAggregations, expandedSpansAggregation)
-	}
-
-	return expandedSpansAggregations, diags
-}
-
-func expandDataTableSpansAggregation(aggregation *dashboardwidgets.DataTableSpansAggregationModel) (*cxsdk.DashboardDataTableSpansQueryAggregation, diag.Diagnostic) {
-	if aggregation == nil {
-		return nil, nil
-	}
-
-	spansAggregation, dg := dashboardwidgets.ExpandSpansAggregation(aggregation.Aggregation)
-	if dg != nil {
-		return nil, dg
-	}
-
-	return &cxsdk.DashboardDataTableSpansQueryAggregation{
-		Id:          utils.TypeStringToWrapperspbString(aggregation.ID),
-		Name:        utils.TypeStringToWrapperspbString(aggregation.Name),
-		IsVisible:   utils.TypeBoolToWrapperspbBool(aggregation.IsVisible),
-		Aggregation: spansAggregation,
-	}, nil
-}
-
-func expandDataTableColumns(ctx context.Context, columns types.List) ([]*cxsdk.DashboardDataTableColumn, diag.Diagnostics) {
-	var columnsObjects []types.Object
-	var expandedColumns []*cxsdk.DashboardDataTableColumn
-	diags := columns.ElementsAs(ctx, &columnsObjects, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-	for _, co := range columnsObjects {
-		var column dashboardwidgets.DataTableColumnModel
-		if dg := co.As(ctx, &column, basetypes.ObjectAsOptions{}); dg.HasError() {
-			diags.Append(dg...)
-			continue
-		}
-		expandedColumn := expandDataTableColumn(column)
-		expandedColumns = append(expandedColumns, expandedColumn)
-	}
-
-	return expandedColumns, diags
-}
-
-func expandDataTableColumn(column dashboardwidgets.DataTableColumnModel) *cxsdk.DashboardDataTableColumn {
-	return &cxsdk.DashboardDataTableColumn{
-		Field: utils.TypeStringToWrapperspbString(column.Field),
-		Width: utils.TypeInt64ToWrappedInt32(column.Width),
-	}
-}
-
-func expandOrderBy(orderBy *dashboardwidgets.OrderByModel) *cxsdk.DashboardOrderingField {
-	if orderBy == nil {
-		return nil
-	}
-	return &cxsdk.DashboardOrderingField{
-		Field:          utils.TypeStringToWrapperspbString(orderBy.Field),
-		OrderDirection: dashboardwidgets.DashboardOrderDirectionSchemaToProto[orderBy.OrderDirection.ValueString()],
-	}
 }
 
 func expandPieChartQuery(ctx context.Context, pieChartQuery *dashboardwidgets.PieChartQueryModel) (*cxsdk.PieChartQuery, diag.Diagnostics) {
@@ -3167,7 +2832,7 @@ func expandPieChartDataPrimeQuery(ctx context.Context, dataPrime *dashboardwidge
 		return nil, nil
 	}
 
-	filters, diags := expandDashboardFiltersSources(ctx, dataPrime.Filters)
+	filters, diags := dashboardwidgets.ExpandDashboardFiltersSources(ctx, dataPrime.Filters)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -3582,125 +3247,7 @@ func widgetModelAttr() map[string]attr.Type {
 			AttrTypes: map[string]attr.Type{
 				"hexagon":    dashboardwidgets.HexagonType(),
 				"line_chart": dashboardwidgets.LineChartType(),
-				"data_table": types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"query": types.ObjectType{
-							AttrTypes: map[string]attr.Type{
-								"logs": types.ObjectType{
-									AttrTypes: map[string]attr.Type{
-										"lucene_query": types.StringType,
-										"filters": types.ListType{
-											ElemType: types.ObjectType{
-												AttrTypes: dashboardwidgets.LogsFilterModelAttr(),
-											},
-										},
-										"grouping": types.ObjectType{
-											AttrTypes: map[string]attr.Type{
-												// Deprecated, remove in 2.1
-												"group_by": types.ListType{
-													ElemType: types.StringType,
-												},
-												"aggregations": types.ListType{
-													ElemType: types.ObjectType{
-														AttrTypes: map[string]attr.Type{
-															"id":         types.StringType,
-															"name":       types.StringType,
-															"is_visible": types.BoolType,
-															"aggregation": types.ObjectType{
-																AttrTypes: dashboardwidgets.AggregationModelAttr(),
-															},
-														},
-													},
-												},
-												"group_bys": types.ListType{
-													ElemType: dashboardwidgets.ObservationFieldsObject(),
-												},
-											},
-										},
-										"time_frame": types.ObjectType{
-											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
-										},
-									},
-								},
-								"spans": types.ObjectType{
-									AttrTypes: map[string]attr.Type{
-										"lucene_query": types.StringType,
-										"filters": types.ListType{
-											ElemType: types.ObjectType{
-												AttrTypes: dashboardwidgets.SpansFilterModelAttr(),
-											},
-										},
-										"grouping": types.ObjectType{
-											AttrTypes: map[string]attr.Type{
-												"group_by": types.ListType{
-													ElemType: types.ObjectType{
-														AttrTypes: dashboardwidgets.SpansFieldModelAttr(),
-													},
-												},
-												"aggregations": types.ListType{
-													ElemType: types.ObjectType{
-														AttrTypes: map[string]attr.Type{
-															"id":         types.StringType,
-															"name":       types.StringType,
-															"is_visible": types.BoolType,
-															"aggregation": types.ObjectType{
-																AttrTypes: dashboardwidgets.SpansAggregationModelAttr(),
-															},
-														},
-													},
-												},
-											},
-										},
-										"time_frame": types.ObjectType{
-											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
-										},
-									},
-								},
-								"metrics": types.ObjectType{
-									AttrTypes: map[string]attr.Type{
-										"promql_query":      types.StringType,
-										"promql_query_type": types.StringType,
-										"filters": types.ListType{
-											ElemType: types.ObjectType{
-												AttrTypes: dashboardwidgets.MetricsFilterModelAttr(),
-											},
-										},
-										"time_frame": types.ObjectType{
-											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
-										},
-									},
-								},
-								"data_prime": types.ObjectType{
-									AttrTypes: map[string]attr.Type{
-										"query": types.StringType,
-										"filters": types.ListType{
-											ElemType: types.ObjectType{
-												AttrTypes: dashboardwidgets.FilterSourceModelAttr(),
-											},
-										},
-										"time_frame": types.ObjectType{
-											AttrTypes: dashboardwidgets.TimeFrameModelAttr(),
-										},
-									},
-								},
-							},
-						},
-						"results_per_page": types.Int64Type,
-						"row_style":        types.StringType,
-						"columns": types.ListType{
-							ElemType: types.ObjectType{
-								AttrTypes: dataTableColumnModelAttr(),
-							},
-						},
-						"order_by": types.ObjectType{
-							AttrTypes: map[string]attr.Type{
-								"field":           types.StringType,
-								"order_direction": types.StringType,
-							},
-						},
-						"data_mode_type": types.StringType,
-					},
-				},
+				"data_table": dashboardwidgets.DataTableType(),
 				"gauge": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
 						"query": types.ObjectType{
@@ -4234,13 +3781,7 @@ func gaugeThresholdModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"from":  types.Float64Type,
 		"color": types.StringType,
-	}
-}
-
-func dataTableColumnModelAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"field": types.StringType,
-		"width": types.Int64Type,
+		"label": types.StringType,
 	}
 }
 
@@ -4468,7 +4009,7 @@ func flattenDashboardWidgetDefinition(ctx context.Context, definition *cxsdk.Wid
 	case *cxsdk.WidgetDefinitionHexagon:
 		return dashboardwidgets.FlattenHexagon(ctx, definition.GetHexagon())
 	case *cxsdk.WidgetDefinitionDataTable:
-		return flattenDataTable(ctx, definition.GetDataTable())
+		return dashboardwidgets.FlattenDataTable(ctx, definition.GetDataTable())
 	case *cxsdk.WidgetDefinitionGauge:
 		return flattenGauge(ctx, definition.GetGauge())
 	case *cxsdk.WidgetDefinitionPieChart:
@@ -4731,334 +4272,6 @@ func flattenHorizontalBarChartQuerySpans(ctx context.Context, spans *cxsdk.Horiz
 	}, nil
 }
 
-func flattenDataTable(ctx context.Context, table *cxsdk.DashboardDataTable) (*dashboardwidgets.WidgetDefinitionModel, diag.Diagnostics) {
-	if table == nil {
-		return nil, nil
-	}
-
-	query, diags := flattenDataTableQuery(ctx, table.GetQuery())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	columns, diags := flattenDataTableColumns(ctx, table.GetColumns())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &dashboardwidgets.WidgetDefinitionModel{
-		DataTable: &dashboardwidgets.DataTableModel{
-			Query:          query,
-			ResultsPerPage: utils.WrapperspbInt32ToTypeInt64(table.GetResultsPerPage()),
-			RowStyle:       types.StringValue(dashboardwidgets.DashboardRowStyleProtoToSchema[table.GetRowStyle()]),
-			Columns:        columns,
-			OrderBy:        flattenOrderBy(table.GetOrderBy()),
-			DataModeType:   types.StringValue(dashboardwidgets.DashboardProtoToSchemaDataModeType[table.GetDataModeType()]),
-		},
-	}, nil
-}
-
-func flattenDataTableQuery(ctx context.Context, query *cxsdk.DashboardDataTableQuery) (*dashboardwidgets.DataTableQueryModel, diag.Diagnostics) {
-	if query == nil {
-		return nil, nil
-	}
-
-	switch query.GetValue().(type) {
-	case *cxsdk.DashboardDataTableQueryLogs:
-		return flattenDataTableLogsQuery(ctx, query.GetLogs())
-	case *cxsdk.DashboardDataTableQueryMetrics:
-		return flattenDataTableMetricsQuery(ctx, query.GetMetrics())
-	case *cxsdk.DashboardDataTableQuerySpans:
-		return flattenDataTableSpansQuery(ctx, query.GetSpans())
-	case *cxsdk.DashboardDataTableQueryDataprime:
-		return flattenDataTableDataPrimeQuery(ctx, query.GetDataprime())
-	default:
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Data Table Query", "unknown data table query type")}
-	}
-}
-
-func flattenDataTableDataPrimeQuery(ctx context.Context, dataPrime *cxsdk.DashboardDataTableDataprimeQuery) (*dashboardwidgets.DataTableQueryModel, diag.Diagnostics) {
-	if dataPrime == nil {
-		return nil, nil
-	}
-
-	dataPrimeQuery := types.StringNull()
-	if dataPrime.GetDataprimeQuery() != nil {
-		dataPrimeQuery = types.StringValue(dataPrime.GetDataprimeQuery().GetText())
-	}
-
-	filters, diags := dashboardwidgets.FlattenDashboardFiltersSources(ctx, dataPrime.GetFilters())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, dataPrime.TimeFrame)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &dashboardwidgets.DataTableQueryModel{
-		DataPrime: &dashboardwidgets.DataPrimeModel{
-			Query:     dataPrimeQuery,
-			Filters:   filters,
-			TimeFrame: timeFrame,
-		},
-	}, nil
-}
-
-func flattenDataTableLogsQuery(ctx context.Context, logs *cxsdk.DashboardDataTableLogsQuery) (*dashboardwidgets.DataTableQueryModel, diag.Diagnostics) {
-	if logs == nil {
-		return nil, nil
-	}
-
-	filters, diags := dashboardwidgets.FlattenLogsFilters(ctx, logs.GetFilters())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	grouping, diags := flattenDataTableLogsQueryGrouping(ctx, logs.GetGrouping())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, logs.TimeFrame)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &dashboardwidgets.DataTableQueryModel{
-		Logs: &dashboardwidgets.DataTableQueryLogsModel{
-			LuceneQuery: utils.WrapperspbStringToTypeString(logs.GetLuceneQuery().GetValue()),
-			Filters:     filters,
-			Grouping:    grouping,
-			TimeFrame:   timeFrame,
-		},
-	}, nil
-}
-
-func flattenDataTableLogsQueryGrouping(ctx context.Context, grouping *cxsdk.DashboardDataTableLogsQueryGrouping) (*dashboardwidgets.DataTableLogsQueryGroupingModel, diag.Diagnostics) {
-	if grouping == nil {
-		return nil, nil
-	}
-
-	aggregations, diags := flattenGroupingAggregations(ctx, grouping.GetAggregations())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	groupBys, diags := dashboardwidgets.FlattenObservationFields(ctx, grouping.GetGroupBys())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &dashboardwidgets.DataTableLogsQueryGroupingModel{
-		Aggregations: aggregations,
-		GroupBy:      utils.WrappedStringSliceToTypeStringList(grouping.GetGroupBy()),
-		GroupBys:     groupBys,
-	}, nil
-}
-
-func flattenGroupingAggregations(ctx context.Context, aggregations []*cxsdk.DashboardDataTableLogsQueryAggregation) (types.List, diag.Diagnostics) {
-	if len(aggregations) == 0 {
-		return types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.GroupingAggregationModelAttr()}), nil
-	}
-
-	var diagnostics diag.Diagnostics
-	aggregationElements := make([]attr.Value, 0)
-	for _, aggregation := range aggregations {
-		flattenedAggregation, diags := flattenGroupingAggregation(ctx, aggregation)
-		if diags.HasError() {
-			diagnostics.Append(diags...)
-			continue
-		}
-		aggregationElement, diags := types.ObjectValueFrom(ctx, dashboardwidgets.GroupingAggregationModelAttr(), flattenedAggregation)
-		if diags.HasError() {
-			diagnostics.Append(diags...)
-			continue
-		}
-		aggregationElements = append(aggregationElements, aggregationElement)
-	}
-
-	return types.ListValueMust(types.ObjectType{AttrTypes: dashboardwidgets.GroupingAggregationModelAttr()}, aggregationElements), diagnostics
-}
-
-func flattenGroupingAggregation(ctx context.Context, dataTableAggregation *cxsdk.DashboardDataTableLogsQueryAggregation) (*dashboardwidgets.DataTableLogsAggregationModel, diag.Diagnostics) {
-	aggregation, diags := dashboardwidgets.FlattenLogsAggregation(ctx, dataTableAggregation.GetAggregation())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &dashboardwidgets.DataTableLogsAggregationModel{
-		ID:          utils.WrapperspbStringToTypeString(dataTableAggregation.GetId()),
-		Name:        utils.WrapperspbStringToTypeString(dataTableAggregation.GetName()),
-		IsVisible:   utils.WrapperspbBoolToTypeBool(dataTableAggregation.GetIsVisible()),
-		Aggregation: aggregation,
-	}, nil
-}
-
-func flattenDataTableMetricsQuery(ctx context.Context, metrics *cxsdk.DashboardDataTableMetricsQuery) (*dashboardwidgets.DataTableQueryModel, diag.Diagnostics) {
-	if metrics == nil {
-		return nil, nil
-	}
-
-	filters, diags := dashboardwidgets.FlattenMetricsFilters(ctx, metrics.GetFilters())
-	if diags.HasError() {
-		return nil, diags
-	}
-	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, metrics.TimeFrame)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &dashboardwidgets.DataTableQueryModel{
-		Metrics: &dashboardwidgets.QueryMetricsModel{
-			PromqlQueryType: types.StringValue(dashboardwidgets.DashboardProtoToSchemaPromQLQueryType[metrics.GetPromqlQueryType()]),
-			PromqlQuery:     utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
-			Filters:         filters,
-			TimeFrame:       timeFrame,
-		},
-	}, nil
-}
-
-func flattenDataTableSpansQuery(ctx context.Context, spans *cxsdk.DashboardDataTableSpansQuery) (*dashboardwidgets.DataTableQueryModel, diag.Diagnostics) {
-	if spans == nil {
-		return nil, nil
-	}
-
-	filters, diags := dashboardwidgets.FlattenSpansFilters(ctx, spans.GetFilters())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	grouping, diags := flattenDataTableSpansQueryGrouping(ctx, spans.GetGrouping())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	timeFrame, diags := dashboardwidgets.FlattenTimeFrameSelect(ctx, spans.TimeFrame)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &dashboardwidgets.DataTableQueryModel{
-		Spans: &dashboardwidgets.DataTableQuerySpansModel{
-			LuceneQuery: utils.WrapperspbStringToTypeString(spans.GetLuceneQuery().GetValue()),
-			Filters:     filters,
-			Grouping:    grouping,
-			TimeFrame:   timeFrame,
-		},
-	}, nil
-}
-
-func flattenDataTableSpansQueryGrouping(ctx context.Context, grouping *cxsdk.DashboardDataTableSpansQueryGrouping) (*dashboardwidgets.DataTableSpansQueryGroupingModel, diag.Diagnostics) {
-	if grouping == nil {
-		return nil, nil
-	}
-
-	aggregations, diags := flattenDataTableSpansQueryAggregations(ctx, grouping.GetAggregations())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	groupBy, diags := dashboardwidgets.FlattenSpansFields(ctx, grouping.GetGroupBy())
-	if diags.HasError() {
-		return nil, diags
-	}
-	return &dashboardwidgets.DataTableSpansQueryGroupingModel{
-		Aggregations: aggregations,
-		GroupBy:      groupBy,
-	}, nil
-}
-
-func flattenDataTableSpansQueryAggregations(ctx context.Context, aggregations []*cxsdk.DashboardDataTableSpansQueryAggregation) (types.List, diag.Diagnostics) {
-	if len(aggregations) == 0 {
-		return types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansAggregationModelAttr()}), nil
-	}
-	var diagnostics diag.Diagnostics
-	aggregationElements := make([]attr.Value, 0)
-	for _, aggregation := range aggregations {
-		flattenedAggregation, dg := flattenDataTableSpansQueryAggregation(aggregation)
-		if dg != nil {
-			diagnostics.Append(dg)
-			continue
-		}
-		aggregationElement, diags := types.ObjectValueFrom(ctx, dashboardwidgets.SpansAggregationModelAttr(), flattenedAggregation)
-		if diags.HasError() {
-			diagnostics = append(diagnostics, diags...)
-			continue
-		}
-		aggregationElements = append(aggregationElements, aggregationElement)
-	}
-
-	if diagnostics.HasError() {
-		return types.ListNull(types.ObjectType{AttrTypes: dashboardwidgets.SpansAggregationModelAttr()}), diagnostics
-	}
-
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dashboardwidgets.SpansAggregationModelAttr()}, aggregationElements)
-}
-
-func flattenDataTableSpansQueryAggregation(spanAggregation *cxsdk.DashboardDataTableSpansQueryAggregation) (*dashboardwidgets.DataTableSpansAggregationModel, diag.Diagnostic) {
-	if spanAggregation == nil {
-		return nil, nil
-	}
-
-	aggregation, dg := dashboardwidgets.FlattenSpansAggregation(spanAggregation.GetAggregation())
-	if dg != nil {
-		return nil, dg
-	}
-
-	return &dashboardwidgets.DataTableSpansAggregationModel{
-		ID:          utils.WrapperspbStringToTypeString(spanAggregation.GetId()),
-		Name:        utils.WrapperspbStringToTypeString(spanAggregation.GetName()),
-		IsVisible:   utils.WrapperspbBoolToTypeBool(spanAggregation.GetIsVisible()),
-		Aggregation: aggregation,
-	}, nil
-}
-
-func flattenDataTableColumns(ctx context.Context, columns []*cxsdk.DashboardDataTableColumn) (types.List, diag.Diagnostics) {
-	if len(columns) == 0 {
-		return types.ListNull(types.ObjectType{AttrTypes: dataTableColumnModelAttr()}), nil
-	}
-
-	var diagnostics diag.Diagnostics
-	columnElements := make([]attr.Value, 0)
-	for _, column := range columns {
-		flattenedColumn := flattenDataTableColumn(column)
-		columnElement, diags := types.ObjectValueFrom(ctx, dataTableColumnModelAttr(), flattenedColumn)
-		if diags.HasError() {
-			diagnostics = append(diagnostics, diags...)
-			continue
-		}
-		columnElements = append(columnElements, columnElement)
-	}
-
-	if diagnostics.HasError() {
-		return types.ListNull(types.ObjectType{AttrTypes: dataTableColumnModelAttr()}), diagnostics
-	}
-
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: dataTableColumnModelAttr()}, columnElements)
-}
-
-func flattenDataTableColumn(column *cxsdk.DashboardDataTableColumn) *dashboardwidgets.DataTableColumnModel {
-	if column == nil {
-		return nil
-	}
-	return &dashboardwidgets.DataTableColumnModel{
-		Field: utils.WrapperspbStringToTypeString(column.GetField()),
-		Width: utils.WrapperspbInt32ToTypeInt64(column.GetWidth()),
-	}
-}
-
-func flattenOrderBy(orderBy *cxsdk.DashboardOrderingField) *dashboardwidgets.OrderByModel {
-	if orderBy == nil {
-		return nil
-	}
-	return &dashboardwidgets.OrderByModel{
-		Field:          utils.WrapperspbStringToTypeString(orderBy.GetField()),
-		OrderDirection: types.StringValue(dashboardwidgets.DashboardOrderDirectionProtoToSchema[orderBy.GetOrderDirection()]),
-	}
-}
-
 func flattenGauge(ctx context.Context, gauge *cxsdk.Gauge) (*dashboardwidgets.WidgetDefinitionModel, diag.Diagnostics) {
 	if gauge == nil {
 		return nil, nil
@@ -5118,6 +4331,7 @@ func flattenGaugeThreshold(threshold *cxsdk.GaugeThreshold) *dashboardwidgets.Ga
 	return &dashboardwidgets.GaugeThresholdModel{
 		From:  utils.WrapperspbDoubleToTypeFloat64(threshold.GetFrom()),
 		Color: utils.WrapperspbStringToTypeString(threshold.GetColor()),
+		Label: utils.WrapperspbStringToTypeString(threshold.GetLabel()),
 	}
 }
 

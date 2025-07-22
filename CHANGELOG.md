@@ -1011,20 +1011,21 @@ Fix:
 
 # Release 2.1.1
 
-Fix:
 
 ## provider
 
+Fix:
 * Fixed environment alias mapping to correctly handle both shorthand and longhand environment names (e.g., AP1/APAC1, EU1/EUROPE1, US1/USA1)
-
-Docs:
 
 ## resource/coralogix_slo_v2
 
+Docs:
 * Enhanced field documentation for some attributes
 
 ## resource/coralogix_dashboard
 
 Fix: 
-
 * Incorrect mapping for gauge widget units in dashboards 
+
+Feat:
+* Support for Gauge Threshold labels added
