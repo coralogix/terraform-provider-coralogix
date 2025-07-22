@@ -1028,3 +1028,10 @@ Docs:
 Fix: 
 
 * Incorrect mapping for gauge widget units in dashboards 
+
+# Release 2.1.2
+
+## resource/coralogix_dashboard
+
+Fix: 
+* Incorrect mapping for gauge widget units in dashboards, actually
