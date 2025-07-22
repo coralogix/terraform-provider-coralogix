@@ -271,6 +271,7 @@ type DashboardResource struct {
 func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
 	schemaV1 := dashboardschema.V1()
 	schemaV2 := dashboardschema.V2()
+	schemaV3 := dashboardschema.V3()
 
 	return map[int64]resource.StateUpgrader{
 		1: {
@@ -281,7 +282,55 @@ func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.St
 			PriorSchema:   &schemaV2,
 			StateUpgrader: upgradeDashboardStateV2ToV3,
 		},
+		3: {
+			PriorSchema: &schemaV3,
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				upgradeDashboardStateV3ToV4(ctx, req, resp, r.client)
+			},
+		},
 	}
+}
+
+func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse, client *cxsdk.DashboardsClient) {
+	var state DashboardResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	//Get refreshed Dashboard value from Coralogix
+	id := state.ID.ValueString()
+	log.Printf("[INFO] Reading Dashboard: %s", id)
+	getDashboardReq := &cxsdk.GetDashboardRequest{DashboardId: wrapperspb.String(id)}
+	getDashboardResp, err := client.Get(ctx, getDashboardReq)
+	if err != nil {
+		log.Printf("[ERROR] Received error: %s", err.Error())
+		if cxsdk.Code(err) == codes.NotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("Dashboard %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError(
+				"Error reading Dashboard",
+				utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(getDashboardReq)),
+			)
+		}
+		return
+	}
+	log.Printf("[INFO] Received Dashboard: %s", protojson.Format(getDashboardResp))
+
+	flattenedDashboard, diags := flattenDashboard(ctx, state, getDashboardResp.GetDashboard())
+	if diags != nil {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	state = *flattenedDashboard
+
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
 }
 
 func upgradeDashboardStateV2ToV3(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
@@ -621,7 +670,7 @@ func (r DashboardResource) Metadata(_ context.Context, req resource.MetadataRequ
 }
 
 func (r *DashboardResource) Schema(_ context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = dashboardschema.V3()
+	resp.Schema = dashboardschema.V4()
 }
 
 func (r DashboardResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -4218,20 +4267,6 @@ func flattenHorizontalBarChartQuerySpans(ctx context.Context, spans *cxsdk.Horiz
 		Logs:      types.ObjectNull(barChartLogsQueryAttr()),
 		Metrics:   types.ObjectNull(barChartMetricsQueryAttr()),
 		DataPrime: types.ObjectNull(barChartDataPrimeQueryAttr()),
-	}, nil
-}
-
-func flattenGroupingAggregation(ctx context.Context, dataTableAggregation *cxsdk.DashboardDataTableLogsQueryAggregation) (*dashboardwidgets.DataTableLogsAggregationModel, diag.Diagnostics) {
-	aggregation, diags := dashboardwidgets.FlattenLogsAggregation(ctx, dataTableAggregation.GetAggregation())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return &dashboardwidgets.DataTableLogsAggregationModel{
-		ID:          utils.WrapperspbStringToTypeString(dataTableAggregation.GetId()),
-		Name:        utils.WrapperspbStringToTypeString(dataTableAggregation.GetName()),
-		IsVisible:   utils.WrapperspbBoolToTypeBool(dataTableAggregation.GetIsVisible()),
-		Aggregation: aggregation,
 	}, nil
 }
 
