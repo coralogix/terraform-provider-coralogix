@@ -421,7 +421,7 @@ func (r *GroupV2Resource) Delete(ctx context.Context, req resource.DeleteRequest
 			utils.FormatRpcErrors(err, cxsdk.DeleteTeamGroupRPC, fmt.Sprintf("Group ID: %d", id)),
 		)
 	}
-	log.Printf("[INFO] Group %s deleted", id)
+	log.Printf("[INFO] Group %d deleted", id)
 }
 
 func flattenGroupV2(ctx context.Context, group *cxsdk.TeamGroup, users []*cxsdk.GroupsUser) (*GroupV2ResourceModel, diag.Diagnostics) {
