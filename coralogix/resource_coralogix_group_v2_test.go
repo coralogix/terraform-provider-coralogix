@@ -43,14 +43,14 @@ func TestAccCoralogixResourceGroupV2(t *testing.T) {
 					resource.TestCheckResourceAttr(groupV2ResourceName, "name", "example"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.#", "1"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.0.id", "1"),
-					resource.TestCheckResourceAttr(groupV2ResourceName, "scope.filters.subsystem.#", "2"),
-					resource.TestCheckTypeSetElemNestedAttrs(groupV2ResourceName, "scope.filters.subsystem.*",
+					resource.TestCheckResourceAttr(groupV2ResourceName, "scope.filters.subsystems.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(groupV2ResourceName, "scope.filters.subsystems.*",
 						map[string]string{
 							"filter_type": "exact",
 							"term":        "purchases",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(groupV2ResourceName, "scope.filters.subsystem.*",
+					resource.TestCheckTypeSetElemNestedAttrs(groupV2ResourceName, "scope.filters.subsystems.*",
 						map[string]string{
 							"filter_type": "exact",
 							"term":        "signups",
@@ -70,14 +70,14 @@ func TestAccCoralogixResourceGroupV2(t *testing.T) {
 					resource.TestCheckResourceAttr(groupV2ResourceName, "name", "example"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.#", "1"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.0.id", "1"),
-					resource.TestCheckResourceAttr(groupV2ResourceName, "scope.filters.subsystem.#", "2"),
-					resource.TestCheckTypeSetElemNestedAttrs(groupV2ResourceName, "scope.filters.subsystem.*",
+					resource.TestCheckResourceAttr(groupV2ResourceName, "scope.filters.subsystems.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(groupV2ResourceName, "scope.filters.subsystems.*",
 						map[string]string{
 							"filter_type": "exact",
 							"term":        "purchases",
 						},
 					),
-					resource.TestCheckTypeSetElemNestedAttrs(groupV2ResourceName, "scope.filters.subsystem.*",
+					resource.TestCheckTypeSetElemNestedAttrs(groupV2ResourceName, "scope.filters.subsystems.*",
 						map[string]string{
 							"filter_type": "exact",
 							"term":        "signups",
@@ -187,7 +187,7 @@ func testAccCoralogixResourceGroupV2Update(userName string) string {
 		]
 		scope = {
     		filters = {
-      			subsystem = [
+      			subsystems = [
 				{
           			filter_type = "exact"
           			term        = "purchases"

@@ -32,7 +32,7 @@ func TestAccCoralogixDataSourceGroupV2_basic(t *testing.T) {
 				Config: testAccCoralogixResourceGroupV2(userName) +
 					testAccCoralogixDataSourceGroupV2_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(groupDataSourceName, "name", "example"),
+					resource.TestCheckResourceAttr(groupV2DataSourceName, "name", "example"),
 				),
 			},
 		},
@@ -49,7 +49,7 @@ func TestAccCoralogixDataSourceGroupV2ByName(t *testing.T) {
 				Config: testAccCoralogixResourceGroupV2(userName) +
 					testAccCoralogixDataSourceGroupV2ByName_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(groupDataSourceName, "name", "example"),
+					resource.TestCheckResourceAttr(groupV2DataSourceName, "name", "example"),
 				),
 			},
 		},
