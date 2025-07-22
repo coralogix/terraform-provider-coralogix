@@ -1604,6 +1604,7 @@ func expandGaugeThreshold(gaugeThresholds *dashboardwidgets.GaugeThresholdModel)
 	return &cxsdk.GaugeThreshold{
 		From:  utils.TypeFloat64ToWrapperspbDouble(gaugeThresholds.From),
 		Color: utils.TypeStringToWrapperspbString(gaugeThresholds.Color),
+		Label: utils.TypeStringToWrapperspbString(gaugeThresholds.Label),
 	}
 }
 
@@ -3780,6 +3781,7 @@ func gaugeThresholdModelAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"from":  types.Float64Type,
 		"color": types.StringType,
+		"label": types.StringType,
 	}
 }
 
@@ -4329,6 +4331,7 @@ func flattenGaugeThreshold(threshold *cxsdk.GaugeThreshold) *dashboardwidgets.Ga
 	return &dashboardwidgets.GaugeThresholdModel{
 		From:  utils.WrapperspbDoubleToTypeFloat64(threshold.GetFrom()),
 		Color: utils.WrapperspbStringToTypeString(threshold.GetColor()),
+		Label: utils.WrapperspbStringToTypeString(threshold.GetLabel()),
 	}
 }
 

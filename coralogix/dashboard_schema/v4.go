@@ -241,6 +241,9 @@ func dashboardSchemaAttributesV4() map[string]schema.Attribute {
 																				"from": schema.Float64Attribute{
 																					Optional: true,
 																				},
+																				"label": schema.StringAttribute{
+																					Optional: true,
+																				},
 																			},
 																		},
 																		Optional: true,

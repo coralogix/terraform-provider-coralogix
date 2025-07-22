@@ -511,6 +511,7 @@ type GaugeQuerySpansModel struct {
 type GaugeThresholdModel struct {
 	From  types.Float64 `tfsdk:"from"`
 	Color types.String  `tfsdk:"color"`
+	Label types.String  `tfsdk:"label"`
 }
 
 type PieChartModel struct {
