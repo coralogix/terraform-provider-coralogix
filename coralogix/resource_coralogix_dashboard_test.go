@@ -329,6 +329,11 @@ func TestAccCoralogixResourceDashboardGaugeWidget(t *testing.T) {
                     unit  = "milliseconds"
 					decimal = 2
 					display_series_name = false
+					thresholds = [{
+						from = 0
+						color = "green"
+						label = "GREEN!"
+					}]
                     query = {
                       metrics = {
                         promql_query = "vector(1)"
