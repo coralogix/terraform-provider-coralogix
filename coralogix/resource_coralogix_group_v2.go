@@ -125,10 +125,18 @@ func (r *GroupV2Resource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 				},
 			},
-			"users": schema.SetAttribute{
-				Computed:            true,
-				ElementType:         types.StringType,
-				MarkdownDescription: "Set of user IDs that are members of the group. This is a computed value and will be populated after the group is created or updated. Users can be added to (or removed from) the group using the `coralogix_group_attachment` resource.",
+			"users": schema.SetNestedAttribute{
+				Computed: true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id":              schema.StringAttribute{Computed: true},
+						"user_name":       schema.StringAttribute{Computed: true},
+						"user_account_id": schema.StringAttribute{Computed: true},
+						"first_name":      schema.StringAttribute{Computed: true},
+						"last_name":       schema.StringAttribute{Computed: true},
+					},
+				},
+				MarkdownDescription: "Set of users in the group. This is a computed attribute and will be populated after the group is created or updated. For managing the group's users use the `coralogix_group_attachment` resource.",
 			},
 			"scope": schema.SingleNestedAttribute{
 				Optional: true,
@@ -435,6 +443,11 @@ func flattenGroupV2(ctx context.Context, group *cxsdk.TeamGroup, users []*cxsdk.
 		return nil, diags
 	}
 
+	usersSet, diags := flattenGroupUsers(ctx, users)
+	if diags.HasError() {
+		return nil, diags
+	}
+
 	state := &GroupV2ResourceModel{
 		ID:             flattenGroupId(group.GroupId),
 		Name:           types.StringValue(group.Name),
@@ -442,7 +455,7 @@ func flattenGroupV2(ctx context.Context, group *cxsdk.TeamGroup, users []*cxsdk.
 		Description:    utils.StringPointerToTypeString(group.Description),
 		ExternalId:     utils.StringPointerToTypeString(group.ExternalId),
 		Roles:          roles,
-		Users:          flattenGroupUsers(users),
+		Users:          usersSet,
 		Scope:          scopes,
 		NextGenScopeId: utils.StringPointerToTypeString(group.NextGenScopeId),
 	}
@@ -450,17 +463,23 @@ func flattenGroupV2(ctx context.Context, group *cxsdk.TeamGroup, users []*cxsdk.
 	return state, nil
 }
 
-func flattenGroupUsers(users []*cxsdk.GroupsUser) types.Set {
+func flattenGroupUsers(ctx context.Context, users []*cxsdk.GroupsUser) (types.Set, diag.Diagnostics) {
 	if users == nil {
-		return types.SetNull(types.StringType)
+		return types.SetNull(types.ObjectType{AttrTypes: UserAttrs()}), nil
 	}
-
-	flattenedUsers := make([]attr.Value, 0, len(users))
+	// Flatten the users into a slice of UserModel
+	flattenedUsers := make([]*UserModel, 0, len(users))
 	for _, user := range users {
-		flattenedUsers = append(flattenedUsers, types.StringValue(user.UserId.Id))
+		flattenedUsers = append(flattenedUsers, &UserModel{
+			ID:            types.StringValue(user.UserId.Id),
+			Username:      types.StringValue(user.Username),
+			UserAccountId: types.StringValue(strconv.Itoa(int(user.UserAccountId.Id))),
+			FirstName:     types.StringValue(user.FirstName),
+			LastName:      types.StringValue(user.LastName),
+		})
 	}
 
-	return types.SetValueMust(types.StringType, flattenedUsers)
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: UserAttrs()}, flattenedUsers)
 }
 
 func flattenRoles(ctx context.Context, roles []*cxsdk.Role) (types.Set, diag.Diagnostics) {
@@ -569,7 +588,7 @@ type GroupV2ResourceModel struct {
 	Description    types.String `tfsdk:"description"`
 	ExternalId     types.String `tfsdk:"external_id"`
 	Roles          types.Set    `tfsdk:"roles"` // GroupRolesModel
-	Users          types.Set    `tfsdk:"users"` // types.String
+	Users          types.Set    `tfsdk:"users"` // UserModel
 	Scope          types.Object `tfsdk:"scope"` // ScopeModel
 	NextGenScopeId types.String `tfsdk:"next_gen_scope_id"`
 }
@@ -623,6 +642,24 @@ func GroupScopeFilterAttrs() map[string]attr.Type {
 	return map[string]attr.Type{
 		"term":        types.StringType,
 		"filter_type": types.StringType,
+	}
+}
+
+type UserModel struct {
+	ID            types.String `tfsdk:"id"`              // User ID
+	Username      types.String `tfsdk:"user_name"`       // User name
+	UserAccountId types.String `tfsdk:"user_account_id"` // User account ID
+	FirstName     types.String `tfsdk:"first_name"`      // User first name
+	LastName      types.String `tfsdk:"last_name"`       // User last name
+}
+
+func UserAttrs() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id":              types.StringType,
+		"user_name":       types.StringType,
+		"user_account_id": types.StringType,
+		"first_name":      types.StringType,
+		"last_name":       types.StringType,
 	}
 }
 
