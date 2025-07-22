@@ -76,7 +76,7 @@ func (d *GroupV2DataSource) Schema(ctx context.Context, _ datasource.SchemaReque
 		idAttr.Required = false
 		idAttr.Optional = true
 		idAttr.Validators = []validator.String{
-			stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("display_name")),
+			stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("name")),
 		}
 		resp.Schema.Attributes["id"] = idAttr
 	}
