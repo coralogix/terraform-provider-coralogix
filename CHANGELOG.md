@@ -1035,9 +1035,21 @@ Fix:
 
 Fix: 
 * Incorrect mapping for gauge widget units in dashboards, actually
+<<<<<<< HEAD
 * Incorrect mapping for layout color options in dashboards.
 
 # Release 2.2.0
 
 ## resource/coralogix_alert
 Remove:  remove support for `notification_group.destinations` 
+=======
+
+## resource/coralogix_group_v2
+
+Feature:
+* Added support for `coralogix_group_v2` resource and data source.
+
+## resource/coralogix_group
+
+* Deprecation note. Use `coralogix_group_v2` instead.
+>>>>>>> 4062080 (CHANGELOG)
