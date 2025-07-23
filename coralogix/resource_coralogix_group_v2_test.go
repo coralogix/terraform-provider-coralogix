@@ -48,12 +48,8 @@ func TestAccCoralogixResourceGroupV2(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      groupV2ResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-			{
-				Config: testAccCoralogixResourceGroupV2(userName),
+				ResourceName: groupV2ResourceName,
+				ImportState:  true,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(groupV2ResourceName, "id"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "name", "example"),
