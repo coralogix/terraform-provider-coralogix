@@ -18,10 +18,10 @@ resource "coralogix_group_v2" "example" {
   external_id = "example-group-id"
   roles       = [
     {
-      id = "1"
+      id = "role-id-1"
     },
     {
-      id = "2"
+      id = "role-id-2"
     }
   ]
   scope = {

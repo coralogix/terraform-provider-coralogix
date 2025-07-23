@@ -3,12 +3,12 @@
 page_title: "coralogix_group Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix group.
+  Coralogix group. This resource is deprecated and will be removed in a future version. Please use coralogix_group_v2 instead.
 ---
 
 # coralogix_group (Data Source)
 
-Coralogix group.
+Coralogix group. This resource is deprecated and will be removed in a future version. Please use `coralogix_group_v2` instead.
 
 
 
