@@ -61,6 +61,88 @@ type GroupV2Resource struct {
 	client *cxsdk.GroupsClient
 }
 
+type GroupV2ResourceModel struct {
+	ID             types.String `tfsdk:"id"`
+	Name           types.String `tfsdk:"name"`
+	TeamId         types.String `tfsdk:"team_id"`
+	Description    types.String `tfsdk:"description"`
+	ExternalId     types.String `tfsdk:"external_id"`
+	Roles          types.Set    `tfsdk:"roles"` // GroupRolesModel
+	Users          types.Set    `tfsdk:"users"` // UserModel
+	Scope          types.Object `tfsdk:"scope"` // ScopeModel
+	NextGenScopeId types.String `tfsdk:"next_gen_scope_id"`
+}
+
+type GroupRolesModel struct {
+	ID          types.String `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	Description types.String `tfsdk:"description"`
+}
+
+type UserModel struct {
+	ID            types.String `tfsdk:"id"`              // User ID
+	Username      types.String `tfsdk:"user_name"`       // User name
+	UserAccountId types.String `tfsdk:"user_account_id"` // User account ID
+	FirstName     types.String `tfsdk:"first_name"`      // User first name
+	LastName      types.String `tfsdk:"last_name"`       // User last name
+}
+
+type ScopeModel struct {
+	ID      types.String `tfsdk:"id"`
+	Filters types.Object `tfsdk:"filters"` // ScopeFiltersModel
+}
+
+type ScopeFiltersModel struct {
+	Subsystems   types.Set `tfsdk:"subsystems"`   // GroupScopeFilterModel
+	Applications types.Set `tfsdk:"applications"` // GroupScopeFilterModel
+}
+
+type GroupScopeFilterModel struct {
+	Term       types.String `tfsdk:"term"`
+	FilterType types.String `tfsdk:"filter_type"`
+}
+
+func RolesAttrs() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id":          types.StringType,
+		"name":        types.StringType,
+		"description": types.StringType,
+	}
+}
+
+func ScopeAttrs() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id": types.StringType,
+		"filters": types.ObjectType{
+			AttrTypes: ScopeFiltersAttrs(),
+		},
+	}
+}
+
+func ScopeFiltersAttrs() map[string]attr.Type {
+	return map[string]attr.Type{
+		"subsystems":   types.SetType{ElemType: types.ObjectType{AttrTypes: GroupScopeFilterAttrs()}},
+		"applications": types.SetType{ElemType: types.ObjectType{AttrTypes: GroupScopeFilterAttrs()}},
+	}
+}
+
+func GroupScopeFilterAttrs() map[string]attr.Type {
+	return map[string]attr.Type{
+		"term":        types.StringType,
+		"filter_type": types.StringType,
+	}
+}
+
+func UserAttrs() map[string]attr.Type {
+	return map[string]attr.Type{
+		"id":              types.StringType,
+		"user_name":       types.StringType,
+		"user_account_id": types.StringType,
+		"first_name":      types.StringType,
+		"last_name":       types.StringType,
+	}
+}
+
 func (r *GroupV2Resource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_group_v2"
 }
@@ -298,33 +380,6 @@ func (r *GroupV2Resource) Read(ctx context.Context, req resource.ReadRequest, re
 	resp.Diagnostics.Append(diags...)
 }
 
-func getGroupUsers(ctx context.Context, groupsClient *cxsdk.GroupsClient, teamGroupId *cxsdk.TeamGroupID) ([]*cxsdk.GroupsUser, diag.Diagnostic) {
-	var users []*cxsdk.GroupsUser
-	getGroupUsersReq := &cxsdk.GetGroupUsersRequest{
-		GroupId: teamGroupId,
-	}
-
-	for {
-		getUsersResp, err := groupsClient.GetUsers(ctx, getGroupUsersReq)
-		if err != nil {
-			log.Printf("[ERROR] Received error: %s", err.Error())
-			return nil, diag.NewErrorDiagnostic(
-				"Error getting group users",
-				utils.FormatRpcErrors(err, cxsdk.GetGroupUsersRPC, protojson.Format(getGroupUsersReq)),
-			)
-		}
-		users = append(users, getUsersResp.GetUsers()...)
-		switch nextPage := getUsersResp.GetNextPage().(type) {
-		case *cxsdk.GetGroupUsersResponseNoMorePages:
-			return users, nil
-		case *cxsdk.GetGroupUsersResponseToken:
-			getGroupUsersReq.PageToken = &nextPage.Token.NextPageToken
-			// continue loop to fetch next page
-			continue
-		}
-	}
-}
-
 func (r *GroupV2Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Retrieve values from plan
 	var plan *GroupV2ResourceModel
@@ -430,6 +485,33 @@ func (r *GroupV2Resource) Delete(ctx context.Context, req resource.DeleteRequest
 		)
 	}
 	log.Printf("[INFO] Group %d deleted", id)
+}
+
+func getGroupUsers(ctx context.Context, groupsClient *cxsdk.GroupsClient, teamGroupId *cxsdk.TeamGroupID) ([]*cxsdk.GroupsUser, diag.Diagnostic) {
+	var users []*cxsdk.GroupsUser
+	getGroupUsersReq := &cxsdk.GetGroupUsersRequest{
+		GroupId: teamGroupId,
+	}
+
+	for {
+		getUsersResp, err := groupsClient.GetUsers(ctx, getGroupUsersReq)
+		if err != nil {
+			log.Printf("[ERROR] Received error: %s", err.Error())
+			return nil, diag.NewErrorDiagnostic(
+				"Error getting group users",
+				utils.FormatRpcErrors(err, cxsdk.GetGroupUsersRPC, protojson.Format(getGroupUsersReq)),
+			)
+		}
+		users = append(users, getUsersResp.GetUsers()...)
+		switch nextPage := getUsersResp.GetNextPage().(type) {
+		case *cxsdk.GetGroupUsersResponseNoMorePages:
+			return users, nil
+		case *cxsdk.GetGroupUsersResponseToken:
+			getGroupUsersReq.PageToken = &nextPage.Token.NextPageToken
+			// continue loop to fetch next page
+			continue
+		}
+	}
 }
 
 func flattenGroupV2(ctx context.Context, group *cxsdk.TeamGroup, users []*cxsdk.GroupsUser) (*GroupV2ResourceModel, diag.Diagnostics) {
@@ -578,89 +660,6 @@ func flattenScopeId(id *cxsdk.ScopeID) types.String {
 	}
 
 	return types.StringValue(strconv.Itoa(int(id.Id)))
-
-}
-
-type GroupV2ResourceModel struct {
-	ID             types.String `tfsdk:"id"`
-	Name           types.String `tfsdk:"name"`
-	TeamId         types.String `tfsdk:"team_id"`
-	Description    types.String `tfsdk:"description"`
-	ExternalId     types.String `tfsdk:"external_id"`
-	Roles          types.Set    `tfsdk:"roles"` // GroupRolesModel
-	Users          types.Set    `tfsdk:"users"` // UserModel
-	Scope          types.Object `tfsdk:"scope"` // ScopeModel
-	NextGenScopeId types.String `tfsdk:"next_gen_scope_id"`
-}
-
-type GroupRolesModel struct {
-	ID          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	Description types.String `tfsdk:"description"`
-}
-
-func RolesAttrs() map[string]attr.Type {
-	return map[string]attr.Type{
-		"id":          types.StringType,
-		"name":        types.StringType,
-		"description": types.StringType,
-	}
-}
-
-type ScopeModel struct {
-	ID      types.String `tfsdk:"id"`
-	Filters types.Object `tfsdk:"filters"` // ScopeFiltersModel
-}
-
-func ScopeAttrs() map[string]attr.Type {
-	return map[string]attr.Type{
-		"id": types.StringType,
-		"filters": types.ObjectType{
-			AttrTypes: ScopeFiltersAttrs(),
-		},
-	}
-}
-
-func ScopeFiltersAttrs() map[string]attr.Type {
-	return map[string]attr.Type{
-		"subsystems":   types.SetType{ElemType: types.ObjectType{AttrTypes: GroupScopeFilterAttrs()}},
-		"applications": types.SetType{ElemType: types.ObjectType{AttrTypes: GroupScopeFilterAttrs()}},
-	}
-}
-
-type ScopeFiltersModel struct {
-	Subsystems   types.Set `tfsdk:"subsystems"`   // GroupScopeFilterModel
-	Applications types.Set `tfsdk:"applications"` // GroupScopeFilterModel
-}
-
-type GroupScopeFilterModel struct {
-	Term       types.String `tfsdk:"term"`
-	FilterType types.String `tfsdk:"filter_type"`
-}
-
-func GroupScopeFilterAttrs() map[string]attr.Type {
-	return map[string]attr.Type{
-		"term":        types.StringType,
-		"filter_type": types.StringType,
-	}
-}
-
-type UserModel struct {
-	ID            types.String `tfsdk:"id"`              // User ID
-	Username      types.String `tfsdk:"user_name"`       // User name
-	UserAccountId types.String `tfsdk:"user_account_id"` // User account ID
-	FirstName     types.String `tfsdk:"first_name"`      // User first name
-	LastName      types.String `tfsdk:"last_name"`       // User last name
-}
-
-func UserAttrs() map[string]attr.Type {
-	return map[string]attr.Type{
-		"id":              types.StringType,
-		"user_name":       types.StringType,
-		"user_account_id": types.StringType,
-		"first_name":      types.StringType,
-		"last_name":       types.StringType,
-	}
 }
 
 func extractCreateGroupV2(ctx context.Context, plan *GroupV2ResourceModel) (*cxsdk.CreateTeamGroupRequest, diag.Diagnostics) {
@@ -679,20 +678,14 @@ func extractCreateGroupV2(ctx context.Context, plan *GroupV2ResourceModel) (*cxs
 		return nil, diags
 	}
 
-	//userIds, diags := extractUserIds(plan.Users)
-	//if diags.HasError() {
-	//	return nil, diags
-	//}
-
 	scopeFilters, diags := extractScope(ctx, plan.Scope)
 
 	return &cxsdk.CreateTeamGroupRequest{
-		Name:        plan.Name.ValueString(),
-		TeamId:      teamID,
-		Description: utils.TypeStringToStringPointer(plan.Description),
-		ExternalId:  utils.TypeStringToStringPointer(plan.ExternalId),
-		RoleIds:     roleIds,
-		//UserIds:      userIds,
+		Name:           plan.Name.ValueString(),
+		TeamId:         teamID,
+		Description:    utils.TypeStringToStringPointer(plan.Description),
+		ExternalId:     utils.TypeStringToStringPointer(plan.ExternalId),
+		RoleIds:        roleIds,
 		ScopeFilters:   scopeFilters,
 		NextGenScopeId: utils.TypeStringToStringPointer(plan.NextGenScopeId),
 	}, nil
@@ -714,20 +707,14 @@ func extractUpdateGroupV2(ctx context.Context, plan *GroupV2ResourceModel) (*cxs
 		return nil, diags
 	}
 
-	//userIds, diags := extractUserIds(plan.Users)
-	//if diags.HasError() {
-	//	return nil, diags
-	//}
-
 	scopeFilters, diags := extractScope(ctx, plan.Scope)
 
 	return &cxsdk.UpdateTeamGroupRequest{
-		GroupId:     groupId,
-		Name:        plan.Name.ValueString(),
-		Description: utils.TypeStringToStringPointer(plan.Description),
-		ExternalId:  utils.TypeStringToStringPointer(plan.ExternalId),
-		RoleUpdates: &cxsdk.UpdateTeamGroupRequestRoleUpdates{RoleIds: roleIds},
-		//UserUpdates:  &cxsdk.UpdateTeamGroupRequestUserUpdates{UserIds: userIds},
+		GroupId:        groupId,
+		Name:           plan.Name.ValueString(),
+		Description:    utils.TypeStringToStringPointer(plan.Description),
+		ExternalId:     utils.TypeStringToStringPointer(plan.ExternalId),
+		RoleUpdates:    &cxsdk.UpdateTeamGroupRequestRoleUpdates{RoleIds: roleIds},
 		ScopeFilters:   scopeFilters,
 		NextGenScopeId: utils.TypeStringToStringPointer(plan.NextGenScopeId),
 	}, nil
@@ -801,30 +788,6 @@ func extractRoleIds(ctx context.Context, rolesIds types.Set) ([]*cxsdk.RoleID, d
 
 	return roleSet, diags
 }
-
-//func extractUserIds(usersIds types.Set) ([]*cxsdk.UserID, diag.Diagnostics) {
-//	var diags diag.Diagnostics
-//	if usersIds.IsNull() || usersIds.IsUnknown() {
-//		return nil, diags
-//	}
-//
-//	userElements := usersIds.Elements()
-//	userSet := make([]*cxsdk.UserID, 0, len(userElements))
-//	for _, userElement := range userElements {
-//		user, ok := userElement.(types.String)
-//		if !ok {
-//			diags.AddError(
-//				"Invalid User ID",
-//				fmt.Sprintf("Expected user ID to be of type string, got: %T", userElement),
-//			)
-//			return nil, diags
-//		}
-//
-//		userSet = append(userSet, &cxsdk.UserID{Id: user.ValueString()})
-//	}
-//
-//	return userSet, diags
-//}
 
 func extractScope(ctx context.Context, scope types.Object) (*cxsdk.ScopeFilters, diag.Diagnostics) {
 	if scope.IsNull() || scope.IsUnknown() {
