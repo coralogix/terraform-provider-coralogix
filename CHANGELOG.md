@@ -1035,3 +1035,12 @@ Fix:
 
 Fix: 
 * Incorrect mapping for gauge widget units in dashboards, actually
+
+## resource/coralogix_group_v2
+
+Feature:
+* Added support for `coralogix_group_v2` resource and data source.
+
+## resource/coralogix_group
+
+* Deprecation note. Use `coralogix_group_v2` instead.
