@@ -43,6 +43,21 @@ func TestAccCoralogixResourceGroupV2(t *testing.T) {
 					resource.TestCheckResourceAttr(groupV2ResourceName, "name", "example"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.#", "1"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.0.id", "1"),
+					resource.TestCheckResourceAttrSet(groupV2ResourceName, "scope"),
+					resource.TestCheckResourceAttrSet(groupV2ResourceName, "scope.filters"),
+					resource.TestCheckResourceAttr(groupV2ResourceName, "scope.filters.subsystems.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(groupV2ResourceName, "scope.filters.subsystems.*",
+						map[string]string{
+							"filter_type": "exact",
+							"term":        "purchases",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(groupV2ResourceName, "scope.filters.subsystems.*",
+						map[string]string{
+							"filter_type": "exact",
+							"term":        "signups",
+						},
+					),
 				),
 			},
 			{
@@ -51,14 +66,29 @@ func TestAccCoralogixResourceGroupV2(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccCoralogixResourceGroupV2Update(userName),
+				Config: testAccCoralogixResourceGroupV2(userName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(groupV2ResourceName, "id"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "name", "example"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.#", "1"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.0.id", "1"),
+					resource.TestCheckResourceAttrSet(groupV2ResourceName, "scope"),
+					resource.TestCheckResourceAttrSet(groupV2ResourceName, "scope.filters"),
+					resource.TestCheckResourceAttr(groupV2ResourceName, "scope.filters.subsystems.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(groupV2ResourceName, "scope.filters.subsystems.*",
+						map[string]string{
+							"filter_type": "exact",
+							"term":        "purchases",
+						},
+					),
+					resource.TestCheckTypeSetElemNestedAttrs(groupV2ResourceName, "scope.filters.subsystems.*",
+						map[string]string{
+							"filter_type": "exact",
+							"term":        "signups",
+						},
+					),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "users.#", "1"),
-					resource.TestCheckResourceAttr(groupV2ResourceName, "users.0.name", userName),
+					resource.TestCheckResourceAttr(groupV2ResourceName, "users.0.user_name", userName),
 				),
 			},
 		},
@@ -93,7 +123,6 @@ func testAccCheckGroupV2Destroy(s *terraform.State) error {
 
 func testAccCoralogixResourceGroupV2(userName string) string {
 	return fmt.Sprintf(`
-
 	resource "coralogix_scope" "test" {
 		display_name       = "ExampleScope"
 		default_expression = "<v1>true"
@@ -119,49 +148,6 @@ func testAccCoralogixResourceGroupV2(userName string) string {
 		scope = {
     		filters = {
       			subsystem = [
-				{
-          			filter_type = "exact"
-          			term        = "purchases"
-        		},
-	  			{
-          			filter_type = "exact"
-          			term        = "signups"
-				}
-				]
-			}
-		}
-	}
-`, userName)
-}
-
-func testAccCoralogixResourceGroupV2Update(userName string) string {
-	return fmt.Sprintf(`
-
-	resource "coralogix_scope" "test" {
-		display_name       = "ExampleScope"
-		default_expression = "<v1>true"
-		filters            = [
-		{
-			entity_type = "logs"
-			expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
-		}
-		]
-	}
-
-	resource "coralogix_user" "test" {
-		user_name = "%s"
-	}
-	
-	resource "coralogix_group_v2" "test" {
-		name = "example"
-		roles       = [
-			{
-      			id = "1"
-    		},
-		]
-		scope = {
-    		filters = {
-      			subsystems = [
 				{
           			filter_type = "exact"
           			term        = "purchases"
