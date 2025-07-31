@@ -15,7 +15,6 @@ provider "coralogix" {
 resource "coralogix_group_v2" "example" {
   name        = "example-group"
   description = "This is an example group created using Terraform"
-  external_id = "example-group-id"
   roles       = [
     {
       id = "role-id-1"
@@ -24,20 +23,6 @@ resource "coralogix_group_v2" "example" {
       id = "role-id-2"
     }
   ]
-  scope = {
-    filters = {
-      subsystems = [
-        {
-          filter_type = "exact"
-          term        = "purchases"
-        },
-        {
-          filter_type = "exact"
-          term        = "signups"
-        }
-      ]
-    }
-  }
 }
 
 resource "coralogix_user" "example" {
