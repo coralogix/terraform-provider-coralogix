@@ -20,8 +20,9 @@ import (
 	"strconv"
 	"testing"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"terraform-provider-coralogix/coralogix/clientset"
+
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -43,8 +44,6 @@ func TestAccCoralogixResourceGroupV2(t *testing.T) {
 					resource.TestCheckResourceAttr(groupV2ResourceName, "name", "example"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.#", "1"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.0.id", "1"),
-					resource.TestCheckResourceAttr(groupV2ResourceName, "scope.%", "2"),
-					resource.TestCheckResourceAttr(groupV2ResourceName, "scope.filters.%", "2"),
 				),
 			},
 			{
@@ -55,8 +54,6 @@ func TestAccCoralogixResourceGroupV2(t *testing.T) {
 					resource.TestCheckResourceAttr(groupV2ResourceName, "name", "example"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.#", "1"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "roles.0.id", "1"),
-					resource.TestCheckResourceAttr(groupV2ResourceName, "scope.%", "2"),
-					resource.TestCheckResourceAttr(groupV2ResourceName, "scope.filters.%", "2"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "users.#", "1"),
 					resource.TestCheckResourceAttr(groupV2ResourceName, "users.0.user_name", userName),
 				),
@@ -96,12 +93,10 @@ func testAccCoralogixResourceGroupV2(userName string) string {
 	resource "coralogix_scope" "test" {
 		display_name       = "ExampleScope"
 		default_expression = "<v1>true"
-		filters            = [
-		{
+		filters            = [{
 			entity_type = "logs"
 			expression  = "<v1>(subsystemName == 'purchases') || (subsystemName == 'signups')"
-		}
-		]
+		}]
 	}
 
 	resource "coralogix_user" "test" {
@@ -109,26 +104,10 @@ func testAccCoralogixResourceGroupV2(userName string) string {
 	}
 	
 	resource "coralogix_group_v2" "test" {
-		name = "example"
-		roles       = [
-			{
-      			id = "1"
-    		},
-		]
-		scope = {
-    		filters = {
-      			subsystem = [
-				{
-          			filter_type = "exact"
-          			term        = "purchases"
-        		},
-	  			{
-          			filter_type = "exact"
-          			term        = "signups"
-				}
-				]
-			}
-		}
+		name  = "example"
+		roles = [{
+			id = "1"
+		}]
 	}
 
 	resource "coralogix_group_attachment" "example" {
