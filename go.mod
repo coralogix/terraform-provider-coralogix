@@ -8,12 +8,12 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/hashicorp/terraform-plugin-docs v0.20.1
-	github.com/hashicorp/terraform-plugin-framework v1.15.1
-	github.com/hashicorp/terraform-plugin-framework-validators v0.18.0
-	github.com/hashicorp/terraform-plugin-go v0.28.0
-	github.com/hashicorp/terraform-plugin-mux v0.20.0
-	github.com/hashicorp/terraform-plugin-sdk/v2 v2.37.0
-	github.com/hashicorp/terraform-plugin-testing v1.13.2
+	github.com/hashicorp/terraform-plugin-framework v1.13.0
+	github.com/hashicorp/terraform-plugin-framework-validators v0.16.0
+	github.com/hashicorp/terraform-plugin-go v0.25.0
+	github.com/hashicorp/terraform-plugin-mux v0.17.0
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.35.0
+	github.com/hashicorp/terraform-plugin-testing v1.11.0
 	github.com/nsf/jsondiff v0.0.0-20230430225905-43f6cf3098c1
 	golang.org/x/exp v0.0.0-20250718183923-645b1fa84792
 	google.golang.org/grpc v1.74.2
