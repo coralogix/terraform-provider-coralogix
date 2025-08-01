@@ -98,7 +98,8 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				Computed:            true,
 			},
 		},
-		MarkdownDescription: "Coralogix group.",
+		MarkdownDescription: "Coralogix group. This resource is deprecated and will be removed in a future version. Please use `coralogix_group_v2` instead.",
+		DeprecationMessage:  "This resource is deprecated and will be removed in a future version. Please use `coralogix_group_v2` instead.",
 	}
 }
 
