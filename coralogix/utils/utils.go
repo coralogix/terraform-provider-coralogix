@@ -337,6 +337,17 @@ func WrappedStringSliceToTypeStringList(s []*wrapperspb.StringValue) types.List 
 	return types.ListValueMust(types.StringType, elements)
 }
 
+func WrappedStringSliceToNonNullableTypeStringList(s []*wrapperspb.StringValue) types.List {
+	if len(s) == 0 {
+		return types.ListValueMust(types.StringType, []attr.Value{})
+	}
+	elements := make([]attr.Value, 0, len(s))
+	for _, v := range s {
+		elements = append(elements, types.StringValue(v.GetValue()))
+	}
+	return types.ListValueMust(types.StringType, elements)
+}
+
 func TypeStringSliceToWrappedStringSlice(ctx context.Context, s []attr.Value) ([]*wrapperspb.StringValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	result := make([]*wrapperspb.StringValue, 0, len(s))
