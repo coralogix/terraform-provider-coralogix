@@ -33,8 +33,6 @@ A Global Router evaluates routing rules based on alert conditions and matches th
 There are two ways to configure notification behavior in an alert:
 1. **Using Global Routers**: Alerts are routed through a centralized Global Router, 
 which applies logic to determine the appropriate connector and preset.
-2. **Using Destinations**: Alerts directly references connectors and presets.
-
 
 ## Example: Slack Notification Center Configuration
 The following sections demonstrate how to configure a Slack-based notification workflow using all Notification Center components.
@@ -198,18 +196,16 @@ Running `terraform apply` with the above configuration will create an Alert in C
 
 ---
 
-### Alert using Direct Destinations Configuration
+### Alert using Router Configuration
 The following resource defines an Alert that directly references a connector and preset for notifications:
 ```hcl
-resource "coralogix_alert" "example_with_destinations" {
+resource "coralogix_alert" "example_with_router" {
   name        = "metric_threshold alert"
-  description = "metric_threshold alert example with destinations"
+  description = "metric_threshold alert example with router"
   notification_group = {
-    destinations = [{
-      connector_id = coralogix_connector.slack_example.id # Connector to use for sending notifications.
-      preset_id    = coralogix_preset.slack_example.id # Preset to use for formatting the notifications.
+    router = {
       notify_on = "Triggered and Resolved" # Specifies when to notify (on alert trigger and resolution).
-    }]
+    }
   }
   type_definition = {
     metric_threshold = {
