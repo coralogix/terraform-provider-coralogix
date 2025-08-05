@@ -260,6 +260,264 @@ resource "coralogix_alert" "test_with_destination" {
     }
   }
 }
+  type_definition = {
+    logs_threshold = {
+      rules = [{
+        condition = {
+          threshold   = 2
+          time_window = "10_MINUTES"
+          condition_type   = "LESS_THAN"
+        }
+        override = {
+          priority = "P2"
+        }
+      }]
+      logs_filter       = {
+        simple_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [{
+              operation = "NOT"
+              value     = "application_name"
+            }]
+            subsystem_name = [{
+              operation = "STARTS_WITH"
+              value     = "subsystem-name"
+            }]
+            severities = ["Warning", "Error"]
+          }
+        }
+      }
+    }
+  }
+}
+  type_definition = {
+    logs_threshold = {
+      rules = [{
+        condition = {
+          threshold   = 2
+          time_window = "10_MINUTES"
+          condition_type   = "LESS_THAN"
+        }
+        override = {
+          priority = "P2"
+        }
+      }]
+      logs_filter       = {
+        simple_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [{
+              operation = "NOT"
+              value     = "application_name"
+            }]
+            subsystem_name = [{
+              operation = "STARTS_WITH"
+              value     = "subsystem-name"
+            }]
+            severities = ["Warning", "Error"]
+          }
+        }
+      }
+    }
+  }
+}
+  type_definition = {
+    logs_threshold = {
+      rules = [{
+        condition = {
+          threshold   = 2
+          time_window = "10_MINUTES"
+          condition_type   = "LESS_THAN"
+        }
+        override = {
+          priority = "P2"
+        }
+      }]
+      logs_filter       = {
+        simple_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [{
+              operation = "NOT"
+              value     = "application_name"
+            }]
+            subsystem_name = [{
+              operation = "STARTS_WITH"
+              value     = "subsystem-name"
+            }]
+            severities = ["Warning", "Error"]
+          }
+        }
+      }
+    }
+  }
+}
+  type_definition = {
+    logs_threshold = {
+      rules = [{
+        condition = {
+          threshold   = 2
+          time_window = "10_MINUTES"
+          condition_type   = "LESS_THAN"
+        }
+        override = {
+          priority = "P2"
+        }
+      }]
+      logs_filter       = {
+        simple_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [{
+              operation = "NOT"
+              value     = "application_name"
+            }]
+            subsystem_name = [{
+              operation = "STARTS_WITH"
+              value     = "subsystem-name"
+            }]
+            severities = ["Warning", "Error"]
+          }
+        }
+      }
+    }
+  }
+}
+  type_definition = {
+    logs_threshold = {
+      rules = [{
+        condition = {
+          threshold   = 2
+          time_window = "10_MINUTES"
+          condition_type   = "LESS_THAN"
+        }
+        override = {
+          priority = "P2"
+        }
+      }]
+      logs_filter       = {
+        simple_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [{
+              operation = "NOT"
+              value     = "application_name"
+            }]
+            subsystem_name = [{
+              operation = "STARTS_WITH"
+              value     = "subsystem-name"
+            }]
+            severities = ["Warning", "Error"]
+          }
+        }
+      }
+    }
+  }
+}
+  type_definition = {
+    logs_threshold = {
+      rules = [{
+        condition = {
+          threshold   = 2
+          time_window = "10_MINUTES"
+          condition_type   = "LESS_THAN"
+        }
+        override = {
+          priority = "P2"
+        }
+      }]
+      logs_filter       = {
+        simple_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [{
+              operation = "NOT"
+              value     = "application_name"
+            }]
+            subsystem_name = [{
+              operation = "STARTS_WITH"
+              value     = "subsystem-name"
+            }]
+            severities = ["Warning", "Error"]
+          }
+        }
+      }
+    }
+  }
+}
+        }
+        override = {
+          priority = "P2"
+        }
+      }]
+      logs_filter       = {
+        simple_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [{
+              operation = "NOT"
+              value     = "application_name"
+            }]
+            subsystem_name = [{
+              operation = "STARTS_WITH"
+              value     = "subsystem-name"
+            }]
+            severities = ["Warning", "Error"]
+          }
+        }
+      }
+    }
+  }
+}
+        }
+        override = {
+          priority = "P2"
+        }
+      }]
+      logs_filter       = {
+        simple_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [{
+              operation = "NOT"
+              value     = "application_name"
+            }]
+            subsystem_name = [{
+              operation = "STARTS_WITH"
+              value     = "subsystem-name"
+            }]
+            severities = ["Warning", "Error"]
+          }
+        }
+      }
+    }
+  }
+}
+        }
+        override = {
+          priority = "P2"
+        }
+      }]
+      logs_filter       = {
+        simple_filter = {
+          lucene_query  = "message:\"error\""
+          label_filters = {
+            application_name = [{
+              operation = "NOT"
+              value     = "application_name"
+            }]
+            subsystem_name = [{
+              operation = "STARTS_WITH"
+              value     = "subsystem-name"
+            }]
+            severities = ["Warning", "Error"]
+          }
+        }
+      }
+    }
+  }
+}
 
 resource "coralogix_global_router" "example" {
   name        = "global router example"
@@ -2021,87 +2279,9 @@ Required:
 
 Optional:
 
-- `destinations` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations))
 - `group_by_keys` (List of String)
 - `router` (Attributes) (see [below for nested schema](#nestedatt--notification_group--router))
 - `webhooks_settings` (Attributes Set) (see [below for nested schema](#nestedatt--notification_group--webhooks_settings))
-
-<a id="nestedatt--notification_group--destinations"></a>
-### Nested Schema for `notification_group.destinations`
-
-Required:
-
-- `connector_id` (String)
-- `preset_id` (String)
-
-Optional:
-
-- `notify_on` (String)
-- `resolved_routing_overrides` (Attributes) (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides))
-- `triggered_routing_overrides` (Attributes) (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides))
-
-<a id="nestedatt--notification_group--destinations--resolved_routing_overrides"></a>
-### Nested Schema for `notification_group.destinations.resolved_routing_overrides`
-
-Required:
-
-- `payload_type` (String)
-
-Optional:
-
-- `connector_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides--connector_overrides))
-- `preset_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides--preset_overrides))
-
-<a id="nestedatt--notification_group--destinations--resolved_routing_overrides--connector_overrides"></a>
-### Nested Schema for `notification_group.destinations.resolved_routing_overrides.connector_overrides`
-
-Required:
-
-- `field_name` (String)
-- `template` (String)
-
-
-<a id="nestedatt--notification_group--destinations--resolved_routing_overrides--preset_overrides"></a>
-### Nested Schema for `notification_group.destinations.resolved_routing_overrides.preset_overrides`
-
-Required:
-
-- `field_name` (String)
-- `template` (String)
-
-
-
-<a id="nestedatt--notification_group--destinations--triggered_routing_overrides"></a>
-### Nested Schema for `notification_group.destinations.triggered_routing_overrides`
-
-Required:
-
-- `payload_type` (String)
-
-Optional:
-
-- `connector_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides--connector_overrides))
-- `preset_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides--preset_overrides))
-
-<a id="nestedatt--notification_group--destinations--triggered_routing_overrides--connector_overrides"></a>
-### Nested Schema for `notification_group.destinations.triggered_routing_overrides.connector_overrides`
-
-Required:
-
-- `field_name` (String)
-- `template` (String)
-
-
-<a id="nestedatt--notification_group--destinations--triggered_routing_overrides--preset_overrides"></a>
-### Nested Schema for `notification_group.destinations.triggered_routing_overrides.preset_overrides`
-
-Required:
-
-- `field_name` (String)
-- `template` (String)
-
-
-
 
 <a id="nestedatt--notification_group--router"></a>
 ### Nested Schema for `notification_group.router`
