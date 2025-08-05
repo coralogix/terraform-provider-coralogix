@@ -1138,7 +1138,7 @@ Required:
 Optional:
 
 - `collapsed` (Boolean)
-- `color` (String) Section color, valid values: [unspecified cyan green blue purple magenta pink orange]
+- `color` (String) Section color, valid values: [cyan green blue purple magenta pink orange]
 - `description` (String)
 
 

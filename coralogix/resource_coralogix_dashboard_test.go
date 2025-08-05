@@ -764,3 +764,70 @@ layout = {
 }
 `, widget)
 }
+
+func TestAccCoralogixResourceDashboardLayoutColor(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+resource "coralogix_dashboard" "test" {
+  name        = "layout-color-test"
+  description = "Testing layout section color option"
+  time_frame = {
+    relative = {
+      duration = "seconds:900"
+    }
+  }
+
+  layout = {
+    sections = [{
+      options = {
+        name        = "Color Test Section"
+        description = "Checking color"
+        collapsed   = false
+        color       = "cyan"
+      }
+      rows = [{
+        height = 10
+          widgets = [{
+          title      = "placeholder"
+          width      = 0
+          definition = {
+            line_chart = {
+              query_definitions = [{
+                query = {
+                  logs = {
+                    aggregations = [{
+                      type = "count"
+                    }]
+                  }
+                }
+              }]
+              legend = {
+                is_visible = false
+              }
+            }
+          }
+        }]
+      }]
+    }]
+  }
+}
+				`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.name", "Color Test Section"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.color", "cyan"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.options.description", "Checking color"),
+				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}

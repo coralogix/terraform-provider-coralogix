@@ -239,7 +239,7 @@ var (
 	DashboardValidSpanFieldTypes          = []string{"metadata", "tag", "process_tag"}
 	DashboardValidSpanAggregationTypes    = []string{"metric", "dimension"}
 	DashboardValidColorSchemes            = []string{"classic", "severity", "cold", "negative", "green", "red", "blue"}
-	SectionValidColors                    = []string{UNSPECIFIED, "cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
+	SectionValidColors                    = []string{"cyan", "green", "blue", "purple", "magenta", "pink", "orange"}
 
 	DashboardSchemaToProtoThresholdType = map[string]cxsdk.ThresholdType{
 		UNSPECIFIED: cxsdk.ThresholdTypeUnspecified,

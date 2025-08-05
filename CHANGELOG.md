@@ -1035,3 +1035,4 @@ Fix:
 
 Fix: 
 * Incorrect mapping for gauge widget units in dashboards, actually
+* Incorrect mapping for layout color options in dashboards.
