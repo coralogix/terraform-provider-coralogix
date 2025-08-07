@@ -169,83 +169,6 @@ resource "coralogix_alert" "test" {
   }
 }
 
-resource "coralogix_alert" "test_with_destination" {
-  name        = "logs_threshold alert example"
-  description = "Example of logs_threshold alert example from terraform"
-  priority    = "P2"
-
-  labels = {
-    alert_type        = "security"
-    security_severity = "high"
-  }
-
-  notification_group = {
-    webhooks_settings = [{
-      recipients = ["example@coralogix.com", "example2@coralogix.com"]
-    }]
-    destinations = [{
-      connector_id = coralogix_connector.slack_example.id
-      preset_id    = coralogix_preset.slack_example.id
-      notify_on = "Triggered and Resolved"
-      triggered_routing_overrides = {
-        connector_overrides = [
-          {
-            field_name = "channel",
-            template = "{{alertDef.priority}}"
-          }
-        ]
-        payload_type = "slack_raw"
-      }
-    }]
-  }
-
-  incidents_settings = {
-    notify_on           = "Triggered and Resolved"
-    retriggering_period = {
-        minutes = 1
-    }
-  }
-
-  schedule = {
-    active_on = {
-        days_of_week = ["Wednesday", "Thursday"]
-        start_time = "10:30"
-        end_time = "20:30"
-    }
-  }
-
-  type_definition = {
-    logs_threshold = {
-      rules = [{
-        condition = {
-          threshold   = 2
-          time_window = "10_MINUTES"
-          condition_type   = "LESS_THAN"
-        }
-        override = {
-          priority = "P2"
-        }
-      }]
-      logs_filter       = {
-        simple_filter = {
-          lucene_query  = "message:\"error\""
-          label_filters = {
-            application_name = [{
-              operation = "NOT"
-              value     = "application_name"
-            }]
-            subsystem_name = [{
-              operation = "STARTS_WITH"
-              value     = "subsystem-name"
-            }]
-            severities = ["Warning", "Error"]
-          }
-        }
-      }
-    }
-  }
-}
-
 resource "coralogix_global_router" "example" {
   name        = "global router example"
   description = "global router example"
@@ -328,8 +251,6 @@ resource "coralogix_alert" "test_with_router" {
     }
   }
 }
-
-
 
 resource "coralogix_alert" "test" {
   name        = "logs_ratio_threshold alert example"

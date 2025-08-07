@@ -747,7 +747,9 @@ func V2() schema.Schema {
 						},
 					},
 					"destinations": schema.ListNestedAttribute{
-						Optional: true,
+						Optional:            true,
+						DeprecationMessage:  "Notification center is subject to change, use with care.",
+						MarkdownDescription: "Deprecated: Link a 3rd party notification to an alert.",
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"connector_id": schema.StringAttribute{
