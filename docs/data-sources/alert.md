@@ -56,9 +56,78 @@ Read-Only:
 
 Read-Only:
 
+- `destinations` (Attributes List) Deprecated: Link a 3rd party notification to an alert. (see [below for nested schema](#nestedatt--notification_group--destinations))
 - `group_by_keys` (List of String)
 - `router` (Attributes) (see [below for nested schema](#nestedatt--notification_group--router))
 - `webhooks_settings` (Attributes Set) (see [below for nested schema](#nestedatt--notification_group--webhooks_settings))
+
+<a id="nestedatt--notification_group--destinations"></a>
+### Nested Schema for `notification_group.destinations`
+
+Read-Only:
+
+- `connector_id` (String)
+- `notify_on` (String)
+- `preset_id` (String)
+- `resolved_routing_overrides` (Attributes) (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides))
+- `triggered_routing_overrides` (Attributes) (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides))
+
+<a id="nestedatt--notification_group--destinations--resolved_routing_overrides"></a>
+### Nested Schema for `notification_group.destinations.resolved_routing_overrides`
+
+Read-Only:
+
+- `connector_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides--connector_overrides))
+- `payload_type` (String)
+- `preset_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--resolved_routing_overrides--preset_overrides))
+
+<a id="nestedatt--notification_group--destinations--resolved_routing_overrides--connector_overrides"></a>
+### Nested Schema for `notification_group.destinations.resolved_routing_overrides.connector_overrides`
+
+Read-Only:
+
+- `field_name` (String)
+- `template` (String)
+
+
+<a id="nestedatt--notification_group--destinations--resolved_routing_overrides--preset_overrides"></a>
+### Nested Schema for `notification_group.destinations.resolved_routing_overrides.preset_overrides`
+
+Read-Only:
+
+- `field_name` (String)
+- `template` (String)
+
+
+
+<a id="nestedatt--notification_group--destinations--triggered_routing_overrides"></a>
+### Nested Schema for `notification_group.destinations.triggered_routing_overrides`
+
+Read-Only:
+
+- `connector_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides--connector_overrides))
+- `payload_type` (String)
+- `preset_overrides` (Attributes List) (see [below for nested schema](#nestedatt--notification_group--destinations--triggered_routing_overrides--preset_overrides))
+
+<a id="nestedatt--notification_group--destinations--triggered_routing_overrides--connector_overrides"></a>
+### Nested Schema for `notification_group.destinations.triggered_routing_overrides.connector_overrides`
+
+Read-Only:
+
+- `field_name` (String)
+- `template` (String)
+
+
+<a id="nestedatt--notification_group--destinations--triggered_routing_overrides--preset_overrides"></a>
+### Nested Schema for `notification_group.destinations.triggered_routing_overrides.preset_overrides`
+
+Read-Only:
+
+- `field_name` (String)
+- `template` (String)
+
+
+
 
 <a id="nestedatt--notification_group--router"></a>
 ### Nested Schema for `notification_group.router`
