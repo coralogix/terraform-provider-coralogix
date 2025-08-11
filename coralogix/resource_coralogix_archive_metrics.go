@@ -230,7 +230,8 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 
 func flattenArchiveMetrics(ctx context.Context, metricConfig *cxsdk.TenantConfigV2) (*ArchiveMetricsResourceModel, diag.Diagnostics) {
 	flattenedMetricsConfig := &ArchiveMetricsResourceModel{
-		ID:       types.StringValue(""),
+		// Use non-empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
+		ID:       types.StringValue("archive-metrics-settings"),
 		TenantID: types.Int64Value(int64(metricConfig.GetTenantId())),
 		Prefix:   types.StringValue(metricConfig.GetPrefix()),
 	}

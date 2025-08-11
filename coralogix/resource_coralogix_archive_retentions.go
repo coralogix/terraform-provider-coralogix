@@ -204,7 +204,8 @@ func flattenArchiveRetentions(ctx context.Context, retentions []*cxsdk.Retention
 		r, _ := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: archiveRetentionAttributes()}, []types.Object{})
 		return &ArchiveRetentionsResourceModel{
 			Retentions: r,
-			ID:         types.StringValue(""),
+			// Use non-empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
+			ID:         types.StringValue("archive-retention-settings"),
 		}, nil
 	}
 
@@ -235,7 +236,8 @@ func flattenArchiveRetentions(ctx context.Context, retentions []*cxsdk.Retention
 
 	return &ArchiveRetentionsResourceModel{
 		Retentions: flattenedRetentions,
-		ID:         types.StringValue(""),
+		// Use non-empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
+		ID:         types.StringValue("archive-retention-settings"),
 	}, nil
 }
 

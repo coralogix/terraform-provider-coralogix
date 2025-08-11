@@ -172,7 +172,8 @@ func flattenArchiveLogs(target *cxsdk.Target) *ArchiveLogsResourceModel {
 	}
 
 	return &ArchiveLogsResourceModel{
-		ID:                types.StringValue(""),
+		// Use non-empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
+		ID:                types.StringValue("archive-logs-settings"),
 		Active:            types.BoolValue(target.ArchiveSpec.GetIsActive()),
 		Bucket:            types.StringValue(s3Target.S3.GetBucket()),
 		Region:            types.StringValue(s3Target.S3.GetRegion()),
