@@ -86,7 +86,7 @@ func (d *ArchiveMetricsDataSource) Read(ctx context.Context, req datasource.Read
 	}
 	log.Printf("[INFO] Received archive-metrics: %s", protojson.Format(getResp))
 
-	data, diags := flattenArchiveMetrics(ctx, getResp.GetTenantConfig())
+	data, diags := flattenArchiveMetrics(ctx, getResp.GetTenantConfig(), data.ID.ValueString())
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return

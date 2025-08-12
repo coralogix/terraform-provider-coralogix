@@ -98,7 +98,7 @@ func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadReq
 	}
 	log.Printf("[INFO] Received archive-logs: %s", protojson.Format(getResp))
 
-	data = flattenArchiveLogs(getResp.GetTarget())
+	data = flattenArchiveLogs(getResp.GetTarget(), id)
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

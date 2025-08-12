@@ -218,7 +218,7 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 	log.Printf("[INFO] Received archiveMetrics: %s", protojson.Format(readResp))
-	plan, diags = flattenArchiveMetrics(ctx, readResp.GetTenantConfig())
+	plan, diags = flattenArchiveMetrics(ctx, readResp.GetTenantConfig(), RESOURCE_ID)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -228,10 +228,9 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenArchiveMetrics(ctx context.Context, metricConfig *cxsdk.TenantConfigV2) (*ArchiveMetricsResourceModel, diag.Diagnostics) {
+func flattenArchiveMetrics(ctx context.Context, metricConfig *cxsdk.TenantConfigV2, id string) (*ArchiveMetricsResourceModel, diag.Diagnostics) {
 	flattenedMetricsConfig := &ArchiveMetricsResourceModel{
-		// Use non-empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
-		ID:       types.StringValue("archive-metrics-settings"),
+		ID:       types.StringValue(id),
 		TenantID: types.Int64Value(int64(metricConfig.GetTenantId())),
 		Prefix:   types.StringValue(metricConfig.GetPrefix()),
 	}
@@ -398,7 +397,7 @@ func (r *ArchiveMetricsResource) Read(ctx context.Context, req resource.ReadRequ
 	}
 	log.Printf("[INFO] Received archive-metrics: %s", protojson.Format(getResp))
 
-	state, diags = flattenArchiveMetrics(ctx, getResp.GetTenantConfig())
+	state, diags = flattenArchiveMetrics(ctx, getResp.GetTenantConfig(), id)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -444,7 +443,7 @@ func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.Update
 		return
 	}
 	log.Printf("[INFO] Read updated archive-metrics %s", protojson.Format(readResp))
-	plan, diags = flattenArchiveMetrics(ctx, readResp.GetTenantConfig())
+	plan, diags = flattenArchiveMetrics(ctx, readResp.GetTenantConfig(), plan.ID.ValueString())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -457,3 +456,6 @@ func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.Update
 func (r *ArchiveMetricsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 
 }
+
+// Safeguard against empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
+const RESOURCE_ID string = "archive-metrics-settings"
