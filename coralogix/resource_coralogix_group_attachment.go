@@ -3,7 +3,10 @@ package coralogix
 import (
 	"context"
 	"fmt"
+	"log"
+	"strconv"
 
+	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -72,48 +75,34 @@ func (r *GroupAttachmentResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	groupId := plan.GroupID
-	getGroupResp, err := r.cxClientsSet.Groups().GetGroup(ctx, groupId)
+	id, err := strconv.Atoi(plan.GroupID)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get group", err.Error())
+		resp.Diagnostics.AddError("Invalid Group ID", fmt.Sprintf("Group ID must be an integer, got: %s", plan.GroupID))
 		return
 	}
-	if getGroupResp == nil {
-		resp.Diagnostics.AddError("Group not found", "Group not found")
-		return
+	groupId := &cxsdk.TeamGroupID{
+		Id: uint32(id),
 	}
 
-	existingMembers := make(map[string]bool)
-	for _, member := range getGroupResp.Members {
-		existingMembers[member.Value] = true
+	userIds := make([]*cxsdk.UserID, 0)
+	for _, userId := range plan.UserIDs {
+		userIds = append(userIds, &cxsdk.UserID{Id: userId})
 	}
 
-	newMembers := make([]clientset.SCIMGroupMember, 0)
-	userIds := make([]string, 0)
-	for _, memberId := range plan.UserIDs {
-		if _, ok := existingMembers[memberId]; !ok {
-			newMembers = append(newMembers, clientset.SCIMGroupMember{Value: memberId})
-		}
-		userIds = append(userIds, memberId)
+	groupAttachmentReq := &cxsdk.AddUsersToTeamGroupRequest{
+		GroupId: groupId,
+		UserIds: userIds,
 	}
 
-	groupAttachmentReq := &clientset.SCIMGroup{
-		ID:          groupId,
-		DisplayName: getGroupResp.DisplayName,
-		Members:     append(getGroupResp.Members, newMembers...),
-		Role:        getGroupResp.Role,
-		ScopeID:     getGroupResp.ScopeID,
-	}
-
-	_, err = r.cxClientsSet.Groups().UpdateGroup(ctx, groupId, groupAttachmentReq)
+	_, err = r.cxClientsSet.GroupGrpc().AddUsers(ctx, groupAttachmentReq)
 	if err != nil {
 		resp.Diagnostics.AddError("Failed to attach users to group", err.Error())
 		return
 	}
 
 	state := &GroupAttachmentResourceModel{
-		GroupID: getGroupResp.ID,
-		UserIDs: userIds,
+		GroupID: plan.GroupID,
+		UserIDs: plan.UserIDs,
 	}
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
@@ -140,19 +129,21 @@ func (r *GroupAttachmentResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 
-	getGroupResp, err := r.cxClientsSet.Groups().GetGroup(ctx, state.GroupID)
+	id, err := strconv.Atoi(state.GroupID)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get group", err.Error())
+		resp.Diagnostics.AddError("Invalid Group ID", fmt.Sprintf("Group ID must be an integer, got: %s", state.GroupID))
 		return
 	}
-	if getGroupResp == nil {
-		resp.Diagnostics.AddError("Group not found", "Group not found")
+
+	users, diag := getGroupUsers(ctx, r.cxClientsSet.GroupGrpc(), &cxsdk.TeamGroupID{Id: uint32(id)})
+	if diag != nil {
+		resp.Diagnostics.Append(diag)
 		return
 	}
 
 	existingUserIds := make(map[string]bool)
-	for _, member := range getGroupResp.Members {
-		existingUserIds[member.Value] = true
+	for _, user := range users {
+		existingUserIds[user.UserId.Id] = true
 	}
 
 	userIds := make([]string, 0)
@@ -208,32 +199,56 @@ func (r *GroupAttachmentResource) Update(ctx context.Context, req resource.Updat
 		membersInState[userId] = true
 	}
 
-	membersToApply := make([]clientset.SCIMGroupMember, 0)
+	membersToAdd := make([]*cxsdk.UserID, 0)
+	membersToRemove := make([]*cxsdk.UserID, 0)
+
 	for userId := range membersInPlan {
-		membersToApply = append(membersToApply, clientset.SCIMGroupMember{Value: userId})
-	}
-	for userId := range existingMembers {
-		if _, ok := membersInState[userId]; ok {
-			if _, ok := membersInPlan[userId]; !ok {
-				// user is in state but not in plan
-				continue
-			}
+		if !existingMembers[userId] {
+			membersToAdd = append(membersToAdd, &cxsdk.UserID{
+				Id: userId,
+			})
 		}
-		membersToApply = append(membersToApply, clientset.SCIMGroupMember{Value: userId})
+	}
+	for userId := range membersInState {
+		if !membersInPlan[userId] && existingMembers[userId] {
+			membersToRemove = append(membersToRemove, &cxsdk.UserID{
+				Id: userId,
+			})
+		}
 	}
 
-	groupAttachmentReq := &clientset.SCIMGroup{
-		ID:          groupId,
-		DisplayName: getGroupResp.DisplayName,
-		Members:     membersToApply,
-		Role:        getGroupResp.Role,
-		ScopeID:     getGroupResp.ScopeID,
-	}
-
-	_, err = r.cxClientsSet.Groups().UpdateGroup(ctx, groupId, groupAttachmentReq)
+	id, err := strconv.Atoi(groupId)
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to attach users to group", err.Error())
+		resp.Diagnostics.AddError("Invalid Group ID", fmt.Sprintf("Group ID must be an integer, got: %s", groupId))
 		return
+	}
+	teamGroupId := &cxsdk.TeamGroupID{Id: uint32(id)}
+
+	if len(membersToAdd) > 0 {
+		addUsersToTeamGroupReq := &cxsdk.AddUsersToTeamGroupRequest{
+			GroupId: teamGroupId,
+			UserIds: membersToAdd,
+		}
+		log.Printf("[INFO] Adding users to group: %v", addUsersToTeamGroupReq.UserIds)
+
+		_, err = r.cxClientsSet.GroupGrpc().AddUsers(ctx, addUsersToTeamGroupReq)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to attach users to group", err.Error())
+			return
+		}
+	}
+
+	if len(membersToRemove) > 0 {
+		log.Printf("[INFO] Removing users from group: %v", membersToRemove)
+		removeUsersFromTeamGroupReq := &cxsdk.RemoveUsersFromTeamGroupRequest{
+			GroupId: teamGroupId,
+			UserIds: membersToRemove,
+		}
+		_, err = r.cxClientsSet.GroupGrpc().RemoveUsers(ctx, removeUsersFromTeamGroupReq)
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to detach users from group", err.Error())
+			return
+		}
 	}
 
 	state = &GroupAttachmentResourceModel{
@@ -253,40 +268,27 @@ func (r *GroupAttachmentResource) Delete(ctx context.Context, request resource.D
 		return
 	}
 
-	groupId := state.GroupID
-	getGroupResp, err := r.cxClientsSet.Groups().GetGroup(ctx, groupId)
-	if err != nil {
-		response.Diagnostics.AddError("Failed to get group", err.Error())
-		return
-	}
-	if getGroupResp == nil {
-		response.Diagnostics.AddError("Group not found", "Group not found")
-		return
-	}
-
-	membersToRemove := make(map[string]bool)
+	usersToRemove := make([]*cxsdk.UserID, 0)
 	for _, userId := range state.UserIDs {
-		membersToRemove[userId] = true
+		usersToRemove = append(usersToRemove, &cxsdk.UserID{
+			Id: userId,
+		})
 	}
 
-	remainMembers := make([]clientset.SCIMGroupMember, 0)
-	for _, member := range getGroupResp.Members {
-		if _, ok := membersToRemove[member.Value]; !ok {
-			remainMembers = append(remainMembers, member)
-		}
-	}
-
-	groupAttachmentReq := &clientset.SCIMGroup{
-		ID:          getGroupResp.ID,
-		DisplayName: getGroupResp.DisplayName,
-		Members:     remainMembers,
-		Role:        getGroupResp.Role,
-		ScopeID:     getGroupResp.ScopeID,
-	}
-
-	_, err = r.cxClientsSet.Groups().UpdateGroup(ctx, groupId, groupAttachmentReq)
+	groupId, err := strconv.Atoi(state.GroupID)
 	if err != nil {
-		response.Diagnostics.AddError("Failed to attach users to group", err.Error())
+		response.Diagnostics.AddError("Invalid Group ID", fmt.Sprintf("Group ID must be an integer, got: %s", state.GroupID))
+		return
+	}
+
+	_, err = r.cxClientsSet.GroupGrpc().RemoveUsers(ctx, &cxsdk.RemoveUsersFromTeamGroupRequest{
+		GroupId: &cxsdk.TeamGroupID{
+			Id: uint32(groupId),
+		},
+		UserIds: usersToRemove,
+	})
+	if err != nil {
+		response.Diagnostics.AddError("Failed to detach users from group", err.Error())
 		return
 	}
 }
