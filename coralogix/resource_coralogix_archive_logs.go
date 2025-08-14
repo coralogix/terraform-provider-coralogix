@@ -152,7 +152,7 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 	}
 	log.Printf("[INFO] Submitted new archive-logs: %s", protojson.Format(createResp))
 
-	plan = flattenArchiveLogs(createResp.GetTarget(), RESOURCE_ID)
+	plan = flattenArchiveLogs(createResp.GetTarget(), RESOURCE_ID_ARCHIVE_LOGS)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -279,4 +279,4 @@ func (r *ArchiveLogsResource) Delete(ctx context.Context, req resource.DeleteReq
 }
 
 // Safeguard against empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
-const RESOURCE_ID string = "archive-logs-settings"
+const RESOURCE_ID_ARCHIVE_LOGS string = "archive-logs-settings"

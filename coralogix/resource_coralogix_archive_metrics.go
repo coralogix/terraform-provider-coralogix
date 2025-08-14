@@ -218,7 +218,7 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 	log.Printf("[INFO] Received archiveMetrics: %s", protojson.Format(readResp))
-	plan, diags = flattenArchiveMetrics(ctx, readResp.GetTenantConfig(), RESOURCE_ID)
+	plan, diags = flattenArchiveMetrics(ctx, readResp.GetTenantConfig(), RESOURCE_ID_ARCHIVE_METRICS)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -458,4 +458,4 @@ func (r *ArchiveMetricsResource) Delete(ctx context.Context, req resource.Delete
 }
 
 // Safeguard against empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
-const RESOURCE_ID string = "archive-metrics-settings"
+const RESOURCE_ID_ARCHIVE_METRICS string = "archive-metrics-settings"

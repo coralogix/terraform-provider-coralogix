@@ -189,7 +189,7 @@ func (r *ArchiveRetentionsResource) Create(ctx context.Context, req resource.Cre
 	}
 	log.Printf("[INFO] Submitted updated archive-retentions: %s", protojson.Format(updateResp))
 
-	plan, diags = flattenArchiveRetentions(ctx, updateResp.GetRetentions(), RESOURCE_ID)
+	plan, diags = flattenArchiveRetentions(ctx, updateResp.GetRetentions(), RESOURCE_ID_ARCHIVE_RETENTIONS)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -420,4 +420,4 @@ func (r *ArchiveRetentionsResource) Configure(_ context.Context, req resource.Co
 }
 
 // Safeguard against empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
-const RESOURCE_ID string = "archive-retention-settings"
+const RESOURCE_ID_ARCHIVE_RETENTIONS string = "archive-retention-settings"
