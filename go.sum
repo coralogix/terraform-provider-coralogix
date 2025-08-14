@@ -38,8 +38,8 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/cloudflare/circl v1.6.1 h1:zqIqSPIndyBh1bjLVVDHMPpVKqp8Su/V+6MeDzzQBQ0=
 github.com/cloudflare/circl v1.6.1/go.mod h1:uddAzsPgqdMAYatqJ0lsjX1oECcQLIlRpzZh3pJrofs=
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
-github.com/coralogix/coralogix-management-sdk v1.7.2 h1:lyqCe1mIEbhJAb/20jg9vqZ/NDXF4YYzorZbj8b9C6Q=
-github.com/coralogix/coralogix-management-sdk v1.7.2/go.mod h1:B54h2xMBg7SoZvqVtF9HysXA+kQYyTbj/ZBzUQYNtA8=
+github.com/coralogix/coralogix-management-sdk v1.8.0 h1:EII/ZxCbmJE7QBizcX5Iv6/6t+vbMmZaWFcADETFAUs=
+github.com/coralogix/coralogix-management-sdk v1.8.0/go.mod h1:B54h2xMBg7SoZvqVtF9HysXA+kQYyTbj/ZBzUQYNtA8=
 github.com/cyphar/filepath-securejoin v0.4.1 h1:JyxxyPEaktOD+GAnqIqTf9A8tHyAG22rowi7HkoSU1s=
 github.com/cyphar/filepath-securejoin v0.4.1/go.mod h1:Sdj7gXlvMcPZsbhwhQ33GguGLDGQL7h7bg04C/+u9jI=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
