@@ -558,11 +558,10 @@ func (r *EnrichmentResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	ty, fields := extractEnrichmentUpdates(plan)
+	enrichments := extractEnrichments(plan)
 
 	updateReq := &cxsdk.AtomicOverwriteEnrichmentsRequest{
-		EnrichmentFields: fields,
-		EnrichmentType:   ty,
+		RequestEnrichments: enrichments,
 	}
 	log.Printf("[INFO] Updating enrichment: %s", protojson.Format(updateReq))
 	enrichmentResp, err := r.client.Update(ctx, updateReq)
@@ -667,26 +666,6 @@ func extractEnrichments(plan *EnrichmentResourceModel) []*cxsdk.EnrichmentReques
 	return nil
 }
 
-func extractEnrichmentUpdates(plan *EnrichmentResourceModel) (*cxsdk.EnrichmentType, []*cxsdk.EnrichmentFieldDefinition) {
-	if plan.Aws != nil {
-		return extractAwsEnrichmentUpdate(plan.Aws)
-	}
-
-	if plan.GeoIp != nil {
-		return extractGeoIpEnrichmentUpdate(plan.GeoIp)
-	}
-
-	if plan.SuspiciousIp != nil {
-		return extractSuspiciousIpEnrichmentUpdate(plan.SuspiciousIp)
-	}
-
-	if plan.Custom != nil {
-		return extractCustomEnrichmentUpdate(plan.Custom)
-	}
-
-	return nil, nil
-}
-
 func extractCustomEnrichment(enrichments *CustomEnrichmentFieldsModel) []*cxsdk.EnrichmentRequestModel {
 	fields := make([]*cxsdk.EnrichmentRequestModel, 0)
 	for _, f := range enrichments.Fields {
@@ -741,84 +720,6 @@ func extractAwsEnrichment(enrichments *AwsEnrichmentFieldsModel) []*cxsdk.Enrich
 		fields = append(fields, &field)
 	}
 	return fields
-}
-
-func extractCustomEnrichmentUpdate(enrichments *CustomEnrichmentFieldsModel) (*cxsdk.EnrichmentType, []*cxsdk.EnrichmentFieldDefinition) {
-	fields := make([]*cxsdk.EnrichmentFieldDefinition, 0)
-	var enrichmentType *cxsdk.EnrichmentType
-	for _, f := range enrichments.Fields {
-		field := extractUntypedEnrichment(f)
-		fields = append(fields, &cxsdk.EnrichmentFieldDefinition{
-			FieldName:         field.FieldName,
-			EnrichedFieldName: field.EnrichedFieldName,
-			SelectedColumns:   field.SelectedColumns,
-		})
-		if enrichmentType == nil {
-			enrichmentType = &cxsdk.EnrichmentType{
-				Type: &cxsdk.EnrichmentTypeCustomEnrichment{
-					CustomEnrichment: &cxsdk.CustomEnrichmentType{
-						Id: utils.TypeInt64ToWrappedUint32(enrichments.CustomEnrichmentId),
-					},
-				},
-			}
-		}
-	}
-	return enrichmentType, fields
-}
-
-func extractSuspiciousIpEnrichmentUpdate(enrichments *EnrichmentFieldsModel) (*cxsdk.EnrichmentType, []*cxsdk.EnrichmentFieldDefinition) {
-	fields := make([]*cxsdk.EnrichmentFieldDefinition, 0)
-	for _, f := range enrichments.Fields {
-		field := extractUntypedEnrichment(f)
-		fields = append(fields, &cxsdk.EnrichmentFieldDefinition{
-			FieldName:         field.FieldName,
-			EnrichedFieldName: field.EnrichedFieldName,
-			SelectedColumns:   field.SelectedColumns,
-		})
-	}
-	return &cxsdk.EnrichmentType{
-		Type: &cxsdk.EnrichmentTypeSuspiciousIP{},
-	}, fields
-}
-
-func extractGeoIpEnrichmentUpdate(enrichments *EnrichmentFieldsModel) (*cxsdk.EnrichmentType, []*cxsdk.EnrichmentFieldDefinition) {
-	fields := make([]*cxsdk.EnrichmentFieldDefinition, 0)
-
-	for _, f := range enrichments.Fields {
-		field := extractUntypedEnrichment(f)
-		fields = append(fields, &cxsdk.EnrichmentFieldDefinition{
-			FieldName:         field.FieldName,
-			EnrichedFieldName: field.EnrichedFieldName,
-			SelectedColumns:   field.SelectedColumns,
-		})
-	}
-	return &cxsdk.EnrichmentType{
-		Type: &cxsdk.EnrichmentTypeGeoIP{},
-	}, fields
-}
-
-func extractAwsEnrichmentUpdate(enrichments *AwsEnrichmentFieldsModel) (*cxsdk.EnrichmentType, []*cxsdk.EnrichmentFieldDefinition) {
-	fields := make([]*cxsdk.EnrichmentFieldDefinition, 0)
-	var enrichmentType *cxsdk.EnrichmentType
-	for _, f := range enrichments.Fields {
-		field := extractUntypedEnrichment(f)
-		// TODO what happens if these are different?
-		// This is a bug and probably overwrites the enrichment types of previous fields
-		// Fix is incoming from the backend...
-		enrichmentType = &cxsdk.EnrichmentType{
-			Type: &cxsdk.EnrichmentTypeAws{
-				Aws: &cxsdk.AwsType{
-					ResourceType: wrapperspb.String(f.Resource.String()),
-				},
-			},
-		}
-		fields = append(fields, &cxsdk.EnrichmentFieldDefinition{
-			FieldName:         field.FieldName,
-			EnrichedFieldName: field.EnrichedFieldName,
-			SelectedColumns:   field.SelectedColumns,
-		})
-	}
-	return enrichmentType, fields
 }
 
 func extractUntypedEnrichment(e CoralogixEnrichment) cxsdk.EnrichmentRequestModel {
