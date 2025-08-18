@@ -1040,4 +1040,5 @@ Fix:
 # Release 2.2.0
 
 ## resource/coralogix_alert
-Remove:  remove support for `notification_group.destinations` 
+Remove:  remove support for `notification_group.destinations`
+Change: Field `webhooks_settings.notify_on` changed from optional to mandatory.
