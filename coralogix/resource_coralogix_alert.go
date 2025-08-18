@@ -87,7 +87,7 @@ func (r *AlertResource) Configure(_ context.Context, req resource.ConfigureReque
 }
 
 func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = alertschema.V2()
+	resp.Schema = alertschema.V3()
 }
 
 func (r AlertResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {

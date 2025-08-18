@@ -145,7 +145,7 @@ func testAccCoralogixResourceAlertWebhooksNotifyOnMandatory() string {
   notification_group = {
     webhooks_settings = [{
       notify_on = "Triggered Only"
-      integration_id = "410442"
+      integration_id = "416291"
       retriggering_period = { minutes = 720 }
     }]
     simple_target_settings = [
