@@ -28,6 +28,7 @@ Just like connectors, presets are tailored for specific platforms like Slack, Pa
 ### Global Router
 Determines how alerts are routed to specific connectors and presets. 
 A Global Router evaluates routing rules based on alert conditions and matches them to appropriate notification targets.
+The default Global Router is called `router_default`, if you name your resource like this, and `terraform apply`, you can simply overtake it instead of having to `terraform import`.
 
 ### Alerts
 There are two ways to configure notification behavior in an alert:

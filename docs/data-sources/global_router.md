@@ -27,8 +27,8 @@ data "coralogix_global_router" "example_data_by_name" {
 
 ### Optional
 
-- `id` (String) The ID of the GlobalRouter.
-- `name` (String) Name of the GlobalRouter.
+- `id` (String) The ID of the GlobalRouter
+- `name` (String) Name of the GlobalRouter. Set "router_default" for picking the default router.
 
 ### Read-Only
 

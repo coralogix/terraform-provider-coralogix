@@ -18,7 +18,7 @@ Coralogix GlobalRouter. **Note:** This resource is in alpha stage.
 ### Required
 
 - `entity_type` (String) Type of the entity. Valid values are: alerts, unspecified
-- `name` (String) Name of the GlobalRouter.
+- `name` (String) Name of the GlobalRouter. Set "router_default" for picking the default router.
 
 ### Optional
 
@@ -29,7 +29,7 @@ Coralogix GlobalRouter. **Note:** This resource is in alpha stage.
 
 ### Read-Only
 
-- `id` (String) The ID of the GlobalRouter.
+- `id` (String) The ID of the GlobalRouter
 
 <a id="nestedatt--fallback"></a>
 ### Nested Schema for `fallback`

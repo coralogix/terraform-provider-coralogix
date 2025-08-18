@@ -108,11 +108,11 @@ func (r *GlobalRouterResource) Schema(_ context.Context, _ resource.SchemaReques
 			"id": schema.StringAttribute{
 				Computed:      true,
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-				Description:   "The ID of the GlobalRouter.",
+				Description:   "The ID of the GlobalRouter",
 			},
 			"name": schema.StringAttribute{
 				Required:    true,
-				Description: "Name of the GlobalRouter.",
+				Description: "Name of the GlobalRouter. Set \"router_default\" for picking the default router.",
 			},
 			"description": schema.StringAttribute{
 				Optional:    true,
