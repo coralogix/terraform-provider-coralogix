@@ -1045,10 +1045,14 @@ Feat:
 * Support for Gauge Threshold labels added
   
 ## resource/coralogix_alert
-Remove:  remove support for `notification_group.destinations`
 Change: Field `webhooks_settings.notify_on` changed from optional to mandatory.
 
 ## resource/coralogix_team
 ## data_source/coralogix_team
 
 - Fully removed
+
+# Release 2.3.0
+
+## resource/coralogix_alert
+Remove:  remove support for `notification_group.destinations`
