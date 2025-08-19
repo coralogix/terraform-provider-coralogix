@@ -1550,6 +1550,7 @@ func testAccCoralogixResourceAlertLogsMoreThan() string {
   notification_group = {
     webhooks_settings = [
       {
+        notify_on = "Triggered Only"
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -1622,6 +1623,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
   notification_group = {
     webhooks_settings = [
       {
+        notify_on = "Triggered Only"
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -1694,6 +1696,7 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
   notification_group = {
     webhooks_settings = [
       {
+        notify_on = "Triggered Only"
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -1983,6 +1986,7 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter() string {
   notification_group = {
     webhooks_settings = [
       {
+        notify_on = "Triggered Only"
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -2130,6 +2134,7 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouterUpdated() string {
   notification_group = {
     webhooks_settings = [
       {
+        notify_on = "Triggered Only"
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -2402,6 +2407,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
       notification_group = {
         webhooks_settings = [
         {
+            notify_on = "Triggered Only"
             recipients = ["example@coralogix.com", "example2@coralogix.com"]
         },
         ]
@@ -2468,7 +2474,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
 
       notification_group = {
         webhooks_settings = [
-            { recipients = ["example@coralogix.com"] }
+            { notify_on = "Triggered Only", recipients = ["example@coralogix.com"] }
         ]
       }
 
@@ -2532,6 +2538,7 @@ func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
   notification_group = {
     webhooks_settings = [
       {
+        notify_on = "Triggered Only"
         recipients = ["example@coralogix.com"]
       }
     ]
@@ -2605,6 +2612,7 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
   notification_group = {
     webhooks_settings = [
       {
+        notify_on = "Triggered Only"
         recipients = ["example@coralogix.com"]
       }
     ]
