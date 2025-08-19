@@ -152,7 +152,7 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 	}
 	log.Printf("[INFO] Submitted new archive-logs: %s", protojson.Format(createResp))
 
-	plan = flattenArchiveLogs(createResp.GetTarget())
+	plan = flattenArchiveLogs(createResp.GetTarget(), RESOURCE_ID_ARCHIVE_LOGS)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -162,7 +162,7 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenArchiveLogs(target *cxsdk.Target) *ArchiveLogsResourceModel {
+func flattenArchiveLogs(target *cxsdk.Target, id string) *ArchiveLogsResourceModel {
 	if target == nil {
 		return nil
 	}
@@ -172,7 +172,7 @@ func flattenArchiveLogs(target *cxsdk.Target) *ArchiveLogsResourceModel {
 	}
 
 	return &ArchiveLogsResourceModel{
-		ID:                types.StringValue(""),
+		ID:                types.StringValue(id),
 		Active:            types.BoolValue(target.ArchiveSpec.GetIsActive()),
 		Bucket:            types.StringValue(s3Target.S3.GetBucket()),
 		Region:            types.StringValue(s3Target.S3.GetRegion()),
@@ -223,7 +223,7 @@ func (r *ArchiveLogsResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 	log.Printf("[INFO] Received archive-logs: %s", protojson.Format(getResp))
 
-	state = flattenArchiveLogs(getResp.GetTarget())
+	state = flattenArchiveLogs(getResp.GetTarget(), id)
 	//
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -264,7 +264,7 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 		)
 		return
 	}
-	plan = flattenArchiveLogs(readResp.GetTarget())
+	plan = flattenArchiveLogs(readResp.GetTarget(), plan.ID.ValueString())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -277,3 +277,6 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 func (r *ArchiveLogsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 
 }
+
+// Safeguard against empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
+const RESOURCE_ID_ARCHIVE_LOGS string = "archive-logs-settings"

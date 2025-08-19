@@ -189,7 +189,7 @@ func (r *ArchiveRetentionsResource) Create(ctx context.Context, req resource.Cre
 	}
 	log.Printf("[INFO] Submitted updated archive-retentions: %s", protojson.Format(updateResp))
 
-	plan, diags = flattenArchiveRetentions(ctx, updateResp.GetRetentions())
+	plan, diags = flattenArchiveRetentions(ctx, updateResp.GetRetentions(), RESOURCE_ID_ARCHIVE_RETENTIONS)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -199,12 +199,12 @@ func (r *ArchiveRetentionsResource) Create(ctx context.Context, req resource.Cre
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenArchiveRetentions(ctx context.Context, retentions []*cxsdk.Retention) (*ArchiveRetentionsResourceModel, diag.Diagnostics) {
+func flattenArchiveRetentions(ctx context.Context, retentions []*cxsdk.Retention, id string) (*ArchiveRetentionsResourceModel, diag.Diagnostics) {
 	if len(retentions) == 0 {
 		r, _ := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: archiveRetentionAttributes()}, []types.Object{})
 		return &ArchiveRetentionsResourceModel{
 			Retentions: r,
-			ID:         types.StringValue(""),
+			ID:         types.StringValue(id),
 		}, nil
 	}
 
@@ -235,7 +235,7 @@ func flattenArchiveRetentions(ctx context.Context, retentions []*cxsdk.Retention
 
 	return &ArchiveRetentionsResourceModel{
 		Retentions: flattenedRetentions,
-		ID:         types.StringValue(""),
+		ID:         types.StringValue(id),
 	}, nil
 }
 
@@ -317,7 +317,7 @@ func (r *ArchiveRetentionsResource) Read(ctx context.Context, req resource.ReadR
 	}
 	log.Printf("[INFO] Received archive-retentions: %s", protojson.Format(getArchiveRetentionsResp))
 
-	state, diags = flattenArchiveRetentions(ctx, getArchiveRetentionsResp.GetRetentions())
+	state, diags = flattenArchiveRetentions(ctx, getArchiveRetentionsResp.GetRetentions(), state.ID.ValueString())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -372,7 +372,7 @@ func (r *ArchiveRetentionsResource) Update(ctx context.Context, req resource.Upd
 	}
 	log.Printf("[INFO] Received archive-retentions: %s", protojson.Format(getArchiveRetentionsResp))
 
-	plan, diags = flattenArchiveRetentions(ctx, getArchiveRetentionsResp.GetRetentions())
+	plan, diags = flattenArchiveRetentions(ctx, getArchiveRetentionsResp.GetRetentions(), state.ID.ValueString())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -418,3 +418,6 @@ func (r *ArchiveRetentionsResource) Configure(_ context.Context, req resource.Co
 
 	r.client = clientSet.ArchiveRetentions()
 }
+
+// Safeguard against empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
+const RESOURCE_ID_ARCHIVE_RETENTIONS string = "archive-retention-settings"

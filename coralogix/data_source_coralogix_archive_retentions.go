@@ -91,7 +91,7 @@ func (d *ArchiveRetentionsDataSource) Read(ctx context.Context, req datasource.R
 	}
 	log.Printf("[INFO] Received archive-retentions: %s", protojson.Format(getArchiveRetentionsResp))
 
-	data, diags := flattenArchiveRetentions(ctx, getArchiveRetentionsResp.GetRetentions())
+	data, diags := flattenArchiveRetentions(ctx, getArchiveRetentionsResp.GetRetentions(), data.ID.ValueString())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
