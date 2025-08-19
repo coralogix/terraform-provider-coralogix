@@ -87,64 +87,78 @@ func (r *AlertResource) Configure(_ context.Context, req resource.ConfigureReque
 }
 
 func (r *AlertResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = alertschema.V2()
+	resp.Schema = alertschema.V3()
 }
 
 func (r AlertResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
-	priorSchema := alertschema.V1()
+	alertSchemaV1 := alertschema.V1()
+	alertSchemaV2 := alertschema.V2()
 	return map[int64]resource.StateUpgrader{
 		1: {
-			PriorSchema: &priorSchema,
-			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-				// Generic state upgrade, simply fetches the alert again and updates the state
-				var state types.String
-				resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &state)...)
-				//Get refreshed Alert value from Coralogix
-				id := state.ValueString()
-				log.Printf("[INFO] Reading Alert: %s", id)
-				if resp.Diagnostics.HasError() {
-					return
-				}
-
-				var schedule types.Object
-				resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("schedule"), &schedule)...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
-
-				getAlertReq := &cxsdk.GetAlertDefRequest{Id: wrapperspb.String(id)}
-				getAlertResp, err := r.client.Get(ctx, getAlertReq)
-				if err != nil {
-					log.Printf("[ERROR] Received error: %s", err.Error())
-					if cxsdk.Code(err) == codes.NotFound {
-						resp.Diagnostics.AddWarning(
-							fmt.Sprintf("Alert %q is in state, but no longer exists in Coralogix backend", id),
-							fmt.Sprintf("%s will be recreated when you apply", id),
-						)
-						resp.State.RemoveResource(ctx)
-					} else {
-						resp.Diagnostics.AddError(
-							"Error reading Alert",
-							utils.FormatRpcErrors(err, getAlertURL, protojson.Format(getAlertReq)),
-						)
-					}
-					return
-				}
-				alert := getAlertResp.GetAlertDef()
-				log.Printf("[INFO] Received Alert: %s", protojson.Format(alert))
-
-				newState, diags := flattenAlert(ctx, alert, &schedule)
-				if diags.HasError() {
-					resp.Diagnostics.Append(diags...)
-					return
-				}
-
-				resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
-			},
+			PriorSchema:   &alertSchemaV1,
+			StateUpgrader: r.GenericUpgradeState(alertSchemaV1),
+		},
+		2: {
+			PriorSchema:   &alertSchemaV2,
+			StateUpgrader: r.GenericUpgradeState(alertSchemaV2),
 		},
 	}
 }
 
+func (r AlertResource) GenericUpgradeState(_ any) func(context.Context, resource.UpgradeStateRequest, *resource.UpgradeStateResponse) {
+	return func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+		// Generic state upgrade, simply fetches the alert again and updates the state
+		var state types.String
+		resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &state)...)
+		//Get refreshed Alert value from Coralogix
+		id := state.ValueString()
+		log.Printf("[INFO] Reading Alert: %s", id)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		if id == "" {
+			resp.Diagnostics.AddError("Missing ID in prior state", "Upgrade requires the prior state's ID attribute.")
+			return
+		}
+
+		var schedule types.Object
+		resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("schedule"), &schedule)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		getAlertReq := cxsdk.GetAlertDefRequest{Id: wrapperspb.String(id)}
+		getAlertResp, err := r.client.Get(ctx, &getAlertReq)
+		if err != nil {
+			log.Printf("[ERROR] Received error: %s", err.Error())
+			if cxsdk.Code(err) == codes.NotFound {
+				resp.Diagnostics.AddWarning(
+					fmt.Sprintf("Alert %q is in state, but no longer exists in Coralogix backend", id),
+					fmt.Sprintf("%s will be recreated when you apply", id),
+				)
+				resp.State.RemoveResource(ctx)
+			} else {
+				resp.Diagnostics.AddError(
+					"Error reading Alert",
+					utils.FormatRpcErrors(err, getAlertURL, protojson.Format(&getAlertReq)),
+				)
+			}
+			return
+		}
+
+		alert := getAlertResp.GetAlertDef()
+		log.Printf("[INFO] Received Alert for %q: %s", id, protojson.Format(alert))
+
+		newState, diags := flattenAlert(ctx, alert, &schedule)
+		if diags.HasError() {
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+
+		resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
+	}
+}
 func (r *AlertResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

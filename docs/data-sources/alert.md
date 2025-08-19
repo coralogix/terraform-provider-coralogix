@@ -143,7 +143,7 @@ Read-Only:
 Read-Only:
 
 - `integration_id` (String)
-- `notify_on` (String) Notify on. Valid values: ["Triggered Only" "Triggered and Resolved"]. Triggered Only by default.
+- `notify_on` (String) Notify on. Valid values: ["Triggered Only" "Triggered and Resolved"].
 - `recipients` (Set of String)
 - `retriggering_period` (Attributes) Retriggering period in minutes. 10 minutes by default. (see [below for nested schema](#nestedatt--notification_group--webhooks_settings--retriggering_period))
 
