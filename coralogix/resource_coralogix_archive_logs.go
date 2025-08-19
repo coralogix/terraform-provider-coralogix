@@ -141,7 +141,7 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 	log.Printf("[INFO] Creating new archive-logs: %s", protojson.Format(createReq))
-	createResp, err := r.client.Update(ctx, createReq)
+	_, err := r.client.Update(ctx, createReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
@@ -150,9 +150,10 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted new archive-logs: %s", protojson.Format(createResp))
+	readResp, err := r.client.Get(ctx)
+	log.Printf("[INFO] Submitted new archive-logs: %s", protojson.Format(readResp))
 
-	plan = flattenArchiveLogs(createResp.GetTarget(), RESOURCE_ID_ARCHIVE_LOGS)
+	plan = flattenArchiveLogs(readResp, RESOURCE_ID_ARCHIVE_LOGS)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -162,30 +163,26 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenArchiveLogs(target *cxsdk.Target, id string) *ArchiveLogsResourceModel {
+func flattenArchiveLogs(target *cxsdk.GetTargetResponse, id string) *ArchiveLogsResourceModel {
 	if target == nil {
-		return nil
-	}
-	s3Target, ok := target.GetTargetSpec().(*cxsdk.TargetS3)
-	if !ok {
 		return nil
 	}
 
 	return &ArchiveLogsResourceModel{
 		ID:                types.StringValue(id),
-		Active:            types.BoolValue(target.ArchiveSpec.GetIsActive()),
-		Bucket:            types.StringValue(s3Target.S3.GetBucket()),
-		Region:            types.StringValue(s3Target.S3.GetRegion()),
-		ArchivingFormatId: types.StringValue(target.ArchiveSpec.GetArchivingFormatId()),
-		EnableTags:        types.BoolValue(target.ArchiveSpec.GetEnableTags()),
+		Active:            types.BoolValue(target.Target.ArchiveSpec.GetIsActive()),
+		Bucket:            types.StringValue(target.Target.GetS3().GetBucket()),
+		Region:            types.StringValue(target.Target.GetS3().GetRegion()),
+		ArchivingFormatId: types.StringValue(target.Target.ArchiveSpec.GetArchivingFormatId()),
+		EnableTags:        types.BoolValue(target.Target.ArchiveSpec.GetEnableTags()),
 	}
 }
 
 func extractArchiveLogs(plan ArchiveLogsResourceModel) *cxsdk.SetTargetRequest {
 	return &cxsdk.SetTargetRequest{
 		IsActive: plan.Active.ValueBool(),
-		TargetSpec: &cxsdk.SetTargetRequestS3{
-			S3: &cxsdk.S3TargetSpec{
+		TargetSpec: &cxsdk.SetS3TargetRequest{
+			S3: &cxsdk.Target{
 				Bucket: plan.Bucket.ValueString(),
 				Region: utils.TypeStringToStringPointer(plan.Region),
 			},
@@ -223,7 +220,7 @@ func (r *ArchiveLogsResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 	log.Printf("[INFO] Received archive-logs: %s", protojson.Format(getResp))
 
-	state = flattenArchiveLogs(getResp.GetTarget(), id)
+	state = flattenArchiveLogs(getResp, id)
 	//
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -264,7 +261,7 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 		)
 		return
 	}
-	plan = flattenArchiveLogs(readResp.GetTarget(), plan.ID.ValueString())
+	plan = flattenArchiveLogs(readResp, plan.ID.ValueString())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
