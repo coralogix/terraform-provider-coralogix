@@ -29,35 +29,33 @@ import (
 
 var sloResourceName = "coralogix_slo.test"
 
-// TODO re-enable with new SLO
-//
-// func TestAccCoralogixResourceSLOCreate(t *testing.T) {
-// 	resource.Test(t, resource.TestCase{
-// 		PreCheck:                 func() { TestAccPreCheck(t) },
-// 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-// 		CheckDestroy:             testAccSLOCheckDestroy,
-// 		Steps: []resource.TestStep{
-// 			{
-// 				Config:  testAccCoralogixResourceSLO(),
-// 				Destroy: false,
-// 				Check: resource.ComposeTestCheckFunc(
-// 					resource.TestCheckResourceAttr(sloResourceName, "name", "coralogix_slo_example"),
-// 					resource.TestCheckResourceAttr(sloResourceName, "service_name", "service_name"),
-// 					resource.TestCheckResourceAttr(sloResourceName, "description", "description"),
-// 					resource.TestCheckResourceAttr(sloResourceName, "target_percentage", "50"),
-// 					resource.TestCheckResourceAttr(sloResourceName, "type", "latency"),
-// 					resource.TestCheckResourceAttr(sloResourceName, "threshold_microseconds", "1000000"),
-// 					resource.TestCheckResourceAttr(sloResourceName, "threshold_symbol_type", "greater_or_equal"),
-// 					resource.TestCheckResourceAttr(sloResourceName, "period", "7_days"),
-// 					resource.TestCheckResourceAttr(sloResourceName, "filters.0.field", "operationname"),
-// 					resource.TestCheckResourceAttr(sloResourceName, "filters.0.compare_type", "is"),
-// 					resource.TestCheckResourceAttr(sloResourceName, "filters.0.field_values.0", "hipstershop.ProductCatalogService/ListProducts"),
-// 				),
-// 			},
-// 		},
-// 	},
-// 	)
-// }
+func TestAccCoralogixResourceSLOCreate(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccSLOCheckDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config:  testAccCoralogixResourceSLO(),
+				Destroy: false,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(sloResourceName, "name", "coralogix_slo_example"),
+					resource.TestCheckResourceAttr(sloResourceName, "service_name", "service_name"),
+					resource.TestCheckResourceAttr(sloResourceName, "description", "description"),
+					resource.TestCheckResourceAttr(sloResourceName, "target_percentage", "50"),
+					resource.TestCheckResourceAttr(sloResourceName, "type", "latency"),
+					resource.TestCheckResourceAttr(sloResourceName, "threshold_microseconds", "1000000"),
+					resource.TestCheckResourceAttr(sloResourceName, "threshold_symbol_type", "greater_or_equal"),
+					resource.TestCheckResourceAttr(sloResourceName, "period", "7_days"),
+					resource.TestCheckResourceAttr(sloResourceName, "filters.0.field", "operationname"),
+					resource.TestCheckResourceAttr(sloResourceName, "filters.0.compare_type", "is"),
+					resource.TestCheckResourceAttr(sloResourceName, "filters.0.field_values.0", "hipstershop.ProductCatalogService/ListProducts"),
+				),
+			},
+		},
+	},
+	)
+}
 
 func TestAccCoralogixResourceSpanSLOCreate(t *testing.T) {
 	resource.Test(t, resource.TestCase{
