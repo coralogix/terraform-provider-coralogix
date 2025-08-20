@@ -14,30 +14,34 @@
 
 package coralogix
 
-// TODO Re-enable with new SLO
+import (
+	"testing"
 
-// var sloDataSourceName = "data." + sloResourceName
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+)
 
-//
-// func TestAccCoralogixDataSourceSLO_basic(t *testing.T) {
-// 	resource.Test(t, resource.TestCase{
-// 		PreCheck:                 func() { TestAccPreCheck(t) },
-// 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-// 		Steps: []resource.TestStep{
-// 			{
-// 				Config: testAccCoralogixResourceSLO() +
-// 					testAccCoralogixResourceSLO_read(),
-// 				Check: resource.ComposeAggregateTestCheckFunc(
-// 					resource.TestCheckResourceAttrSet(sloDataSourceName, "id"),
-// 				),
-// 			},
-// 		},
-// 	})
-// }
+var sloDataSourceName = "data." + sloResourceName
 
-// func testAccCoralogixResourceSLO_read() string {
-// 	return `data "coralogix_slo" "test" {
-// 		id = coralogix_slo.test.id
-// }
-// `
-// }
+func TestAccCoralogixDataSourceSLO_basic(t *testing.T) {
+	t.Skip("SLOv2 deactivated for now")
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceSLO() +
+					testAccCoralogixResourceSLO_read(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(sloDataSourceName, "id"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceSLO_read() string {
+	return `data "coralogix_slo" "test" {
+		id = coralogix_slo.test.id
+}
+`
+}

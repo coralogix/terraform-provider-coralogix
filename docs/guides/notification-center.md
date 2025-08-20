@@ -1,3 +1,7 @@
+---
+page_title: "Using the Notification Center with Terraform" 
+---
+
 # Managing Coralogix Notification Center with the Terraform Provider
 
 ## Overview
