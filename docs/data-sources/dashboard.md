@@ -1094,7 +1094,6 @@ Read-Only:
 Read-Only:
 
 - `aggregations` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations))
-- `group_by` (List of String)
 - `group_bys` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--group_bys))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--data_table--query--logs--grouping--aggregations"></a>
@@ -1696,6 +1695,7 @@ Read-Only:
 
 - `color` (String)
 - `from` (Number)
+- `label` (String)
 
 
 

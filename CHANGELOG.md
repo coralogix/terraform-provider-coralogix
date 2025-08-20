@@ -1011,21 +1011,21 @@ Fix:
 
 # Release 2.1.1
 
-Fix:
 
 ## provider
 
+Fix:
 * Fixed environment alias mapping to correctly handle both shorthand and longhand environment names (e.g., AP1/APAC1, EU1/EUROPE1, US1/USA1)
-
-Docs:
 
 ## resource/coralogix_slo_v2
 
+Docs:
 * Enhanced field documentation for some attributes
 
 ## resource/coralogix_dashboard
 
 Fix: 
+* Incorrect mapping for gauge widget units in dashboards 
 
 * Incorrect mapping for gauge widget units in dashboards 
 
@@ -1040,5 +1040,8 @@ Fix:
 # Release 2.2.0
 
 ## resource/coralogix_alert
-Remove:  remove support for `notification_group.destinations`
-Change: Field `webhooks_settings.notify_on` changed from optional to mandatory.
+Change: 
+* Field `webhooks_settings.notify_on` changed from optional to mandatory.
+  
+Feat:
+* Support for Gauge Threshold labels added
