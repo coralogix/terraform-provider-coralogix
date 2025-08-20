@@ -291,7 +291,8 @@ func (r *SLOV2Resource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics = diags
 		return
 	}
-	createSloReq := &cxsdk.CreateServiceSloRequest{Slo: slo}
+	silenceValidations := true
+	createSloReq := &cxsdk.CreateServiceSloRequest{Slo: slo, SilenceDataValidations: &silenceValidations}
 	log.Printf("[INFO] Creating new SLO: %s", protojson.Format(createSloReq))
 	createResp, err := r.client.Create(ctx, createSloReq)
 	if err != nil {
@@ -670,7 +671,8 @@ func (r *SLOV2Resource) Update(ctx context.Context, req resource.UpdateRequest, 
 		resp.Diagnostics = diags
 		return
 	}
-	updateSloReq := &cxsdk.ReplaceServiceSloRequest{Slo: slo}
+	silenceValidations := true
+	updateSloReq := &cxsdk.ReplaceServiceSloRequest{Slo: slo, SilenceDataValidations: &silenceValidations}
 	log.Printf("[INFO] Updating SLO: %s", protojson.Format(updateSloReq))
 	updateSloResp, err := r.client.Update(ctx, updateSloReq)
 	if err != nil {
