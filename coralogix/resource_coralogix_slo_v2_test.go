@@ -29,6 +29,7 @@ import (
 var sloV2ResourceName = "coralogix_slo_v2.test"
 
 func TestAccCoralogixResourceSLOV2RequestBased(t *testing.T) {
+	t.Skip("SLOv2 is deactivated for now")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -48,6 +49,7 @@ func TestAccCoralogixResourceSLOV2RequestBased(t *testing.T) {
 }
 
 func TestAccCoralogixResourceSLOV2WindowBased(t *testing.T) {
+	t.Skip("SLOv2 is deactivated for now")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { TestAccPreCheck(t) },
