@@ -111,7 +111,7 @@ resource "coralogix_slo" "test" {
 	target_percentage 		= 50
 	type            		= "latency"
 	threshold_microseconds 	= var.test
-	threshold_symbol_type 	= "greater_or_equal"
+	threshold_symbol_type 	= "greater"
 	period			        = "7_days"
 	filters = [{
 		field = "operationname"

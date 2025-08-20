@@ -1052,6 +1052,13 @@ Change: Field `webhooks_settings.notify_on` changed from optional to mandatory.
 
 - Fully removed
 
+## resource/coralogix_slo_v2
+
+Feature: 
+- activated the resource/data source
+
+
+
 # Release 2.3.0
 
 ## resource/coralogix_alert

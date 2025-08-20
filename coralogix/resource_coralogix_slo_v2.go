@@ -234,7 +234,7 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				MarkdownDescription: fmt.Sprintf("SLO time window. One of: %v.", strings.Join(validSLOTimeFrame, ", ")),
 			},
 		},
-		MarkdownDescription: "Coralogix New SLO.",
+		MarkdownDescription: "Coralogix New SLO. Read more about limits and details at https://coralogix.com/docs/user-guides/slos/introduction/",
 	}
 }
 
