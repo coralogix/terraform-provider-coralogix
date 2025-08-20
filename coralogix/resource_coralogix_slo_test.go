@@ -102,7 +102,7 @@ func testAccCoralogixResourceSLO() string {
 	return `
 variable "test" {
 	type 		= string
-	default 	= 10000
+	default 	= 1
 }
 resource "coralogix_slo" "test" {
 	name            		= "coralogix_slo_example"
