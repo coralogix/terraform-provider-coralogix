@@ -1742,8 +1742,8 @@ Read-Only:
 
 Read-Only:
 
-- `dataprime_query` (String)
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters))
+- `query` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--hexagon--query--data_prime--filters"></a>
@@ -2577,8 +2577,8 @@ Read-Only:
 
 Read-Only:
 
-- `dataprime_query` (String)
 - `filters` (Attributes List) (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters))
+- `query` (String)
 - `time_frame` (Attributes) Specifies the time frame. Can be either absolute or relative. (see [below for nested schema](#nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--time_frame))
 
 <a id="nestedatt--layout--sections--rows--widgets--definition--line_chart--query_definitions--query--data_prime--filters"></a>
