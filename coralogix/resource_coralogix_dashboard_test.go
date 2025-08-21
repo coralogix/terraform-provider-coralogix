@@ -213,9 +213,9 @@ func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
             title      = "line-chart"
             definition = {
               line_chart = {
-				stacked_line = "relative"
+				        stacked_line = "relative"
                 query_definitions = [{
-                  query = {
+                query = {
                     spans = {
                       aggregations = [{
                         type             = "dimension"
@@ -246,16 +246,22 @@ func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
                         type  = "tag"
                         value = "deviceName"
                       }]
-					  time_frame = {
-						relative = {
-						  duration = "seconds:900" # 15 minutes
-						}
-					  }               
+					          time_frame = {
+                      relative = {
+                        duration = "seconds:900" # 15 minutes
+                      }
+                    }               
+                  }
+                }
+                color_scheme = "classic"
+                is_visible   = true
+                scale_type   = "linear"
+                }, {
+                  query = {
+                    data_prime = {
+                      query = "source logs"
                     }
-				  }
-                  color_scheme = "classic"
-                  is_visible   = true
-                  scale_type   = "linear"
+                  }
                 }]
                 legend = {
                   is_visible     = true
@@ -273,6 +279,7 @@ func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "line-chart"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.1.query.data_prime.query", "source logs"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.aggregations.0.type", "dimension"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.0.type", "tag"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.line_chart.query_definitions.0.query.spans.group_by.0.value", "deviceName"),

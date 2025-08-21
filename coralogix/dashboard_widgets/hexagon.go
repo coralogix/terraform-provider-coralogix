@@ -217,7 +217,7 @@ func HexagonSchema() schema.Attribute {
 					},
 					"data_prime": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
-							"dataprime_query": schema.StringAttribute{
+							"query": schema.StringAttribute{
 								Optional: true,
 							},
 							"filters": schema.ListNestedAttribute{
@@ -367,7 +367,7 @@ func HexagonSchemaV0() schema.Attribute {
 					},
 					"data_prime": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
-							"dataprime_query": schema.StringAttribute{
+							"query": schema.StringAttribute{
 								Optional: true,
 							},
 							"filters": schema.ListNestedAttribute{
@@ -469,7 +469,7 @@ func HexagonType() types.ObjectType {
 					},
 					"data_prime": types.ObjectType{
 						AttrTypes: map[string]attr.Type{
-							"dataprime_query": types.StringType,
+							"query": types.StringType,
 							"filters": types.ListType{
 								ElemType: types.ObjectType{
 									AttrTypes: FilterSourceModelAttr(),
