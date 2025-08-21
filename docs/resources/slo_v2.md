@@ -3,12 +3,12 @@
 page_title: "coralogix_slo_v2 Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix New SLO.
+  Coralogix New SLO. Read more about limits and details at https://coralogix.com/docs/user-guides/slos/introduction/
 ---
 
 # coralogix_slo_v2 (Resource)
 
-Coralogix New SLO.
+Coralogix New SLO. Read more about limits and details at https://coralogix.com/docs/user-guides/slos/introduction/
 
 ## Example Usage
 

@@ -106,6 +106,7 @@ func LineChartSchema() schema.Attribute {
 										objectvalidator.ExactlyOneOf(
 											path.MatchRelative().AtParent().AtName("metrics"),
 											path.MatchRelative().AtParent().AtName("spans"),
+											path.MatchRelative().AtParent().AtName("data_prime"),
 										),
 									},
 								},
@@ -123,12 +124,6 @@ func LineChartSchema() schema.Attribute {
 										"time_frame": TimeFrameSchema(),
 									},
 									Optional: true,
-									Validators: []validator.Object{
-										objectvalidator.ExactlyOneOf(
-											path.MatchRelative().AtParent().AtName("logs"),
-											path.MatchRelative().AtParent().AtName("spans"),
-										),
-									},
 								},
 								"spans": schema.SingleNestedAttribute{
 									Attributes: map[string]schema.Attribute{
@@ -141,16 +136,10 @@ func LineChartSchema() schema.Attribute {
 										"time_frame":   TimeFrameSchema(),
 									},
 									Optional: true,
-									Validators: []validator.Object{
-										objectvalidator.ExactlyOneOf(
-											path.MatchRelative().AtParent().AtName("metrics"),
-											path.MatchRelative().AtParent().AtName("logs"),
-										),
-									},
 								},
 								"data_prime": schema.SingleNestedAttribute{
 									Attributes: map[string]schema.Attribute{
-										"dataprime_query": schema.StringAttribute{
+										"query": schema.StringAttribute{
 											Optional: true,
 										},
 										"filters": schema.ListNestedAttribute{
@@ -325,7 +314,7 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 				},
 				"data_prime": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
-						"dataprime_query": types.StringType,
+						"query": types.StringType,
 						"filters": types.ListType{
 							ElemType: types.ObjectType{
 								AttrTypes: FilterSourceModelAttr(),
@@ -792,6 +781,14 @@ func expandLineChartQuery(ctx context.Context, query *LineChartQueryModel) (*cxs
 		return &cxsdk.LineChartQuery{
 			Value: spans,
 		}, nil
+	case query.DataPrime != nil:
+		dataprime, diags := expandLineChartDataPrimeQuery(ctx, query.DataPrime)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &cxsdk.LineChartQuery{
+			Value: dataprime,
+		}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand LineChart Query", "Unknown LineChart Query type")}
 	}
@@ -889,6 +886,37 @@ func expandLineChartSpansQuery(ctx context.Context, spans *LineChartQuerySpansMo
 			Aggregations: aggregations,
 			Filters:      filters,
 			TimeFrame:    timeFrame,
+		},
+	}, nil
+}
+
+func expandLineChartDataPrimeQuery(ctx context.Context, dataPrime *DataPrimeModel) (*cxsdk.LineChartQueryDataprime, diag.Diagnostics) {
+	if dataPrime == nil {
+		return nil, nil
+	}
+
+	filters, diags := ExpandDashboardFiltersSources(ctx, dataPrime.Filters)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	var dataPrimeQuery *cxsdk.DashboardDataprimeQuery
+	if !dataPrime.Query.IsNull() {
+		dataPrimeQuery = &cxsdk.DashboardDataprimeQuery{
+			Text: dataPrime.Query.ValueString(),
+		}
+	}
+
+	timeframe, diags := ExpandTimeFrameSelect(ctx, dataPrime.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &cxsdk.LineChartQueryDataprime{
+		Dataprime: &cxsdk.LineChartDataprimeQuery{
+			DataprimeQuery: dataPrimeQuery,
+			Filters:        filters,
+			TimeFrame:      timeframe,
 		},
 	}, nil
 }

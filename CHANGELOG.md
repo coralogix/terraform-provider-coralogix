@@ -1057,6 +1057,11 @@ Change: Field `webhooks_settings.notify_on` changed from optional to mandatory.
 Feature: 
 - activated the resource/data source
 
+# Release 2.2.1
+
+## resource/coralogix_dashboard
+Fix: 
+ * Data Prime query was not recognized by model
 
 
 # Release 2.3.0
