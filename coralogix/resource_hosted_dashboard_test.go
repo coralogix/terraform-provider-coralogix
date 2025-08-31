@@ -41,11 +41,14 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 	filePath := parent + "/examples/resources/coralogix_hosted_dashboard/grafana_acc_dashboard.json"
 	updatedFilePath := parent + "/examples/resources/coralogix_hosted_dashboard/grafana_acc_updated_dashboard.json"
 
+	// Generate unique folder titles for this test run
+	folderTitle := fmt.Sprintf("Test Folder %d", time.Now().Unix())
+	folderUpdateTitle := fmt.Sprintf("Updated Folder Title %d", time.Now().Unix())
+
+	t.Logf("[INFO] Starting test with folder titles: %s -> %s", folderTitle, folderUpdateTitle)
+
 	expectedInitialConfig := `{"title":"Title test","uid":"UID"}`
 	expectedUpdatedTitleConfig := `{"title":"Updated Title","uid":"UID"}`
-
-	expectedFolderTitle := "Test Folder"
-	expectedFolderUpdateTitle := "Updated Folder Title"
 
 	var dashboard gapi.Dashboard
 
@@ -56,7 +59,7 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Test resource creation.
-				Config: testAccCoralogixResourceGrafanaDashboard(filePath, expectedFolderTitle, false),
+				Config: testAccCoralogixResourceGrafanaDashboard(filePath, folderTitle, false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists(hostedDashboardResourceName, &dashboard),
 					resource.TestCheckResourceAttr(
@@ -66,17 +69,29 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 						hostedDashboardResourceName, "grafana.0.folder",
 					),
 					resource.TestCheckResourceAttrSet(hostedDashboardFolderResourceName, "id"),
-					resource.TestCheckResourceAttr(hostedDashboardFolderResourceName, "title", expectedFolderTitle),
+					resource.TestCheckResourceAttr(hostedDashboardFolderResourceName, "title", folderTitle),
+					func() resource.TestCheckFunc {
+						return func(s *terraform.State) error {
+							t.Logf("[INFO] Step 1 completed - Dashboard created successfully with folder: %s", folderTitle)
+							return nil
+						}
+					}(),
 				),
 			},
 			{
-				Config: testAccCoralogixResourceGrafanaDashboard(updatedFilePath, expectedFolderUpdateTitle, false),
+				Config: testAccCoralogixResourceGrafanaDashboard(updatedFilePath, folderUpdateTitle, false),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists(hostedDashboardResourceName, &dashboard),
 					resource.TestCheckResourceAttr(
 						hostedDashboardResourceName, "grafana.0.config_json", expectedUpdatedTitleConfig,
 					),
-					resource.TestCheckResourceAttr(hostedDashboardFolderResourceName, "title", expectedFolderUpdateTitle),
+					resource.TestCheckResourceAttr(hostedDashboardFolderResourceName, "title", folderUpdateTitle),
+					func() resource.TestCheckFunc {
+						return func(s *terraform.State) error {
+							t.Logf("[INFO] Step 2 completed - Dashboard updated successfully with folder: %s", folderUpdateTitle)
+							return nil
+						}
+					}(),
 				),
 			},
 		},
