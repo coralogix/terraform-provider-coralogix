@@ -1,11 +1,11 @@
 // Copyright 2024 Coralogix Ltd.
-// 
+//
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     https://www.apache.org/licenses/LICENSE-2.0
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,10 +18,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"terraform-provider-coralogix/coralogix/clientset"
 
@@ -35,6 +39,20 @@ var (
 	idRegexp                  = regexp.MustCompile(`^\d+$`)
 	validHostedDashboardTypes = []string{"grafana"}
 )
+
+// isNotFound returns true for Grafana 404s and gRPC NotFound.
+func isNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	// gRPC status
+	if s, ok := status.FromError(err); ok && s.Code() == codes.NotFound {
+		return true
+	}
+	// Last-resort string checks (covers "status: 404", etc.)
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "not found") || strings.Contains(msg, "status: 404")
+}
 
 func resourceCoralogixHostedDashboard() *schema.Resource {
 	return &schema.Resource{
@@ -208,7 +226,10 @@ func resourceGrafanaDashboardRead(ctx context.Context, d *schema.ResourceData, m
 
 	var diags diag.Diagnostics
 	if err != nil {
-		if strings.HasPrefix(err.Error(), "status: 404") {
+		log.Printf("[ERROR] Dashboard read error: %s", err.Error())
+		log.Printf("[ERROR] Error type: %T", err)
+		if strings.HasPrefix(err.Error(), "status: 404") || isNotFound(err) {
+			log.Printf("[INFO] Detected 'not found' error, marking dashboard for recreation")
 			diags = append(diags, diag.Diagnostic{
 				Severity: diag.Warning,
 				Summary:  fmt.Sprintf("Dashboard %q is in state, but no longer exists in grafana", uid),
@@ -217,6 +238,7 @@ func resourceGrafanaDashboardRead(ctx context.Context, d *schema.ResourceData, m
 			d.SetId("")
 			return diags
 		} else {
+			log.Printf("[ERROR] Not a 'not found' error, returning error")
 			return diag.FromErr(err)
 		}
 	}

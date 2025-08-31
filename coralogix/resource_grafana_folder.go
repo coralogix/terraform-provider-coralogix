@@ -74,6 +74,19 @@ func resourceGrafanaFolder() *schema.Resource {
 	}
 }
 
+func isAlreadyExistsErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	// SDK maps HTTP codes into gRPC codes for consistency.
+	if cxsdk.Code(err) == codes.AlreadyExists {
+		return true
+	}
+	// Be defensive: also catch raw HTTP 409 or text messages.
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "409") || strings.Contains(msg, "already exists")
+}
+
 func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	var err error
 	var folder gapi.Folder
@@ -84,8 +97,22 @@ func CreateFolder(ctx context.Context, d *schema.ResourceData, meta interface{})
 
 	log.Printf("[INFO] Creating grafana-folder: %#v", folder)
 	resp, err := meta.(*clientset.ClientSet).Grafana().CreateGrafanaFolder(ctx, folder)
+	log.Printf("[INFO] Received err: %#v", err)
 	if err != nil {
-		return diag.Errorf("failed to create folder: %s", err)
+		if isAlreadyExistsErr(err) {
+			log.Printf("[INFO] Received isAlreadyExistsErr: %#v", err)
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity: diag.Error,
+				Summary:  "Grafana folder already exists",
+				Detail: fmt.Sprintf(
+					"A folder (or dashboard) named %q already exists in the General folder. "+
+						"Choose a different `title`, or import the existing folder into state. "+
+						"\n\nExample:\n  terraform import coralogix_grafana_folder.this <folder_id>\n\n"+
+						"Tip: the folder id is visible in Grafana under /folders/id/<id>.", folder.Title),
+			}}
+		}
+		log.Printf("[INFO] Received error: %#v", err)
+		return diag.Errorf("%s", utils.FormatRpcErrors(err, "/grafana/api/folders", fmt.Sprintf("%#v", folder)))
 	}
 	log.Printf("[INFO] Received grafana-folder: %#v", resp)
 
@@ -148,7 +175,21 @@ func SplitOrgResourceID(id string) (int64, string) {
 func ReadFolder(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	folder, err := meta.(*clientset.ClientSet).Grafana().GetGrafanaFolder(ctx, d.Id())
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
+		log.Printf("[ERROR] ReadFolder error: %s", err.Error())
+		log.Printf("[ERROR] Error type: %T", err)
+		// Check if it's a "not found" error or permission error - if so, return warning but keep ID for recreation
+		if strings.Contains(strings.ToLower(err.Error()), "not found") ||
+			strings.Contains(err.Error(), "status: 404") ||
+			strings.Contains(err.Error(), "folders:read") ||
+			strings.Contains(err.Error(), "access denied") {
+			log.Printf("[INFO] Detected 'not found' or permission error, folder will be recreated")
+			return diag.Diagnostics{diag.Diagnostic{
+				Severity: diag.Warning,
+				Summary:  fmt.Sprintf("Grafana folder %q is in state, but no longer exists or is not accessible in Coralogix backend", d.Id()),
+				Detail:   fmt.Sprintf("%s will be recreated when you apply", d.Id()),
+			}}
+		}
+		log.Printf("[ERROR] Not a 'not found' error, returning error")
 		return diag.FromErr(err)
 	}
 	log.Printf("[INFO] Received grafana-folder: %#v", folder)

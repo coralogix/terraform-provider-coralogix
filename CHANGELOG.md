@@ -1068,3 +1068,9 @@ Fix:
 
 ## resource/coralogix_alert
 Remove:  remove support for `notification_group.destinations`
+
+## resource/coralogix_hosted_dashboard.go
+Error handler: Removing resource from state if does not exist in backend
+
+## resource/resource_gradfana_folder.go
+Error handler: Removing resource from state if does not exist in backend

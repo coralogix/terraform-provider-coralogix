@@ -15,9 +15,11 @@
 package coralogix
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -31,14 +33,14 @@ func TestAccCoralogixDataSourceGrafanaDashboard_basic(t *testing.T) {
 	}
 	parent := filepath.Dir(wd)
 	filePath := parent + "/examples/resources/coralogix_hosted_dashboard/grafana_acc_dashboard.json"
-	expectedFolderTitle := "Test Folder"
+	expectedFolderTitle := fmt.Sprintf("Test Folder %d", time.Now().Unix())
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:          func() { TestAccPreCheck(t) },
 		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceGrafanaDashboard(filePath, expectedFolderTitle) +
+				Config: testAccCoralogixResourceGrafanaDashboard(filePath, expectedFolderTitle, false) +
 					testAccCoralogixDataSourceGrafanaDashboard_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(hostedDashboardDataSourceName, "uid"),
