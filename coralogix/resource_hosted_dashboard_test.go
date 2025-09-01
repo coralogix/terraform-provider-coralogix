@@ -69,6 +69,28 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 				),
 			},
 			{
+				PreConfig: func() {
+					client := testAccProvider.Meta().(*clientset.ClientSet).Grafana()
+					err := client.DeleteGrafanaDashboard(context.TODO(), dashboard.Model["uid"].(string))
+					if err != nil {
+						panic(err)
+					}
+				},
+				// Test resource creation.
+				Config: testAccCoralogixResourceGrafanaDashboard(filePath, expectedFolderTitle),
+				Check: resource.ComposeTestCheckFunc(
+					testAccDashboardCheckExists(hostedDashboardResourceName, &dashboard),
+					resource.TestCheckResourceAttr(
+						hostedDashboardResourceName, "grafana.0.config_json", expectedInitialConfig,
+					),
+					resource.TestCheckResourceAttrSet(
+						hostedDashboardResourceName, "grafana.0.folder",
+					),
+					resource.TestCheckResourceAttrSet(hostedDashboardFolderResourceName, "id"),
+					resource.TestCheckResourceAttr(hostedDashboardFolderResourceName, "title", expectedFolderTitle),
+				),
+			},
+			{
 				Config: testAccCoralogixResourceGrafanaDashboard(updatedFilePath, expectedFolderUpdateTitle),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists(hostedDashboardResourceName, &dashboard),
