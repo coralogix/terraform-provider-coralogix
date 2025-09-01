@@ -42,8 +42,9 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 	updatedFilePath := parent + "/examples/resources/coralogix_hosted_dashboard/grafana_acc_updated_dashboard.json"
 
 	// Generate unique folder titles for this test run
-	folderTitle := fmt.Sprintf("Test Folder %d", time.Now().Unix())
-	folderUpdateTitle := fmt.Sprintf("Updated Folder Title %d", time.Now().Unix())
+	uniqueSuffix := fmt.Sprintf("%d", time.Now().UnixMilli())
+	folderTitle := fmt.Sprintf("Test Folder %s", uniqueSuffix)
+	folderUpdateTitle := fmt.Sprintf("Updated Folder Title %s", uniqueSuffix)
 
 	t.Logf("[INFO] Starting test with folder titles: %s -> %s", folderTitle, folderUpdateTitle)
 
@@ -59,7 +60,7 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				// Test resource creation.
-				Config: testAccCoralogixResourceGrafanaDashboard(filePath, folderTitle, false),
+				Config: testAccCoralogixResourceGrafanaDashboard(filePath, folderTitle, false, ""),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists(hostedDashboardResourceName, &dashboard),
 					resource.TestCheckResourceAttr(
@@ -79,7 +80,7 @@ func TestAccCoralogixResourceHostedGrafanaDashboardCreate(t *testing.T) {
 				),
 			},
 			{
-				Config: testAccCoralogixResourceGrafanaDashboard(updatedFilePath, folderUpdateTitle, false),
+				Config: testAccCoralogixResourceGrafanaDashboard(updatedFilePath, folderUpdateTitle, false, ""),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists(hostedDashboardResourceName, &dashboard),
 					resource.TestCheckResourceAttr(
@@ -138,7 +139,7 @@ func testAccDashboardCheckDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCoralogixResourceGrafanaDashboard(filePath, folderTitle string, missingBackend bool) string {
+func testAccCoralogixResourceGrafanaDashboard(filePath, folderTitle string, missingBackend bool, timestamp string) string { // todo - remove missing backend param and timestamp param
 	if !missingBackend {
 		return fmt.Sprintf(
 			`resource "coralogix_hosted_dashboard" test {
@@ -167,13 +168,14 @@ func testAccCoralogixResourceGrafanaDashboard(filePath, folderTitle string, miss
 				resource "coralogix_grafana_folder" "test_folder" {
   					title = "%s"
 				}
-`, fmt.Sprintf("test-uid-%d", time.Now().Unix()), folderTitle)
+`, fmt.Sprintf("test-uid-%s", timestamp), folderTitle)
 	}
 }
 
 func TestAccCoralogixResourceHostedGrafanaDashboard_MissingInBackend(t *testing.T) {
-	expectedFolderTitle := fmt.Sprintf("Test Folder %d", time.Now().Unix())
-	expectedUID := fmt.Sprintf("test-uid-%d", time.Now().Unix())
+	uniqueSuffix := fmt.Sprintf("%d", time.Now().UnixMilli())
+	expectedFolderTitle := fmt.Sprintf("Test Folder %s", uniqueSuffix)
+	expectedUID := fmt.Sprintf("test-uid-%s", uniqueSuffix)
 	expectedInitialConfig := fmt.Sprintf(`{"title":"Title test","uid":"%s"}`, expectedUID)
 
 	var dashboard gapi.Dashboard
@@ -185,7 +187,7 @@ func TestAccCoralogixResourceHostedGrafanaDashboard_MissingInBackend(t *testing.
 		Steps: []resource.TestStep{
 			{
 				// Step 1: create the dashboard normally
-				Config: testAccCoralogixResourceGrafanaDashboard("", expectedFolderTitle, true),
+				Config: testAccCoralogixResourceGrafanaDashboard("", expectedFolderTitle, true, uniqueSuffix),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists(hostedDashboardResourceName, &dashboard),
 					resource.TestCheckResourceAttr(
@@ -233,13 +235,13 @@ func TestAccCoralogixResourceHostedGrafanaDashboard_MissingInBackend(t *testing.
 
 					t.Log("[INFO] Step 2 completed - Dashboard deleted from backend to simulate drift")
 				},
-				Config:             testAccCoralogixResourceGrafanaDashboard("", expectedFolderTitle, true),
+				Config:             testAccCoralogixResourceGrafanaDashboard("", expectedFolderTitle, true, uniqueSuffix),
 				PlanOnly:           true, // Only run plan, don't apply
 				ExpectNonEmptyPlan: true, // we expect Terraform to detect drift and plan recreation
 			},
 			{
 				// Step 3: verify that Terraform can successfully recreate the resources
-				Config: testAccCoralogixResourceGrafanaDashboard("", expectedFolderTitle, true),
+				Config: testAccCoralogixResourceGrafanaDashboard("", expectedFolderTitle, true, uniqueSuffix),
 				Check: resource.ComposeTestCheckFunc(
 					testAccDashboardCheckExists(hostedDashboardResourceName, &dashboard),
 					resource.TestCheckResourceAttr(
