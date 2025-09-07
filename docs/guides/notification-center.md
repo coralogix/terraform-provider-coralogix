@@ -34,9 +34,7 @@ Determines how alerts are routed to specific connectors and presets.
 A Global Router evaluates routing rules based on alert conditions and matches them to appropriate notification targets.
 
 ### Alerts
-There are two ways to configure notification behavior in an alert:
-1. **Using Global Routers**: Alerts are routed through a centralized Global Router, 
-which applies logic to determine the appropriate connector and preset.
+Alerts are routed through a centralized Global Router, which applies logic to determine the appropriate connector and preset.
 
 ## Example: Slack Notification Center Configuration
 The following sections demonstrate how to configure a Slack-based notification workflow using all Notification Center components.
@@ -80,7 +78,7 @@ resource "coralogix_connector" "slack_example" {
 ```
 Running `terraform apply` with the above configuration will create a Connector in Coralogix, as shown in the screenshot below:
 
-<img width="1711" height="880" alt="Screenshot of a connector on the Coralogix web UI" src="https://github.com/user-attachments/assets/c8120831-bbd3-49cc-87fa-5ba6677e73f6" />
+![Screenshot of a connector on the Coralogix web UI](./images/connector.png)
 
 ---
 
@@ -119,7 +117,7 @@ resource "coralogix_preset" "slack_example" {
 ```
 Running `terraform apply` with the above configuration will create a Preset in Coralogix, as shown in the screenshot below:
 
-<img width="1720" height="845" alt="Screenshot of a preset on the Coralogix web UI" src="https://github.com/user-attachments/assets/6aa676e3-4bee-4f8f-86da-b53dc3253791" />
+![Screenshot of a preset on the Coralogix web UI](./images/preset.png)
 
 ---
 
@@ -156,7 +154,7 @@ resource "coralogix_global_router" "router_example" {
 ```
 Running `terraform apply` with the above configuration will create a Global Router in Coralogix, as shown in the screenshot below:
 
-<img width="1715" height="851" alt="Screenshot of a router on the Coralogix web UI" src="https://github.com/user-attachments/assets/248da4ed-fbdc-43d1-b15a-1290e9827a10" />
+![Screenshot of a router on the Coralogix web UI](./images/router.png)
 
 ---
 
@@ -197,46 +195,6 @@ resource "coralogix_alert" "example_with_router" {
 Running `terraform apply` with the above configuration will create an Alert in Coralogix, as shown in the screenshot below:
 
 <img width="1709" height="884" alt="Screenshot of an alert on the Coralogix web UI" src="https://github.com/user-attachments/assets/5f2b2759-4a31-4393-89b7-b16b89d06684" />
-
----
-
-### Alert using Router Configuration
-The following resource defines an Alert that directly references a connector and preset for notifications:
-```hcl
-resource "coralogix_alert" "example_with_router" {
-  name        = "metric_threshold alert"
-  description = "metric_threshold alert example with router"
-  notification_group = {
-    router = {
-      notify_on = "Triggered and Resolved" # Specifies when to notify (on alert trigger and resolution).
-    }
-  }
-  type_definition = {
-    metric_threshold = {
-      metric_filter = {
-        promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
-      }
-      rules = [{
-        condition = {
-          threshold    = 2
-          for_over_pct = 10
-          of_the_last = "1h15m"
-          condition_type = "MORE_THAN_OR_EQUALS"
-        }
-        override = {
-          priority = "P2"
-        }
-      }]
-      missing_values = {
-        replace_with_zero = true
-      }
-    }
-  }
-}
-```
-Running `terraform apply` with the above configuration will create an Alert in Coralogix, as shown in the screenshot below:
-
-<img width="1706" height="880" alt="Screenshot of an alert on the Coralogix web UI" src="https://github.com/user-attachments/assets/4ae5619b-d118-4566-a3f2-a12d3eeed6f2" />
 
 ---
 
