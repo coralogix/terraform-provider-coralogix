@@ -1063,6 +1063,15 @@ Feature:
 Fix: 
  * Data Prime query was not recognized by model
 
+# Release 2.2.2
+
+## resource/coralogix_hosted_dashboard
+Fix: 
+ * Recreate hosted dashboard when not found in backend 
+
+# Release 2.2.3
+
+Re-release
 
 # Release 2.3.0
 
