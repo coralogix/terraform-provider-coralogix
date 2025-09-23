@@ -19,11 +19,16 @@ jobs:
         uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
         with:
           go-version: ${{ matrix.go-version }}
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.GRPC_GATEWAY_DEPLOY_KEY }}
       - name: Clean up any resources
         env:
           CORALOGIX_ENV: ${{ secrets.CORALOGIX_ENV }}
           CORALOGIX_API_KEY: ${{ secrets.CORALOGIX_USER_API_KEY }}
           TEST_TEAM_ID: ${{ secrets.TEST_TEAM_ID }}          
           AWS_TEST_ROLE: ${{ secrets.AWS_TEST_ROLE }}
+          GOPRIVATE: ${{ secrets.GOPRIVATE }}
         run: |
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
           go run -ldflags "-X google.golang.org/protobuf/reflect/protoregistry.conflictPolicy=warn" scripts/cx-test-resource-cleanup.go

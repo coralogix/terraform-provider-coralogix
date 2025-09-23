@@ -155,7 +155,7 @@ func (c *ClientSet) LegacySLOs() *cxsdk.LegacySLOsClient {
 }
 
 func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
-	apiKeySdk := cxsdk.NewCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
+	apiKeySdk := cxsdk.NewSDKCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 
 	return &ClientSet{

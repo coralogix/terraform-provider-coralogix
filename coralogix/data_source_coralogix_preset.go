@@ -20,12 +20,13 @@ import (
 	"fmt"
 	"log"
 
+	"terraform-provider-coralogix/coralogix/clientset"
+	"terraform-provider-coralogix/coralogix/utils"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"terraform-provider-coralogix/coralogix/clientset"
-	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -98,7 +99,7 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	//Get refreshed preset value from Coralogix
 	if name := data.Name.ValueString(); name != "" {
 		log.Printf("[INFO] Listing presets to find by name: %s", name)
-		listPresetReq := &cxsdk.ListPresetSummariesRequest{EntityType: cxsdk.EntityTypeAlerts}
+		listPresetReq := &cxsdk.ListPresetSummariesRequest{EntityType: cxsdk.EntityTypeAlerts.Enum()}
 		listPresetResp, err := d.client.ListPresetSummaries(ctx, listPresetReq)
 		if err != nil {
 			log.Printf("[ERROR] Received error when listing presets: %s", err.Error())

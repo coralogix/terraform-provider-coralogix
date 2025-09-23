@@ -33,6 +33,7 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 					resource.TestCheckResourceAttr(globalRouterResourceName, "name", "global router example"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "description", "global router example"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "entity_type", "alerts"),
+					resource.TestCheckResourceAttr(globalRouterResourceName, "evaluation_mode", "stop_on_first_match"),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "rules.*", map[string]string{
 						"name":      "rule-name",
 						"condition": "alertDef.priority == \"P1\"",
@@ -59,7 +60,7 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 			{
 				Config: testAccResourceCoralogixGlobalRouterUpdate(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(globalRouterResourceName, "name", "global router example updated"),
+					resource.TestCheckResourceAttr(globalRouterResourceName, "name", "global router"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "description", "global router example"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "entity_type", "alerts"),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "rules.*", map[string]string{
@@ -250,9 +251,10 @@ func testAccResourceCoralogixGlobalRouter() string {
     }
 
     resource "coralogix_global_router" "example" {
-      name        = "global router example"
+      name        = "global router"
       description = "global router example"
       entity_type = "alerts"
+      evaluation_mode = "stop_on_first_match"
       rules       = [
         {
           name = "rule-name"
@@ -443,9 +445,10 @@ func testAccResourceCoralogixGlobalRouterUpdate() string {
     }
 
     resource "coralogix_global_router" "example" {
-      name        = "global router example updated"
+      name        = "global router"
       description = "global router example"
       entity_type = "alerts"
+      evaluation_mode = "stop_on_first_match"
       rules       = [
         {
           name = "rule-name"

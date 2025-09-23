@@ -47,6 +47,13 @@ var (
 	}
 	notificationsEntityTypeProtoToSchema = utils.ReverseMap(notificationsEntityTypeSchemaToProto)
 	validNotificationsEntityTypes        = utils.GetKeys(notificationsEntityTypeSchemaToProto)
+	routerEvaluationModeSchemaToProto    = map[string]cxsdk.RouterEvaluationMode{
+		"unspecified":         cxsdk.RouterEvaluationModeUnspecified,
+		"evaluate_all":        cxsdk.RouterEvaluationModeEvaluateAll,
+		"stop_on_first_match": cxsdk.RouterEvaluationModeStopOnFirstMatch,
+	}
+	validRouterEvaluationModes        = utils.GetKeys(routerEvaluationModeSchemaToProto)
+	routerEvaluationModeProtoToSchema = utils.ReverseMap(routerEvaluationModeSchemaToProto)
 )
 
 func NewGlobalRouterResource() resource.Resource {
@@ -58,13 +65,14 @@ type GlobalRouterResource struct {
 }
 
 type GlobalRouterResourceModel struct {
-	ID           types.String `tfsdk:"id"`
-	Name         types.String `tfsdk:"name"`
-	Description  types.String `tfsdk:"description"`
-	EntityType   types.String `tfsdk:"entity_type"`
-	Rules        types.List   `tfsdk:"rules"`    // RoutingRuleModel
-	FallBack     types.List   `tfsdk:"fallback"` // RoutingTargetModel
-	EntityLabels types.Map    `tfsdk:"entity_labels"`
+	ID             types.String `tfsdk:"id"`
+	Name           types.String `tfsdk:"name"`
+	Description    types.String `tfsdk:"description"`
+	EntityType     types.String `tfsdk:"entity_type"`
+	Rules          types.List   `tfsdk:"rules"`    // RoutingRuleModel
+	FallBack       types.List   `tfsdk:"fallback"` // RoutingTargetModel
+	EntityLabels   types.Map    `tfsdk:"entity_labels"`
+	EvaluationMode types.String `tfsdk:"evaluation_mode"`
 }
 
 type RoutingRuleModel struct {
@@ -190,6 +198,11 @@ func (r *GlobalRouterResource) Schema(_ context.Context, _ resource.SchemaReques
 			"entity_labels": schema.MapAttribute{
 				Optional:    true,
 				ElementType: types.StringType,
+			},
+			"evaluation_mode": schema.StringAttribute{
+				Optional:    true,
+				Description: "The evaluation mode of the GlobalRouter.",
+				Validators:  []validator.String{stringvalidator.OneOf(validRouterEvaluationModes...)},
 			},
 		},
 		MarkdownDescription: "Coralogix GlobalRouter. **Note:** This resource is in alpha stage.",
@@ -369,13 +382,14 @@ func extractRouter(ctx context.Context, plan *GlobalRouterResourceModel) (*cxsdk
 
 	routerId := "router_default"
 	return &cxsdk.GlobalRouter{
-		Id:           &routerId,
-		EntityType:   notificationsEntityTypeSchemaToProto[plan.EntityType.ValueString()],
-		Name:         plan.Name.ValueString(),
-		Description:  plan.Description.ValueString(),
-		Rules:        rules,
-		Fallback:     fallback,
-		EntityLabels: entityLabels,
+		Id:             &routerId,
+		EntityType:     notificationsEntityTypeSchemaToProto[plan.EntityType.ValueString()].Enum(),
+		Name:           plan.Name.ValueString(),
+		Description:    plan.Description.ValueString(),
+		EvaluationMode: routerEvaluationModeSchemaToProto[plan.EvaluationMode.ValueString()].Enum(),
+		Rules:          rules,
+		Fallback:       fallback,
+		EntityLabels:   entityLabels,
 	}, nil
 }
 
@@ -474,13 +488,14 @@ func flattenGlobalRouter(ctx context.Context, GlobalRouter *cxsdk.GlobalRouter) 
 	}
 
 	return &GlobalRouterResourceModel{
-		ID:           types.StringValue(GlobalRouter.GetId()),
-		Name:         types.StringValue(GlobalRouter.GetName()),
-		Description:  types.StringValue(GlobalRouter.GetDescription()),
-		EntityType:   types.StringValue(notificationsEntityTypeProtoToSchema[GlobalRouter.GetEntityType()]),
-		Rules:        rules,
-		FallBack:     types.ListNull(types.ObjectType{AttrTypes: routingTargetAttr()}),
-		EntityLabels: types.MapNull(types.StringType),
+		ID:             types.StringValue(GlobalRouter.GetId()),
+		Name:           types.StringValue(GlobalRouter.GetName()),
+		Description:    types.StringValue(GlobalRouter.GetDescription()),
+		EntityType:     types.StringValue(notificationsEntityTypeProtoToSchema[GlobalRouter.GetEntityType()]),
+		Rules:          rules,
+		FallBack:       types.ListNull(types.ObjectType{AttrTypes: routingTargetAttr()}),
+		EntityLabels:   types.MapNull(types.StringType),
+		EvaluationMode: types.StringValue(routerEvaluationModeProtoToSchema[GlobalRouter.GetEvaluationMode()]),
 	}, nil
 }
 

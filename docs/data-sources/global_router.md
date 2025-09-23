@@ -35,6 +35,7 @@ data "coralogix_global_router" "example_data_by_name" {
 - `description` (String) Description of the GlobalRouter.
 - `entity_labels` (Map of String)
 - `entity_type` (String) Type of the entity. Valid values are: alerts, unspecified
+- `evaluation_mode` (String) The evaluation mode of the GlobalRouter.
 - `fallback` (Attributes List) Fallback routing targets. (see [below for nested schema](#nestedatt--fallback))
 - `rules` (Attributes List) Routing rules for the GlobalRouter. (see [below for nested schema](#nestedatt--rules))
 

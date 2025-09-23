@@ -23,5 +23,12 @@ jobs:
         uses: actions/setup-go@37335c7bb261b353407cff977110895fa0b4f7d8
         with:
           go-version: ${{ matrix.go-version }}
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.GRPC_GATEWAY_DEPLOY_KEY }}
       - name: Run build
-        run: make build
+        env:
+          GOPRIVATE: ${{ secrets.GOPRIVATE }}
+        run: |
+          git config --global url."git@github.com:".insteadOf "https://github.com/"
+          make build

@@ -30,5 +30,12 @@ jobs:
           semantic_version: 19.0.2
           extra_plugins: |
             conventional-changelog-conventionalcommits@4.6.3
+
+      - name: Configure Git to use SSH
+        run:  git config --global url."git@github.com:".insteadOf "https://github.com/"
+      - uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.GRPC_GATEWAY_DEPLOY_KEY }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOPRIVATE: ${{ secrets.GOPRIVATE }}

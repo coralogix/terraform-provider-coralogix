@@ -24,6 +24,7 @@ Coralogix GlobalRouter. **Note:** This resource is in alpha stage.
 
 - `description` (String) Description of the GlobalRouter.
 - `entity_labels` (Map of String)
+- `evaluation_mode` (String) The evaluation mode of the GlobalRouter.
 - `fallback` (Attributes List) Fallback routing targets. (see [below for nested schema](#nestedatt--fallback))
 - `rules` (Attributes List) Routing rules for the GlobalRouter. (see [below for nested schema](#nestedatt--rules))
 
