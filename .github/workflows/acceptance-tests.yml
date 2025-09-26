@@ -1,4 +1,4 @@
-name: acc-tests
+name: Acceptance Tests
 
 on:
   schedule:
