@@ -253,4 +253,36 @@ func main() {
 	} else {
 		log.Fatal("Error listing users:", err)
 	}
+
+	// Views
+	viewsClient := cxsdk.NewViewsClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	views, err := viewsClient.List(context.Background())
+	if err == nil {
+		log.Println("Deleting all views")
+		for _, view := range views.Views {
+			if view.Id != nil {
+				viewsClient.Delete(context.Background(), &cxsdk.DeleteViewRequest{
+					Id: view.Id,
+				})
+			}
+		}
+	} else {
+		log.Fatal("Error listing users:", err)
+	}
+
+	// Views
+	viewFoldersClient := cxsdk.NewViewFoldersClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	viewFolders, err := viewFoldersClient.List(context.Background())
+	if err == nil {
+		log.Println("Deleting all viewFolders")
+		for _, f := range viewFolders.Folders {
+			if f.Id != nil {
+				viewFoldersClient.Delete(context.Background(), &cxsdk.DeleteViewFolderRequest{
+					Id: f.Id,
+				})
+			}
+		}
+	} else {
+		log.Fatal("Error listing users:", err)
+	}
 }
