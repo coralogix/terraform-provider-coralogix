@@ -60,6 +60,18 @@ func FormatRpcErrors(err error, url, requestStr string) string {
 	}
 }
 
+func FormatOpenAPIErrors(err error, url, obj any) string {
+	formattedReq, _ := json.MarshalIndent(obj, "", "   ")
+	switch cxsdk.Code(err) {
+	case codes.Internal:
+		return fmt.Sprintf("internal error in Coralogix backend.\nerror - %s\nurl - %s\nrequest - %s", err, url, string(formattedReq))
+	case codes.InvalidArgument:
+		return fmt.Sprintf("invalid argument error.\nerror - %s\nurl - %s\nrequest - %s", err, url, string(formattedReq))
+	default:
+		return err.Error()
+	}
+}
+
 // datasourceSchemaFromResourceSchema is a recursive func that
 // converts an existing Resource schema to a Datasource schema.
 // All schema elements are copied, but certain attributes are ignored or changed:

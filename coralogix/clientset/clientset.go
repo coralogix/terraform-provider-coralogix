@@ -17,6 +17,10 @@ package clientset
 import (
 	"strings"
 
+	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
+
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 )
 
@@ -45,6 +49,7 @@ type ClientSet struct {
 	events2Metrics      *cxsdk.Events2MetricsClient
 	groupGrpc           *cxsdk.GroupsClient
 	notifications       *cxsdk.NotificationsClient
+	ipaccess            *ipaccess.IPAccessServiceAPIService
 
 	grafana *GrafanaClient
 	groups  *GroupsClient
@@ -141,6 +146,10 @@ func (c *ClientSet) Integrations() *cxsdk.IntegrationsClient {
 	return c.integrations
 }
 
+func (c *ClientSet) IpAccess() *ipaccess.IPAccessServiceAPIService {
+	return c.ipaccess
+}
+
 func (c *ClientSet) GroupGrpc() *cxsdk.GroupsClient {
 	return c.groupGrpc
 }
@@ -157,7 +166,7 @@ func (c *ClientSet) LegacySLOs() *cxsdk.LegacySLOsClient {
 func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	apiKeySdk := cxsdk.NewCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
-
+	oasTfCPC := cxsdkOpenapi.NewSDKCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 	return &ClientSet{
 		apikeys:             cxsdk.NewAPIKeysClient(apiKeySdk),
 		actions:             cxsdk.NewActionsClient(apiKeySdk),
@@ -183,6 +192,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		events2Metrics:      cxsdk.NewEvents2MetricsClient(apiKeySdk),
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
 		notifications:       cxsdk.NewNotificationsClient(apiKeySdk),
+		ipaccess:            cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
 
 		grafana: NewGrafanaClient(apikeyCPC),
 		groups:  NewGroupsClient(apikeyCPC),
