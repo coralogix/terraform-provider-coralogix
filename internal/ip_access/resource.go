@@ -1,4 +1,4 @@
-package resource_coralogix_ip_access
+package ip_access
 
 import (
 	"context"
@@ -202,7 +202,7 @@ func (r *IpAccessResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 
 }
-func (d *IpAccessResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *IpAccessResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -216,7 +216,7 @@ func (d *IpAccessResource) Configure(_ context.Context, req resource.ConfigureRe
 		return
 	}
 
-	d.client = clientSet.IpAccess()
+	r.client = clientSet.IpAccess()
 }
 
 func (r *IpAccessResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
