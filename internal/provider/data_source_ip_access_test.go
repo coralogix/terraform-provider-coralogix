@@ -28,7 +28,7 @@ func TestAccCoralogixDataSourceIpAccess(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testIpAccessResource() +
+				Config: IpAccessResource +
 					testIpAccessResource_Read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(apiKeyDataSourceName, "name", "Test Key 3"),
@@ -42,7 +42,6 @@ func TestAccCoralogixDataSourceIpAccess(t *testing.T) {
 
 func testIpAccessResource_Read() string {
 	return `data "coralogix_ip_access" "test" {
-		  id = coralogix_api_key.test.id
 }
 `
 }

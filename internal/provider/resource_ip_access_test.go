@@ -15,15 +15,21 @@
 package provider
 
 import (
-	"strings"
+	_ "embed"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-var (
-	ipaccessResourceName = "coralogix_ip_access.test"
-)
+var IpAccessResource = `
+
+resource "coralogix_ip_access" "ip_access" {
+    enable_coralogix_customer_support_access = "enabled"
+    ip_access = [
+      { enabled = true, ip_range = "100.64.0.0/10", name = "random range from wikipedia" }
+    ]
+}
+`
 
 func TestIpAccessResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -31,57 +37,18 @@ func TestIpAccessResource(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testIpAccessResource(),
+				Config: IpAccessResource,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(apiKeyResourceName, "name", "Test Key 3"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "owner.team_id", teamID),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "active", "true"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "permissions.#", "0"),
-					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "Alerts"),
-					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "APM"),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "enable_coralogix_customer_support_access", "enabled"),
+					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "ip_access.*",
+						map[string]string{
+							"enabled":  "true",
+							"ip_range": "100.64.0.0/10",
+							"name":     "random range from wikipedia",
+						},
+					),
 				),
-			},
-			{
-				ResourceName:      apiKeyResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-			{
-				Config: updateIpAccessResource(),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(apiKeyResourceName, "name", "Test Key 5"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "owner.team_id", teamID),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "active", "false"),
-					resource.TestCheckResourceAttr(apiKeyResourceName, "permissions.#", "0"),
-					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "Alerts"),
-					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "APM")),
 			},
 		},
 	})
-}
-
-func testIpAccessResource() string {
-	return strings.Replace(`resource "coralogix_ip_access" "test" {
-  name  = "Test Key 3"
-  owner = {
-    team_id : "<TEAM_ID>"
-  }
-  active = true
-  permissions = []
-  presets = ["Alerts", "APM"]
-}
-`, "<TEAM_ID>", teamID, 1)
-}
-
-func updateIpAccessResource() string {
-	return strings.Replace(`resource "coralogix_ip_access" "test" {
-  name  = "Test Key 5"
-  owner = {
-    team_id : "<TEAM_ID>"
-  }
-  active = false
-  permissions = []
-  presets = ["Alerts", "APM"]
-}
-`, "<TEAM_ID>", teamID, 1)
 }

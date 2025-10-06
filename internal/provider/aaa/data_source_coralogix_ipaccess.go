@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ip_access
+package aaa
 
 import (
 	"context"
@@ -33,7 +33,7 @@ type IpAccessDataSource struct {
 }
 
 func (r *IpAccessDataSource) Metadata(ctx context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_ipaccess"
+	resp.TypeName = req.ProviderTypeName + "_ip_access"
 }
 
 func (r *IpAccessDataSource) Schema(ctx context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -81,4 +81,8 @@ func (r *IpAccessDataSource) Configure(_ context.Context, req datasource.Configu
 	}
 
 	r.client = clientSet.IpAccess()
+}
+
+func NewIpAccessDataSource() datasource.DataSource {
+	return &IpAccessDataSource{}
 }

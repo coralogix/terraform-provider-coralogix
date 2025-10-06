@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package ip_access
+package aaa
 
 import (
 	"context"
@@ -49,14 +49,14 @@ type IpAccessResource struct {
 	client *ipaccess.IPAccessServiceAPIService
 }
 
-func NewIpaccessResource() resource.Resource {
+func NewIpAccessResource() resource.Resource {
 	return &IpAccessResource{}
 }
 
 type IpAccessCompanySettingsModel struct {
 	Id                     types.String        `tfsdk:"id"`
 	CoralogixSupportAccess types.String        `tfsdk:"enable_coralogix_customer_support_access"`
-	Rules                  []IpAccessRuleModel `tfsdk:"rules"`
+	Rules                  []IpAccessRuleModel `tfsdk:"ip_access"`
 }
 
 type IpAccessRuleModel struct {
@@ -66,7 +66,7 @@ type IpAccessRuleModel struct {
 }
 
 func (r *IpAccessResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_ipaccess"
+	resp.TypeName = req.ProviderTypeName + "_ip_access"
 }
 
 func (r *IpAccessResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
