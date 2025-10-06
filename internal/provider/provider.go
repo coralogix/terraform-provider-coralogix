@@ -21,6 +21,23 @@ import (
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/aaa"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/actions"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/apm"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dashboards"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/data_exploration"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dataengine"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dataplans"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/enrichment_rules"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/events2metrics"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/integrations"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/logs"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/metrics"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/parsing_rules"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/recording_rules"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/slo_mgmt"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -107,18 +124,18 @@ func OldProvider() *oldSchema.Provider {
 		},
 
 		DataSourcesMap: map[string]*oldSchema.Resource{
-			"coralogix_rules_group":      dataSourceCoralogixRulesGroup(),
-			"coralogix_enrichment":       dataSourceCoralogixEnrichment(),
-			"coralogix_data_set":         dataSourceCoralogixDataSet(),
-			"coralogix_hosted_dashboard": dataSourceCoralogixHostedDashboard(),
+			"coralogix_rules_group":      parsing_rules.DataSourceCoralogixRulesGroup(),
+			"coralogix_enrichment":       enrichment_rules.DataSourceCoralogixEnrichment(),
+			"coralogix_data_set":         enrichment_rules.DataSourceCoralogixDataSet(),
+			"coralogix_hosted_dashboard": data_exploration.DataSourceCoralogixHostedDashboard(),
 		},
 
 		ResourcesMap: map[string]*oldSchema.Resource{
-			"coralogix_rules_group":      resourceCoralogixRulesGroup(),
-			"coralogix_enrichment":       resourceCoralogixEnrichment(),
-			"coralogix_data_set":         resourceCoralogixDataSet(),
-			"coralogix_hosted_dashboard": resourceCoralogixHostedDashboard(),
-			"coralogix_grafana_folder":   resourceGrafanaFolder(),
+			"coralogix_rules_group":      parsing_rules.ResourceCoralogixRulesGroup(),
+			"coralogix_enrichment":       enrichment_rules.ResourceCoralogixEnrichment(),
+			"coralogix_data_set":         enrichment_rules.ResourceCoralogixDataSet(),
+			"coralogix_hosted_dashboard": data_exploration.ResourceCoralogixHostedDashboard(),
+			"coralogix_grafana_folder":   data_exploration.ResourceGrafanaFolder(),
 		},
 
 		ConfigureContextFunc: func(context context.Context, d *oldSchema.ResourceData) (interface{}, diag.Diagnostics) {
@@ -336,59 +353,59 @@ func (p *coralogixProvider) Configure(ctx context.Context, req provider.Configur
 
 func (p *coralogixProvider) DataSources(context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewEvents2MetricDataSource,
-		NewActionDataSource,
-		NewTCOPoliciesLogsDataSource,
-		NewTCOPoliciesTracesDataSource,
-		NewDashboardDataSource,
-		NewWebhookDataSource,
-		NewRecordingRuleGroupSetDataSource,
-		NewArchiveRetentionsDataSource,
-		NewArchiveMetricsDataSource,
-		NewArchiveLogsDataSource,
-		NewAlertsSchedulerDataSource,
-		NewSLODataSource,
-		NewSLOV2DataSource,
-		NewDashboardsFoldersDataSource,
-		NewApiKeyDataSource,
-		NewCustomRoleDataSource,
-		NewGroupDataSource,
-		NewUserDataSource,
-		NewScopeDataSource,
-		NewIntegrationDataSource,
-		NewAlertDataSource,
-		NewConnectorDataSource,
-		NewGlobalRouterDataSource,
-		NewPresetDataSource,
+		events2metrics.NewEvents2MetricDataSource,
+		actions.NewActionDataSource,
+		dataplans.NewTCOPoliciesLogsDataSource,
+		dataplans.NewTCOPoliciesTracesDataSource,
+		dashboards.NewDashboardDataSource,
+		integrations.NewWebhookDataSource,
+		recording_rules.NewRecordingRuleGroupSetDataSource,
+		dataengine.NewArchiveRetentionsDataSource,
+		metrics.NewArchiveMetricsDataSource,
+		logs.NewArchiveLogsDataSource,
+		alerts.NewAlertsSchedulerDataSource,
+		apm.NewSLODataSource,
+		slo_mgmt.NewSLOV2DataSource,
+		dashboards.NewDashboardsFoldersDataSource,
+		aaa.NewApiKeyDataSource,
+		aaa.NewCustomRoleDataSource,
+		aaa.NewGroupDataSource,
+		aaa.NewUserDataSource,
+		aaa.NewScopeDataSource,
+		integrations.NewIntegrationDataSource,
+		alerts.NewAlertDataSource,
+		notifications.NewConnectorDataSource,
+		notifications.NewGlobalRouterDataSource,
+		notifications.NewPresetDataSource,
 	}
 }
 
 func (p *coralogixProvider) Resources(context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewEvents2MetricResource,
-		NewActionResource,
-		NewTCOPoliciesLogsResource,
-		NewTCOPoliciesTracesResource,
-		NewDashboardResource,
-		NewWebhookResource,
-		NewRecordingRuleGroupSetResource,
-		NewArchiveRetentionsResource,
-		NewArchiveMetricsResource,
-		NewArchiveLogsResource,
-		NewAlertsSchedulerResource,
-		NewApiKeyResource,
-		NewSLOResource,
-		NewSLOV2Resource,
-		NewDashboardsFolderResource,
-		NewCustomRoleSource,
-		NewGroupResource,
-		NewGroupAttachmentResource,
-		NewUserResource,
-		NewScopeResource,
-		NewIntegrationResource,
-		NewAlertResource,
-		NewConnectorResource,
-		NewGlobalRouterResource,
-		NewPresetResource,
+		events2metrics.NewEvents2MetricResource,
+		actions.NewActionResource,
+		dataplans.NewTCOPoliciesLogsResource,
+		dataplans.NewTCOPoliciesTracesResource,
+		dashboards.NewDashboardResource,
+		integrations.NewWebhookResource,
+		recording_rules.NewRecordingRuleGroupSetResource,
+		dataengine.NewArchiveRetentionsResource,
+		metrics.NewArchiveMetricsResource,
+		logs.NewArchiveLogsResource,
+		alerts.NewAlertsSchedulerResource,
+		apm.NewSLOResource,
+		slo_mgmt.NewSLOV2Resource,
+		dashboards.NewDashboardsFolderResource,
+		aaa.NewApiKeyResource,
+		aaa.NewCustomRoleSource,
+		aaa.NewGroupResource,
+		aaa.NewGroupAttachmentResource,
+		aaa.NewUserResource,
+		aaa.NewScopeResource,
+		integrations.NewIntegrationResource,
+		alerts.NewAlertResource,
+		notifications.NewConnectorResource,
+		notifications.NewGlobalRouterResource,
+		notifications.NewPresetResource,
 	}
 }

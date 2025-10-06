@@ -17,8 +17,6 @@ package provider
 import (
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
@@ -29,7 +27,7 @@ func TestAccCoralogixDataSourceAction(t *testing.T) {
 	action := actionTestParams{
 		name:         acctest.RandomWithPrefix("tf-acc-test"),
 		url:          "https://www.google.com/",
-		sourceType:   utils.SelectRandomlyFromSlice(actionValidSourceTypes),
+		sourceType:   "Logs",
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
 		isPrivate:    false,

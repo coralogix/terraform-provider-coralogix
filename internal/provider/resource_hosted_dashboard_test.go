@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/data_exploration"
 
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -114,7 +115,7 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 			return fmt.Errorf("resource id not set")
 		}
 		client := testAccProvider.Meta().(*clientset.ClientSet).Grafana()
-		_, uid := extractDashboardTypeAndUIDFromID(rs.Primary.ID)
+		_, uid := data_exploration.ExtractDashboardTypeAndUIDFromID(rs.Primary.ID)
 		gotDashboard, err := client.GetGrafanaDashboard(context.TODO(), uid)
 		if err != nil {
 			return fmt.Errorf("error getting dashboard: %s", err)
@@ -134,7 +135,7 @@ func testAccDashboardCheckDestroy(s *terraform.State) error {
 
 		resp, err := client.GetGrafanaDashboard(ctx, rs.Primary.ID)
 		if err == nil {
-			_, originalUID := extractDashboardTypeAndUIDFromID(rs.Primary.ID)
+			_, originalUID := data_exploration.ExtractDashboardTypeAndUIDFromID(rs.Primary.ID)
 			if uid, ok := resp.Model["uid"]; ok && uid.(string) == originalUID {
 				return fmt.Errorf("grafana-dashboard still exists: %s", originalUID)
 			}

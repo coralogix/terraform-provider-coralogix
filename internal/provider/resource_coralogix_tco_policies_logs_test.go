@@ -95,6 +95,7 @@ func testAccTCOPoliciesLogsCheckDestroy(s *terraform.State) error {
 		if rs.Type != "coralogix_tco_policies_logs" {
 			continue
 		}
+		logSource := cxsdk.TCOPolicySourceTypeLogs
 
 		if resp, err := client.List(ctx, &cxsdk.GetCompanyPoliciesRequest{SourceType: &logSource}); err == nil {
 			if err == nil {

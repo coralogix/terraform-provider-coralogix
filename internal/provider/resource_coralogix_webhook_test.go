@@ -112,7 +112,7 @@ func TestAccCoralogixResourceCustomWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := &customWebhookTestFields{
 		webhookTestFields: *getRandomWebhook(),
-		method:            utils.SelectRandomlyFromSlice(webhooksValidMethods),
+		method:            "post",
 	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },

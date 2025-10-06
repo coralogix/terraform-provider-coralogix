@@ -42,7 +42,7 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 	action := actionTestParams{
 		name:         "google search action",
 		url:          "https://www.google.com/",
-		sourceType:   utils.SelectRandomlyFromSlice(actionValidSourceTypes),
+		sourceType:   "Logs",
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
 		isPrivate:    false,
@@ -52,7 +52,7 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 	updatedAction := actionTestParams{
 		name:         "bing search action",
 		url:          "https://www.bing.com/search?q={{$p.selected_value}}",
-		sourceType:   utils.SelectRandomlyFromSlice(actionValidSourceTypes),
+		sourceType:   "DataMap",
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
 		isPrivate:    false,

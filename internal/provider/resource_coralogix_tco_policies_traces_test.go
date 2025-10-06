@@ -117,7 +117,7 @@ func testAccTCOPoliciesTracesCheckDestroy(s *terraform.State) error {
 		if rs.Type != "coralogix_tco_policies_traces" {
 			continue
 		}
-
+		tracesSource := cxsdk.TCOPolicySourceTypeSpans
 		if resp, err := client.List(ctx, &cxsdk.GetCompanyPoliciesRequest{SourceType: &tracesSource}); err == nil {
 			if err == nil && len(resp.Policies) > 0 {
 				return fmt.Errorf("tco-policies still exists: %s", protojson.Format(resp))
