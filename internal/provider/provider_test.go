@@ -27,7 +27,7 @@ var testAccProvider *schema.Provider
 var testAccProviderFactories map[string]func() (*schema.Provider, error)
 var testAccProtoV6ProviderFactories map[string]func() (tfprotov6.ProviderServer, error)
 
-func Init() {
+func init() {
 	testAccProvider = OldProvider()
 	testAccProviderFactories = map[string]func() (*schema.Provider, error){
 		"coralogix": func() (*schema.Provider, error) {
