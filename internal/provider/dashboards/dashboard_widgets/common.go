@@ -261,6 +261,9 @@ var (
 		UNSPECIFIED: cxsdk.PromQLQueryTypeUnspecified,
 		"range":     cxsdk.PromQLQueryTypeRange,
 		"instant":   cxsdk.PromQLQueryTypeInstant,
+		// adding these because of potential legacy issues. There was a manual mapping between those and the schema types
+		"PROM_QL_QUERY_TYPE_INSTANT": cxsdk.PromQLQueryTypeInstant,
+		"PROM_QL_QUERY_TYPE_RANGE":   cxsdk.PromQLQueryTypeRange,
 	}
 	DashboardProtoToSchemaPromQLQueryType = utils.ReverseMap(DashboardSchemaToProtoPromQLQueryType)
 	DashboardValidPromQLQueryType         = utils.GetKeys(DashboardSchemaToProtoPromQLQueryType)
