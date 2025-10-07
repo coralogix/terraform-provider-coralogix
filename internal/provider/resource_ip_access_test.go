@@ -26,7 +26,7 @@ var IpAccessResource = `
 resource "coralogix_ip_access" "ip_access" {
     enable_coralogix_customer_support_access = "enabled"
     ip_access = [
-      { enabled = true, ip_range = "100.64.0.0/10", name = "random range from wikipedia" }
+      { enabled = false, ip_range = "100.64.0.0/10", name = "random range from wikipedia" }
     ]
 }
 `
@@ -42,7 +42,7 @@ func TestIpAccessResource(t *testing.T) {
 					resource.TestCheckResourceAttr(apiKeyResourceName, "enable_coralogix_customer_support_access", "enabled"),
 					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "ip_access.*",
 						map[string]string{
-							"enabled":  "true",
+							"enabled":  "false",
 							"ip_range": "100.64.0.0/10",
 							"name":     "random range from wikipedia",
 						},

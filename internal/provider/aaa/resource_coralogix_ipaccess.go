@@ -249,8 +249,9 @@ func (r *IpAccessResource) ImportState(ctx context.Context, req resource.ImportS
 }
 
 func extractIpAccessCompanySettings(model IpAccessCompanySettingsModel) ipaccess.CompanyIPAccessSettings {
+	customerSupportAccess := CustomerSupportAccessSchemaToApi[model.CoralogixSupportAccess.ValueString()]
 	return ipaccess.CompanyIPAccessSettings{
-		EnableCoralogixCustomerSupportAccess: model.CoralogixSupportAccess.ValueStringPointer(),
+		EnableCoralogixCustomerSupportAccess: &customerSupportAccess,
 		IpAccess:                             extractIpAccessRulesInner(model.Rules),
 	}
 }
