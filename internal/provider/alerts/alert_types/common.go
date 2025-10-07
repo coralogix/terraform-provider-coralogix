@@ -54,7 +54,7 @@ var (
 
 	LogFilterOperationTypeProtoToSchemaMap = map[cxsdk.LogFilterOperationType]string{
 		cxsdk.LogFilterOperationIsOrUnspecified: "IS",
-		cxsdk.LogFilterOperationIncludes:        "NOT", // includes?
+		cxsdk.LogFilterOperationIncludes:        "INCLUDES",
 		cxsdk.LogFilterOperationEndsWith:        "ENDS_WITH",
 		cxsdk.LogFilterOperationStartsWith:      "STARTS_WITH",
 	}
