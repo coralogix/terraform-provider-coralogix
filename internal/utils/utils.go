@@ -72,6 +72,11 @@ func FormatOpenAPIErrors(err error, url, obj any) string {
 	}
 }
 
+func FormatJSON(obj any) string {
+	formattedReq, _ := json.MarshalIndent(obj, "", "   ")
+	return string(formattedReq)
+}
+
 // datasourceSchemaFromResourceSchema is a recursive func that
 // converts an existing Resource schema to a Datasource schema.
 // All schema elements are copied, but certain attributes are ignored or changed:

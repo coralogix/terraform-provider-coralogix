@@ -131,9 +131,17 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 	getResp, err := r.client.GetGroup(ctx, createResp.ID)
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading group",
+			utils.FormatRpcErrors(err, r.client.TargetUrl, createResp.ID),
+		)
+		return
+	}
+
 	groupStr, _ = json.Marshal(getResp)
 	log.Printf("[INFO] Getting group: %s", groupStr)
 	state, diags := flattenSCIMGroup(getResp)
+
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

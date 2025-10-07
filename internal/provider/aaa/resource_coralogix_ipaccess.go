@@ -17,6 +17,7 @@ package aaa
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -123,6 +124,8 @@ func (r *IpAccessResource) Create(ctx context.Context, req resource.CreateReques
 		EnableCoralogixCustomerSupportAccess: fullObj.EnableCoralogixCustomerSupportAccess,
 		IpAccess:                             extractIpAccessRules(data.Rules),
 	}
+	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
+
 	result, _, err := r.client.
 		IpAccessServiceCreateCompanyIpAccessSettings(ctx).
 		CreateCompanyIPAccessSettingsRequest(rq).
@@ -134,8 +137,8 @@ func (r *IpAccessResource) Create(ctx context.Context, req resource.CreateReques
 		)
 		return
 	}
+	log.Printf("[INFO] Created new resource: %s", utils.FormatJSON(result))
 	state := flattenCreateResponse(result)
-
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -148,6 +151,7 @@ func (r *IpAccessResource) Read(ctx context.Context, req resource.ReadRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	log.Printf("[INFO] Reading new resource")
 
 	result, _, err := r.client.
 		IpAccessServiceGetCompanyIpAccessSettings(ctx).
@@ -159,8 +163,8 @@ func (r *IpAccessResource) Read(ctx context.Context, req resource.ReadRequest, r
 		)
 		return
 	}
+	log.Printf("[INFO] Read new resource: %s", utils.FormatJSON(result))
 	state := flattenReadResponse(result)
-
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -180,6 +184,8 @@ func (r *IpAccessResource) Update(ctx context.Context, req resource.UpdateReques
 		EnableCoralogixCustomerSupportAccess: fullObj.EnableCoralogixCustomerSupportAccess,
 		IpAccess:                             extractIpAccessRules(data.Rules),
 	}
+	log.Printf("[INFO] Updating resource: %s", utils.FormatJSON(rq))
+
 	result, _, err := r.client.
 		IpAccessServiceReplaceCompanyIpAccessSettings(ctx).
 		ReplaceCompanyIPAccessSettingsRequest(rq).
@@ -191,6 +197,8 @@ func (r *IpAccessResource) Update(ctx context.Context, req resource.UpdateReques
 		)
 		return
 	}
+	log.Printf("[INFO] Updated resource: %s", utils.FormatJSON(result))
+
 	state := flattenReplaceResponse(result)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -204,8 +212,9 @@ func (r *IpAccessResource) Delete(ctx context.Context, req resource.DeleteReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	log.Printf("[INFO] Deleting resource")
 
-	_, _, err := r.client.
+	result, _, err := r.client.
 		IpAccessServiceDeleteCompanyIpAccessSettings(ctx).
 		Execute()
 
@@ -215,8 +224,9 @@ func (r *IpAccessResource) Delete(ctx context.Context, req resource.DeleteReques
 		)
 		return
 	}
-
+	log.Printf("[INFO] Deleted resource: %s", utils.FormatJSON(result))
 }
+
 func (r *IpAccessResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
@@ -273,7 +283,7 @@ func extractIpAccessRulesInner(rules []IpAccessRuleModel) []ipaccess.CompanyIPAc
 
 func flattenCreateResponse(resp *ipaccess.CreateCompanyIPAccessSettingsResponse) IpAccessCompanySettingsModel {
 	rules := make([]IpAccessRuleModel, len(resp.Settings.IpAccess))
-	for i, r := range *&resp.Settings.IpAccess {
+	for i, r := range resp.Settings.IpAccess {
 		rules[i] = flattenIPAccess(r.Value)
 	}
 	return IpAccessCompanySettingsModel{
@@ -285,7 +295,7 @@ func flattenCreateResponse(resp *ipaccess.CreateCompanyIPAccessSettingsResponse)
 
 func flattenReplaceResponse(resp *ipaccess.ReplaceCompanyIPAccessSettingsResponse) IpAccessCompanySettingsModel {
 	rules := make([]IpAccessRuleModel, len(resp.Settings.IpAccess))
-	for i, r := range *&resp.Settings.IpAccess {
+	for i, r := range resp.Settings.IpAccess {
 		rules[i] = flattenIPAccess(r.Value)
 	}
 	return IpAccessCompanySettingsModel{
@@ -297,7 +307,7 @@ func flattenReplaceResponse(resp *ipaccess.ReplaceCompanyIPAccessSettingsRespons
 
 func flattenReadResponse(resp *ipaccess.GetCompanyIPAccessSettingsResponse) IpAccessCompanySettingsModel {
 	rules := make([]IpAccessRuleModel, len(resp.Settings.IpAccess))
-	for i, r := range *&resp.Settings.IpAccess {
+	for i, r := range resp.Settings.IpAccess {
 		rules[i] = flattenIPAccess(r.Value)
 	}
 	return IpAccessCompanySettingsModel{
