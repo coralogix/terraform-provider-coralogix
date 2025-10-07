@@ -855,7 +855,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 <a id="nestedatt--type_definition--logs_anomaly--logs_filter--simple_filter--label_filters--subsystem_name"></a>
@@ -867,7 +867,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 
@@ -915,7 +915,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 <a id="nestedatt--type_definition--logs_immediate--logs_filter--simple_filter--label_filters--subsystem_name"></a>
@@ -927,7 +927,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 
@@ -996,7 +996,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 <a id="nestedatt--type_definition--logs_new_value--logs_filter--simple_filter--label_filters--subsystem_name"></a>
@@ -1008,7 +1008,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 
@@ -1092,7 +1092,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--denominator--simple_filter--label_filters--subsystem_name"></a>
@@ -1104,7 +1104,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 
@@ -1143,7 +1143,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 <a id="nestedatt--type_definition--logs_ratio_threshold--numerator--simple_filter--label_filters--subsystem_name"></a>
@@ -1155,7 +1155,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 
@@ -1236,7 +1236,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 <a id="nestedatt--type_definition--logs_threshold--logs_filter--simple_filter--label_filters--subsystem_name"></a>
@@ -1248,7 +1248,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 
@@ -1338,7 +1338,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 <a id="nestedatt--type_definition--logs_time_relative_threshold--logs_filter--simple_filter--label_filters--subsystem_name"></a>
@@ -1350,7 +1350,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 
@@ -1430,7 +1430,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 <a id="nestedatt--type_definition--logs_unique_count--logs_filter--simple_filter--label_filters--subsystem_name"></a>
@@ -1442,7 +1442,7 @@ Required:
 
 Optional:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 
 
 
