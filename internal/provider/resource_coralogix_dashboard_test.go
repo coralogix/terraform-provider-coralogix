@@ -391,6 +391,7 @@ func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
       query = {
         metrics = {
           promql_query = "vector(0)"
+          promql_query_type = "instant"
         }
       }
     }
@@ -400,6 +401,7 @@ func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
 					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "data_table"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.metrics.promql_query", "vector(0)"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.metrics.promql_query_type", "instant"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.row_style", "one_line"),
 					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.results_per_page", "100"),
 				),
