@@ -150,6 +150,9 @@ func DataTableSchema() schema.Attribute {
 								Optional: true,
 								Computed: true,
 								Default:  stringdefault.StaticString(UNSPECIFIED),
+								Validators: []validator.String{
+									stringvalidator.OneOf(DashboardValidPromQLQueryType...),
+								},
 							},
 							"time_frame": TimeFrameSchema(),
 						},
@@ -781,10 +784,9 @@ func expandDataTableMetricsQuery(ctx context.Context, dataTableQueryMetric *Quer
 }
 
 func expandPromqlQueryType(promqlQueryType basetypes.StringValue) cxsdk.PromQLQueryType {
-	if promqlQueryType.ValueString() == "PROM_QL_QUERY_TYPE_INSTANT" {
-		return cxsdk.PromQLQueryTypeInstant
-	} else if promqlQueryType.ValueString() == "PROM_QL_QUERY_TYPE_RANGE" {
-		return cxsdk.PromQLQueryTypeRange
+	ty, found := DashboardSchemaToProtoPromQLQueryType[promqlQueryType.ValueString()]
+	if found {
+		return ty
 	}
 	return cxsdk.PromQLQueryTypeUnspecified
 }

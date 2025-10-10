@@ -374,6 +374,46 @@ func TestAccCoralogixResourceDashboardGaugeWidget(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceDashboardDataTableWidget(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckDashboardDestroy,
+		Steps: []resource.TestStep{
+			{
+
+				Config: testAccCoralogixResourceDashboardWithWidget(`{
+  title = "data_table"
+  definition = {
+    data_table = {
+      results_per_page = 100
+      row_style        = "one_line"
+      query = {
+        metrics = {
+          promql_query = "vector(0)"
+          promql_query_type = "instant"
+        }
+      }
+    }
+  }
+}`),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(dashboardResourceName, "id"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.title", "data_table"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.metrics.promql_query", "vector(0)"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.query.metrics.promql_query_type", "instant"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.row_style", "one_line"),
+					resource.TestCheckResourceAttr(dashboardResourceName, "layout.sections.0.rows.0.widgets.0.definition.data_table.results_per_page", "100"),
+				),
+			},
+			{
+				ResourceName:      dashboardResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
 func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 	wd, err := os.Getwd()
 	if err != nil {

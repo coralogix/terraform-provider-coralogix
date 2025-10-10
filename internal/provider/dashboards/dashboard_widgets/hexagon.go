@@ -190,6 +190,9 @@ func HexagonSchema() schema.Attribute {
 								Optional: true,
 								Computed: true,
 								Default:  stringdefault.StaticString(UNSPECIFIED),
+								Validators: []validator.String{
+									stringvalidator.OneOf(DashboardValidPromQLQueryType...),
+								},
 							},
 							"filters": MetricFiltersSchema(),
 							"aggregation": schema.StringAttribute{
