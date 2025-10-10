@@ -272,7 +272,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -281,7 +281,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -344,7 +344,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -353,7 +353,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -399,7 +399,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -408,7 +408,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -476,7 +476,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -485,7 +485,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -521,7 +521,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -530,7 +530,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -605,7 +605,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -614,7 +614,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -698,7 +698,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -707,7 +707,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -791,7 +791,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 
@@ -800,7 +800,7 @@ Read-Only:
 
 Read-Only:
 
-- `operation` (String) Operation. Valid values: ["ENDS_WITH" "IS" "NOT" "STARTS_WITH"].'IS' by default.
+- `operation` (String) Operation. Valid values: ["ENDS_WITH" "INCLUDES" "IS" "STARTS_WITH"].'IS' by default.
 - `value` (String)
 
 

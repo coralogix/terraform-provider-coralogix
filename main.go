@@ -18,7 +18,7 @@ import (
 	"context"
 	"log"
 
-	"terraform-provider-coralogix/coralogix"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
@@ -33,11 +33,11 @@ import (
 func main() {
 	ctx := context.Background()
 
-	oldProvider, _ := tf5to6server.UpgradeServer(ctx, coralogix.OldProvider().GRPCProvider)
+	oldProvider, _ := tf5to6server.UpgradeServer(ctx, provider.OldProvider().GRPCProvider)
 
 	providers := []func() tfprotov6.ProviderServer{
 		func() tfprotov6.ProviderServer { return oldProvider },
-		providerserver.NewProtocol6(coralogix.NewCoralogixProvider()),
+		providerserver.NewProtocol6(provider.NewCoralogixProvider()),
 	}
 
 	muxServer, err := tf6muxserver.NewMuxServer(ctx, providers...)
