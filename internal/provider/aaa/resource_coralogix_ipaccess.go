@@ -21,6 +21,7 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
+	"github.com/google/uuid"
 
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -37,10 +38,10 @@ var (
 	_ resource.ResourceWithConfigure   = &IpAccessResource{}
 	_ resource.ResourceWithImportState = &IpAccessResource{}
 
-	CustomerSupportAccessSchemaToApi = map[string]string{
-		"unspecified": "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED",
-		"disabled":    "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED",
-		"enabled":     "CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED",
+	CustomerSupportAccessSchemaToApi = map[string]ipaccess.CoralogixCustomerSupportAccess{
+		"unspecified": ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED,
+		"disabled":    ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED,
+		"enabled":     ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED,
 	}
 	CustomerSupportAccessApiToSchema       = utils.ReverseMap(CustomerSupportAccessSchemaToApi)
 	ValidCustomerSupportAccessSchemaValues = utils.GetKeys(CustomerSupportAccessSchemaToApi)
@@ -61,6 +62,7 @@ type IpAccessCompanySettingsModel struct {
 }
 
 type IpAccessRuleModel struct {
+	Id      types.String `tfsdk:"id"`
 	Name    types.String `tfsdk:"name"`
 	IpRange types.String `tfsdk:"ip_range"`
 	Enabled types.Bool   `tfsdk:"enabled"`
@@ -88,6 +90,10 @@ func (r *IpAccessResource) Schema(ctx context.Context, req resource.SchemaReques
 			"ip_access": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
+						"id": schema.BoolAttribute{
+							Computed:            true,
+							MarkdownDescription: "The rule's identifier.",
+						},
 						"enabled": schema.BoolAttribute{
 							Required:            true,
 							MarkdownDescription: "Whether this IP access entry is enabled.",
@@ -248,18 +254,18 @@ func (r *IpAccessResource) ImportState(ctx context.Context, req resource.ImportS
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func extractIpAccessCompanySettings(model IpAccessCompanySettingsModel) ipaccess.CompanyIPAccessSettings {
+func extractIpAccessCompanySettings(model IpAccessCompanySettingsModel) ipaccess.CompanyIpAccessSettings {
 	customerSupportAccess := CustomerSupportAccessSchemaToApi[model.CoralogixSupportAccess.ValueString()]
-	return ipaccess.CompanyIPAccessSettings{
+	return ipaccess.CompanyIpAccessSettings{
 		EnableCoralogixCustomerSupportAccess: &customerSupportAccess,
-		IpAccess:                             extractIpAccessRulesInner(model.Rules),
+		IpAccess:                             extractIpAccessRulesMap(model.Rules),
 	}
 }
 
-func extractIpAccessRules(rules []IpAccessRuleModel) []ipaccess.IPAccess {
-	mappedRules := make([]ipaccess.IPAccess, len(rules))
+func extractIpAccessRules(rules []IpAccessRuleModel) []ipaccess.IpAccess {
+	mappedRules := make([]ipaccess.IpAccess, len(rules))
 	for i, rule := range rules {
-		mappedRules[i] = ipaccess.IPAccess{
+		mappedRules[i] = ipaccess.IpAccess{
 			Name:    rule.Name.ValueStringPointer(),
 			IpRange: rule.IpRange.ValueString(),
 			Enabled: rule.Enabled.ValueBool(),
@@ -268,24 +274,28 @@ func extractIpAccessRules(rules []IpAccessRuleModel) []ipaccess.IPAccess {
 	return mappedRules
 }
 
-func extractIpAccessRulesInner(rules []IpAccessRuleModel) []ipaccess.CompanyIPAccessSettingsIpAccessInner {
-	mappedRules := make([]ipaccess.CompanyIPAccessSettingsIpAccessInner, len(rules))
-	for i, rule := range rules {
-		mappedRules[i] = ipaccess.CompanyIPAccessSettingsIpAccessInner{
-			Value: &ipaccess.IPAccess{
-				Name:    rule.Name.ValueStringPointer(),
-				IpRange: rule.IpRange.ValueString(),
-				Enabled: rule.Enabled.ValueBool(),
-			},
+func extractIpAccessRulesMap(rules []IpAccessRuleModel) *map[string]ipaccess.IpAccess {
+	mappedRules := make(map[string]ipaccess.IpAccess, len(rules))
+	for _, rule := range rules {
+		var id string
+		if rule.Id.IsNull() || rule.Id.IsUnknown() {
+			id = uuid.NewString()
+		} else {
+			id = rule.Id.ValueString()
+		}
+		mappedRules[id] = ipaccess.IpAccess{
+			Name:    rule.Name.ValueStringPointer(),
+			IpRange: rule.IpRange.ValueString(),
+			Enabled: rule.Enabled.ValueBool(),
 		}
 	}
-	return mappedRules
+	return &mappedRules
 }
 
-func flattenCreateResponse(resp *ipaccess.CreateCompanyIPAccessSettingsResponse) IpAccessCompanySettingsModel {
-	rules := make([]IpAccessRuleModel, len(resp.Settings.IpAccess))
-	for i, r := range resp.Settings.IpAccess {
-		rules[i] = flattenIPAccess(r.Value)
+func flattenCreateResponse(resp *ipaccess.CreateCompanyIpAccessSettingsResponse) IpAccessCompanySettingsModel {
+	rules := make([]IpAccessRuleModel, 0)
+	for k, v := range *resp.Settings.IpAccess {
+		rules = append(rules, flattenIPAccess(k, &v))
 	}
 	return IpAccessCompanySettingsModel{
 		Id:                     types.StringValue(*resp.Settings.Id),
@@ -294,10 +304,10 @@ func flattenCreateResponse(resp *ipaccess.CreateCompanyIPAccessSettingsResponse)
 	}
 }
 
-func flattenReplaceResponse(resp *ipaccess.ReplaceCompanyIPAccessSettingsResponse) IpAccessCompanySettingsModel {
-	rules := make([]IpAccessRuleModel, len(resp.Settings.IpAccess))
-	for i, r := range resp.Settings.IpAccess {
-		rules[i] = flattenIPAccess(r.Value)
+func flattenReplaceResponse(resp *ipaccess.ReplaceCompanyIpAccessSettingsResponse) IpAccessCompanySettingsModel {
+	rules := make([]IpAccessRuleModel, 0)
+	for k, v := range *resp.Settings.IpAccess {
+		rules = append(rules, flattenIPAccess(k, &v))
 	}
 	return IpAccessCompanySettingsModel{
 		Id:                     types.StringValue(*resp.Settings.Id),
@@ -306,10 +316,10 @@ func flattenReplaceResponse(resp *ipaccess.ReplaceCompanyIPAccessSettingsRespons
 	}
 }
 
-func flattenReadResponse(resp *ipaccess.GetCompanyIPAccessSettingsResponse) IpAccessCompanySettingsModel {
-	rules := make([]IpAccessRuleModel, len(resp.Settings.IpAccess))
-	for i, r := range resp.Settings.IpAccess {
-		rules[i] = flattenIPAccess(r.Value)
+func flattenReadResponse(resp *ipaccess.GetCompanyIpAccessSettingsResponse) IpAccessCompanySettingsModel {
+	rules := make([]IpAccessRuleModel, 0)
+	for k, v := range *resp.Settings.IpAccess {
+		rules = append(rules, flattenIPAccess(k, &v))
 	}
 	return IpAccessCompanySettingsModel{
 		Id:                     types.StringValue(*resp.Settings.Id),
@@ -318,10 +328,11 @@ func flattenReadResponse(resp *ipaccess.GetCompanyIPAccessSettingsResponse) IpAc
 	}
 }
 
-func flattenIPAccess(r *ipaccess.IPAccess) IpAccessRuleModel {
+func flattenIPAccess(id string, r *ipaccess.IpAccess) IpAccessRuleModel {
 	return IpAccessRuleModel{
 		Name:    types.StringValue(*r.Name),
 		IpRange: types.StringValue(r.IpRange),
 		Enabled: types.BoolValue(r.Enabled),
+		Id:      types.StringValue(id),
 	}
 }
