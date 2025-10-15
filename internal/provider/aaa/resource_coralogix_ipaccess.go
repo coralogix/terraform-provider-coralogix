@@ -90,7 +90,7 @@ func (r *IpAccessResource) Schema(ctx context.Context, req resource.SchemaReques
 			"ip_access": schema.ListNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"id": schema.BoolAttribute{
+						"id": schema.StringAttribute{
 							Computed:            true,
 							MarkdownDescription: "The rule's identifier.",
 						},
