@@ -268,7 +268,7 @@ func extractIpAccessRules(rules []IpAccessRuleModel) []ipaccess.IpAccess {
 		mappedRules[i] = ipaccess.IpAccess{
 			Name:    rule.Name.ValueStringPointer(),
 			IpRange: rule.IpRange.ValueString(),
-			Enabled: rule.Enabled.ValueBool(),
+			Enabled: rule.Enabled.ValueBoolPointer(),
 		}
 	}
 	return mappedRules
@@ -286,7 +286,7 @@ func extractIpAccessRulesMap(rules []IpAccessRuleModel) *map[string]ipaccess.IpA
 		mappedRules[id] = ipaccess.IpAccess{
 			Name:    rule.Name.ValueStringPointer(),
 			IpRange: rule.IpRange.ValueString(),
-			Enabled: rule.Enabled.ValueBool(),
+			Enabled: rule.Enabled.ValueBoolPointer(),
 		}
 	}
 	return &mappedRules
@@ -332,7 +332,7 @@ func flattenIPAccess(id string, r *ipaccess.IpAccess) IpAccessRuleModel {
 	return IpAccessRuleModel{
 		Name:    types.StringValue(*r.Name),
 		IpRange: types.StringValue(r.IpRange),
-		Enabled: types.BoolValue(r.Enabled),
+		Enabled: types.BoolValue(*r.Enabled),
 		Id:      types.StringValue(id),
 	}
 }
