@@ -29,7 +29,7 @@ func TestAccCoralogixDataSourceGrafanaDashboard_basic(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	parent := filepath.Dir(wd)
+	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_hosted_dashboard/grafana_acc_dashboard.json"
 	expectedFolderTitle := "Test Folder"
 
