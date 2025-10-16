@@ -17,6 +17,7 @@ package aaa
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -41,9 +42,16 @@ func (r *IpAccessDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 	var m *IpAccessResource
 	var resourceResp resource.SchemaResponse
 	m.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-
+	attributes := utils.ConvertAttributes(resourceResp.Schema.Attributes)
+	if idSchema, ok := resourceResp.Schema.Attributes["id"]; ok {
+		attributes["id"] = datasourceschema.StringAttribute{
+			Optional:            true,
+			Description:         idSchema.GetDescription(),
+			MarkdownDescription: idSchema.GetMarkdownDescription(),
+		}
+	}
 	resp.Schema = datasourceschema.Schema{
-		Attributes:          map[string]datasourceschema.Attribute{},
+		Attributes:          attributes,
 		Description:         resourceResp.Schema.Description,
 		MarkdownDescription: resourceResp.Schema.MarkdownDescription,
 		DeprecationMessage:  resourceResp.Schema.DeprecationMessage,
@@ -51,23 +59,27 @@ func (r *IpAccessDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 }
 
 func (r *IpAccessDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data IpAccessResource
+	var data IpAccessCompanySettingsModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	rq := r.client.
+		IpAccessServiceGetCompanyIpAccessSettings(ctx)
 
-	result, _, err := r.client.
-		IpAccessServiceGetCompanyIpAccessSettings(ctx).
-		Execute()
+	rq = rq.Id(data.Id.ValueString())
+
+	result, _, err := rq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error read resource",
 			utils.FormatOpenAPIErrors(err, "Read", nil),
 		)
 		return
 	}
+	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+
 	state := flattenReadResponse(result)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

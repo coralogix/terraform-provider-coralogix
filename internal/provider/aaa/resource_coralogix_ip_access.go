@@ -285,8 +285,10 @@ func flattenReplaceResponse(resp *ipaccess.ReplaceCompanyIpAccessSettingsRespons
 
 func flattenReadResponse(resp *ipaccess.GetCompanyIpAccessSettingsResponse) IpAccessCompanySettingsModel {
 	rules := make([]IpAccessRuleModel, 0)
-	for _, v := range *resp.Settings.IpAccess {
-		rules = append(rules, flattenIPAccess(&v))
+	if resp.Settings.IpAccess != nil {
+		for _, v := range *resp.Settings.IpAccess {
+			rules = append(rules, flattenIPAccess(&v))
+		}
 	}
 	return IpAccessCompanySettingsModel{
 		Id:                     types.StringValue(*resp.Settings.Id),

@@ -20,6 +20,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
+var ipAccessDataSourceName = "coralogix_ip_access.test2"
+
 func TestAccCoralogixDataSourceIpAccess(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -29,9 +31,14 @@ func TestAccCoralogixDataSourceIpAccess(t *testing.T) {
 				Config: IpAccessResource +
 					testIpAccessResource_Read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(apiKeyDataSourceName, "name", "Test Key 3"),
-					resource.TestCheckResourceAttr(apiKeyDataSourceName, "active", "true"),
-					resource.TestCheckResourceAttr(apiKeyDataSourceName, "hashed", "false"),
+					resource.TestCheckResourceAttr(ipAccessDataSourceName, "enable_coralogix_customer_support_access", "enabled"),
+					resource.TestCheckTypeSetElemNestedAttrs(ipAccessDataSourceName, "ip_access.*",
+						map[string]string{
+							"enabled":  "false",
+							"ip_range": "100.64.0.0/10",
+							"name":     "random range from wikipedia",
+						},
+					),
 				),
 			},
 		},
@@ -39,7 +46,7 @@ func TestAccCoralogixDataSourceIpAccess(t *testing.T) {
 }
 
 func testIpAccessResource_Read() string {
-	return `data "coralogix_ip_access" "test" {
+	return `data "coralogix_ip_access" "test2" {
 }
 `
 }
