@@ -419,7 +419,7 @@ func TestAccCoralogixResourceDashboardFromJson(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	parent := filepath.Dir(wd)
+	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_dashboard/dashboard.json"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -441,7 +441,7 @@ func TestAccCoralogixResourceDashboardFromJsonWithFolder(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	parent := filepath.Dir(wd)
+	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_dashboard/dashboard.json"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -465,7 +465,7 @@ func TestAccCoralogixResourceDashboardFromJsonWithVar(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	parent := filepath.Dir(wd)
+	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_dashboard/dashboard_with_var_path.json"
 
 	resource.Test(t, resource.TestCase{
