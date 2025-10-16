@@ -61,12 +61,16 @@ func FormatRpcErrors(err error, url, requestStr string) string {
 }
 
 func FormatOpenAPIErrors(err error, url, obj any) string {
-	formattedReq, _ := json.MarshalIndent(obj, "", "   ")
+	formattedReq, formattingErr := json.MarshalIndent(obj, "", "   ")
+	formattedOrError := string(formattedReq)
+	if formattingErr != nil {
+		formattedOrError = formattingErr.Error()
+	}
 	switch cxsdk.Code(err) {
 	case codes.Internal:
 		return fmt.Sprintf("internal error in Coralogix backend.\nerror - %s\nurl - %s\nrequest - %s", err, url, string(formattedReq))
 	case codes.InvalidArgument:
-		return fmt.Sprintf("invalid argument error.\nerror - %s\nurl - %s\nrequest - %s", err, url, string(formattedReq))
+		return fmt.Sprintf("invalid argument error.\nerror - %s\nurl - %s\nrequest - %s", err, url, formattedOrError)
 	default:
 		return err.Error()
 	}
