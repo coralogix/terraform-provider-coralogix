@@ -23,6 +23,7 @@ import (
 
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
@@ -40,7 +41,13 @@ func (r *IpAccessDataSource) Schema(ctx context.Context, req datasource.SchemaRe
 	var m *IpAccessResource
 	var resourceResp resource.SchemaResponse
 	m.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
-	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+
+	resp.Schema = datasourceschema.Schema{
+		Attributes:          map[string]datasourceschema.Attribute{},
+		Description:         resourceResp.Schema.Description,
+		MarkdownDescription: resourceResp.Schema.MarkdownDescription,
+		DeprecationMessage:  resourceResp.Schema.DeprecationMessage,
+	}
 }
 
 func (r *IpAccessDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
