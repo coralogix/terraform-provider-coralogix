@@ -174,7 +174,7 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "NOT",
+							"operation": "INCLUDES",
 							"value":     "application_name",
 						},
 					),
@@ -266,7 +266,7 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "NOT",
+							"operation": "INCLUDES",
 							"value":     "application_name",
 						},
 					),
@@ -362,7 +362,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_with_routing(t *testing.T) {
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "NOT",
+							"operation": "INCLUDES",
 							"value":     "application_name",
 						},
 					),
@@ -502,7 +502,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.lucene_query", "message:\"error\""),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "NOT",
+							"operation": "INCLUDES",
 							"value":     "application_name",
 						},
 					),
@@ -549,7 +549,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_usual(t *testing.T) {
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_threshold.logs_filter.simple_filter.label_filters.application_name.*",
 						map[string]string{
-							"operation": "NOT",
+							"operation": "INCLUDES",
 							"value":     "application_name",
 						},
 					),
@@ -672,7 +672,7 @@ func TestAccCoralogixResourceAlert_logs_ratio_threshold(t *testing.T) {
 					),
 					resource.TestCheckTypeSetElemNestedAttrs(alertResourceName, "type_definition.logs_ratio_threshold.numerator.simple_filter.label_filters.subsystem_name.*",
 						map[string]string{
-							"operation": "NOT",
+							"operation": "INCLUDES",
 							"value":     "subsystem-name",
 						},
 					),

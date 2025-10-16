@@ -25,9 +25,11 @@ var IpAccessResource = `
 
 resource "coralogix_ip_access" "ip_access" {
     enable_coralogix_customer_support_access = "enabled"
-    ip_access = [
-      { enabled = false, ip_range = "100.64.0.0/10", name = "random range from wikipedia" }
-    ]
+    ip_access = [{ 
+	   enabled = false, 
+	   ip_range = "100.64.0.0/10", 
+	   name = "random range from wikipedia" 
+	}]
 }
 `
 
