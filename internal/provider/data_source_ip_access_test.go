@@ -20,8 +20,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
-var ipaccessDataSourceName = "data." + apiKeyResourceName
-
 func TestAccCoralogixDataSourceIpAccess(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },

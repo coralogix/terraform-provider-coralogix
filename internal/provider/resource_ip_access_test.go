@@ -23,7 +23,7 @@ import (
 
 var IpAccessResource = `
 
-resource "coralogix_ip_access" "ip_access" {
+resource "coralogix_ip_access" "test" {
     enable_coralogix_customer_support_access = "enabled"
     ip_access = [{ 
 	   enabled = false, 
@@ -33,6 +33,8 @@ resource "coralogix_ip_access" "ip_access" {
 }
 `
 
+var ipAccessResourceName = "coralogix_ip_access.test"
+
 func TestIpAccessResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -41,8 +43,8 @@ func TestIpAccessResource(t *testing.T) {
 			{
 				Config: IpAccessResource,
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(apiKeyResourceName, "enable_coralogix_customer_support_access", "enabled"),
-					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "ip_access.*",
+					resource.TestCheckResourceAttr(ipAccessResourceName, "enable_coralogix_customer_support_access", "enabled"),
+					resource.TestCheckTypeSetElemNestedAttrs(ipAccessResourceName, "ip_access.*",
 						map[string]string{
 							"enabled":  "false",
 							"ip_range": "100.64.0.0/10",
