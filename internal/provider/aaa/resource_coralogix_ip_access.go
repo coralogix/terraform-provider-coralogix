@@ -21,7 +21,6 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-	"github.com/google/uuid"
 
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -38,10 +37,10 @@ var (
 	_ resource.ResourceWithConfigure   = &IpAccessResource{}
 	_ resource.ResourceWithImportState = &IpAccessResource{}
 
-	CustomerSupportAccessSchemaToApi = map[string]ipaccess.CoralogixCustomerSupportAccess{
-		"unspecified": ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED,
-		"disabled":    ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED,
-		"enabled":     ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED,
+	CustomerSupportAccessSchemaToApi = map[string]*ipaccess.CoralogixCustomerSupportAccess{
+		"unspecified": ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED.Ptr(),
+		"disabled":    ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED.Ptr(),
+		"enabled":     ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED.Ptr(),
 	}
 	CustomerSupportAccessApiToSchema       = utils.ReverseMap(CustomerSupportAccessSchemaToApi)
 	ValidCustomerSupportAccessSchemaValues = utils.GetKeys(CustomerSupportAccessSchemaToApi)
@@ -124,10 +123,8 @@ func (r *IpAccessResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	fullObj := extractIpAccessCompanySettings(data)
-
 	rq := ipaccess.CreateCompanyIPAccessSettingsRequest{
-		EnableCoralogixCustomerSupportAccess: fullObj.EnableCoralogixCustomerSupportAccess,
+		EnableCoralogixCustomerSupportAccess: CustomerSupportAccessSchemaToApi[data.CoralogixSupportAccess.ValueString()],
 		IpAccess:                             extractIpAccessRules(data.Rules),
 	}
 	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
@@ -184,10 +181,8 @@ func (r *IpAccessResource) Update(ctx context.Context, req resource.UpdateReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	fullObj := extractIpAccessCompanySettings(data)
-
 	rq := ipaccess.ReplaceCompanyIPAccessSettingsRequest{
-		EnableCoralogixCustomerSupportAccess: fullObj.EnableCoralogixCustomerSupportAccess,
+		EnableCoralogixCustomerSupportAccess: CustomerSupportAccessSchemaToApi[data.CoralogixSupportAccess.ValueString()],
 		IpAccess:                             extractIpAccessRules(data.Rules),
 	}
 	log.Printf("[INFO] Updating resource: %s", utils.FormatJSON(rq))
@@ -254,14 +249,6 @@ func (r *IpAccessResource) ImportState(ctx context.Context, req resource.ImportS
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func extractIpAccessCompanySettings(model IpAccessCompanySettingsModel) ipaccess.CompanyIpAccessSettings {
-	customerSupportAccess := CustomerSupportAccessSchemaToApi[model.CoralogixSupportAccess.ValueString()]
-	return ipaccess.CompanyIpAccessSettings{
-		EnableCoralogixCustomerSupportAccess: &customerSupportAccess,
-		IpAccess:                             extractIpAccessRulesMap(model.Rules),
-	}
-}
-
 func extractIpAccessRules(rules []IpAccessRuleModel) []ipaccess.IpAccess {
 	mappedRules := make([]ipaccess.IpAccess, len(rules))
 	for i, rule := range rules {
@@ -274,24 +261,6 @@ func extractIpAccessRules(rules []IpAccessRuleModel) []ipaccess.IpAccess {
 	return mappedRules
 }
 
-func extractIpAccessRulesMap(rules []IpAccessRuleModel) *map[string]ipaccess.IpAccess {
-	mappedRules := make(map[string]ipaccess.IpAccess, len(rules))
-	for _, rule := range rules {
-		var id string
-		if rule.Id.IsNull() || rule.Id.IsUnknown() {
-			id = uuid.NewString()
-		} else {
-			id = rule.Id.ValueString()
-		}
-		mappedRules[id] = ipaccess.IpAccess{
-			Name:    rule.Name.ValueStringPointer(),
-			IpRange: rule.IpRange.ValueString(),
-			Enabled: rule.Enabled.ValueBoolPointer(),
-		}
-	}
-	return &mappedRules
-}
-
 func flattenCreateResponse(resp *ipaccess.CreateCompanyIpAccessSettingsResponse) IpAccessCompanySettingsModel {
 	rules := make([]IpAccessRuleModel, 0)
 	for k, v := range *resp.Settings.IpAccess {
@@ -299,7 +268,7 @@ func flattenCreateResponse(resp *ipaccess.CreateCompanyIpAccessSettingsResponse)
 	}
 	return IpAccessCompanySettingsModel{
 		Id:                     types.StringValue(*resp.Settings.Id),
-		CoralogixSupportAccess: types.StringValue(CustomerSupportAccessApiToSchema[*resp.Settings.EnableCoralogixCustomerSupportAccess]),
+		CoralogixSupportAccess: types.StringValue(CustomerSupportAccessApiToSchema[resp.Settings.EnableCoralogixCustomerSupportAccess]),
 		Rules:                  rules,
 	}
 }
@@ -311,7 +280,7 @@ func flattenReplaceResponse(resp *ipaccess.ReplaceCompanyIpAccessSettingsRespons
 	}
 	return IpAccessCompanySettingsModel{
 		Id:                     types.StringValue(*resp.Settings.Id),
-		CoralogixSupportAccess: types.StringValue(CustomerSupportAccessApiToSchema[*resp.Settings.EnableCoralogixCustomerSupportAccess]),
+		CoralogixSupportAccess: types.StringValue(CustomerSupportAccessApiToSchema[resp.Settings.EnableCoralogixCustomerSupportAccess]),
 		Rules:                  rules,
 	}
 }
@@ -323,7 +292,7 @@ func flattenReadResponse(resp *ipaccess.GetCompanyIpAccessSettingsResponse) IpAc
 	}
 	return IpAccessCompanySettingsModel{
 		Id:                     types.StringValue(*resp.Settings.Id),
-		CoralogixSupportAccess: types.StringValue(CustomerSupportAccessApiToSchema[*resp.Settings.EnableCoralogixCustomerSupportAccess]),
+		CoralogixSupportAccess: types.StringValue(CustomerSupportAccessApiToSchema[resp.Settings.EnableCoralogixCustomerSupportAccess]),
 		Rules:                  rules,
 	}
 }
