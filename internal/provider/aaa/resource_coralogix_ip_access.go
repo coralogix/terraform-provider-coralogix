@@ -61,7 +61,6 @@ type IpAccessCompanySettingsModel struct {
 }
 
 type IpAccessRuleModel struct {
-	Id      types.String `tfsdk:"id"`
 	Name    types.String `tfsdk:"name"`
 	IpRange types.String `tfsdk:"ip_range"`
 	Enabled types.Bool   `tfsdk:"enabled"`
@@ -86,13 +85,9 @@ func (r *IpAccessResource) Schema(ctx context.Context, req resource.SchemaReques
 				},
 				Default: stringdefault.StaticString("unspecified"),
 			},
-			"ip_access": schema.ListNestedAttribute{
+			"ip_access": schema.SetNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"id": schema.StringAttribute{
-							Computed:            true,
-							MarkdownDescription: "The rule's identifier.",
-						},
 						"enabled": schema.BoolAttribute{
 							Required:            true,
 							MarkdownDescription: "Whether this IP access entry is enabled.",
@@ -263,8 +258,8 @@ func extractIpAccessRules(rules []IpAccessRuleModel) []ipaccess.IpAccess {
 
 func flattenCreateResponse(resp *ipaccess.CreateCompanyIpAccessSettingsResponse) IpAccessCompanySettingsModel {
 	rules := make([]IpAccessRuleModel, 0)
-	for k, v := range *resp.Settings.IpAccess {
-		rules = append(rules, flattenIPAccess(k, &v))
+	for _, v := range *resp.Settings.IpAccess {
+		rules = append(rules, flattenIPAccess(&v))
 	}
 	return IpAccessCompanySettingsModel{
 		Id:                     types.StringValue(*resp.Settings.Id),
@@ -275,8 +270,8 @@ func flattenCreateResponse(resp *ipaccess.CreateCompanyIpAccessSettingsResponse)
 
 func flattenReplaceResponse(resp *ipaccess.ReplaceCompanyIpAccessSettingsResponse) IpAccessCompanySettingsModel {
 	rules := make([]IpAccessRuleModel, 0)
-	for k, v := range *resp.Settings.IpAccess {
-		rules = append(rules, flattenIPAccess(k, &v))
+	for _, v := range *resp.Settings.IpAccess {
+		rules = append(rules, flattenIPAccess(&v))
 	}
 	return IpAccessCompanySettingsModel{
 		Id:                     types.StringValue(*resp.Settings.Id),
@@ -287,8 +282,8 @@ func flattenReplaceResponse(resp *ipaccess.ReplaceCompanyIpAccessSettingsRespons
 
 func flattenReadResponse(resp *ipaccess.GetCompanyIpAccessSettingsResponse) IpAccessCompanySettingsModel {
 	rules := make([]IpAccessRuleModel, 0)
-	for k, v := range *resp.Settings.IpAccess {
-		rules = append(rules, flattenIPAccess(k, &v))
+	for _, v := range *resp.Settings.IpAccess {
+		rules = append(rules, flattenIPAccess(&v))
 	}
 	return IpAccessCompanySettingsModel{
 		Id:                     types.StringValue(*resp.Settings.Id),
@@ -297,11 +292,10 @@ func flattenReadResponse(resp *ipaccess.GetCompanyIpAccessSettingsResponse) IpAc
 	}
 }
 
-func flattenIPAccess(id string, r *ipaccess.IpAccess) IpAccessRuleModel {
+func flattenIPAccess(r *ipaccess.IpAccess) IpAccessRuleModel {
 	return IpAccessRuleModel{
 		Name:    types.StringValue(*r.Name),
 		IpRange: types.StringValue(r.IpRange),
 		Enabled: types.BoolValue(*r.Enabled),
-		Id:      types.StringValue(id),
 	}
 }
