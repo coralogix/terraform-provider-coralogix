@@ -27,7 +27,7 @@ func TestAccCoralogixDataSourceAction(t *testing.T) {
 	action := actionTestParams{
 		name:         acctest.RandomWithPrefix("tf-acc-test"),
 		url:          "https://www.google.com/",
-		sourceType:   "Logs",
+		sourceType:   "Log",
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
 		isPrivate:    false,

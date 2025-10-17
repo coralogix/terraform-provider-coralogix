@@ -1669,7 +1669,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
                 value     = "nginx"
               },
               {
-                operation = "NOT"
+                operation = "INCLUDES"
                 value     = "application_name"
               }
             ]
@@ -1886,7 +1886,7 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated() string {
                 value     = "nginx"
               },
               {
-                operation = "NOT"
+                operation = "INCLUDES"
                 value     = "application_name"
               }
             ]
@@ -2248,7 +2248,7 @@ func testAccCoralogixResourceAlertLogsLessThanUpdated() string {
                 value     = "nginx"
               },
               {
-                operation = "NOT"
+                operation = "INCLUDES"
                 value     = "application_name"
               }
             ]
@@ -2446,7 +2446,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsual() string {
                     label_filters = {
                         application_name = [
                             {
-                                operation = "NOT"
+                                operation = "INCLUDES"
                                 value     = "application_name"
                             }
                         ]
@@ -2515,7 +2515,7 @@ func testAccCoralogixResourceAlertLogsLessThanUsualUpdated() string {
                                 value     = "nginx"
                             },
                             {
-                                operation = "NOT"
+                                operation = "INCLUDES"
                                 value     = "application_name"
                             }
                         ]
@@ -2652,7 +2652,7 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
                 value     = "updated-subsystem-name"
               },
               {
-                operation = "NOT"
+                operation = "INCLUDES"
                 value     = "subsystem-name"
               }
             ]

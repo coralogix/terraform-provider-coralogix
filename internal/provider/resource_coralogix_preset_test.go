@@ -33,7 +33,7 @@ func TestAccCoralogixResourceGenericHttpsPreset(t *testing.T) {
 				Config: testAccResourceCoralogixGenericHttpsPreset(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "id", "terraform_generic_https_preset_example"),
-					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "name", "generic_https example"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "name", "generic_https_example_test"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "description", "generic_https preset example"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "entity_type", "alerts"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "connector_type", "generic_https"),
@@ -96,7 +96,7 @@ func TestAccCoralogixResourceSlackPreset(t *testing.T) {
 				Config: testAccResourceCoralogixSlackPreset(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(slackPresetResourceName, "id", "terraform_slack_preset_example"),
-					resource.TestCheckResourceAttr(slackPresetResourceName, "name", "slack example"),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "name", "slack example tf test"),
 					resource.TestCheckResourceAttr(slackPresetResourceName, "description", "slack preset example"),
 					resource.TestCheckResourceAttr(slackPresetResourceName, "entity_type", "alerts"),
 					resource.TestCheckResourceAttr(slackPresetResourceName, "connector_type", "slack"),
@@ -221,7 +221,7 @@ func testAccResourceCoralogixGenericHttpsPreset() string {
 	return `
 	resource "coralogix_preset" "generic_https_example" {
       id               = "terraform_generic_https_preset_example"
-      name             = "generic_https example"
+      name             = "generic_https_example_test"
       description      = "generic_https preset example"
       entity_type      = "alerts"
       connector_type   = "generic_https"
@@ -287,7 +287,7 @@ func testAccResourceCoralogixGenericHttpsPresetUpdate() string {
 func testAccResourceCoralogixSlackPreset() string {
 	return `resource "coralogix_preset" "slack_example" {
       id               = "terraform_slack_preset_example"
-      name             = "slack example"
+      name             = "slack example tf test"
       description      = "slack preset example"
       entity_type      = "alerts"
       connector_type   = "slack"
