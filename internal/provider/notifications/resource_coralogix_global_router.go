@@ -120,6 +120,7 @@ func (r *GlobalRouterResource) Schema(_ context.Context, _ resource.SchemaReques
 			},
 			"entity_type": schema.StringAttribute{
 				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(validNotificationsEntityTypes...),
 				},
@@ -369,8 +370,7 @@ func extractRouter(ctx context.Context, plan *GlobalRouterResourceModel) (*cxsdk
 
 	routerId := "router_default"
 	return &cxsdk.GlobalRouter{
-		Id: &routerId,
-		// EntityType:   &notificationsEntityTypeSchemaToProto[plan.EntityType.ValueString()],
+		Id:           &routerId,
 		Name:         plan.Name.ValueString(),
 		Description:  plan.Description.ValueString(),
 		Rules:        rules,
@@ -477,7 +477,6 @@ func flattenGlobalRouter(ctx context.Context, GlobalRouter *cxsdk.GlobalRouter) 
 		ID:           types.StringValue(GlobalRouter.GetId()),
 		Name:         types.StringValue(GlobalRouter.GetName()),
 		Description:  types.StringValue(GlobalRouter.GetDescription()),
-		EntityType:   types.StringValue(notificationsEntityTypeProtoToSchema[GlobalRouter.GetEntityType()]),
 		Rules:        rules,
 		FallBack:     types.ListNull(types.ObjectType{AttrTypes: routingTargetAttr()}),
 		EntityLabels: types.MapNull(types.StringType),
