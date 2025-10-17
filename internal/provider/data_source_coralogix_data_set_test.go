@@ -32,7 +32,7 @@ func TestAccCoralogixDataSourceDataSet_basic(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	parent := filepath.Dir(wd)
+	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_data_set/date-to-day-of-the-week.csv"
 
 	resource.Test(t, resource.TestCase{

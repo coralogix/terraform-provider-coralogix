@@ -69,7 +69,8 @@ func (r *IpAccessDataSource) Read(ctx context.Context, req datasource.ReadReques
 	rq := r.client.
 		IpAccessServiceGetCompanyIpAccessSettings(ctx)
 
-	rq = rq.Id(data.Id.ValueString())
+	// rq = rq.Id(data.Id.ValueString())
+	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
 
 	result, _, err := rq.Execute()
 	if err != nil {
