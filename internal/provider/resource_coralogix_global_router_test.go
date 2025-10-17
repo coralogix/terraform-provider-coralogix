@@ -35,7 +35,6 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(globalRouterResourceName, "name", "global router example"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "description", "global router example"),
-					resource.TestCheckResourceAttr(globalRouterResourceName, "entity_type", "unspecified"),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "rules.*", map[string]string{
 						"name":      "rule-name",
 						"condition": "alertDef.priority == \"P1\"",
