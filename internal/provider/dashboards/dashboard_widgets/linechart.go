@@ -140,7 +140,7 @@ func LineChartSchema() schema.Attribute {
 								},
 								"data_prime": schema.SingleNestedAttribute{
 									Attributes: map[string]schema.Attribute{
-										"dataprime_query": schema.StringAttribute{
+										"query": schema.StringAttribute{
 											Optional: true,
 										},
 										"filters": schema.ListNestedAttribute{

@@ -37,7 +37,7 @@ func TestAccCoralogixResourceGenericHttpsConnector(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "generic_https"),
-					resource.TestCheckResourceAttr(connectorResourceName, "name", "generic-https-connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "generic https connector"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "method",
@@ -59,7 +59,7 @@ func TestAccCoralogixResourceGenericHttpsConnector(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "generic_https"),
-					resource.TestCheckResourceAttr(connectorResourceName, "name", "generic-https-connector-updated"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", fmt.Sprintf("%v-updated", name)),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "generic https connector"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "method",
@@ -86,7 +86,7 @@ func TestAccCoralogixResourceSlackConnector(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "slack"),
-					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test connector"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "integrationId",
@@ -112,7 +112,7 @@ func TestAccCoralogixResourceSlackConnector(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "slack"),
-					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test connector"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "integrationId",
@@ -143,7 +143,7 @@ func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "pagerduty"),
-					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-pagerduty-connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test pagerduty connector"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "integrationKey",
@@ -161,7 +161,7 @@ func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "pagerduty"),
-					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-pagerduty-connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "name", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test pagerduty connector updated"),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "integrationKey",
