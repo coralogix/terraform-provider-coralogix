@@ -42,7 +42,7 @@ resource "coralogix_ip_access" "ip_access" {
 ### Optional
 
 - `enable_coralogix_customer_support_access` (String)
-- `ip_access` (Attributes List) (see [below for nested schema](#nestedatt--ip_access))
+- `ip_access` (Attributes Set) (see [below for nested schema](#nestedatt--ip_access))
 
 ### Read-Only
 

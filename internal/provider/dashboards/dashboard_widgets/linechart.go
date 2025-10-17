@@ -315,7 +315,7 @@ func lineChartQueryDefinitionModelAttr() map[string]attr.Type {
 				},
 				"data_prime": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
-						"dataprime_query": types.StringType,
+						"query": types.StringType,
 						"filters": types.ListType{
 							ElemType: types.ObjectType{
 								AttrTypes: FilterSourceModelAttr(),
