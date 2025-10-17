@@ -119,7 +119,7 @@ func (r *GlobalRouterResource) Schema(_ context.Context, _ resource.SchemaReques
 				Description: "Description of the GlobalRouter.",
 			},
 			"entity_type": schema.StringAttribute{
-				Required: true,
+				Optional: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(validNotificationsEntityTypes...),
 				},
