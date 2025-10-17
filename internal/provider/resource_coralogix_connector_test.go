@@ -213,6 +213,7 @@ func testAccResourceCoralogixGenericHttpsConnectorUpdate(name string) string {
 	  }
      ]
    }
+}
 `, name)
 }
 

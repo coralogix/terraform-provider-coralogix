@@ -782,9 +782,44 @@ func expandLineChartQuery(ctx context.Context, query *LineChartQueryModel) (*cxs
 		return &cxsdk.LineChartQuery{
 			Value: spans,
 		}, nil
+	case query.DataPrime != nil:
+		dataPrime, diags := expandLineChartDataPrimeQuery(ctx, query.DataPrime)
+		if diags.HasError() {
+			return nil, diags
+		}
+		return &cxsdk.LineChartQuery{
+			Value: dataPrime,
+		}, nil
 	default:
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Expand LineChart Query", "Unknown LineChart Query type")}
 	}
+}
+
+func expandLineChartDataPrimeQuery(ctx context.Context, dataPrime *DataPrimeModel) (*cxsdk.LineChartQueryDataprime, diag.Diagnostics) {
+	if dataPrime == nil {
+		return nil, nil
+	}
+
+	filters, diags := ExpandDashboardFiltersSources(ctx, dataPrime.Filters)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	timeFrame, diags := ExpandTimeFrameSelect(ctx, dataPrime.TimeFrame)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	dataPrimeQuery := &cxsdk.DashboardDataprimeQuery{
+		Text: dataPrime.Query.ValueString(),
+	}
+	return &cxsdk.LineChartQueryDataprime{
+		Dataprime: &cxsdk.LineChartDataprimeQuery{
+			Filters:        filters,
+			DataprimeQuery: dataPrimeQuery,
+			TimeFrame:      timeFrame,
+		},
+	}, nil
 }
 
 func expandLineChartLogsQuery(ctx context.Context, logs *LineChartQueryLogsModel) (*cxsdk.LineChartQueryLogs, diag.Diagnostics) {
