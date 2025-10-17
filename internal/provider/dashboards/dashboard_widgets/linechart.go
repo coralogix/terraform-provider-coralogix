@@ -107,6 +107,7 @@ func LineChartSchema() schema.Attribute {
 										objectvalidator.ExactlyOneOf(
 											path.MatchRelative().AtParent().AtName("metrics"),
 											path.MatchRelative().AtParent().AtName("spans"),
+											path.MatchRelative().AtParent().AtName("data_prime"),
 										),
 									},
 								},
@@ -124,11 +125,6 @@ func LineChartSchema() schema.Attribute {
 										"time_frame": TimeFrameSchema(),
 									},
 									Optional: true,
-									Validators: []validator.Object{
-										objectvalidator.ExactlyOneOf(
-											path.MatchRelative().AtParent().AtName("logs"),
-											path.MatchRelative().AtParent().AtName("spans"),
-										),
 									},
 								},
 								"spans": schema.SingleNestedAttribute{
@@ -142,11 +138,6 @@ func LineChartSchema() schema.Attribute {
 										"time_frame":   TimeFrameSchema(),
 									},
 									Optional: true,
-									Validators: []validator.Object{
-										objectvalidator.ExactlyOneOf(
-											path.MatchRelative().AtParent().AtName("metrics"),
-											path.MatchRelative().AtParent().AtName("logs"),
-										),
 									},
 								},
 								"data_prime": schema.SingleNestedAttribute{
