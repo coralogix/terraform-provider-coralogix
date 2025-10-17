@@ -125,7 +125,6 @@ func LineChartSchema() schema.Attribute {
 										"time_frame": TimeFrameSchema(),
 									},
 									Optional: true,
-									},
 								},
 								"spans": schema.SingleNestedAttribute{
 									Attributes: map[string]schema.Attribute{
@@ -138,7 +137,6 @@ func LineChartSchema() schema.Attribute {
 										"time_frame":   TimeFrameSchema(),
 									},
 									Optional: true,
-									},
 								},
 								"data_prime": schema.SingleNestedAttribute{
 									Attributes: map[string]schema.Attribute{
