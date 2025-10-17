@@ -15,20 +15,23 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 const globalRouterResourceName = "coralogix_global_router.example"
 
 func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
+	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixGlobalRouter(),
+				Config: testAccResourceCoralogixGlobalRouter(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(globalRouterResourceName, "name", "global router example"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "description", "global router example"),
@@ -38,16 +41,16 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 						"condition": "alertDef.priority == \"P1\"",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "rules.*.targets.*", map[string]string{
-						"connector_id": "generic_https_example",
-						"preset_id":    "generic_https_example",
+						"connector_id": name,
+						"preset_id":    name,
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "rules.*.targets.*", map[string]string{
-						"connector_id": "slack_example",
-						"preset_id":    "slack_example",
+						"connector_id": name,
+						"preset_id":    name,
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "rules.*.targets.*", map[string]string{
-						"connector_id": "pagerduty_example",
-						"preset_id":    "pagerduty_example",
+						"connector_id": name,
+						"preset_id":    name,
 					}),
 				),
 			},
@@ -57,7 +60,7 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccResourceCoralogixGlobalRouterUpdate(),
+				Config: testAccResourceCoralogixGlobalRouterUpdate(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(globalRouterResourceName, "name", "global router example updated"),
 					resource.TestCheckResourceAttr(globalRouterResourceName, "description", "global router example"),
@@ -67,16 +70,16 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 						"condition": "alertDef.priority == \"P1\"",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "rules.*.targets.*", map[string]string{
-						"connector_id": "generic_https_example",
-						"preset_id":    "generic_https_example",
+						"connector_id": name,
+						"preset_id":    name,
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "rules.*.targets.*", map[string]string{
-						"connector_id": "slack_example",
-						"preset_id":    "slack_example",
+						"connector_id": name,
+						"preset_id":    name,
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "rules.*.targets.*", map[string]string{
-						"connector_id": "pagerduty_example",
-						"preset_id":    "pagerduty_example",
+						"connector_id": name,
+						"preset_id":    name,
 					}),
 				),
 			},
@@ -84,12 +87,12 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 	})
 }
 
-func testAccResourceCoralogixGlobalRouter() string {
-	return `
+func testAccResourceCoralogixGlobalRouter(name string) string {
+	return fmt.Sprintf(`
     resource "coralogix_connector" "generic_https_example" {
-      id               = "generic_https_example"
+      id               = "%[1]v"
+      name             = "%[1]v"
       type             = "generic_https"
-      name             = "generic-https connector"
       description      = "generic-https connector example"
       connector_config = {
         fields = [
@@ -106,9 +109,9 @@ func testAccResourceCoralogixGlobalRouter() string {
     }
     
     resource "coralogix_connector" "slack_example" {
-      id               = "slack_example"
+      id               = "%[1]v"
+      name             = "%[1]v"
       type             = "slack"
-      name             = "slack connector"
       description      = "slack connector example"
       connector_config = {
         fields = [
@@ -129,9 +132,9 @@ func testAccResourceCoralogixGlobalRouter() string {
     }
     
     resource "coralogix_connector" "pagerduty_example" {
-      id               = "pagerduty_example"
+      id               = "%[1]v"
+      name             = "%[1]v"
       type             = "pagerduty"
-      name             = "pagerduty connector"
       description      = "pagerduty connector example"
       connector_config = {
         fields = [
@@ -145,8 +148,8 @@ func testAccResourceCoralogixGlobalRouter() string {
     
     
     resource "coralogix_preset" "generic_https_example" {
-      id               = "generic_https_example"
-      name             = "generic_https example"
+      id               = "%[1]v"
+      name             = "%[1]v"
       description      = "generic_https preset example"
       entity_type      = "alerts"
       connector_type   = "generic_https"
@@ -175,8 +178,8 @@ func testAccResourceCoralogixGlobalRouter() string {
     }
     
     resource "coralogix_preset" "slack_example" {
-      id               = "slack_example"
-      name             = "slack example"
+      id               = "%[1]v"
+      name             = "%[1]v"
       description      = "slack preset example"
       entity_type      = "alerts"
       connector_type   = "slack"
@@ -205,8 +208,8 @@ func testAccResourceCoralogixGlobalRouter() string {
     }
     
     resource "coralogix_preset" "pagerduty_example" {
-      id               = "pagerduty_example"
-      name             = "pagerduty example"
+      id               = "%[1]v"
+      name             = "%[1]v"
       description      = "pagerduty preset example"
       entity_type      = "alerts"
       connector_type   = "pagerduty"
@@ -226,17 +229,17 @@ func testAccResourceCoralogixGlobalRouter() string {
               {
                 field_name = "severity"
                 template   = <<EOF
-                {% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %}
+                {%% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %%}
                 critical
-                {% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %}
+                {%% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %%}
                 error
-                {% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %}
+                {%% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %%}
                 warning
-                {% elif alert.highestPriority | default(value = alertDef.priority) == 'P4' or alert.highestPriority | default(value = alertDef.priority)  == 'P5' %}
+                {%% elif alert.highestPriority | default(value = alertDef.priority) == 'P4' or alert.highestPriority | default(value = alertDef.priority)  == 'P5' %%}
                 info
-                {% else %}
+                {%% else %%}
                 info
-                {% endif %}
+                {%% endif %%}
                 EOF
               },
               {
@@ -274,15 +277,15 @@ func testAccResourceCoralogixGlobalRouter() string {
         }
       ]
     }
-  `
+  `, name)
 }
 
-func testAccResourceCoralogixGlobalRouterUpdate() string {
-	return `
+func testAccResourceCoralogixGlobalRouterUpdate(name string) string {
+	return fmt.Sprintf(`
     resource "coralogix_connector" "generic_https_example" {
-      id               = "generic_https_example"
+      id               = "%[1]v"
+      name             = "%[1]v"
       type             = "generic_https"
-      name             = "generic-https connector"
       description      = "generic-https connector example"
       connector_config = {
         fields = [
@@ -299,9 +302,9 @@ func testAccResourceCoralogixGlobalRouterUpdate() string {
     }
     
     resource "coralogix_connector" "slack_example" {
-      id               = "slack_example"
+      id               = "%[1]v"
+      name             = "%[1]v"
       type             = "slack"
-      name             = "slack connector"
       description      = "slack connector example"
       connector_config = {
         fields = [
@@ -322,9 +325,9 @@ func testAccResourceCoralogixGlobalRouterUpdate() string {
     }
     
     resource "coralogix_connector" "pagerduty_example" {
-      id               = "pagerduty_example"
+      id               = "%[1]v"
+      name             = "%[1]v"
       type             = "pagerduty"
-      name             = "pagerduty connector"
       description      = "pagerduty connector example"
       connector_config = {
         fields = [
@@ -338,8 +341,8 @@ func testAccResourceCoralogixGlobalRouterUpdate() string {
     
     
     resource "coralogix_preset" "generic_https_example" {
-      id               = "generic_https_example"
-      name             = "generic_https example"
+      id               = "%[1]v"
+      name             = "%[1]v"
       description      = "generic_https preset example"
       entity_type      = "alerts"
       connector_type   = "generic_https"
@@ -368,8 +371,8 @@ func testAccResourceCoralogixGlobalRouterUpdate() string {
     }
     
     resource "coralogix_preset" "slack_example" {
-      id               = "slack_example"
-      name             = "slack example"
+      id               = "%[1]v"
+      name             = "%[1]v"
       description      = "slack preset example"
       entity_type      = "alerts"
       connector_type   = "slack"
@@ -398,8 +401,8 @@ func testAccResourceCoralogixGlobalRouterUpdate() string {
     }
     
     resource "coralogix_preset" "pagerduty_example" {
-      id               = "pagerduty_example"
-      name             = "pagerduty example"
+      id               = "%[1]v"
+      name             = "%[1]v"
       description      = "pagerduty preset example"
       entity_type      = "alerts"
       connector_type   = "pagerduty"
@@ -419,17 +422,17 @@ func testAccResourceCoralogixGlobalRouterUpdate() string {
               {
                 field_name = "severity"
                 template   = <<EOF
-                {% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %}
+                {%% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %%}
                 critical
-                {% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %}
+                {%% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %%}
                 error
-                {% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %}
+                {%% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %%}
                 warning
-                {% elif alert.highestPriority | default(value = alertDef.priority) == 'P4' or alert.highestPriority | default(value = alertDef.priority)  == 'P5' %}
+                {%% elif alert.highestPriority | default(value = alertDef.priority) == 'P4' or alert.highestPriority | default(value = alertDef.priority)  == 'P5' %%}
                 info
-                {% else %}
+                {%% else %%}
                 info
-                {% endif %}
+                {%% endif %%}
                 EOF
               },
               {
@@ -467,5 +470,5 @@ func testAccResourceCoralogixGlobalRouterUpdate() string {
         }
       ]
     }
-  `
+  `, name)
 }

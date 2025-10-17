@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/google/uuid"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -279,13 +280,14 @@ func TestAccCoralogixResourceAlert_logs_less_than(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_logs_less_than_with_routing(t *testing.T) {
+	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckAlertDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceAlertLogsLessThanWithRouter(),
+				Config: testAccCoralogixResourceAlertLogsLessThanWithRouter(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "name", "less-than alert example"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-threshold less-than alert example from terraform"),
@@ -333,7 +335,7 @@ func TestAccCoralogixResourceAlert_logs_less_than_with_routing(t *testing.T) {
 				ImportState:  true,
 			},
 			{
-				Config: testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(),
+				Config: testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-less-than alert example updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-less-than alert example from terraform updated"),
@@ -1757,12 +1759,12 @@ func testAccCoralogixResourceAlertLogsLessThan() string {
 `
 }
 
-func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated() string {
-	return `
+func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) string {
+	return fmt.Sprintf(`
   resource "coralogix_connector" "slack_example" {
-    id               = "slack_example_connector"
+    id               = "%[1]v"
+    name             = "%[1]v"
     type             = "slack"
-    name             = "slack connector"
     description      = "slack connector example"
     connector_config = {
       fields = [
@@ -1783,8 +1785,8 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated() string {
   }
   
   resource "coralogix_preset" "slack_example" {
-    id               = "slack_example_preset"
-    name             = "slack example"
+    id               = "%[1]v"
+    name             = "%[1]v"
     description      = "slack preset example"
     entity_type      = "alerts"
     connector_type   = "slack"
@@ -1896,15 +1898,15 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated() string {
     }
   }
 }
-`
+`, name)
 }
 
-func testAccCoralogixResourceAlertLogsLessThanWithRouter() string {
-	return `
+func testAccCoralogixResourceAlertLogsLessThanWithRouter(name string) string {
+	return fmt.Sprintf(`
   resource "coralogix_connector" "slack_example" {
-    id               = "slack_example_connector"
+    id               = "%[1]v"
+    name             = "%[1]v"
     type             = "slack"
-    name             = "slack connector"
     description      = "slack connector example"
     connector_config = {
       fields = [
@@ -1925,8 +1927,8 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter() string {
   }
   
   resource "coralogix_preset" "slack_example" {
-    id               = "slack_example_preset"
-    name             = "slack example"
+    id               = "%[1]v"
+    name             = "%[1]v"
     description      = "slack preset example"
     entity_type      = "alerts"
     connector_type   = "slack"
@@ -2044,158 +2046,7 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter() string {
       ]
     }
   }
-}
-`
-}
-
-func testAccCoralogixResourceAlertLogsLessThanWithRouterUpdated() string {
-	return `
-  resource "coralogix_connector" "slack_example" {
-    id               = "slack_example_connector"
-    type             = "slack"
-    name             = "slack connector"
-    description      = "slack connector example"
-    connector_config = {
-      fields = [
-        {
-          field_name = "integrationId"
-          value      = "luigis-testing-grounds"
-        },
-        {
-          field_name = "fallbackChannel"
-          value      = "luigis-testing-grounds"
-        },
-        {
-          field_name = "channel"
-          value      = "luigis-testing-grounds"
-        }
-      ]
-    }
-  }
-  
-  resource "coralogix_preset" "slack_example" {
-    id               = "slack_example_preset"
-    name             = "slack example"
-    description      = "slack preset example"
-    entity_type      = "alerts"
-    connector_type   = "slack"
-    parent_id        = "preset_system_slack_alerts_basic"
-    config_overrides = [
-      {
-        condition_type = {
-          match_entity_type_and_sub_type = {
-            entity_sub_type    = "logsImmediateResolved"
-          }
-        }
-        message_config =    {
-          fields = [
-            {
-              field_name = "title"
-              template   = "{{alert.status}} {{alertDef.priority}} - {{alertDef.name}}"
-            },
-            {
-              field_name = "description"
-              template   = "{{alertDef.description}}"
-            }
-          ]
-        }
-      }
-    ]
-  }
-
-  resource "coralogix_global_router" "example" {
-    name        = "global router example"
-    description = "global router example"
-    entity_type = "alerts"
-    rules       = [
-      {
-        name = "rule-name"
-        condition = "alertDef.priority == \"P1\""
-        targets = [
-          {
-            connector_id   = coralogix_connector.slack_example.id
-            preset_id      = coralogix_preset.slack_example.id
-          }
-        ]
-      }
-    ]
-  }
-
-  resource "coralogix_alert" "test" {
-  name        = "less-than alert example"
-  description = "Example of logs-threshold less-than alert example from terraform"
-  priority    = "P2"
-
-  labels = {
-    alert_type        = "security"
-    security_severity = "high"
-  }
-
-  notification_group = {
-    webhooks_settings = [
-      {
-        notify_on = "Triggered Only"
-        recipients = ["example@coralogix.com"]
-      }
-    ]
-    router = {
-      notify_on = "Triggered and Resolved"
-    }
-  }
-
-  incidents_settings = {
-    notify_on = "Triggered and Resolved"
-    retriggering_period = {
-      minutes = 1
-    }
-  }
-
-  schedule = {
-    active_on = {
-      days_of_week = ["Wednesday", "Thursday"]
-      start_time = "08:30"
-      end_time = "20:30"
-    }
-  }
-
-  type_definition = {
-    logs_threshold = {
-      logs_filter = {
-        simple_filter = {
-          lucene_query = "message:\"error\""
-          label_filters = {
-            application_name = [
-              {
-                operation = "IS"
-                value     = "nginx"
-              }
-            ]
-            subsystem_name = [
-              {
-                operation = "IS"
-                value     = "subsystem-name"
-              }
-            ]
-            severities = ["Warning"]
-          }
-        }
-      }
-      rules = [
-        {
-         condition = {
-              threshold   = 2
-              time_window = "10_MINUTES"
-              condition_type   = "LESS_THAN"
-            }
-          override = {
-            priority = "P2"
-          }
-        }
-      ]
-    }
-  }
-}
-`
+}`, name)
 }
 
 func testAccCoralogixResourceAlertLogsLessThanUpdated() string {

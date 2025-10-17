@@ -17,18 +17,20 @@ package provider
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var globalRouterDataSourceName = "data." + globalRouterResourceName
 
 func TestAccCoralogixDataSourceGlobalRouter_basic(t *testing.T) {
+	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixGlobalRouter() +
+				Config: testAccResourceCoralogixGlobalRouter(name) +
 					testAccCoralogixDataSourceglobalRouter_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(globalRouterDataSourceName, "name", "global router example"),
@@ -39,12 +41,13 @@ func TestAccCoralogixDataSourceGlobalRouter_basic(t *testing.T) {
 }
 
 func TestAccCoralogixDataSourceGlobalRouterByName(t *testing.T) {
+	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixGlobalRouter() +
+				Config: testAccResourceCoralogixGlobalRouter(name) +
 					testAccCoralogixDataSourceglobalRouterByName_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(globalRouterDataSourceName, "name", "global router example"),
