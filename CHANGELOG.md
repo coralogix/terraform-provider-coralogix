@@ -1075,5 +1075,28 @@ Re-release
 
 # Release 2.3.0
 
+Internal:
+* Restructuring
+* Test race conditions fixed
+  
+## resource/coralogix_ip_access & data_source/coralogix_ip_access
+
+Feat:
+* Added!
+
+
+## resource/coralogix_dashboard
+
+Fix:
+* Line Chart now actually supports data prime queries
+
+## resource/coralogix_global_router
+
+Fix:
+* entity_type is now optional & ignored when sending
+
+
+# Release 3.0.0
+
 ## resource/coralogix_alert
 Remove:  remove support for `notification_group.destinations`

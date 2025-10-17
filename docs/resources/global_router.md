@@ -17,13 +17,13 @@ Coralogix GlobalRouter. **Note:** This resource is in alpha stage.
 
 ### Required
 
-- `entity_type` (String) Type of the entity. Valid values are: alerts, unspecified
 - `name` (String) Name of the GlobalRouter.
 
 ### Optional
 
 - `description` (String) Description of the GlobalRouter.
 - `entity_labels` (Map of String)
+- `entity_type` (String) Type of the entity. Valid values are: alerts, unspecified
 - `fallback` (Attributes List) Fallback routing targets. (see [below for nested schema](#nestedatt--fallback))
 - `rules` (Attributes List) Routing rules for the GlobalRouter. (see [below for nested schema](#nestedatt--rules))
 

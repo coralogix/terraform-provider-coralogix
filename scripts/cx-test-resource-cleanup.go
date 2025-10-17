@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	"github.com/coralogix/coralogix-management-sdk/go/internal/coralogixapis/views/v1/services"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -256,7 +257,7 @@ func main() {
 
 	// Views
 	viewsClient := cxsdk.NewViewsClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	views, err := viewsClient.List(context.Background())
+	views, err := viewsClient.List(context.Background(), &services.ListViewsRequest{})
 	if err == nil {
 		log.Println("Deleting all views")
 		for _, view := range views.Views {
