@@ -15,8 +15,10 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -25,14 +27,15 @@ var (
 )
 
 func TestAccCoralogixResourceGenericHttpsConnector(t *testing.T) {
+	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixGenericHttpsConnector(),
+				Config: testAccResourceCoralogixGenericHttpsConnector(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(connectorResourceName, "id", "generic_https_terraform_acceptance_test_connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "generic_https"),
 					resource.TestCheckResourceAttr(connectorResourceName, "name", "generic-https-connector"),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "generic https connector"),
@@ -52,9 +55,9 @@ func TestAccCoralogixResourceGenericHttpsConnector(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccResourceCoralogixGenericHttpsConnectorUpdate(),
+				Config: testAccResourceCoralogixGenericHttpsConnectorUpdate(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(connectorResourceName, "id", "generic_https_terraform_acceptance_test_connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "generic_https"),
 					resource.TestCheckResourceAttr(connectorResourceName, "name", "generic-https-connector-updated"),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "generic https connector"),
@@ -73,14 +76,15 @@ func TestAccCoralogixResourceGenericHttpsConnector(t *testing.T) {
 }
 
 func TestAccCoralogixResourceSlackConnector(t *testing.T) {
+	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixSlackConnector(),
+				Config: testAccResourceCoralogixSlackConnector(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(connectorResourceName, "id", "slack_terraform_acceptance_test_connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "slack"),
 					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-connector"),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test connector"),
@@ -104,9 +108,9 @@ func TestAccCoralogixResourceSlackConnector(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccResourceCoralogixSlackConnectorUpdate(),
+				Config: testAccResourceCoralogixSlackConnectorUpdate(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(connectorResourceName, "id", "slack_terraform_acceptance_test_connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "slack"),
 					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-connector"),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test connector"),
@@ -129,14 +133,15 @@ func TestAccCoralogixResourceSlackConnector(t *testing.T) {
 }
 
 func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
+	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixPagerdutyConnector(),
+				Config: testAccResourceCoralogixPagerdutyConnector(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(connectorResourceName, "id", "pagerduty_terraform_acceptance_test_connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "pagerduty"),
 					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-pagerduty-connector"),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test pagerduty connector"),
@@ -152,9 +157,9 @@ func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccResourceCoralogixPagerdutyConnectorUpdate(),
+				Config: testAccResourceCoralogixPagerdutyConnectorUpdate(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(connectorResourceName, "id", "pagerduty_terraform_acceptance_test_connector"),
+					resource.TestCheckResourceAttr(connectorResourceName, "id", name),
 					resource.TestCheckResourceAttr(connectorResourceName, "type", "pagerduty"),
 					resource.TestCheckResourceAttr(connectorResourceName, "name", "test-pagerduty-connector"),
 					resource.TestCheckResourceAttr(connectorResourceName, "description", "test pagerduty connector updated"),
@@ -168,9 +173,9 @@ func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 	})
 }
 
-func testAccResourceCoralogixGenericHttpsConnector() string {
-	return `resource "coralogix_connector" "example" {
-   id               = "generic_https_terraform_acceptance_test_connector"
+func testAccResourceCoralogixGenericHttpsConnector(name string) string {
+	return fmt.Sprintf(`resource "coralogix_connector" "example" {
+   id               = "%[1]v"
    type             = "generic_https"
    name             = "generic-https-connector"
    description      = "generic https connector"
@@ -187,12 +192,12 @@ func testAccResourceCoralogixGenericHttpsConnector() string {
      ]
    }
  }
-`
+`, name)
 }
 
-func testAccResourceCoralogixGenericHttpsConnectorUpdate() string {
-	return `resource "coralogix_connector" "example" {
-   id               = "generic_https_terraform_acceptance_test_connector"
+func testAccResourceCoralogixGenericHttpsConnectorUpdate(name string) string {
+	return fmt.Sprintf(`resource "coralogix_connector" "example" {
+   id               = "%[1]v"
    type             = "generic_https"
    name             = "generic-https-connector-updated"
    description      = "generic https connector"
@@ -208,13 +213,12 @@ func testAccResourceCoralogixGenericHttpsConnectorUpdate() string {
 	  }
      ]
    }
- }
-`
+`, name)
 }
 
-func testAccResourceCoralogixSlackConnector() string {
-	return `resource "coralogix_connector" "example" {
-   id               = "slack_terraform_acceptance_test_connector"
+func testAccResourceCoralogixSlackConnector(name string) string {
+	return fmt.Sprintf(`resource "coralogix_connector" "example" {
+   id               = "%[1]v"
    type             = "slack"
    name             = "test-connector"
    description      = "test connector"
@@ -234,13 +238,12 @@ func testAccResourceCoralogixSlackConnector() string {
 	   },
      ]
    }
- }
-`
+ }`, name)
 }
 
-func testAccResourceCoralogixSlackConnectorUpdate() string {
-	return `resource "coralogix_connector" "example" {
-   id               = "slack_terraform_acceptance_test_connector"
+func testAccResourceCoralogixSlackConnectorUpdate(name string) string {
+	return fmt.Sprintf(`resource "coralogix_connector" "example" {
+   id               = "%[1]v"
    type             = "slack"
    name             = "test-connector"
    description      = "test connector"
@@ -260,13 +263,12 @@ func testAccResourceCoralogixSlackConnectorUpdate() string {
 	   },
      ]
    }
- }
-`
+ }`, name)
 }
 
-func testAccResourceCoralogixPagerdutyConnector() string {
-	return `resource "coralogix_connector" "example" {
-   id               = "pagerduty_terraform_acceptance_test_connector"
+func testAccResourceCoralogixPagerdutyConnector(name string) string {
+	return fmt.Sprintf(`resource "coralogix_connector" "example" {
+   id               = "%[1]v"
    type             = "pagerduty"
    name             = "test-pagerduty-connector"
    description      = "test pagerduty connector"
@@ -278,13 +280,12 @@ func testAccResourceCoralogixPagerdutyConnector() string {
        }
      ]
    }
- }
-`
+ }`, name)
 }
 
-func testAccResourceCoralogixPagerdutyConnectorUpdate() string {
-	return `resource "coralogix_connector" "example" {
-   id               = "pagerduty_terraform_acceptance_test_connector"
+func testAccResourceCoralogixPagerdutyConnectorUpdate(name string) string {
+	return fmt.Sprintf(`resource "coralogix_connector" "example" {
+   id               = "%[1]v"
    type             = "pagerduty"
    name             = "test-pagerduty-connector"
    description      = "test pagerduty connector updated"
@@ -296,6 +297,5 @@ func testAccResourceCoralogixPagerdutyConnectorUpdate() string {
        }
      ]
    }
- }
-`
+ }`, name)
 }

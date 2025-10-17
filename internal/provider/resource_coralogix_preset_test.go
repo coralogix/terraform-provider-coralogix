@@ -15,8 +15,10 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -25,15 +27,17 @@ const slackPresetResourceName = "coralogix_preset.slack_example"
 const pagerdutyPresetResourceName = "coralogix_preset.pagerduty_example"
 
 func TestAccCoralogixResourceGenericHttpsPreset(t *testing.T) {
+	name := uuid.NewString()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixGenericHttpsPreset(),
+				Config: testAccResourceCoralogixGenericHttpsPreset(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "id", "terraform_generic_https_preset_example"),
-					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "name", "generic_https_example_test"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "id", name),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "name", name),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "description", "generic_https preset example"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "entity_type", "alerts"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "connector_type", "generic_https"),
@@ -59,9 +63,9 @@ func TestAccCoralogixResourceGenericHttpsPreset(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccResourceCoralogixGenericHttpsPresetUpdate(),
+				Config: testAccResourceCoralogixGenericHttpsPresetUpdate(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "id", "terraform_generic_https_preset_example"),
+					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "id", name),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "name", "generic_https example updated"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "description", "generic_https preset example"),
 					resource.TestCheckResourceAttr(genericHttpsPresetResourceName, "entity_type", "alerts"),
@@ -88,15 +92,16 @@ func TestAccCoralogixResourceGenericHttpsPreset(t *testing.T) {
 }
 
 func TestAccCoralogixResourceSlackPreset(t *testing.T) {
+	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixSlackPreset(),
+				Config: testAccResourceCoralogixSlackPreset(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(slackPresetResourceName, "id", "terraform_slack_preset_example"),
-					resource.TestCheckResourceAttr(slackPresetResourceName, "name", "slack example tf test"),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "id", name),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "name", name),
 					resource.TestCheckResourceAttr(slackPresetResourceName, "description", "slack preset example"),
 					resource.TestCheckResourceAttr(slackPresetResourceName, "entity_type", "alerts"),
 					resource.TestCheckResourceAttr(slackPresetResourceName, "connector_type", "slack"),
@@ -122,9 +127,9 @@ func TestAccCoralogixResourceSlackPreset(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccResourceCoralogixSlackPresetUpdate(),
+				Config: testAccResourceCoralogixSlackPresetUpdate(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(slackPresetResourceName, "id", "terraform_slack_preset_example"),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "id", name),
 					resource.TestCheckResourceAttr(slackPresetResourceName, "name", "slack example updated"),
 					resource.TestCheckResourceAttr(slackPresetResourceName, "description", "slack preset example"),
 					resource.TestCheckResourceAttr(slackPresetResourceName, "entity_type", "alerts"),
@@ -150,15 +155,16 @@ func TestAccCoralogixResourceSlackPreset(t *testing.T) {
 }
 
 func TestAccCoralogixResourcePagerdutyPreset(t *testing.T) {
+	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixPagerdutyPreset(),
+				Config: testAccResourceCoralogixPagerdutyPreset(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "id", "terraform_pagerduty_preset_example"),
-					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "name", "pagerduty example"),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "id", name),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "name", name),
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "description", "pagerduty preset example"),
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "entity_type", "alerts"),
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "connector_type", "pagerduty"),
@@ -187,9 +193,9 @@ func TestAccCoralogixResourcePagerdutyPreset(t *testing.T) {
 				ImportStateVerify: true,
 			},
 			{
-				Config: testAccResourceCoralogixPagerdutyPresetUpdate(),
+				Config: testAccResourceCoralogixPagerdutyPresetUpdate(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "id", "terraform_pagerduty_preset_example"),
+					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "id", name),
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "name", "pagerduty example updated"),
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "description", "pagerduty preset example"),
 					resource.TestCheckResourceAttr(pagerdutyPresetResourceName, "entity_type", "alerts"),
@@ -217,11 +223,11 @@ func TestAccCoralogixResourcePagerdutyPreset(t *testing.T) {
 	})
 }
 
-func testAccResourceCoralogixGenericHttpsPreset() string {
-	return `
+func testAccResourceCoralogixGenericHttpsPreset(name string) string {
+	return fmt.Sprintf(`
 	resource "coralogix_preset" "generic_https_example" {
-      id               = "terraform_generic_https_preset_example"
-      name             = "generic_https_example_test"
+      id               = "%[1]v"
+      name             = "%[1]v"
       description      = "generic_https preset example"
       entity_type      = "alerts"
       connector_type   = "generic_https"
@@ -248,12 +254,12 @@ func testAccResourceCoralogixGenericHttpsPreset() string {
         }
       ]
  	}
-  `
+  `, name)
 }
 
-func testAccResourceCoralogixGenericHttpsPresetUpdate() string {
-	return `resource "coralogix_preset" "generic_https_example" {
-      id               = "terraform_generic_https_preset_example"
+func testAccResourceCoralogixGenericHttpsPresetUpdate(name string) string {
+	return fmt.Sprintf(`resource "coralogix_preset" "generic_https_example" {
+      id               = "%[1]v"
       name             = "generic_https example updated"
       description      = "generic_https preset example"
       entity_type      = "alerts"
@@ -281,13 +287,13 @@ func testAccResourceCoralogixGenericHttpsPresetUpdate() string {
         }
       ]
     }
-  `
+  `, name)
 }
 
-func testAccResourceCoralogixSlackPreset() string {
-	return `resource "coralogix_preset" "slack_example" {
-      id               = "terraform_slack_preset_example"
-      name             = "slack example tf test"
+func testAccResourceCoralogixSlackPreset(name string) string {
+	return fmt.Sprintf(`resource "coralogix_preset" "slack_example" {
+      id               = "%[1]v"
+      name             = "%[1]v"
       description      = "slack preset example"
       entity_type      = "alerts"
       connector_type   = "slack"
@@ -314,12 +320,12 @@ func testAccResourceCoralogixSlackPreset() string {
         }
       ]
     }
-  `
+  `, name)
 }
 
-func testAccResourceCoralogixSlackPresetUpdate() string {
-	return `resource "coralogix_preset" "slack_example" {
-      id               = "terraform_slack_preset_example"
+func testAccResourceCoralogixSlackPresetUpdate(name string) string {
+	return fmt.Sprintf(`resource "coralogix_preset" "slack_example" {
+      id               = "%[1]v"
       name             = "slack example updated"
       description      = "slack preset example"
       entity_type      = "alerts"
@@ -347,13 +353,13 @@ func testAccResourceCoralogixSlackPresetUpdate() string {
         }
       ]
     }
-  `
+  `, name)
 }
 
-func testAccResourceCoralogixPagerdutyPreset() string {
-	return `resource "coralogix_preset" "pagerduty_example" {
-      id               = "terraform_pagerduty_preset_example"
-      name             = "pagerduty example"
+func testAccResourceCoralogixPagerdutyPreset(name string) string {
+	return fmt.Sprintf(`resource "coralogix_preset" "pagerduty_example" {
+      id               = "%[1]v"
+      name             = "%[1]v"
       description      = "pagerduty preset example"
       entity_type      = "alerts"
       connector_type   = "pagerduty"
@@ -373,17 +379,17 @@ func testAccResourceCoralogixPagerdutyPreset() string {
               {
                 field_name = "severity"
                 template   = <<EOF
-                {% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %}
+                {%% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %%}
                 critical
-                {% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %}
+                {%% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %%}
                 error
-                {% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %}
+                {%% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %%}
                 warning
-                {% elif alert.highestPriority | default(value = alertDef.priority) == 'P4' or alert.highestPriority | default(value = alertDef.priority)  == 'P5' %}
+                {%% elif alert.highestPriority | default(value = alertDef.priority) == 'P4' or alert.highestPriority | default(value = alertDef.priority)  == 'P5' %%}
                 info
-                {% else %}
+                {%% else %%}
                 info
-                {% endif %}
+                {%% endif %%}
                 EOF
               },
               {
@@ -395,12 +401,12 @@ func testAccResourceCoralogixPagerdutyPreset() string {
         }
       ]
     }
-  `
+  `, name)
 }
 
-func testAccResourceCoralogixPagerdutyPresetUpdate() string {
-	return `resource "coralogix_preset" "pagerduty_example" {
-      id               = "terraform_pagerduty_preset_example"
+func testAccResourceCoralogixPagerdutyPresetUpdate(name string) string {
+	return fmt.Sprintf(`resource "coralogix_preset" "pagerduty_example" {
+      id               = "%[1]v"
       name             = "pagerduty example updated"
       description      = "pagerduty preset example"
       entity_type      = "alerts"
@@ -421,17 +427,17 @@ func testAccResourceCoralogixPagerdutyPresetUpdate() string {
               {
                 field_name = "severity"
                 template   = <<EOF
-                {% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %}
+                {%% if alert.highestPriority | default(value = alertDef.priority) == 'P1' %%}
                 critical
-                {% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %}
+                {%% elif alert.highestPriority | default(value = alertDef.priority) == 'P2' %%}
                 error
-                {% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %}
+                {%% elif alert.highestPriority | default(value = alertDef.priority) == 'P3' %%}
                 warning
-                {% elif alert.highestPriority | default(value = alertDef.priority) == 'P4' or alert.highestPriority | default(value = alertDef.priority)  == 'P5' %}
+                {%% elif alert.highestPriority | default(value = alertDef.priority) == 'P4' or alert.highestPriority | default(value = alertDef.priority)  == 'P5' %%}
                 info
-                {% else %}
+                {%% else %%}
                 info
-                {% endif %}
+                {%% endif %%}
                 EOF
               },
               {
@@ -443,5 +449,5 @@ func testAccResourceCoralogixPagerdutyPresetUpdate() string {
         }
       ]
     }
-  `
+  `, name)
 }

@@ -17,21 +17,24 @@ package provider
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var presetDataSourceName = "data." + genericHttpsPresetResourceName
 
 func TestAccCoralogixDataSourcePreset_basic(t *testing.T) {
+	name := uuid.NewString()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixGenericHttpsPreset() +
+				Config: testAccResourceCoralogixGenericHttpsPreset(name) +
 					testAccCoralogixDataSourcepreset_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(presetDataSourceName, "name", "generic_https example"),
+					resource.TestCheckResourceAttr(presetDataSourceName, "name", name),
 				),
 			},
 		},
@@ -39,15 +42,16 @@ func TestAccCoralogixDataSourcePreset_basic(t *testing.T) {
 }
 
 func TestAccCoralogixDataSourcePresetByName(t *testing.T) {
+	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixGenericHttpsPreset() +
+				Config: testAccResourceCoralogixGenericHttpsPreset(name) +
 					testAccCoralogixDataSourcepresetByName_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(presetDataSourceName, "name", "generic_https example"),
+					resource.TestCheckResourceAttr(presetDataSourceName, "name", name),
 				),
 			},
 		},

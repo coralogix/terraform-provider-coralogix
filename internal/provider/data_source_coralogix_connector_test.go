@@ -17,21 +17,23 @@ package provider
 import (
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 var connectorDataSourceName = "data." + connectorResourceName
 
 func TestAccCoralogixDataSourceConnector_basic(t *testing.T) {
+	name := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixGenericHttpsConnector() +
+				Config: testAccResourceCoralogixGenericHttpsConnector(name) +
 					testAccCoralogixDataSourceconnector_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(connectorDataSourceName, "name", "generic-https-connector"),
+					resource.TestCheckResourceAttr(connectorDataSourceName, "name", name),
 				),
 			},
 		},
@@ -39,15 +41,17 @@ func TestAccCoralogixDataSourceConnector_basic(t *testing.T) {
 }
 
 func TestAccCoralogixDataSourceConnectorByName(t *testing.T) {
+	name := uuid.NewString()
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccResourceCoralogixGenericHttpsConnector() +
+				Config: testAccResourceCoralogixGenericHttpsConnector(name) +
 					testAccCoralogixDataSourceconnectorByName_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(connectorDataSourceName, "name", "generic-https-connector"),
+					resource.TestCheckResourceAttr(connectorDataSourceName, "name", name),
 				),
 			},
 		},
