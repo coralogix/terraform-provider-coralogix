@@ -176,8 +176,8 @@ func TestAccCoralogixResourcePagerdutyConnector(t *testing.T) {
 func testAccResourceCoralogixGenericHttpsConnector(name string) string {
 	return fmt.Sprintf(`resource "coralogix_connector" "example" {
    id               = "%[1]v"
+   name             = "%[1]v"
    type             = "generic_https"
-   name             = "generic-https-connector"
    description      = "generic https connector"
    connector_config = {
      fields = [
@@ -198,8 +198,8 @@ func testAccResourceCoralogixGenericHttpsConnector(name string) string {
 func testAccResourceCoralogixGenericHttpsConnectorUpdate(name string) string {
 	return fmt.Sprintf(`resource "coralogix_connector" "example" {
    id               = "%[1]v"
+   name             = "%[1]v-updated"
    type             = "generic_https"
-   name             = "generic-https-connector-updated"
    description      = "generic https connector"
    connector_config = {
      fields = [
@@ -219,8 +219,8 @@ func testAccResourceCoralogixGenericHttpsConnectorUpdate(name string) string {
 func testAccResourceCoralogixSlackConnector(name string) string {
 	return fmt.Sprintf(`resource "coralogix_connector" "example" {
    id               = "%[1]v"
+   name             = "%[1]v"
    type             = "slack"
-   name             = "test-connector"
    description      = "test connector"
    connector_config = {
      fields = [
@@ -244,8 +244,8 @@ func testAccResourceCoralogixSlackConnector(name string) string {
 func testAccResourceCoralogixSlackConnectorUpdate(name string) string {
 	return fmt.Sprintf(`resource "coralogix_connector" "example" {
    id               = "%[1]v"
+   name             = "%[1]v"
    type             = "slack"
-   name             = "test-connector"
    description      = "test connector"
    connector_config = {
      fields = [
@@ -270,7 +270,7 @@ func testAccResourceCoralogixPagerdutyConnector(name string) string {
 	return fmt.Sprintf(`resource "coralogix_connector" "example" {
    id               = "%[1]v"
    type             = "pagerduty"
-   name             = "test-pagerduty-connector"
+   name             = "%[1]v"
    description      = "test pagerduty connector"
    connector_config = {
      fields = [
@@ -287,7 +287,7 @@ func testAccResourceCoralogixPagerdutyConnectorUpdate(name string) string {
 	return fmt.Sprintf(`resource "coralogix_connector" "example" {
    id               = "%[1]v"
    type             = "pagerduty"
-   name             = "test-pagerduty-connector"
+   name             = "%[1]v"
    description      = "test pagerduty connector updated"
    connector_config = {
      fields = [

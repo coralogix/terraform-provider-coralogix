@@ -91,7 +91,7 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
 	return fmt.Sprintf(`
     resource "coralogix_connector" "generic_https_example" {
       id               = "http-%[1]v"
-      name             = "%[1]v"
+      name             = "http-%[1]v"
       type             = "generic_https"
       description      = "generic-https connector example"
       connector_config = {
@@ -110,7 +110,7 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
     
     resource "coralogix_connector" "slack_example" {
       id               = "slack-%[1]v"
-      name             = "%[1]v"
+      name             = "slack-%[1]v"
       type             = "slack"
       description      = "slack connector example"
       connector_config = {
@@ -133,7 +133,7 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
     
     resource "coralogix_connector" "pagerduty_example" {
       id               = "pd-%[1]v"
-      name             = "%[1]v"
+      name             = "pd-%[1]v"
       type             = "pagerduty"
       description      = "pagerduty connector example"
       connector_config = {
@@ -149,7 +149,7 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
     
     resource "coralogix_preset" "generic_https_example" {
       id               = "http-%[1]v"
-      name             = "%[1]v"
+      name             = "http-%[1]v"
       description      = "generic_https preset example"
       entity_type      = "alerts"
       connector_type   = "generic_https"
@@ -179,7 +179,7 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
     
     resource "coralogix_preset" "slack_example" {
       id               = "slack-%[1]v"
-      name             = "%[1]v"
+      name             = "slack-%[1]v"
       description      = "slack preset example"
       entity_type      = "alerts"
       connector_type   = "slack"
@@ -208,8 +208,8 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
     }
     
     resource "coralogix_preset" "pagerduty_example" {
-      id               = "pg-%[1]v"
-      name             = "%[1]v"
+      id               = "pd-%[1]v"
+      name             = "pd-%[1]v"
       description      = "pagerduty preset example"
       entity_type      = "alerts"
       connector_type   = "pagerduty"
