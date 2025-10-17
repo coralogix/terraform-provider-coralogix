@@ -132,7 +132,18 @@ func TestAccCoralogixAlertWebhooksNotifyOnMandatory(t *testing.T) {
 }
 
 func testAccCoralogixResourceAlertWebhooksNotifyOnMandatory() string {
-	return `resource "coralogix_alert" "dstest" {
+	return `
+  resource "coralogix_webhook" "testhook" {
+  name   = "custom-webhook"
+    custom = {
+      method  = "get"
+      headers = { "Content-Type" : "application/json" }
+      url     = "https://httpbun.org/get"
+    }
+  }
+  
+  
+  resource "coralogix_alert" "dstest" {
   name        = "logs-more-than alert example"
   description = "Example of logs-more-than alert example from terraform"
   priority    = "P2"
@@ -145,7 +156,7 @@ func testAccCoralogixResourceAlertWebhooksNotifyOnMandatory() string {
   notification_group = {
     webhooks_settings = [{
       notify_on = "Triggered Only"
-      integration_id = "43aff6eb-6029-4e41-8806-4b46e471a8fb"
+      integration_id = coralogix_webhook.testhook.id
       retriggering_period = { minutes = 720 }
     }]
     simple_target_settings = [
