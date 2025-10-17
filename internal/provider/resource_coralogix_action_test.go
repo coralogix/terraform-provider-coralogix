@@ -42,7 +42,7 @@ func TestAccCoralogixResourceAction(t *testing.T) {
 	action := actionTestParams{
 		name:         "google search action",
 		url:          "https://www.google.com/",
-		sourceType:   "Logs",
+		sourceType:   "Log",
 		applications: []string{acctest.RandomWithPrefix("tf-acc-test")},
 		subsystems:   []string{acctest.RandomWithPrefix("tf-acc-test")},
 		isPrivate:    false,
