@@ -1817,7 +1817,6 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) st
   resource "coralogix_global_router" "example" {
     name        = "global router example"
     description = "global router example"
-    entity_type = "alerts"
     rules       = [
       {
         name = "rule-name"
@@ -1959,7 +1958,6 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter(name string) string {
   resource "coralogix_global_router" "example" {
     name        = "global router example"
     description = "global router example"
-    entity_type = "alerts"
     rules       = [
       {
         name = "rule-name"
