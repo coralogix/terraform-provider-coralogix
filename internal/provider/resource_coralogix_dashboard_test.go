@@ -215,7 +215,7 @@ func TestAccCoralogixResourceDashboardLinechartWidget(t *testing.T) {
               line_chart = {
 				        stacked_line = "relative"
                 query_definitions = [{
-                query = {
+                  query = {
                     spans = {
                       aggregations = [{
                         type             = "dimension"
