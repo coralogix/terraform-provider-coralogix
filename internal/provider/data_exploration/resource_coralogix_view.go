@@ -1,4 +1,4 @@
-// Copyright 2024 Coralogix Ltd.
+// Copyright 2025 Coralogix Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,7 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package coralogix
+
+package data_exploration
 
 import (
 	"context"
@@ -20,6 +21,10 @@ import (
 	"regexp"
 	"strconv"
 	"time"
+
+	views "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/views_service"
+	"github.com/coralogix/terraform-provider-coralogix/coralogix/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -30,10 +35,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int32planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -41,8 +46,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	"terraform-provider-coralogix/coralogix/utils"
 )
 
 var _ resource.Resource = (*ViewResource)(nil)
@@ -52,7 +55,7 @@ func NewViewResource() resource.Resource {
 }
 
 type ViewResource struct {
-	client *cxsdk.ViewsClient
+	client *views.ViewsServiceAPIService
 }
 
 func (r *ViewResource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -77,7 +80,124 @@ func (r *ViewResource) Configure(_ context.Context, req resource.ConfigureReques
 }
 
 func (r *ViewResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = ViewResourceSchema(ctx)
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"id": schema.Int32Attribute{
+				Computed:            true,
+				Description:         "id",
+				MarkdownDescription: "id",
+				PlanModifiers: []planmodifier.Int32{
+					int32planmodifier.UseStateForUnknown(),
+				},
+			},
+			"folder_id": schema.StringAttribute{
+				Optional:            true,
+				Description:         "Unique identifier for folders",
+				MarkdownDescription: "Unique identifier for folders",
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(36, 36),
+					stringvalidator.RegexMatches(regexp.MustCompile("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"), ""),
+				},
+			},
+			"name": schema.StringAttribute{
+				Required:            true,
+				Description:         "View name",
+				MarkdownDescription: "View name",
+				Validators: []validator.String{
+					stringvalidator.LengthAtLeast(1),
+				},
+			},
+			"search_query": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"query": schema.StringAttribute{
+						Required: true,
+						Validators: []validator.String{
+							stringvalidator.LengthAtLeast(1),
+						},
+					},
+				},
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"filters": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"filters": schema.ListNestedAttribute{
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"name": schema.StringAttribute{
+									Required:            true,
+									Description:         "Filter name",
+									MarkdownDescription: "Filter name",
+									Validators: []validator.String{
+										stringvalidator.LengthAtLeast(1),
+									},
+								},
+								"selected_values": schema.MapAttribute{
+									ElementType:         types.BoolType,
+									Required:            true,
+									Description:         "Filter selected values",
+									MarkdownDescription: "Filter selected values",
+								},
+							},
+						},
+						Optional: true,
+						Computed: true,
+						Validators: []validator.List{
+							listvalidator.SizeAtLeast(1),
+						},
+						PlanModifiers: []planmodifier.List{
+							listplanmodifier.UseStateForUnknown(),
+						},
+					},
+				},
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"time_selection": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"custom_selection": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"from_time": schema.StringAttribute{
+								Required: true,
+								Validators: []validator.String{
+									stringvalidator.LengthAtLeast(1),
+								},
+							},
+							"to_time": schema.StringAttribute{
+								Required: true,
+								Validators: []validator.String{
+									stringvalidator.LengthAtLeast(1),
+								},
+							},
+						},
+						Validators: []validator.Object{
+							objectvalidator.ExactlyOneOf(
+								path.MatchRoot("time_selection").AtName("quick_selection"),
+							),
+						},
+						Optional: true,
+					},
+					"quick_selection": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"seconds": schema.Int64Attribute{
+								Required:            true,
+								Description:         "Folder name",
+								MarkdownDescription: "Folder name",
+							},
+						},
+						Optional: true,
+					},
+				},
+				Required: true,
+			},
+		},
+	}
 }
 
 func (r *ViewResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -121,7 +241,7 @@ func (r *ViewResource) Create(ctx context.Context, req resource.CreateRequest, r
 	resp.Diagnostics.Append(resp.State.Set(ctx, data)...)
 }
 
-func flattenView(ctx context.Context, view *cxsdk.View) (*ViewModel, diag.Diagnostics) {
+func flattenView(ctx context.Context, view *views.View) (*ViewModel, diag.Diagnostics) {
 	filters, diags := flattenViewFilter(ctx, view.Filters)
 	if diags.HasError() {
 		return nil, diags
@@ -132,7 +252,7 @@ func flattenView(ctx context.Context, view *cxsdk.View) (*ViewModel, diag.Diagno
 		return nil, diags
 	}
 
-	timeSelection, diags := flattenViewTimeSelection(ctx, view.TimeSelection)
+	timeSelection, diags := flattenViewTimeSelection(ctx, &view.TimeSelection)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -140,14 +260,14 @@ func flattenView(ctx context.Context, view *cxsdk.View) (*ViewModel, diag.Diagno
 	return &ViewModel{
 		Filters:       filters,
 		FolderId:      utils.WrapperspbStringToTypeString(view.FolderId),
-		Id:            types.StringValue(strconv.Itoa(int(view.Id.Value))),
+		Id:            types.Int32Value(view.Id),
 		Name:          utils.WrapperspbStringToTypeString(view.Name),
 		SearchQuery:   searchQuery,
 		TimeSelection: timeSelection,
 	}, nil
 }
 
-func flattenViewTimeSelection(ctx context.Context, selection *cxsdk.TimeSelection) (types.Object, diag.Diagnostics) {
+func flattenViewTimeSelection(ctx context.Context, selection *views.TimeSelection) (types.Object, diag.Diagnostics) {
 	if selection == nil {
 		return TimeSelectionModel{
 			CustomSelection: types.ObjectNull(CustomSelectionModel{}.AttributeTypes(ctx)),
@@ -211,7 +331,7 @@ func flattenQuickSelection(ctx context.Context, selection *cxsdk.QuickTimeSelect
 	return quickSelectionModel.ToObjectValue(ctx)
 }
 
-func flattenSearchQuery(ctx context.Context, query *cxsdk.SearchQuery) (types.Object, diag.Diagnostics) {
+func flattenSearchQuery(ctx context.Context, query *views.SearchQuery) (types.Object, diag.Diagnostics) {
 	if query == nil {
 		return types.ObjectNull(SearchQueryModel{}.AttributeTypes(ctx)), nil
 	}
@@ -221,7 +341,7 @@ func flattenSearchQuery(ctx context.Context, query *cxsdk.SearchQuery) (types.Ob
 	}.ToObjectValue(ctx)
 }
 
-func flattenViewFilter(ctx context.Context, filters *cxsdk.SelectedFilters) (types.Object, diag.Diagnostics) {
+func flattenViewFilter(ctx context.Context, filters *views.SelectedFilters) (types.Object, diag.Diagnostics) {
 	if filters == nil {
 		return types.ObjectNull(FiltersModel{}.AttributeTypes()), nil
 	}
@@ -236,7 +356,7 @@ func flattenViewFilter(ctx context.Context, filters *cxsdk.SelectedFilters) (typ
 	}.ToObjectValue(ctx)
 }
 
-func flattenInnerViewFilters(ctx context.Context, filters []*cxsdk.ViewFilter) (basetypes.ListValue, diag.Diagnostics) {
+func flattenInnerViewFilters(ctx context.Context, filters []views.ViewsV1Filter) (basetypes.ListValue, diag.Diagnostics) {
 	if filters == nil {
 		return types.ListNull(types.ObjectType{AttrTypes: InnerFiltersModel{}.AttributeTypes()}), nil
 	}
@@ -310,19 +430,9 @@ func extractUpdateView(ctx context.Context, data *ViewModel) (*cxsdk.ReplaceView
 		return nil, diags
 	}
 
-	id, err := strconv.Atoi(data.Id.ValueString())
-	if err != nil {
-		return nil, diag.Diagnostics{
-			diag.NewErrorDiagnostic(
-				"Invalid View ID",
-				fmt.Sprintf("ID '%s' is not a valid integer: %s", data.Id.ValueString(), err.Error()),
-			),
-		}
-	}
-
 	return &cxsdk.ReplaceViewRequest{
 		View: &cxsdk.View{
-			Id:            wrapperspb.Int32(int32(id)),
+			Id:            wrapperspb.Int32(int32(data.Id.ValueInt32())),
 			Name:          utils.TypeStringToWrapperspbString(data.Name),
 			SearchQuery:   searchQuery,
 			TimeSelection: timeSelection,
@@ -632,17 +742,9 @@ func (r *ViewResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	// Read Terraform prior state data into the model
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
-	idStr := data.Id.ValueString()
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Invalid View ID",
-			fmt.Sprintf("ID '%s' is not a valid integer: %s", idStr, err.Error()),
-		)
-		return
-	}
-
-	_, err = r.client.Delete(ctx, &cxsdk.DeleteViewRequest{Id: wrapperspb.Int32(int32(id))})
+	id := data.Id
+	rq := r.client.ViewsServiceDeleteView(ctx, id.ValueInt32())
+	_, _, err := rq.Execute()
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
 		if cxsdk.Code(err) == codes.NotFound {
@@ -664,131 +766,10 @@ func (r *ViewResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 	}
 }
 
-func ViewResourceSchema(ctx context.Context) schema.Schema {
-	return schema.Schema{
-		Attributes: map[string]schema.Attribute{
-			"filters": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"filters": schema.ListNestedAttribute{
-						NestedObject: schema.NestedAttributeObject{
-							Attributes: map[string]schema.Attribute{
-								"name": schema.StringAttribute{
-									Required:            true,
-									Description:         "Filter name",
-									MarkdownDescription: "Filter name",
-									Validators: []validator.String{
-										stringvalidator.LengthAtLeast(1),
-									},
-								},
-								"selected_values": schema.MapAttribute{
-									ElementType:         types.BoolType,
-									Required:            true,
-									Description:         "Filter selected values",
-									MarkdownDescription: "Filter selected values",
-								},
-							},
-						},
-						Optional: true,
-						Computed: true,
-						Validators: []validator.List{
-							listvalidator.SizeAtLeast(1),
-						},
-						PlanModifiers: []planmodifier.List{
-							listplanmodifier.UseStateForUnknown(),
-						},
-					},
-				},
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"folder_id": schema.StringAttribute{
-				Optional:            true,
-				Description:         "Unique identifier for folders",
-				MarkdownDescription: "Unique identifier for folders",
-				Validators: []validator.String{
-					stringvalidator.LengthBetween(36, 36),
-					stringvalidator.RegexMatches(regexp.MustCompile("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"), ""),
-				},
-			},
-			"id": schema.StringAttribute{
-				Computed:            true,
-				Description:         "id",
-				MarkdownDescription: "id",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"name": schema.StringAttribute{
-				Required:            true,
-				Description:         "View name",
-				MarkdownDescription: "View name",
-				Validators: []validator.String{
-					stringvalidator.LengthAtLeast(1),
-				},
-			},
-			"search_query": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"query": schema.StringAttribute{
-						Required: true,
-						Validators: []validator.String{
-							stringvalidator.LengthAtLeast(1),
-						},
-					},
-				},
-				Optional: true,
-				Computed: true,
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"time_selection": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"custom_selection": schema.SingleNestedAttribute{
-						Attributes: map[string]schema.Attribute{
-							"from_time": schema.StringAttribute{
-								Required: true,
-								Validators: []validator.String{
-									stringvalidator.LengthAtLeast(1),
-								},
-							},
-							"to_time": schema.StringAttribute{
-								Required: true,
-								Validators: []validator.String{
-									stringvalidator.LengthAtLeast(1),
-								},
-							},
-						},
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(
-								path.MatchRoot("time_selection").AtName("quick_selection"),
-							),
-						},
-						Optional: true,
-					},
-					"quick_selection": schema.SingleNestedAttribute{
-						Attributes: map[string]schema.Attribute{
-							"seconds": schema.Int64Attribute{
-								Required:            true,
-								Description:         "Folder name",
-								MarkdownDescription: "Folder name",
-							},
-						},
-						Optional: true,
-					},
-				},
-				Required: true,
-			},
-		},
-	}
-}
-
 type ViewModel struct {
 	Filters       types.Object `tfsdk:"filters"` //FiltersModel
 	FolderId      types.String `tfsdk:"folder_id"`
-	Id            types.String `tfsdk:"id"`
+	Id            types.Int32  `tfsdk:"id"`
 	Name          types.String `tfsdk:"name"`
 	SearchQuery   types.Object `tfsdk:"search_query"`   //SearchQueryModel
 	TimeSelection types.Object `tfsdk:"time_selection"` // TimeSelectionModel

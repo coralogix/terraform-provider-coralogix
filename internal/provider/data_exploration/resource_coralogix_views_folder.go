@@ -11,12 +11,16 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package coralogix
+
+package data_exploration
 
 import (
 	"context"
 	"fmt"
 	"log"
+
+	"github.com/coralogix/terraform-provider-coralogix/coralogix/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -30,8 +34,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	"terraform-provider-coralogix/coralogix/utils"
 )
 
 var _ resource.Resource = (*ViewsFolderResource)(nil)

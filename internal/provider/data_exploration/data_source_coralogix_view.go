@@ -12,23 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package coralogix
+package data_exploration
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
 
-	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	"terraform-provider-coralogix/coralogix/utils"
+	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	views "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/views_service"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/grpc/codes"
 )
 
 var _ datasource.DataSourceWithConfigure = &ViewDataSource{}
@@ -38,7 +36,7 @@ func NewViewDataSource() datasource.DataSource {
 }
 
 type ViewDataSource struct {
-	client *cxsdk.ViewsClient
+	client *views.ViewsServiceAPIService
 }
 
 func (d *ViewDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -79,36 +77,30 @@ func (d *ViewDataSource) Read(ctx context.Context, req datasource.ReadRequest, r
 	}
 	//Get refreshed View value from Coralogix
 	idStr := data.Id.ValueString()
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.ParseInt(idStr, 10, 32)
+
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Invalid View ID",
-			fmt.Sprintf("ID '%s' is not a valid integer: %s", idStr, err.Error()),
+			fmt.Sprintf("ID '%s' is not a valid 32-bit integer: %s", idStr, err.Error()),
 		)
 		return
 	}
+	rq := d.client.ViewsServiceGetView(ctx, int32(id))
+	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
+	result, _, err := rq.Execute()
 
-	log.Printf("[INFO] Reading view: %d", id)
-	getViewResp, err := d.client.Get(ctx, &cxsdk.GetViewRequest{Id: wrapperspb.Int32(int32(id))})
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
-			resp.Diagnostics.AddWarning(
-				err.Error(),
-				fmt.Sprintf("View %q is in state, but no longer exists in Coralogix backend", id),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading View",
-				utils.FormatRpcErrors(err, fmt.Sprintf("%s/%d", cxsdk.GetViewRPC, id), ""),
-			)
-		}
+		resp.Diagnostics.AddError(
+			"Error reading View",
+			utils.FormatOpenAPIErrors(err, "Read", nil),
+		)
 		return
 	}
-	respStr, _ := json.Marshal(getViewResp)
-	log.Printf("[INFO] Received View: %s", string(respStr))
+	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
 
-	data, diags = flattenView(ctx, getViewResp.View)
+	data, diags = flattenView(ctx, result)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

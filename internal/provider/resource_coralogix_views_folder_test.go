@@ -1,4 +1,4 @@
-// Copyright 2024 Coralogix Ltd.
+// Copyright 2025 Coralogix Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,18 +11,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package coralogix
+package provider
 
 import (
 	"context"
 	"fmt"
 	"testing"
 
+	"github.com/coralogix/terraform-provider-coralogix/coralogix/clientset"
+
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
 )
 
 func TestAccCoralogixResourceViewsFolder(t *testing.T) {

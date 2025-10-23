@@ -1,4 +1,4 @@
-// Copyright 2024 Coralogix Ltd.
+// Copyright 2025 Coralogix Ltd.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package coralogix
+package data_exploration
 
 import (
 	"context"
@@ -20,9 +20,10 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/coralogix/terraform-provider-coralogix/coralogix/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/coralogix/utils"
+
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"terraform-provider-coralogix/coralogix/clientset"
-	"terraform-provider-coralogix/coralogix/utils"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
