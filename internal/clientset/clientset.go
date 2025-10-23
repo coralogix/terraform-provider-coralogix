@@ -21,6 +21,7 @@ import (
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	views "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/views_service"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 )
@@ -51,6 +52,8 @@ type ClientSet struct {
 	groupGrpc           *cxsdk.GroupsClient
 	notifications       *cxsdk.NotificationsClient
 	ipaccess            *ipaccess.IPAccessServiceAPIService
+	views               *views.ViewsServiceAPIService
+	viewsFolders        *cxsdk.ViewFoldersClient
 
 	grafana *GrafanaClient
 	groups  *GroupsClient
@@ -164,6 +167,14 @@ func (c *ClientSet) LegacySLOs() *cxsdk.LegacySLOsClient {
 	return c.legacySlos
 }
 
+func (c *ClientSet) Views() *views.ViewsServiceAPIService {
+	return c.views
+}
+
+func (c *ClientSet) ViewsFolders() *cxsdk.ViewFoldersClient {
+	return c.viewsFolders
+}
+
 func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	apiKeySdk := cxsdk.NewSDKCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
@@ -197,6 +208,8 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
 		notifications:       cxsdk.NewNotificationsClient(apiKeySdk),
 		ipaccess:            cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
+		views:               cxsdkOpenapi.NewViewsClient(oasTfCPC),
+		viewsFolders:        cxsdk.NewViewFoldersClient(apiKeySdk),
 
 		grafana: NewGrafanaClient(apikeyCPC),
 		groups:  NewGroupsClient(apikeyCPC),
