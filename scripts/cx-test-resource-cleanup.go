@@ -45,7 +45,7 @@ func main() {
 	region = strings.TrimSpace(strings.ToLower(region))
 	log.Println("Cleaning up all resources in region:", region)
 	// Dashboards
-	dashboardClient := cxsdk.NewDashboardsClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	dashboardClient := cxsdk.NewDashboardsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	dashboards, err := dashboardClient.List(context.Background())
 
 	if err == nil {
@@ -58,7 +58,7 @@ func main() {
 	}
 
 	// Alerts
-	alertClient := cxsdk.NewAlertsClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	alertClient := cxsdk.NewAlertsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	alerts, err := alertClient.List(context.Background(), &cxsdk.ListAlertDefsRequest{})
 	if err == nil {
 		log.Println("Deleting all alerts")
@@ -71,7 +71,7 @@ func main() {
 	}
 
 	// Scopes
-	scopesClient := cxsdk.NewScopesClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	scopesClient := cxsdk.NewScopesClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	scopes, err := scopesClient.List(context.Background(), &cxsdk.GetTeamScopesRequest{})
 	if err == nil {
 		log.Println("Deleting all Scopes")
@@ -83,7 +83,7 @@ func main() {
 	}
 
 	// Custom Roles
-	rolesClients := cxsdk.NewRolesClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	rolesClients := cxsdk.NewRolesClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	roles, err := rolesClients.List(context.Background(), &cxsdk.ListCustomRolesRequest{})
 	if err == nil {
 		log.Println("Deleting all custom roles")
@@ -95,7 +95,7 @@ func main() {
 	}
 
 	// Enrichments
-	enrichmentClient := cxsdk.NewEnrichmentClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	enrichmentClient := cxsdk.NewEnrichmentClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	enrichments, err := enrichmentClient.List(context.Background(), &cxsdk.GetEnrichmentsRequest{})
 	if err == nil {
 		log.Println("Deleting all Enrichments")
@@ -109,7 +109,7 @@ func main() {
 	}
 
 	// DataSets
-	dataSetClient := cxsdk.NewDataSetClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	dataSetClient := cxsdk.NewDataSetClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	dataSets, err := dataSetClient.List(context.Background(), &cxsdk.ListDataSetsRequest{})
 	if err == nil {
 		log.Println("Deleting all DataSets")
@@ -121,7 +121,7 @@ func main() {
 	}
 
 	// Webhooks
-	webhookClient := cxsdk.NewWebhooksClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	webhookClient := cxsdk.NewWebhooksClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	webhooks, err := webhookClient.List(context.Background(), &cxsdk.ListAllOutgoingWebhooksRequest{})
 	if err == nil {
 		log.Println("Deleting all webhooks")
@@ -133,7 +133,7 @@ func main() {
 	}
 
 	// Recording Rules
-	recordingRulesGroupsSetClient := cxsdk.NewRecordingRuleGroupSetsClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	recordingRulesGroupsSetClient := cxsdk.NewRecordingRuleGroupSetsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	recordingRulesGroupsSets, err := recordingRulesGroupsSetClient.List(context.Background())
 	if err == nil {
 		log.Println("Deleting all recording rules")
@@ -145,7 +145,7 @@ func main() {
 	}
 
 	// Events2Metrics
-	events2metricsClient := cxsdk.NewEvents2MetricsClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	events2metricsClient := cxsdk.NewEvents2MetricsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	events2metrics, err := events2metricsClient.List(context.Background())
 	if err == nil {
 		log.Println("Deleting all events2metrics")
@@ -157,7 +157,7 @@ func main() {
 	}
 
 	// Dashboard folders
-	dashboardsFolderClient := cxsdk.NewDashboardsFoldersClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	dashboardsFolderClient := cxsdk.NewDashboardsFoldersClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	dashboardsFolders, err := dashboardsFolderClient.List(context.Background())
 	if err == nil {
 		log.Println("Deleting all dashboard folders")
@@ -169,7 +169,7 @@ func main() {
 	}
 
 	// TCO
-	tcoPoliciesTracesClient := cxsdk.NewTCOPoliciesClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	tcoPoliciesTracesClient := cxsdk.NewTCOPoliciesClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	tcoPolicies, err := tcoPoliciesTracesClient.List(context.Background(), &cxsdk.GetCompanyPoliciesRequest{})
 	if err == nil {
 		log.Println("Deleting all TCO Traces policies")
@@ -181,7 +181,7 @@ func main() {
 		log.Fatal("Error listing TCO policies:", err)
 	}
 
-	tcoPoliciesLogsClient := cxsdk.NewTCOPoliciesClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	tcoPoliciesLogsClient := cxsdk.NewTCOPoliciesClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	tcoPolicies, err = tcoPoliciesLogsClient.List(context.Background(), &cxsdk.GetCompanyPoliciesRequest{})
 	if err == nil {
 		log.Println("Deleting all TCO Logs policies")
@@ -193,7 +193,7 @@ func main() {
 		log.Fatal("Error listing TCO Logs policies:", err)
 	}
 	// Groups
-	groupClient := cxsdk.NewGroupsClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	groupClient := cxsdk.NewGroupsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	groups, err := groupClient.List(context.Background(), &cxsdk.GetTeamGroupsRequest{})
 
 	if err == nil {
@@ -206,7 +206,7 @@ func main() {
 		log.Fatal("Error listing groups:", err)
 	}
 	// Connectors
-	notificationClient := cxsdk.NewNotificationsClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	notificationClient := cxsdk.NewNotificationsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	listConnectorsRes, err := notificationClient.ListConnectors(context.Background(), &cxsdk.ListConnectorsRequest{})
 	if err == nil {
 		log.Println("Deleting all connectors")
@@ -219,7 +219,7 @@ func main() {
 
 	// Presets
 	listPresetsRes, err := notificationClient.ListPresetSummaries(context.Background(),
-		&cxsdk.ListPresetSummariesRequest{EntityType: cxsdk.EntityTypeAlerts})
+		&cxsdk.ListPresetSummariesRequest{})
 	if err == nil {
 		log.Println("Deleting all presets")
 		for _, preset := range listPresetsRes.PresetSummaries {
@@ -241,7 +241,7 @@ func main() {
 	}
 
 	// Users
-	usersClient := cxsdk.NewUsersClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	usersClient := cxsdk.NewUsersClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	users, err := usersClient.List(context.Background())
 	if err == nil {
 		log.Println("Deleting all users")
@@ -255,7 +255,7 @@ func main() {
 	}
 
 	// Views
-	viewsClient := cxsdk.NewViewsClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	viewsClient := cxsdk.NewViewsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
 	views, err := viewsClient.List(context.Background(), &cxsdk.ListViewsRequest{})
 	if err == nil {
 		log.Println("Deleting all views")
@@ -271,8 +271,8 @@ func main() {
 	}
 
 	// Views
-	viewFoldersClient := cxsdk.NewViewFoldersClient(cxsdk.NewCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	viewFolders, err := viewFoldersClient.List(context.Background())
+	viewFoldersClient := cxsdk.NewViewFoldersClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
+	viewFolders, err := viewFoldersClient.List(context.Background(), &cxsdk.ListViewFoldersRequest{})
 	if err == nil {
 		log.Println("Deleting all viewFolders")
 		for _, f := range viewFolders.Folders {
