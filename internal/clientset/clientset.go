@@ -18,6 +18,7 @@ import (
 	"log"
 	"strings"
 
+	alertScheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -41,7 +42,7 @@ type ClientSet struct {
 	archiveMetrics      *cxsdk.ArchiveMetricsClient
 	archiveRetentions   *cxsdk.ArchiveRetentionsClient
 	tcoPolicies         *cxsdk.TCOPoliciesClient
-	alertScheduler      *cxsdk.AlertSchedulerClient
+	alertScheduler      *alertScheduler.AlertSchedulerRuleServiceAPIService
 	dahboardsFolders    *cxsdk.DashboardsFoldersClient
 	ruleGroups          *cxsdk.RuleGroupsClient
 	recordingRuleGroups *cxsdk.RecordingRuleGroupSetsClient
@@ -115,7 +116,7 @@ func (c *ClientSet) ArchiveLogs() *cxsdk.ArchiveLogsClient {
 	return c.archiveLogs
 }
 
-func (c *ClientSet) AlertSchedulers() *cxsdk.AlertSchedulerClient {
+func (c *ClientSet) AlertSchedulers() *alertScheduler.AlertSchedulerRuleServiceAPIService {
 	return c.alertScheduler
 }
 
@@ -187,7 +188,6 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		archiveMetrics:      cxsdk.NewArchiveMetricsClient(apiKeySdk),
 		archiveRetentions:   cxsdk.NewArchiveRetentionsClient(apiKeySdk),
 		tcoPolicies:         cxsdk.NewTCOPoliciesClient(apiKeySdk),
-		alertScheduler:      cxsdk.NewAlertSchedulerClient(apiKeySdk),
 		dahboardsFolders:    cxsdk.NewDashboardsFoldersClient(apiKeySdk),
 		users:               cxsdk.NewUsersClient(apiKeySdk),
 		ruleGroups:          cxsdk.NewRuleGroupsClient(apiKeySdk),
@@ -196,7 +196,9 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		events2Metrics:      cxsdk.NewEvents2MetricsClient(apiKeySdk),
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
 		notifications:       cxsdk.NewNotificationsClient(apiKeySdk),
-		ipaccess:            cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
+
+		alertScheduler: cxsdkOpenapi.NewAlertSchedulerClient(oasTfCPC),
+		ipaccess:       cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
 
 		grafana: NewGrafanaClient(apikeyCPC),
 		groups:  NewGroupsClient(apikeyCPC),

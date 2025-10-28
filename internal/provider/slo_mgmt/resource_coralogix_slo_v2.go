@@ -23,8 +23,6 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
-
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/float32validator"
@@ -141,9 +139,6 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 						Computed:            true,
 						MarkdownDescription: "List of labels to group SLO evaluations by.",
 					},
-				},
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
 				},
 				MarkdownDescription: "Optional grouping configuration for SLO evaluations.",
 			},
