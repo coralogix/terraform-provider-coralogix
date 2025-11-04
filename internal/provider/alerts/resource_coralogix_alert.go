@@ -483,9 +483,9 @@ func extractNotificationRouter(ctx context.Context, routerObject types.Object) (
 	}
 
 	notifyOn := alerttypes.NotifyOnSchemaToProtoMap[routerModel.NotifyOn.ValueString()]
-
+	id := "router_default"
 	router := &cxsdk.NotificationRouter{
-		Id:       "router_default",
+		Id:       &id,
 		NotifyOn: &notifyOn,
 	}
 

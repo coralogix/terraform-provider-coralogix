@@ -75,7 +75,7 @@ func (d *SLOV2DataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 
 	//Get refreshed SLO value from Coralogix
 	id := state.ID.ValueString()
-	rq := r.client.SlosServiceGetSlo(ctx, id)
+	rq := d.client.SlosServiceGetSlo(ctx, id)
 	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
 	result, readResp, err := rq.Execute()
 
