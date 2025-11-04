@@ -336,6 +336,10 @@ func StringSliceToTypeStringSet(s []string) types.Set {
 	return types.SetValueMust(types.StringType, elements)
 }
 
+func Int64ToStringValue(v int64) types.String {
+	return types.StringValue(strconv.FormatInt(v, 10))
+}
+
 func Int32SliceToTypeInt64Set(arr []int32) types.Set {
 	if len(arr) == 0 {
 		return types.SetNull(types.Int64Type)
@@ -347,11 +351,22 @@ func Int32SliceToTypeInt64Set(arr []int32) types.Set {
 	return types.SetValueMust(types.StringType, elements)
 }
 
+func StringSliceToTypeStringList(s []string) types.List {
+	if len(s) == 0 {
+		return types.ListNull(types.StringType)
+	}
+	elements := make([]attr.Value, 0)
+	for _, v := range s {
+		elements = append(elements, types.StringValue(v))
+	}
+	return types.ListValueMust(types.StringType, elements)
+}
+
 func WrappedStringSliceToTypeStringList(s []*wrapperspb.StringValue) types.List {
 	if len(s) == 0 {
 		return types.ListNull(types.StringType)
 	}
-	elements := make([]attr.Value, 0, len(s))
+	elements := make([]attr.Value, 0)
 	for _, v := range s {
 		elements = append(elements, types.StringValue(v.GetValue()))
 	}
@@ -768,6 +783,20 @@ func TypeMapToStringMap(ctx context.Context, m types.Map) (map[string]string, di
 	var result map[string]string
 	diags := m.ElementsAs(ctx, &result, true)
 	return result, diags
+}
+
+func StringNullIfUnknown(s types.String) *string {
+	if s.IsNull() || s.IsUnknown() {
+		return nil
+	}
+	return s.ValueStringPointer()
+}
+
+func UuidCreateIfNull(uuid types.String) string {
+	if uuid.IsNull() || uuid.IsUnknown() {
+		return gouuid.NewString()
+	}
+	return uuid.ValueString()
 }
 
 func ExpandUuid(uuid types.String) *wrapperspb.StringValue {

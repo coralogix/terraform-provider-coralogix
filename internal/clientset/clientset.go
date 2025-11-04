@@ -19,22 +19,24 @@ import (
 	"strings"
 
 	alertScheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
+	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	webhhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
+	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 )
 
 type ClientSet struct {
 	actions             *cxsdk.ActionsClient
 	alerts              *cxsdk.AlertsClient
-	apikeys             *cxsdk.ApikeysClient
+	apikeys             *apiKeys.APIKeysServiceAPIService
 	integrations        *cxsdk.IntegrationsClient
 	enrichments         *cxsdk.EnrichmentsClient
 	dataSet             *cxsdk.DataSetClient
-	webhooks            *cxsdk.WebhooksClient
-	slos                *cxsdk.SLOsClient
+	webhooks            *webhhooks.OutgoingWebhooksServiceAPIService
+	slos                *slos.SlosServiceAPIService
 	legacySlos          *cxsdk.LegacySLOsClient
 	scopes              *cxsdk.ScopesClient
 	dashboards          *cxsdk.DashboardsClient
@@ -65,7 +67,7 @@ func (c *ClientSet) Alerts() *cxsdk.AlertsClient {
 	return c.alerts
 }
 
-func (c *ClientSet) APIKeys() *cxsdk.ApikeysClient {
+func (c *ClientSet) APIKeys() *apiKeys.APIKeysServiceAPIService {
 	return c.apikeys
 }
 
@@ -96,7 +98,7 @@ func (c *ClientSet) TCOPolicies() *cxsdk.TCOPoliciesClient {
 	return c.tcoPolicies
 }
 
-func (c *ClientSet) Webhooks() *cxsdk.WebhooksClient {
+func (c *ClientSet) Webhooks() *webhhooks.OutgoingWebhooksServiceAPIService {
 	return c.webhooks
 }
 
@@ -124,7 +126,7 @@ func (c *ClientSet) CustomRoles() *cxsdk.RolesClient {
 	return c.customRole
 }
 
-func (c *ClientSet) SLOs() *cxsdk.SLOsClient {
+func (c *ClientSet) SLOs() *slos.SlosServiceAPIService {
 	return c.slos
 }
 
@@ -173,13 +175,11 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	log.Printf("[INFO] Using API URL: %v\n", url)
 	oasTfCPC := cxsdkOpenapi.NewSDKCallPropertiesCreatorTerraform(url, apiKey, TF_PROVIDER_VERSION)
 	return &ClientSet{
-		apikeys:             cxsdk.NewAPIKeysClient(apiKeySdk),
 		actions:             cxsdk.NewActionsClient(apiKeySdk),
 		integrations:        cxsdk.NewIntegrationsClient(apiKeySdk),
 		enrichments:         cxsdk.NewEnrichmentClient(apiKeySdk),
 		alerts:              cxsdk.NewAlertsClientWithCustomLabels(apiKeySdk, map[string]string{}),
 		dataSet:             cxsdk.NewDataSetClient(apiKeySdk),
-		webhooks:            cxsdk.NewWebhooksClient(apiKeySdk),
 		slos:                cxsdk.NewSLOsClient(apiKeySdk),
 		legacySlos:          cxsdk.NewLegacySLOsClient(apiKeySdk),
 		scopes:              cxsdk.NewScopesClient(apiKeySdk),
@@ -197,6 +197,8 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
 		notifications:       cxsdk.NewNotificationsClient(apiKeySdk),
 
+		apikeys:        cxsdkOpenapi.NewAPIKeysClient(oasTfCPC),
+		webhooks:       cxsdkOpenapi.NewWebhooksClient(oasTfCPC),
 		alertScheduler: cxsdkOpenapi.NewAlertSchedulerClient(oasTfCPC),
 		ipaccess:       cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
 

@@ -18,11 +18,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	webhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -30,9 +31,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var _ datasource.DataSourceWithConfigure = &WebhookDataSource{}
@@ -42,7 +40,7 @@ func NewWebhookDataSource() datasource.DataSource {
 }
 
 type WebhookDataSource struct {
-	client *cxsdk.WebhooksClient
+	client *webhooks.OutgoingWebhooksServiceAPIService
 }
 
 func (d *WebhookDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -99,33 +97,30 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	id := data.ID.ValueString()
 	name := data.Name.ValueString()
 
-	var getWebhookResp *cxsdk.GetOutgoingWebhookResponse
+	var result *webhooks.GetOutgoingWebhookResponse
 	var err error
 
 	if id != "" {
-		getWebhookResp, err = d.fetchWebhookByID(ctx, id, resp)
+		result, err = d.fetchWebhookByID(ctx, id, resp)
 		if err != nil {
 			return
 		}
 
 	} else if name != "" {
 		log.Printf("[INFO] Listing Webhooks to find by name: %s", name)
-		listWebhookReq := &cxsdk.ListAllOutgoingWebhooksRequest{}
-		listWebhookResp, err := d.client.List(ctx, listWebhookReq)
+		listResult, _, err := d.client.OutgoingWebhooksServiceListAllOutgoingWebhooks(ctx).Execute()
 		if err != nil {
 			log.Printf("[ERROR] Received error when listing webhooks: %s", err.Error())
-			listWebhookReqStr := protojson.Format(listWebhookReq)
 			resp.Diagnostics.AddError(
 				"Error listing Webhooks",
-				utils.FormatRpcErrors(err, "List", listWebhookReqStr),
-			)
+				utils.FormatOpenAPIErrors(err, "Update", nil))
 			return
 		}
 
 		var webhookID string
 		var found bool
-		for _, webhookSummary := range listWebhookResp.GetDeployed() {
-			if webhookSummary.GetName().GetValue() == name {
+		for _, webhookSummary := range listResult.GetDeployed() {
+			if webhookSummary.GetName() == name {
 				if found {
 					resp.Diagnostics.AddError(
 						"Multiple Webhooks Found",
@@ -134,8 +129,8 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 					return
 				}
 				found = true
-				log.Printf("[INFO] Found Webhook ID by name: %s", webhookSummary.GetId().GetValue())
-				webhookID = webhookSummary.GetId().GetValue()
+				log.Printf("[INFO] Found Webhook ID by name: %s", webhookSummary.GetId())
+				webhookID = webhookSummary.GetId()
 			}
 		}
 
@@ -147,43 +142,41 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			return
 		}
 
-		getWebhookResp, err = d.fetchWebhookByID(ctx, webhookID, resp)
+		result, err = d.fetchWebhookByID(ctx, webhookID, resp)
 		if err != nil {
 			return
 		}
+		data, diags := flattenWebhook(ctx, &result.Webhook)
+		if diags.HasError() {
+			resp.Diagnostics = diags
+			return
+		}
+
+		// Save data into Terraform state
+		resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	}
-
-	log.Printf("[INFO] Received Webhook: %s", protojson.Format(getWebhookResp))
-
-	data, diags := flattenWebhook(ctx, getWebhookResp.GetWebhook())
-	if diags.HasError() {
-		resp.Diagnostics = diags
-		return
-	}
-
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
-func (d *WebhookDataSource) fetchWebhookByID(ctx context.Context, id string, resp *datasource.ReadResponse) (*cxsdk.GetOutgoingWebhookResponse, error) {
-	log.Printf("[INFO] Reading Webhook by ID: %s", id)
-	getWebhookReq := &cxsdk.GetOutgoingWebhookRequest{Id: wrapperspb.String(id)}
-	getWebhookResp, err := d.client.Get(ctx, getWebhookReq)
+func (d *WebhookDataSource) fetchWebhookByID(ctx context.Context, id string, resp *datasource.ReadResponse) (*webhooks.GetOutgoingWebhookResponse, error) {
+	rq := d.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, id)
+
+	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
+
+	result, readResp, err := rq.Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if readResp.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				err.Error(),
-				fmt.Sprintf("Webhook %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
-			reqStr := protojson.Format(getWebhookReq)
-			resp.Diagnostics.AddError(
-				"Error reading Webhook",
-				utils.FormatRpcErrors(err, "Webhook", reqStr),
+			resp.Diagnostics.AddError("Error read resource",
+				utils.FormatOpenAPIErrors(err, "Read", nil),
 			)
 		}
 		return nil, err
 	}
-	return getWebhookResp, nil
+	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	return result, nil
 }
