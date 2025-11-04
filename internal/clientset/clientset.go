@@ -18,33 +18,32 @@ import (
 	"log"
 	"strings"
 
-	alertScheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
 	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	webhhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
-	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 )
 
 type ClientSet struct {
-	actions             *cxsdk.ActionsClient
-	alerts              *cxsdk.AlertsClient
-	apikeys             *apiKeys.APIKeysServiceAPIService
-	integrations        *cxsdk.IntegrationsClient
-	enrichments         *cxsdk.EnrichmentsClient
-	dataSet             *cxsdk.DataSetClient
-	webhooks            *webhhooks.OutgoingWebhooksServiceAPIService
-	slos                *slos.SlosServiceAPIService
-	legacySlos          *cxsdk.LegacySLOsClient
-	scopes              *cxsdk.ScopesClient
-	dashboards          *cxsdk.DashboardsClient
-	archiveLogs         *cxsdk.ArchiveLogsClient
-	archiveMetrics      *cxsdk.ArchiveMetricsClient
-	archiveRetentions   *cxsdk.ArchiveRetentionsClient
-	tcoPolicies         *cxsdk.TCOPoliciesClient
-	alertScheduler      *alertScheduler.AlertSchedulerRuleServiceAPIService
+	actions           *cxsdk.ActionsClient
+	alerts            *cxsdk.AlertsClient
+	apikeys           *apiKeys.APIKeysServiceAPIService
+	integrations      *cxsdk.IntegrationsClient
+	enrichments       *cxsdk.EnrichmentsClient
+	dataSet           *cxsdk.DataSetClient
+	webhooks          *webhhooks.OutgoingWebhooksServiceAPIService
+	slos              *cxsdk.SLOsClient
+	legacySlos        *cxsdk.LegacySLOsClient
+	scopes            *cxsdk.ScopesClient
+	dashboards        *cxsdk.DashboardsClient
+	archiveLogs       *cxsdk.ArchiveLogsClient
+	archiveMetrics    *cxsdk.ArchiveMetricsClient
+	archiveRetentions *cxsdk.ArchiveRetentionsClient
+	tcoPolicies       *cxsdk.TCOPoliciesClient
+	// alertScheduler      *alertScheduler.AlertSchedulerRuleServiceAPIService
+	alertScheduler      *cxsdk.AlertSchedulerClient
 	dahboardsFolders    *cxsdk.DashboardsFoldersClient
 	ruleGroups          *cxsdk.RuleGroupsClient
 	recordingRuleGroups *cxsdk.RecordingRuleGroupSetsClient
@@ -118,7 +117,7 @@ func (c *ClientSet) ArchiveLogs() *cxsdk.ArchiveLogsClient {
 	return c.archiveLogs
 }
 
-func (c *ClientSet) AlertSchedulers() *alertScheduler.AlertSchedulerRuleServiceAPIService {
+func (c *ClientSet) AlertSchedulers() *cxsdk.AlertSchedulerClient {
 	return c.alertScheduler
 }
 
@@ -126,7 +125,7 @@ func (c *ClientSet) CustomRoles() *cxsdk.RolesClient {
 	return c.customRole
 }
 
-func (c *ClientSet) SLOs() *slos.SlosServiceAPIService {
+func (c *ClientSet) SLOs() *cxsdk.SLOsClient {
 	return c.slos
 }
 
@@ -196,11 +195,12 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		events2Metrics:      cxsdk.NewEvents2MetricsClient(apiKeySdk),
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
 		notifications:       cxsdk.NewNotificationsClient(apiKeySdk),
+		alertScheduler:      cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
-		apikeys:        cxsdkOpenapi.NewAPIKeysClient(oasTfCPC),
-		webhooks:       cxsdkOpenapi.NewWebhooksClient(oasTfCPC),
-		alertScheduler: cxsdkOpenapi.NewAlertSchedulerClient(oasTfCPC),
-		ipaccess:       cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
+		apikeys:  cxsdkOpenapi.NewAPIKeysClient(oasTfCPC),
+		webhooks: cxsdkOpenapi.NewWebhooksClient(oasTfCPC),
+		// alertScheduler: cxsdkOpenapi.NewAlertSchedulerClient(oasTfCPC),
+		ipaccess: cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
 
 		grafana: NewGrafanaClient(apikeyCPC),
 		groups:  NewGroupsClient(apikeyCPC),
