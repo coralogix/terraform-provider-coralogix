@@ -150,7 +150,7 @@ func (r *IpAccessResource) Read(ctx context.Context, req resource.ReadRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	log.Printf("[INFO] Reading new resource")
+	log.Printf("[INFO] Reading resource")
 
 	result, _, err := r.client.
 		IpAccessServiceGetCompanyIpAccessSettings(ctx).
