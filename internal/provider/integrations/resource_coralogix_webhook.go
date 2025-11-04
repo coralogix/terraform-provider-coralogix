@@ -783,7 +783,7 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 
 	result, _, err := readRq.Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error read resource",
+		resp.Diagnostics.AddError("Error reading resource",
 			utils.FormatOpenAPIErrors(err, "Read", nil),
 		)
 		return
@@ -825,7 +825,7 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error read resource",
+			resp.Diagnostics.AddError("Error reading resource",
 				utils.FormatOpenAPIErrors(err, "Read", nil),
 			)
 		}

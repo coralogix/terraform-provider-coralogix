@@ -87,7 +87,7 @@ func (d *SLOV2DataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error read resource",
+			resp.Diagnostics.AddError("Error reading resource",
 				utils.FormatOpenAPIErrors(err, "Read", nil),
 			)
 		}

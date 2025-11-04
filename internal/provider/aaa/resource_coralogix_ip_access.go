@@ -157,7 +157,7 @@ func (r *IpAccessResource) Read(ctx context.Context, req resource.ReadRequest, r
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error read resource",
+		resp.Diagnostics.AddError("Error reading resource",
 			utils.FormatOpenAPIErrors(err, "Read", nil),
 		)
 		return

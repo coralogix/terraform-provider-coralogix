@@ -330,7 +330,7 @@ func (r *SLOV2Resource) Read(ctx context.Context, req resource.ReadRequest, resp
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error read resource",
+			resp.Diagnostics.AddError("Error reading resource",
 				utils.FormatOpenAPIErrors(err, "Read", nil),
 			)
 		}

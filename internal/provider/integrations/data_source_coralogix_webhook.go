@@ -171,7 +171,7 @@ func (d *WebhookDataSource) fetchWebhookByID(ctx context.Context, id string, res
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error read resource",
+			resp.Diagnostics.AddError("Error reading resource",
 				utils.FormatOpenAPIErrors(err, "Read", nil),
 			)
 		}

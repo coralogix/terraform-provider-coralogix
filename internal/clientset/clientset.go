@@ -21,8 +21,10 @@ import (
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
+	integrations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 	webhhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
+
 	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 )
 
@@ -30,7 +32,6 @@ type ClientSet struct {
 	actions           *cxsdk.ActionsClient
 	alerts            *cxsdk.AlertsClient
 	apikeys           *apiKeys.APIKeysServiceAPIService
-	integrations      *cxsdk.IntegrationsClient
 	enrichments       *cxsdk.EnrichmentsClient
 	dataSet           *cxsdk.DataSetClient
 	webhooks          *webhhooks.OutgoingWebhooksServiceAPIService
@@ -53,6 +54,7 @@ type ClientSet struct {
 	groupGrpc           *cxsdk.GroupsClient
 	notifications       *cxsdk.NotificationsClient
 	ipaccess            *ipaccess.IPAccessServiceAPIService
+	integrations        *integrations.IntegrationServiceAPIService
 
 	grafana *GrafanaClient
 	groups  *GroupsClient
@@ -145,7 +147,7 @@ func (c *ClientSet) Scopes() *cxsdk.ScopesClient {
 	return c.scopes
 }
 
-func (c *ClientSet) Integrations() *cxsdk.IntegrationsClient {
+func (c *ClientSet) Integrations() *integrations.IntegrationServiceAPIService {
 	return c.integrations
 }
 
@@ -175,7 +177,6 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	oasTfCPC := cxsdkOpenapi.NewSDKCallPropertiesCreatorTerraform(url, apiKey, TF_PROVIDER_VERSION)
 	return &ClientSet{
 		actions:             cxsdk.NewActionsClient(apiKeySdk),
-		integrations:        cxsdk.NewIntegrationsClient(apiKeySdk),
 		enrichments:         cxsdk.NewEnrichmentClient(apiKeySdk),
 		alerts:              cxsdk.NewAlertsClientWithCustomLabels(apiKeySdk, map[string]string{}),
 		dataSet:             cxsdk.NewDataSetClient(apiKeySdk),
@@ -196,9 +197,10 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		notifications:       cxsdk.NewNotificationsClient(apiKeySdk),
 		alertScheduler:      cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
-		slos:     cxsdkOpenapi.NewSLOsClient(oasTfCPC),
-		apikeys:  cxsdkOpenapi.NewAPIKeysClient(oasTfCPC),
-		webhooks: cxsdkOpenapi.NewWebhooksClient(oasTfCPC),
+		integrations: cxsdkOpenapi.NewIntegrationsClient(oasTfCPC),
+		slos:         cxsdkOpenapi.NewSLOsClient(oasTfCPC),
+		apikeys:      cxsdkOpenapi.NewAPIKeysClient(oasTfCPC),
+		webhooks:     cxsdkOpenapi.NewWebhooksClient(oasTfCPC),
 		// alertScheduler: cxsdkOpenapi.NewAlertSchedulerClient(oasTfCPC),
 		ipaccess: cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
 

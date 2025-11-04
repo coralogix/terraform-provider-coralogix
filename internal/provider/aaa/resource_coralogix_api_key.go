@@ -445,7 +445,7 @@ func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *st
 
 	if err != nil {
 		diags := diag.Diagnostics{}
-		diags.AddError("Error read resource",
+		diags.AddError("Error reading resource",
 			utils.FormatOpenAPIErrors(err, "Read", nil),
 		)
 		return nil, diags
