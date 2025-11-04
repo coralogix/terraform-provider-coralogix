@@ -18,12 +18,12 @@ import (
 	"log"
 	"strings"
 
-	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
-	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
-
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
+	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 	webhhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
+	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 )
 
 type ClientSet struct {
@@ -34,7 +34,7 @@ type ClientSet struct {
 	enrichments       *cxsdk.EnrichmentsClient
 	dataSet           *cxsdk.DataSetClient
 	webhooks          *webhhooks.OutgoingWebhooksServiceAPIService
-	slos              *cxsdk.SLOsClient
+	slos              *slos.SlosServiceAPIService
 	legacySlos        *cxsdk.LegacySLOsClient
 	scopes            *cxsdk.ScopesClient
 	dashboards        *cxsdk.DashboardsClient
@@ -125,7 +125,7 @@ func (c *ClientSet) CustomRoles() *cxsdk.RolesClient {
 	return c.customRole
 }
 
-func (c *ClientSet) SLOs() *cxsdk.SLOsClient {
+func (c *ClientSet) SLOs() *slos.SlosServiceAPIService {
 	return c.slos
 }
 
@@ -179,7 +179,6 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		enrichments:         cxsdk.NewEnrichmentClient(apiKeySdk),
 		alerts:              cxsdk.NewAlertsClientWithCustomLabels(apiKeySdk, map[string]string{}),
 		dataSet:             cxsdk.NewDataSetClient(apiKeySdk),
-		slos:                cxsdk.NewSLOsClient(apiKeySdk),
 		legacySlos:          cxsdk.NewLegacySLOsClient(apiKeySdk),
 		scopes:              cxsdk.NewScopesClient(apiKeySdk),
 		dashboards:          cxsdk.NewDashboardsClient(apiKeySdk),
@@ -197,6 +196,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		notifications:       cxsdk.NewNotificationsClient(apiKeySdk),
 		alertScheduler:      cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
+		slos:     cxsdkOpenapi.NewSLOsClient(oasTfCPC),
 		apikeys:  cxsdkOpenapi.NewAPIKeysClient(oasTfCPC),
 		webhooks: cxsdkOpenapi.NewWebhooksClient(oasTfCPC),
 		// alertScheduler: cxsdkOpenapi.NewAlertSchedulerClient(oasTfCPC),

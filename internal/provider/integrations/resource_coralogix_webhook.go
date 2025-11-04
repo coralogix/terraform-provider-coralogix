@@ -814,7 +814,7 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 	id := state.ID.ValueString()
 	rq := r.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, id)
 
-	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
 
 	result, readResp, err := rq.Execute()
 	if err != nil {

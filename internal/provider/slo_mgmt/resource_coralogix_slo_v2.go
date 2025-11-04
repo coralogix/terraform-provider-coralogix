@@ -18,12 +18,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/float32validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
@@ -38,36 +39,34 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
 	_ resource.ResourceWithConfigure   = &SLOV2Resource{}
 	_ resource.ResourceWithImportState = &SLOV2Resource{}
 
-	protoToSchemaSloTimeFrame = map[cxsdk.SloTimeframeEnum]string{
-		cxsdk.SloTimeframeUnspecified: "unspecified",
-		cxsdk.SloTimeframe7Days:       "7_days",
-		cxsdk.SloTimeframe14Days:      "14_days",
-		cxsdk.SloTimeframe21Days:      "21_days",
-		cxsdk.SloTimeframe28Days:      "28_days",
+	protoToSchemaSloTimeFrame = map[slos.SloTimeFrame]string{
+		slos.SLOTIMEFRAME_SLO_TIME_FRAME_UNSPECIFIED: "unspecified",
+		slos.SLOTIMEFRAME_SLO_TIME_FRAME_7_DAYS:      "7_days",
+		slos.SLOTIMEFRAME_SLO_TIME_FRAME_14_DAYS:     "14_days",
+		slos.SLOTIMEFRAME_SLO_TIME_FRAME_21_DAYS:     "21_days",
+		slos.SLOTIMEFRAME_SLO_TIME_FRAME_28_DAYS:     "28_days",
 	}
 	schemaToProtoSLOTimeFrame = utils.ReverseMap(protoToSchemaSloTimeFrame)
 	validSLOTimeFrame         = utils.GetKeys(schemaToProtoSLOTimeFrame)
-	protoToSchemaSloWindow    = map[cxsdk.SloWindow]string{
-		cxsdk.SloWindowUnspecified: "unspecified",
-		cxsdk.SloWindow1Minute:     "1_minute",
-		cxsdk.SloWindow5Minutes:    "5_minutes",
+	protoToSchemaSloWindow    = map[slos.WindowSloWindow]string{
+		slos.WINDOWSLOWINDOW_WINDOW_SLO_WINDOW_UNSPECIFIED: "unspecified",
+		slos.WINDOWSLOWINDOW_WINDOW_SLO_WINDOW_1_MINUTE:    "1_minute",
+		slos.WINDOWSLOWINDOW_WINDOW_SLO_WINDOW_5_MINUTES:   "5_minutes",
 	}
 	schemaToProtoSLOWindow          = utils.ReverseMap(protoToSchemaSloWindow)
 	validWindows                    = utils.GetKeys(schemaToProtoSLOWindow)
-	protoToSchemaComparisonOperator = map[cxsdk.SloComparisonOperator]string{
-		cxsdk.SloComparisonOperatorUnspecified:         "unspecified",
-		cxsdk.SloComparisonOperatorGreaterThan:         "greater_than",
-		cxsdk.SloComparisonOperatorLessThan:            "less_than",
-		cxsdk.SloComparisonOperatorGreaterThanOrEquals: "greater_than_or_equals",
-		cxsdk.SloComparisonOperatorLessThanOrEquals:    "less_than_or_equals",
+	protoToSchemaComparisonOperator = map[slos.ComparisonOperator]string{
+		slos.COMPARISONOPERATOR_COMPARISON_OPERATOR_UNSPECIFIED:            "unspecified",
+		slos.COMPARISONOPERATOR_COMPARISON_OPERATOR_GREATER_THAN:           "greater_than",
+		slos.COMPARISONOPERATOR_COMPARISON_OPERATOR_LESS_THAN:              "less_than",
+		slos.COMPARISONOPERATOR_COMPARISON_OPERATOR_GREATER_THAN_OR_EQUALS: "greater_than_or_equals",
+		slos.COMPARISONOPERATOR_COMPARISON_OPERATOR_LESS_THAN_OR_EQUALS:    "less_than_or_equals",
 	}
 	schemaToProtoComparisonOperator = utils.ReverseMap(protoToSchemaComparisonOperator)
 	validComparisonOperators        = utils.GetKeys(schemaToProtoComparisonOperator)
@@ -78,7 +77,7 @@ func NewSLOV2Resource() resource.Resource {
 }
 
 type SLOV2Resource struct {
-	client *cxsdk.SLOsClient
+	client *slos.SlosServiceAPIService
 }
 
 func (r *SLOV2Resource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -140,7 +139,7 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 						MarkdownDescription: "List of labels to group SLO evaluations by.",
 					},
 				},
-				MarkdownDescription: "Optional grouping configuration for SLO evaluations.",
+				MarkdownDescription: "Grouping configuration for SLO evaluations.",
 			},
 			"target_threshold_percentage": schema.Float32Attribute{
 				Required:            true,
@@ -286,51 +285,167 @@ func (r *SLOV2Resource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics = diags
 		return
 	}
-	createSloReq := &cxsdk.CreateServiceSloRequest{Slo: slo}
-	log.Printf("[INFO] Creating new SLO: %s", protojson.Format(createSloReq))
-	createResp, err := r.client.Create(ctx, createSloReq)
+	rq := slos.SlosServiceCreateSloRequest{
+		SloRequestBasedMetricSli: slo.SloRequestBasedMetricSli,
+		SloWindowBasedMetricSli:  slo.SloWindowBasedMetricSli,
+	}
+
+	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
+	result, _, err := r.client.SlosServiceCreateSlo(ctx).SlosServiceCreateSloRequest(rq).Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error creating SLO",
-			utils.FormatRpcErrors(err, cxsdk.SloCreateRPC, protojson.Format(createSloReq)),
+		resp.Diagnostics.AddError("Error creating resource",
+			utils.FormatOpenAPIErrors(err, "Create", rq),
 		)
 		return
 	}
-	slo = createResp.GetSlo()
-	log.Printf("[INFO] Submitted new SLO: %s", protojson.Format(slo))
-	plan, diags = flattenSLOV2(ctx, slo)
+	log.Printf("[INFO] Created new resource: %s", utils.FormatJSON(result))
+	plan, diags = flattenSLOV2(ctx, &result.Slo)
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return
 	}
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+}
+
+func (r *SLOV2Resource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state *SLOV2ResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	//Get refreshed SLO value from Coralogix
+	id := state.ID.ValueString()
+	rq := r.client.SlosServiceGetSlo(ctx, id)
+	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
+	result, readResp, err := rq.Execute()
+
+	if err != nil {
+		if readResp.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error read resource",
+				utils.FormatOpenAPIErrors(err, "Read", nil),
+			)
+		}
+		return
+	}
+	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+
+	state, diags = flattenSLOV2(ctx, &result.Slo)
+	if diags.HasError() {
+		resp.Diagnostics = diags
+		return
+	}
+
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+}
+
+func (r *SLOV2Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	// Retrieve values from plan
+	var plan *SLOV2ResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	// Get refreshed SLO value from Coralogix
+	id := plan.ID.ValueString()
+
+	slo, diags := extractSLOV2(ctx, plan)
+	if diags.HasError() {
+		resp.Diagnostics = diags
+		return
+	}
+
+	rq := slos.SlosServiceReplaceSloRequest{
+		SloRequestBasedMetricSli: slo.SloRequestBasedMetricSli,
+		SloWindowBasedMetricSli:  slo.SloWindowBasedMetricSli,
+	}
+	log.Printf("[INFO] Updating resource: %s", utils.FormatJSON(rq))
+
+	result, readResp, err := r.client.
+		SlosServiceReplaceSlo(ctx).
+		SlosServiceReplaceSloRequest(rq).
+		Execute()
+
+	if err != nil {
+		if readResp.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("SLOv2 %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error replacing resource", utils.FormatOpenAPIErrors(err, "Replace", nil))
+		}
+		return
+	}
+	log.Printf("[INFO] Updated resource: %s", utils.FormatJSON(result))
+
+	plan, diags = flattenSLOV2(ctx, &result.Slo)
+	if diags.HasError() {
+		resp.Diagnostics = diags
+		return
+	}
+
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
-func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*cxsdk.Slo, diag.Diagnostics) {
-	slo := &cxsdk.Slo{
-		Name:                      plan.Name.ValueString(),
-		Description:               plan.Description.ValueStringPointer(),
-		TargetThresholdPercentage: plan.TargetThresholdPercentage.ValueFloat32(),
+func (r *SLOV2Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state *SLOV2ResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
+	id := state.ID.ValueString()
+
+	log.Printf("[INFO] Deleting resource")
+
+	result, _, err := r.client.
+		SlosServiceDeleteSlo(ctx, id).
+		Execute()
+
+	if err != nil {
+		resp.Diagnostics.AddError("Error deleting resource",
+			utils.FormatOpenAPIErrors(err, "Delete", nil),
+		)
+		return
+	}
+	log.Printf("[INFO] Deleted resource: %s", utils.FormatJSON(result))
+}
+
+func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*slos.Slo, diag.Diagnostics) {
+	slo := &slos.Slo{}
+	name := plan.Name.ValueStringPointer()
+	description := plan.Description.ValueStringPointer()
+	targetThresholdPct := plan.TargetThresholdPercentage.ValueFloat32()
+	var id *string
+
 	if !plan.ID.IsNull() && plan.ID.ValueString() != "" {
-		slo.Id = plan.ID.ValueStringPointer()
+		id = plan.ID.ValueStringPointer()
 	}
 
 	labels, diags := utils.TypeMapToStringMap(ctx, plan.Labels)
 	if diags.HasError() {
 		return nil, diags
 	}
-	slo.Labels = labels
 
-	window, diags := extractWindow(ctx, plan.Window)
+	timeFrame, diags := extractWindow(ctx, plan.Window)
 	if diags.HasError() {
 		return nil, diags
 	}
-	slo.Window = window
 
 	var sliModel SLIModel
 	if diags := plan.SLI.As(ctx, &sliModel, basetypes.ObjectAsOptions{}); diags.HasError() {
@@ -338,17 +453,18 @@ func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*cxsdk.Slo, di
 	}
 
 	if reqBased := sliModel.RequestBasedMetricSli; !(reqBased.IsNull() || reqBased.IsUnknown()) {
-		sli, diags := extractRequestBasedSLI(ctx, reqBased)
+
+		sli, diags := extractRequestBasedSLI(ctx, id, &labels, name, description, targetThresholdPct, timeFrame, reqBased)
 		if diags.HasError() {
 			return nil, diags
 		}
-		slo.Sli = sli
+		slo.SloRequestBasedMetricSli = sli
 	} else if winBased := sliModel.WindowBasedMetricSli; !(winBased.IsNull() || winBased.IsUnknown()) {
-		sli, diags := extractWindowBasedSLI(ctx, winBased)
+		sli, diags := extractWindowBasedSLI(ctx, id, &labels, name, description, targetThresholdPct, timeFrame, winBased)
 		if diags.HasError() {
 			return nil, diags
 		}
-		slo.Sli = sli
+		slo.SloWindowBasedMetricSli = sli
 	} else {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic(
 			"Invalid SLI configuration",
@@ -359,7 +475,7 @@ func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*cxsdk.Slo, di
 	return slo, nil
 }
 
-func extractRequestBasedSLI(ctx context.Context, reqBased types.Object) (*cxsdk.SloRequestBasedMetricSli, diag.Diagnostics) {
+func extractRequestBasedSLI(ctx context.Context, id *string, labels *map[string]string, name *string, description *string, targetThresholdPct float32, timeFrame *slos.SloTimeFrame, reqBased types.Object) (*slos.SloRequestBasedMetricSli, diag.Diagnostics) {
 	var requestBasedModel RequestBasedMetricSliModel
 	diags := reqBased.As(ctx, &requestBasedModel, basetypes.ObjectAsOptions{})
 	if diags.HasError() {
@@ -378,19 +494,25 @@ func extractRequestBasedSLI(ctx context.Context, reqBased types.Object) (*cxsdk.
 		return nil, diags
 	}
 
-	return &cxsdk.SloRequestBasedMetricSli{
-		RequestBasedMetricSli: &cxsdk.RequestBasedMetricSli{
-			GoodEvents: &cxsdk.Metric{
+	return &slos.SloRequestBasedMetricSli{
+		RequestBasedMetricSli: &slos.RequestBasedMetricSli{
+			GoodEvents: slos.Metric{
 				Query: goodModel.Query.ValueString(),
 			},
-			TotalEvents: &cxsdk.Metric{
+			TotalEvents: slos.Metric{
 				Query: totalModel.Query.ValueString(),
 			},
 		},
+		Description:               *&description,
+		Id:                        id,
+		Labels:                    labels,
+		Name:                      *name,
+		SloTimeFrame:              timeFrame,
+		TargetThresholdPercentage: targetThresholdPct,
 	}, nil
 }
 
-func extractWindowBasedSLI(ctx context.Context, winBased types.Object) (*cxsdk.SloWindowBasedMetricSli, diag.Diagnostics) {
+func extractWindowBasedSLI(ctx context.Context, id *string, labels *map[string]string, name *string, description *string, targetThresholdPct float32, timeFrame *slos.SloTimeFrame, winBased types.Object) (*slos.SloWindowBasedMetricSli, diag.Diagnostics) {
 	var windowBasedModel WindowBasedMetricSliModel
 	diags := winBased.As(ctx, &windowBasedModel, basetypes.ObjectAsOptions{})
 	if diags.HasError() {
@@ -403,19 +525,25 @@ func extractWindowBasedSLI(ctx context.Context, winBased types.Object) (*cxsdk.S
 		return nil, diags
 	}
 
-	return &cxsdk.SloWindowBasedMetricSli{
-		WindowBasedMetricSli: &cxsdk.WindowBasedMetricSli{
-			Query: &cxsdk.Metric{
+	return &slos.SloWindowBasedMetricSli{
+		WindowBasedMetricSli: &slos.WindowBasedMetricSli{
+			Query: slos.Metric{
 				Query: queryModel.Query.ValueString(),
 			},
 			Window:             schemaToProtoSLOWindow[windowBasedModel.Window.ValueString()],
 			ComparisonOperator: schemaToProtoComparisonOperator[windowBasedModel.ComparisonOperator.ValueString()],
 			Threshold:          windowBasedModel.Threshold.ValueFloat32(),
 		},
+		Description:               *&description,
+		Id:                        id,
+		Labels:                    labels,
+		Name:                      *name,
+		SloTimeFrame:              timeFrame,
+		TargetThresholdPercentage: targetThresholdPct,
 	}, nil
 }
 
-func extractWindow(ctx context.Context, rule types.Object) (*cxsdk.SloTimeframe, diag.Diagnostics) {
+func extractWindow(ctx context.Context, rule types.Object) (*slos.SloTimeFrame, diag.Diagnostics) {
 	if rule.IsNull() || rule.IsUnknown() {
 		return nil, nil
 	}
@@ -425,45 +553,22 @@ func extractWindow(ctx context.Context, rule types.Object) (*cxsdk.SloTimeframe,
 	if diags.HasError() {
 		return nil, diags
 	}
-
-	return &cxsdk.SloTimeframe{
-		SloTimeFrame: schemaToProtoSLOTimeFrame[windowModel.SloTimeFrame.ValueString()],
-	}, nil
+	tf := schemaToProtoSLOTimeFrame[windowModel.SloTimeFrame.ValueString()]
+	return &tf, nil
 }
 
-func flattenSLOV2(ctx context.Context, slo *cxsdk.Slo) (*SLOV2ResourceModel, diag.Diagnostics) {
-	labels, diags := flattenLabels(ctx, slo.GetLabels())
-	if diags.HasError() {
+func flattenSLOV2(ctx context.Context, slo *slos.Slo) (*SLOV2ResourceModel, diag.Diagnostics) {
+
+	if rb := slo.SloRequestBasedMetricSli; rb != nil {
+		return flattenRequestBasedSLI(ctx, rb)
+	} else if wb := slo.SloWindowBasedMetricSli; wb != nil {
+		return flattenWindowBasedSLI(ctx, wb)
+	} else {
+		diags := diag.Diagnostics{}
+		log.Printf("[ERROR] Response was neither a request nor window based SLO; %s", utils.FormatJSON(slo))
+		diags.AddError("Invalid response from server", utils.FormatJSON(slo))
 		return nil, diags
 	}
-
-	grouping, diags := flattenGrouping(ctx, slo.Grouping)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	window, diags := flattenWindow(ctx, slo.GetSloTimeFrame())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	sli, diags := flattenSLI(ctx, slo)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	model := &SLOV2ResourceModel{
-		ID:                        utils.StringPointerToTypeString(slo.Id),
-		Name:                      types.StringValue(slo.GetName()),
-		Description:               types.StringValue(slo.GetDescription()),
-		Labels:                    labels,
-		Grouping:                  grouping,
-		TargetThresholdPercentage: types.Float32Value(slo.GetTargetThresholdPercentage()),
-		SLI:                       sli,
-		Window:                    window,
-	}
-
-	return model, diags
 }
 
 func flattenLabels(ctx context.Context, labels map[string]string) (types.Map, diag.Diagnostics) {
@@ -480,7 +585,7 @@ func flattenLabels(ctx context.Context, labels map[string]string) (types.Map, di
 	return types.MapValueFrom(ctx, types.StringType, detailsMap)
 }
 
-func flattenGrouping(ctx context.Context, grouping *cxsdk.SloGrouping) (types.Object, diag.Diagnostics) {
+func flattenGrouping(ctx context.Context, grouping *slos.V1Grouping) (types.Object, diag.Diagnostics) {
 	if grouping == nil {
 		return types.ObjectNull(map[string]attr.Type{"labels": types.ListType{ElemType: types.StringType}}), nil
 	}
@@ -498,7 +603,7 @@ func flattenGrouping(ctx context.Context, grouping *cxsdk.SloGrouping) (types.Ob
 	}, groupingModel)
 }
 
-func flattenWindow(ctx context.Context, tf cxsdk.SloTimeframeEnum) (types.Object, diag.Diagnostics) {
+func flattenWindow(ctx context.Context, tf slos.SloTimeFrame) (types.Object, diag.Diagnostics) {
 	value := protoToSchemaSloTimeFrame[tf]
 	model := WindowModel{
 		SloTimeFrame: types.StringValue(value),
@@ -508,74 +613,114 @@ func flattenWindow(ctx context.Context, tf cxsdk.SloTimeframeEnum) (types.Object
 	}, model)
 }
 
-func flattenSLI(ctx context.Context, slo *cxsdk.Slo) (types.Object, diag.Diagnostics) {
-	if rb := slo.GetRequestBasedMetricSli(); rb != nil {
-		return flattenRequestBasedSLI(ctx, rb)
-	} else if wb := slo.GetWindowBasedMetricSli(); wb != nil {
-		return flattenWindowBasedSLI(ctx, wb)
-	}
-	return types.ObjectNull(map[string]attr.Type{
-		"request_based_metric_sli": types.ObjectType{AttrTypes: requestBasedMetricSliAttr()},
-		"window_based_metric_sli":  types.ObjectType{AttrTypes: windowBasedMetricSliAttr()},
-	}), nil
-}
+func flattenRequestBasedSLI(ctx context.Context, sli *slos.SloRequestBasedMetricSli) (*SLOV2ResourceModel, diag.Diagnostics) {
+	sliObj := types.ObjectNull(sliAttr())
 
-func flattenRequestBasedSLI(ctx context.Context, sli *cxsdk.RequestBasedMetricSli) (types.Object, diag.Diagnostics) {
 	goodEvents := SLOMetricQueryModel{
-		Query: types.StringValue(sli.GetGoodEvents().GetQuery()),
+		Query: types.StringValue(sli.RequestBasedMetricSli.GoodEvents.Query),
 	}
+
 	totalEvents := SLOMetricQueryModel{
-		Query: types.StringValue(sli.GetTotalEvents().GetQuery()),
+		Query: types.StringValue(sli.RequestBasedMetricSli.TotalEvents.Query),
 	}
 
 	goodObj, diags := types.ObjectValueFrom(ctx, sloMetricQueryAttr(), goodEvents)
 	if diags.HasError() {
-		return types.ObjectNull(sliAttr()), diags
+		return nil, diags
 	}
+
 	totalObj, diags := types.ObjectValueFrom(ctx, sloMetricQueryAttr(), totalEvents)
 	if diags.HasError() {
-		return types.ObjectNull(sliAttr()), diags
+		return nil, diags
 	}
 
 	requestSliModel := RequestBasedMetricSliModel{
 		GoodEvents:  goodObj,
 		TotalEvents: totalObj,
 	}
+
 	reqSliObj, diags := types.ObjectValueFrom(ctx, requestBasedMetricSliAttr(), requestSliModel)
 	if diags.HasError() {
-		return types.ObjectNull(sliAttr()), diags
+		return nil, diags
 	}
 
-	return types.ObjectValueFrom(ctx, sliAttr(), SLIModel{
+	sliObj, diags = types.ObjectValueFrom(ctx, sliAttr(), SLIModel{
 		RequestBasedMetricSli: reqSliObj,
 		WindowBasedMetricSli:  types.ObjectNull(windowBasedMetricSliAttr()),
 	})
+
+	labels, diags := flattenLabels(ctx, sli.GetLabels())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	grouping, diags := flattenGrouping(ctx, sli.Grouping)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	window, diags := flattenWindow(ctx, sli.GetSloTimeFrame())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &SLOV2ResourceModel{
+		ID:                        types.StringPointerValue(sli.Id),
+		Name:                      types.StringValue(sli.Name),
+		Description:               types.StringPointerValue(sli.Description),
+		Labels:                    labels,
+		Grouping:                  grouping,
+		TargetThresholdPercentage: types.Float32Value(sli.TargetThresholdPercentage),
+		SLI:                       sliObj,
+		Window:                    window,
+	}, diags
 }
 
-func flattenWindowBasedSLI(ctx context.Context, sli *cxsdk.WindowBasedMetricSli) (types.Object, diag.Diagnostics) {
+func flattenWindowBasedSLI(ctx context.Context, sli *slos.SloWindowBasedMetricSli) (*SLOV2ResourceModel, diag.Diagnostics) {
+	sliObj := types.ObjectNull(sliAttr())
 	queryModel := SLOMetricQueryModel{
-		Query: types.StringValue(sli.GetQuery().GetQuery()),
+		Query: types.StringValue(sli.WindowBasedMetricSli.Query.Query),
 	}
 	queryObj, diags := types.ObjectValueFrom(ctx, sloMetricQueryAttr(), queryModel)
 	if diags.HasError() {
-		return types.ObjectNull(sliAttr()), diags
+		return nil, diags
 	}
 
 	model := WindowBasedMetricSliModel{
 		Query:              queryObj,
-		Window:             types.StringValue(protoToSchemaSloWindow[sli.GetWindow()]),
-		ComparisonOperator: types.StringValue(protoToSchemaComparisonOperator[sli.GetComparisonOperator()]),
-		Threshold:          types.Float32Value(sli.GetThreshold()),
+		Window:             types.StringValue(protoToSchemaSloWindow[sli.WindowBasedMetricSli.Window]),
+		ComparisonOperator: types.StringValue(protoToSchemaComparisonOperator[sli.WindowBasedMetricSli.ComparisonOperator]),
+		Threshold:          types.Float32Value(sli.WindowBasedMetricSli.Threshold),
 	}
 	winObj, diags := types.ObjectValueFrom(ctx, windowBasedMetricSliAttr(), model)
 	if diags.HasError() {
-		return types.ObjectNull(sliAttr()), diags
+		return nil, diags
 	}
 
-	return types.ObjectValueFrom(ctx, sliAttr(), SLIModel{
+	sliObj, diags = types.ObjectValueFrom(ctx, sliAttr(), SLIModel{
 		RequestBasedMetricSli: types.ObjectNull(requestBasedMetricSliAttr()),
 		WindowBasedMetricSli:  winObj,
 	})
+
+	grouping, diags := flattenGrouping(ctx, sli.Grouping)
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	window, diags := flattenWindow(ctx, sli.GetSloTimeFrame())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	return &SLOV2ResourceModel{
+		ID:                        types.StringPointerValue(sli.Id),
+		Name:                      types.StringValue(sli.Name),
+		Description:               types.StringPointerValue(sli.Description),
+		Grouping:                  grouping,
+		TargetThresholdPercentage: types.Float32Value(sli.TargetThresholdPercentage),
+		SLI:                       sliObj,
+		Window:                    window,
+	}, diags
 }
 
 // ---------------------- Attribute Maps ----------------------
@@ -607,129 +752,4 @@ func sliAttr() map[string]attr.Type {
 		"request_based_metric_sli": types.ObjectType{AttrTypes: requestBasedMetricSliAttr()},
 		"window_based_metric_sli":  types.ObjectType{AttrTypes: windowBasedMetricSliAttr()},
 	}
-}
-
-func (r *SLOV2Resource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state *SLOV2ResourceModel
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	//Get refreshed SLO value from Coralogix
-	id := state.ID.ValueString()
-	readSloReq := &cxsdk.GetServiceSloRequest{Id: id}
-	readSloResp, err := r.client.Get(ctx, readSloReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("SLO %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
-			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading SLO",
-				utils.FormatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(readSloReq)),
-			)
-		}
-		return
-	}
-
-	slo := readSloResp.GetSlo()
-	log.Printf("[INFO] Received SLO: %s", protojson.Format(slo))
-	state, diags = flattenSLOV2(ctx, slo)
-	if diags.HasError() {
-		resp.Diagnostics = diags
-		return
-	}
-
-	//
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-}
-
-func (r *SLOV2Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Retrieve values from plan
-	var plan *SLOV2ResourceModel
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	slo, diags := extractSLOV2(ctx, plan)
-	if diags.HasError() {
-		resp.Diagnostics = diags
-		return
-	}
-	updateSloReq := &cxsdk.ReplaceServiceSloRequest{Slo: slo}
-	log.Printf("[INFO] Updating SLO: %s", protojson.Format(updateSloReq))
-	updateSloResp, err := r.client.Update(ctx, updateSloReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error updating SLO",
-			utils.FormatRpcErrors(err, cxsdk.SloReplaceRPC, protojson.Format(updateSloReq)),
-		)
-		return
-	}
-	log.Printf("[INFO] Submitted updated SLO: %s", updateSloResp)
-
-	// Get refreshed SLO value from Coralogix
-	id := plan.ID.ValueString()
-	getSloReq := &cxsdk.GetServiceSloRequest{Id: id}
-	getSloResp, err := r.client.Get(ctx, getSloReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("SLO %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
-			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading SLO",
-				utils.FormatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(getSloReq)),
-			)
-		}
-		return
-	}
-
-	slo = getSloResp.GetSlo()
-	log.Printf("[INFO] Received SLO: %s", protojson.Format(slo))
-	state, diags := flattenSLOV2(ctx, slo)
-	if diags.HasError() {
-		resp.Diagnostics = diags
-		return
-	}
-
-	// Set state to fully populated data
-	diags = resp.State.Set(ctx, state)
-	resp.Diagnostics.Append(diags...)
-}
-
-func (r *SLOV2Resource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state *SLOV2ResourceModel
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting SLO %s\n", id)
-	deleteReq := &cxsdk.DeleteServiceSloRequest{Id: id}
-	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
-		reqStr := protojson.Format(deleteReq)
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting SLO %s", state.ID.ValueString()),
-			utils.FormatRpcErrors(err, cxsdk.SloDeleteRPC, reqStr),
-		)
-		return
-	}
-	log.Printf("[INFO] SLO %s deleted\n", id)
 }
