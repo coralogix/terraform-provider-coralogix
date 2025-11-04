@@ -437,7 +437,7 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 }
 
 func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *string, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
-	log.Printf("[INFO] Reading resource: %s", id)
+	log.Printf("[INFO] Reading resource: %v", id)
 
 	result, _, err := r.
 		ApiKeysServiceGetApiKey(ctx, *id).
