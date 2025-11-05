@@ -477,10 +477,10 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 	}
 
 	var key types.String
-	if response.KeyInfo.Hashed && keyValue == nil {
+	if *response.KeyInfo.Hashed && keyValue == nil {
 		diags.AddError("Key argument is require", "Key value is required")
 		return nil, diags
-	} else if !response.KeyInfo.Hashed {
+	} else if !*response.KeyInfo.Hashed {
 		key = types.StringValue(response.KeyInfo.GetValue())
 	} else {
 		key = types.StringValue(*keyValue)
@@ -492,7 +492,7 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 		Value:       key,
 		Name:        types.StringValue(response.KeyInfo.Name),
 		Active:      types.BoolValue(response.KeyInfo.Active),
-		Hashed:      types.BoolValue(response.KeyInfo.Hashed),
+		Hashed:      types.BoolPointerValue(response.KeyInfo.Hashed),
 		Permissions: permissions,
 		Presets:     presets,
 		Owner:       &owner,
@@ -514,7 +514,7 @@ func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*ap
 	if diags.HasError() {
 		return nil, diags
 	}
-
+	hashed := false
 	return &apiKeys.CreateApiKeyRequest{
 		Name:  apiKeyModel.Name.ValueString(),
 		Owner: owner,
@@ -522,7 +522,7 @@ func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*ap
 			Presets:     presets,
 			Permissions: permissions,
 		},
-		Hashed: false, // this has to be false or the GetApiKey will fail (encrypted keys are not readable)
+		Hashed: &hashed, // this has to be false or the GetApiKey will fail (encrypted keys are not readable)
 	}, diags
 }
 
