@@ -933,7 +933,7 @@ func expandWebhookType(ctx context.Context, plan *WebhookResourceModel) (*webhoo
 		data.OutgoingWebhookInputDataSlack.Name = plan.Name.ValueString()
 	} else if plan.PagerDuty != nil {
 		data.OutgoingWebhookInputDataPagerDuty = expandPagerDuty(plan.PagerDuty)
-		data.OutgoingWebhookInputDataSlack.Name = plan.Name.ValueString()
+		data.OutgoingWebhookInputDataPagerDuty.Name = plan.Name.ValueString()
 	} else if plan.SendLog != nil {
 		data.OutgoingWebhookInputDataSendLog = expandSendLog(plan.SendLog)
 		data.OutgoingWebhookInputDataSendLog.Name = plan.Name.ValueString()
