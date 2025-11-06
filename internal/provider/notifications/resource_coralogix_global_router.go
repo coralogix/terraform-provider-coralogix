@@ -20,6 +20,7 @@ import (
 	"log"
 	"net/http"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -102,7 +103,7 @@ func (r *GlobalRouterResource) UpgradeState(_ context.Context) map[int64]resourc
 }
 
 func (r *GlobalRouterResource) fetchGlobalRouterFromServer(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-	log.Printf("[INFO] Upgrading state from version: %s", req.State.Schema.GetVersion())
+	log.Printf("[INFO] Upgrading state from version: %v", req.State.Schema.GetVersion())
 
 	var state *GlobalRouterResourceModel
 
@@ -117,9 +118,9 @@ func (r *GlobalRouterResource) fetchGlobalRouterFromServer(ctx context.Context, 
 
 	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
 
-	result, readResp, err := rq.Execute()
+	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		if readResp.StatusCode == http.StatusNotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -127,7 +128,7 @@ func (r *GlobalRouterResource) fetchGlobalRouterFromServer(ctx context.Context, 
 			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError("Error reading resource",
-				utils.FormatOpenAPIErrors(err, "Read", nil),
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
@@ -166,11 +167,11 @@ func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRe
 	}
 
 	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
-	result, _, err := r.client.GlobalRoutersServiceCreateGlobalRouter(ctx).CreateGlobalRouterRequest(rq).Execute()
+	result, httpResponse, err := r.client.GlobalRoutersServiceCreateGlobalRouter(ctx).CreateGlobalRouterRequest(rq).Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating resource",
-			utils.FormatOpenAPIErrors(err, "Create", rq),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
@@ -200,9 +201,9 @@ func (r *GlobalRouterResource) Read(ctx context.Context, req resource.ReadReques
 
 	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
 
-	result, readResp, err := rq.Execute()
+	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		if readResp.StatusCode == http.StatusNotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -210,7 +211,7 @@ func (r *GlobalRouterResource) Read(ctx context.Context, req resource.ReadReques
 			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError("Error reading resource",
-				utils.FormatOpenAPIErrors(err, "Read", nil),
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
@@ -257,7 +258,7 @@ func (r GlobalRouterResource) Update(ctx context.Context, req resource.UpdateReq
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error updating resource", utils.FormatOpenAPIErrors(err, "Update", nil))
+			resp.Diagnostics.AddError("Error updating resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
 		}
 		return
 	}
@@ -283,9 +284,9 @@ func (r GlobalRouterResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	id := state.ID.ValueString()
 
-	if _, _, err := r.client.GlobalRoutersServiceDeleteGlobalRouter(ctx, id).Execute(); err != nil {
+	if _, httpResponse, err := r.client.GlobalRoutersServiceDeleteGlobalRouter(ctx, id).Execute(); err != nil {
 		resp.Diagnostics.AddError("Error deleting resource",
-			utils.FormatOpenAPIErrors(err, "Delete", id),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", id),
 		)
 		return
 	}

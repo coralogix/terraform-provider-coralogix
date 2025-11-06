@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
@@ -125,14 +126,14 @@ func (r *IpAccessResource) Create(ctx context.Context, req resource.CreateReques
 	}
 	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
 
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		IpAccessServiceCreateCompanyIpAccessSettings(ctx).
 		CreateCompanyIPAccessSettingsRequest(rq).
 		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating resource",
-			utils.FormatOpenAPIErrors(err, "Create", rq),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
@@ -152,13 +153,13 @@ func (r *IpAccessResource) Read(ctx context.Context, req resource.ReadRequest, r
 	}
 	log.Printf("[INFO] Reading resource")
 
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		IpAccessServiceGetCompanyIpAccessSettings(ctx).
 		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading resource",
-			utils.FormatOpenAPIErrors(err, "Read", nil),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return
 	}
@@ -184,14 +185,14 @@ func (r *IpAccessResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 	log.Printf("[INFO] Updating resource: %s", utils.FormatJSON(rq))
 
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		IpAccessServiceReplaceCompanyIpAccessSettings(ctx).
 		ReplaceCompanyIPAccessSettingsRequest(rq).
 		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error replacing resource",
-			utils.FormatOpenAPIErrors(err, "Replace", rq),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq),
 		)
 		return
 	}
@@ -212,13 +213,13 @@ func (r *IpAccessResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 	log.Printf("[INFO] Deleting resource")
 
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		IpAccessServiceDeleteCompanyIpAccessSettings(ctx).
 		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting resource",
-			utils.FormatOpenAPIErrors(err, "Delete", nil),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}

@@ -22,6 +22,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	presets "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/presets_service"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -98,14 +99,14 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	//Get refreshed preset value from Coralogix
 	if name := data.Name.ValueString(); name != "" {
 		log.Printf("[INFO] Listing resource to find by name: %s", name)
-		listResult, _, err := d.client.
+		listResult, httpResponse, err := d.client.
 			PresetsServiceListPresetSummaries(ctx).
 			Execute()
 
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error listing resource",
-				utils.FormatOpenAPIErrors(err, "List", nil),
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "List", nil),
 			)
 			return
 		}
@@ -130,10 +131,10 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	rq := d.client.PresetsServiceGetPreset(ctx, presetID)
 	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
 
-	result, _, err := rq.Execute()
+	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading resource",
-			utils.FormatOpenAPIErrors(err, "Read", nil),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return
 

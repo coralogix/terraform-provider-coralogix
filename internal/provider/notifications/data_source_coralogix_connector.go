@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -98,14 +99,14 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 	//Get refreshed connector value from Coralogix
 	if name := data.Name.ValueString(); name != "" {
 		log.Printf("[INFO] Listing resource to find by name: %s", name)
-		listConnectorResp, _, err := d.client.
+		listConnectorResp, httpResponse, err := d.client.
 			ConnectorsServiceListConnectors(ctx).
 			Execute()
 
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error listing resource",
-				utils.FormatOpenAPIErrors(err, "List", nil),
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "List", nil),
 			)
 			return
 		}
@@ -131,12 +132,12 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
 
-	result, _, err := rq.
+	result, httpResponse, err := rq.
 		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading resource",
-			utils.FormatOpenAPIErrors(err, "Read", nil),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return
 	}

@@ -23,6 +23,8 @@ import (
 	"strconv"
 	"strings"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+
 	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -274,14 +276,14 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
 
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		ApiKeysServiceCreateApiKey(context.Background()).
 		CreateApiKeyRequest(*rq).
 		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating resource",
-			utils.FormatOpenAPIErrors(err, "Create", rq),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
@@ -391,7 +393,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error creating resource", utils.FormatOpenAPIErrors(err, "Update", nil))
+			resp.Diagnostics.AddError("Error creating resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
 		}
 		return
 	}
@@ -423,13 +425,13 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 	log.Printf("[INFO] Deleting resource %s", id)
 
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		ApiKeysServiceDeleteApiKey(ctx, id).
 		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting resource",
-			utils.FormatOpenAPIErrors(err, "Delete", nil),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
@@ -439,14 +441,14 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *string, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
 	log.Printf("[INFO] Reading resource: %v", id)
 
-	result, _, err := r.
+	result, httpResponse, err := r.
 		ApiKeysServiceGetApiKey(ctx, *id).
 		Execute()
 
 	if err != nil {
 		diags := diag.Diagnostics{}
 		diags.AddError("Error reading resource",
-			utils.FormatOpenAPIErrors(err, "Read", nil),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return nil, diags
 	}

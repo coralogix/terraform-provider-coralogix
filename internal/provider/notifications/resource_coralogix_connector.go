@@ -23,6 +23,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -220,14 +221,14 @@ func (r *ConnectorResource) Create(ctx context.Context, req resource.CreateReque
 		Connector: connector,
 	}
 	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		ConnectorsServiceCreateConnector(ctx).
 		CreateConnectorRequest(rq).
 		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating resource",
-			utils.FormatOpenAPIErrors(err, "Create", rq),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
@@ -258,9 +259,9 @@ func (r *ConnectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 
 	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
 
-	result, readResp, err := rq.Execute()
+	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		if readResp.StatusCode == http.StatusNotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -268,7 +269,7 @@ func (r *ConnectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError("Error reading resource",
-				utils.FormatOpenAPIErrors(err, "Read", nil),
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
@@ -317,7 +318,7 @@ func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateReques
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error replacing resource", utils.FormatOpenAPIErrors(err, "Replace", nil))
+			resp.Diagnostics.AddError("Error replacing resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", nil))
 		}
 		return
 	}
@@ -345,13 +346,13 @@ func (r ConnectorResource) Delete(ctx context.Context, req resource.DeleteReques
 
 	log.Printf("[INFO] Deleting resource %s", id)
 
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		ConnectorsServiceDeleteConnector(ctx, id).
 		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting resource",
-			utils.FormatOpenAPIErrors(err, "Delete", nil),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}

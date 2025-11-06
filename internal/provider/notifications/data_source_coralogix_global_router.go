@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -98,14 +99,14 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 	//Get refreshed connector value from Coralogix
 	if name := data.Name.ValueString(); name != "" {
 		log.Printf("[INFO] Listing resource to find by name: %s", name)
-		listResult, _, err := d.client.
+		listResult, httpResponse, err := d.client.
 			GlobalRoutersServiceListGlobalRouters(ctx).
 			Execute()
 
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Error listing resource",
-				utils.FormatOpenAPIErrors(err, "List", nil),
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "List", nil),
 			)
 			return
 		}
@@ -131,12 +132,12 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 
 	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
 
-	result, _, err := rq.
+	result, httpResponse, err := rq.
 		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading resource",
-			utils.FormatOpenAPIErrors(err, "Read", nil),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return
 	}

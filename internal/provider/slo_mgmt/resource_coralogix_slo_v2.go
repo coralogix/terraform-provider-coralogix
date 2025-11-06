@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"strings"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
@@ -291,10 +292,10 @@ func (r *SLOV2Resource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 
 	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
-	result, _, err := r.client.SlosServiceCreateSlo(ctx).SlosServiceCreateSloRequest(rq).Execute()
+	result, httpResponse, err := r.client.SlosServiceCreateSlo(ctx).SlosServiceCreateSloRequest(rq).Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating resource",
-			utils.FormatOpenAPIErrors(err, "Create", rq),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
@@ -320,10 +321,10 @@ func (r *SLOV2Resource) Read(ctx context.Context, req resource.ReadRequest, resp
 	id := state.ID.ValueString()
 	rq := r.client.SlosServiceGetSlo(ctx, id)
 	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
-	result, readResp, err := rq.Execute()
+	result, httpResponse, err := rq.Execute()
 
 	if err != nil {
-		if readResp.StatusCode == http.StatusNotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -331,7 +332,7 @@ func (r *SLOV2Resource) Read(ctx context.Context, req resource.ReadRequest, resp
 			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError("Error reading resource",
-				utils.FormatOpenAPIErrors(err, "Read", nil),
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
@@ -371,20 +372,20 @@ func (r *SLOV2Resource) Update(ctx context.Context, req resource.UpdateRequest, 
 	}
 	log.Printf("[INFO] Updating resource: %s", utils.FormatJSON(rq))
 
-	result, readResp, err := r.client.
+	result, httpResponse, err := r.client.
 		SlosServiceReplaceSlo(ctx).
 		SlosServiceReplaceSloRequest(rq).
 		Execute()
 
 	if err != nil {
-		if readResp.StatusCode == http.StatusNotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("SLOv2 %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error replacing resource", utils.FormatOpenAPIErrors(err, "Replace", nil))
+			resp.Diagnostics.AddError("Error replacing resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", nil))
 		}
 		return
 	}
@@ -413,13 +414,13 @@ func (r *SLOV2Resource) Delete(ctx context.Context, req resource.DeleteRequest, 
 
 	log.Printf("[INFO] Deleting resource")
 
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		SlosServiceDeleteSlo(ctx, id).
 		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting resource",
-			utils.FormatOpenAPIErrors(err, "Delete", nil),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
@@ -503,7 +504,7 @@ func extractRequestBasedSLI(ctx context.Context, id *string, labels *map[string]
 				Query: totalModel.Query.ValueString(),
 			},
 		},
-		Description:               *&description,
+		Description:               description,
 		Id:                        id,
 		Labels:                    labels,
 		Name:                      *name,
@@ -648,6 +649,9 @@ func flattenRequestBasedSLI(ctx context.Context, sli *slos.SloRequestBasedMetric
 		RequestBasedMetricSli: reqSliObj,
 		WindowBasedMetricSli:  types.ObjectNull(windowBasedMetricSliAttr()),
 	})
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	labels, diags := flattenLabels(ctx, sli.GetLabels())
 	if diags.HasError() {
@@ -677,7 +681,6 @@ func flattenRequestBasedSLI(ctx context.Context, sli *slos.SloRequestBasedMetric
 }
 
 func flattenWindowBasedSLI(ctx context.Context, sli *slos.SloWindowBasedMetricSli) (*SLOV2ResourceModel, diag.Diagnostics) {
-	sliObj := types.ObjectNull(sliAttr())
 	queryModel := SLOMetricQueryModel{
 		Query: types.StringValue(sli.WindowBasedMetricSli.Query.Query),
 	}
@@ -697,7 +700,7 @@ func flattenWindowBasedSLI(ctx context.Context, sli *slos.SloWindowBasedMetricSl
 		return nil, diags
 	}
 
-	sliObj, diags = types.ObjectValueFrom(ctx, sliAttr(), SLIModel{
+	sliObj, diags := types.ObjectValueFrom(ctx, sliAttr(), SLIModel{
 		RequestBasedMetricSli: types.ObjectNull(requestBasedMetricSliAttr()),
 		WindowBasedMetricSli:  winObj,
 	})

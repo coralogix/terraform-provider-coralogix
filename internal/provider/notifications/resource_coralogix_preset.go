@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"strings"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
@@ -247,14 +248,14 @@ func (r *PresetResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		PresetsServiceCreateCustomPreset(ctx).
 		CreateCustomPresetRequest(rq).
 		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating resource",
-			utils.FormatOpenAPIErrors(err, "Create", rq),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
@@ -298,7 +299,7 @@ func (r *PresetResource) Read(ctx context.Context, req resource.ReadRequest, res
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error reading resource", utils.FormatOpenAPIErrors(err, "Read", nil))
+			resp.Diagnostics.AddError("Error reading resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		}
 		return
 	}
@@ -346,7 +347,7 @@ func (r PresetResource) Update(ctx context.Context, req resource.UpdateRequest, 
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error replacing resource", utils.FormatOpenAPIErrors(err, "Replace", nil))
+			resp.Diagnostics.AddError("Error replacing resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", nil))
 		}
 		return
 	}
@@ -372,8 +373,8 @@ func (r PresetResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting Preset %s", id)
 
-	if _, _, err := r.client.PresetsServiceDeleteCustomPreset(ctx, id).Execute(); err != nil {
-		resp.Diagnostics.AddError("Error deleting resource", utils.FormatOpenAPIErrors(err, "Delete", nil))
+	if _, httpResponse, err := r.client.PresetsServiceDeleteCustomPreset(ctx, id).Execute(); err != nil {
+		resp.Diagnostics.AddError("Error deleting resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil))
 		return
 	}
 	log.Printf("[INFO] Preset %s deleted", id)

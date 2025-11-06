@@ -20,6 +20,7 @@ import (
 	"log"
 	"net/http"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
@@ -108,12 +109,12 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 
 	} else if name != "" {
 		log.Printf("[INFO] Listing Webhooks to find by name: %s", name)
-		listResult, _, err := d.client.OutgoingWebhooksServiceListAllOutgoingWebhooks(ctx).Execute()
+		listResult, httpResponse, err := d.client.OutgoingWebhooksServiceListAllOutgoingWebhooks(ctx).Execute()
 		if err != nil {
 			log.Printf("[ERROR] Received error when listing webhooks: %s", err.Error())
 			resp.Diagnostics.AddError(
 				"Error listing Webhooks",
-				utils.FormatOpenAPIErrors(err, "Update", nil))
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
 			return
 		}
 
@@ -162,9 +163,9 @@ func (d *WebhookDataSource) fetchWebhookByID(ctx context.Context, id string, res
 
 	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
 
-	result, readResp, err := rq.Execute()
+	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		if readResp.StatusCode == http.StatusNotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -172,7 +173,7 @@ func (d *WebhookDataSource) fetchWebhookByID(ctx context.Context, id string, res
 			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError("Error reading resource",
-				utils.FormatOpenAPIErrors(err, "Read", nil),
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return nil, err

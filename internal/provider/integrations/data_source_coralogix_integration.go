@@ -20,6 +20,7 @@ import (
 	"log"
 	"net/http"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
@@ -81,10 +82,10 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 
 	rq := d.client.IntegrationServiceGetDeployedIntegration(ctx, id)
 	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
-	result, readResp, err := rq.Execute()
+	result, httpResponse, err := rq.Execute()
 
 	if err != nil {
-		if readResp.StatusCode == http.StatusNotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -92,7 +93,7 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError("Error reading resource",
-				utils.FormatOpenAPIErrors(err, "Read", nil),
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return

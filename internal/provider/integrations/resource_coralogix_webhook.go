@@ -24,6 +24,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	webhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -764,14 +765,14 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 		Data: *data,
 	}
 	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
-	createResult, _, err := r.client.
+	createResult, httpResponse, err := r.client.
 		OutgoingWebhooksServiceCreateOutgoingWebhook(ctx).
 		CreateOutgoingWebhookRequest(rq).
 		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating resource",
-			utils.FormatOpenAPIErrors(err, "Create", rq),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
@@ -784,7 +785,7 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 	result, _, err := readRq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading resource",
-			utils.FormatOpenAPIErrors(err, "Read", nil),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return
 	}
@@ -815,9 +816,9 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
 
-	result, readResp, err := rq.Execute()
+	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		if readResp.StatusCode == http.StatusNotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
@@ -825,7 +826,7 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError("Error reading resource",
-				utils.FormatOpenAPIErrors(err, "Read", nil),
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
@@ -873,15 +874,15 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error updating resource", utils.FormatOpenAPIErrors(err, "Update", nil))
+			resp.Diagnostics.AddError("Error updating resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
 		}
 		return
 	}
 
-	result, _, err := r.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, id).Execute()
+	result, httpResponse, err := r.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, id).Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading resource, state not updated", utils.FormatOpenAPIErrors(err, "Update", nil))
+		resp.Diagnostics.AddError("Error reading resource, state not updated", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
 		return
 	}
 
@@ -908,13 +909,13 @@ func (r WebhookResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 	log.Printf("[INFO] Deleting resource %s", id)
 
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		OutgoingWebhooksServiceDeleteOutgoingWebhook(ctx, id).
 		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting resource",
-			utils.FormatOpenAPIErrors(err, "Delete", nil),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
