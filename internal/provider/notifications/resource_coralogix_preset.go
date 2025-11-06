@@ -464,7 +464,11 @@ func extractConditionType(ctx context.Context, conditionType types.Object) (*pre
 			return nil, diags
 		}
 		return &presets.NotificationCenterConditionType{
-			NotificationCenterConditionTypeMatchEntityTypeAndSubType: &presets.NotificationCenterConditionTypeMatchEntityTypeAndSubType{},
+			NotificationCenterConditionTypeMatchEntityTypeAndSubType: &presets.NotificationCenterConditionTypeMatchEntityTypeAndSubType{
+				MatchEntityTypeAndSubType: &presets.MatchEntityTypeAndSubTypeCondition{
+					EntitySubType: matchEntityTypeAndSubTypeModel.EntitySubType.ValueStringPointer(),
+				},
+			},
 		}, nil
 	}
 

@@ -365,11 +365,14 @@ func extractRoutingRule(ctx context.Context, routingModel RoutingRuleModel) (*gl
 		return nil, diags
 	}
 
+	entityType := globalrouterschema.GlobalRouterEntityTypeSchemaToApi[routingModel.EntityType.ValueString()]
+
 	return &globalRouters.RoutingRule{
 		Name:          utils.TypeStringToStringPointer(routingModel.Name),
 		Condition:     routingModel.Condition.ValueString(),
 		Targets:       targets,
 		CustomDetails: &customDetails,
+		EntityType:    &entityType,
 	}, nil
 }
 

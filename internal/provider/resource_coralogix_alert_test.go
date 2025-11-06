@@ -1963,18 +1963,15 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter(name string) string {
     id          = "global_router"
     name        = "global router example"
     description = "global router example"
-    rules       = [
-      {
+    rules       = [{
+        entity_type = "alerts"
         name = "rule-name"
         condition = "alertDef.priority == \"P1\""
-        targets = [
-          {
+        targets = [{
             connector_id   = coralogix_connector.slack_example.id
             preset_id      = coralogix_preset.slack_example.id
-          }
-        ]
-      }
-    ]
+        }]
+    }]
   }
 
   resource "coralogix_alert" "test" {
