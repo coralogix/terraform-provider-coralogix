@@ -30,11 +30,12 @@ and allows configuring custom Presets, which inherit from system Presets but can
 Just like connectors, presets are tailored for specific platforms like Slack, PagerDuty, and webhooks.
 
 ### Global Router
-Determines how alerts are routed to specific connectors and presets. 
-A Global Router evaluates routing rules based on alert conditions and matches them to appropriate notification targets.
+Determines how notifications should be routed to specific connectors and presets based on routing rules. 
+
+Notifications are matched with a router based on matching routing label values. When a router is matched, it evaluates all the routing rules of the router in parallel and sends the notification to the configured notification targets.
 
 ### Alerts
-Alerts are routed through a centralized Global Router, which applies logic to determine the appropriate connector and preset.
+Alerts are routed through the Notification Center routers, which applies logic to determine the matching router/s, routing rules and where the notification should be sent. 
 
 ## Example: Slack Notification Center Configuration
 The following sections demonstrate how to configure a Slack-based notification workflow using all Notification Center components.
@@ -122,12 +123,18 @@ Running `terraform apply` with the above configuration will create a Preset in C
 ---
 
 ### Global Router Configuration
-The following resource defines a Global Router that dispatches alerts based on priority:
+The following resource defines a Global Router that matches based on routing.environment label and dispatches alerts based on priority:
+
 ```hcl
 resource "coralogix_global_router" "router_example" {
-  name        = "global router"
-  description = "global router example"
-  entity_type = "alerts" # The entity type for which this router is applicable.
+	id = "prod-environment-router"
+  name        = "Production environment router"
+  description = "Router for production environment notifications"
+  
+  matching_routing_labels = {
+    routing.environment = "production" # Match alerts with label 'routing.environment:production'
+  }
+  
   rules = [
     {
       name      = "P1-alerts"
@@ -160,15 +167,24 @@ Running `terraform apply` with the above configuration will create a Global Rout
 
 
 ### Alert using Global Router Configuration
-The following resource defines an Alert that uses the Global Router for routing notifications:
+The following resource defines an Alert that uses Global Routers for routing notifications:
+
 ```hcl
 resource "coralogix_alert" "example_with_router" {
   depends_on = [coralogix_global_router.router_example]
   name        = "metric_threshold alert"
   description = "metric_threshold alert example with routing"
-  notification_group = {
-    router = {} # Enabling routing to the Global Router.
+  
+  labels = {
+    alert_type = "security"
+    routing.group = "teamA" # Routing label to match global routers.
+    routing.environment = "production" # Routing label to match global routers.
   }
+  
+  notification_group = {
+    router = {} # Enabling routing to use Global Routers.
+  }
+  
   type_definition = {
     metric_threshold = {
       metric_filter = {
@@ -199,5 +215,6 @@ Running `terraform apply` with the above configuration will create an Alert in C
 ---
 
 ## Conclusion
+
 This guide provided an overview of how to configure Coralogix Notification Center resources using Terraform.
 You learned how to create connectors, presets, and global routers, and how to use them in alerts configurations.

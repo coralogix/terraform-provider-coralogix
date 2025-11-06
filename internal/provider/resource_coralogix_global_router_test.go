@@ -445,6 +445,9 @@ func testAccResourceCoralogixGlobalRouterUpdate(name string) string {
     resource "coralogix_global_router" "example" {
       name        = "global router example updated"
       description = "global router example"
+      matching_routing_labels = {
+        routing.environment = "production" 
+      }
       rules       = [
         {
           name = "rule-name"
