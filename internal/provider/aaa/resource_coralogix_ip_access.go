@@ -302,6 +302,6 @@ func flattenIPAccess(r *ipaccess.IpAccess) IpAccessRuleModel {
 	return IpAccessRuleModel{
 		Name:    types.StringValue(*r.Name),
 		IpRange: types.StringValue(r.IpRange),
-		Enabled: types.BoolPointerValue(r.Enabled),
+		Enabled: types.BoolValue((r.Enabled != nil && *r.Enabled) || false),
 	}
 }
