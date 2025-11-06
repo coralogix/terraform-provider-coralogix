@@ -55,9 +55,9 @@ type ClientSet struct {
 	notifications       *cxsdk.NotificationsClient
 	ipaccess            *ipaccess.IPAccessServiceAPIService
 	integrations        *integrations.IntegrationServiceAPIService
-
-	grafana *GrafanaClient
-	groups  *GroupsClient
+	teams               *cxsdk.TeamsClient
+	grafana             *GrafanaClient
+	groups              *GroupsClient
 }
 
 func (c *ClientSet) RuleGroups() *cxsdk.RuleGroupsClient {
@@ -168,6 +168,10 @@ func (c *ClientSet) LegacySLOs() *cxsdk.LegacySLOsClient {
 	return c.legacySlos
 }
 
+func (c *ClientSet) Teams() *cxsdk.TeamsClient {
+	return c.teams
+}
+
 func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	apiKeySdk := cxsdk.NewSDKCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
@@ -203,8 +207,8 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		webhooks:     cxsdkOpenapi.NewWebhooksClient(oasTfCPC),
 		// alertScheduler: cxsdkOpenapi.NewAlertSchedulerClient(oasTfCPC),
 		ipaccess: cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
-
-		grafana: NewGrafanaClient(apikeyCPC),
-		groups:  NewGroupsClient(apikeyCPC),
+		teams:    cxsdk.NewTeamsClient(apiKeySdk),
+		grafana:  NewGrafanaClient(apikeyCPC),
+		groups:   NewGroupsClient(apikeyCPC),
 	}
 }

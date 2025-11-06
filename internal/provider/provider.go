@@ -404,6 +404,7 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		aaa.NewUserResource,
 		aaa.NewScopeResource,
 		aaa.NewIpAccessResource,
+		aaa.NewTeamResource,
 		integrations.NewIntegrationResource,
 		alerts.NewAlertResource,
 		notifications.NewConnectorResource,
