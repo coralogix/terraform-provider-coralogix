@@ -3,12 +3,12 @@
 page_title: "coralogix_preset Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Preset. NOTE: This resource is in alpha stage.
+  Coralogix Preset. NOTE: This resource is in Beta stage.
 ---
 
 # coralogix_preset (Data Source)
 
-Coralogix Preset. **NOTE:** This resource is in alpha stage.
+Coralogix Preset. **NOTE:** This resource is in Beta stage.
 
 ## Example Usage
 
@@ -33,9 +33,9 @@ data "coralogix_preset" "generic_https_example_data_by_name" {
 ### Read-Only
 
 - `config_overrides` (Attributes List) (see [below for nested schema](#nestedatt--config_overrides))
-- `connector_type` (String) The type of connector for the preset. Valid values are: generic_https, pagerduty, slack, unspecified
+- `connector_type` (String) The type of connector for the preset. Valid values are: generic_https, pagerduty, service_now, slack, unspecified
 - `description` (String)
-- `entity_type` (String) The type of entity for the preset. Valid values are: alerts, unspecified
+- `entity_type` (String) The type of entity for the preset. Valid values are: alerts, cases, test_notifications, unspecified
 - `parent_id` (String)
 
 <a id="nestedatt--config_overrides"></a>

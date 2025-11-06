@@ -785,6 +785,10 @@ func TypeMapToStringMap(ctx context.Context, m types.Map) (map[string]string, di
 	return result, diags
 }
 
+func StringMapToTypeMap(ctx context.Context, m map[string]string) (types.Map, diag.Diagnostics) {
+	return types.MapValueFrom(ctx, types.StringType, m)
+}
+
 func StringNullIfUnknown(s types.String) *string {
 	if s.IsNull() || s.IsUnknown() {
 		return nil
@@ -870,21 +874,6 @@ func ParseDuration(ti, fieldsName string) (*time.Duration, diag.Diagnostic) {
 		return nil, diag.NewErrorDiagnostic(fmt.Sprintf("Error Expand %s", fieldsName), fmt.Sprintf("error parsing duration unit: %s", unit))
 	}
 	return &duration, nil
-}
-
-func ExtractStringMap(ctx context.Context, typesMap types.Map) (map[string]string, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	extractedDetails := make(map[string]string)
-	if typesMap.IsNull() || typesMap.IsUnknown() {
-		return nil, diags
-	}
-
-	typesMap.ElementsAs(ctx, &extractedDetails, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return extractedDetails, diags
 }
 
 func JSONStringsEqualPlanModifier(_ context.Context, plan planmodifier.StringRequest, req *stringplanmodifier.RequiresReplaceIfFuncResponse) {

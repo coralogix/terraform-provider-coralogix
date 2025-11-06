@@ -21,9 +21,12 @@ import (
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
+	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
+	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
 	integrations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 	webhhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
+	presets "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/presets_service"
 
 	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 )
@@ -52,7 +55,9 @@ type ClientSet struct {
 	customRole          *cxsdk.RolesClient
 	events2Metrics      *cxsdk.Events2MetricsClient
 	groupGrpc           *cxsdk.GroupsClient
-	notifications       *cxsdk.NotificationsClient
+	connectors          *connectors.ConnectorsServiceAPIService
+	presets             *presets.PresetsServiceAPIService
+	globalRouters       *globalRouters.GlobalRoutersServiceAPIService
 	ipaccess            *ipaccess.IPAccessServiceAPIService
 	integrations        *integrations.IntegrationServiceAPIService
 	teams               *cxsdk.TeamsClient
@@ -159,8 +164,8 @@ func (c *ClientSet) GroupGrpc() *cxsdk.GroupsClient {
 	return c.groupGrpc
 }
 
-func (c *ClientSet) GetNotifications() *cxsdk.NotificationsClient {
-	return c.notifications
+func (c *ClientSet) GetNotifications() (*connectors.ConnectorsServiceAPIService, *globalRouters.GlobalRoutersServiceAPIService, *presets.PresetsServiceAPIService) {
+	return c.connectors, c.globalRouters, c.presets
 
 }
 
@@ -198,13 +203,15 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		customRole:          cxsdk.NewRolesClient(apiKeySdk),
 		events2Metrics:      cxsdk.NewEvents2MetricsClient(apiKeySdk),
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
-		notifications:       cxsdk.NewNotificationsClient(apiKeySdk),
-		alertScheduler:      cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
-		integrations: cxsdkOpenapi.NewIntegrationsClient(oasTfCPC),
-		slos:         cxsdkOpenapi.NewSLOsClient(oasTfCPC),
-		apikeys:      cxsdkOpenapi.NewAPIKeysClient(oasTfCPC),
-		webhooks:     cxsdkOpenapi.NewWebhooksClient(oasTfCPC),
+		alertScheduler: cxsdk.NewAlertSchedulerClient(apiKeySdk),
+		presets:        cxsdkOpenapi.NewPresetsClient(oasTfCPC),
+		connectors:     cxsdkOpenapi.NewConnectorsClient(oasTfCPC),
+		globalRouters:  cxsdkOpenapi.NewGlobalRoutersClient(oasTfCPC),
+		integrations:   cxsdkOpenapi.NewIntegrationsClient(oasTfCPC),
+		slos:           cxsdkOpenapi.NewSLOsClient(oasTfCPC),
+		apikeys:        cxsdkOpenapi.NewAPIKeysClient(oasTfCPC),
+		webhooks:       cxsdkOpenapi.NewWebhooksClient(oasTfCPC),
 		// alertScheduler: cxsdkOpenapi.NewAlertSchedulerClient(oasTfCPC),
 		ipaccess: cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
 		teams:    cxsdk.NewTeamsClient(apiKeySdk),

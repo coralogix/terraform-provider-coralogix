@@ -16,7 +16,6 @@ package notifications
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 
@@ -28,7 +27,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
@@ -40,7 +39,7 @@ func NewConnectorDataSource() datasource.DataSource {
 }
 
 type ConnectorDataSource struct {
-	client *cxsdk.NotificationsClient
+	client *connectors.ConnectorsServiceAPIService
 }
 
 func (d *ConnectorDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -61,7 +60,7 @@ func (d *ConnectorDataSource) Configure(_ context.Context, req datasource.Config
 		return
 	}
 
-	d.client = clientSet.GetNotifications()
+	d.client, _, _ = clientSet.GetNotifications()
 }
 
 func (d *ConnectorDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -98,14 +97,15 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 	var connectorID string
 	//Get refreshed connector value from Coralogix
 	if name := data.Name.ValueString(); name != "" {
-		log.Printf("[INFO] Listing connectors to find by name: %s", name)
-		listConnectorResp, err := d.client.ListConnectors(ctx, &cxsdk.ListConnectorsRequest{})
+		log.Printf("[INFO] Listing resource to find by name: %s", name)
+		listConnectorResp, _, err := d.client.
+			ConnectorsServiceListConnectors(ctx).
+			Execute()
+
 		if err != nil {
-			log.Printf("[ERROR] Received error when listing connectors: %s", err.Error())
-			listConnectorReqStr, _ := json.Marshal(listConnectorResp)
 			resp.Diagnostics.AddError(
-				"Error listing connectors",
-				utils.FormatRpcErrors(err, "List", string(listConnectorReqStr)),
+				"Error listing resource",
+				utils.FormatOpenAPIErrors(err, "List", nil),
 			)
 			return
 		}
@@ -118,27 +118,32 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 		}
 
 		if connectorID == "" {
-			resp.Diagnostics.AddError(fmt.Sprintf("connector with name %q not found", name), "")
+			resp.Diagnostics.AddError(fmt.Sprintf("Resource with name %q not found", name), "")
 			return
 		}
 	} else if id := data.ID.ValueString(); id != "" {
 		connectorID = id
 	} else {
-		resp.Diagnostics.AddError("connector ID or name must be set", "")
+		resp.Diagnostics.AddError("ID or name must be set", "")
 		return
 	}
+	rq := d.client.ConnectorsServiceGetConnector(ctx, connectorID)
 
-	getConnectorResp, err := d.client.GetConnector(ctx, &cxsdk.GetConnectorRequest{Id: connectorID})
+	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
+
+	result, _, err := rq.
+		Execute()
+
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get connector", err.Error())
-		return
-	}
-	if getConnectorResp == nil {
-		resp.Diagnostics.AddError("connector not found", "connector not found")
+		resp.Diagnostics.AddError("Error reading resource",
+			utils.FormatOpenAPIErrors(err, "Read", nil),
+		)
 		return
 	}
 
-	data, diags = flattenConnector(ctx, getConnectorResp.Connector)
+	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+
+	data, diags = flattenConnector(ctx, result.Connector)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

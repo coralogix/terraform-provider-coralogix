@@ -193,7 +193,7 @@ resource "coralogix_alert" "slo_alert_error_budget" {
 
 ### Read-Only
 
-- `grouping` (Attributes) Optional grouping configuration for SLO evaluations. (see [below for nested schema](#nestedatt--grouping))
+- `grouping` (Attributes) Grouping configuration for SLO evaluations. (see [below for nested schema](#nestedatt--grouping))
 - `id` (String) SLO ID.
 
 <a id="nestedatt--sli"></a>

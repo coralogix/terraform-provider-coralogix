@@ -3,12 +3,12 @@
 page_title: "coralogix_connector Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Connector. Note: This resource is in alpha stage.
+  Coralogix Connector. Note: This resource is in Beta stage.
 ---
 
 # coralogix_connector (Resource)
 
-Coralogix Connector. **Note:** This resource is in alpha stage.
+Coralogix Connector. **Note:** This resource is in Beta stage.
 
 ## Example Usage
 
@@ -176,7 +176,7 @@ EOF
 
 Required:
 
-- `entity_type` (String) Entity type for the connector. Valid values are: [alerts unspecified]
+- `entity_type` (String) Entity type for the connector. Valid values are: [alerts cases test_notifications unspecified]
 - `fields` (Attributes Set) (see [below for nested schema](#nestedatt--config_overrides--fields))
 
 <a id="nestedatt--config_overrides--fields"></a>

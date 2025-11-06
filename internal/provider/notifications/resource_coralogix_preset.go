@@ -18,19 +18,18 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
+	presets "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/presets_service"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -39,20 +38,28 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"google.golang.org/grpc/codes"
 )
 
 var (
-	_                                resource.ResourceWithConfigure   = &PresetResource{}
-	_                                resource.ResourceWithImportState = &PresetResource{}
-	presetConnectorTypeSchemaToProto                                  = map[string]cxsdk.ConnectorType{
-		"unspecified":   cxsdk.ConnectorTypeUnSpecified,
-		"slack":         cxsdk.ConnectorTypeSlack,
-		"generic_https": cxsdk.ConnectorTypeGenericHTTPS,
-		"pagerduty":     cxsdk.ConnectorTypePagerDuty,
+	_                              resource.ResourceWithConfigure   = &PresetResource{}
+	_                              resource.ResourceWithImportState = &PresetResource{}
+	presetConnectorTypeSchemaToApi                                  = map[string]presets.ConnectorType{
+		"unspecified":   presets.CONNECTORTYPE_CONNECTOR_TYPE_UNSPECIFIED,
+		"slack":         presets.CONNECTORTYPE_SLACK,
+		"generic_https": presets.CONNECTORTYPE_GENERIC_HTTPS,
+		"pagerduty":     presets.CONNECTORTYPE_PAGERDUTY,
+		"service_now":   presets.CONNECTORTYPE_SERVICE_NOW,
 	}
-	presetConnectorTypeProtoToSchema = utils.ReverseMap(presetConnectorTypeSchemaToProto)
-	validConnectorTypes              = utils.GetKeys(presetConnectorTypeSchemaToProto)
+	presetConnectorTypeApiToSchema = utils.ReverseMap(presetConnectorTypeSchemaToApi)
+	validConnectorTypes            = utils.GetKeys(presetConnectorTypeSchemaToApi)
+	presetEntityTypeSchemaToApi    = map[string]presets.NotificationCenterEntityType{
+		"unspecified":        presets.NOTIFICATIONCENTERENTITYTYPE_ENTITY_TYPE_UNSPECIFIED,
+		"alerts":             presets.NOTIFICATIONCENTERENTITYTYPE_ALERTS,
+		"cases":              presets.NOTIFICATIONCENTERENTITYTYPE_CASES,
+		"test_notifications": presets.NOTIFICATIONCENTERENTITYTYPE_TEST_NOTIFICATIONS,
+	}
+	presetsNotificationCenterEntityTypeApiToSchema       = utils.ReverseMap(presetEntityTypeSchemaToApi)
+	presetsValidNotificationCenterEntityTypesSchemaToApi = utils.GetKeys(presetEntityTypeSchemaToApi)
 )
 
 func NewPresetResource() resource.Resource {
@@ -60,7 +67,7 @@ func NewPresetResource() resource.Resource {
 }
 
 type PresetResource struct {
-	client *cxsdk.NotificationsClient
+	client *presets.PresetsServiceAPIService
 }
 
 type PresetResourceModel struct {
@@ -118,7 +125,7 @@ func (r *PresetResource) Configure(_ context.Context, req resource.ConfigureRequ
 		return
 	}
 
-	r.client = clientSet.GetNotifications()
+	_, _, r.client = clientSet.GetNotifications()
 }
 
 func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -140,9 +147,9 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			"entity_type": schema.StringAttribute{
 				Required: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf(validNotificationsEntityTypes...),
+					stringvalidator.OneOf(presetsValidNotificationCenterEntityTypesSchemaToApi...),
 				},
-				MarkdownDescription: fmt.Sprintf("The type of entity for the preset. Valid values are: %s", strings.Join(validNotificationsEntityTypes, ", ")),
+				MarkdownDescription: fmt.Sprintf("The type of entity for the preset. Valid values are: %s", strings.Join(presetsValidNotificationCenterEntityTypesSchemaToApi, ", ")),
 			},
 			"description": schema.StringAttribute{
 				Optional: true,
@@ -213,7 +220,7 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Required: true,
 			},
 		},
-		MarkdownDescription: "Coralogix Preset. **NOTE:** This resource is in alpha stage.",
+		MarkdownDescription: "Coralogix Preset. **NOTE:** This resource is in Beta stage.",
 	}
 }
 
@@ -235,109 +242,121 @@ func (r *PresetResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	presetStr := protojson.Format(preset)
-	log.Printf("[INFO] Creating new Preset: %s", presetStr)
-	createResp, err := r.client.CreateCustomPreset(ctx, &cxsdk.CreateCustomPresetRequest{Preset: preset})
+	rq := presets.CreateCustomPresetRequest{
+		Preset: preset,
+	}
+
+	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
+	result, _, err := r.client.
+		PresetsServiceCreateCustomPreset(ctx).
+		CreateCustomPresetRequest(rq).
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err)
-		resp.Diagnostics.AddError("Error creating Preset",
-			//TODO: add the proper url
-			utils.FormatRpcErrors(err, "", presetStr),
+		resp.Diagnostics.AddError("Error creating resource",
+			utils.FormatOpenAPIErrors(err, "Create", rq),
 		)
 		return
 	}
-
-	Preset := createResp.GetPreset()
-	log.Printf("[INFO] Submitted new Preset: %s", protojson.Format(Preset))
-
-	plan, diags = flattenPreset(ctx, Preset)
+	log.Printf("[INFO] Created new resource: %s", utils.FormatJSON(result))
+	plan, diags = flattenPreset(ctx, result.Preset)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r *PresetResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state *PresetResourceModel
-	diags := req.State.Get(ctx, &state)
+	var plan *PresetResourceModel
+	diags := req.State.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	id := plan.ID.ValueString()
 
-	id := state.ID.ValueString()
-	//Get refreshed Preset value from Coralogix
-	log.Printf("[INFO] Reading Preset: %s", id)
-	getPresetReq := &cxsdk.GetPresetRequest{Id: id}
-	getPresetResp, err := r.client.GetPreset(ctx, getPresetReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
-			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Preset %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
-			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Preset",
-				//TODO: add the proper url
-				utils.FormatRpcErrors(err, "", protojson.Format(getPresetReq)),
-			)
-		}
-		return
-	}
-	Preset := getPresetResp.GetPreset()
-	log.Printf("[INFO] Received Preset: %s", protojson.Format(Preset))
-
-	state, diags = flattenPreset(ctx, Preset)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	//
-	diags = resp.State.Set(ctx, &state)
+
+	rq := r.client.
+		PresetsServiceGetPreset(ctx, id)
+
+	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := rq.
+		Execute()
+
+	if err != nil {
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error reading resource", utils.FormatOpenAPIErrors(err, "Read", nil))
+		}
+		return
+	}
+	log.Printf("[INFO] Replaced new resource: %s", utils.FormatJSON(result))
+	plan, diags = flattenPreset(ctx, result.Preset)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r PresetResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Retrieve values from plan
 	var plan *PresetResourceModel
-	diags := req.Plan.Get(ctx, &plan)
+	diags := req.State.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	id := plan.ID.ValueString()
 
 	preset, diags := extractPreset(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Updating Preset: %s", protojson.Format(preset))
-	PresetUpdateResp, err := r.client.ReplaceCustomPreset(ctx, &cxsdk.ReplaceCustomPresetRequest{Preset: preset})
+
+	rq := presets.ReplaceCustomPresetRequest{
+		Preset: preset,
+	}
+
+	log.Printf("[INFO] Replacing resource: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := r.client.
+		PresetsServiceReplaceCustomPreset(ctx).
+		ReplaceCustomPresetRequest(rq).
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error updating Preset",
-			//TODO: add the proper url
-			utils.FormatRpcErrors(err, "", protojson.Format(preset)),
-		)
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error replacing resource", utils.FormatOpenAPIErrors(err, "Replace", nil))
+		}
 		return
 	}
-	log.Printf("[INFO] Submitted updated Preset: %s", protojson.Format(PresetUpdateResp))
-
-	plan, diags = flattenPreset(ctx, preset)
+	log.Printf("[INFO] Replaced resource: %s", utils.FormatJSON(result))
+	plan, diags = flattenPreset(ctx, result.Preset)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
@@ -352,40 +371,38 @@ func (r PresetResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 
 	id := state.ID.ValueString()
 	log.Printf("[INFO] Deleting Preset %s", id)
-	deleteReq := &cxsdk.DeleteCustomPresetRequest{Id: id}
-	if _, err := r.client.DeleteCustomPreset(ctx, deleteReq); err != nil {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting Preset %s", id),
-			//TODO: add the proper url
-			utils.FormatRpcErrors(err, "", protojson.Format(deleteReq)),
-		)
+
+	if _, _, err := r.client.PresetsServiceDeleteCustomPreset(ctx, id).Execute(); err != nil {
+		resp.Diagnostics.AddError("Error deleting resource", utils.FormatOpenAPIErrors(err, "Delete", nil))
 		return
 	}
 	log.Printf("[INFO] Preset %s deleted", id)
 }
 
-func extractPreset(ctx context.Context, plan *PresetResourceModel) (*cxsdk.Preset, diag.Diagnostics) {
+func extractPreset(ctx context.Context, plan *PresetResourceModel) (*presets.Preset, diag.Diagnostics) {
 	configOverrides, diags := extractPresetConfigOverrides(ctx, plan.ConfigOverrides)
-	presetType := cxsdk.PresetTypeCustom
+	presetType := presets.PRESETTYPE_CUSTOM
+	connectorType := presetConnectorTypeSchemaToApi[plan.ConnectorType.ValueString()]
+	entityType := presetEntityTypeSchemaToApi[plan.EntityType.ValueString()]
 	if diags.HasError() {
 		return nil, diags
 	}
-	return &cxsdk.Preset{
+	return &presets.Preset{
 		Id:              utils.TypeStringToStringPointer(plan.ID),
-		EntityType:      notificationCenterEntityTypeSchemaToProto[plan.EntityType.ValueString()],
-		ConnectorType:   presetConnectorTypeSchemaToProto[plan.ConnectorType.ValueString()],
+		EntityType:      entityType,
+		ConnectorType:   &connectorType,
 		Name:            plan.Name.ValueString(),
 		ConfigOverrides: configOverrides,
-		Description:     plan.Description.ValueString(),
+		Description:     plan.Description.ValueStringPointer(),
 		PresetType:      &presetType,
 		ParentId:        utils.TypeStringToStringPointer(plan.ParentId),
 	}, nil
 }
-func extractPresetConfigOverrides(ctx context.Context, overrides types.List) ([]*cxsdk.ConfigOverrides, diag.Diagnostics) {
+func extractPresetConfigOverrides(ctx context.Context, overrides types.List) ([]presets.ConfigOverrides, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var overrideObjects []types.Object
 	overrides.ElementsAs(ctx, &overrideObjects, true)
-	extractedOverrides := make([]*cxsdk.ConfigOverrides, 0, len(overrideObjects))
+	extractedOverrides := make([]presets.ConfigOverrides, 0, len(overrideObjects))
 
 	for _, o := range overrideObjects {
 		extractedOverride, dg := extractOverride(ctx, o)
@@ -393,7 +410,7 @@ func extractPresetConfigOverrides(ctx context.Context, overrides types.List) ([]
 			diags.Append(dg...)
 			continue
 		}
-		extractedOverrides = append(extractedOverrides, extractedOverride)
+		extractedOverrides = append(extractedOverrides, *extractedOverride)
 	}
 
 	if diags.HasError() {
@@ -403,7 +420,7 @@ func extractPresetConfigOverrides(ctx context.Context, overrides types.List) ([]
 	return extractedOverrides, nil
 }
 
-func extractOverride(ctx context.Context, overrideObject types.Object) (*cxsdk.ConfigOverrides, diag.Diagnostics) {
+func extractOverride(ctx context.Context, overrideObject types.Object) (*presets.ConfigOverrides, diag.Diagnostics) {
 	var override PresetConfigOverrideModel
 	if diags := overrideObject.As(ctx, &override, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
@@ -418,7 +435,7 @@ func extractOverride(ctx context.Context, overrideObject types.Object) (*cxsdk.C
 		return nil, diags
 	}
 
-	return &cxsdk.ConfigOverrides{
+	return &presets.ConfigOverrides{
 		ConditionType: conditionType,
 		PayloadType:   utils.TypeStringToStringPointer(override.PayloadType),
 		MessageConfig: messageConfig,
@@ -426,7 +443,7 @@ func extractOverride(ctx context.Context, overrideObject types.Object) (*cxsdk.C
 
 }
 
-func extractConditionType(ctx context.Context, conditionType types.Object) (*cxsdk.ConditionType, diag.Diagnostics) {
+func extractConditionType(ctx context.Context, conditionType types.Object) (*presets.NotificationCenterConditionType, diag.Diagnostics) {
 	var condition PresetConditionTypeModel
 	if diags := conditionType.As(ctx, &condition, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
@@ -437,29 +454,23 @@ func extractConditionType(ctx context.Context, conditionType types.Object) (*cxs
 		if diags := matchEntityType.As(ctx, &matchEntityTypeModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 			return nil, diags
 		}
-		return &cxsdk.ConditionType{
-			Condition: &cxsdk.ConditionTypeMatchEntityType{
-				MatchEntityType: &cxsdk.MatchEntityTypeCondition{},
-			},
+		return &presets.NotificationCenterConditionType{
+			NotificationCenterConditionTypeMatchEntityType: &presets.NotificationCenterConditionTypeMatchEntityType{},
 		}, nil
 	} else if matchEntityTypeAndSubType := condition.MatchEntityTypeAndSubType; !(matchEntityTypeAndSubType.IsNull() || matchEntityTypeAndSubType.IsUnknown()) {
 		var matchEntityTypeAndSubTypeModel MatchEntityTypeAndSubTypeModel
 		if diags := matchEntityTypeAndSubType.As(ctx, &matchEntityTypeAndSubTypeModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 			return nil, diags
 		}
-		return &cxsdk.ConditionType{
-			Condition: &cxsdk.ConditionTypeMatchEntityTypeAndSubType{
-				MatchEntityTypeAndSubType: &cxsdk.MatchEntityTypeAndSubTypeCondition{
-					EntitySubType: matchEntityTypeAndSubTypeModel.EntitySubType.ValueString(),
-				},
-			},
+		return &presets.NotificationCenterConditionType{
+			NotificationCenterConditionTypeMatchEntityTypeAndSubType: &presets.NotificationCenterConditionTypeMatchEntityTypeAndSubType{},
 		}, nil
 	}
 
 	return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid condition type", "Condition type must be either MatchEntityType or MatchEntityTypeAndSubType")}
 }
 
-func extractMessageConfig(ctx context.Context, config types.Object) (*cxsdk.MessageConfig, diag.Diagnostics) {
+func extractMessageConfig(ctx context.Context, config types.Object) (*presets.MessageConfig, diag.Diagnostics) {
 	var messageConfig MessageConfigModel
 	if diags := config.As(ctx, &messageConfig, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
@@ -470,12 +481,12 @@ func extractMessageConfig(ctx context.Context, config types.Object) (*cxsdk.Mess
 		return nil, diags
 	}
 
-	return &cxsdk.MessageConfig{
+	return &presets.MessageConfig{
 		Fields: messageFields,
 	}, nil
 }
 
-func extractMessageConfigFields(ctx context.Context, configFields types.Set) ([]*cxsdk.MessageConfigField, diag.Diagnostics) {
+func extractMessageConfigFields(ctx context.Context, configFields types.Set) ([]presets.NotificationCenterMessageConfigField, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if configFields.IsNull() || configFields.IsUnknown() {
 		return nil, diags
@@ -483,14 +494,14 @@ func extractMessageConfigFields(ctx context.Context, configFields types.Set) ([]
 
 	var configFieldsObjects []types.Object
 	configFields.ElementsAs(ctx, &configFieldsObjects, true)
-	extractedConfigFields := make([]*cxsdk.MessageConfigField, 0, len(configFieldsObjects))
+	extractedConfigFields := make([]presets.NotificationCenterMessageConfigField, 0, len(configFieldsObjects))
 	for _, field := range configFieldsObjects {
 		var fieldModel MessageConfigFieldModel
 		if dg := field.As(ctx, &fieldModel, basetypes.ObjectAsOptions{}); dg.HasError() {
 			diags.Append(dg...)
 			continue
 		}
-		extractedConfigField := &cxsdk.MessageConfigField{
+		extractedConfigField := presets.NotificationCenterMessageConfigField{
 			FieldName: fieldModel.FieldName.ValueString(),
 			Template:  fieldModel.Template.ValueString(),
 		}
@@ -504,30 +515,33 @@ func extractMessageConfigFields(ctx context.Context, configFields types.Set) ([]
 	return extractedConfigFields, diags
 }
 
-func flattenPreset(ctx context.Context, preset *cxsdk.Preset) (*PresetResourceModel, diag.Diagnostics) {
+func flattenPreset(ctx context.Context, preset *presets.Preset) (*PresetResourceModel, diag.Diagnostics) {
 	configOverrides, diags := flattenPresetConfigOverrides(ctx, preset.ConfigOverrides)
 	if diags.HasError() {
 		return nil, diags
 	}
-
+	connectorType, exists := presetConnectorTypeApiToSchema[*preset.ConnectorType]
+	if !exists {
+		connectorType = string(*preset.ConnectorType)
+	}
 	return &PresetResourceModel{
 		ID:              utils.StringPointerToTypeString(preset.Id),
-		EntityType:      types.StringValue(notificationCenterEntityTypeProtoToSchema[preset.EntityType]),
-		ConnectorType:   types.StringValue(presetConnectorTypeProtoToSchema[preset.ConnectorType]),
+		EntityType:      types.StringValue(presetsNotificationCenterEntityTypeApiToSchema[preset.EntityType]),
+		ConnectorType:   types.StringValue(connectorType),
 		ConfigOverrides: configOverrides,
 		Name:            types.StringValue(preset.Name),
 		ParentId:        utils.StringPointerToTypeString(preset.ParentId),
-		Description:     types.StringValue(preset.Description),
+		Description:     types.StringPointerValue(preset.Description),
 	}, nil
 
 }
 
-func flattenPresetConfigOverrides(ctx context.Context, overrides []*cxsdk.ConfigOverrides) (types.List, diag.Diagnostics) {
+func flattenPresetConfigOverrides(ctx context.Context, overrides []presets.ConfigOverrides) (types.List, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	overridesList := make([]types.Object, 0, len(overrides))
 
 	for _, override := range overrides {
-		overrideObject, dg := flattenPresetOverride(ctx, override)
+		overrideObject, dg := flattenPresetOverride(ctx, &override)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -542,7 +556,7 @@ func flattenPresetConfigOverrides(ctx context.Context, overrides []*cxsdk.Config
 	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: presetConfigOverrideAttr()}, overridesList)
 }
 
-func flattenPresetOverride(ctx context.Context, override *cxsdk.ConfigOverrides) (types.Object, diag.Diagnostics) {
+func flattenPresetOverride(ctx context.Context, override *presets.ConfigOverrides) (types.Object, diag.Diagnostics) {
 	conditionType, diags := flattenConditionType(ctx, override.ConditionType)
 	if diags.HasError() {
 		return types.ObjectNull(presetConfigOverrideAttr()), diags
@@ -562,7 +576,7 @@ func flattenPresetOverride(ctx context.Context, override *cxsdk.ConfigOverrides)
 	return types.ObjectValueFrom(ctx, presetConfigOverrideAttr(), overrideObject)
 }
 
-func flattenMessageConfig(ctx context.Context, config *cxsdk.MessageConfig) (types.Object, diag.Diagnostics) {
+func flattenMessageConfig(ctx context.Context, config *presets.MessageConfig) (types.Object, diag.Diagnostics) {
 	if config == nil {
 		return types.ObjectNull(messageConfigAttr()), nil
 	}
@@ -579,7 +593,7 @@ func flattenMessageConfig(ctx context.Context, config *cxsdk.MessageConfig) (typ
 	return types.ObjectValueFrom(ctx, messageConfigAttr(), messageConfig)
 }
 
-func flattenMessageConfigFields(ctx context.Context, configFields []*cxsdk.MessageConfigField) (types.Set, diag.Diagnostics) {
+func flattenMessageConfigFields(ctx context.Context, configFields []presets.NotificationCenterMessageConfigField) (types.Set, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if configFields == nil {
 		return types.SetNull(types.ObjectType{AttrTypes: configOverridesAttr()}), diags
@@ -597,28 +611,31 @@ func flattenMessageConfigFields(ctx context.Context, configFields []*cxsdk.Messa
 	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: configOverridesAttr()}, configFieldsList)
 }
 
-func flattenConditionType(ctx context.Context, condition *cxsdk.ConditionType) (types.Object, diag.Diagnostics) {
+func flattenConditionType(ctx context.Context, condition *presets.NotificationCenterConditionType) (types.Object, diag.Diagnostics) {
 	if condition == nil {
 		return types.ObjectNull(conditionTypeAttr()), nil
 	}
 
 	var presetCondition PresetConditionTypeModel
-	if matchEntityType := condition.GetMatchEntityType(); matchEntityType != nil {
+
+	presetCondition.MatchEntityTypeAndSubType = types.ObjectNull(matchEntityTypeAndSubTypeAttr())
+	presetCondition.MatchEntityType = types.ObjectNull(matchEntityTypeTypeAttr())
+
+	if matchEntityType := condition.NotificationCenterConditionTypeMatchEntityType; matchEntityType != nil {
 		matchEntityType, diags := types.ObjectValueFrom(ctx, matchEntityTypeTypeAttr(), MatchEntityTypeModel{})
 		if diags.HasError() {
 			return types.ObjectNull(conditionTypeAttr()), diags
 		}
 		presetCondition.MatchEntityType = matchEntityType
-		presetCondition.MatchEntityTypeAndSubType = types.ObjectNull(matchEntityTypeAndSubTypeAttr())
-	} else if matchEntityTypeAndSubType := condition.GetMatchEntityTypeAndSubType(); matchEntityTypeAndSubType != nil {
+
+	} else if matchEntityTypeAndSubType := condition.NotificationCenterConditionTypeMatchEntityTypeAndSubType; matchEntityTypeAndSubType != nil {
 		matchEntityTypeAndSubType, diags := types.ObjectValueFrom(ctx, matchEntityTypeAndSubTypeAttr(), MatchEntityTypeAndSubTypeModel{
-			EntitySubType: types.StringValue(matchEntityTypeAndSubType.EntitySubType),
+			EntitySubType: types.StringPointerValue(matchEntityTypeAndSubType.GetMatchEntityTypeAndSubType().EntitySubType),
 		})
 		if diags.HasError() {
 			return types.ObjectNull(conditionTypeAttr()), diags
 		}
 		presetCondition.MatchEntityTypeAndSubType = matchEntityTypeAndSubType
-		presetCondition.MatchEntityType = types.ObjectNull(matchEntityTypeTypeAttr())
 	} else {
 		return types.ObjectNull(conditionTypeAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid condition type", "Condition type must be either MatchEntityType or MatchEntityTypeAndSubType")}
 	}
