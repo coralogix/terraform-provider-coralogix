@@ -369,12 +369,12 @@ func extractConnector(ctx context.Context, plan *ConnectorResourceModel) (*conne
 	if diags.HasError() {
 		return nil, diags
 	}
-
+	ty := connectorTypeSchemaToApi[plan.Type.ValueString()]
 	return &connectors.Connector{
 		Id:              utils.TypeStringToStringPointer(plan.ID),
-		Name:            plan.Name.ValueString(),
+		Name:            plan.Name.ValueStringPointer(),
 		Description:     plan.Description.ValueStringPointer(),
-		Type:            connectorTypeSchemaToApi[plan.Type.ValueString()],
+		Type:            &ty,
 		ConnectorConfig: connectorConfigs,
 		ConfigOverrides: configOverrides,
 	}, nil

@@ -336,8 +336,8 @@ func StringSliceToTypeStringSet(s []string) types.Set {
 	return types.SetValueMust(types.StringType, elements)
 }
 
-func Int64ToStringValue(v int64) types.String {
-	return types.StringValue(strconv.FormatInt(v, 10))
+func Int64ToStringValue(v *int64) types.String {
+	return types.StringValue(strconv.FormatInt(*v, 10))
 }
 
 func Int32SliceToTypeInt64Set(arr []int32) types.Set {

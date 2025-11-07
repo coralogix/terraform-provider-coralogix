@@ -112,7 +112,7 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 		}
 
 		for _, connector := range listResult.Routers {
-			if connector.Name == data.Name.ValueString() {
+			if connector.Name == data.Name.ValueStringPointer() {
 				connectorID = *connector.Id
 				break
 			}

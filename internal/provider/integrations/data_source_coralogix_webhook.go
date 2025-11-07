@@ -147,7 +147,7 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		if err != nil {
 			return
 		}
-		data, diags := flattenWebhook(ctx, &result.Webhook)
+		data, diags := flattenWebhook(ctx, result.Webhook)
 		if diags.HasError() {
 			resp.Diagnostics = diags
 			return

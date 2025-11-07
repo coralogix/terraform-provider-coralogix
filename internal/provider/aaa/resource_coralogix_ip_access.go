@@ -252,7 +252,7 @@ func extractIpAccessRules(rules []IpAccessRuleModel) []ipaccess.IpAccess {
 	for i, rule := range rules {
 		mappedRules[i] = ipaccess.IpAccess{
 			Name:    rule.Name.ValueStringPointer(),
-			IpRange: rule.IpRange.ValueString(),
+			IpRange: rule.IpRange.ValueStringPointer(),
 			Enabled: rule.Enabled.ValueBoolPointer(),
 		}
 	}
@@ -300,8 +300,8 @@ func flattenReadResponse(resp *ipaccess.GetCompanyIpAccessSettingsResponse) IpAc
 
 func flattenIPAccess(r *ipaccess.IpAccess) IpAccessRuleModel {
 	return IpAccessRuleModel{
-		Name:    types.StringValue(*r.Name),
-		IpRange: types.StringValue(r.IpRange),
+		Name:    types.StringPointerValue(r.Name),
+		IpRange: types.StringPointerValue(r.IpRange),
 		Enabled: types.BoolValue((r.Enabled != nil && *r.Enabled) || false),
 	}
 }

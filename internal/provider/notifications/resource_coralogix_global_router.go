@@ -316,7 +316,7 @@ func extractRouter(ctx context.Context, plan *GlobalRouterResourceModel) (*globa
 	routerId := "router_default"
 	return &globalRouters.GlobalRouter{
 		Id:                 &routerId,
-		Name:               plan.Name.ValueString(),
+		Name:               plan.Name.ValueStringPointer(),
 		Description:        plan.Description.ValueStringPointer(),
 		Rules:              rules,
 		Fallback:           fallback,
@@ -369,7 +369,7 @@ func extractRoutingRule(ctx context.Context, routingModel RoutingRuleModel) (*gl
 
 	return &globalRouters.RoutingRule{
 		Name:          utils.TypeStringToStringPointer(routingModel.Name),
-		Condition:     routingModel.Condition.ValueString(),
+		Condition:     routingModel.Condition.ValueStringPointer(),
 		Targets:       targets,
 		CustomDetails: &customDetails,
 		EntityType:    &entityType,
@@ -410,7 +410,7 @@ func extractRoutingTarget(ctx context.Context, routingTargetModel RoutingTargetM
 	}
 
 	return &globalRouters.RoutingTarget{
-		ConnectorId:   routingTargetModel.ConnectorId.ValueString(),
+		ConnectorId:   routingTargetModel.ConnectorId.ValueStringPointer(),
 		PresetId:      utils.TypeStringToStringPointer(routingTargetModel.PresetId),
 		CustomDetails: &customDetails,
 	}, nil
@@ -550,7 +550,7 @@ func flattenRoutingTarget(ctx context.Context, target *globalRouters.RoutingTarg
 	}
 
 	targetModel := RoutingTargetModel{
-		ConnectorId:   types.StringValue(target.ConnectorId),
+		ConnectorId:   types.StringPointerValue(target.ConnectorId),
 		PresetId:      utils.StringPointerToTypeString(target.PresetId),
 		CustomDetails: customDetails,
 	}

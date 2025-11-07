@@ -347,7 +347,8 @@ func (r PresetResource) Update(ctx context.Context, req resource.UpdateRequest, 
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error replacing resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", nil))
+			resp.Diagnostics.AddError("Error replacing resource",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", nil))
 		}
 		return
 	}
@@ -371,13 +372,14 @@ func (r PresetResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting Preset %s", id)
+	log.Printf("[INFO] Deleting resource %s", id)
 
 	if _, httpResponse, err := r.client.PresetsServiceDeleteCustomPreset(ctx, id).Execute(); err != nil {
-		resp.Diagnostics.AddError("Error deleting resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil))
+		resp.Diagnostics.AddError("Error deleting resource",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil))
 		return
 	}
-	log.Printf("[INFO] Preset %s deleted", id)
+	log.Printf("[INFO] resource %s deleted", id)
 }
 
 func extractPreset(ctx context.Context, plan *PresetResourceModel) (*presets.Preset, diag.Diagnostics) {
@@ -390,9 +392,9 @@ func extractPreset(ctx context.Context, plan *PresetResourceModel) (*presets.Pre
 	}
 	return &presets.Preset{
 		Id:              utils.TypeStringToStringPointer(plan.ID),
-		EntityType:      entityType,
+		EntityType:      &entityType,
 		ConnectorType:   &connectorType,
-		Name:            plan.Name.ValueString(),
+		Name:            plan.Name.ValueStringPointer(),
 		ConfigOverrides: configOverrides,
 		Description:     plan.Description.ValueStringPointer(),
 		PresetType:      &presetType,
@@ -507,8 +509,8 @@ func extractMessageConfigFields(ctx context.Context, configFields types.Set) ([]
 			continue
 		}
 		extractedConfigField := presets.NotificationCenterMessageConfigField{
-			FieldName: fieldModel.FieldName.ValueString(),
-			Template:  fieldModel.Template.ValueString(),
+			FieldName: fieldModel.FieldName.ValueStringPointer(),
+			Template:  fieldModel.Template.ValueStringPointer(),
 		}
 		extractedConfigFields = append(extractedConfigFields, extractedConfigField)
 	}
@@ -529,12 +531,13 @@ func flattenPreset(ctx context.Context, preset *presets.Preset) (*PresetResource
 	if !exists {
 		connectorType = string(*preset.ConnectorType)
 	}
+
 	return &PresetResourceModel{
 		ID:              utils.StringPointerToTypeString(preset.Id),
-		EntityType:      types.StringValue(presetsNotificationCenterEntityTypeApiToSchema[preset.EntityType]),
+		EntityType:      types.StringValue(presetsNotificationCenterEntityTypeApiToSchema[*preset.EntityType]),
 		ConnectorType:   types.StringValue(connectorType),
 		ConfigOverrides: configOverrides,
-		Name:            types.StringValue(preset.Name),
+		Name:            types.StringPointerValue(preset.Name),
 		ParentId:        utils.StringPointerToTypeString(preset.ParentId),
 		Description:     types.StringPointerValue(preset.Description),
 	}, nil

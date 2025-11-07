@@ -155,7 +155,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 	}
 	log.Printf("[INFO] Created new resource: %s", utils.FormatJSON(result))
 
-	readRq := r.client.IntegrationServiceGetDeployedIntegration(ctx, result.IntegrationId)
+	readRq := r.client.IntegrationServiceGetDeployedIntegration(ctx, *result.IntegrationId)
 	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
 	readResult, _, err := readRq.Execute()
 
@@ -208,7 +208,7 @@ func extractCreateIntegration(plan *IntegrationResourceModel) (*integrations.Sav
 		return nil, diags
 	}
 	return &integrations.SaveIntegrationRequest{
-		Metadata: integrations.IntegrationMetadata{
+		Metadata: &integrations.IntegrationMetadata{
 			IntegrationKey: plan.IntegrationKey.ValueStringPointer(),
 			Version:        plan.Version.ValueStringPointer(),
 			IntegrationParameters: &integrations.GenericIntegrationParameters{
@@ -225,8 +225,8 @@ func extractUpdateIntegration(plan *IntegrationResourceModel) (*integrations.Upd
 		return nil, diags
 	}
 	return &integrations.UpdateIntegrationRequest{
-		Id: plan.ID.ValueString(),
-		Metadata: integrations.IntegrationMetadata{
+		Id: plan.ID.ValueStringPointer(),
+		Metadata: &integrations.IntegrationMetadata{
 			IntegrationKey: plan.IntegrationKey.ValueStringPointer(),
 			Version:        plan.Version.ValueStringPointer(),
 			IntegrationParameters: &integrations.GenericIntegrationParameters{

@@ -112,7 +112,7 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 		}
 
 		for _, connector := range listConnectorResp.Connectors {
-			if connector.Name == data.Name.ValueString() {
+			if connector.Name == data.Name.ValueStringPointer() {
 				connectorID = *connector.Id
 				break
 			}

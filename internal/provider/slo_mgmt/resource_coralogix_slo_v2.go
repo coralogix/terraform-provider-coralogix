@@ -286,13 +286,13 @@ func (r *SLOV2Resource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics = diags
 		return
 	}
-	rq := slos.SlosServiceCreateSloRequest{
+	rq := slos.SlosServiceReplaceSloRequest{
 		SloRequestBasedMetricSli: slo.SloRequestBasedMetricSli,
 		SloWindowBasedMetricSli:  slo.SloWindowBasedMetricSli,
 	}
 
 	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
-	result, httpResponse, err := r.client.SlosServiceCreateSlo(ctx).SlosServiceCreateSloRequest(rq).Execute()
+	result, httpResponse, err := r.client.SlosServiceCreateSlo(ctx).SlosServiceReplaceSloRequest(rq).Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating resource",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
@@ -380,7 +380,7 @@ func (r *SLOV2Resource) Update(ctx context.Context, req resource.UpdateRequest, 
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("SLOv2 %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)

@@ -290,7 +290,7 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 	log.Printf("[INFO] Created new resource: %s", utils.FormatJSON(result))
 
 	currentKeyId := result.GetKeyId()
-	key, diags := getKeyInfo(ctx, r.client, &currentKeyId, &result.Value)
+	key, diags := getKeyInfo(ctx, r.client, &currentKeyId, result.Value)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -470,7 +470,7 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 	}
 	presetNames := make([]attr.Value, len(response.KeyInfo.KeyPermissions.Presets))
 	for i, p := range response.KeyInfo.KeyPermissions.Presets {
-		presetNames[i] = types.StringValue(p.Name)
+		presetNames[i] = types.StringPointerValue(p.Name)
 	}
 
 	presets, diags := types.SetValueFrom(ctx, types.StringType, presetNames)
@@ -488,12 +488,12 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 		key = types.StringValue(*keyValue)
 	}
 
-	owner := flattenOwner(&response.KeyInfo.Owner)
+	owner := flattenOwner(response.KeyInfo.Owner)
 	return &ApiKeyModel{
 		ID:          types.StringValue(*apiKeyId),
 		Value:       key,
-		Name:        types.StringValue(response.KeyInfo.Name),
-		Active:      types.BoolValue(response.KeyInfo.Active),
+		Name:        types.StringPointerValue(response.KeyInfo.Name),
+		Active:      types.BoolPointerValue(response.KeyInfo.Active),
 		Hashed:      types.BoolPointerValue(response.KeyInfo.Hashed),
 		Permissions: permissions,
 		Presets:     presets,
@@ -518,9 +518,9 @@ func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*ap
 	}
 	hashed := false
 	return &apiKeys.CreateApiKeyRequest{
-		Name:  apiKeyModel.Name.ValueString(),
-		Owner: owner,
-		KeyPermissions: apiKeys.CreateApiKeyRequestKeyPermissions{
+		Name:  apiKeyModel.Name.ValueStringPointer(),
+		Owner: &owner,
+		KeyPermissions: &apiKeys.CreateApiKeyRequestKeyPermissions{
 			Presets:     presets,
 			Permissions: permissions,
 		},
