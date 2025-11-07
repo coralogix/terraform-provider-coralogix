@@ -1077,13 +1077,13 @@ func expandGenericWebhook(ctx context.Context, genericWebhook *CustomWebhookMode
 		url = planUrl.ValueStringPointer()
 	}
 	method := webhooksSchemaToProtoMethod[genericWebhook.Method.ValueString()]
-
+	uuid := utils.UuidCreateIfNull(genericWebhook.UUID)
 	ty := webhooks.WEBHOOKTYPE_GENERIC
 	return &webhooks.OutgoingWebhookInputDataGenericWebhook{
 		Type: &ty,
 		Url:  url,
 		GenericWebhook: &webhooks.GenericWebhookConfig{
-			Uuid:    genericWebhook.UUID.ValueStringPointer(),
+			Uuid:    &uuid,
 			Method:  &method,
 			Headers: &headers,
 			Payload: genericWebhook.Payload.ValueStringPointer(),
