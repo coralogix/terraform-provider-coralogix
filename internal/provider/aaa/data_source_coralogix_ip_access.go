@@ -71,16 +71,16 @@ func (r *IpAccessDataSource) Read(ctx context.Context, req datasource.ReadReques
 		IpAccessServiceGetCompanyIpAccessSettings(ctx)
 
 	// rq = rq.Id(data.Id.ValueString())
-	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading new coralogix_ip_access: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading resource",
+		resp.Diagnostics.AddError("Error reading coralogix_ip_access",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_ip_access: %s", utils.FormatJSON(result))
 
 	state := flattenReadResponse(result)
 

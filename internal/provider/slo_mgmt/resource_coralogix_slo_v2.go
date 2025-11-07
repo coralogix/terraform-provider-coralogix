@@ -47,7 +47,7 @@ var (
 	_ resource.ResourceWithImportState = &SLOV2Resource{}
 
 	protoToSchemaSloTimeFrame = map[slos.SloTimeFrame]string{
-		slos.SLOTIMEFRAME_SLO_TIME_FRAME_UNSPECIFIED: "unspecified",
+		slos.SLOTIMEFRAME_SLO_TIME_FRAME_UNSPECIFIED: utils.UNSPECIFIED,
 		slos.SLOTIMEFRAME_SLO_TIME_FRAME_7_DAYS:      "7_days",
 		slos.SLOTIMEFRAME_SLO_TIME_FRAME_14_DAYS:     "14_days",
 		slos.SLOTIMEFRAME_SLO_TIME_FRAME_21_DAYS:     "21_days",
@@ -56,14 +56,14 @@ var (
 	schemaToProtoSLOTimeFrame = utils.ReverseMap(protoToSchemaSloTimeFrame)
 	validSLOTimeFrame         = utils.GetKeys(schemaToProtoSLOTimeFrame)
 	protoToSchemaSloWindow    = map[slos.WindowSloWindow]string{
-		slos.WINDOWSLOWINDOW_WINDOW_SLO_WINDOW_UNSPECIFIED: "unspecified",
+		slos.WINDOWSLOWINDOW_WINDOW_SLO_WINDOW_UNSPECIFIED: utils.UNSPECIFIED,
 		slos.WINDOWSLOWINDOW_WINDOW_SLO_WINDOW_1_MINUTE:    "1_minute",
 		slos.WINDOWSLOWINDOW_WINDOW_SLO_WINDOW_5_MINUTES:   "5_minutes",
 	}
 	schemaToProtoSLOWindow          = utils.ReverseMap(protoToSchemaSloWindow)
 	validWindows                    = utils.GetKeys(schemaToProtoSLOWindow)
 	protoToSchemaComparisonOperator = map[slos.ComparisonOperator]string{
-		slos.COMPARISONOPERATOR_COMPARISON_OPERATOR_UNSPECIFIED:            "unspecified",
+		slos.COMPARISONOPERATOR_COMPARISON_OPERATOR_UNSPECIFIED:            utils.UNSPECIFIED,
 		slos.COMPARISONOPERATOR_COMPARISON_OPERATOR_GREATER_THAN:           "greater_than",
 		slos.COMPARISONOPERATOR_COMPARISON_OPERATOR_LESS_THAN:              "less_than",
 		slos.COMPARISONOPERATOR_COMPARISON_OPERATOR_GREATER_THAN_OR_EQUALS: "greater_than_or_equals",
@@ -291,15 +291,15 @@ func (r *SLOV2Resource) Create(ctx context.Context, req resource.CreateRequest, 
 		SloWindowBasedMetricSli:  slo.SloWindowBasedMetricSli,
 	}
 
-	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Creating new coralogix_slo_v2: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.SlosServiceCreateSlo(ctx).SlosServiceReplaceSloRequest(rq).Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating resource",
+		resp.Diagnostics.AddError("Error creating coralogix_slo_v2",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	log.Printf("[INFO] Created new resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Created new coralogix_slo_v2: %s", utils.FormatJSON(result))
 	plan, diags = flattenSLOV2(ctx, &result.Slo)
 	if diags.HasError() {
 		resp.Diagnostics = diags
@@ -320,24 +320,24 @@ func (r *SLOV2Resource) Read(ctx context.Context, req resource.ReadRequest, resp
 	//Get refreshed SLO value from Coralogix
 	id := state.ID.ValueString()
 	rq := r.client.SlosServiceGetSlo(ctx, id)
-	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading new coralogix_slo_v2: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.Execute()
 
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("coralogix_slo_v2 %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error reading resource",
+			resp.Diagnostics.AddError("Error reading coralogix_slo_v2",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_slo_v2: %s", utils.FormatJSON(result))
 
 	state, diags = flattenSLOV2(ctx, &result.Slo)
 	if diags.HasError() {
@@ -370,7 +370,7 @@ func (r *SLOV2Resource) Update(ctx context.Context, req resource.UpdateRequest, 
 		SloRequestBasedMetricSli: slo.SloRequestBasedMetricSli,
 		SloWindowBasedMetricSli:  slo.SloWindowBasedMetricSli,
 	}
-	log.Printf("[INFO] Updating resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Updating coralogix_slo_v2: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := r.client.
 		SlosServiceReplaceSlo(ctx).
@@ -380,16 +380,16 @@ func (r *SLOV2Resource) Update(ctx context.Context, req resource.UpdateRequest, 
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("coralogix_slo_v2 %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error replacing resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", nil))
+			resp.Diagnostics.AddError("Error replacing coralogix_slo_v2", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", nil))
 		}
 		return
 	}
-	log.Printf("[INFO] Updated resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Updated coralogix_slo_v2: %s", utils.FormatJSON(result))
 
 	plan, diags = flattenSLOV2(ctx, &result.Slo)
 	if diags.HasError() {
@@ -412,19 +412,19 @@ func (r *SLOV2Resource) Delete(ctx context.Context, req resource.DeleteRequest, 
 
 	id := state.ID.ValueString()
 
-	log.Printf("[INFO] Deleting resource")
+	log.Printf("[INFO] Deleting coralogix_slo_v2")
 
 	result, httpResponse, err := r.client.
 		SlosServiceDeleteSlo(ctx, id).
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting resource",
+		resp.Diagnostics.AddError("Error deleting coralogix_slo_v2",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Deleted coralogix_slo_v2: %s", utils.FormatJSON(result))
 }
 
 func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*slos.Slo, diag.Diagnostics) {

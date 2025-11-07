@@ -136,7 +136,7 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading resource",
+		resp.Diagnostics.AddError("Error reading coralogix_global_router",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return

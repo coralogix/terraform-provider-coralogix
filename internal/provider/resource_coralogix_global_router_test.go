@@ -33,8 +33,8 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 			{
 				Config: testAccResourceCoralogixGlobalRouter(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(globalRouterResourceName, "name", "global router example"),
-					resource.TestCheckResourceAttr(globalRouterResourceName, "description", "global router example"),
+					resource.TestCheckResourceAttr(globalRouterResourceName, "name", name),
+					resource.TestCheckResourceAttr(globalRouterResourceName, "description", name),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "rules.*", map[string]string{
 						"name":      "rule-name",
 						"condition": "alertDef.priority == \"P1\"",
@@ -61,8 +61,8 @@ func TestAccCoralogixResourceGlobalRouter(t *testing.T) {
 			{
 				Config: testAccResourceCoralogixGlobalRouterUpdate(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(globalRouterResourceName, "name", "global router example updated"),
-					resource.TestCheckResourceAttr(globalRouterResourceName, "description", "global router example"),
+					resource.TestCheckResourceAttr(globalRouterResourceName, "name", fmt.Sprintf("%s updated", name)),
+					resource.TestCheckResourceAttr(globalRouterResourceName, "description", name),
 					resource.TestCheckTypeSetElemNestedAttrs(globalRouterResourceName, "rules.*", map[string]string{
 						"name":      "rule-name",
 						"condition": "alertDef.priority == \"P1\"",
@@ -215,8 +215,7 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
       config_overrides = [
         {
           condition_type = {
-            match_entity_type = {
-            }
+            match_entity_type = {}
           }
           message_config = {
             fields = [
@@ -251,10 +250,14 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
     }
 
     resource "coralogix_global_router" "example" {
-      name        = "global router example"
-      description = "global router example"
+      name        = "%[1]v"
+      description = "%[1]v"
+      matching_routing_labels = {
+        "routing.environment" = "%[1]v" 
+      }
       rules       = [
         {
+          entity_type = "alerts"
           name = "rule-name"
           condition = "alertDef.priority == \"P1\""
           targets = [
@@ -443,10 +446,10 @@ func testAccResourceCoralogixGlobalRouterUpdate(name string) string {
     }
 
     resource "coralogix_global_router" "example" {
-      name        = "global router example updated"
-      description = "global router example"
+      name        = "%[1]v updated"
+      description = "%[1]v"
       matching_routing_labels = {
-        routing.environment = "production" 
+        "routing.environment" = "%[1]v" 
       }
       rules       = [
         {

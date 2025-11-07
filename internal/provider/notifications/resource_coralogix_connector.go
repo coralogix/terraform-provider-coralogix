@@ -42,15 +42,15 @@ import (
 var (
 	_                        resource.ResourceWithImportState = &ConnectorResource{}
 	connectorTypeSchemaToApi                                  = map[string]connectors.ConnectorType{
-		"unspecified":   connectors.CONNECTORTYPE_CONNECTOR_TYPE_UNSPECIFIED,
-		"slack":         connectors.CONNECTORTYPE_SLACK,
-		"generic_https": connectors.CONNECTORTYPE_GENERIC_HTTPS,
-		"pagerduty":     connectors.CONNECTORTYPE_PAGERDUTY,
+		utils.UNSPECIFIED: connectors.CONNECTORTYPE_CONNECTOR_TYPE_UNSPECIFIED,
+		"slack":           connectors.CONNECTORTYPE_SLACK,
+		"generic_https":   connectors.CONNECTORTYPE_GENERIC_HTTPS,
+		"pagerduty":       connectors.CONNECTORTYPE_PAGERDUTY,
 	}
 	connectorTypeApiToSchema       = utils.ReverseMap(connectorTypeSchemaToApi)
 	validConnectorTypesSchemaToApi = utils.GetKeys(connectorTypeSchemaToApi)
 	connectorEntityTypeSchemaToApi = map[string]connectors.NotificationCenterEntityType{
-		"unspecified":        connectors.NOTIFICATIONCENTERENTITYTYPE_ENTITY_TYPE_UNSPECIFIED,
+		utils.UNSPECIFIED:    connectors.NOTIFICATIONCENTERENTITYTYPE_ENTITY_TYPE_UNSPECIFIED,
 		"alerts":             connectors.NOTIFICATIONCENTERENTITYTYPE_ALERTS,
 		"cases":              connectors.NOTIFICATIONCENTERENTITYTYPE_CASES,
 		"test_notifications": connectors.NOTIFICATIONCENTERENTITYTYPE_TEST_NOTIFICATIONS,
@@ -220,19 +220,19 @@ func (r *ConnectorResource) Create(ctx context.Context, req resource.CreateReque
 	rq := connectors.CreateConnectorRequest{
 		Connector: connector,
 	}
-	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Creating new coralogix_connector: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		ConnectorsServiceCreateConnector(ctx).
 		CreateConnectorRequest(rq).
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating resource",
+		resp.Diagnostics.AddError("Error creating coralogix_connector",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	log.Printf("[INFO] Created new resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Created new coralogix_connector: %s", utils.FormatJSON(result))
 
 	plan, diags = flattenConnector(ctx, result.Connector)
 	if diags.HasError() {
@@ -257,24 +257,24 @@ func (r *ConnectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 	id := state.ID.ValueString()
 	rq := r.client.ConnectorsServiceGetConnector(ctx, id)
 
-	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading coralogix_connector: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("coralogix_connector %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error reading resource",
+			resp.Diagnostics.AddError("Error reading coralogix_connector",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_connector: %s", utils.FormatJSON(result))
 
 	state, diags = flattenConnector(ctx, result.Connector)
 	if diags.HasError() {
@@ -304,7 +304,7 @@ func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateReques
 		Connector: connector,
 	}
 
-	log.Printf("[INFO] Updating resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Updating coralogix_connector: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		ConnectorsServiceReplaceConnector(ctx).
 		ReplaceConnectorRequest(rq).
@@ -313,16 +313,16 @@ func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateReques
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("coralogix_connector %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error replacing resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", nil))
+			resp.Diagnostics.AddError("Error replacing coralogix_connector", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", nil))
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Replaced coralogix_connector: %s", utils.FormatJSON(result))
 
 	plan, diags = flattenConnector(ctx, result.Connector)
 	if diags.HasError() {
@@ -351,12 +351,12 @@ func (r ConnectorResource) Delete(ctx context.Context, req resource.DeleteReques
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting resource",
+		resp.Diagnostics.AddError("Error deleting coralogix_connector",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Deleted coralogix_connector: %s", utils.FormatJSON(result))
 }
 
 func extractConnector(ctx context.Context, plan *ConnectorResourceModel) (*connectors.Connector, diag.Diagnostics) {

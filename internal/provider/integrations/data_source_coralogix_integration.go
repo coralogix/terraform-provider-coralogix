@@ -81,24 +81,24 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	id := data.ID.ValueString()
 
 	rq := d.client.IntegrationServiceGetDeployedIntegration(ctx, id)
-	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading new coralogix_integration: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.Execute()
 
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("coralogix_integration %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error reading resource",
+			resp.Diagnostics.AddError("Error reading coralogix_integration",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_integration: %s", utils.FormatJSON(result))
 
 	keys, diags := KeysFromPlan(ctx, data)
 	if diags.HasError() {

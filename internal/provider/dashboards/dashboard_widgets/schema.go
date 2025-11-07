@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 	"github.com/hashicorp/terraform-plugin-framework-validators/float64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
@@ -309,7 +310,7 @@ func UnitSchema() schema.StringAttribute {
 	return schema.StringAttribute{
 		Optional: true,
 		Computed: true,
-		Default:  stringdefault.StaticString("unspecified"),
+		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 		Validators: []validator.String{
 			stringvalidator.OneOf(DashboardValidUnits...),
 		},

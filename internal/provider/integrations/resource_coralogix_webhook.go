@@ -764,32 +764,32 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 	rq := webhooks.CreateOutgoingWebhookRequest{
 		Data: data,
 	}
-	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Creating new coralogix_webhook: %s", utils.FormatJSON(rq))
 	createResult, httpResponse, err := r.client.
 		OutgoingWebhooksServiceCreateOutgoingWebhook(ctx).
 		CreateOutgoingWebhookRequest(rq).
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating resource",
+		resp.Diagnostics.AddError("Error creating coralogix_webhook",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	log.Printf("[INFO] Created new resource: %s", utils.FormatJSON(createResult))
+	log.Printf("[INFO] Created new coralogix_webhook: %s", utils.FormatJSON(createResult))
 
 	readRq := r.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, *createResult.Id)
 
-	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading new coralogix_webhook: %s", utils.FormatJSON(rq))
 
 	result, _, err := readRq.Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading resource",
+		resp.Diagnostics.AddError("Error reading coralogix_webhook",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_webhook: %s", utils.FormatJSON(result))
 
 	plan, diags = flattenWebhook(ctx, result.Webhook)
 
@@ -814,7 +814,7 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 	id := state.ID.ValueString()
 	rq := r.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, id)
 
-	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading coralogix_webhook: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
@@ -825,13 +825,13 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error reading resource",
+			resp.Diagnostics.AddError("Error reading coralogix_webhook",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_webhook: %s", utils.FormatJSON(result))
 
 	state, diags = flattenWebhook(ctx, result.Webhook)
 	if diags.HasError() {
@@ -860,7 +860,7 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 		Data: data,
 		Id:   &id,
 	}
-	log.Printf("[INFO] Updating resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Updating coralogix_webhook: %s", utils.FormatJSON(rq))
 	_, httpResponse, err := r.client.
 		OutgoingWebhooksServiceUpdateOutgoingWebhook(ctx).
 		UpdateOutgoingWebhookRequest(rq).
@@ -874,7 +874,7 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error updating resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
+			resp.Diagnostics.AddError("Error updating coralogix_webhook", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
 		}
 		return
 	}
@@ -882,11 +882,11 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 	result, httpResponse, err := r.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, id).Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading resource, state not updated", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
+		resp.Diagnostics.AddError("Error reading coralogix_webhook, state not updated", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
 		return
 	}
 
-	log.Printf("[INFO] Updated resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Updated coralogix_webhook: %s", utils.FormatJSON(result))
 	plan, diags = flattenWebhook(ctx, result.Webhook)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -914,12 +914,12 @@ func (r WebhookResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting resource",
+		resp.Diagnostics.AddError("Error deleting coralogix_webhook",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Deleted coralogix_webhook: %s", utils.FormatJSON(result))
 }
 
 func expandWebhookType(ctx context.Context, plan *WebhookResourceModel) (*webhooks.OutgoingWebhookInputData, diag.Diagnostics) {

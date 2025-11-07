@@ -19,6 +19,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 
@@ -28,7 +29,7 @@ import (
 
 var (
 	GlobalRouterEntityTypeSchemaToApi = map[string]globalRouters.NotificationCenterEntityType{
-		"unspecified":        globalRouters.NOTIFICATIONCENTERENTITYTYPE_ENTITY_TYPE_UNSPECIFIED,
+		utils.UNSPECIFIED:    globalRouters.NOTIFICATIONCENTERENTITYTYPE_ENTITY_TYPE_UNSPECIFIED,
 		"alerts":             globalRouters.NOTIFICATIONCENTERENTITYTYPE_ALERTS,
 		"cases":              globalRouters.NOTIFICATIONCENTERENTITYTYPE_CASES,
 		"test_notifications": globalRouters.NOTIFICATIONCENTERENTITYTYPE_TEST_NOTIFICATIONS,
@@ -68,6 +69,7 @@ func V1() schema.Schema {
 						"entity_type": schema.StringAttribute{
 							Optional:      true,
 							Computed:      true,
+							Default:       stringdefault.StaticString(utils.UNSPECIFIED),
 							PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 							Validators: []validator.String{
 								stringvalidator.OneOf(GlobalRouterValidNotificationCenterEntityTypesSchemaToApi...),

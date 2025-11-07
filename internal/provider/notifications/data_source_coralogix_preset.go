@@ -133,7 +133,7 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading resource",
+		resp.Diagnostics.AddError("Error reading coralogix_preset",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return

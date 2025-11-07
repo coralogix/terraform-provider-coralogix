@@ -143,29 +143,29 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Creating new coralogix_integration: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.IntegrationServiceSaveIntegration(ctx).
 		SaveIntegrationRequest(*rq).
 		Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating resource",
+		resp.Diagnostics.AddError("Error creating coralogix_integration",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	log.Printf("[INFO] Created new resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Created new coralogix_integration: %s", utils.FormatJSON(result))
 
 	readRq := r.client.IntegrationServiceGetDeployedIntegration(ctx, *result.IntegrationId)
-	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading new coralogix_integration: %s", utils.FormatJSON(rq))
 	readResult, _, err := readRq.Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading resource",
+		resp.Diagnostics.AddError("Error reading coralogix_integration",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_integration: %s", utils.FormatJSON(result))
 
 	keys, diags := KeysFromPlan(ctx, plan)
 	if diags.HasError() {
@@ -383,7 +383,7 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 	id := plan.ID.ValueString()
 
 	rq := r.client.IntegrationServiceGetDeployedIntegration(ctx, id)
-	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading new coralogix_integration: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.Execute()
 
 	if err != nil {
@@ -394,13 +394,13 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error reading resource",
+			resp.Diagnostics.AddError("Error reading coralogix_integration",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_integration: %s", utils.FormatJSON(result))
 
 	keys, diags := KeysFromPlan(ctx, plan)
 	if diags.HasError() {
@@ -449,29 +449,29 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	log.Printf("[INFO] Updating resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Updating coralogix_integration: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.IntegrationServiceUpdateIntegration(ctx).
 		UpdateIntegrationRequest(*rq).
 		Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error update resource",
+		resp.Diagnostics.AddError("Error update coralogix_integration",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", rq),
 		)
 		return
 	}
-	log.Printf("[INFO] Updated new resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Updated new coralogix_integration: %s", utils.FormatJSON(result))
 
 	readRq := r.client.IntegrationServiceGetDeployedIntegration(ctx, id)
-	log.Printf("[INFO] Reading updated resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading updated coralogix_integration: %s", utils.FormatJSON(rq))
 	readResult, _, err := readRq.Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading resource",
+		resp.Diagnostics.AddError("Error reading coralogix_integration",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_integration: %s", utils.FormatJSON(result))
 
 	keys, diags := KeysFromPlan(ctx, plan)
 	if diags.HasError() {
@@ -500,17 +500,17 @@ func (r *IntegrationResource) Delete(ctx context.Context, req resource.DeleteReq
 
 	id := state.ID.ValueString()
 
-	log.Printf("[INFO] Deleting resource")
+	log.Printf("[INFO] Deleting coralogix_integration")
 
 	result, httpResponse, err := r.client.
 		IntegrationServiceDeleteIntegration(ctx, id).
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting resource",
+		resp.Diagnostics.AddError("Error deleting coralogix_integration",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Deleted coralogix_integration: %s", utils.FormatJSON(result))
 }

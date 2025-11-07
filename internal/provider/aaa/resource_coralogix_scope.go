@@ -42,7 +42,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-var availableEntityTypes = []string{"logs", "spans", "unspecified"}
+var availableEntityTypes = []string{"logs", "spans", utils.UNSPECIFIED}
 
 func NewScopeResource() resource.Resource {
 	return &ScopeResource{}
@@ -205,7 +205,7 @@ func extractCreateScope(plan *ScopeResourceModel) (*cxsdk.CreateScopeRequest, di
 	for _, filter := range plan.Filters {
 		entityType := cxsdk.EntityTypeValueLookup[EntityType(filter.EntityType.ValueString())]
 
-		if entityType == 0 && filter.EntityType.ValueString() != "unspecified" {
+		if entityType == 0 && filter.EntityType.ValueString() != utils.UNSPECIFIED {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid entity type", fmt.Sprintf("Invalid entity type: %s", filter.EntityType.ValueString()))}
 		}
 		filters = append(filters, &cxsdk.ScopeFilter{
@@ -347,7 +347,7 @@ func extractUpdateScope(plan *ScopeResourceModel) (*cxsdk.UpdateScopeRequest, di
 	for _, filter := range plan.Filters {
 		entityType := cxsdk.EntityTypeValueLookup[EntityType(filter.EntityType.ValueString())]
 
-		if entityType == 0 && filter.EntityType.ValueString() != "unspecified" {
+		if entityType == 0 && filter.EntityType.ValueString() != utils.UNSPECIFIED {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid entity type", fmt.Sprintf("Invalid entity type: %s", filter.EntityType.ValueString()))}
 		}
 		filters = append(filters, &cxsdk.ScopeFilter{

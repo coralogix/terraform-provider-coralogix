@@ -274,7 +274,7 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		resp.Diagnostics = diags
 		return
 	}
-	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Creating new coralogix_api_key: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := r.client.
 		ApiKeysServiceCreateApiKey(context.Background()).
@@ -282,12 +282,12 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating resource",
+		resp.Diagnostics.AddError("Error creating coralogix_api_key",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	log.Printf("[INFO] Created new resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Created new coralogix_api_key: %s", utils.FormatJSON(result))
 
 	currentKeyId := result.GetKeyId()
 	key, diags := getKeyInfo(ctx, r.client, &currentKeyId, result.Value)
@@ -309,14 +309,15 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	log.Printf("[INFO] Reading resource: %s", currentState.ID.ValueString())
+	log.Printf("[INFO] Reading coralogix_api_key: %s", currentState.ID.ValueString())
 
 	key, diags := getKeyInfo(ctx, r.client, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer())
 	if diags.HasError() {
+		resp.State.RemoveResource(ctx)
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Read new resource: %s", utils.FormatJSON(key))
+	log.Printf("[INFO] Read new coralogix_api_key: %s", utils.FormatJSON(key))
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, key)
@@ -378,7 +379,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	log.Printf("[INFO] Updating resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Updating coralogix_api_key: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := r.client.
 		ApiKeysServiceUpdateApiKey(ctx, id).
@@ -388,16 +389,16 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("api-key %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("coralogix_api_key %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error creating resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
+			resp.Diagnostics.AddError("Error creating coralogix_api_key", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
 		}
 		return
 	}
-	log.Printf("[INFO] Updated resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Updated coralogix_api_key: %s", utils.FormatJSON(result))
 
 	key, diags := getKeyInfo(ctx, r.client, &id, currentState.Value.ValueStringPointer())
 	if diags.HasError() {
@@ -430,12 +431,12 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting resource",
+		resp.Diagnostics.AddError("Error deleting coralogix_api_key",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Deleted coralogix_api_key: %s", utils.FormatJSON(result))
 }
 
 func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *string, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
@@ -447,12 +448,12 @@ func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *st
 
 	if err != nil {
 		diags := diag.Diagnostics{}
-		diags.AddError("Error reading resource",
+		diags.AddError("Error reading coralogix_api_key",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return nil, diags
 	}
-	log.Printf("[INFO] Read new resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read new coralogix_api_key: %s", utils.FormatJSON(result))
 
 	key, diags := flattenGetApiKeyResponse(ctx, id, result, keyValue)
 	if diags.HasError() {

@@ -64,7 +64,7 @@ var (
 	validDays                      = utils.GetKeys(daysToProtoValue)
 	protoToSchemaScheduleOperation = map[cxsdk.ScheduleOperation]string{
 		cxsdk.ScheduleOperationActivate:    "active",
-		cxsdk.ScheduleOperationUnspecified: "unspecified",
+		cxsdk.ScheduleOperationUnspecified: utils.UNSPECIFIED,
 		cxsdk.ScheduleOperationMute:        "mute",
 	}
 	schemaToProtoScheduleOperation = utils.ReverseMap(protoToSchemaScheduleOperation)

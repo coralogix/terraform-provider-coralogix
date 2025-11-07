@@ -785,8 +785,12 @@ func TypeMapToStringMap(ctx context.Context, m types.Map) (map[string]string, di
 	return result, diags
 }
 
-func StringMapToTypeMap(ctx context.Context, m map[string]string) (types.Map, diag.Diagnostics) {
-	return types.MapValueFrom(ctx, types.StringType, m)
+func StringMapToTypeMap(ctx context.Context, m *map[string]string) (types.Map, diag.Diagnostics) {
+	if m != nil {
+		return types.MapValueFrom(ctx, types.StringType, m)
+	} else {
+		return types.MapNull(types.StringType), nil
+	}
 }
 
 func StringNullIfUnknown(s types.String) *string {

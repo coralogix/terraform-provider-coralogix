@@ -27,7 +27,6 @@ import (
 	globalrouterschema "github.com/coralogix/terraform-provider-coralogix/internal/provider/notifications/global_router_schema"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -116,24 +115,24 @@ func (r *GlobalRouterResource) fetchGlobalRouterFromServer(ctx context.Context, 
 	id := state.ID.ValueString()
 	rq := r.client.GlobalRoutersServiceGetGlobalRouter(ctx, id)
 
-	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading coralogix_global_router: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("coralogix_global_router %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error reading resource",
+			resp.Diagnostics.AddError("Error reading coralogix_global_router",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_global_router: %s", utils.FormatJSON(result))
 
 	state, diags = flattenGlobalRouter(ctx, result.Router)
 	if diags.HasError() {
@@ -166,16 +165,16 @@ func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRe
 		Router: router,
 	}
 
-	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Creating new coralogix_global_router: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.GlobalRoutersServiceCreateGlobalRouter(ctx).CreateGlobalRouterRequest(rq).Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating resource",
+		resp.Diagnostics.AddError("Error creating coralogix_global_router",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	log.Printf("[INFO] Created new resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Created new coralogix_global_router: %s", utils.FormatJSON(result))
 	plan, diags = flattenGlobalRouter(ctx, result.Router)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -199,24 +198,24 @@ func (r *GlobalRouterResource) Read(ctx context.Context, req resource.ReadReques
 	id := state.ID.ValueString()
 	rq := r.client.GlobalRoutersServiceGetGlobalRouter(ctx, id)
 
-	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading coralogix_global_router: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("coralogix_global_router %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error reading resource",
+			resp.Diagnostics.AddError("Error reading coralogix_global_router",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_global_router: %s", utils.FormatJSON(result))
 
 	state, diags = flattenGlobalRouter(ctx, result.Router)
 	if diags.HasError() {
@@ -244,7 +243,7 @@ func (r GlobalRouterResource) Update(ctx context.Context, req resource.UpdateReq
 	rq := globalRouters.ReplaceGlobalRouterRequest{
 		Router: router,
 	}
-	log.Printf("[INFO] Replacing new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Replacing new coralogix_global_router: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		GlobalRoutersServiceReplaceGlobalRouter(ctx).
 		ReplaceGlobalRouterRequest(rq).
@@ -253,16 +252,16 @@ func (r GlobalRouterResource) Update(ctx context.Context, req resource.UpdateReq
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("coralogix_global_router %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error updating resource", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
+			resp.Diagnostics.AddError("Error updating coralogix_global_router", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced new resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Replaced new coralogix_global_router: %s", utils.FormatJSON(result))
 	plan, diags = flattenGlobalRouter(ctx, result.Router)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -285,7 +284,7 @@ func (r GlobalRouterResource) Delete(ctx context.Context, req resource.DeleteReq
 	id := state.ID.ValueString()
 
 	if _, httpResponse, err := r.client.GlobalRoutersServiceDeleteGlobalRouter(ctx, id).Execute(); err != nil {
-		resp.Diagnostics.AddError("Error deleting resource",
+		resp.Diagnostics.AddError("Error deleting coralogix_global_router",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", id),
 		)
 		return
@@ -312,10 +311,13 @@ func extractRouter(ctx context.Context, plan *GlobalRouterResourceModel) (*globa
 	if diags.HasError() {
 		return nil, diags
 	}
+	var routerId *string
+	if !(plan.ID.IsNull() || plan.ID.IsUnknown()) {
+		routerId = plan.ID.ValueStringPointer()
+	}
 
-	routerId := "router_default"
 	return &globalRouters.GlobalRouter{
-		Id:                 &routerId,
+		Id:                 routerId,
 		Name:               plan.Name.ValueStringPointer(),
 		Description:        plan.Description.ValueStringPointer(),
 		Rules:              rules,
@@ -377,6 +379,9 @@ func extractRoutingRule(ctx context.Context, routingModel RoutingRuleModel) (*gl
 }
 
 func extractRoutingTargets(ctx context.Context, targets types.List) ([]globalRouters.RoutingTarget, diag.Diagnostics) {
+	if targets.IsNull() || targets.IsUnknown() {
+		return nil, nil
+	}
 	var diags diag.Diagnostics
 	var targetsObjects []types.Object
 	targets.ElementsAs(ctx, &targetsObjects, true)
@@ -422,12 +427,12 @@ func flattenGlobalRouter(ctx context.Context, globalRouter *globalRouters.Global
 		return nil, diags
 	}
 
-	matchingRoutingLabels, diags := utils.StringMapToTypeMap(ctx, *globalRouter.EntityLabelMatcher)
+	matchingRoutingLabels, diags := utils.StringMapToTypeMap(ctx, globalRouter.EntityLabelMatcher)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	entityLabels, diags := utils.StringMapToTypeMap(ctx, *globalRouter.EntityLabels)
+	entityLabels, diags := utils.StringMapToTypeMap(ctx, globalRouter.EntityLabels)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -463,11 +468,14 @@ func flattenGlobalRouterRules(ctx context.Context, rules []globalRouters.Routing
 		return types.List{}, diags
 	}
 
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: routingRuleAttr()}, rulesList)
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: globalrouterschema.RoutingRuleAttr()}, rulesList)
 }
 
 func flattenFallback(ctx context.Context, targets []globalRouters.RoutingTarget) (types.List, diag.Diagnostics) {
 	var diags diag.Diagnostics
+	if targets == nil {
+		return types.ListNull(types.ObjectType{AttrTypes: globalrouterschema.RoutingTargetAttr()}), diags
+	}
 	fallbackTargetList := make([]types.Object, 0, len(targets))
 	for _, target := range targets {
 		targetModel, dgs := flattenRoutingTarget(ctx, &target)
@@ -482,28 +490,29 @@ func flattenFallback(ctx context.Context, targets []globalRouters.RoutingTarget)
 		return types.List{}, diags
 	}
 
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: routingTargetAttr()}, fallbackTargetList)
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: globalrouterschema.RoutingTargetAttr()}, fallbackTargetList)
 }
 
 func flattenRoutingRule(ctx context.Context, rule *globalRouters.RoutingRule) (types.Object, diag.Diagnostics) {
 	targets, diags := flattenRoutingTargets(ctx, rule.GetTargets())
 	if diags.HasError() {
-		return types.ObjectNull(routingRuleAttr()), diags
+		return types.ObjectNull(globalrouterschema.RoutingRuleAttr()), diags
 	}
 
 	customDetails, diags := flattenCustomDetails(ctx, rule.GetCustomDetails())
 	if diags.HasError() {
-		return types.ObjectNull(routingRuleAttr()), diags
+		return types.ObjectNull(globalrouterschema.RoutingRuleAttr()), diags
 	}
-
+	entityType := globalrouterschema.GlobalRouterNotificationCenterEntityTypeApiToSchema[*rule.EntityType]
 	ruleModel := RoutingRuleModel{
 		Condition:     types.StringValue(rule.GetCondition()),
 		Name:          types.StringValue(rule.GetName()),
 		Targets:       targets,
 		CustomDetails: customDetails,
+		EntityType:    types.StringValue(entityType),
 	}
 
-	return types.ObjectValueFrom(ctx, routingRuleAttr(), ruleModel)
+	return types.ObjectValueFrom(ctx, globalrouterschema.RoutingRuleAttr(), ruleModel)
 }
 
 func flattenCustomDetails(ctx context.Context, details map[string]string) (types.Map, diag.Diagnostics) {
@@ -522,7 +531,7 @@ func flattenCustomDetails(ctx context.Context, details map[string]string) (types
 
 func flattenRoutingTargets(ctx context.Context, targets []globalRouters.RoutingTarget) (types.List, diag.Diagnostics) {
 	if targets == nil {
-		return types.ListNull(types.ObjectType{AttrTypes: routingTargetAttr()}), nil
+		return types.ListNull(types.ObjectType{AttrTypes: globalrouterschema.RoutingTargetAttr()}), nil
 	}
 
 	var diags diag.Diagnostics
@@ -537,16 +546,16 @@ func flattenRoutingTargets(ctx context.Context, targets []globalRouters.RoutingT
 	}
 
 	if diags.HasError() {
-		return types.ListNull(types.ObjectType{AttrTypes: routingTargetAttr()}), diags
+		return types.ListNull(types.ObjectType{AttrTypes: globalrouterschema.RoutingTargetAttr()}), diags
 	}
 
-	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: routingTargetAttr()}, targetsList)
+	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: globalrouterschema.RoutingTargetAttr()}, targetsList)
 }
 
 func flattenRoutingTarget(ctx context.Context, target *globalRouters.RoutingTarget) (types.Object, diag.Diagnostics) {
 	customDetails, diags := flattenCustomDetails(ctx, target.GetCustomDetails())
 	if diags.HasError() {
-		return types.ObjectNull(routingTargetAttr()), diags
+		return types.ObjectNull(globalrouterschema.RoutingTargetAttr()), diags
 	}
 
 	targetModel := RoutingTargetModel{
@@ -555,36 +564,5 @@ func flattenRoutingTarget(ctx context.Context, target *globalRouters.RoutingTarg
 		CustomDetails: customDetails,
 	}
 
-	return types.ObjectValueFrom(ctx, routingTargetAttr(), targetModel)
-}
-
-func routingRuleAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"condition":      types.StringType,
-		"name":           types.StringType,
-		"targets":        types.ListType{ElemType: types.ObjectType{AttrTypes: routingTargetAttr()}},
-		"custom_details": types.MapType{ElemType: types.StringType},
-	}
-}
-
-func routingTargetAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"connector_id":   types.StringType,
-		"preset_id":      types.StringType,
-		"custom_details": types.MapType{ElemType: types.StringType},
-	}
-}
-
-func messageConfigFieldAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"field_name": types.StringType,
-		"template":   types.StringType,
-	}
-}
-
-func configOverridesAttr() map[string]attr.Type {
-	return map[string]attr.Type{
-		"field_name": types.StringType,
-		"template":   types.StringType,
-	}
+	return types.ObjectValueFrom(ctx, globalrouterschema.RoutingTargetAttr(), targetModel)
 }

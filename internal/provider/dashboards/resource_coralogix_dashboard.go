@@ -1265,7 +1265,7 @@ func expandSectionOptions(_ context.Context, option SectionOptionsModel) (*cxsdk
 	if !option.Color.IsNull() {
 		mappedColor := cxsdk.DashboardSectionPredefinedColorValueLookup[fmt.Sprintf("SECTION_PREDEFINED_COLOR_%s", strings.ToUpper(option.Color.ValueString()))]
 		// this means the color field somehow wasn't validated
-		if mappedColor == 0 && option.Color.String() != dashboardwidgets.UNSPECIFIED {
+		if mappedColor == 0 && option.Color.String() != utils.UNSPECIFIED {
 			return nil, diag.Diagnostics{
 				diag.NewErrorDiagnostic(
 					"Extract Dashboard Section Options Error",
