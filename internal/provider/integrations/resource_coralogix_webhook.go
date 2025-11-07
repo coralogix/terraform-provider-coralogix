@@ -983,8 +983,9 @@ func expandEventBridge(bridge *EventBridgeModel) *webhooks.OutgoingWebhookInputD
 func expandMicrosoftTeamsWorkflow(microsoftTeams *MsTeamsWorkflowModel) *webhooks.OutgoingWebhookInputDataMsTeamsWorkflow {
 	ty := webhooks.WEBHOOKTYPE_MS_TEAMS_WORKFLOW
 	return &webhooks.OutgoingWebhookInputDataMsTeamsWorkflow{
-		Type: &ty,
-		Url:  utils.StringNullIfUnknown(microsoftTeams.URL),
+		MsTeamsWorkflow: map[string]any{},
+		Type:            &ty,
+		Url:             utils.StringNullIfUnknown(microsoftTeams.URL),
 	}
 }
 
@@ -1146,8 +1147,9 @@ func expandJira(jira *JiraModel) *webhooks.OutgoingWebhookInputDataJira {
 func expandOpsgenie(opsgenie *OpsgenieModel) *webhooks.OutgoingWebhookInputDataOpsgenie {
 	ty := webhooks.WEBHOOKTYPE_OPSGENIE
 	return &webhooks.OutgoingWebhookInputDataOpsgenie{
-		Type: &ty,
-		Url:  utils.StringNullIfUnknown(opsgenie.URL)}
+		Opsgenie: map[string]any{},
+		Type:     &ty,
+		Url:      utils.StringNullIfUnknown(opsgenie.URL)}
 }
 
 func expandDemisto(demisto *DemistoModel) *webhooks.OutgoingWebhookInputDataDemisto {
