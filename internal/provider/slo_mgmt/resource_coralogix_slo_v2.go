@@ -535,7 +535,7 @@ func extractWindowBasedSLI(ctx context.Context, id *string, labels *map[string]s
 			ComparisonOperator: schemaToProtoComparisonOperator[windowBasedModel.ComparisonOperator.ValueString()],
 			Threshold:          windowBasedModel.Threshold.ValueFloat32(),
 		},
-		Description:               *&description,
+		Description:               description,
 		Id:                        id,
 		Labels:                    labels,
 		Name:                      *name,
@@ -570,20 +570,6 @@ func flattenSLOV2(ctx context.Context, slo *slos.Slo) (*SLOV2ResourceModel, diag
 		diags.AddError("Invalid response from server", utils.FormatJSON(slo))
 		return nil, diags
 	}
-}
-
-func flattenLabels(ctx context.Context, labels map[string]string) (types.Map, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	if labels == nil {
-		return types.MapNull(types.StringType), diags
-	}
-
-	detailsMap := make(map[string]types.String)
-	for k, v := range labels {
-		detailsMap[k] = types.StringValue(v)
-	}
-
-	return types.MapValueFrom(ctx, types.StringType, detailsMap)
 }
 
 func flattenGrouping(ctx context.Context, grouping *slos.V1Grouping) (types.Object, diag.Diagnostics) {
@@ -653,7 +639,7 @@ func flattenRequestBasedSLI(ctx context.Context, sli *slos.SloRequestBasedMetric
 		return nil, diags
 	}
 
-	labels, diags := flattenLabels(ctx, sli.GetLabels())
+	labels, diags := utils.StringMapToTypeMap(ctx, sli.Labels)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -704,13 +690,20 @@ func flattenWindowBasedSLI(ctx context.Context, sli *slos.SloWindowBasedMetricSl
 		RequestBasedMetricSli: types.ObjectNull(requestBasedMetricSliAttr()),
 		WindowBasedMetricSli:  winObj,
 	})
-
+	if diags.HasError() {
+		return nil, diags
+	}
 	grouping, diags := flattenGrouping(ctx, sli.Grouping)
 	if diags.HasError() {
 		return nil, diags
 	}
 
 	window, diags := flattenWindow(ctx, sli.GetSloTimeFrame())
+	if diags.HasError() {
+		return nil, diags
+	}
+
+	labels, diags := utils.StringMapToTypeMap(ctx, sli.Labels)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -723,6 +716,7 @@ func flattenWindowBasedSLI(ctx context.Context, sli *slos.SloWindowBasedMetricSl
 		TargetThresholdPercentage: types.Float32Value(sli.TargetThresholdPercentage),
 		SLI:                       sliObj,
 		Window:                    window,
+		Labels:                    labels,
 	}, diags
 }
 
