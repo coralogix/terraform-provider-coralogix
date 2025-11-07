@@ -453,6 +453,7 @@ func testAccResourceCoralogixGlobalRouterUpdate(name string) string {
       }
       rules       = [
         {
+          entity_type = "alerts"
           name = "rule-name"
           condition = "alertDef.priority == \"P1\""
           targets = [

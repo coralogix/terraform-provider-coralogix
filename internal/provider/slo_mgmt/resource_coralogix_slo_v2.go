@@ -693,6 +693,7 @@ func flattenWindowBasedSLI(ctx context.Context, sli *slos.SloWindowBasedMetricSl
 	if diags.HasError() {
 		return nil, diags
 	}
+
 	grouping, diags := flattenGrouping(ctx, sli.Grouping)
 	if diags.HasError() {
 		return nil, diags
