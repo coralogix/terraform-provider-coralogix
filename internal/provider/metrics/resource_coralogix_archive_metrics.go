@@ -409,7 +409,6 @@ func (r *ArchiveMetricsResource) Read(ctx context.Context, req resource.ReadRequ
 }
 
 func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Retrieve values from plan
 	var plan *ArchiveMetricsResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	if diags.HasError() {

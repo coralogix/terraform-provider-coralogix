@@ -286,7 +286,6 @@ func (r *ConnectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 }
 
 func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Retrieve values from plan
 	var plan *ConnectorResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)

@@ -317,7 +317,7 @@ func (r *PresetResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 func (r PresetResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan *PresetResourceModel
-	diags := req.State.Get(ctx, &plan)
+	diags := req.Config.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
