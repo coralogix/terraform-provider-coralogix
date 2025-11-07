@@ -303,6 +303,7 @@ func expandFileContent(d *schema.ResourceData) (fileContent string, modification
 		if err != nil {
 			return "", "", err
 		}
+
 		csvReader := csv.NewReader(f)
 		for {
 			rec, err := csvReader.Read()

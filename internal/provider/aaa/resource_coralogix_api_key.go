@@ -481,6 +481,7 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 
 	var key types.String
 	hashedKey := (response.KeyInfo.Hashed != nil && *response.KeyInfo.Hashed || false)
+	active := (response.KeyInfo.Active != nil && *response.KeyInfo.Active || false)
 	if hashedKey && keyValue == nil {
 		diags.AddError("Key value is required", "Key value is required")
 		return nil, diags
@@ -495,7 +496,7 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 		ID:          types.StringValue(*apiKeyId),
 		Value:       key,
 		Name:        types.StringPointerValue(response.KeyInfo.Name),
-		Active:      types.BoolPointerValue(response.KeyInfo.Active),
+		Active:      types.BoolValue(active),
 		Hashed:      types.BoolValue(hashedKey),
 		Permissions: permissions,
 		Presets:     presets,
