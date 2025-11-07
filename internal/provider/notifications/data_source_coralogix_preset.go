@@ -105,21 +105,21 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Error listing resource",
+				"Error listing coralogix_preset",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "List", nil),
 			)
 			return
 		}
 
 		for _, preset := range listResult.PresetSummaries {
-			if preset.Name == data.Name.ValueStringPointer() {
+			if *preset.Name == data.Name.ValueString() {
 				presetID = *preset.Id
 				break
 			}
 		}
 
 		if presetID == "" {
-			resp.Diagnostics.AddError(fmt.Sprintf("Resource with name %q not found", name), "")
+			resp.Diagnostics.AddError(fmt.Sprintf("coralogix_preset with name %q not found", name), "")
 			return
 		}
 	} else if id := data.ID.ValueString(); id != "" {
@@ -129,7 +129,7 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 	rq := d.client.PresetsServiceGetPreset(ctx, presetID)
-	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading coralogix_preset: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
@@ -139,7 +139,7 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_preset: %s", utils.FormatJSON(result))
 
 	data, diags = flattenPreset(ctx, result.Preset)
 	if diags.HasError() {

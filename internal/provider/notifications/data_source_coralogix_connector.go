@@ -98,14 +98,14 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 	var connectorID string
 	//Get refreshed connector value from Coralogix
 	if name := data.Name.ValueString(); name != "" {
-		log.Printf("[INFO] Listing resource to find by name: %s", name)
+		log.Printf("[INFO] Listing coralogix_connector to find by name: %s", name)
 		listConnectorResp, httpResponse, err := d.client.
 			ConnectorsServiceListConnectors(ctx).
 			Execute()
 
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Error listing resource",
+				"Error listing coralogix_connector",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "List", nil),
 			)
 			return
@@ -119,7 +119,7 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 		}
 
 		if connectorID == "" {
-			resp.Diagnostics.AddError(fmt.Sprintf("Resource with name %q not found", name), "")
+			resp.Diagnostics.AddError(fmt.Sprintf("coralogix_connector with name %q not found", name), "")
 			return
 		}
 	} else if id := data.ID.ValueString(); id != "" {
@@ -130,7 +130,7 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 	}
 	rq := d.client.ConnectorsServiceGetConnector(ctx, connectorID)
 
-	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading coralogix_connector: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := rq.
 		Execute()
@@ -142,7 +142,7 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_connector: %s", utils.FormatJSON(result))
 
 	data, diags = flattenConnector(ctx, result.Connector)
 	if diags.HasError() {

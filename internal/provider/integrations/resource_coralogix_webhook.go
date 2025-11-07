@@ -907,7 +907,7 @@ func (r WebhookResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 	id := state.ID.ValueString()
 
-	log.Printf("[INFO] Deleting resource %s", id)
+	log.Printf("[INFO] Deleting coralogix_webhook %s", id)
 
 	result, httpResponse, err := r.client.
 		OutgoingWebhooksServiceDeleteOutgoingWebhook(ctx, id).

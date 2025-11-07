@@ -104,6 +104,9 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	if id != "" {
 		result, err = d.fetchWebhookByID(ctx, id, resp)
 		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error listing Webhooks",
+				utils.FormatOpenAPIErrors(err, "Read", nil))
 			return
 		}
 
@@ -114,7 +117,7 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 			log.Printf("[ERROR] Received error when listing webhooks: %s", err.Error())
 			resp.Diagnostics.AddError(
 				"Error listing Webhooks",
-				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 			return
 		}
 
@@ -147,15 +150,15 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		if err != nil {
 			return
 		}
-		data, diags := flattenWebhook(ctx, result.Webhook)
-		if diags.HasError() {
-			resp.Diagnostics = diags
-			return
-		}
-
-		// Save data into Terraform state
-		resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 	}
+	data, diags := flattenWebhook(ctx, result.Webhook)
+	if diags.HasError() {
+		resp.Diagnostics = diags
+		return
+	}
+
+	// Save data into Terraform state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (d *WebhookDataSource) fetchWebhookByID(ctx context.Context, id string, resp *datasource.ReadResponse) (*webhooks.GetOutgoingWebhookResponse, error) {

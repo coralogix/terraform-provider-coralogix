@@ -95,42 +95,42 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 
-	var connectorID string
+	var routerID string
 	//Get refreshed connector value from Coralogix
 	if name := data.Name.ValueString(); name != "" {
-		log.Printf("[INFO] Listing resource to find by name: %s", name)
+		log.Printf("[INFO] Listing coralogix_global_router to find by name: %s", name)
 		listResult, httpResponse, err := d.client.
 			GlobalRoutersServiceListGlobalRouters(ctx).
 			Execute()
 
 		if err != nil {
 			resp.Diagnostics.AddError(
-				"Error listing resource",
+				"Error listing coralogix_global_router",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "List", nil),
 			)
 			return
 		}
 
-		for _, connector := range listResult.Routers {
-			if connector.Name == data.Name.ValueStringPointer() {
-				connectorID = *connector.Id
+		for _, router := range listResult.Routers {
+			if *router.Name == data.Name.ValueString() {
+				routerID = *router.Id
 				break
 			}
 		}
 
-		if connectorID == "" {
-			resp.Diagnostics.AddError(fmt.Sprintf("Resource with name %q not found", name), "")
+		if routerID == "" {
+			resp.Diagnostics.AddError(fmt.Sprintf("coralogix_global_router with name %q not found", name), "")
 			return
 		}
 	} else if id := data.ID.ValueString(); id != "" {
-		connectorID = id
+		routerID = id
 	} else {
 		resp.Diagnostics.AddError("ID or name must be set", "")
 		return
 	}
-	rq := d.client.GlobalRoutersServiceGetGlobalRouter(ctx, connectorID)
+	rq := d.client.GlobalRoutersServiceGetGlobalRouter(ctx, routerID)
 
-	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading coralogix_global_router: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := rq.
 		Execute()
@@ -142,7 +142,7 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_global_router: %s", utils.FormatJSON(result))
 
 	data, diags = flattenGlobalRouter(ctx, result.Router)
 	if diags.HasError() {
