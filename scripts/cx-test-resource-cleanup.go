@@ -216,7 +216,7 @@ func main() {
 	if err == nil {
 		log.Println("Deleting all connectors")
 		for _, connector := range listConnectorsRes.Connectors {
-			connectors.ConnectorsServiceDeleteConnector(ctx, *connector.Id)
+			connectors.ConnectorsServiceDeleteConnector(ctx, *connector.Id).Execute()
 		}
 	} else {
 		log.Fatal("Error listing connectors:", err)
@@ -227,7 +227,7 @@ func main() {
 	if err == nil {
 		log.Println("Deleting all presets")
 		for _, preset := range listPresetsRes.PresetSummaries {
-			presets.PresetsServiceDeleteCustomPreset(ctx, *preset.Id)
+			presets.PresetsServiceDeleteCustomPreset(ctx, *preset.Id).Execute()
 		}
 	} else {
 		log.Fatal("Error listing presets:", err)
@@ -298,14 +298,14 @@ func main() {
 		log.Println("Deleting all SLOs")
 		for _, f := range slos.Slos {
 			var id string
-			if f.SloRequestBasedMetricSli.Id != nil {
+			if f.SloRequestBasedMetricSli != nil {
 				id = *f.SloRequestBasedMetricSli.Id
 			} else if f.SloWindowBasedMetricSli != nil {
 				id = *f.SloWindowBasedMetricSli.Id
 			} else {
 				continue
 			}
-			sloClient.SlosServiceDeleteSlo(ctx, id)
+			sloClient.SlosServiceDeleteSlo(ctx, id).Execute()
 		}
 	} else {
 		log.Fatal("Error listing SLOs:", err)
