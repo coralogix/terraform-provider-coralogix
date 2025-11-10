@@ -291,6 +291,20 @@ func main() {
 		log.Fatal("Error listing views:", err)
 	}
 
+	// IPAccesss
+	ipaccessClient := cs.IpAccess()
+	ipaccess, _, err := ipaccessClient.IpAccessServiceGetCompanyIpAccessSettings(ctx).Execute()
+	if err == nil {
+		log.Println("Deleting all IpAccess")
+		if ipaccess.Settings.IpAccess != nil {
+			for _ = range *ipaccess.Settings.IpAccess {
+				ipaccessClient.IpAccessServiceDeleteCompanyIpAccessSettings(ctx).Execute()
+			}
+		}
+	} else {
+		log.Fatal("Error listing IP Access:", err)
+	}
+
 	// SLOs
 	sloClient := cs.SLOs()
 	slos, _, err := sloClient.SlosServiceListSlos(ctx).Execute()
