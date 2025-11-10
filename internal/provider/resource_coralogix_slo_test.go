@@ -30,7 +30,6 @@ import (
 var sloResourceName = "coralogix_slo.test"
 
 func TestAccCoralogixResourceSLOCreate(t *testing.T) {
-	t.Skip("Faulty test")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -103,7 +102,7 @@ func testAccCoralogixResourceSLO() string {
 	return `
 variable "test" {
 	type 		= string
-	default 	= 1
+	default 	= 1000
 }
 resource "coralogix_slo" "test" {
 	name            		= "coralogix_slo_example"
