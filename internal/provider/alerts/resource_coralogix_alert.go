@@ -290,7 +290,9 @@ func extractWebhooksSettings(ctx context.Context, webhooksSettings types.Set) ([
 			diags.Append(expandDiags...)
 			continue
 		}
-		expandedWebhooksSettings = append(expandedWebhooksSettings, *expandedAdvancedTargetSetting)
+		if expandedAdvancedTargetSetting != nil {
+			expandedWebhooksSettings = append(expandedWebhooksSettings, *expandedAdvancedTargetSetting)
+		}
 	}
 
 	if diags.HasError() {
@@ -494,13 +496,17 @@ func expandAlertNotificationByRetriggeringPeriod(ctx context.Context, alertNotif
 	return alertNotification, nil
 }
 
-func expandActiveOnSchedule(ctx context.Context, activeOnObject types.Object) (*alerts.ActivitySchedule, diag.Diagnostics) {
-	if utils.ObjIsNullOrUnknown(activeOnObject) {
+func expandActiveOnSchedule(ctx context.Context, scheduleObject types.Object) (*alerts.ActivitySchedule, diag.Diagnostics) {
+	var scheduleModel alerttypes.AlertScheduleModel
+	if diags := scheduleObject.As(ctx, &scheduleModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+	if utils.ObjIsNullOrUnknown(scheduleModel.ActiveOn) {
 		return nil, nil
 	}
 
 	var activeOnModel alerttypes.ActiveOnModel
-	if diags := activeOnObject.As(ctx, &activeOnModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+	if diags := scheduleModel.ActiveOn.As(ctx, &activeOnModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
 	}
 
@@ -640,6 +646,7 @@ func expandAlertsTypeDefinition(ctx context.Context, alertProperties *alerts.Ale
 
 func expandLogsImmediateAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDefProperties, logsImmediateObject types.Object, alertResourceModel alerttypes.AlertResourceModel) (*alerts.AlertDefProperties, diag.Diagnostics) {
 	var immediateModel alerttypes.LogsImmediateModel
+	properties.AlertDefPropertiesLogsImmediate = &alerts.AlertDefPropertiesLogsImmediate{}
 	if diags := logsImmediateObject.As(ctx, &immediateModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
 	}
@@ -669,7 +676,13 @@ func expandLogsImmediateAlertTypeDefinition(ctx context.Context, properties *ale
 	}
 
 	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
+	if diags.HasError() {
+		return nil, diags
+	}
 	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
 	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
 	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
@@ -681,11 +694,9 @@ func expandLogsImmediateAlertTypeDefinition(ctx context.Context, properties *ale
 	properties.AlertDefPropertiesLogsImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
 	properties.AlertDefPropertiesLogsImmediate.ActiveOn = schedule
 
-	properties.AlertDefPropertiesLogsImmediate = &alerts.AlertDefPropertiesLogsImmediate{
-		LogsImmediate: &alerts.LogsImmediateType{
-			LogsFilter:                logsFilter,
-			NotificationPayloadFilter: notificationPayloadFilter,
-		},
+	properties.AlertDefPropertiesLogsImmediate.LogsImmediate = &alerts.LogsImmediateType{
+		LogsFilter:                logsFilter,
+		NotificationPayloadFilter: notificationPayloadFilter,
 	}
 	properties.AlertDefPropertiesLogsImmediate.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED.Ptr()
 	return properties, nil
@@ -845,17 +856,24 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *alerts.A
 	}
 
 	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
-	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
-	properties.AlertDefPropertiesLogsImmediate.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsImmediate.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsImmediate.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsImmediate.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.ActiveOn = schedule
+	if diags.HasError() {
+		return nil, diags
+	}
+	properties.AlertDefPropertiesLogsThreshold = &alerts.AlertDefPropertiesLogsThreshold{}
+	properties.AlertDefPropertiesLogsThreshold.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.AlertDefPropertiesLogsThreshold.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.AlertDefPropertiesLogsThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.AlertDefPropertiesLogsThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesLogsThreshold.GroupByKeys = groupBy
+	properties.AlertDefPropertiesLogsThreshold.IncidentsSettings = incidentsSettings
+	properties.AlertDefPropertiesLogsThreshold.NotificationGroup = notificationGroup
+	properties.AlertDefPropertiesLogsThreshold.EntityLabels = &labels
+	properties.AlertDefPropertiesLogsThreshold.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.AlertDefPropertiesLogsThreshold.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(thresholdObject) {
 		return properties, nil
 	}
@@ -869,14 +887,12 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *alerts.A
 		return nil, diags
 	}
 
-	properties.AlertDefPropertiesLogsThreshold = &alerts.AlertDefPropertiesLogsThreshold{
-		LogsThreshold: &alerts.LogsThresholdType{
-			LogsFilter:                 logsFilter,
-			Rules:                      rules,
-			NotificationPayloadFilter:  notificationPayloadFilter,
-			UndetectedValuesManagement: undetected,
-			EvaluationDelayMs:          thresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
-		},
+	properties.AlertDefPropertiesLogsThreshold.LogsThreshold = &alerts.LogsThresholdType{
+		LogsFilter:                 logsFilter,
+		Rules:                      rules,
+		NotificationPayloadFilter:  notificationPayloadFilter,
+		UndetectedValuesManagement: undetected,
+		EvaluationDelayMs:          thresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
 	}
 
 	properties.AlertDefPropertiesLogsThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_THRESHOLD.Ptr()
@@ -992,17 +1008,24 @@ func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *alert
 	}
 
 	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
-	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
-	properties.AlertDefPropertiesLogsImmediate.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsImmediate.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsImmediate.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsImmediate.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.ActiveOn = schedule
+	if diags.HasError() {
+		return nil, diags
+	}
+	properties.AlertDefPropertiesLogsAnomaly = &alerts.AlertDefPropertiesLogsAnomaly{}
+	properties.AlertDefPropertiesLogsAnomaly.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.AlertDefPropertiesLogsAnomaly.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.AlertDefPropertiesLogsAnomaly.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.AlertDefPropertiesLogsAnomaly.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesLogsAnomaly.GroupByKeys = groupBy
+	properties.AlertDefPropertiesLogsAnomaly.IncidentsSettings = incidentsSettings
+	properties.AlertDefPropertiesLogsAnomaly.NotificationGroup = notificationGroup
+	properties.AlertDefPropertiesLogsAnomaly.EntityLabels = &labels
+	properties.AlertDefPropertiesLogsAnomaly.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.AlertDefPropertiesLogsAnomaly.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(anomaly) {
 		return properties, nil
 	}
@@ -1011,13 +1034,11 @@ func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *alert
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesLogsAnomaly = &alerts.AlertDefPropertiesLogsAnomaly{
-		LogsAnomaly: &alerts.LogsAnomalyType{
-			LogsFilter:                logsFilter,
-			Rules:                     rules,
-			NotificationPayloadFilter: notificationPayloadFilter,
-			EvaluationDelayMs:         anomalyModel.CustomEvaluationDelay.ValueInt32Pointer(),
-		},
+	properties.AlertDefPropertiesLogsAnomaly.LogsAnomaly = &alerts.LogsAnomalyType{
+		LogsFilter:                logsFilter,
+		Rules:                     rules,
+		NotificationPayloadFilter: notificationPayloadFilter,
+		EvaluationDelayMs:         anomalyModel.CustomEvaluationDelay.ValueInt32Pointer(),
 	}
 
 	properties.AlertDefPropertiesLogsAnomaly.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_ANOMALY.Ptr()
@@ -1084,17 +1105,24 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *ale
 	}
 
 	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
-	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
-	properties.AlertDefPropertiesLogsImmediate.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsImmediate.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsImmediate.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsImmediate.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.ActiveOn = schedule
+	if diags.HasError() {
+		return nil, diags
+	}
+	properties.AlertDefPropertiesLogsRatioThreshold = &alerts.AlertDefPropertiesLogsRatioThreshold{}
+	properties.AlertDefPropertiesLogsRatioThreshold.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.AlertDefPropertiesLogsRatioThreshold.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.AlertDefPropertiesLogsRatioThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.AlertDefPropertiesLogsRatioThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesLogsRatioThreshold.GroupByKeys = groupBy
+	properties.AlertDefPropertiesLogsRatioThreshold.IncidentsSettings = incidentsSettings
+	properties.AlertDefPropertiesLogsRatioThreshold.NotificationGroup = notificationGroup
+	properties.AlertDefPropertiesLogsRatioThreshold.EntityLabels = &labels
+	properties.AlertDefPropertiesLogsRatioThreshold.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.AlertDefPropertiesLogsRatioThreshold.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(ratioThreshold) {
 		return properties, nil
 	}
@@ -1114,17 +1142,15 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *ale
 		return nil, diags
 	}
 
-	properties.AlertDefPropertiesLogsRatioThreshold = &alerts.AlertDefPropertiesLogsRatioThreshold{
-		LogsRatioThreshold: &alerts.LogsRatioThresholdType{
-			Numerator:                 numeratorLogsFilter,
-			NumeratorAlias:            ratioThresholdModel.NumeratorAlias.ValueStringPointer(),
-			Denominator:               denominatorLogsFilter,
-			DenominatorAlias:          ratioThresholdModel.DenominatorAlias.ValueStringPointer(),
-			Rules:                     rules,
-			NotificationPayloadFilter: notificationPayloadFilter,
-			GroupByFor:                alerttypes.LogsRatioGroupByForSchemaToProtoMap[ratioThresholdModel.GroupByFor.ValueString()].Ptr(),
-			EvaluationDelayMs:         ratioThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
-		},
+	properties.AlertDefPropertiesLogsRatioThreshold.LogsRatioThreshold = &alerts.LogsRatioThresholdType{
+		Numerator:                 numeratorLogsFilter,
+		NumeratorAlias:            ratioThresholdModel.NumeratorAlias.ValueStringPointer(),
+		Denominator:               denominatorLogsFilter,
+		DenominatorAlias:          ratioThresholdModel.DenominatorAlias.ValueStringPointer(),
+		Rules:                     rules,
+		NotificationPayloadFilter: notificationPayloadFilter,
+		GroupByFor:                alerttypes.LogsRatioGroupByForSchemaToProtoMap[ratioThresholdModel.GroupByFor.ValueString()].Ptr(),
+		EvaluationDelayMs:         ratioThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
 	}
 	properties.AlertDefPropertiesLogsRatioThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD.Ptr()
 	return properties, nil
@@ -1227,17 +1253,24 @@ func expandLogsNewValueAlertTypeDefinition(ctx context.Context, properties *aler
 	}
 
 	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
-	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
-	properties.AlertDefPropertiesLogsImmediate.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsImmediate.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsImmediate.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsImmediate.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.ActiveOn = schedule
+	if diags.HasError() {
+		return nil, diags
+	}
+	properties.AlertDefPropertiesLogsNewValue = &alerts.AlertDefPropertiesLogsNewValue{}
+	properties.AlertDefPropertiesLogsNewValue.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.AlertDefPropertiesLogsNewValue.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.AlertDefPropertiesLogsNewValue.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.AlertDefPropertiesLogsNewValue.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesLogsNewValue.GroupByKeys = groupBy
+	properties.AlertDefPropertiesLogsNewValue.IncidentsSettings = incidentsSettings
+	properties.AlertDefPropertiesLogsNewValue.NotificationGroup = notificationGroup
+	properties.AlertDefPropertiesLogsNewValue.EntityLabels = &labels
+	properties.AlertDefPropertiesLogsNewValue.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.AlertDefPropertiesLogsNewValue.ActiveOn = schedule
 	if newValue.IsNull() || newValue.IsUnknown() {
 		return properties, nil
 	}
@@ -1246,12 +1279,10 @@ func expandLogsNewValueAlertTypeDefinition(ctx context.Context, properties *aler
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesLogsNewValue = &alerts.AlertDefPropertiesLogsNewValue{
-		LogsNewValue: &alerts.LogsNewValueType{
-			LogsFilter:                logsFilter,
-			Rules:                     rules,
-			NotificationPayloadFilter: notificationPayloadFilter,
-		},
+	properties.AlertDefPropertiesLogsNewValue.LogsNewValue = &alerts.LogsNewValueType{
+		LogsFilter:                logsFilter,
+		Rules:                     rules,
+		NotificationPayloadFilter: notificationPayloadFilter,
 	}
 	properties.AlertDefPropertiesLogsNewValue.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_NEW_VALUE.Ptr()
 	return properties, nil
@@ -1334,17 +1365,24 @@ func expandLogsUniqueCountAlertTypeDefinition(ctx context.Context, properties *a
 	}
 
 	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
-	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
-	properties.AlertDefPropertiesLogsImmediate.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsImmediate.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsImmediate.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsImmediate.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.ActiveOn = schedule
+	if diags.HasError() {
+		return nil, diags
+	}
+	properties.AlertDefPropertiesLogsUniqueCount = &alerts.AlertDefPropertiesLogsUniqueCount{}
+	properties.AlertDefPropertiesLogsUniqueCount.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.AlertDefPropertiesLogsUniqueCount.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.AlertDefPropertiesLogsUniqueCount.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.AlertDefPropertiesLogsUniqueCount.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesLogsUniqueCount.GroupByKeys = groupBy
+	properties.AlertDefPropertiesLogsUniqueCount.IncidentsSettings = incidentsSettings
+	properties.AlertDefPropertiesLogsUniqueCount.NotificationGroup = notificationGroup
+	properties.AlertDefPropertiesLogsUniqueCount.EntityLabels = &labels
+	properties.AlertDefPropertiesLogsUniqueCount.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.AlertDefPropertiesLogsUniqueCount.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(uniqueCount) {
 		return properties, nil
 	}
@@ -1355,14 +1393,12 @@ func expandLogsUniqueCountAlertTypeDefinition(ctx context.Context, properties *a
 	}
 
 	maxUniqueCountPerGroupByKey := strconv.FormatInt(uniqueCountModel.MaxUniqueCountPerGroupByKey.ValueInt64(), 10)
-	properties.AlertDefPropertiesLogsUniqueCount = &alerts.AlertDefPropertiesLogsUniqueCount{
-		LogsUniqueCount: &alerts.LogsUniqueCountType{
-			LogsFilter:                  logsFilter,
-			Rules:                       rules,
-			NotificationPayloadFilter:   notificationPayloadFilter,
-			MaxUniqueCountPerGroupByKey: &maxUniqueCountPerGroupByKey,
-			UniqueCountKeypath:          uniqueCountModel.UniqueCountKeypath.ValueStringPointer(),
-		},
+	properties.AlertDefPropertiesLogsUniqueCount.LogsUniqueCount = &alerts.LogsUniqueCountType{
+		LogsFilter:                  logsFilter,
+		Rules:                       rules,
+		NotificationPayloadFilter:   notificationPayloadFilter,
+		MaxUniqueCountPerGroupByKey: &maxUniqueCountPerGroupByKey,
+		UniqueCountKeypath:          uniqueCountModel.UniqueCountKeypath.ValueStringPointer(),
 	}
 	properties.AlertDefPropertiesLogsUniqueCount.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT.Ptr()
 	return properties, nil
@@ -1444,17 +1480,24 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 	}
 
 	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
-	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
-	properties.AlertDefPropertiesLogsImmediate.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsImmediate.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsImmediate.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsImmediate.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.ActiveOn = schedule
+	if diags.HasError() {
+		return nil, diags
+	}
+	properties.AlertDefPropertiesLogsTimeRelativeThreshold = &alerts.AlertDefPropertiesLogsTimeRelativeThreshold{}
+	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesLogsTimeRelativeThreshold.GroupByKeys = groupBy
+	properties.AlertDefPropertiesLogsTimeRelativeThreshold.IncidentsSettings = incidentsSettings
+	properties.AlertDefPropertiesLogsTimeRelativeThreshold.NotificationGroup = notificationGroup
+	properties.AlertDefPropertiesLogsTimeRelativeThreshold.EntityLabels = &labels
+	properties.AlertDefPropertiesLogsTimeRelativeThreshold.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.AlertDefPropertiesLogsTimeRelativeThreshold.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(relativeThreshold) {
 		return properties, nil
 	}
@@ -1468,14 +1511,12 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold = &alerts.AlertDefPropertiesLogsTimeRelativeThreshold{
-		LogsTimeRelativeThreshold: &alerts.LogsTimeRelativeThresholdType{
-			LogsFilter:                 logsFilter,
-			Rules:                      rules,
-			NotificationPayloadFilter:  notificationPayloadFilter,
-			UndetectedValuesManagement: undetected,
-			EvaluationDelayMs:          relativeThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
-		},
+	properties.AlertDefPropertiesLogsTimeRelativeThreshold.LogsTimeRelativeThreshold = &alerts.LogsTimeRelativeThresholdType{
+		LogsFilter:                 logsFilter,
+		Rules:                      rules,
+		NotificationPayloadFilter:  notificationPayloadFilter,
+		UndetectedValuesManagement: undetected,
+		EvaluationDelayMs:          relativeThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
 	}
 	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD.Ptr()
 	return properties, nil
@@ -1541,17 +1582,24 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *a
 	}
 
 	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
-	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
-	properties.AlertDefPropertiesLogsImmediate.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsImmediate.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsImmediate.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsImmediate.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.ActiveOn = schedule
+	if diags.HasError() {
+		return nil, diags
+	}
+	properties.AlertDefPropertiesMetricThreshold = &alerts.AlertDefPropertiesMetricThreshold{}
+	properties.AlertDefPropertiesMetricThreshold.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.AlertDefPropertiesMetricThreshold.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.AlertDefPropertiesMetricThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.AlertDefPropertiesMetricThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesMetricThreshold.GroupByKeys = groupBy
+	properties.AlertDefPropertiesMetricThreshold.IncidentsSettings = incidentsSettings
+	properties.AlertDefPropertiesMetricThreshold.NotificationGroup = notificationGroup
+	properties.AlertDefPropertiesMetricThreshold.EntityLabels = &labels
+	properties.AlertDefPropertiesMetricThreshold.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.AlertDefPropertiesMetricThreshold.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(metricThreshold) {
 		return properties, nil
 	}
@@ -1575,14 +1623,12 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *a
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesMetricThreshold = &alerts.AlertDefPropertiesMetricThreshold{
-		MetricThreshold: &alerts.MetricThresholdType{
-			MetricFilter:               metricFilter,
-			Rules:                      rules,
-			MissingValues:              missingValues,
-			UndetectedValuesManagement: undetected,
-			EvaluationDelayMs:          metricThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
-		},
+	properties.AlertDefPropertiesMetricThreshold.MetricThreshold = &alerts.MetricThresholdType{
+		MetricFilter:               metricFilter,
+		Rules:                      rules,
+		MissingValues:              missingValues,
+		UndetectedValuesManagement: undetected,
+		EvaluationDelayMs:          metricThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
 	}
 	properties.AlertDefPropertiesMetricThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_METRIC_THRESHOLD.Ptr()
 
@@ -1696,17 +1742,24 @@ func expandTracingImmediateTypeDefinition(ctx context.Context, properties *alert
 	}
 
 	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
-	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
-	properties.AlertDefPropertiesLogsImmediate.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsImmediate.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsImmediate.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsImmediate.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.ActiveOn = schedule
+	if diags.HasError() {
+		return nil, diags
+	}
+	properties.AlertDefPropertiesTracingImmediate = &alerts.AlertDefPropertiesTracingImmediate{}
+	properties.AlertDefPropertiesTracingImmediate.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.AlertDefPropertiesTracingImmediate.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.AlertDefPropertiesTracingImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.AlertDefPropertiesTracingImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesTracingImmediate.GroupByKeys = groupBy
+	properties.AlertDefPropertiesTracingImmediate.IncidentsSettings = incidentsSettings
+	properties.AlertDefPropertiesTracingImmediate.NotificationGroup = notificationGroup
+	properties.AlertDefPropertiesTracingImmediate.EntityLabels = &labels
+	properties.AlertDefPropertiesTracingImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.AlertDefPropertiesTracingImmediate.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(tracingImmediate) {
 		return properties, nil
 	}
@@ -1720,13 +1773,11 @@ func expandTracingImmediateTypeDefinition(ctx context.Context, properties *alert
 	if diags.HasError() {
 		return nil, diags
 	}
-	properties.AlertDefPropertiesTracingImmediate = &alerts.AlertDefPropertiesTracingImmediate{
-		TracingImmediate: &alerts.TracingImmediateType{
-			TracingFilter: &alerts.TracingFilter{
-				SimpleFilter: tracingQuery,
-			},
-			NotificationPayloadFilter: notificationPayloadFilter,
+	properties.AlertDefPropertiesTracingImmediate.TracingImmediate = &alerts.TracingImmediateType{
+		TracingFilter: &alerts.TracingFilter{
+			SimpleFilter: tracingQuery,
 		},
+		NotificationPayloadFilter: notificationPayloadFilter,
 	}
 	properties.AlertDefPropertiesTracingImmediate.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_TRACING_IMMEDIATE.Ptr()
 
@@ -1754,17 +1805,24 @@ func expandTracingThresholdTypeDefinition(ctx context.Context, properties *alert
 	}
 
 	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
-	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
-	properties.AlertDefPropertiesLogsImmediate.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsImmediate.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsImmediate.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsImmediate.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.ActiveOn = schedule
+	if diags.HasError() {
+		return nil, diags
+	}
+	properties.AlertDefPropertiesTracingThreshold = &alerts.AlertDefPropertiesTracingThreshold{}
+	properties.AlertDefPropertiesTracingThreshold.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.AlertDefPropertiesTracingThreshold.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.AlertDefPropertiesTracingThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.AlertDefPropertiesTracingThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesTracingThreshold.GroupByKeys = groupBy
+	properties.AlertDefPropertiesTracingThreshold.IncidentsSettings = incidentsSettings
+	properties.AlertDefPropertiesTracingThreshold.NotificationGroup = notificationGroup
+	properties.AlertDefPropertiesTracingThreshold.EntityLabels = &labels
+	properties.AlertDefPropertiesTracingThreshold.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.AlertDefPropertiesTracingThreshold.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(tracingThreshold) {
 		return properties, nil
 	}
@@ -1784,14 +1842,12 @@ func expandTracingThresholdTypeDefinition(ctx context.Context, properties *alert
 		return nil, diags
 	}
 
-	properties.AlertDefPropertiesTracingThreshold = &alerts.AlertDefPropertiesTracingThreshold{
-		TracingThreshold: &alerts.TracingThresholdType{
-			TracingFilter: &alerts.TracingFilter{
-				SimpleFilter: tracingQuery,
-			},
-			NotificationPayloadFilter: notificationPayloadFilter,
-			Rules:                     rules,
+	properties.AlertDefPropertiesTracingThreshold.TracingThreshold = &alerts.TracingThresholdType{
+		TracingFilter: &alerts.TracingFilter{
+			SimpleFilter: tracingQuery,
 		},
+		NotificationPayloadFilter: notificationPayloadFilter,
+		Rules:                     rules,
 	}
 	properties.AlertDefPropertiesTracingThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_TRACING_THRESHOLD.Ptr()
 
@@ -1903,7 +1959,9 @@ func extractTracingLabelFilters(ctx context.Context, tracingLabelFilters types.S
 			diags.Append(dgs...)
 			continue
 		}
-		filters = append(filters, *filter)
+		if filter != nil {
+			filters = append(filters, *filter)
+		}
 	}
 	if diags.HasError() {
 		return nil, diags
@@ -1978,17 +2036,24 @@ func expandMetricAnomalyAlertTypeDefinition(ctx context.Context, properties *ale
 	}
 
 	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
-	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
-	properties.AlertDefPropertiesLogsImmediate.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsImmediate.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsImmediate.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsImmediate.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.ActiveOn = schedule
+	if diags.HasError() {
+		return nil, diags
+	}
+	properties.AlertDefPropertiesMetricAnomaly = &alerts.AlertDefPropertiesMetricAnomaly{}
+	properties.AlertDefPropertiesMetricAnomaly.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.AlertDefPropertiesMetricAnomaly.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.AlertDefPropertiesMetricAnomaly.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.AlertDefPropertiesMetricAnomaly.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesMetricAnomaly.GroupByKeys = groupBy
+	properties.AlertDefPropertiesMetricAnomaly.IncidentsSettings = incidentsSettings
+	properties.AlertDefPropertiesMetricAnomaly.NotificationGroup = notificationGroup
+	properties.AlertDefPropertiesMetricAnomaly.EntityLabels = &labels
+	properties.AlertDefPropertiesMetricAnomaly.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.AlertDefPropertiesMetricAnomaly.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(metricAnomaly) {
 		return properties, nil
 	}
@@ -2003,12 +2068,10 @@ func expandMetricAnomalyAlertTypeDefinition(ctx context.Context, properties *ale
 		return nil, diags
 	}
 
-	properties.AlertDefPropertiesMetricAnomaly = &alerts.AlertDefPropertiesMetricAnomaly{
-		MetricAnomaly: &alerts.MetricAnomalyType{
-			MetricFilter:      metricFilter,
-			Rules:             rules,
-			EvaluationDelayMs: metricAnomalyModel.CustomEvaluationDelay.ValueInt32Pointer(),
-		},
+	properties.AlertDefPropertiesMetricAnomaly.MetricAnomaly = &alerts.MetricAnomalyType{
+		MetricFilter:      metricFilter,
+		Rules:             rules,
+		EvaluationDelayMs: metricAnomalyModel.CustomEvaluationDelay.ValueInt32Pointer(),
 	}
 	properties.AlertDefPropertiesMetricAnomaly.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_METRIC_ANOMALY.Ptr()
 
@@ -2095,17 +2158,24 @@ func expandFlowAlertTypeDefinition(ctx context.Context, properties *alerts.Alert
 	}
 
 	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
-	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
-	properties.AlertDefPropertiesLogsImmediate.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsImmediate.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsImmediate.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsImmediate.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.ActiveOn = schedule
+	if diags.HasError() {
+		return nil, diags
+	}
+	properties.AlertDefPropertiesFlow = &alerts.AlertDefPropertiesFlow{}
+	properties.AlertDefPropertiesFlow.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.AlertDefPropertiesFlow.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.AlertDefPropertiesFlow.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.AlertDefPropertiesFlow.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesFlow.GroupByKeys = groupBy
+	properties.AlertDefPropertiesFlow.IncidentsSettings = incidentsSettings
+	properties.AlertDefPropertiesFlow.NotificationGroup = notificationGroup
+	properties.AlertDefPropertiesFlow.EntityLabels = &labels
+	properties.AlertDefPropertiesFlow.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.AlertDefPropertiesFlow.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(flow) {
 		return properties, nil
 	}
@@ -2115,11 +2185,9 @@ func expandFlowAlertTypeDefinition(ctx context.Context, properties *alerts.Alert
 		return nil, diags
 	}
 
-	properties.AlertDefPropertiesFlow = &alerts.AlertDefPropertiesFlow{
-		Flow: &alerts.FlowType{
-			Stages:             stages,
-			EnforceSuppression: flowModel.EnforceSuppression.ValueBoolPointer(),
-		},
+	properties.AlertDefPropertiesFlow.Flow = &alerts.FlowType{
+		Stages:             stages,
+		EnforceSuppression: flowModel.EnforceSuppression.ValueBoolPointer(),
 	}
 	properties.AlertDefPropertiesFlow.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_FLOW.Ptr()
 	return properties, nil
@@ -2241,17 +2309,24 @@ func expandSloThresholdAlertTypeDefinition(ctx context.Context, properties *aler
 	}
 
 	labels, diags := utils.TypeMapToStringMap(ctx, alertResourceModel.Labels)
+	if diags.HasError() {
+		return nil, diags
+	}
 	schedule, diags := expandActiveOnSchedule(ctx, alertResourceModel.Schedule)
-	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
-	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
-	properties.AlertDefPropertiesLogsImmediate.GroupByKeys = groupBy
-	properties.AlertDefPropertiesLogsImmediate.IncidentsSettings = incidentsSettings
-	properties.AlertDefPropertiesLogsImmediate.NotificationGroup = notificationGroup
-	properties.AlertDefPropertiesLogsImmediate.EntityLabels = &labels
-	properties.AlertDefPropertiesLogsImmediate.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.ActiveOn = schedule
+	if diags.HasError() {
+		return nil, diags
+	}
+	properties.AlertDefPropertiesSloThreshold = &alerts.AlertDefPropertiesSloThreshold{}
+	properties.AlertDefPropertiesSloThreshold.Name = alertResourceModel.Name.ValueStringPointer()
+	properties.AlertDefPropertiesSloThreshold.Description = alertResourceModel.Description.ValueStringPointer()
+	properties.AlertDefPropertiesSloThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
+	properties.AlertDefPropertiesSloThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesSloThreshold.GroupByKeys = groupBy
+	properties.AlertDefPropertiesSloThreshold.IncidentsSettings = incidentsSettings
+	properties.AlertDefPropertiesSloThreshold.NotificationGroup = notificationGroup
+	properties.AlertDefPropertiesSloThreshold.EntityLabels = &labels
+	properties.AlertDefPropertiesSloThreshold.PhantomMode = alertResourceModel.PhantomMode.ValueBoolPointer()
+	properties.AlertDefPropertiesSloThreshold.ActiveOn = schedule
 	if utils.ObjIsNullOrUnknown(sloThreshold) {
 		return properties, nil
 	}
@@ -2279,9 +2354,7 @@ func expandSloThresholdAlertTypeDefinition(ctx context.Context, properties *aler
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid SLO Threshold Type", "SLO Threshold must have either ErrorBudget or BurnRate defined")}
 	}
 
-	properties.AlertDefPropertiesSloThreshold = &alerts.AlertDefPropertiesSloThreshold{
-		SloThreshold: sloThresholdType,
-	}
+	properties.AlertDefPropertiesSloThreshold.SloThreshold = sloThresholdType
 	properties.AlertDefPropertiesSloThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_SLO_THRESHOLD.Ptr()
 	return properties, nil
 }
@@ -3069,7 +3142,7 @@ func flattenAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDef
 	} else if sloThreshold := properties.AlertDefPropertiesSloThreshold; sloThreshold != nil {
 		alertTypeDefinitionModel.SloThreshold, diags = flattenSloThreshold(ctx, sloThreshold.SloThreshold)
 	} else {
-		return types.ObjectNull(alertschema.AlertTypeDefinitionAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Alert Type Definition", fmt.Sprintf("Alert Type Definition is not valid"))}
+		return types.ObjectNull(alertschema.AlertTypeDefinitionAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Alert Type Definition", "Alert Type Definition is not valid")}
 	}
 
 	if diags.HasError() {
@@ -3859,7 +3932,7 @@ func flattenTracingFilter(ctx context.Context, tracingFilter *alerts.TracingFilt
 		}
 		return tracingQuery, nil
 	} else {
-		return types.ObjectNull(alertschema.TracingQueryAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Tracing Query Filters", fmt.Sprintf("Tracing Query Filter type is not supported"))}
+		return types.ObjectNull(alertschema.TracingQueryAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Tracing Query Filters", "Tracing Query Filter type is not supported")}
 	}
 
 }
