@@ -19,16 +19,15 @@ import (
 	"fmt"
 	"log"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+
+	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	alerttypes "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_types"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var _ datasource.DataSourceWithConfigure = &AlertDataSource{}
@@ -38,7 +37,7 @@ func NewAlertDataSource() datasource.DataSource {
 }
 
 type AlertDataSource struct {
-	client *cxsdk.AlertsClient
+	client *alerts.AlertDefinitionsServiceAPIService
 }
 
 func (d *AlertDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -79,23 +78,15 @@ func (d *AlertDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 
 	// Get refreshed Alert value from Coralogix
 	id := data.ID.ValueString()
-	log.Printf("[INFO] Reading Alert: %s", id)
-	getAlertReq := &cxsdk.GetAlertDefRequest{Id: wrapperspb.String(id)}
-	getAlertResp, err := d.client.Get(ctx, getAlertReq)
+	log.Printf("[INFO] Reading Alert: %s", utils.FormatJSON(id))
+	getAlertResp, httpResponse, err := d.client.AlertDefsServiceGetAlertDef(ctx, id).Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
-			resp.Diagnostics.AddWarning(err.Error(),
-				fmt.Sprintf("Alert %q is in state, but no longer exists in Coralogix backend", id))
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Alert",
-				utils.FormatRpcErrors(err, getAlertURL, protojson.Format(getAlertReq)),
-			)
-		}
+		resp.Diagnostics.AddError("Error reading alert",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", id),
+		)
 		return
 	}
-	log.Printf("[INFO] Received Alert: %s", protojson.Format(getAlertResp))
+	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(getAlertResp))
 
 	data, diags := flattenAlert(ctx, getAlertResp.GetAlertDef(), &data.Schedule)
 	if diags.HasError() {

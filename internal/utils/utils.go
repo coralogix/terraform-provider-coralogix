@@ -841,6 +841,15 @@ func TypeStringToWrapperspbUint32(str types.String) (*wrapperspb.UInt32Value, di
 	return wrapperspb.UInt32(uint32(parsed)), nil
 }
 
+func TypeStringToInt64Pointer(str types.String) (*int64, diag.Diagnostics) {
+	parsed, err := strconv.ParseUint(str.ValueString(), 10, 32)
+	if err != nil {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Failed to convert string to uint32", err.Error())}
+	}
+	ret := int64(parsed)
+	return &ret, nil
+}
+
 func WrapperspbUint32ToString(num *wrapperspb.UInt32Value) types.String {
 	if num == nil {
 		return types.StringNull()

@@ -20,6 +20,7 @@ import (
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
 	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
 	integrations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
@@ -30,7 +31,7 @@ import (
 
 type ClientSet struct {
 	actions           *cxsdk.ActionsClient
-	alerts            *cxsdk.AlertsClient
+	alerts            *alerts.AlertDefinitionsServiceAPIService
 	apikeys           *apiKeys.APIKeysServiceAPIService
 	enrichments       *cxsdk.EnrichmentsClient
 	dataSet           *cxsdk.DataSetClient
@@ -64,7 +65,7 @@ func (c *ClientSet) RuleGroups() *cxsdk.RuleGroupsClient {
 	return c.ruleGroups
 }
 
-func (c *ClientSet) Alerts() *cxsdk.AlertsClient {
+func (c *ClientSet) Alerts() *alerts.AlertDefinitionsServiceAPIService {
 	return c.alerts
 }
 
@@ -182,7 +183,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	return &ClientSet{
 		actions:             cxsdk.NewActionsClient(apiKeySdk),
 		enrichments:         cxsdk.NewEnrichmentClient(apiKeySdk),
-		alerts:              cxsdk.NewAlertsClientWithCustomLabels(apiKeySdk, map[string]string{}),
+		alerts:              cxsdkOpenapi.NewAlertsClient(oasTfCPC),
 		dataSet:             cxsdk.NewDataSetClient(apiKeySdk),
 		legacySlos:          cxsdk.NewLegacySLOsClient(apiKeySdk),
 		scopes:              cxsdk.NewScopesClient(apiKeySdk),

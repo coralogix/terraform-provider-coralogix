@@ -17,267 +17,266 @@ package alerttypes
 import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-
+	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var (
-	AlertPriorityProtoToSchemaMap = map[cxsdk.AlertDefPriority]string{
-		cxsdk.AlertDefPriorityP5OrUnspecified: "P5",
-		cxsdk.AlertDefPriorityP4:              "P4",
-		cxsdk.AlertDefPriorityP3:              "P3",
-		cxsdk.AlertDefPriorityP2:              "P2",
-		cxsdk.AlertDefPriorityP1:              "P1",
+	AlertPriorityProtoToSchemaMap = map[alerts.AlertDefPriority]string{
+		alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED: "P5",
+		alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P4:                "P4",
+		alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P3:                "P3",
+		alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P2:                "P2",
+		alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P1:                "P1",
 	}
 	AlertPrioritySchemaToProtoMap = utils.ReverseMap(AlertPriorityProtoToSchemaMap)
 	ValidAlertPriorities          = utils.GetKeys(AlertPrioritySchemaToProtoMap)
 
-	NotifyOnProtoToSchemaMap = map[cxsdk.AlertNotifyOn]string{
-		cxsdk.AlertNotifyOnTriggeredOnlyUnspecified: "Triggered Only",
-		cxsdk.AlertNotifyOnTriggeredAndResolved:     "Triggered and Resolved",
+	NotifyOnProtoToSchemaMap = map[alerts.NotifyOn]string{
+		alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED: "Triggered Only",
+		alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_AND_RESOLVED:     "Triggered and Resolved",
 	}
 	NotifyOnSchemaToProtoMap = utils.ReverseMap(NotifyOnProtoToSchemaMap)
 	ValidNotifyOn            = utils.GetKeys(NotifyOnSchemaToProtoMap)
 
-	DaysOfWeekProtoToSchemaMap = map[cxsdk.AlertDayOfWeek]string{
-		cxsdk.AlertDayOfWeekMonday:    "Monday",
-		cxsdk.AlertDayOfWeekTuesday:   "Tuesday",
-		cxsdk.AlertDayOfWeekWednesday: "Wednesday",
-		cxsdk.AlertDayOfWeekThursday:  "Thursday",
-		cxsdk.AlertDayOfWeekFriday:    "Friday",
-		cxsdk.AlertDayOfWeekSaturday:  "Saturday",
-		cxsdk.AlertDayOfWeekSunday:    "Sunday",
+	DaysOfWeekProtoToSchemaMap = map[alerts.DayOfWeek]string{
+		alerts.DAYOFWEEK_DAY_OF_WEEK_MONDAY_OR_UNSPECIFIED: "Monday",
+		alerts.DAYOFWEEK_DAY_OF_WEEK_TUESDAY:               "Tuesday",
+		alerts.DAYOFWEEK_DAY_OF_WEEK_WEDNESDAY:             "Wednesday",
+		alerts.DAYOFWEEK_DAY_OF_WEEK_THURSDAY:              "Thursday",
+		alerts.DAYOFWEEK_DAY_OF_WEEK_FRIDAY:                "Friday",
+		alerts.DAYOFWEEK_DAY_OF_WEEK_SATURDAY:              "Saturday",
+		alerts.DAYOFWEEK_DAY_OF_WEEK_SUNDAY:                "Sunday",
 	}
 	DaysOfWeekSchemaToProtoMap = utils.ReverseMap(DaysOfWeekProtoToSchemaMap)
 	ValidDaysOfWeek            = utils.GetKeys(DaysOfWeekSchemaToProtoMap)
 
-	LogFilterOperationTypeProtoToSchemaMap = map[cxsdk.LogFilterOperationType]string{
-		cxsdk.LogFilterOperationIsOrUnspecified: "IS",
-		cxsdk.LogFilterOperationIncludes:        "INCLUDES",
-		cxsdk.LogFilterOperationEndsWith:        "ENDS_WITH",
-		cxsdk.LogFilterOperationStartsWith:      "STARTS_WITH",
+	LogFilterOperationTypeProtoToSchemaMap = map[alerts.LogFilterOperationType]string{
+		alerts.LOGFILTEROPERATIONTYPE_LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED: "IS",
+		alerts.LOGFILTEROPERATIONTYPE_LOG_FILTER_OPERATION_TYPE_INCLUDES:          "INCLUDES",
+		alerts.LOGFILTEROPERATIONTYPE_LOG_FILTER_OPERATION_TYPE_ENDS_WITH:         "ENDS_WITH",
+		alerts.LOGFILTEROPERATIONTYPE_LOG_FILTER_OPERATION_TYPE_STARTS_WITH:       "STARTS_WITH",
 	}
 	LogFilterOperationTypeSchemaToProtoMap = utils.ReverseMap(LogFilterOperationTypeProtoToSchemaMap)
 	ValidLogFilterOperationType            = utils.GetKeys(LogFilterOperationTypeSchemaToProtoMap)
 
-	LogSeverityProtoToSchemaMap = map[cxsdk.LogSeverity]string{
-		cxsdk.LogSeverityVerboseUnspecified: "Unspecified",
-		cxsdk.LogSeverityDebug:              "Debug",
-		cxsdk.LogSeverityInfo:               "Info",
-		cxsdk.LogSeverityWarning:            "Warning",
-		cxsdk.LogSeverityError:              "Error",
-		cxsdk.LogSeverityCritical:           "Critical",
+	LogSeverityProtoToSchemaMap = map[alerts.LogSeverity]string{
+		alerts.LOGSEVERITY_LOG_SEVERITY_VERBOSE_UNSPECIFIED: "Unspecified",
+		alerts.LOGSEVERITY_LOG_SEVERITY_DEBUG:               "Debug",
+		alerts.LOGSEVERITY_LOG_SEVERITY_INFO:                "Info",
+		alerts.LOGSEVERITY_LOG_SEVERITY_WARNING:             "Warning",
+		alerts.LOGSEVERITY_LOG_SEVERITY_ERROR:               "Error",
+		alerts.LOGSEVERITY_LOG_SEVERITY_CRITICAL:            "Critical",
 	}
 	LogSeveritySchemaToProtoMap = utils.ReverseMap(LogSeverityProtoToSchemaMap)
 	ValidLogSeverities          = utils.GetKeys(LogSeveritySchemaToProtoMap)
 
-	LogsTimeWindowValueProtoToSchemaMap = map[cxsdk.LogsTimeWindowValue]string{
-		cxsdk.LogsTimeWindow5MinutesOrUnspecified: "5_MINUTES",
-		cxsdk.LogsTimeWindow10Minutes:             "10_MINUTES",
-		cxsdk.LogsTimeWindow15Minutes:             "15_MINUTES",
-		cxsdk.LogsTimeWindow20Minutes:             "20_MINUTES",
-		cxsdk.LogsTimeWindow30Minutes:             "30_MINUTES",
-		cxsdk.LogsTimeWindow1Hour:                 "1_HOUR",
-		cxsdk.LogsTimeWindow2Hours:                "2_HOURS",
-		cxsdk.LogsTimeWindow4Hours:                "4_HOURS",
-		cxsdk.LogsTimeWindow6Hours:                "6_HOURS",
-		cxsdk.LogsTimeWindow12Hours:               "12_HOURS",
-		cxsdk.LogsTimeWindow24Hours:               "24_HOURS",
-		cxsdk.LogsTimeWindow36Hours:               "36_HOURS",
+	LogsTimeWindowValueProtoToSchemaMap = map[alerts.LogsTimeWindowValue]string{
+		alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED: "5_MINUTES",
+		alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_MINUTES_10:               "10_MINUTES",
+		alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_MINUTES_15:               "15_MINUTES",
+		alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_MINUTES_20:               "20_MINUTES",
+		alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_MINUTES_30:               "30_MINUTES",
+		alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_HOUR_1:                   "1_HOUR",
+		alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_HOURS_2:                  "2_HOURS",
+		alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_HOURS_4:                  "4_HOURS",
+		alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_HOURS_6:                  "6_HOURS",
+		alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_HOURS_12:                 "12_HOURS",
+		alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_HOURS_24:                 "24_HOURS",
+		alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_HOURS_36:                 "36_HOURS",
 	}
 	LogsTimeWindowValueSchemaToProtoMap = utils.ReverseMap(LogsTimeWindowValueProtoToSchemaMap)
 	ValidLogsTimeWindowValues           = utils.GetKeys(LogsTimeWindowValueSchemaToProtoMap)
 
-	AutoRetireTimeframeProtoToSchemaMap = map[cxsdk.AutoRetireTimeframe]string{
-		cxsdk.AutoRetireTimeframeNeverOrUnspecified: "NEVER",
-		cxsdk.AutoRetireTimeframe5Minutes:           "5_MINUTES",
-		cxsdk.AutoRetireTimeframe10Minutes:          "10_MINUTES",
-		cxsdk.AutoRetireTimeframe1Hour:              "1_HOUR",
-		cxsdk.AutoRetireTimeframe2Hours:             "2_HOURS",
-		cxsdk.AutoRetireTimeframe6Hours:             "6_HOURS",
-		cxsdk.AutoRetireTimeframe12Hours:            "12_HOURS",
-		cxsdk.AutoRetireTimeframe24Hours:            "24_HOURS",
+	AutoRetireTimeframeProtoToSchemaMap = map[alerts.V3AutoRetireTimeframe]string{
+		alerts.V3AUTORETIRETIMEFRAME_AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED: "NEVER",
+		alerts.V3AUTORETIRETIMEFRAME_AUTO_RETIRE_TIMEFRAME_MINUTES_5:            "5_MINUTES",
+		alerts.V3AUTORETIRETIMEFRAME_AUTO_RETIRE_TIMEFRAME_MINUTES_10:           "10_MINUTES",
+		alerts.V3AUTORETIRETIMEFRAME_AUTO_RETIRE_TIMEFRAME_HOUR_1:               "1_HOUR",
+		alerts.V3AUTORETIRETIMEFRAME_AUTO_RETIRE_TIMEFRAME_HOURS_2:              "2_HOURS",
+		alerts.V3AUTORETIRETIMEFRAME_AUTO_RETIRE_TIMEFRAME_HOURS_6:              "6_HOURS",
+		alerts.V3AUTORETIRETIMEFRAME_AUTO_RETIRE_TIMEFRAME_HOURS_12:             "12_HOURS",
+		alerts.V3AUTORETIRETIMEFRAME_AUTO_RETIRE_TIMEFRAME_HOURS_24:             "24_HOURS",
 	}
 	AutoRetireTimeframeSchemaToProtoMap = utils.ReverseMap(AutoRetireTimeframeProtoToSchemaMap)
 	ValidAutoRetireTimeframes           = utils.GetKeys(AutoRetireTimeframeSchemaToProtoMap)
 
-	LogsRatioTimeWindowValueProtoToSchemaMap = map[cxsdk.LogsRatioTimeWindowValue]string{
-		cxsdk.LogsRatioTimeWindowValue5MinutesOrUnspecified: "5_MINUTES",
-		cxsdk.LogsRatioTimeWindowValue10Minutes:             "10_MINUTES",
-		cxsdk.LogsRatioTimeWindowValue15Minutes:             "15_MINUTES",
-		cxsdk.LogsRatioTimeWindowValue30Minutes:             "30_MINUTES",
-		cxsdk.LogsRatioTimeWindowValue1Hour:                 "1_HOUR",
-		cxsdk.LogsRatioTimeWindowValue2Hours:                "2_HOURS",
-		cxsdk.LogsRatioTimeWindowValue4Hours:                "4_HOURS",
-		cxsdk.LogsRatioTimeWindowValue6Hours:                "6_HOURS",
-		cxsdk.LogsRatioTimeWindowValue12Hours:               "12_HOURS",
-		cxsdk.LogsRatioTimeWindowValue24Hours:               "24_HOURS",
-		cxsdk.LogsRatioTimeWindowValue36Hours:               "36_HOURS",
+	LogsRatioTimeWindowValueProtoToSchemaMap = map[alerts.LogsRatioTimeWindowValue]string{
+		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED: "5_MINUTES",
+		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10:               "10_MINUTES",
+		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_15:               "15_MINUTES",
+		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_30:               "30_MINUTES",
+		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_HOUR_1:                   "1_HOUR",
+		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_2:                  "2_HOURS",
+		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_4:                  "4_HOURS",
+		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_6:                  "6_HOURS",
+		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_12:                 "12_HOURS",
+		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_24:                 "24_HOURS",
+		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_HOURS_36:                 "36_HOURS",
 	}
 	LogsRatioTimeWindowValueSchemaToProtoMap = utils.ReverseMap(LogsRatioTimeWindowValueProtoToSchemaMap)
 	ValidLogsRatioTimeWindowValues           = utils.GetKeys(LogsRatioTimeWindowValueSchemaToProtoMap)
 
-	LogsRatioGroupByForProtoToSchemaMap = map[cxsdk.LogsRatioGroupByFor]string{
-		cxsdk.LogsRatioGroupByForBothOrUnspecified: "Both",
-		cxsdk.LogsRatioGroupByForNumeratorOnly:     "Numerator Only",
-		cxsdk.LogsRatioGroupByForDenumeratorOnly:   "Denominator Only",
+	LogsRatioGroupByForProtoToSchemaMap = map[alerts.LogsRatioGroupByFor]string{
+		alerts.LOGSRATIOGROUPBYFOR_LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED: "Both",
+		alerts.LOGSRATIOGROUPBYFOR_LOGS_RATIO_GROUP_BY_FOR_NUMERATOR_ONLY:      "Numerator Only",
+		alerts.LOGSRATIOGROUPBYFOR_LOGS_RATIO_GROUP_BY_FOR_DENUMERATOR_ONLY:    "Denominator Only",
 	}
 	LogsRatioGroupByForSchemaToProtoMap = utils.ReverseMap(LogsRatioGroupByForProtoToSchemaMap)
 	ValidLogsRatioGroupByFor            = utils.GetKeys(LogsRatioGroupByForSchemaToProtoMap)
 
-	LogsNewValueTimeWindowValueProtoToSchemaMap = map[cxsdk.LogsNewValueTimeWindowValue]string{
-		cxsdk.LogsNewValueTimeWindowValue12HoursOrUnspecified: "12_HOURS",
-		cxsdk.LogsNewValueTimeWindowValue24Hours:              "24_HOURS",
-		cxsdk.LogsNewValueTimeWindowValue48Hours:              "48_HOURS",
-		cxsdk.LogsNewValueTimeWindowValue72Hours:              "72_HOURS",
-		cxsdk.LogsNewValueTimeWindowValue1Week:                "1_WEEK",
-		cxsdk.LogsNewValueTimeWindowValue1Month:               "1_MONTH",
-		cxsdk.LogsNewValueTimeWindowValue2Months:              "2_MONTHS",
-		cxsdk.LogsNewValueTimeWindowValue3Months:              "3_MONTHS",
+	LogsNewValueTimeWindowValueProtoToSchemaMap = map[alerts.LogsNewValueTimeWindowValue]string{
+		alerts.LOGSNEWVALUETIMEWINDOWVALUE_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_12_OR_UNSPECIFIED: "12_HOURS",
+		alerts.LOGSNEWVALUETIMEWINDOWVALUE_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_24:                "24_HOURS",
+		alerts.LOGSNEWVALUETIMEWINDOWVALUE_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_48:                "48_HOURS",
+		alerts.LOGSNEWVALUETIMEWINDOWVALUE_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_72:                "72_HOURS",
+		alerts.LOGSNEWVALUETIMEWINDOWVALUE_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_WEEK_1:                  "1_WEEK",
+		alerts.LOGSNEWVALUETIMEWINDOWVALUE_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTH_1:                 "1_MONTH",
+		alerts.LOGSNEWVALUETIMEWINDOWVALUE_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTHS_2:                "2_MONTHS",
+		alerts.LOGSNEWVALUETIMEWINDOWVALUE_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_MONTHS_3:                "3_MONTHS",
 	}
 	LogsNewValueTimeWindowValueSchemaToProtoMap = utils.ReverseMap(LogsNewValueTimeWindowValueProtoToSchemaMap)
 	ValidLogsNewValueTimeWindowValues           = utils.GetKeys(LogsNewValueTimeWindowValueSchemaToProtoMap)
 
-	LogsUniqueCountTimeWindowValueProtoToSchemaMap = map[cxsdk.LogsUniqueValueTimeWindowValue]string{
-		cxsdk.LogsUniqueValueTimeWindowValue1MinuteOrUnspecified: "1_MINUTE",
-		cxsdk.LogsUniqueValueTimeWindowValue5Minutes:             "5_MINUTES",
-		cxsdk.LogsUniqueValueTimeWindowValue10Minutes:            "10_MINUTES",
-		cxsdk.LogsUniqueValueTimeWindowValue15Minutes:            "15_MINUTES",
-		cxsdk.LogsUniqueValueTimeWindowValue20Minutes:            "20_MINUTES",
-		cxsdk.LogsUniqueValueTimeWindowValue30Minutes:            "30_MINUTES",
-		cxsdk.LogsUniqueValueTimeWindowValue1Hour:                "1_HOUR",
-		cxsdk.LogsUniqueValueTimeWindowValue2Hours:               "2_HOURS",
-		cxsdk.LogsUniqueValueTimeWindowValue4Hours:               "4_HOURS",
-		cxsdk.LogsUniqueValueTimeWindowValue6Hours:               "6_HOURS",
-		cxsdk.LogsUniqueValueTimeWindowValue12Hours:              "12_HOURS",
-		cxsdk.LogsUniqueValueTimeWindowValue24Hours:              "24_HOURS",
-		cxsdk.LogsUniqueValueTimeWindowValue36Hours:              "36_HOURS",
+	LogsUniqueCountTimeWindowValueProtoToSchemaMap = map[alerts.LogsUniqueValueTimeWindowValue]string{
+		alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTE_1_OR_UNSPECIFIED: "1_MINUTE",
+		alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_5:               "5_MINUTES",
+		alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_10:              "10_MINUTES",
+		alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_15:              "15_MINUTES",
+		alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_20:              "20_MINUTES",
+		alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTES_30:              "30_MINUTES",
+		alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_1:                 "1_HOUR",
+		alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_2:                 "2_HOURS",
+		alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_4:                 "4_HOURS",
+		alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_6:                 "6_HOURS",
+		alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_12:                "12_HOURS",
+		alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_24:                "24_HOURS",
+		alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_HOURS_36:                "36_HOURS",
 	}
 	LogsUniqueCountTimeWindowValueSchemaToProtoMap = utils.ReverseMap(LogsUniqueCountTimeWindowValueProtoToSchemaMap)
 	ValidLogsUniqueCountTimeWindowValues           = utils.GetKeys(LogsUniqueCountTimeWindowValueSchemaToProtoMap)
 
-	LogsTimeRelativeComparedToProtoToSchemaMap = map[cxsdk.LogsTimeRelativeComparedTo]string{
-		cxsdk.LogsTimeRelativeComparedToPreviousHourOrUnspecified: "Previous Hour",
-		cxsdk.LogsTimeRelativeComparedToSameHourYesterday:         "Same Hour Yesterday",
-		cxsdk.LogsTimeRelativeComparedToSameHourLastWeek:          "Same Hour Last Week",
-		cxsdk.LogsTimeRelativeComparedToYesterday:                 "Yesterday",
-		cxsdk.LogsTimeRelativeComparedToSameDayLastWeek:           "Same Day Last Week",
-		cxsdk.LogsTimeRelativeComparedToSameDayLastMonth:          "Same Day Last Month",
+	LogsTimeRelativeComparedToProtoToSchemaMap = map[alerts.LogsTimeRelativeComparedTo]string{
+		alerts.LOGSTIMERELATIVECOMPAREDTO_LOGS_TIME_RELATIVE_COMPARED_TO_PREVIOUS_HOUR_OR_UNSPECIFIED: "Previous Hour",
+		alerts.LOGSTIMERELATIVECOMPAREDTO_LOGS_TIME_RELATIVE_COMPARED_TO_SAME_HOUR_YESTERDAY:          "Same Hour Yesterday",
+		alerts.LOGSTIMERELATIVECOMPAREDTO_LOGS_TIME_RELATIVE_COMPARED_TO_SAME_HOUR_LAST_WEEK:          "Same Hour Last Week",
+		alerts.LOGSTIMERELATIVECOMPAREDTO_LOGS_TIME_RELATIVE_COMPARED_TO_YESTERDAY:                    "Yesterday",
+		alerts.LOGSTIMERELATIVECOMPAREDTO_LOGS_TIME_RELATIVE_COMPARED_TO_SAME_DAY_LAST_WEEK:           "Same Day Last Week",
+		alerts.LOGSTIMERELATIVECOMPAREDTO_LOGS_TIME_RELATIVE_COMPARED_TO_SAME_DAY_LAST_MONTH:          "Same Day Last Month",
 	}
 	LogsTimeRelativeComparedToSchemaToProtoMap = utils.ReverseMap(LogsTimeRelativeComparedToProtoToSchemaMap)
 	ValidLogsTimeRelativeComparedTo            = utils.GetKeys(LogsTimeRelativeComparedToSchemaToProtoMap)
 
-	MetricFilterOperationTypeProtoToSchemaMap = map[cxsdk.MetricTimeWindowValue]string{
-		cxsdk.MetricTimeWindowValue1MinuteOrUnspecified: "1_MINUTE",
-		cxsdk.MetricTimeWindowValue5Minutes:             "5_MINUTES",
-		cxsdk.MetricTimeWindowValue10Minutes:            "10_MINUTES",
-		cxsdk.MetricTimeWindowValue15Minutes:            "15_MINUTES",
-		cxsdk.MetricTimeWindowValue20Minutes:            "20_MINUTES",
-		cxsdk.MetricTimeWindowValue30Minutes:            "30_MINUTES",
-		cxsdk.MetricTimeWindowValue1Hour:                "1_HOUR",
-		cxsdk.MetricTimeWindowValue2Hours:               "2_HOURS",
-		cxsdk.MetricTimeWindowValue4Hours:               "4_HOURS",
-		cxsdk.MetricTimeWindowValue6Hours:               "6_HOURS",
-		cxsdk.MetricTimeWindowValue12Hours:              "12_HOURS",
-		cxsdk.MetricTimeWindowValue24Hours:              "24_HOURS",
-		cxsdk.MetricTimeWindowValue36Hours:              "36_HOURS",
+	MetricFilterOperationTypeProtoToSchemaMap = map[alerts.MetricTimeWindowValue]string{
+		alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED: "1_MINUTE",
+		alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_5:                "5_MINUTES",
+		alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_10:               "10_MINUTES",
+		alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_15:               "15_MINUTES",
+		alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_20:               "20_MINUTES",
+		alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_30:               "30_MINUTES",
+		alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_HOUR_1:                   "1_HOUR",
+		alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_HOURS_2:                  "2_HOURS",
+		alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_HOURS_4:                  "4_HOURS",
+		alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_HOURS_6:                  "6_HOURS",
+		alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_HOURS_12:                 "12_HOURS",
+		alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_HOURS_24:                 "24_HOURS",
+		alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_HOURS_36:                 "36_HOURS",
 	}
 	MetricTimeWindowValueSchemaToProtoMap = utils.ReverseMap(MetricFilterOperationTypeProtoToSchemaMap)
 	ValidMetricTimeWindowValues           = utils.GetKeys(MetricTimeWindowValueSchemaToProtoMap)
 
-	TracingTimeWindowProtoToSchemaMap = map[cxsdk.TracingTimeWindowValue]string{
-		cxsdk.TracingTimeWindowValue5MinutesOrUnspecified: "5_MINUTES",
-		cxsdk.TracingTimeWindowValue10Minutes:             "10_MINUTES",
-		cxsdk.TracingTimeWindowValue15Minutes:             "15_MINUTES",
-		cxsdk.TracingTimeWindowValue20Minutes:             "20_MINUTES",
-		cxsdk.TracingTimeWindowValue30Minutes:             "30_MINUTES",
-		cxsdk.TracingTimeWindowValue1Hour:                 "1_HOUR",
-		cxsdk.TracingTimeWindowValue2Hours:                "2_HOURS",
-		cxsdk.TracingTimeWindowValue4Hours:                "4_HOURS",
-		cxsdk.TracingTimeWindowValue6Hours:                "6_HOURS",
-		cxsdk.TracingTimeWindowValue12Hours:               "12_HOURS",
-		cxsdk.TracingTimeWindowValue24Hours:               "24_HOURS",
-		cxsdk.TracingTimeWindowValue36Hours:               "36_HOURS",
+	TracingTimeWindowProtoToSchemaMap = map[alerts.TracingTimeWindowValue]string{
+		alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED: "5_MINUTES",
+		alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_MINUTES_10:               "10_MINUTES",
+		alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_MINUTES_15:               "15_MINUTES",
+		alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_MINUTES_20:               "20_MINUTES",
+		alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_MINUTES_30:               "30_MINUTES",
+		alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_HOUR_1:                   "1_HOUR",
+		alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_HOURS_2:                  "2_HOURS",
+		alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_HOURS_4:                  "4_HOURS",
+		alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_HOURS_6:                  "6_HOURS",
+		alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_HOURS_12:                 "12_HOURS",
+		alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_HOURS_24:                 "24_HOURS",
+		alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_HOURS_36:                 "36_HOURS",
 	}
 	TracingTimeWindowSchemaToProtoMap = utils.ReverseMap(TracingTimeWindowProtoToSchemaMap)
 	ValidTracingTimeWindow            = utils.GetKeys(TracingTimeWindowSchemaToProtoMap)
 
-	TracingFilterOperationProtoToSchemaMap = map[cxsdk.TracingFilterOperationType]string{
-		cxsdk.TracingFilterOperationTypeIsOrUnspecified: "IS",
-		cxsdk.TracingFilterOperationTypeIsNot:           "IS_NOT",
-		cxsdk.TracingFilterOperationTypeIncludes:        "INCLUDES",
-		cxsdk.TracingFilterOperationTypeEndsWith:        "ENDS_WITH",
-		cxsdk.TracingFilterOperationTypeStartsWith:      "STARTS_WITH",
+	TracingFilterOperationProtoToSchemaMap = map[alerts.TracingFilterOperationType]string{
+		alerts.TRACINGFILTEROPERATIONTYPE_TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED: "IS",
+		alerts.TRACINGFILTEROPERATIONTYPE_TRACING_FILTER_OPERATION_TYPE_IS_NOT:            "IS_NOT",
+		alerts.TRACINGFILTEROPERATIONTYPE_TRACING_FILTER_OPERATION_TYPE_INCLUDES:          "INCLUDES",
+		alerts.TRACINGFILTEROPERATIONTYPE_TRACING_FILTER_OPERATION_TYPE_ENDS_WITH:         "ENDS_WITH",
+		alerts.TRACINGFILTEROPERATIONTYPE_TRACING_FILTER_OPERATION_TYPE_STARTS_WITH:       "STARTS_WITH",
 	}
 	TracingFilterOperationSchemaToProtoMap = utils.ReverseMap(TracingFilterOperationProtoToSchemaMap)
 	ValidTracingFilterOperations           = utils.GetKeys(TracingFilterOperationSchemaToProtoMap)
-	FlowStageTimeFrameTypeProtoToSchemaMap = map[cxsdk.TimeframeType]string{
-		cxsdk.TimeframeTypeUnspecified: "Unspecified",
-		cxsdk.TimeframeTypeUpTo:        "Up To",
+	FlowStageTimeFrameTypeProtoToSchemaMap = map[alerts.TimeframeType]string{
+		alerts.TIMEFRAMETYPE_TIMEFRAME_TYPE_UNSPECIFIED: "Unspecified",
+		alerts.TIMEFRAMETYPE_TIMEFRAME_TYPE_UP_TO:       "Up To",
 	}
 	FlowStageTimeFrameTypeSchemaToProtoMap = utils.ReverseMap(FlowStageTimeFrameTypeProtoToSchemaMap)
 	ValidFlowStageTimeFrameTypes           = utils.GetKeys(FlowStageTimeFrameTypeSchemaToProtoMap)
 
-	FlowStagesGroupNextOpProtoToSchemaMap = map[cxsdk.NextOp]string{
-		cxsdk.NextOpAndOrUnspecified: "AND",
-		cxsdk.NextOpOr:               "OR",
+	FlowStagesGroupNextOpProtoToSchemaMap = map[alerts.NextOp]string{
+		alerts.NEXTOP_NEXT_OP_AND_OR_UNSPECIFIED: "AND",
+		alerts.NEXTOP_NEXT_OP_OR:                 "OR",
 	}
 	FlowStagesGroupNextOpSchemaToProtoMap = utils.ReverseMap(FlowStagesGroupNextOpProtoToSchemaMap)
 	ValidFlowStagesGroupNextOps           = utils.GetKeys(FlowStagesGroupNextOpSchemaToProtoMap)
 
-	FlowStagesGroupAlertsOpProtoToSchemaMap = map[cxsdk.AlertsOp]string{
-		cxsdk.AlertsOpAndOrUnspecified: "AND",
-		cxsdk.AlertsOpOr:               "OR",
+	FlowStagesGroupAlertsOpProtoToSchemaMap = map[alerts.AlertsOp]string{
+		alerts.ALERTSOP_ALERTS_OP_AND_OR_UNSPECIFIED: "AND",
+		alerts.ALERTSOP_ALERTS_OP_OR:                 "OR",
 	}
 	FlowStagesGroupAlertsOpSchemaToProtoMap = utils.ReverseMap(FlowStagesGroupAlertsOpProtoToSchemaMap)
 	ValidFlowStagesGroupAlertsOps           = utils.GetKeys(FlowStagesGroupAlertsOpSchemaToProtoMap)
 
-	LogsThresholdConditionMap = map[cxsdk.LogsThresholdConditionType]string{
-		cxsdk.LogsThresholdConditionTypeMoreThanOrUnspecified: "MORE_THAN",
-		cxsdk.LogsThresholdConditionTypeLessThan:              "LESS_THAN",
+	LogsThresholdConditionMap = map[alerts.LogsThresholdConditionType]string{
+		alerts.LOGSTHRESHOLDCONDITIONTYPE_LOGS_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED: "MORE_THAN",
+		alerts.LOGSTHRESHOLDCONDITIONTYPE_LOGS_THRESHOLD_CONDITION_TYPE_LESS_THAN:                "LESS_THAN",
 	}
 	LogsThresholdConditionToProtoMap = utils.ReverseMap(LogsThresholdConditionMap)
 	LogsThresholdConditionValues     = utils.GetValues(LogsThresholdConditionMap)
 
-	LogsTimeRelativeConditionMap = map[cxsdk.LogsTimeRelativeConditionType]string{
-		cxsdk.LogsTimeRelativeConditionTypeMoreThanOrUnspecified: "MORE_THAN",
-		cxsdk.LogsTimeRelativeConditionTypeLessThan:              "LESS_THAN",
+	LogsTimeRelativeConditionMap = map[alerts.LogsTimeRelativeConditionType]string{
+		alerts.LOGSTIMERELATIVECONDITIONTYPE_LOGS_TIME_RELATIVE_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED: "MORE_THAN",
+		alerts.LOGSTIMERELATIVECONDITIONTYPE_LOGS_TIME_RELATIVE_CONDITION_TYPE_LESS_THAN:                "LESS_THAN",
 	}
 	LogsTimeRelativeConditionToProtoMap = utils.ReverseMap(LogsTimeRelativeConditionMap)
 	LogsTimeRelativeConditionValues     = utils.GetValues(LogsTimeRelativeConditionMap)
 
-	LogsRatioConditionMap = map[cxsdk.LogsRatioConditionType]string{
-		cxsdk.LogsRatioConditionTypeMoreThanOrUnspecified: "MORE_THAN",
-		cxsdk.LogsRatioConditionTypeLessThan:              "LESS_THAN",
+	LogsRatioConditionMap = map[alerts.LogsRatioConditionType]string{
+		alerts.LOGSRATIOCONDITIONTYPE_LOGS_RATIO_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED: "MORE_THAN",
+		alerts.LOGSRATIOCONDITIONTYPE_LOGS_RATIO_CONDITION_TYPE_LESS_THAN:                "LESS_THAN",
 	}
 	LogsRatioConditionMapValues        = utils.GetValues(LogsRatioConditionMap)
 	LogsRatioConditionSchemaToProtoMap = utils.ReverseMap(LogsRatioConditionMap)
 
-	MetricsThresholdConditionMap = map[cxsdk.MetricThresholdConditionType]string{
-		cxsdk.MetricThresholdConditionTypeMoreThanOrUnspecified: "MORE_THAN",
-		cxsdk.MetricThresholdConditionTypeLessThan:              "LESS_THAN",
-		cxsdk.MetricThresholdConditionTypeMoreThanOrEquals:      "MORE_THAN_OR_EQUALS",
-		cxsdk.MetricThresholdConditionTypeLessThanOrEquals:      "LESS_THAN_OR_EQUALS",
+	MetricsThresholdConditionMap = map[alerts.MetricThresholdConditionType]string{
+		alerts.METRICTHRESHOLDCONDITIONTYPE_METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED: "MORE_THAN",
+		alerts.METRICTHRESHOLDCONDITIONTYPE_METRIC_THRESHOLD_CONDITION_TYPE_LESS_THAN:                "LESS_THAN",
+		alerts.METRICTHRESHOLDCONDITIONTYPE_METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_EQUALS:      "MORE_THAN_OR_EQUALS",
+		alerts.METRICTHRESHOLDCONDITIONTYPE_METRIC_THRESHOLD_CONDITION_TYPE_LESS_THAN_OR_EQUALS:      "LESS_THAN_OR_EQUALS",
 	}
 	MetricsThresholdConditionValues     = utils.GetValues(MetricsThresholdConditionMap)
 	MetricsThresholdConditionToProtoMap = utils.ReverseMap(MetricsThresholdConditionMap)
 
-	MetricAnomalyConditionMap = map[cxsdk.MetricAnomalyConditionType]string{
-		cxsdk.MetricAnomalyConditionTypeMoreThanOrUnspecified: "MORE_THAN",
-		cxsdk.MetricAnomalyConditionTypeLessThan:              "LESS_THAN",
+	MetricAnomalyConditionMap = map[alerts.MetricAnomalyConditionType]string{
+		alerts.METRICANOMALYCONDITIONTYPE_METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED: "MORE_THAN",
+		alerts.METRICANOMALYCONDITIONTYPE_METRIC_ANOMALY_CONDITION_TYPE_LESS_THAN_USUAL:                "LESS_THAN",
 	}
 	MetricAnomalyConditionValues     = utils.GetValues(MetricAnomalyConditionMap)
 	MetricAnomalyConditionToProtoMap = utils.ReverseMap(MetricAnomalyConditionMap)
-	LogsAnomalyConditionMap          = map[cxsdk.LogsAnomalyConditionType]string{
-		cxsdk.LogsAnomalyConditionTypeMoreThanOrUnspecified: "MORE_THAN_USUAL",
+	LogsAnomalyConditionMap          = map[alerts.LogsAnomalyConditionType]string{
+		alerts.LOGSANOMALYCONDITIONTYPE_LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED: "MORE_THAN_USUAL",
 	}
 	LogsAnomalyConditionSchemaToProtoMap = utils.ReverseMap(LogsAnomalyConditionMap)
 	// LogsAnomalyConditionValues           = utils.GetValues(LogsAnomalyConditionMap)
 
-	DurationUnitProtoToSchemaMap = map[cxsdk.SloDurationUnit]string{
-		cxsdk.DurationUnitUnspecified: "UNSPECIFIED",
-		cxsdk.DurationUnitHours:       "HOURS",
+	DurationUnitProtoToSchemaMap = map[alerts.DurationUnit]string{
+		alerts.DURATIONUNIT_DURATION_UNIT_UNSPECIFIED: "UNSPECIFIED",
+		alerts.DURATIONUNIT_DURATION_UNIT_HOURS:       "HOURS",
 	}
 	DurationUnitSchemaToProtoMap = utils.ReverseMap(DurationUnitProtoToSchemaMap)
 	ValidDurationUnits           = utils.GetKeys(DurationUnitSchemaToProtoMap)
