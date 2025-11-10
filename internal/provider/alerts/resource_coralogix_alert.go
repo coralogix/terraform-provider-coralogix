@@ -4447,7 +4447,7 @@ func (r *AlertResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	}
 	log.Printf("[INFO] Submitted updated Alert: %s", utils.FormatJSON(alertUpdateResp))
 
-	getAlertResp, httpResponse, err := r.client.AlertDefsServiceGetAlertDef(ctx, plan.ID.String()).Execute()
+	getAlertResp, httpResponse, err := r.client.AlertDefsServiceGetAlertDef(ctx, *alertUpdateResp.AlertDef.Id).Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading alert",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", plan.ID.String()),
