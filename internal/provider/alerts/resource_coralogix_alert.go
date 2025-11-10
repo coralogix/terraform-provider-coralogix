@@ -497,6 +497,9 @@ func expandAlertNotificationByRetriggeringPeriod(ctx context.Context, alertNotif
 }
 
 func expandActiveOnSchedule(ctx context.Context, scheduleObject types.Object) (*alerts.ActivitySchedule, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(scheduleObject) {
+		return nil, nil
+	}
 	var scheduleModel alerttypes.AlertScheduleModel
 	if diags := scheduleObject.As(ctx, &scheduleModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
@@ -1981,10 +1984,14 @@ func extractTracingLabelFilter(ctx context.Context, filterModelObject types.Obje
 		return nil, diags
 	}
 
-	return &alerts.TracingFilterType{
-		Values:    values,
-		Operation: alerttypes.TracingFilterOperationSchemaToProtoMap[filterModel.Operation.ValueString()].Ptr(),
-	}, nil
+	tracingTypeFilter := &alerts.TracingFilterType{
+		Values: values,
+	}
+	if !filterModel.Operation.IsNull() && !filterModel.Operation.IsUnknown() {
+		tracingTypeFilter.Operation = alerttypes.TracingFilterOperationSchemaToProtoMap[filterModel.Operation.ValueString()].Ptr()
+
+	}
+	return tracingTypeFilter, nil
 }
 
 func extractTracingSpanFieldsFilterType(ctx context.Context, spanFields types.Set) ([]alerts.TracingSpanFieldsFilterType, diag.Diagnostics) {
@@ -3242,8 +3249,12 @@ func flattenLabelFilterTypes(ctx context.Context, name []alerts.LabelFilterType)
 	var diags diag.Diagnostics
 	for _, lft := range name {
 		labelFilterType := alerttypes.LabelFilterTypeModel{
-			Value:     utils.StringPointerToTypeString(lft.Value),
-			Operation: types.StringValue(alerttypes.LogFilterOperationTypeProtoToSchemaMap[lft.GetOperation()]),
+			Value: utils.StringPointerToTypeString(lft.Value),
+		}
+		if lft.Operation != nil {
+			labelFilterType.Operation = types.StringValue(alerttypes.LogFilterOperationTypeProtoToSchemaMap[lft.GetOperation()])
+		} else {
+			labelFilterType.Operation = types.StringValue(alerttypes.LogFilterOperationTypeProtoToSchemaMap[alerts.LOGFILTEROPERATIONTYPE_LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED])
 		}
 		labelFilterTypes = append(labelFilterTypes, labelFilterType)
 	}
@@ -3409,11 +3420,17 @@ func flattenLogsAnomalyRuleCondition(ctx context.Context, condition *alerts.Logs
 		return types.ObjectNull(alertschema.LogsAnomalyConditionAttr()), nil
 	}
 
-	return types.ObjectValueFrom(ctx, alertschema.LogsAnomalyConditionAttr(), alerttypes.LogsAnomalyConditionModel{
+	logsAnomalyConditionModel := alerttypes.LogsAnomalyConditionModel{
 		MinimumThreshold: types.Float64PointerValue(condition.MinimumThreshold),
 		TimeWindow:       flattenLogsTimeWindow(condition.TimeWindow),
 		ConditionType:    types.StringValue(alerttypes.LogsAnomalyConditionMap[condition.GetConditionType()]),
-	})
+	}
+	if condition.ConditionType != nil {
+		logsAnomalyConditionModel.ConditionType = types.StringValue(alerttypes.LogsAnomalyConditionMap[condition.GetConditionType()])
+	} else {
+		logsAnomalyConditionModel.ConditionType = types.StringValue(alerttypes.LogsAnomalyConditionMap[alerts.LOGSANOMALYCONDITIONTYPE_LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED])
+	}
+	return types.ObjectValueFrom(ctx, alertschema.LogsAnomalyConditionAttr(), logsAnomalyConditionModel)
 }
 
 func flattenLogsRatioThreshold(ctx context.Context, ratioThreshold *alerts.LogsRatioThresholdType) (types.Object, diag.Diagnostics) {
@@ -4015,10 +4032,15 @@ func flattenTracingFilterType(tracingFilterType *alerts.TracingFilterType) *aler
 		return nil
 	}
 
-	return &alerttypes.TracingFilterTypeModel{
-		Values:    utils.StringSliceToTypeStringSet(tracingFilterType.GetValues()),
-		Operation: types.StringValue(alerttypes.TracingFilterOperationProtoToSchemaMap[tracingFilterType.GetOperation()]),
+	tracingFilterTypeModel := &alerttypes.TracingFilterTypeModel{
+		Values: utils.StringSliceToTypeStringSet(tracingFilterType.GetValues()),
 	}
+	if tracingFilterType.Operation != nil && *tracingFilterType.Operation != "" {
+		tracingFilterTypeModel.Operation = types.StringValue(alerttypes.TracingFilterOperationProtoToSchemaMap[*tracingFilterType.Operation])
+	} else {
+		tracingFilterTypeModel.Operation = types.StringValue(alerttypes.TracingFilterOperationProtoToSchemaMap[alerts.TRACINGFILTEROPERATIONTYPE_TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED])
+	}
+	return tracingFilterTypeModel
 }
 
 func flattenTracingSpansFields(ctx context.Context, spanFields []alerts.TracingSpanFieldsFilterType) (types.Set, diag.Diagnostics) {
@@ -4236,8 +4258,17 @@ func flattenFlowStageGroup(ctx context.Context, group *alerts.FlowStagesGroup) (
 
 	flowStageGroupModel := &alerttypes.FlowStagesGroupModel{
 		AlertDefs: alertDefs,
-		NextOp:    types.StringValue(alerttypes.FlowStagesGroupNextOpProtoToSchemaMap[group.GetNextOp()]),
-		AlertsOp:  types.StringValue(alerttypes.FlowStagesGroupAlertsOpProtoToSchemaMap[group.GetAlertsOp()]),
+	}
+
+	if group.NextOp != nil {
+		flowStageGroupModel.NextOp = types.StringValue(alerttypes.FlowStagesGroupNextOpProtoToSchemaMap[*group.NextOp])
+	} else {
+		flowStageGroupModel.NextOp = types.StringValue(alerttypes.FlowStagesGroupNextOpProtoToSchemaMap[alerts.NEXTOP_NEXT_OP_AND_OR_UNSPECIFIED])
+	}
+	if group.AlertsOp != nil {
+		flowStageGroupModel.AlertsOp = types.StringValue(alerttypes.FlowStagesGroupAlertsOpProtoToSchemaMap[*group.AlertsOp])
+	} else {
+		flowStageGroupModel.AlertsOp = types.StringValue(alerttypes.FlowStagesGroupAlertsOpProtoToSchemaMap[alerts.ALERTSOP_ALERTS_OP_AND_OR_UNSPECIFIED])
 	}
 	return flowStageGroupModel, nil
 }
