@@ -86,7 +86,6 @@ func (r *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	}
 	log.Printf("[INFO] Read new coralogix_api_key: %s", utils.FormatJSON(result))
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, result)
 	resp.Diagnostics.Append(diags...)
 

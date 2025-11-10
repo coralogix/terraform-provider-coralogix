@@ -163,7 +163,6 @@ func (r *TeamResource) Create(ctx context.Context, req resource.CreateRequest, r
 		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -228,7 +227,7 @@ func (r *TeamResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 		Retention:  types.Int64Value(int64(getTeamResp.GetRetention())),
 		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),
 	}
-	// Set state to fully populated data
+
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -281,7 +280,6 @@ func (r *TeamResource) Update(ctx context.Context, req resource.UpdateRequest, r
 		DailyQuota: types.Float64Value(math.Round(getTeamResp.GetDailyQuota()*1000) / 1000),
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }

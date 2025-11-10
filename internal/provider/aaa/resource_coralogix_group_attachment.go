@@ -116,7 +116,7 @@ func (r *GroupAttachmentResource) Create(ctx context.Context, req resource.Creat
 		GroupID: getGroupResp.ID,
 		UserIDs: userIds,
 	}
-	// Set state to fully populated data
+
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -241,7 +241,7 @@ func (r *GroupAttachmentResource) Update(ctx context.Context, req resource.Updat
 		GroupID: groupId,
 		UserIDs: plan.UserIDs,
 	}
-	// Set state to fully populated data
+
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }

@@ -404,7 +404,7 @@ func (r *AlertsSchedulerResource) Create(ctx context.Context, req resource.Creat
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	// Set state to fully populated data
+
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
@@ -1137,7 +1137,7 @@ func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadReq
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	// Set state to fully populated data
+
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -1202,7 +1202,6 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }

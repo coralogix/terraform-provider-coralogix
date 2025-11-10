@@ -224,7 +224,7 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	// Set state to fully populated data
+
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
@@ -448,7 +448,7 @@ func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.Update
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	// Set state to fully populated data
+
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }

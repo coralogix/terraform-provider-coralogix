@@ -111,7 +111,7 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 		resp.Diagnostics.Append(e...)
 		return
 	}
-	// Set state to fully populated data
+
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }

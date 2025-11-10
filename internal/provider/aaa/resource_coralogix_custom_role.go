@@ -139,7 +139,6 @@ func (c *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 
 	desiredState.ID = types.StringValue(strconv.FormatInt(int64(createCustomRoleResponse.Id), 10))
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, desiredState)
 	resp.Diagnostics.Append(diags...)
 }
@@ -240,7 +239,6 @@ func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 
 	log.Printf("[INFO] Custom Role %v updated", roleId)
 
-	// Set state to fully populated data
 	resp.Diagnostics.Append(resp.State.Set(ctx, desiredState)...)
 }
 

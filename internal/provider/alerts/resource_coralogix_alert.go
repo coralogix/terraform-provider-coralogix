@@ -178,7 +178,7 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 	}
 
 	log.Printf("[INFO] Created Alert: %s", utils.FormatJSON(alert))
-	// Set state to fully populated data
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
@@ -4462,7 +4462,6 @@ func (r *AlertResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	// Set state to fully populated data
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 

@@ -296,7 +296,6 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, key)
 	resp.Diagnostics.Append(diags...)
 }
@@ -319,7 +318,6 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 	log.Printf("[INFO] Read new coralogix_api_key: %s", utils.FormatJSON(key))
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, key)
 	resp.Diagnostics.Append(diags...)
 }
@@ -405,7 +403,6 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, key)
 	resp.Diagnostics.Append(diags...)
 

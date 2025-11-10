@@ -184,7 +184,6 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	plan = flattenAction(action)
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
@@ -291,7 +290,6 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	plan = flattenAction(getActionResp.GetAction())
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }

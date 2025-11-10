@@ -150,7 +150,6 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 }

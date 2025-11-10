@@ -179,7 +179,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 		resp.Diagnostics.Append(e...)
 		return
 	}
-	// Set state to fully populated data
+
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -413,7 +413,7 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 		resp.Diagnostics.Append(e...)
 		return
 	}
-	// Set state to fully populated data
+
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -485,7 +485,7 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 		resp.Diagnostics.Append(e...)
 		return
 	}
-	// Set state to fully populated data
+
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }

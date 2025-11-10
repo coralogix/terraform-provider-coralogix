@@ -166,7 +166,10 @@ func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRe
 	}
 
 	log.Printf("[INFO] Creating new coralogix_global_router: %s", utils.FormatJSON(rq))
-	result, httpResponse, err := r.client.GlobalRoutersServiceCreateGlobalRouter(ctx).CreateGlobalRouterRequest(rq).Execute()
+	result, httpResponse, err := r.client.
+		GlobalRoutersServiceCreateGlobalRouter(ctx).
+		CreateGlobalRouterRequest(rq).
+		Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating coralogix_global_router",
@@ -180,8 +183,6 @@ func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRe
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
@@ -268,7 +269,6 @@ func (r GlobalRouterResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }

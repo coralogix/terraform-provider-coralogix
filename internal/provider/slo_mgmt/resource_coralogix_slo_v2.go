@@ -397,7 +397,6 @@ func (r *SLOV2Resource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }

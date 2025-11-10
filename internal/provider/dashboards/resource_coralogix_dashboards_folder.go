@@ -147,7 +147,6 @@ func (r *DashboardsFolderResource) Create(ctx context.Context, req resource.Crea
 
 	plan = flattenDashboardsFolder(dashboardsFolder)
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
@@ -199,7 +198,6 @@ func (r *DashboardsFolderResource) Read(ctx context.Context, req resource.ReadRe
 
 	state = flattenDashboardsFolder(dashboardsFolder)
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -250,7 +248,6 @@ func (r *DashboardsFolderResource) Update(ctx context.Context, req resource.Upda
 
 	plan = flattenDashboardsFolder(dashboardsFolder)
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }

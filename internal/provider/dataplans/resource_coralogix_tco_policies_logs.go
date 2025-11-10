@@ -345,7 +345,6 @@ func (r *TCOPoliciesLogsResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	// Set state to fully populated data
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -419,7 +418,6 @@ func (r *TCOPoliciesLogsResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	// Set state to fully populated data
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -450,7 +448,6 @@ func (r *TCOPoliciesLogsResource) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	// Set state to fully populated data
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 

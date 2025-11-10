@@ -18,14 +18,16 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+
+	scopess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/scopes_service"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
@@ -37,7 +39,7 @@ func NewScopeDataSource() datasource.DataSource {
 }
 
 type ScopeDataSource struct {
-	client *cxsdk.ScopesClient
+	client *scopess.ScopesServiceAPIService
 }
 
 func (d *ScopeDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -72,28 +74,38 @@ func (d *ScopeDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest
 func (d *ScopeDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data *ScopeResourceModel
 	diags := req.Config.Get(ctx, &data)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	id := data.ID.ValueString()
+
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	getScopeReq := &cxsdk.GetTeamScopesByIDsRequest{
-		Ids: []string{data.ID.ValueString()},
-	}
-	log.Printf("[INFO] Reading Scopes: %s", protojson.Format(getScopeReq))
-	getScopeResp, err := d.client.Get(ctx, getScopeReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error reading Scope",
-			utils.FormatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
-		)
+	rq := d.client.
+		ScopesServiceGetTeamScopesByIds(ctx).Ids([]string{id})
+
+	log.Printf("[INFO] Reading coralogix_scope: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := rq.
+		Execute()
+
+	if err != nil && len(result.Scopes) == 0 {
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("coralogix_scope %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error reading coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
+		}
 		return
 	}
-	log.Printf("[INFO] Received Scope: %s", protojson.Format(getScopeResp))
-
-	data = &(flattenScope(getScopeResp)[0])
-	// Set state to fully populated data
-	diags = resp.State.Set(ctx, &data)
+	log.Printf("[INFO] Replaced new coralogix_scope: %s", utils.FormatJSON(result))
+	state := flattenScope(result.Scopes[0])
+	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }

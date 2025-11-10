@@ -28,6 +28,7 @@ import (
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 	webhhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
 	presets "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/presets_service"
+	scopess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/scopes_service"
 
 	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 )
@@ -41,7 +42,6 @@ type ClientSet struct {
 	webhooks          *webhhooks.OutgoingWebhooksServiceAPIService
 	slos              *slos.SlosServiceAPIService
 	legacySlos        *cxsdk.LegacySLOsClient
-	scopes            *cxsdk.ScopesClient
 	dashboards        *cxsdk.DashboardsClient
 	archiveLogs       *cxsdk.ArchiveLogsClient
 	archiveMetrics    *cxsdk.ArchiveMetricsClient
@@ -56,6 +56,7 @@ type ClientSet struct {
 	customRole          *cxsdk.RolesClient
 	events2Metrics      *cxsdk.Events2MetricsClient
 	groupGrpc           *cxsdk.GroupsClient
+	scopes              *scopess.ScopesServiceAPIService
 	connectors          *connectors.ConnectorsServiceAPIService
 	presets             *presets.PresetsServiceAPIService
 	globalRouters       *globalRouters.GlobalRoutersServiceAPIService
@@ -149,7 +150,7 @@ func (c *ClientSet) Users() *cxsdk.UsersClient {
 	return c.users
 }
 
-func (c *ClientSet) Scopes() *cxsdk.ScopesClient {
+func (c *ClientSet) Scopes() *scopess.ScopesServiceAPIService {
 	return c.scopes
 }
 
@@ -191,7 +192,6 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		alerts:              cxsdkOpenapi.NewAlertsClient(oasTfCPC),
 		dataSet:             cxsdk.NewDataSetClient(apiKeySdk),
 		legacySlos:          cxsdk.NewLegacySLOsClient(apiKeySdk),
-		scopes:              cxsdk.NewScopesClient(apiKeySdk),
 		dashboards:          cxsdk.NewDashboardsClient(apiKeySdk),
 		archiveLogs:         cxsdk.NewArchiveLogsClient(apiKeySdk),
 		archiveMetrics:      cxsdk.NewArchiveMetricsClient(apiKeySdk),
@@ -204,15 +204,16 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		customRole:          cxsdk.NewRolesClient(apiKeySdk),
 		events2Metrics:      cxsdk.NewEvents2MetricsClient(apiKeySdk),
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
+		alertScheduler:      cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
-		alertScheduler: cxsdk.NewAlertSchedulerClient(apiKeySdk),
-		presets:        cxsdkOpenapi.NewPresetsClient(oasTfCPC),
-		connectors:     cxsdkOpenapi.NewConnectorsClient(oasTfCPC),
-		globalRouters:  cxsdkOpenapi.NewGlobalRoutersClient(oasTfCPC),
-		integrations:   cxsdkOpenapi.NewIntegrationsClient(oasTfCPC),
-		slos:           cxsdkOpenapi.NewSLOsClient(oasTfCPC),
-		apikeys:        cxsdkOpenapi.NewAPIKeysClient(oasTfCPC),
-		webhooks:       cxsdkOpenapi.NewWebhooksClient(oasTfCPC),
+		scopes:        cxsdkOpenapi.NewScopesClient(oasTfCPC),
+		presets:       cxsdkOpenapi.NewPresetsClient(oasTfCPC),
+		connectors:    cxsdkOpenapi.NewConnectorsClient(oasTfCPC),
+		globalRouters: cxsdkOpenapi.NewGlobalRoutersClient(oasTfCPC),
+		integrations:  cxsdkOpenapi.NewIntegrationsClient(oasTfCPC),
+		slos:          cxsdkOpenapi.NewSLOsClient(oasTfCPC),
+		apikeys:       cxsdkOpenapi.NewAPIKeysClient(oasTfCPC),
+		webhooks:      cxsdkOpenapi.NewWebhooksClient(oasTfCPC),
 		// alertScheduler: cxsdkOpenapi.NewAlertSchedulerClient(oasTfCPC),
 		ipaccess: cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
 		teams:    cxsdk.NewTeamsClient(apiKeySdk),

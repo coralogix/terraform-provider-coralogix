@@ -240,7 +240,6 @@ func (r *ConnectorResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
@@ -329,7 +328,6 @@ func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
