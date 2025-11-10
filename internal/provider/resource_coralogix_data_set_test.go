@@ -152,13 +152,13 @@ func testAccCoralogixResourceDataSet(name, description, filePath string) string 
 func testAccCoralogixResourceDataSetWithUploadedFile(name, description, filePath string) string {
 	return fmt.Sprintf(
 		`resource "coralogix_data_set" test {
-  					name        = "%s"
-  					description = "%s"
-  					uploaded_file {
-						path = "%s"
-  					}
-			}
-			`, name, description, filePath)
+				name        = "%s"
+				description = "%s"
+				uploaded_file {
+					path = "%s"
+				}
+		}
+		`, name, description, filePath)
 }
 
 func testAccCheckDataSetDestroy(s *terraform.State) error {

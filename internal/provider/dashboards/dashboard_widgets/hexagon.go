@@ -37,12 +37,12 @@ import (
 
 var (
 	DashboardSchemaToProtoHexagonAggregation = map[string]cxsdk.HexagonMetricAggregation{
-		"unspecified": cxsdk.HexagonMetricAggregationUnspecified,
-		"last":        cxsdk.HexagonMetricAggregationLast,
-		"min":         cxsdk.HexagonMetricAggregationMin,
-		"max":         cxsdk.HexagonMetricAggregationMax,
-		"avg":         cxsdk.HexagonMetricAggregationAvg,
-		"sum":         cxsdk.HexagonMetricAggregationSum,
+		utils.UNSPECIFIED: cxsdk.HexagonMetricAggregationUnspecified,
+		"last":            cxsdk.HexagonMetricAggregationLast,
+		"min":             cxsdk.HexagonMetricAggregationMin,
+		"max":             cxsdk.HexagonMetricAggregationMax,
+		"avg":             cxsdk.HexagonMetricAggregationAvg,
+		"sum":             cxsdk.HexagonMetricAggregationSum,
 	}
 
 	DashboardProtoToSchemaHexagonMetricAggregation = utils.ReverseMap(DashboardSchemaToProtoHexagonAggregation)
@@ -109,7 +109,7 @@ func HexagonSchema() schema.Attribute {
 			"legend_by": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
-				Default:  stringdefault.StaticString("unspecified"),
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
 					stringvalidator.OneOf(DashboardValidLegendBys...),
 				},
@@ -126,7 +126,7 @@ func HexagonSchema() schema.Attribute {
 				Validators: []validator.String{
 					stringvalidator.OneOf(DashboardValidDataModeTypes...),
 				},
-				Default: stringdefault.StaticString("unspecified"),
+				Default: stringdefault.StaticString(utils.UNSPECIFIED),
 			},
 			"thresholds": schema.SetNestedAttribute{
 				Optional: true,
@@ -151,7 +151,7 @@ func HexagonSchema() schema.Attribute {
 				Validators: []validator.String{
 					stringvalidator.OneOf(DashboardValidThresholdTypes...),
 				},
-				Default:             stringdefault.StaticString("unspecified"),
+				Default:             stringdefault.StaticString(utils.UNSPECIFIED),
 				MarkdownDescription: fmt.Sprintf("The threshold type. Valid values are: %s.", strings.Join(DashboardValidThresholdTypes, ", ")),
 			},
 			"query": schema.SingleNestedAttribute{
@@ -189,7 +189,7 @@ func HexagonSchema() schema.Attribute {
 							"promql_query_type": schema.StringAttribute{
 								Optional: true,
 								Computed: true,
-								Default:  stringdefault.StaticString(UNSPECIFIED),
+								Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 								Validators: []validator.String{
 									stringvalidator.OneOf(DashboardValidPromQLQueryType...),
 								},
@@ -198,7 +198,7 @@ func HexagonSchema() schema.Attribute {
 							"aggregation": schema.StringAttribute{
 								Optional: true,
 								Computed: true,
-								Default:  stringdefault.StaticString("unspecified"),
+								Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 								Validators: []validator.String{
 									stringvalidator.OneOf(DashboardValidHexagonMetricAggregations...),
 								},
@@ -262,7 +262,7 @@ func HexagonSchemaV0() schema.Attribute {
 			"legend_by": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
-				Default:  stringdefault.StaticString("unspecified"),
+				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 				Validators: []validator.String{
 					stringvalidator.OneOf(DashboardValidLegendBys...),
 				},
@@ -279,7 +279,7 @@ func HexagonSchemaV0() schema.Attribute {
 				Validators: []validator.String{
 					stringvalidator.OneOf(DashboardValidDataModeTypes...),
 				},
-				Default: stringdefault.StaticString("unspecified"),
+				Default: stringdefault.StaticString(utils.UNSPECIFIED),
 			},
 			"thresholds": schema.SetNestedAttribute{
 				Optional: true,
@@ -304,7 +304,7 @@ func HexagonSchemaV0() schema.Attribute {
 				Validators: []validator.String{
 					stringvalidator.OneOf(DashboardValidThresholdTypes...),
 				},
-				Default:             stringdefault.StaticString("unspecified"),
+				Default:             stringdefault.StaticString(utils.UNSPECIFIED),
 				MarkdownDescription: fmt.Sprintf("The threshold type. Valid values are: %s.", strings.Join(DashboardValidThresholdTypes, ", ")),
 			},
 			"time_frame": TimeFrameSchema(),
@@ -343,13 +343,13 @@ func HexagonSchemaV0() schema.Attribute {
 							"promql_query_type": schema.StringAttribute{
 								Optional: true,
 								Computed: true,
-								Default:  stringdefault.StaticString(UNSPECIFIED),
+								Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 							},
 							"filters": MetricFiltersSchema(),
 							"aggregation": schema.StringAttribute{
 								Optional: true,
 								Computed: true,
-								Default:  stringdefault.StaticString("unspecified"),
+								Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 								Validators: []validator.String{
 									stringvalidator.OneOf(DashboardValidHexagonMetricAggregations...),
 								},

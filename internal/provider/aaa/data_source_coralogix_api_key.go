@@ -77,14 +77,14 @@ func (r *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	log.Printf("[INFO] Reading resource: %s", id)
+	log.Printf("[INFO] Reading coralogix_api_key: %s", id)
 
 	result, diags := getKeyInfo(ctx, r.client, &id, data.Value.ValueStringPointer())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Read new resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read new coralogix_api_key: %s", utils.FormatJSON(result))
 
 	// Set state to fully populated data
 	diags = resp.State.Set(ctx, result)

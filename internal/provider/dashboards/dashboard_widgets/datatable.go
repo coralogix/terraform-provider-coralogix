@@ -149,7 +149,7 @@ func DataTableSchema() schema.Attribute {
 							"promql_query_type": schema.StringAttribute{
 								Optional: true,
 								Computed: true,
-								Default:  stringdefault.StaticString(UNSPECIFIED),
+								Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 								Validators: []validator.String{
 									stringvalidator.OneOf(DashboardValidPromQLQueryType...),
 								},
@@ -231,7 +231,7 @@ func DataTableSchema() schema.Attribute {
 						MarkdownDescription: fmt.Sprintf("The order direction. Can be one of %q.", DashboardValidOrderDirections),
 						Optional:            true,
 						Computed:            true,
-						Default:             stringdefault.StaticString(UNSPECIFIED),
+						Default:             stringdefault.StaticString(utils.UNSPECIFIED),
 					},
 				},
 				Optional: true,
@@ -242,7 +242,7 @@ func DataTableSchema() schema.Attribute {
 				Validators: []validator.String{
 					stringvalidator.OneOf(DashboardValidDataModeTypes...),
 				},
-				Default:             stringdefault.StaticString(UNSPECIFIED),
+				Default:             stringdefault.StaticString(utils.UNSPECIFIED),
 				MarkdownDescription: fmt.Sprintf("The data mode type. Can be one of %q.", DashboardValidDataModeTypes),
 			},
 		},

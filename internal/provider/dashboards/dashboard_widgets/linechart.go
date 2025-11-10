@@ -120,7 +120,7 @@ func LineChartSchema() schema.Attribute {
 										"promql_query_type": schema.StringAttribute{
 											Optional: true,
 											Computed: true,
-											Default:  stringdefault.StaticString(UNSPECIFIED),
+											Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 										},
 										"time_frame": TimeFrameSchema(),
 									},
@@ -169,7 +169,7 @@ func LineChartSchema() schema.Attribute {
 							Validators: []validator.String{
 								stringvalidator.OneOf(DashboardValidScaleTypes...),
 							},
-							Default:             stringdefault.StaticString(UNSPECIFIED),
+							Default:             stringdefault.StaticString(utils.UNSPECIFIED),
 							MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(DashboardValidScaleTypes, ", ")),
 						},
 						"name": schema.StringAttribute{
@@ -213,7 +213,7 @@ func LineChartSchema() schema.Attribute {
 							Validators: []validator.String{
 								stringvalidator.OneOf(DashboardValidDataModeTypes...),
 							},
-							Default: stringdefault.StaticString(UNSPECIFIED),
+							Default: stringdefault.StaticString(utils.UNSPECIFIED),
 						},
 					},
 				},
@@ -588,7 +588,7 @@ func flattenLineChartQueryMetrics(ctx context.Context, metrics *cxsdk.LineChartM
 		Metrics: &QueryMetricsModel{
 			PromqlQuery:     utils.WrapperspbStringToTypeString(metrics.GetPromqlQuery().GetValue()),
 			Filters:         filters,
-			PromqlQueryType: types.StringValue(UNSPECIFIED),
+			PromqlQueryType: types.StringValue(utils.UNSPECIFIED),
 			TimeFrame:       timeFrame,
 		},
 	}, nil

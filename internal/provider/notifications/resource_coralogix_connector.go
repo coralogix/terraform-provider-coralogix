@@ -18,11 +18,14 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -34,26 +37,26 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var (
-	_                          resource.ResourceWithImportState = &ConnectorResource{}
-	connectorTypeSchemaToProto                                  = map[string]cxsdk.ConnectorType{
-		"unspecified":   cxsdk.ConnectorTypeUnSpecified,
-		"slack":         cxsdk.ConnectorTypeSlack,
-		"generic_https": cxsdk.ConnectorTypeGenericHTTPS,
-		"pagerduty":     cxsdk.ConnectorTypePagerDuty,
+	_                        resource.ResourceWithImportState = &ConnectorResource{}
+	connectorTypeSchemaToApi                                  = map[string]connectors.ConnectorType{
+		utils.UNSPECIFIED: connectors.CONNECTORTYPE_CONNECTOR_TYPE_UNSPECIFIED,
+		"slack":           connectors.CONNECTORTYPE_SLACK,
+		"generic_https":   connectors.CONNECTORTYPE_GENERIC_HTTPS,
+		"pagerduty":       connectors.CONNECTORTYPE_PAGERDUTY,
 	}
-	connectorTypeProtoToSchema                = utils.ReverseMap(connectorTypeSchemaToProto)
-	validConnectorTypesSchemaToProto          = utils.GetKeys(connectorTypeSchemaToProto)
-	notificationCenterEntityTypeSchemaToProto = map[string]cxsdk.NotificationsEntityType{
-		"unspecified": cxsdk.NotificationsEntityTypeUnspecified,
-		"alerts":      cxsdk.NotificationsEntityTypeAlerts,
+	connectorTypeApiToSchema       = utils.ReverseMap(connectorTypeSchemaToApi)
+	validConnectorTypesSchemaToApi = utils.GetKeys(connectorTypeSchemaToApi)
+	connectorEntityTypeSchemaToApi = map[string]connectors.NotificationCenterEntityType{
+		utils.UNSPECIFIED:    connectors.NOTIFICATIONCENTERENTITYTYPE_ENTITY_TYPE_UNSPECIFIED,
+		"alerts":             connectors.NOTIFICATIONCENTERENTITYTYPE_ALERTS,
+		"cases":              connectors.NOTIFICATIONCENTERENTITYTYPE_CASES,
+		"test_notifications": connectors.NOTIFICATIONCENTERENTITYTYPE_TEST_NOTIFICATIONS,
 	}
-	notificationCenterEntityTypeProtoToSchema       = utils.ReverseMap(notificationCenterEntityTypeSchemaToProto)
-	validNotificationCenterEntityTypesSchemaToProto = utils.GetKeys(notificationCenterEntityTypeSchemaToProto)
+	connectorNotificationCenterEntityTypeApiToSchema       = utils.ReverseMap(connectorEntityTypeSchemaToApi)
+	connectorValidNotificationCenterEntityTypesSchemaToApi = utils.GetKeys(connectorEntityTypeSchemaToApi)
 )
 
 func NewConnectorResource() resource.Resource {
@@ -61,7 +64,7 @@ func NewConnectorResource() resource.Resource {
 }
 
 type ConnectorResource struct {
-	client *cxsdk.NotificationsClient
+	client *connectors.ConnectorsServiceAPIService
 }
 
 type ConnectorResourceModel struct {
@@ -115,7 +118,7 @@ func (r *ConnectorResource) Configure(_ context.Context, req resource.ConfigureR
 		return
 	}
 
-	r.client = clientSet.GetNotifications()
+	r.client, _, _ = clientSet.GetNotifications()
 }
 
 func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -144,9 +147,9 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"type": schema.StringAttribute{
 				Required: true,
 				Validators: []validator.String{
-					stringvalidator.OneOf(validConnectorTypesSchemaToProto...),
+					stringvalidator.OneOf(validConnectorTypesSchemaToApi...),
 				},
-				MarkdownDescription: fmt.Sprintf("Connector type. Valid values are: %s", validConnectorTypesSchemaToProto),
+				MarkdownDescription: fmt.Sprintf("Connector type. Valid values are: %s", validConnectorTypesSchemaToApi),
 			},
 			"connector_config": schema.SingleNestedAttribute{
 				Optional: true,
@@ -173,9 +176,9 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 						"entity_type": schema.StringAttribute{
 							Required: true,
 							Validators: []validator.String{
-								stringvalidator.OneOf(validNotificationCenterEntityTypesSchemaToProto...),
+								stringvalidator.OneOf(connectorValidNotificationCenterEntityTypesSchemaToApi...),
 							},
-							Description: fmt.Sprintf("Entity type for the connector. Valid values are: %s", validNotificationCenterEntityTypesSchemaToProto),
+							Description: fmt.Sprintf("Entity type for the connector. Valid values are: %s", connectorValidNotificationCenterEntityTypesSchemaToApi),
 						},
 						"fields": schema.SetNestedAttribute{
 							Required: true,
@@ -194,7 +197,7 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				},
 			},
 		},
-		MarkdownDescription: "Coralogix Connector. **Note:** This resource is in alpha stage.",
+		MarkdownDescription: "Coralogix Connector. **Note:** This resource is in Beta stage.",
 	}
 }
 
@@ -209,31 +212,29 @@ func (r *ConnectorResource) Create(ctx context.Context, req resource.CreateReque
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	connector, diags := extractConnector(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	createConnectorRequest := &cxsdk.CreateConnectorRequest{
+	rq := connectors.CreateConnectorRequest{
 		Connector: connector,
 	}
+	log.Printf("[INFO] Creating new coralogix_connector: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := r.client.
+		ConnectorsServiceCreateConnector(ctx).
+		CreateConnectorRequest(rq).
+		Execute()
 
-	connectorStr := protojson.Format(createConnectorRequest)
-	log.Printf("[INFO] Creating new Connector: %s", connectorStr)
-	createResp, err := r.client.CreateConnector(ctx, createConnectorRequest)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err)
-		resp.Diagnostics.AddError("Error creating Connector",
-			//TODO: add the proper url
-			utils.FormatRpcErrors(err, "", connectorStr),
+		resp.Diagnostics.AddError("Error creating coralogix_connector",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	connector = createResp.GetConnector()
-	log.Printf("[INFO] Submitted new Connector: %s", protojson.Format(connector))
+	log.Printf("[INFO] Created new coralogix_connector: %s", utils.FormatJSON(result))
 
-	plan, diags = flattenConnector(ctx, connector)
+	plan, diags = flattenConnector(ctx, result.Connector)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -246,84 +247,83 @@ func (r *ConnectorResource) Create(ctx context.Context, req resource.CreateReque
 
 func (r *ConnectorResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state *ConnectorResourceModel
+
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	//Get refreshed Connector value from Coralogix
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Reading Connector: %s", id)
-	getConnectorReq := &cxsdk.GetConnectorRequest{Id: id}
-	getConnectorResp, err := r.client.GetConnector(ctx, getConnectorReq)
+	rq := r.client.ConnectorsServiceGetConnector(ctx, id)
+
+	log.Printf("[INFO] Reading coralogix_connector: %s", utils.FormatJSON(rq))
+
+	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Connector %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("coralogix_connector %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Connector",
-				utils.FormatRpcErrors(err, cxsdk.ConnectorsGetRPC, protojson.Format(getConnectorReq)))
+			resp.Diagnostics.AddError("Error reading coralogix_connector",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received Connector: %s", protojson.Format(getConnectorResp))
+	log.Printf("[INFO] Read coralogix_connector: %s", utils.FormatJSON(result))
 
-	state, diags = flattenConnector(ctx, getConnectorResp.GetConnector())
+	state, diags = flattenConnector(ctx, result.Connector)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	//
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)
 }
 
 func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Retrieve values from plan
 	var plan *ConnectorResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
+	id := plan.ID.ValueString()
 	connector, diags := extractConnector(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	connectorUpdateReq := &cxsdk.ReplaceConnectorRequest{
+	rq := connectors.ReplaceConnectorRequest{
 		Connector: connector,
 	}
-	log.Printf("[INFO] Updating Connector: %s", protojson.Format(connectorUpdateReq))
-	connectorUpdateResp, err := r.client.ReplaceConnector(ctx, connectorUpdateReq)
+
+	log.Printf("[INFO] Updating coralogix_connector: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := r.client.
+		ConnectorsServiceReplaceConnector(ctx).
+		ReplaceConnectorRequest(rq).
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Connector %q is in state, but no longer exists in Coralogix backend", *connectorUpdateReq.Connector.Id),
-				fmt.Sprintf("%s will be recreated when you apply", *connectorUpdateReq.Connector.Id),
+				fmt.Sprintf("coralogix_connector %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError(
-				"Error updating Connector",
-				//TODO: add the proper url
-				utils.FormatRpcErrors(err, "", protojson.Format(connectorUpdateResp)),
-			)
+			resp.Diagnostics.AddError("Error replacing coralogix_connector", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", nil))
 		}
 		return
 	}
-	log.Printf("[INFO] Submitted updated Connector: %s", protojson.Format(connectorUpdateReq))
+	log.Printf("[INFO] Replaced coralogix_connector: %s", utils.FormatJSON(result))
 
-	plan, diags = flattenConnector(ctx, connectorUpdateResp.GetConnector())
+	plan, diags = flattenConnector(ctx, result.Connector)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -341,22 +341,24 @@ func (r ConnectorResource) Delete(ctx context.Context, req resource.DeleteReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting Connector %s", id)
-	deleteReq := &cxsdk.DeleteConnectorRequest{Id: id}
-	if _, err := r.client.DeleteConnector(ctx, deleteReq); err != nil {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting Connector %s", id),
-			//TODO: add the proper url
-			utils.FormatRpcErrors(err, "", protojson.Format(deleteReq)),
+
+	log.Printf("[INFO] Deleting resource %s", id)
+
+	result, httpResponse, err := r.client.
+		ConnectorsServiceDeleteConnector(ctx, id).
+		Execute()
+
+	if err != nil {
+		resp.Diagnostics.AddError("Error deleting coralogix_connector",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Connector %s deleted", id)
+	log.Printf("[INFO] Deleted coralogix_connector: %s", utils.FormatJSON(result))
 }
 
-func extractConnector(ctx context.Context, plan *ConnectorResourceModel) (*cxsdk.Connector, diag.Diagnostics) {
+func extractConnector(ctx context.Context, plan *ConnectorResourceModel) (*connectors.Connector, diag.Diagnostics) {
 	connectorConfigs, diags := extractConnectorConfig(ctx, plan.ConnectorConfig)
 	if diags.HasError() {
 		return nil, diags
@@ -366,18 +368,18 @@ func extractConnector(ctx context.Context, plan *ConnectorResourceModel) (*cxsdk
 	if diags.HasError() {
 		return nil, diags
 	}
-
-	return &cxsdk.Connector{
+	ty := connectorTypeSchemaToApi[plan.Type.ValueString()]
+	return &connectors.Connector{
 		Id:              utils.TypeStringToStringPointer(plan.ID),
-		Name:            plan.Name.ValueString(),
-		Description:     plan.Description.ValueString(),
-		Type:            connectorTypeSchemaToProto[plan.Type.ValueString()],
+		Name:            plan.Name.ValueStringPointer(),
+		Description:     plan.Description.ValueStringPointer(),
+		Type:            &ty,
 		ConnectorConfig: connectorConfigs,
 		ConfigOverrides: configOverrides,
 	}, nil
 }
 
-func extractConnectorConfig(ctx context.Context, connectorConfig types.Object) (*cxsdk.ConnectorConfig, diag.Diagnostics) {
+func extractConnectorConfig(ctx context.Context, connectorConfig types.Object) (*connectors.ConnectorConfig, diag.Diagnostics) {
 	var connectorConfigModel ConnectorConfigModel
 	diags := connectorConfig.As(ctx, &connectorConfigModel, basetypes.ObjectAsOptions{})
 	if diags.HasError() {
@@ -389,16 +391,16 @@ func extractConnectorConfig(ctx context.Context, connectorConfig types.Object) (
 		return nil, diags
 	}
 
-	return &cxsdk.ConnectorConfig{
+	return &connectors.ConnectorConfig{
 		Fields: extractedConnectorConfigFields,
 	}, nil
 }
 
-func extractConnectorConfigFields(ctx context.Context, connectorConfigFields types.Set) ([]*cxsdk.ConnectorConfigField, diag.Diagnostics) {
+func extractConnectorConfigFields(ctx context.Context, connectorConfigFields types.Set) ([]connectors.NotificationCenterConnectorConfigField, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var connectorConfigFieldsObjects []types.Object
 	connectorConfigFields.ElementsAs(ctx, &connectorConfigFieldsObjects, true)
-	extractedConnectorConfigFields := make([]*cxsdk.ConnectorConfigField, 0, len(connectorConfigFieldsObjects))
+	extractedConnectorConfigFields := make([]connectors.NotificationCenterConnectorConfigField, 0, len(connectorConfigFieldsObjects))
 
 	for _, ccf := range connectorConfigFieldsObjects {
 		var connectorConfigFieldModel ConnectorConfigFieldModel
@@ -417,18 +419,18 @@ func extractConnectorConfigFields(ctx context.Context, connectorConfigFields typ
 	return extractedConnectorConfigFields, diags
 }
 
-func extractConnectorConfigField(connectorConfigField ConnectorConfigFieldModel) *cxsdk.ConnectorConfigField {
-	return &cxsdk.ConnectorConfigField{
-		FieldName: connectorConfigField.FieldName.ValueString(),
-		Value:     connectorConfigField.Value.ValueString(),
+func extractConnectorConfigField(connectorConfigField ConnectorConfigFieldModel) connectors.NotificationCenterConnectorConfigField {
+	return connectors.NotificationCenterConnectorConfigField{
+		FieldName: connectorConfigField.FieldName.ValueStringPointer(),
+		Value:     connectorConfigField.Value.ValueStringPointer(),
 	}
 }
 
-func extractConfigOverrides(ctx context.Context, overrides types.List) ([]*cxsdk.EntityTypeConfigOverrides, diag.Diagnostics) {
+func extractConfigOverrides(ctx context.Context, overrides types.List) ([]connectors.EntityTypeConfigOverrides, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var connectorOverridesObjects []types.Object
 	overrides.ElementsAs(ctx, &connectorOverridesObjects, true)
-	extractedConnectorOverrides := make([]*cxsdk.EntityTypeConfigOverrides, 0, len(connectorOverridesObjects))
+	extractedConnectorOverrides := make([]connectors.EntityTypeConfigOverrides, 0, len(connectorOverridesObjects))
 
 	for _, co := range connectorOverridesObjects {
 		var connectorOverrideModel ConfigOverrideModel
@@ -441,7 +443,7 @@ func extractConfigOverrides(ctx context.Context, overrides types.List) ([]*cxsdk
 			diags.Append(dg...)
 			continue
 		}
-		extractedConnectorOverrides = append(extractedConnectorOverrides, extractedConnectorOverride)
+		extractedConnectorOverrides = append(extractedConnectorOverrides, *extractedConnectorOverride)
 	}
 
 	if diags.HasError() {
@@ -451,23 +453,23 @@ func extractConfigOverrides(ctx context.Context, overrides types.List) ([]*cxsdk
 	return extractedConnectorOverrides, diags
 }
 
-func extractConnectorOverride(ctx context.Context, connectorOverrideModel ConfigOverrideModel) (*cxsdk.EntityTypeConfigOverrides, diag.Diagnostics) {
+func extractConnectorOverride(ctx context.Context, connectorOverrideModel ConfigOverrideModel) (*connectors.EntityTypeConfigOverrides, diag.Diagnostics) {
 	templatedConnectorConfigFields, diags := extractTemplatedConnectorConfigFields(ctx, connectorOverrideModel.Fields)
 	if diags.HasError() {
 		return nil, diags
 	}
-
-	return &cxsdk.EntityTypeConfigOverrides{
-		EntityType: notificationCenterEntityTypeSchemaToProto[connectorOverrideModel.EntityType.ValueString()],
+	entityType := connectorEntityTypeSchemaToApi[connectorOverrideModel.EntityType.ValueString()]
+	return &connectors.EntityTypeConfigOverrides{
+		EntityType: &entityType,
 		Fields:     templatedConnectorConfigFields,
 	}, nil
 }
 
-func extractTemplatedConnectorConfigFields(ctx context.Context, connectorConfigFields types.Set) ([]*cxsdk.TemplatedConnectorConfigField, diag.Diagnostics) {
+func extractTemplatedConnectorConfigFields(ctx context.Context, connectorConfigFields types.Set) ([]connectors.TemplatedConnectorConfigField, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var connectorConfigFieldsObjects []types.Object
 	connectorConfigFields.ElementsAs(ctx, &connectorConfigFieldsObjects, true)
-	extractedConnectorConfigFields := make([]*cxsdk.TemplatedConnectorConfigField, 0, len(connectorConfigFieldsObjects))
+	extractedConnectorConfigFields := make([]connectors.TemplatedConnectorConfigField, 0, len(connectorConfigFieldsObjects))
 
 	for _, ccf := range connectorConfigFieldsObjects {
 		var connectorConfigFieldModel TemplatedConnectorConfigFieldModel
@@ -476,7 +478,7 @@ func extractTemplatedConnectorConfigFields(ctx context.Context, connectorConfigF
 			continue
 		}
 		extractedConnectorConfigField := extractTemplatedConnectorConfigField(connectorConfigFieldModel)
-		extractedConnectorConfigFields = append(extractedConnectorConfigFields, extractedConnectorConfigField)
+		extractedConnectorConfigFields = append(extractedConnectorConfigFields, *extractedConnectorConfigField)
 	}
 
 	if diags.HasError() {
@@ -486,20 +488,20 @@ func extractTemplatedConnectorConfigFields(ctx context.Context, connectorConfigF
 	return extractedConnectorConfigFields, diags
 }
 
-func extractTemplatedConnectorConfigField(model TemplatedConnectorConfigFieldModel) *cxsdk.TemplatedConnectorConfigField {
-	return &cxsdk.TemplatedConnectorConfigField{
-		FieldName: model.FieldName.ValueString(),
-		Template:  model.Template.ValueString(),
+func extractTemplatedConnectorConfigField(model TemplatedConnectorConfigFieldModel) *connectors.TemplatedConnectorConfigField {
+	return &connectors.TemplatedConnectorConfigField{
+		FieldName: model.FieldName.ValueStringPointer(),
+		Template:  model.Template.ValueStringPointer(),
 	}
 }
 
-func flattenConnector(ctx context.Context, connector *cxsdk.Connector) (*ConnectorResourceModel, diag.Diagnostics) {
-	config, diags := flattenConnectorConfig(ctx, connector.GetConnectorConfig())
+func flattenConnector(ctx context.Context, connector *connectors.Connector) (*ConnectorResourceModel, diag.Diagnostics) {
+	config, diags := flattenConnectorConfig(ctx, *connector.ConnectorConfig)
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	overrides, diags := flattenConnectorOverrides(ctx, connector.GetConfigOverrides())
+	overrides, diags := flattenConnectorOverrides(ctx, connector.ConfigOverrides)
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -508,20 +510,20 @@ func flattenConnector(ctx context.Context, connector *cxsdk.Connector) (*Connect
 		ID:              types.StringValue(connector.GetId()),
 		Name:            types.StringValue(connector.GetName()),
 		Description:     types.StringValue(connector.GetDescription()),
-		Type:            types.StringValue(connectorTypeProtoToSchema[connector.GetType()]),
+		Type:            types.StringValue(connectorTypeApiToSchema[connector.GetType()]),
 		ConnectorConfig: config,
 		ConfigOverrides: overrides,
 	}, nil
 }
 
-func flattenConnectorOverrides(ctx context.Context, overrides []*cxsdk.EntityTypeConfigOverrides) (types.List, diag.Diagnostics) {
+func flattenConnectorOverrides(ctx context.Context, overrides []connectors.EntityTypeConfigOverrides) (types.List, diag.Diagnostics) {
 	if overrides == nil {
 		return types.ListNull(types.ObjectType{AttrTypes: connectorOverrideAttr()}), nil
 	}
 	var diags diag.Diagnostics
 	flattenedOverrides := make([]types.Object, 0, len(overrides))
 	for _, override := range overrides {
-		flattenedOverride, dg := flattenConnectorOverride(ctx, override)
+		flattenedOverride, dg := flattenConnectorOverride(ctx, &override)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -536,7 +538,7 @@ func flattenConnectorOverrides(ctx context.Context, overrides []*cxsdk.EntityTyp
 	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: connectorOverrideAttr()}, flattenedOverrides)
 }
 
-func flattenConnectorOverride(ctx context.Context, override *cxsdk.EntityTypeConfigOverrides) (types.Object, diag.Diagnostics) {
+func flattenConnectorOverride(ctx context.Context, override *connectors.EntityTypeConfigOverrides) (types.Object, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	overrideFields, dg := flattenTemplatedConnectorConfigFields(ctx, override.GetFields())
 	if dg.HasError() {
@@ -545,18 +547,18 @@ func flattenConnectorOverride(ctx context.Context, override *cxsdk.EntityTypeCon
 	}
 
 	connectorOverrideModel := ConfigOverrideModel{
-		EntityType: types.StringValue(notificationCenterEntityTypeProtoToSchema[override.GetEntityType()]),
+		EntityType: types.StringValue(connectorNotificationCenterEntityTypeApiToSchema[override.GetEntityType()]),
 		Fields:     overrideFields,
 	}
 
 	return types.ObjectValueFrom(ctx, connectorOverrideAttr(), connectorOverrideModel)
 }
 
-func flattenTemplatedConnectorConfigFields(ctx context.Context, fields []*cxsdk.TemplatedConnectorConfigField) (types.Set, diag.Diagnostics) {
+func flattenTemplatedConnectorConfigFields(ctx context.Context, fields []connectors.TemplatedConnectorConfigField) (types.Set, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	flattenedFields := make([]types.Object, 0, len(fields))
 	for _, field := range fields {
-		flattenedField, dg := flattenTemplatedConnectorConfigField(ctx, field)
+		flattenedField, dg := flattenTemplatedConnectorConfigField(ctx, &field)
 		if dg.HasError() {
 			diags.Append(dg...)
 			continue
@@ -571,7 +573,7 @@ func flattenTemplatedConnectorConfigFields(ctx context.Context, fields []*cxsdk.
 	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: templatedConnectorConfigFieldAttr()}, flattenedFields)
 }
 
-func flattenTemplatedConnectorConfigField(ctx context.Context, field *cxsdk.TemplatedConnectorConfigField) (types.Object, diag.Diagnostics) {
+func flattenTemplatedConnectorConfigField(ctx context.Context, field *connectors.TemplatedConnectorConfigField) (types.Object, diag.Diagnostics) {
 	fieldModel := TemplatedConnectorConfigFieldModel{
 		FieldName: types.StringValue(field.GetFieldName()),
 		Template:  types.StringValue(field.GetTemplate()),
@@ -580,9 +582,9 @@ func flattenTemplatedConnectorConfigField(ctx context.Context, field *cxsdk.Temp
 	return types.ObjectValueFrom(ctx, templatedConnectorConfigFieldAttr(), fieldModel)
 }
 
-func flattenConnectorConfig(ctx context.Context, connectorConfig *cxsdk.ConnectorConfig) (types.Object, diag.Diagnostics) {
+func flattenConnectorConfig(ctx context.Context, connectorConfig connectors.ConnectorConfig) (types.Object, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	configFields, dg := flattenConnectorConfigFields(ctx, connectorConfig.GetFields())
+	configFields, dg := flattenConnectorConfigFields(ctx, connectorConfig.Fields)
 	if dg.HasError() {
 		diags.Append(dg...)
 		return types.ObjectNull(connectorConfigAttr()), diags
@@ -591,6 +593,24 @@ func flattenConnectorConfig(ctx context.Context, connectorConfig *cxsdk.Connecto
 	connectorConfigModel := ConnectorConfigModel{ConnectorConfigFields: configFields}
 
 	return types.ObjectValueFrom(ctx, connectorConfigAttr(), connectorConfigModel)
+}
+
+func flattenConnectorConfigFields(ctx context.Context, configFields []connectors.NotificationCenterConnectorConfigField) (types.Set, diag.Diagnostics) {
+	var diags diag.Diagnostics
+	if configFields == nil {
+		return types.SetNull(types.ObjectType{AttrTypes: connectorConfigFieldAttrs()}), diags
+	}
+
+	configFieldsList := make([]ConnectorConfigFieldModel, 0, len(configFields))
+	for _, field := range configFields {
+		fieldModel := ConnectorConfigFieldModel{
+			FieldName: types.StringValue(field.GetFieldName()),
+			Value:     types.StringValue(field.GetValue()),
+		}
+		configFieldsList = append(configFieldsList, fieldModel)
+	}
+
+	return types.SetValueFrom(ctx, types.ObjectType{AttrTypes: connectorConfigFieldAttrs()}, configFieldsList)
 }
 
 func connectorConfigAttr() map[string]attr.Type {

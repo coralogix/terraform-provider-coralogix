@@ -1809,10 +1809,14 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) st
   }
 
   resource "coralogix_global_router" "example" {
-    name        = "global router example"
+    name        = "%[1]v"
     description = "global router example"
+    matching_routing_labels = {
+      "routing.environment" = "%[1]v"
+    }
     rules       = [
       {
+        entity_type = "alerts"
         name = "rule-name"
         condition = "alertDef.priority == \"P1\""
         targets = [
@@ -1832,8 +1836,9 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) st
   priority    = "P3"
 
   labels = {
-    alert_type        = "security"
-    security_severity = "low"
+    "alert_type"        = "security"
+    "security_severity" = "low"
+    "routing.environment" = "production"
   }
 
   notification_group = {
@@ -1950,20 +1955,22 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter(name string) string {
   }
 
   resource "coralogix_global_router" "example" {
-    name        = "global router example"
+    id          = "%[1]v"
+    name        = "%[1]v"
     description = "global router example"
-    rules       = [
-      {
+    matching_routing_labels = {
+      "routing.environment" = "%[1]v"
+    }
+
+    rules       = [{
+        entity_type = "alerts"
         name = "rule-name"
         condition = "alertDef.priority == \"P1\""
-        targets = [
-          {
+        targets = [{
             connector_id   = coralogix_connector.slack_example.id
             preset_id      = coralogix_preset.slack_example.id
-          }
-        ]
-      }
-    ]
+        }]
+    }]
   }
 
   resource "coralogix_alert" "test" {

@@ -1073,17 +1073,21 @@ Fix:
 
 Re-release
 
-# Release 2.3.0
+# Release 3.0.0
 
-Internal:
+**Note** From now on, the provider will follow actual semver. 
+
+**Internal:**
 * Restructuring
+* Some resources use a new backend for sending API requests
 * Test race conditions fixed
+* A range of smaller fixes across a variety of resources
   
-## resource/coralogix_ip_access & data_source/coralogix_ip_access
+## resource/coralogix_ip_access 
+## data_source/coralogix_ip_access
 
 Feat:
 * Added!
-
 
 ## resource/coralogix_dashboard
 
@@ -1092,11 +1096,31 @@ Fix:
 
 ## resource/coralogix_global_router
 
+### Breaking:
+* If no ID is provided, the router is now a custom router
+
+Feat:
+* Custom routers are now supported. 
+
+## resource/coralogix_team
+## data_source/coralogix_team
+
+- Welcome back!
+
+**Note:** Terraform destroy & apply with the same team resource may lead to an error. Contact support if that happens. 
+
+## resource/coralogix_slo_v2
+
 Fix:
-* entity_type is now optional & ignored when sending
+
+- A bug prevented changes to `groups.labels` from the server to be correctly recognized
+
+### Breaking:
+
+- groups.labels is now read-only
 
 
-# Release 3.0.0
+# Release 4.0.0
 
 ## resource/coralogix_alert
 Remove:  remove support for `notification_group.destinations`

@@ -24,6 +24,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	webhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -761,36 +762,36 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	rq := webhooks.CreateOutgoingWebhookRequest{
-		Data: *data,
+		Data: data,
 	}
-	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
-	createResult, _, err := r.client.
+	log.Printf("[INFO] Creating new coralogix_webhook: %s", utils.FormatJSON(rq))
+	createResult, httpResponse, err := r.client.
 		OutgoingWebhooksServiceCreateOutgoingWebhook(ctx).
 		CreateOutgoingWebhookRequest(rq).
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating resource",
-			utils.FormatOpenAPIErrors(err, "Create", rq),
+		resp.Diagnostics.AddError("Error creating coralogix_webhook",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	log.Printf("[INFO] Created new resource: %s", utils.FormatJSON(createResult))
+	log.Printf("[INFO] Created new coralogix_webhook: %s", utils.FormatJSON(createResult))
 
-	readRq := r.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, createResult.Id)
+	readRq := r.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, *createResult.Id)
 
-	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading new coralogix_webhook: %s", utils.FormatJSON(rq))
 
 	result, _, err := readRq.Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading resource",
-			utils.FormatOpenAPIErrors(err, "Read", nil),
+		resp.Diagnostics.AddError("Error reading coralogix_webhook",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_webhook: %s", utils.FormatJSON(result))
 
-	plan, diags = flattenWebhook(ctx, &result.Webhook)
+	plan, diags = flattenWebhook(ctx, result.Webhook)
 
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -813,26 +814,26 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 	id := state.ID.ValueString()
 	rq := r.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, id)
 
-	log.Printf("[INFO] Reading resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Reading coralogix_webhook: %s", utils.FormatJSON(rq))
 
-	result, readResp, err := rq.Execute()
+	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		if readResp.StatusCode == http.StatusNotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error reading resource",
-				utils.FormatOpenAPIErrors(err, "Read", nil),
+			resp.Diagnostics.AddError("Error reading coralogix_webhook",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_webhook: %s", utils.FormatJSON(result))
 
-	state, diags = flattenWebhook(ctx, &result.Webhook)
+	state, diags = flattenWebhook(ctx, result.Webhook)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -856,10 +857,10 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 	data, diags := expandWebhookType(ctx, plan)
 
 	rq := webhooks.UpdateOutgoingWebhookRequest{
-		Data: *data,
-		Id:   id,
+		Data: data,
+		Id:   &id,
 	}
-	log.Printf("[INFO] Updating resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Updating coralogix_webhook: %s", utils.FormatJSON(rq))
 	_, httpResponse, err := r.client.
 		OutgoingWebhooksServiceUpdateOutgoingWebhook(ctx).
 		UpdateOutgoingWebhookRequest(rq).
@@ -873,20 +874,20 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error updating resource", utils.FormatOpenAPIErrors(err, "Update", nil))
+			resp.Diagnostics.AddError("Error updating coralogix_webhook", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
 		}
 		return
 	}
 
-	result, _, err := r.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, id).Execute()
+	result, httpResponse, err := r.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, id).Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading resource, state not updated", utils.FormatOpenAPIErrors(err, "Update", nil))
+		resp.Diagnostics.AddError("Error reading coralogix_webhook, state not updated", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
 		return
 	}
 
-	log.Printf("[INFO] Updated resource: %s", utils.FormatJSON(result))
-	plan, diags = flattenWebhook(ctx, &result.Webhook)
+	log.Printf("[INFO] Updated coralogix_webhook: %s", utils.FormatJSON(result))
+	plan, diags = flattenWebhook(ctx, result.Webhook)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -906,19 +907,19 @@ func (r WebhookResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 	id := state.ID.ValueString()
 
-	log.Printf("[INFO] Deleting resource %s", id)
+	log.Printf("[INFO] Deleting coralogix_webhook %s", id)
 
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		OutgoingWebhooksServiceDeleteOutgoingWebhook(ctx, id).
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting resource",
-			utils.FormatOpenAPIErrors(err, "Delete", nil),
+		resp.Diagnostics.AddError("Error deleting coralogix_webhook",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Deleted coralogix_webhook: %s", utils.FormatJSON(result))
 }
 
 func expandWebhookType(ctx context.Context, plan *WebhookResourceModel) (*webhooks.OutgoingWebhookInputData, diag.Diagnostics) {
@@ -926,34 +927,34 @@ func expandWebhookType(ctx context.Context, plan *WebhookResourceModel) (*webhoo
 	data := webhooks.OutgoingWebhookInputData{}
 	if plan.CustomWebhook != nil {
 		data.OutgoingWebhookInputDataGenericWebhook, diags = expandGenericWebhook(ctx, plan.CustomWebhook)
-		data.OutgoingWebhookInputDataGenericWebhook.Name = plan.Name.ValueString()
+		data.OutgoingWebhookInputDataGenericWebhook.Name = plan.Name.ValueStringPointer()
 	} else if plan.Slack != nil {
 		data.OutgoingWebhookInputDataSlack, diags = expandSlack(ctx, plan.Slack)
-		data.OutgoingWebhookInputDataSlack.Name = plan.Name.ValueString()
+		data.OutgoingWebhookInputDataSlack.Name = plan.Name.ValueStringPointer()
 	} else if plan.PagerDuty != nil {
 		data.OutgoingWebhookInputDataPagerDuty = expandPagerDuty(plan.PagerDuty)
-		data.OutgoingWebhookInputDataPagerDuty.Name = plan.Name.ValueString()
+		data.OutgoingWebhookInputDataPagerDuty.Name = plan.Name.ValueStringPointer()
 	} else if plan.SendLog != nil {
 		data.OutgoingWebhookInputDataSendLog = expandSendLog(plan.SendLog)
-		data.OutgoingWebhookInputDataSendLog.Name = plan.Name.ValueString()
+		data.OutgoingWebhookInputDataSendLog.Name = plan.Name.ValueStringPointer()
 	} else if plan.EmailGroup != nil {
 		data.OutgoingWebhookInputDataEmailGroup, diags = expandEmailGroup(ctx, plan.EmailGroup)
-		data.OutgoingWebhookInputDataEmailGroup.Name = plan.Name.ValueString()
+		data.OutgoingWebhookInputDataEmailGroup.Name = plan.Name.ValueStringPointer()
 	} else if plan.MsTeamsWorkflow != nil {
 		data.OutgoingWebhookInputDataMsTeamsWorkflow = expandMicrosoftTeamsWorkflow(plan.MsTeamsWorkflow)
-		data.OutgoingWebhookInputDataMsTeamsWorkflow.Name = plan.Name.ValueString()
+		data.OutgoingWebhookInputDataMsTeamsWorkflow.Name = plan.Name.ValueStringPointer()
 	} else if plan.Jira != nil {
 		data.OutgoingWebhookInputDataJira = expandJira(plan.Jira)
-		data.OutgoingWebhookInputDataJira.Name = plan.Name.ValueString()
+		data.OutgoingWebhookInputDataJira.Name = plan.Name.ValueStringPointer()
 	} else if plan.Opsgenie != nil {
 		data.OutgoingWebhookInputDataOpsgenie = expandOpsgenie(plan.Opsgenie)
-		data.OutgoingWebhookInputDataOpsgenie.Name = plan.Name.ValueString()
+		data.OutgoingWebhookInputDataOpsgenie.Name = plan.Name.ValueStringPointer()
 	} else if plan.Demisto != nil {
 		data.OutgoingWebhookInputDataDemisto = expandDemisto(plan.Demisto)
-		data.OutgoingWebhookInputDataDemisto.Name = plan.Name.ValueString()
+		data.OutgoingWebhookInputDataDemisto.Name = plan.Name.ValueStringPointer()
 	} else if plan.EventBridge != nil {
 		data.OutgoingWebhookInputDataAwsEventBridge = expandEventBridge(plan.EventBridge)
-		data.OutgoingWebhookInputDataAwsEventBridge.Name = plan.Name.ValueString()
+		data.OutgoingWebhookInputDataAwsEventBridge.Name = plan.Name.ValueStringPointer()
 	} else {
 		diags.AddError("Error expanding webhook type", "Unknown webhook type")
 	}
@@ -966,22 +967,25 @@ func expandWebhookType(ctx context.Context, plan *WebhookResourceModel) (*webhoo
 }
 
 func expandEventBridge(bridge *EventBridgeModel) *webhooks.OutgoingWebhookInputDataAwsEventBridge {
+	ty := webhooks.WEBHOOKTYPE_AWS_EVENT_BRIDGE
 	return &webhooks.OutgoingWebhookInputDataAwsEventBridge{
-		Type: webhooks.WEBHOOKTYPE_AWS_EVENT_BRIDGE,
+		Type: &ty,
 		AwsEventBridge: &webhooks.AwsEventBridgeConfig{
-			EventBusArn: bridge.EventBusARN.ValueString(),
-			Detail:      bridge.Detail.ValueString(),
-			DetailType:  bridge.DetailType.ValueString(),
-			Source:      bridge.Source.ValueString(),
-			RoleName:    bridge.RoleName.ValueString(),
+			EventBusArn: bridge.EventBusARN.ValueStringPointer(),
+			Detail:      bridge.Detail.ValueStringPointer(),
+			DetailType:  bridge.DetailType.ValueStringPointer(),
+			Source:      bridge.Source.ValueStringPointer(),
+			RoleName:    bridge.RoleName.ValueStringPointer(),
 		},
 	}
 }
 
 func expandMicrosoftTeamsWorkflow(microsoftTeams *MsTeamsWorkflowModel) *webhooks.OutgoingWebhookInputDataMsTeamsWorkflow {
+	ty := webhooks.WEBHOOKTYPE_MS_TEAMS_WORKFLOW
 	return &webhooks.OutgoingWebhookInputDataMsTeamsWorkflow{
-		Type: webhooks.WEBHOOKTYPE_MS_TEAMS_WORKFLOW,
-		Url:  utils.StringNullIfUnknown(microsoftTeams.URL),
+		MsTeamsWorkflow: map[string]any{},
+		Type:            &ty,
+		Url:             utils.StringNullIfUnknown(microsoftTeams.URL),
 	}
 }
 
@@ -1000,14 +1004,14 @@ func expandSlack(ctx context.Context, slack *SlackModel) (*webhooks.OutgoingWebh
 	if planUrl := slack.URL; !(planUrl.IsNull() || planUrl.IsUnknown()) {
 		url = planUrl.ValueStringPointer()
 	}
-
+	ty := webhooks.WEBHOOKTYPE_SLACK
 	return &webhooks.OutgoingWebhookInputDataSlack{
 		Url: url,
 		Slack: &webhooks.SlackConfig{
 			Digests:     digests,
 			Attachments: attachments,
 		},
-		Type: webhooks.WEBHOOKTYPE_SLACK,
+		Type: &ty,
 	}, nil
 }
 
@@ -1025,8 +1029,9 @@ func expandSlackAttachments(ctx context.Context, attachmentsList types.List) ([]
 			diags.Append(dg...)
 			continue
 		}
+		ty := webhooksProtoToSchemaSlackAttachmentType[attachmentModel.Type.ValueString()]
 		expandedAttachments = append(expandedAttachments, webhooks.Attachment{
-			Type:     webhooksProtoToSchemaSlackAttachmentType[attachmentModel.Type.ValueString()],
+			Type:     &ty,
 			IsActive: attachmentModel.Active.ValueBoolPointer(),
 		})
 	}
@@ -1057,7 +1062,7 @@ func expandDigests(ctx context.Context, digestsSet types.Set) ([]webhooks.Digest
 func expandDigest(digest webhooks.DigestType) webhooks.Digest {
 	isActive := true
 	return webhooks.Digest{
-		Type:     digest,
+		Type:     &digest,
 		IsActive: &isActive,
 	}
 }
@@ -1072,13 +1077,15 @@ func expandGenericWebhook(ctx context.Context, genericWebhook *CustomWebhookMode
 	if planUrl := genericWebhook.URL; !(planUrl.IsNull() || planUrl.IsUnknown()) {
 		url = planUrl.ValueStringPointer()
 	}
-
+	method := webhooksSchemaToProtoMethod[genericWebhook.Method.ValueString()]
+	uuid := utils.UuidCreateIfNull(genericWebhook.UUID)
+	ty := webhooks.WEBHOOKTYPE_GENERIC
 	return &webhooks.OutgoingWebhookInputDataGenericWebhook{
+		Type: &ty,
 		Url:  url,
-		Type: webhooks.WEBHOOKTYPE_GENERIC,
 		GenericWebhook: &webhooks.GenericWebhookConfig{
-			Uuid:    genericWebhook.UUID.ValueString(),
-			Method:  webhooksSchemaToProtoMethod[genericWebhook.Method.ValueString()],
+			Uuid:    &uuid,
+			Method:  &method,
 			Headers: &headers,
 			Payload: genericWebhook.Payload.ValueStringPointer(),
 		},
@@ -1086,22 +1093,26 @@ func expandGenericWebhook(ctx context.Context, genericWebhook *CustomWebhookMode
 }
 
 func expandPagerDuty(pagerDuty *PagerDutyModel) *webhooks.OutgoingWebhookInputDataPagerDuty {
+	ty := webhooks.WEBHOOKTYPE_PAGERDUTY
 	return &webhooks.OutgoingWebhookInputDataPagerDuty{
-		Type: webhooks.WEBHOOKTYPE_PAGERDUTY,
+		Type: &ty,
 		PagerDuty: &webhooks.PagerDutyConfig{
-			ServiceKey: pagerDuty.ServiceKey.ValueString(),
+			ServiceKey: pagerDuty.ServiceKey.ValueStringPointer(),
 		},
 	}
 }
 
 func expandSendLog(sendLog *SendLogModel) *webhooks.OutgoingWebhookInputDataSendLog {
+	uuid := utils.UuidCreateIfNull(sendLog.UUID)
+
+	ty := webhooks.WEBHOOKTYPE_SEND_LOG
 	return &webhooks.OutgoingWebhookInputDataSendLog{
+		Type: &ty,
 		SendLog: &webhooks.SendLogConfig{
-			Payload: sendLog.Payload.ValueString(),
-			Uuid:    utils.UuidCreateIfNull(sendLog.UUID),
+			Payload: sendLog.Payload.ValueStringPointer(),
+			Uuid:    &uuid,
 		},
-		Type: webhooks.WEBHOOKTYPE_SEND_LOG,
-		Url:  sendLog.URL.ValueStringPointer(),
+		Url: sendLog.URL.ValueStringPointer(),
 	}
 }
 
@@ -1111,8 +1122,9 @@ func expandEmailGroup(ctx context.Context, emailGroup *EmailGroupModel) (*webhoo
 		return nil, diags
 	}
 
+	ty := webhooks.WEBHOOKTYPE_EMAIL_GROUP
 	return &webhooks.OutgoingWebhookInputDataEmailGroup{
-		Type: webhooks.WEBHOOKTYPE_EMAIL_GROUP,
+		Type: &ty,
 		EmailGroup: &webhooks.EmailGroupConfig{
 			EmailAddresses: emailAddresses,
 		},
@@ -1120,29 +1132,35 @@ func expandEmailGroup(ctx context.Context, emailGroup *EmailGroupModel) (*webhoo
 }
 
 func expandJira(jira *JiraModel) *webhooks.OutgoingWebhookInputDataJira {
+	ty := webhooks.WEBHOOKTYPE_JIRA
 	return &webhooks.OutgoingWebhookInputDataJira{
+		Type: &ty,
 		Url:  utils.StringNullIfUnknown(jira.URL),
-		Type: webhooks.WEBHOOKTYPE_JIRA,
 		Jira: &webhooks.JiraConfig{
-			ApiToken:   jira.ApiKey.ValueString(),
-			Email:      jira.Email.ValueString(),
-			ProjectKey: jira.ProjectID.ValueString(),
+			ApiToken:   jira.ApiKey.ValueStringPointer(),
+			Email:      jira.Email.ValueStringPointer(),
+			ProjectKey: jira.ProjectID.ValueStringPointer(),
 		},
 	}
 }
 
 func expandOpsgenie(opsgenie *OpsgenieModel) *webhooks.OutgoingWebhookInputDataOpsgenie {
+	ty := webhooks.WEBHOOKTYPE_OPSGENIE
 	return &webhooks.OutgoingWebhookInputDataOpsgenie{
-		Type: webhooks.WEBHOOKTYPE_OPSGENIE,
-		Url:  utils.StringNullIfUnknown(opsgenie.URL)}
+		Opsgenie: map[string]any{},
+		Type:     &ty,
+		Url:      utils.StringNullIfUnknown(opsgenie.URL)}
 }
 
 func expandDemisto(demisto *DemistoModel) *webhooks.OutgoingWebhookInputDataDemisto {
+	uuid := utils.UuidCreateIfNull(demisto.UUID)
+	ty := webhooks.WEBHOOKTYPE_DEMISTO
 	return &webhooks.OutgoingWebhookInputDataDemisto{
-		Url: utils.StringNullIfUnknown(demisto.URL),
+		Type: &ty,
+		Url:  utils.StringNullIfUnknown(demisto.URL),
 		Demisto: &webhooks.DemistoConfig{
-			Uuid:    utils.UuidCreateIfNull(demisto.UUID),
-			Payload: demisto.Payload.ValueString(),
+			Uuid:    &uuid,
+			Payload: demisto.Payload.ValueStringPointer(),
 		},
 	}
 }
@@ -1183,12 +1201,12 @@ func flattenWebhook(ctx context.Context, webhook *webhooks.OutgoingWebhook) (*We
 func flattenGenericWebhook(ctx context.Context, genericWebhook *webhooks.OutgoingWebhookGenericWebhook) (*CustomWebhookModel, types.String, types.String, types.String, diag.Diagnostics) {
 	headers, diags := types.MapValueFrom(ctx, types.StringType, genericWebhook.GenericWebhook.Headers)
 	return &CustomWebhookModel{
-		UUID:    types.StringValue(genericWebhook.GenericWebhook.Uuid),
-		Method:  types.StringValue(webhooksProtoToSchemaMethod[genericWebhook.GenericWebhook.Method]),
+		UUID:    types.StringPointerValue(genericWebhook.GenericWebhook.Uuid),
+		Method:  types.StringValue(webhooksProtoToSchemaMethod[*genericWebhook.GenericWebhook.Method]),
 		Headers: headers,
 		Payload: types.StringPointerValue(genericWebhook.GenericWebhook.Payload),
 		URL:     types.StringPointerValue(genericWebhook.Url),
-	}, types.StringValue(genericWebhook.Id), utils.Int64ToStringValue(genericWebhook.ExternalId), types.StringValue(genericWebhook.Name), diags
+	}, types.StringPointerValue(genericWebhook.Id), utils.Int64ToStringValue(genericWebhook.ExternalId), types.StringPointerValue(genericWebhook.Name), diags
 }
 
 func flattenSlack(ctx context.Context, slack *webhooks.OutgoingWebhookSlack) (*SlackModel, types.String, types.String, types.String, diag.Diagnostics) {
@@ -1206,7 +1224,7 @@ func flattenSlack(ctx context.Context, slack *webhooks.OutgoingWebhookSlack) (*S
 		NotifyAbout: digests,
 		URL:         types.StringPointerValue(slack.Url),
 		Attachments: attachments,
-	}, types.StringValue(slack.Id), utils.Int64ToStringValue(slack.ExternalId), types.StringValue(slack.Name), nil
+	}, types.StringPointerValue(slack.Id), utils.Int64ToStringValue(slack.ExternalId), types.StringPointerValue(slack.Name), nil
 }
 
 func flattenSlackAttachments(ctx context.Context, attachments []webhooks.Attachment) (types.List, diag.Diagnostics) {
@@ -1253,66 +1271,66 @@ func flattenDigest(digest *webhooks.Digest) types.String {
 
 func flattenPagerDuty(pagerDuty *webhooks.OutgoingWebhookPagerDuty) (*PagerDutyModel, types.String, types.String, types.String) {
 	return &PagerDutyModel{
-		ServiceKey: types.StringValue(pagerDuty.PagerDuty.ServiceKey),
-	}, types.StringValue(pagerDuty.Id), utils.Int64ToStringValue(pagerDuty.ExternalId), types.StringValue(pagerDuty.Name)
+		ServiceKey: types.StringPointerValue(pagerDuty.PagerDuty.ServiceKey),
+	}, types.StringPointerValue(pagerDuty.Id), utils.Int64ToStringValue(pagerDuty.ExternalId), types.StringPointerValue(pagerDuty.Name)
 }
 
 func flattenSendLog(sendLog *webhooks.OutgoingWebhookSendLog) (*SendLogModel, types.String, types.String, types.String) {
 	return &SendLogModel{
-		UUID:    types.StringValue(sendLog.SendLog.Uuid),
-		Payload: types.StringValue(sendLog.SendLog.Payload),
+		UUID:    types.StringPointerValue(sendLog.SendLog.Uuid),
+		Payload: types.StringPointerValue(sendLog.SendLog.Payload),
 		URL:     types.StringPointerValue(sendLog.Url),
-	}, types.StringValue(sendLog.Id), utils.Int64ToStringValue(sendLog.ExternalId), types.StringValue(sendLog.Name)
+	}, types.StringPointerValue(sendLog.Id), utils.Int64ToStringValue(sendLog.ExternalId), types.StringPointerValue(sendLog.Name)
 }
 
 func flattenEmailGroup(emailGroup *webhooks.OutgoingWebhookEmailGroup) (*EmailGroupModel, types.String, types.String, types.String) {
 	return &EmailGroupModel{
 		Emails: utils.StringSliceToTypeStringList(emailGroup.EmailGroup.EmailAddresses),
-	}, types.StringValue(emailGroup.Id), utils.Int64ToStringValue(emailGroup.ExternalId), types.StringValue(emailGroup.Name)
+	}, types.StringPointerValue(emailGroup.Id), utils.Int64ToStringValue(emailGroup.ExternalId), types.StringPointerValue(emailGroup.Name)
 }
 
 func flattenMsTeamsWorkflow(msteamswf *webhooks.OutgoingWebhookMsTeamsWorkflow) (*MsTeamsWorkflowModel, types.String, types.String, types.String) {
 	return &MsTeamsWorkflowModel{
 		URL: types.StringPointerValue(msteamswf.Url),
-	}, types.StringValue(msteamswf.Id), utils.Int64ToStringValue(msteamswf.ExternalId), types.StringValue(msteamswf.Name)
+	}, types.StringPointerValue(msteamswf.Id), utils.Int64ToStringValue(msteamswf.ExternalId), types.StringPointerValue(msteamswf.Name)
 }
 
 // Legacy webhook, is converted to MS Teams Workflow webhook
 func flattenMicrosoftTeams(msteams *webhooks.OutgoingWebhookMicrosoftTeams) (*MsTeamsWorkflowModel, types.String, types.String, types.String) {
 	return &MsTeamsWorkflowModel{
 		URL: types.StringPointerValue(msteams.Url),
-	}, types.StringValue(msteams.Id), utils.Int64ToStringValue(msteams.ExternalId), types.StringValue(msteams.Name)
+	}, types.StringPointerValue(msteams.Id), utils.Int64ToStringValue(msteams.ExternalId), types.StringPointerValue(msteams.Name)
 }
 
 func flattenJira(jira *webhooks.OutgoingWebhookJira) (*JiraModel, types.String, types.String, types.String) {
 	return &JiraModel{
-		ApiKey:    types.StringValue(jira.Jira.ApiToken),
-		Email:     types.StringValue(jira.Jira.Email),
-		ProjectID: types.StringValue(jira.Jira.ProjectKey),
+		ApiKey:    types.StringPointerValue(jira.Jira.ApiToken),
+		Email:     types.StringPointerValue(jira.Jira.Email),
+		ProjectID: types.StringPointerValue(jira.Jira.ProjectKey),
 		URL:       types.StringPointerValue(jira.Url),
-	}, types.StringValue(jira.Id), utils.Int64ToStringValue(jira.ExternalId), types.StringValue(jira.Name)
+	}, types.StringPointerValue(jira.Id), utils.Int64ToStringValue(jira.ExternalId), types.StringPointerValue(jira.Name)
 }
 
 func flattenOpsgenie(opsgenie *webhooks.OutgoingWebhookOpsgenie) (*OpsgenieModel, types.String, types.String, types.String) {
 	return &OpsgenieModel{
 		URL: types.StringPointerValue(opsgenie.Url),
-	}, types.StringValue(opsgenie.Id), utils.Int64ToStringValue(opsgenie.ExternalId), types.StringValue(opsgenie.Name)
+	}, types.StringPointerValue(opsgenie.Id), utils.Int64ToStringValue(opsgenie.ExternalId), types.StringPointerValue(opsgenie.Name)
 }
 
 func flattenDemisto(demisto *webhooks.OutgoingWebhookDemisto) (*DemistoModel, types.String, types.String, types.String) {
 	return &DemistoModel{
-		UUID:    types.StringValue(demisto.Demisto.Uuid),
-		Payload: types.StringValue(demisto.Demisto.Payload),
+		UUID:    types.StringPointerValue(demisto.Demisto.Uuid),
+		Payload: types.StringPointerValue(demisto.Demisto.Payload),
 		URL:     types.StringPointerValue(demisto.Url),
-	}, types.StringValue(demisto.Id), utils.Int64ToStringValue(demisto.ExternalId), types.StringValue(demisto.Name)
+	}, types.StringPointerValue(demisto.Id), utils.Int64ToStringValue(demisto.ExternalId), types.StringPointerValue(demisto.Name)
 }
 
 func flattenEventBridge(bridge *webhooks.OutgoingWebhookAwsEventBridge) (*EventBridgeModel, types.String, types.String, types.String) {
 	return &EventBridgeModel{
-		EventBusARN: types.StringValue(bridge.AwsEventBridge.EventBusArn),
-		Detail:      types.StringValue(bridge.AwsEventBridge.Detail),
-		DetailType:  types.StringValue(bridge.AwsEventBridge.DetailType),
-		Source:      types.StringValue(bridge.AwsEventBridge.Source),
-		RoleName:    types.StringValue(bridge.AwsEventBridge.RoleName),
-	}, types.StringValue(bridge.Id), utils.Int64ToStringValue(bridge.ExternalId), types.StringValue(bridge.Name)
+		EventBusARN: types.StringPointerValue(bridge.AwsEventBridge.EventBusArn),
+		Detail:      types.StringPointerValue(bridge.AwsEventBridge.Detail),
+		DetailType:  types.StringPointerValue(bridge.AwsEventBridge.DetailType),
+		Source:      types.StringPointerValue(bridge.AwsEventBridge.Source),
+		RoleName:    types.StringPointerValue(bridge.AwsEventBridge.RoleName),
+	}, types.StringPointerValue(bridge.Id), utils.Int64ToStringValue(bridge.ExternalId), types.StringPointerValue(bridge.Name)
 }

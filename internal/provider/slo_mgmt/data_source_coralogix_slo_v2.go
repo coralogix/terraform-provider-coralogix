@@ -20,6 +20,8 @@ import (
 	"log"
 	"net/http"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+
 	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -76,24 +78,24 @@ func (d *SLOV2DataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	//Get refreshed SLO value from Coralogix
 	id := state.ID.ValueString()
 	rq := d.client.SlosServiceGetSlo(ctx, id)
-	log.Printf("[INFO] Reading new resource: %s", utils.FormatJSON(rq))
-	result, readResp, err := rq.Execute()
+	log.Printf("[INFO] Reading new coralogix_slo_v2: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := rq.Execute()
 
 	if err != nil {
-		if readResp.StatusCode == http.StatusNotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Resource %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("coralogix_slo_v2 %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error reading resource",
-				utils.FormatOpenAPIErrors(err, "Read", nil),
+			resp.Diagnostics.AddError("Error reading coralogix_slo_v2",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read coralogix_slo_v2: %s", utils.FormatJSON(result))
 
 	state, diags = flattenSLOV2(ctx, &result.Slo)
 	if diags.HasError() {

@@ -33,7 +33,7 @@ func TestAccCoralogixDataSourceGlobalRouter_basic(t *testing.T) {
 				Config: testAccResourceCoralogixGlobalRouter(name) +
 					testAccCoralogixDataSourceglobalRouter_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(globalRouterDataSourceName, "name", "global router example"),
+					resource.TestCheckResourceAttr(globalRouterDataSourceName, "name", name),
 				),
 			},
 		},
@@ -50,7 +50,7 @@ func TestAccCoralogixDataSourceGlobalRouterByName(t *testing.T) {
 				Config: testAccResourceCoralogixGlobalRouter(name) +
 					testAccCoralogixDataSourceglobalRouterByName_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr(globalRouterDataSourceName, "name", "global router example"),
+					resource.TestCheckResourceAttr(globalRouterDataSourceName, "name", name),
 				),
 			},
 		},

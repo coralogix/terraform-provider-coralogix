@@ -336,8 +336,8 @@ func StringSliceToTypeStringSet(s []string) types.Set {
 	return types.SetValueMust(types.StringType, elements)
 }
 
-func Int64ToStringValue(v int64) types.String {
-	return types.StringValue(strconv.FormatInt(v, 10))
+func Int64ToStringValue(v *int64) types.String {
+	return types.StringValue(strconv.FormatInt(*v, 10))
 }
 
 func Int32SliceToTypeInt64Set(arr []int32) types.Set {
@@ -780,9 +780,20 @@ func ParseNumUint32(desired string) uint32 {
 }
 
 func TypeMapToStringMap(ctx context.Context, m types.Map) (map[string]string, diag.Diagnostics) {
+	if m.IsNull() || m.IsUnknown() {
+		return nil, nil
+	}
 	var result map[string]string
 	diags := m.ElementsAs(ctx, &result, true)
 	return result, diags
+}
+
+func StringMapToTypeMap(ctx context.Context, m *map[string]string) (types.Map, diag.Diagnostics) {
+	if m != nil {
+		return types.MapValueFrom(ctx, types.StringType, m)
+	} else {
+		return types.MapNull(types.StringType), nil
+	}
 }
 
 func StringNullIfUnknown(s types.String) *string {
@@ -879,21 +890,6 @@ func ParseDuration(ti, fieldsName string) (*time.Duration, diag.Diagnostic) {
 		return nil, diag.NewErrorDiagnostic(fmt.Sprintf("Error Expand %s", fieldsName), fmt.Sprintf("error parsing duration unit: %s", unit))
 	}
 	return &duration, nil
-}
-
-func ExtractStringMap(ctx context.Context, typesMap types.Map) (map[string]string, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	extractedDetails := make(map[string]string)
-	if typesMap.IsNull() || typesMap.IsUnknown() {
-		return nil, diags
-	}
-
-	typesMap.ElementsAs(ctx, &extractedDetails, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return extractedDetails, diags
 }
 
 func JSONStringsEqualPlanModifier(_ context.Context, plan planmodifier.StringRequest, req *stringplanmodifier.RequiresReplaceIfFuncResponse) {
