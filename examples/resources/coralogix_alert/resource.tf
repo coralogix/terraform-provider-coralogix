@@ -172,9 +172,9 @@ resource "coralogix_alert" "test" {
 # resource "coralogix_global_router" "example" {
 #   name        = "global router example"
 #   description = "global router example"
-#   entity_type = "alerts"
 #   rules = [
 #     {
+#       entity_type = "alerts"
 #       name      = "rule-name"
 #       condition = "alertDef.priority == \"P1\""
 #       targets = [
