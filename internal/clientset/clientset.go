@@ -20,6 +20,7 @@ import (
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	actionss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/actions_service"
 	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
 	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
@@ -35,7 +36,6 @@ import (
 )
 
 type ClientSet struct {
-	actions           *cxsdk.ActionsClient
 	enrichments       *cxsdk.EnrichmentsClient
 	dataSet           *cxsdk.DataSetClient
 	legacySlos        *cxsdk.LegacySLOsClient
@@ -54,6 +54,7 @@ type ClientSet struct {
 	groupGrpc           *cxsdk.GroupsClient
 	teams               *cxsdk.TeamsClient
 
+	actions       *actionss.ActionsServiceAPIService
 	alerts        *alerts.AlertDefinitionsServiceAPIService
 	apikeys       *apiKeys.APIKeysServiceAPIService
 	webhooks      *webhhooks.OutgoingWebhooksServiceAPIService
@@ -81,7 +82,7 @@ func (c *ClientSet) APIKeys() *apiKeys.APIKeysServiceAPIService {
 	return c.apikeys
 }
 
-func (c *ClientSet) Actions() *cxsdk.ActionsClient {
+func (c *ClientSet) Actions() *actionss.ActionsServiceAPIService {
 	return c.actions
 }
 func (c *ClientSet) Enrichments() *cxsdk.EnrichmentsClient {
@@ -189,7 +190,6 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	log.Printf("[INFO] Using API URL: %v\n", url)
 	oasTfCPC := cxsdkOpenapi.NewSDKCallPropertiesCreatorTerraform(url, apiKey, TF_PROVIDER_VERSION)
 	return &ClientSet{
-		actions:             cxsdk.NewActionsClient(apiKeySdk),
 		enrichments:         cxsdk.NewEnrichmentClient(apiKeySdk),
 		alerts:              cxsdkOpenapi.NewAlertsClient(oasTfCPC),
 		dataSet:             cxsdk.NewDataSetClient(apiKeySdk),
@@ -207,6 +207,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
 		alertScheduler:      cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
+		actions:       cxsdkOpenapi.NewActionsClient(oasTfCPC),
 		customRole:    cxsdkOpenapi.NewCustomRolesClient(oasTfCPC),
 		scopes:        cxsdkOpenapi.NewScopesClient(oasTfCPC),
 		presets:       cxsdkOpenapi.NewPresetsClient(oasTfCPC),

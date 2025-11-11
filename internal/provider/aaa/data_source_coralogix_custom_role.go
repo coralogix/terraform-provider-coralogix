@@ -111,7 +111,6 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	model := flattenCustomRole(customRole)
 
-	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
 }
 

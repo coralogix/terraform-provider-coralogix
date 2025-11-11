@@ -194,16 +194,16 @@ func (r *IpAccessResource) Update(ctx context.Context, req resource.UpdateReques
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_ip_access is in state, but no longer exists in Coralogix backend"),
-				fmt.Sprintf("it will be recreated when you apply"),
+				"coralogix_ip_access is in state, but no longer exists in Coralogix backend",
+				"it will be recreated when you apply",
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error creating coralogix_ip_access", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
+			resp.Diagnostics.AddError("Error creating coralogix_ip_access", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
 		}
 		return
 	}
-	log.Printf("[INFO] Updated coralogix_ip_access: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Replaced coralogix_ip_access: %s", utils.FormatJSON(result))
 
 	state := flattenReplaceResponse(result)
 

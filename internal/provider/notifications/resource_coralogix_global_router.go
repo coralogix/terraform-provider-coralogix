@@ -258,7 +258,7 @@ func (r GlobalRouterResource) Update(ctx context.Context, req resource.UpdateReq
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error updating coralogix_global_router", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
+			resp.Diagnostics.AddError("Error replacing coralogix_global_router", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
 		}
 		return
 	}

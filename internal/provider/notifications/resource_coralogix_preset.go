@@ -349,7 +349,7 @@ func (r PresetResource) Update(ctx context.Context, req resource.UpdateRequest, 
 			resp.State.RemoveResource(ctx)
 		} else {
 			resp.Diagnostics.AddError("Error replacing coralogix_preset",
-				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", nil))
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
 		}
 		return
 	}

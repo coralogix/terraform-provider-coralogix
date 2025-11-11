@@ -264,11 +264,11 @@ func (r *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	rq := r.client.
+		RoleManagementServiceDeleteRole(ctx, *id)
+	log.Printf("[INFO] Deleting coralogix_custom_role: %s", utils.FormatJSON(rq))
 
-	log.Printf("[INFO] Deleting coralogix_custom_role")
-
-	result, httpResponse, err := r.client.
-		RoleManagementServiceDeleteRole(ctx, *id).
+	result, httpResponse, err := rq.
 		Execute()
 
 	if err != nil {

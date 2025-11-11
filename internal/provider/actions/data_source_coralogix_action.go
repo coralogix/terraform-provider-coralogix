@@ -18,19 +18,16 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	"google.golang.org/protobuf/encoding/protojson"
-
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	actionss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/actions_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/grpc/codes"
-
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var _ datasource.DataSourceWithConfigure = &ActionDataSource{}
@@ -40,7 +37,7 @@ func NewActionDataSource() datasource.DataSource {
 }
 
 type ActionDataSource struct {
-	client *cxsdk.ActionsClient
+	client *actionss.ActionsServiceAPIService
 }
 
 func (d *ActionDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -78,29 +75,29 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	//Get refreshed Action value from Coralogix
 	id := data.ID.ValueString()
-	log.Printf("[INFO] Reading Action: %s", id)
-	getActionReq := &cxsdk.GetActionRequest{Id: wrapperspb.String(id)}
-	getActionResp, err := d.client.Get(ctx, getActionReq)
+
+	rq := d.client.
+		ActionsServiceGetAction(ctx, id)
+
+	log.Printf("[INFO] Reading coralogix_action: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := rq.
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
-			resp.Diagnostics.AddWarning(err.Error(),
-				fmt.Sprintf("Action %q is in state, but no longer exists in Coralogix backend", id))
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Action",
-				utils.FormatRpcErrors(err, cxsdk.GetActionRPC, protojson.Format(getActionReq)),
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("coralogix_action %v is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%v will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error reading coralogix_action", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		}
 		return
 	}
-	log.Printf("[INFO] Received Action: %s", protojson.Format(getActionResp))
+	log.Printf("[INFO] Replaced new coralogix_action: %s", utils.FormatJSON(result))
+	state := flattenAction(result.Action)
 
-	data = flattenAction(getActionResp.GetAction())
-
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }

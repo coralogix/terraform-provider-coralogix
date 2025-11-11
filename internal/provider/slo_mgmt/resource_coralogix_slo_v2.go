@@ -385,7 +385,7 @@ func (r *SLOV2Resource) Update(ctx context.Context, req resource.UpdateRequest, 
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error replacing coralogix_slo_v2", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", nil))
+			resp.Diagnostics.AddError("Error replacing coralogix_slo_v2", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
 		}
 		return
 	}

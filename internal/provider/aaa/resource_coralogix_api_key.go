@@ -392,7 +392,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error creating coralogix_api_key", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
+			resp.Diagnostics.AddError("Error creating coralogix_api_key", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", rq))
 		}
 		return
 	}

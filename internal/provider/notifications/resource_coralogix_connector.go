@@ -316,7 +316,7 @@ func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateReques
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error replacing coralogix_connector", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", nil))
+			resp.Diagnostics.AddError("Error replacing coralogix_connector", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
 		}
 		return
 	}

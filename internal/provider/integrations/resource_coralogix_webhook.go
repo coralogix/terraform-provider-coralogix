@@ -873,7 +873,7 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error updating coralogix_webhook", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
+			resp.Diagnostics.AddError("Error updating coralogix_webhook", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", rq))
 		}
 		return
 	}
@@ -881,7 +881,7 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 	result, httpResponse, err := r.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, id).Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading coralogix_webhook, state not updated", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
+		resp.Diagnostics.AddError("Error reading coralogix_webhook, state not updated", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", rq))
 		return
 	}
 
