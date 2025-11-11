@@ -205,7 +205,7 @@ func extractIncidentsSettings(ctx context.Context, incidentsSettingsObject types
 
 	incidentsSettings := &alerts.AlertDefIncidentSettings{}
 
-	if incidentsSettings.NotifyOn != nil {
+	if !incidentsSettingsModel.NotifyOn.IsNull() && !incidentsSettingsModel.NotifyOn.IsUnknown() {
 		incidentsSettings.NotifyOn = alerttypes.NotifyOnSchemaToProtoMap[incidentsSettingsModel.NotifyOn.ValueString()].Ptr()
 	} else {
 		incidentsSettings.NotifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED.Ptr()
@@ -342,7 +342,7 @@ func extractDestinations(ctx context.Context, notificationDestinations types.Lis
 			},
 		}
 
-		if destination.NotifyOn != nil {
+		if !destinationModel.NotifyOn.IsNull() && !destinationModel.NotifyOn.IsUnknown() {
 			destination.NotifyOn = alerttypes.NotifyOnSchemaToProtoMap[destinationModel.NotifyOn.ValueString()].Ptr()
 		} else {
 			destination.NotifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED.Ptr()
@@ -446,7 +446,7 @@ func extractNotificationRouter(ctx context.Context, routerObject types.Object) (
 		Id: &id,
 	}
 
-	if router.NotifyOn != nil {
+	if !routerModel.NotifyOn.IsNull() && !routerModel.NotifyOn.IsUnknown() {
 		router.NotifyOn = alerttypes.NotifyOnSchemaToProtoMap[routerModel.NotifyOn.ValueString()].Ptr()
 	} else {
 		router.NotifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED.Ptr()
@@ -458,7 +458,7 @@ func extractNotificationRouter(ctx context.Context, routerObject types.Object) (
 func extractAdvancedTargetSetting(ctx context.Context, webhooksSettingsModel alerttypes.WebhooksSettingsModel) (*alerts.AlertDefWebhooksSettings, diag.Diagnostics) {
 	advancedTargetSettings := &alerts.AlertDefWebhooksSettings{}
 
-	if advancedTargetSettings.NotifyOn != nil {
+	if !webhooksSettingsModel.NotifyOn.IsNull() && !webhooksSettingsModel.NotifyOn.IsUnknown() {
 		advancedTargetSettings.NotifyOn = alerttypes.NotifyOnSchemaToProtoMap[webhooksSettingsModel.NotifyOn.ValueString()].Ptr()
 	} else {
 		advancedTargetSettings.NotifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED.Ptr()
@@ -705,7 +705,7 @@ func expandLogsImmediateAlertTypeDefinition(ctx context.Context, properties *ale
 	properties.AlertDefPropertiesLogsImmediate.Name = alertResourceModel.Name.ValueStringPointer()
 	properties.AlertDefPropertiesLogsImmediate.Description = alertResourceModel.Description.ValueStringPointer()
 	properties.AlertDefPropertiesLogsImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesLogsImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
 	properties.AlertDefPropertiesLogsImmediate.GroupByKeys = groupBy
 	properties.AlertDefPropertiesLogsImmediate.IncidentsSettings = incidentsSettings
 	properties.AlertDefPropertiesLogsImmediate.NotificationGroup = notificationGroup
@@ -719,6 +719,14 @@ func expandLogsImmediateAlertTypeDefinition(ctx context.Context, properties *ale
 	}
 	properties.AlertDefPropertiesLogsImmediate.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_IMMEDIATE_OR_UNSPECIFIED.Ptr()
 	return properties, nil
+}
+
+func extractAlertPriority(priority types.String) string {
+	if priority.IsNull() || priority.IsUnknown() {
+		return alerttypes.AlertPriorityProtoToSchemaMap[alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED]
+	} else {
+		return priority.ValueString()
+	}
 }
 
 func extractLogsFilter(ctx context.Context, filter types.Object) (*alerts.V3LogsFilter, diag.Diagnostics) {
@@ -810,9 +818,13 @@ func extractLabelFilterTypes(ctx context.Context, labelFilterTypes types.Set) ([
 			diags.Append(dg...)
 			continue
 		}
+		operation := labelFilterTypeModel.Operation.ValueString()
+		if operation == "" {
+			operation = alerttypes.LogFilterOperationTypeProtoToSchemaMap[alerts.LOGFILTEROPERATIONTYPE_LOG_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED]
+		}
 		expandedLabelFilterType := alerts.LabelFilterType{
 			Value:     labelFilterTypeModel.Value.ValueStringPointer(),
-			Operation: alerttypes.LogFilterOperationTypeSchemaToProtoMap[labelFilterTypeModel.Operation.ValueString()].Ptr(),
+			Operation: alerttypes.LogFilterOperationTypeSchemaToProtoMap[operation].Ptr(),
 		}
 		expandedLabelFilterTypes = append(expandedLabelFilterTypes, expandedLabelFilterType)
 	}
@@ -886,7 +898,7 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *alerts.A
 	properties.AlertDefPropertiesLogsThreshold.Name = alertResourceModel.Name.ValueStringPointer()
 	properties.AlertDefPropertiesLogsThreshold.Description = alertResourceModel.Description.ValueStringPointer()
 	properties.AlertDefPropertiesLogsThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesLogsThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
 	properties.AlertDefPropertiesLogsThreshold.GroupByKeys = groupBy
 	properties.AlertDefPropertiesLogsThreshold.IncidentsSettings = incidentsSettings
 	properties.AlertDefPropertiesLogsThreshold.NotificationGroup = notificationGroup
@@ -961,13 +973,20 @@ func extractLogsThresholdCondition(ctx context.Context, condition types.Object) 
 	if diags := condition.As(ctx, &conditionModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
 	}
-
+	conditionType := alerts.LOGSTHRESHOLDCONDITIONTYPE_LOGS_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED
+	if !conditionModel.ConditionType.IsNull() && !conditionModel.ConditionType.IsUnknown() {
+		conditionType = alerttypes.LogsThresholdConditionToProtoMap[conditionModel.ConditionType.ValueString()]
+	}
+	timeWindow := conditionModel.TimeWindow.ValueString()
+	if timeWindow == "" {
+		timeWindow = alerttypes.LogsTimeWindowValueProtoToSchemaMap[alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED]
+	}
 	return &alerts.LogsThresholdCondition{
 		Threshold: conditionModel.Threshold.ValueFloat64Pointer(),
 		TimeWindow: &alerts.LogsTimeWindow{
-			LogsTimeWindowSpecificValue: alerttypes.LogsTimeWindowValueSchemaToProtoMap[conditionModel.TimeWindow.ValueString()].Ptr(),
+			LogsTimeWindowSpecificValue: alerttypes.LogsTimeWindowValueSchemaToProtoMap[timeWindow].Ptr(),
 		},
-		ConditionType: alerttypes.LogsThresholdConditionToProtoMap[conditionModel.ConditionType.ValueString()].Ptr(),
+		ConditionType: conditionType.Ptr(),
 	}, nil
 }
 
@@ -987,7 +1006,11 @@ func extractUndetectedValuesManagement(ctx context.Context, management types.Obj
 	var autoRetireTimeframe *alerts.V3AutoRetireTimeframe
 	if !(managementModel.AutoRetireTimeframe.IsNull() || managementModel.AutoRetireTimeframe.IsUnknown()) {
 		autoRetireTimeframe = new(alerts.V3AutoRetireTimeframe)
-		*autoRetireTimeframe = alerttypes.AutoRetireTimeframeSchemaToProtoMap[managementModel.AutoRetireTimeframe.ValueString()]
+		autoRetireTimeFrameModel := managementModel.AutoRetireTimeframe.ValueString()
+		if autoRetireTimeFrameModel == "" {
+			autoRetireTimeFrameModel = alerttypes.AutoRetireTimeframeProtoToSchemaMap[alerts.V3AUTORETIRETIMEFRAME_AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED]
+		}
+		*autoRetireTimeframe = alerttypes.AutoRetireTimeframeSchemaToProtoMap[autoRetireTimeFrameModel]
 	}
 
 	return &alerts.V3UndetectedValuesManagement{
@@ -1038,7 +1061,7 @@ func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *alert
 	properties.AlertDefPropertiesLogsAnomaly.Name = alertResourceModel.Name.ValueStringPointer()
 	properties.AlertDefPropertiesLogsAnomaly.Description = alertResourceModel.Description.ValueStringPointer()
 	properties.AlertDefPropertiesLogsAnomaly.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsAnomaly.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesLogsAnomaly.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
 	properties.AlertDefPropertiesLogsAnomaly.GroupByKeys = groupBy
 	properties.AlertDefPropertiesLogsAnomaly.IncidentsSettings = incidentsSettings
 	properties.AlertDefPropertiesLogsAnomaly.NotificationGroup = notificationGroup
@@ -1082,13 +1105,22 @@ func extractAnomalyRules(ctx context.Context, elements types.Set) ([]alerts.Logs
 			continue
 		}
 
+		conditionType := alerts.LOGSANOMALYCONDITIONTYPE_LOGS_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED
+		if !condition.ConditionType.IsNull() && !condition.ConditionType.IsUnknown() {
+			conditionType = alerttypes.LogsAnomalyConditionSchemaToProtoMap[condition.ConditionType.ValueString()]
+		}
+
+		timeWindow := condition.TimeWindow.ValueString()
+		if timeWindow == "" {
+			timeWindow = alerttypes.LogsTimeWindowValueProtoToSchemaMap[alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED]
+		}
 		rules[i] = alerts.LogsAnomalyRule{
 			Condition: &alerts.LogsAnomalyCondition{
 				MinimumThreshold: condition.MinimumThreshold.ValueFloat64Pointer(),
 				TimeWindow: &alerts.LogsTimeWindow{
-					LogsTimeWindowSpecificValue: alerttypes.LogsTimeWindowValueSchemaToProtoMap[condition.TimeWindow.ValueString()].Ptr(),
+					LogsTimeWindowSpecificValue: alerttypes.LogsTimeWindowValueSchemaToProtoMap[timeWindow].Ptr(),
 				},
-				ConditionType: alerttypes.LogsAnomalyConditionSchemaToProtoMap[condition.ConditionType.ValueString()].Ptr(),
+				ConditionType: conditionType.Ptr(),
 			},
 		}
 	}
@@ -1135,7 +1167,7 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *ale
 	properties.AlertDefPropertiesLogsRatioThreshold.Name = alertResourceModel.Name.ValueStringPointer()
 	properties.AlertDefPropertiesLogsRatioThreshold.Description = alertResourceModel.Description.ValueStringPointer()
 	properties.AlertDefPropertiesLogsRatioThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsRatioThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesLogsRatioThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
 	properties.AlertDefPropertiesLogsRatioThreshold.GroupByKeys = groupBy
 	properties.AlertDefPropertiesLogsRatioThreshold.IncidentsSettings = incidentsSettings
 	properties.AlertDefPropertiesLogsRatioThreshold.NotificationGroup = notificationGroup
@@ -1161,6 +1193,10 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *ale
 		return nil, diags
 	}
 
+	groupByFor := ratioThresholdModel.GroupByFor.ValueString()
+	if groupByFor == "" {
+		groupByFor = alerttypes.LogsRatioGroupByForProtoToSchemaMap[alerts.LOGSRATIOGROUPBYFOR_LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED]
+	}
 	properties.AlertDefPropertiesLogsRatioThreshold.LogsRatioThreshold = &alerts.LogsRatioThresholdType{
 		Numerator:                 numeratorLogsFilter,
 		NumeratorAlias:            ratioThresholdModel.NumeratorAlias.ValueStringPointer(),
@@ -1168,7 +1204,7 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *ale
 		DenominatorAlias:          ratioThresholdModel.DenominatorAlias.ValueStringPointer(),
 		Rules:                     rules,
 		NotificationPayloadFilter: notificationPayloadFilter,
-		GroupByFor:                alerttypes.LogsRatioGroupByForSchemaToProtoMap[ratioThresholdModel.GroupByFor.ValueString()].Ptr(),
+		GroupByFor:                alerttypes.LogsRatioGroupByForSchemaToProtoMap[groupByFor].Ptr(),
 		EvaluationDelayMs:         ratioThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
 	}
 	properties.AlertDefPropertiesLogsRatioThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD.Ptr()
@@ -1218,7 +1254,7 @@ func extractAlertOverride(ctx context.Context, override types.Object) (*alerts.A
 	}
 
 	return &alerts.AlertDefOverride{
-		Priority: alerttypes.AlertPrioritySchemaToProtoMap[overrideModel.Priority.ValueString()].Ptr(),
+		Priority: alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(overrideModel.Priority)].Ptr(),
 	}, nil
 }
 
@@ -1232,12 +1268,20 @@ func extractLogsRatioCondition(ctx context.Context, condition types.Object) (*al
 		return nil, diags
 	}
 
+	conditionType := alerts.LOGSRATIOCONDITIONTYPE_LOGS_RATIO_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED
+	if !conditionModel.ConditionType.IsNull() && !conditionModel.ConditionType.IsUnknown() {
+		conditionType = alerttypes.LogsRatioConditionSchemaToProtoMap[conditionModel.ConditionType.ValueString()]
+	}
+	logsRatioTimeWindowSpecificValue := conditionModel.TimeWindow.ValueString()
+	if logsRatioTimeWindowSpecificValue == "" {
+		logsRatioTimeWindowSpecificValue = alerttypes.LogsRatioTimeWindowValueProtoToSchemaMap[alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED]
+	}
 	return &alerts.LogsRatioCondition{
 		Threshold: conditionModel.Threshold.ValueFloat64Pointer(),
 		TimeWindow: &alerts.LogsRatioTimeWindow{
-			LogsRatioTimeWindowSpecificValue: alerttypes.LogsRatioTimeWindowValueSchemaToProtoMap[conditionModel.TimeWindow.ValueString()].Ptr(),
+			LogsRatioTimeWindowSpecificValue: alerttypes.LogsRatioTimeWindowValueSchemaToProtoMap[logsRatioTimeWindowSpecificValue].Ptr(),
 		},
-		ConditionType: alerttypes.LogsRatioConditionSchemaToProtoMap[conditionModel.ConditionType.ValueString()].Ptr(),
+		ConditionType: conditionType.Ptr(),
 	}, nil
 }
 
@@ -1283,7 +1327,7 @@ func expandLogsNewValueAlertTypeDefinition(ctx context.Context, properties *aler
 	properties.AlertDefPropertiesLogsNewValue.Name = alertResourceModel.Name.ValueStringPointer()
 	properties.AlertDefPropertiesLogsNewValue.Description = alertResourceModel.Description.ValueStringPointer()
 	properties.AlertDefPropertiesLogsNewValue.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsNewValue.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesLogsNewValue.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
 	properties.AlertDefPropertiesLogsNewValue.GroupByKeys = groupBy
 	properties.AlertDefPropertiesLogsNewValue.IncidentsSettings = incidentsSettings
 	properties.AlertDefPropertiesLogsNewValue.NotificationGroup = notificationGroup
@@ -1344,11 +1388,15 @@ func extractNewValueCondition(ctx context.Context, condition types.Object) (*ale
 	if diags := condition.As(ctx, &conditionModel, basetypes.ObjectAsOptions{}); diags.HasError() {
 		return nil, diags
 	}
+	timeWindowValue := conditionModel.TimeWindow.ValueString()
+	if timeWindowValue == "" {
+		timeWindowValue = alerttypes.LogsNewValueTimeWindowValueProtoToSchemaMap[alerts.LOGSNEWVALUETIMEWINDOWVALUE_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_12_OR_UNSPECIFIED]
+	}
 
 	return &alerts.LogsNewValueCondition{
 		KeypathToTrack: conditionModel.KeypathToTrack.ValueStringPointer(),
 		TimeWindow: &alerts.LogsNewValueTimeWindow{
-			LogsNewValueTimeWindowSpecificValue: alerttypes.LogsNewValueTimeWindowValueSchemaToProtoMap[conditionModel.TimeWindow.ValueString()].Ptr(),
+			LogsNewValueTimeWindowSpecificValue: alerttypes.LogsNewValueTimeWindowValueSchemaToProtoMap[timeWindowValue].Ptr(),
 		},
 	}, nil
 }
@@ -1395,7 +1443,7 @@ func expandLogsUniqueCountAlertTypeDefinition(ctx context.Context, properties *a
 	properties.AlertDefPropertiesLogsUniqueCount.Name = alertResourceModel.Name.ValueStringPointer()
 	properties.AlertDefPropertiesLogsUniqueCount.Description = alertResourceModel.Description.ValueStringPointer()
 	properties.AlertDefPropertiesLogsUniqueCount.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsUniqueCount.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesLogsUniqueCount.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
 	properties.AlertDefPropertiesLogsUniqueCount.GroupByKeys = groupBy
 	properties.AlertDefPropertiesLogsUniqueCount.IncidentsSettings = incidentsSettings
 	properties.AlertDefPropertiesLogsUniqueCount.NotificationGroup = notificationGroup
@@ -1460,10 +1508,14 @@ func extractLogsUniqueCountCondition(ctx context.Context, condition types.Object
 	}
 
 	maxUniqueCount := strconv.Itoa(int(conditionModel.MaxUniqueCount.ValueInt64()))
+	timeWindow := conditionModel.TimeWindow.ValueString()
+	if timeWindow == "" {
+		timeWindow = alerttypes.LogsUniqueCountTimeWindowValueProtoToSchemaMap[alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTE_1_OR_UNSPECIFIED]
+	}
 	return &alerts.LogsUniqueCountCondition{
 		MaxUniqueCount: &maxUniqueCount,
 		TimeWindow: &alerts.LogsUniqueValueTimeWindow{
-			LogsUniqueValueTimeWindowSpecificValue: alerttypes.LogsUniqueCountTimeWindowValueSchemaToProtoMap[conditionModel.TimeWindow.ValueString()].Ptr(),
+			LogsUniqueValueTimeWindowSpecificValue: alerttypes.LogsUniqueCountTimeWindowValueSchemaToProtoMap[timeWindow].Ptr(),
 		},
 	}, nil
 }
@@ -1510,7 +1562,7 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Name = alertResourceModel.Name.ValueStringPointer()
 	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Description = alertResourceModel.Description.ValueStringPointer()
 	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
 	properties.AlertDefPropertiesLogsTimeRelativeThreshold.GroupByKeys = groupBy
 	properties.AlertDefPropertiesLogsTimeRelativeThreshold.IncidentsSettings = incidentsSettings
 	properties.AlertDefPropertiesLogsTimeRelativeThreshold.NotificationGroup = notificationGroup
@@ -1565,11 +1617,19 @@ func extractTimeRelativeThresholdRules(ctx context.Context, elements types.Set) 
 			continue
 		}
 
+		conditionType := condition.ConditionType.ValueString()
+		if conditionType == "" {
+			conditionType = alerttypes.LogsTimeRelativeConditionMap[alerts.LOGSTIMERELATIVECONDITIONTYPE_LOGS_TIME_RELATIVE_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED]
+		}
+		comparedTo := condition.ComparedTo.ValueString()
+		if comparedTo == "" {
+			comparedTo = alerttypes.LogsTimeRelativeComparedToProtoToSchemaMap[alerts.LOGSTIMERELATIVECOMPAREDTO_LOGS_TIME_RELATIVE_COMPARED_TO_PREVIOUS_HOUR_OR_UNSPECIFIED]
+		}
 		rules[i] = alerts.LogsTimeRelativeRule{
 			Condition: &alerts.LogsTimeRelativeCondition{
 				Threshold:     condition.Threshold.ValueFloat64Pointer(),
-				ComparedTo:    alerttypes.LogsTimeRelativeComparedToSchemaToProtoMap[condition.ComparedTo.ValueString()].Ptr(),
-				ConditionType: alerttypes.LogsTimeRelativeConditionToProtoMap[condition.ConditionType.ValueString()].Ptr(),
+				ComparedTo:    alerttypes.LogsTimeRelativeComparedToSchemaToProtoMap[comparedTo].Ptr(),
+				ConditionType: alerttypes.LogsTimeRelativeConditionToProtoMap[conditionType].Ptr(),
 			},
 			Override: override,
 		}
@@ -1612,7 +1672,7 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *a
 	properties.AlertDefPropertiesMetricThreshold.Name = alertResourceModel.Name.ValueStringPointer()
 	properties.AlertDefPropertiesMetricThreshold.Description = alertResourceModel.Description.ValueStringPointer()
 	properties.AlertDefPropertiesMetricThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesMetricThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesMetricThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
 	properties.AlertDefPropertiesMetricThreshold.GroupByKeys = groupBy
 	properties.AlertDefPropertiesMetricThreshold.IncidentsSettings = incidentsSettings
 	properties.AlertDefPropertiesMetricThreshold.NotificationGroup = notificationGroup
@@ -1705,12 +1765,16 @@ func extractMetricThresholdRules(ctx context.Context, elements types.Set) ([]ale
 			continue
 		}
 
+		conditionType := alerts.METRICTHRESHOLDCONDITIONTYPE_METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED
+		if !condition.ConditionType.IsNull() && !condition.ConditionType.IsUnknown() {
+			conditionType = alerttypes.MetricsThresholdConditionToProtoMap[condition.ConditionType.ValueString()]
+		}
 		rules[i] = alerts.MetricThresholdRule{
 			Condition: &alerts.MetricThresholdCondition{
 				Threshold:     condition.Threshold.ValueFloat64Pointer(),
 				ForOverPct:    condition.ForOverPct.ValueInt64Pointer(),
 				OfTheLast:     expandMetricTimeWindow(condition.OfTheLast),
-				ConditionType: alerttypes.MetricsThresholdConditionToProtoMap[condition.ConditionType.ValueString()].Ptr(),
+				ConditionType: conditionType.Ptr(),
 			},
 			Override: override,
 		}
@@ -1772,7 +1836,7 @@ func expandTracingImmediateTypeDefinition(ctx context.Context, properties *alert
 	properties.AlertDefPropertiesTracingImmediate.Name = alertResourceModel.Name.ValueStringPointer()
 	properties.AlertDefPropertiesTracingImmediate.Description = alertResourceModel.Description.ValueStringPointer()
 	properties.AlertDefPropertiesTracingImmediate.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesTracingImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesTracingImmediate.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
 	properties.AlertDefPropertiesTracingImmediate.GroupByKeys = groupBy
 	properties.AlertDefPropertiesTracingImmediate.IncidentsSettings = incidentsSettings
 	properties.AlertDefPropertiesTracingImmediate.NotificationGroup = notificationGroup
@@ -1835,7 +1899,7 @@ func expandTracingThresholdTypeDefinition(ctx context.Context, properties *alert
 	properties.AlertDefPropertiesTracingThreshold.Name = alertResourceModel.Name.ValueStringPointer()
 	properties.AlertDefPropertiesTracingThreshold.Description = alertResourceModel.Description.ValueStringPointer()
 	properties.AlertDefPropertiesTracingThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesTracingThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesTracingThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
 	properties.AlertDefPropertiesTracingThreshold.GroupByKeys = groupBy
 	properties.AlertDefPropertiesTracingThreshold.IncidentsSettings = incidentsSettings
 	properties.AlertDefPropertiesTracingThreshold.NotificationGroup = notificationGroup
@@ -1891,11 +1955,16 @@ func extractTracingThresholdRules(ctx context.Context, elements types.Set) ([]al
 			continue
 		}
 
+		timeWindow := condition.TimeWindow.ValueString()
+		if timeWindow == "" {
+			timeWindow = alerttypes.TracingTimeWindowProtoToSchemaMap[alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED]
+		}
+
 		rules[i] = alerts.TracingThresholdRule{
 			Condition: &alerts.TracingThresholdCondition{
 				SpanAmount: condition.SpanAmount.ValueFloat64Pointer(),
 				TimeWindow: &alerts.TracingTimeWindow{
-					TracingTimeWindowValue: alerttypes.TracingTimeWindowSchemaToProtoMap[condition.TimeWindow.ValueString()].Ptr(),
+					TracingTimeWindowValue: alerttypes.TracingTimeWindowSchemaToProtoMap[timeWindow].Ptr(),
 				},
 				ConditionType: alerts.TRACINGTHRESHOLDCONDITIONTYPE_TRACING_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED.Ptr(),
 			},
@@ -2000,12 +2069,14 @@ func extractTracingLabelFilter(ctx context.Context, filterModelObject types.Obje
 		return nil, diags
 	}
 
-	tracingTypeFilter := &alerts.TracingFilterType{
-		Values: values,
+	operation := filterModel.Operation.ValueString()
+	if operation == "" {
+		operation = alerttypes.TracingFilterOperationProtoToSchemaMap[alerts.TRACINGFILTEROPERATIONTYPE_TRACING_FILTER_OPERATION_TYPE_IS_OR_UNSPECIFIED]
 	}
-	if !filterModel.Operation.IsNull() && !filterModel.Operation.IsUnknown() {
-		tracingTypeFilter.Operation = alerttypes.TracingFilterOperationSchemaToProtoMap[filterModel.Operation.ValueString()].Ptr()
 
+	tracingTypeFilter := &alerts.TracingFilterType{
+		Values:    values,
+		Operation: alerttypes.TracingFilterOperationSchemaToProtoMap[operation].Ptr(),
 	}
 	return tracingTypeFilter, nil
 }
@@ -2070,7 +2141,7 @@ func expandMetricAnomalyAlertTypeDefinition(ctx context.Context, properties *ale
 	properties.AlertDefPropertiesMetricAnomaly.Name = alertResourceModel.Name.ValueStringPointer()
 	properties.AlertDefPropertiesMetricAnomaly.Description = alertResourceModel.Description.ValueStringPointer()
 	properties.AlertDefPropertiesMetricAnomaly.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesMetricAnomaly.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesMetricAnomaly.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
 	properties.AlertDefPropertiesMetricAnomaly.GroupByKeys = groupBy
 	properties.AlertDefPropertiesMetricAnomaly.IncidentsSettings = incidentsSettings
 	properties.AlertDefPropertiesMetricAnomaly.NotificationGroup = notificationGroup
@@ -2119,16 +2190,24 @@ func extractMetricAnomalyRules(ctx context.Context, elements types.Set) ([]alert
 			continue
 		}
 
+		conditionType := alerts.METRICANOMALYCONDITIONTYPE_METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED
+		if !condition.ConditionType.IsNull() && !condition.ConditionType.IsUnknown() {
+			conditionType = alerttypes.MetricAnomalyConditionToProtoMap[condition.ConditionType.ValueString()]
+		}
+		ofTheLast := condition.OfTheLast.ValueString()
+		if ofTheLast == "" {
+			ofTheLast = alerttypes.MetricFilterOperationTypeProtoToSchemaMap[alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED]
+		}
 		rules[i] = alerts.MetricAnomalyRule{
 			Condition: &alerts.MetricAnomalyCondition{
 				Threshold:  condition.Threshold.ValueFloat64Pointer(),
 				ForOverPct: condition.ForOverPct.ValueInt64Pointer(),
 				OfTheLast: &alerts.MetricTimeWindow{
 					MetricTimeWindowMetricTimeWindowSpecificValue: &alerts.MetricTimeWindowMetricTimeWindowSpecificValue{
-						MetricTimeWindowSpecificValue: alerttypes.MetricTimeWindowValueSchemaToProtoMap[condition.OfTheLast.ValueString()].Ptr(),
+						MetricTimeWindowSpecificValue: alerttypes.MetricTimeWindowValueSchemaToProtoMap[ofTheLast].Ptr(),
 					},
 				},
-				ConditionType:       alerttypes.MetricAnomalyConditionToProtoMap[condition.ConditionType.ValueString()].Ptr(),
+				ConditionType:       conditionType.Ptr(),
 				MinNonNullValuesPct: condition.MinNonNullValuesPct.ValueInt64Pointer(),
 			},
 		}
@@ -2141,16 +2220,27 @@ func extractMetricAnomalyRules(ctx context.Context, elements types.Set) ([]alert
 
 func expandMetricTimeWindow(metricTimeWindow types.String) *alerts.MetricTimeWindow {
 	if metricTimeWindow.IsNull() || metricTimeWindow.IsUnknown() {
-		return nil
-	}
-
-	timeWindowStr := metricTimeWindow.ValueString()
-	if timeWindowVal, ok := alerttypes.MetricTimeWindowValueSchemaToProtoMap[timeWindowStr]; ok {
 		return &alerts.MetricTimeWindow{
 			MetricTimeWindowMetricTimeWindowSpecificValue: &alerts.MetricTimeWindowMetricTimeWindowSpecificValue{
-				MetricTimeWindowSpecificValue: &timeWindowVal,
+				MetricTimeWindowSpecificValue: alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED.Ptr(),
 			},
 		}
+	}
+	timeWindowStr := metricTimeWindow.ValueString()
+	if timeWindowStr == "" {
+		timeWindowStr = alerttypes.MetricFilterOperationTypeProtoToSchemaMap[alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED]
+		return &alerts.MetricTimeWindow{
+			MetricTimeWindowMetricTimeWindowSpecificValue: &alerts.MetricTimeWindowMetricTimeWindowSpecificValue{
+				MetricTimeWindowSpecificValue: alerttypes.MetricTimeWindowValueSchemaToProtoMap[timeWindowStr].Ptr(),
+			},
+		}
+	} else if timeWindow, ok := alerttypes.MetricTimeWindowValueSchemaToProtoMap[timeWindowStr]; ok {
+		return &alerts.MetricTimeWindow{
+			MetricTimeWindowMetricTimeWindowSpecificValue: &alerts.MetricTimeWindowMetricTimeWindowSpecificValue{
+				MetricTimeWindowSpecificValue: timeWindow.Ptr(),
+			},
+		}
+
 	} else {
 		return &alerts.MetricTimeWindow{
 			MetricTimeWindowMetricTimeWindowDynamicDuration: &alerts.MetricTimeWindowMetricTimeWindowDynamicDuration{
@@ -2192,7 +2282,7 @@ func expandFlowAlertTypeDefinition(ctx context.Context, properties *alerts.Alert
 	properties.AlertDefPropertiesFlow.Name = alertResourceModel.Name.ValueStringPointer()
 	properties.AlertDefPropertiesFlow.Description = alertResourceModel.Description.ValueStringPointer()
 	properties.AlertDefPropertiesFlow.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesFlow.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesFlow.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
 	properties.AlertDefPropertiesFlow.GroupByKeys = groupBy
 	properties.AlertDefPropertiesFlow.IncidentsSettings = incidentsSettings
 	properties.AlertDefPropertiesFlow.NotificationGroup = notificationGroup
@@ -2248,9 +2338,13 @@ func extractFlowStage(ctx context.Context, object types.Object) (*alerts.FlowSta
 	}
 
 	timeFrameMs := strconv.FormatInt(stageModel.TimeframeMs.ValueInt64(), 10)
+	timeFrameType := stageModel.TimeframeType.ValueString()
+	if timeFrameType == "" {
+		timeFrameType = alerttypes.FlowStageTimeFrameTypeProtoToSchemaMap[alerts.TIMEFRAMETYPE_TIMEFRAME_TYPE_UNSPECIFIED]
+	}
 	flowStage := &alerts.FlowStages{
 		TimeframeMs:   &timeFrameMs,
-		TimeframeType: alerttypes.FlowStageTimeFrameTypeSchemaToProtoMap[stageModel.TimeframeType.ValueString()].Ptr(),
+		TimeframeType: alerttypes.FlowStageTimeFrameTypeSchemaToProtoMap[timeFrameType].Ptr(),
 	}
 
 	if flowStagesGroups := stageModel.FlowStagesGroups; !(flowStagesGroups.IsNull() || flowStagesGroups.IsUnknown()) {
@@ -2303,10 +2397,18 @@ func extractFlowStagesGroup(ctx context.Context, object types.Object) (*alerts.F
 		return nil, diags
 	}
 
+	nextOp := groupModel.NextOp.ValueString()
+	if nextOp == "" {
+		nextOp = alerttypes.FlowStagesGroupNextOpProtoToSchemaMap[alerts.NEXTOP_NEXT_OP_AND_OR_UNSPECIFIED]
+	}
+	alertsOp := groupModel.AlertsOp.ValueString()
+	if alertsOp == "" {
+		alertsOp = alerttypes.FlowStagesGroupAlertsOpProtoToSchemaMap[alerts.ALERTSOP_ALERTS_OP_AND_OR_UNSPECIFIED]
+	}
 	return &alerts.FlowStagesGroup{
 		AlertDefs: alertDefs,
-		NextOp:    alerttypes.FlowStagesGroupNextOpSchemaToProtoMap[groupModel.NextOp.ValueString()].Ptr(),
-		AlertsOp:  alerttypes.FlowStagesGroupAlertsOpSchemaToProtoMap[groupModel.AlertsOp.ValueString()].Ptr(),
+		NextOp:    alerttypes.FlowStagesGroupNextOpSchemaToProtoMap[nextOp].Ptr(),
+		AlertsOp:  alerttypes.FlowStagesGroupAlertsOpSchemaToProtoMap[alertsOp].Ptr(),
 	}, nil
 
 }
@@ -2343,7 +2445,7 @@ func expandSloThresholdAlertTypeDefinition(ctx context.Context, properties *aler
 	properties.AlertDefPropertiesSloThreshold.Name = alertResourceModel.Name.ValueStringPointer()
 	properties.AlertDefPropertiesSloThreshold.Description = alertResourceModel.Description.ValueStringPointer()
 	properties.AlertDefPropertiesSloThreshold.Enabled = alertResourceModel.Enabled.ValueBoolPointer()
-	properties.AlertDefPropertiesSloThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[alertResourceModel.Priority.ValueString()].Ptr()
+	properties.AlertDefPropertiesSloThreshold.Priority = alerttypes.AlertPrioritySchemaToProtoMap[extractAlertPriority(alertResourceModel.Priority)].Ptr()
 	properties.AlertDefPropertiesSloThreshold.GroupByKeys = groupBy
 	properties.AlertDefPropertiesSloThreshold.IncidentsSettings = incidentsSettings
 	properties.AlertDefPropertiesSloThreshold.NotificationGroup = notificationGroup
@@ -2589,12 +2691,16 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 	if diags.HasError() {
 		return nil, diags
 	}
+	alertPriority := getAlertPriority(alertProperties)
+	if alertPriority == nil {
+		alertPriority = alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED.Ptr()
+	}
 	return &alerttypes.AlertResourceModel{
 		ID:                types.StringPointerValue(alert.Id),
 		Name:              types.StringPointerValue(getAlertName(alertProperties)),
 		Description:       types.StringPointerValue(getAlertDescription(alertProperties)),
 		Enabled:           types.BoolPointerValue(getAlertEnabled(alertProperties)),
-		Priority:          types.StringValue(alerttypes.AlertPriorityProtoToSchemaMap[*getAlertPriority(alertProperties)]),
+		Priority:          types.StringValue(alerttypes.AlertPriorityProtoToSchemaMap[*alertPriority]),
 		Schedule:          alertSchedule,
 		TypeDefinition:    alertTypeDefinition,
 		GroupBy:           utils.StringSliceToTypeStringList(getAlertGroupByKeys(alertProperties)),
@@ -2967,8 +3073,15 @@ func flattenAdvancedTargetSettings(ctx context.Context, webhooksSettings []alert
 			diags.Append(dgs...)
 			continue
 		}
+
+		var notifyOn alerts.NotifyOn
+		if notification.NotifyOn != nil {
+			notifyOn = *notification.NotifyOn
+		} else {
+			notifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED
+		}
 		notificationModel := alerttypes.WebhooksSettingsModel{
-			NotifyOn:           types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[notification.GetNotifyOn()]),
+			NotifyOn:           types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[notifyOn]),
 			RetriggeringPeriod: retriggeringPeriod,
 			IntegrationID:      types.StringNull(),
 			Recipients:         types.SetNull(types.StringType),
@@ -3015,10 +3128,17 @@ func flattenNotificationDestinations(ctx context.Context, destinations []alerts.
 		if diags.HasError() {
 			return types.ListNull(types.ObjectType{AttrTypes: alertschema.NotificationDestinationsV2Attr()}), diags
 		}
+
+		var notifyOn alerts.NotifyOn
+		if destination.NotifyOn != nil {
+			notifyOn = *destination.NotifyOn
+		} else {
+			notifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED
+		}
 		destinationModel := alerttypes.NotificationDestinationModel{
 			ConnectorId:               types.StringValue(destination.GetConnectorId()),
 			PresetId:                  types.StringValue(destination.GetPresetId()),
-			NotifyOn:                  types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[destination.GetNotifyOn()]),
+			NotifyOn:                  types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[notifyOn]),
 			TriggeredRoutingOverrides: flattenedTriggeredRoutingOverrides,
 			ResolvedRoutingOverrides:  flattenedResolvedRoutingOverrides,
 		}
@@ -3074,8 +3194,14 @@ func flattenNotificationRouter(ctx context.Context, notificationRouter *alerts.N
 		return types.ObjectNull(alertschema.NotificationRouterAttr()), nil
 	}
 
+	var notifyOn alerts.NotifyOn
+	if notificationRouter.NotifyOn != nil {
+		notifyOn = *notificationRouter.NotifyOn
+	} else {
+		notifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED
+	}
 	notificationRouterModel := alerttypes.NotificationRouterModel{
-		NotifyOn: types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[notificationRouter.GetNotifyOn()]),
+		NotifyOn: types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[notifyOn]),
 	}
 	return types.ObjectValueFrom(ctx, alertschema.NotificationRouterAttr(), notificationRouterModel)
 }
@@ -3100,8 +3226,14 @@ func flattenIncidentsSettings(ctx context.Context, incidentsSettings *alerts.Ale
 		return types.ObjectNull(alertschema.IncidentsSettingsAttr()), diags
 	}
 
+	var notifyOn alerts.NotifyOn
+	if incidentsSettings.NotifyOn != nil {
+		notifyOn = *incidentsSettings.NotifyOn
+	} else {
+		notifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED
+	}
 	incidentsSettingsModel := alerttypes.IncidentsSettingsModel{
-		NotifyOn:           types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[incidentsSettings.GetNotifyOn()]),
+		NotifyOn:           types.StringValue(alerttypes.NotifyOnProtoToSchemaMap[notifyOn]),
 		RetriggeringPeriod: retriggeringPeriod,
 	}
 	return types.ObjectValueFrom(ctx, alertschema.IncidentsSettingsAttr(), incidentsSettingsModel)
@@ -3201,9 +3333,9 @@ func flattenAlertsLogsFilter(ctx context.Context, filter *alerts.V3LogsFilter) (
 	}
 
 	var diags diag.Diagnostics
-	var logsFilterModer alerttypes.AlertsLogsFilterModel
+	var logsFilterModel alerttypes.AlertsLogsFilterModel
 	if simpleFilter := filter.SimpleFilter; simpleFilter != nil {
-		logsFilterModer.SimpleFilter, diags = flattenSimpleFilter(ctx, simpleFilter)
+		logsFilterModel.SimpleFilter, diags = flattenSimpleFilter(ctx, simpleFilter)
 	} else {
 		return types.ObjectNull(alertschema.LogsFilterAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Logs Filter", "Only simple filter is supported, and it came back null")}
 	}
@@ -3212,7 +3344,7 @@ func flattenAlertsLogsFilter(ctx context.Context, filter *alerts.V3LogsFilter) (
 		return types.ObjectNull(alertschema.LogsFilterAttr()), diags
 	}
 
-	return types.ObjectValueFrom(ctx, alertschema.LogsFilterAttr(), logsFilterModer)
+	return types.ObjectValueFrom(ctx, alertschema.LogsFilterAttr(), logsFilterModel)
 }
 
 func flattenSimpleFilter(ctx context.Context, filter *alerts.LogsSimpleFilter) (types.Object, diag.Diagnostics) {
@@ -3355,10 +3487,14 @@ func flattenLogsThresholdRuleCondition(ctx context.Context, condition *alerts.Lo
 		return types.ObjectNull(alertschema.LogsThresholdConditionAttr()), nil
 	}
 
+	conditionType := alerts.LOGSTHRESHOLDCONDITIONTYPE_LOGS_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED
+	if condition.ConditionType != nil {
+		conditionType = *condition.ConditionType
+	}
 	return types.ObjectValueFrom(ctx, alertschema.LogsThresholdConditionAttr(), alerttypes.LogsThresholdConditionModel{
 		Threshold:     types.Float64PointerValue(condition.Threshold),
 		TimeWindow:    flattenLogsTimeWindow(condition.TimeWindow),
-		ConditionType: types.StringValue(alerttypes.LogsThresholdConditionMap[condition.GetConditionType()]),
+		ConditionType: types.StringValue(alerttypes.LogsThresholdConditionMap[conditionType]),
 	})
 }
 
@@ -3366,21 +3502,33 @@ func flattenLogsTimeWindow(timeWindow *alerts.LogsTimeWindow) types.String {
 	if timeWindow == nil {
 		return types.StringNull()
 	}
-	return types.StringValue(alerttypes.LogsTimeWindowValueProtoToSchemaMap[timeWindow.GetLogsTimeWindowSpecificValue()])
+	logsTimeWindowValue := alerts.LOGSTIMEWINDOWVALUE_LOGS_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED
+	if timeWindow.LogsTimeWindowSpecificValue != nil {
+		logsTimeWindowValue = *timeWindow.LogsTimeWindowSpecificValue
+	}
+	return types.StringValue(alerttypes.LogsTimeWindowValueProtoToSchemaMap[logsTimeWindowValue])
 }
 
 func flattenLogsRatioTimeWindow(timeWindow *alerts.LogsRatioTimeWindow) types.String {
 	if timeWindow == nil {
 		return types.StringNull()
 	}
-	return types.StringValue(alerttypes.LogsRatioTimeWindowValueProtoToSchemaMap[timeWindow.GetLogsRatioTimeWindowSpecificValue()])
+	timeWindowValue := timeWindow.LogsRatioTimeWindowSpecificValue
+	if timeWindowValue == nil {
+		timeWindowValue = alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED.Ptr()
+	}
+	return types.StringValue(alerttypes.LogsRatioTimeWindowValueProtoToSchemaMap[*timeWindowValue])
 }
 
 func flattenLogsNewValueTimeWindow(timeWindow *alerts.LogsNewValueTimeWindow) types.String {
 	if timeWindow == nil {
 		return types.StringNull()
 	}
-	return types.StringValue(alerttypes.LogsNewValueTimeWindowValueProtoToSchemaMap[timeWindow.GetLogsNewValueTimeWindowSpecificValue()])
+	timeWindowValue := timeWindow.LogsNewValueTimeWindowSpecificValue
+	if timeWindowValue == nil {
+		timeWindowValue = alerts.LOGSNEWVALUETIMEWINDOWVALUE_LOGS_NEW_VALUE_TIME_WINDOW_VALUE_HOURS_12_OR_UNSPECIFIED.Ptr().Ptr()
+	}
+	return types.StringValue(alerttypes.LogsNewValueTimeWindowValueProtoToSchemaMap[*timeWindowValue])
 }
 
 func flattenUndetectedValuesManagement(ctx context.Context, undetectedValuesManagement *alerts.V3UndetectedValuesManagement) (types.Object, diag.Diagnostics) {
@@ -3389,8 +3537,12 @@ func flattenUndetectedValuesManagement(ctx context.Context, undetectedValuesMana
 		undetectedValuesManagementModel.TriggerUndetectedValues = types.BoolValue(false)
 		undetectedValuesManagementModel.AutoRetireTimeframe = types.StringValue(alerttypes.AutoRetireTimeframeProtoToSchemaMap[alerts.V3AUTORETIRETIMEFRAME_AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED])
 	} else {
+		autoRetireTimeFrame := undetectedValuesManagement.AutoRetireTimeframe
+		if autoRetireTimeFrame == nil {
+			autoRetireTimeFrame = alerts.V3AUTORETIRETIMEFRAME_AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED.Ptr()
+		}
 		undetectedValuesManagementModel.TriggerUndetectedValues = types.BoolPointerValue(undetectedValuesManagement.TriggerUndetectedValues)
-		undetectedValuesManagementModel.AutoRetireTimeframe = types.StringValue(alerttypes.AutoRetireTimeframeProtoToSchemaMap[undetectedValuesManagement.GetAutoRetireTimeframe()])
+		undetectedValuesManagementModel.AutoRetireTimeframe = types.StringValue(alerttypes.AutoRetireTimeframeProtoToSchemaMap[*autoRetireTimeFrame])
 	}
 	return types.ObjectValueFrom(ctx, alertschema.UndetectedValuesManagementAttr(), undetectedValuesManagementModel)
 }
@@ -3470,6 +3622,11 @@ func flattenLogsRatioThreshold(ctx context.Context, ratioThreshold *alerts.LogsR
 		return types.ObjectNull(alertschema.LogsRatioThresholdAttr()), diags
 	}
 
+	groupByFor := ratioThreshold.GroupByFor
+	if groupByFor == nil {
+		groupByFor = alerts.LOGSRATIOGROUPBYFOR_LOGS_RATIO_GROUP_BY_FOR_BOTH_OR_UNSPECIFIED.Ptr()
+	}
+
 	logsRatioMoreThanModel := alerttypes.LogsRatioThresholdModel{
 		Numerator:                 numeratorLogsFilter,
 		NumeratorAlias:            types.StringPointerValue(ratioThreshold.NumeratorAlias),
@@ -3477,7 +3634,7 @@ func flattenLogsRatioThreshold(ctx context.Context, ratioThreshold *alerts.LogsR
 		DenominatorAlias:          types.StringPointerValue(ratioThreshold.DenominatorAlias),
 		Rules:                     rules,
 		NotificationPayloadFilter: utils.StringSliceToTypeStringSet(ratioThreshold.GetNotificationPayloadFilter()),
-		GroupByFor:                types.StringValue(alerttypes.LogsRatioGroupByForProtoToSchemaMap[ratioThreshold.GetGroupByFor()]),
+		GroupByFor:                types.StringValue(alerttypes.LogsRatioGroupByForProtoToSchemaMap[*groupByFor]),
 		CustomEvaluationDelay:     types.Int32PointerValue(ratioThreshold.EvaluationDelayMs),
 	}
 	return types.ObjectValueFrom(ctx, alertschema.LogsRatioThresholdAttr(), logsRatioMoreThanModel)
@@ -3516,11 +3673,15 @@ func flattenLogsRatioThresholdRuleCondition(ctx context.Context, condition *aler
 	if condition == nil {
 		return types.ObjectNull(alertschema.LogsRatioThresholdRuleConditionAttr()), nil
 	}
+	conditionType := condition.ConditionType
+	if conditionType == nil {
+		conditionType = alerts.LOGSRATIOCONDITIONTYPE_LOGS_RATIO_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED.Ptr()
+	}
 
 	return types.ObjectValueFrom(ctx, alertschema.LogsRatioThresholdRuleConditionAttr(), alerttypes.LogsRatioConditionModel{
 		Threshold:     types.Float64PointerValue(condition.Threshold),
 		TimeWindow:    flattenLogsRatioTimeWindow(condition.TimeWindow),
-		ConditionType: types.StringValue(alerttypes.LogsRatioConditionMap[condition.GetConditionType()]),
+		ConditionType: types.StringValue(alerttypes.LogsRatioConditionMap[*conditionType]),
 	},
 	)
 }
@@ -3529,9 +3690,12 @@ func flattenAlertOverride(ctx context.Context, override *alerts.AlertDefOverride
 	if override == nil {
 		return types.ObjectNull(alertschema.AlertOverrideAttr()), nil
 	}
-
+	priority := alerts.ALERTDEFPRIORITY_ALERT_DEF_PRIORITY_P5_OR_UNSPECIFIED
+	if override.Priority != nil {
+		priority = *override.Priority
+	}
 	return types.ObjectValueFrom(ctx, alertschema.AlertOverrideAttr(), alerttypes.AlertOverrideModel{
-		Priority: types.StringValue(alerttypes.AlertPriorityProtoToSchemaMap[override.GetPriority()]),
+		Priority: types.StringValue(alerttypes.AlertPriorityProtoToSchemaMap[priority]),
 	})
 }
 
@@ -3603,7 +3767,11 @@ func flattenLogsUniqueTimeWindow(timeWindow *alerts.LogsUniqueValueTimeWindow) t
 	if timeWindow == nil {
 		return types.StringNull()
 	}
-	return types.StringValue(alerttypes.LogsUniqueCountTimeWindowValueProtoToSchemaMap[timeWindow.GetLogsUniqueValueTimeWindowSpecificValue()])
+	timeWindowValue := timeWindow.LogsUniqueValueTimeWindowSpecificValue
+	if timeWindow == nil {
+		timeWindowValue = alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTE_1_OR_UNSPECIFIED.Ptr()
+	}
+	return types.StringValue(alerttypes.LogsUniqueCountTimeWindowValueProtoToSchemaMap[*timeWindowValue])
 }
 
 func flattenLogsNewValue(ctx context.Context, newValue *alerts.LogsNewValueType) (types.Object, diag.Diagnostics) {
@@ -3808,11 +3976,20 @@ func flattenLogsTimeRelativeRuleCondition(ctx context.Context, condition *alerts
 	if condition == nil {
 		return types.ObjectNull(alertschema.LogsTimeRelativeConditionAttr()), nil
 	}
+	comparedTo := condition.ComparedTo
+	if comparedTo == nil {
+		comparedTo = alerts.LOGSTIMERELATIVECOMPAREDTO_LOGS_TIME_RELATIVE_COMPARED_TO_PREVIOUS_HOUR_OR_UNSPECIFIED.Ptr().Ptr()
+	}
+
+	conditionType := condition.ConditionType
+	if conditionType == nil {
+		conditionType = alerts.LOGSTIMERELATIVECONDITIONTYPE_LOGS_TIME_RELATIVE_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED.Ptr()
+	}
 
 	return types.ObjectValueFrom(ctx, alertschema.LogsTimeRelativeConditionAttr(), alerttypes.LogsTimeRelativeConditionModel{
 		Threshold:     types.Float64PointerValue(condition.Threshold),
-		ComparedTo:    types.StringValue(alerttypes.LogsTimeRelativeComparedToProtoToSchemaMap[condition.GetComparedTo()]),
-		ConditionType: types.StringValue(alerttypes.LogsTimeRelativeConditionMap[condition.GetConditionType()]),
+		ComparedTo:    types.StringValue(alerttypes.LogsTimeRelativeComparedToProtoToSchemaMap[*comparedTo]),
+		ConditionType: types.StringValue(alerttypes.LogsTimeRelativeConditionMap[*conditionType]),
 	})
 }
 
@@ -3892,24 +4069,32 @@ func flattenMetricThresholdRuleCondition(ctx context.Context, condition *alerts.
 		return types.ObjectNull(alertschema.MetricThresholdConditionAttr()), nil
 	}
 
+	conditionType := condition.ConditionType
+	if conditionType == nil {
+		conditionType = alerts.METRICTHRESHOLDCONDITIONTYPE_METRIC_THRESHOLD_CONDITION_TYPE_MORE_THAN_OR_UNSPECIFIED.Ptr()
+	}
 	return types.ObjectValueFrom(ctx, alertschema.MetricThresholdConditionAttr(), alerttypes.MetricThresholdConditionModel{
 		Threshold:     types.Float64PointerValue(condition.Threshold),
 		ForOverPct:    types.Int64PointerValue(condition.ForOverPct),
 		OfTheLast:     flattenMetricTimeWindow(condition.OfTheLast),
-		ConditionType: types.StringValue(alerttypes.MetricsThresholdConditionMap[condition.GetConditionType()]),
+		ConditionType: types.StringValue(alerttypes.MetricsThresholdConditionMap[*conditionType]),
 	})
 }
 
 func flattenMetricTimeWindow(timeWindow *alerts.MetricTimeWindow) types.String {
 	if timeWindow == nil {
-		return types.StringNull()
+		return types.StringValue(alerttypes.MetricFilterOperationTypeProtoToSchemaMap[alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED])
 	}
 	if specificValue := timeWindow.MetricTimeWindowMetricTimeWindowSpecificValue; specificValue != nil {
-		return types.StringValue(alerttypes.MetricFilterOperationTypeProtoToSchemaMap[*specificValue.MetricTimeWindowSpecificValue.Ptr()])
+		metricTimeWindowSpecificValue := specificValue.MetricTimeWindowSpecificValue
+		if metricTimeWindowSpecificValue == nil {
+			metricTimeWindowSpecificValue = alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED.Ptr()
+		}
+		return types.StringValue(alerttypes.MetricFilterOperationTypeProtoToSchemaMap[*metricTimeWindowSpecificValue])
 	} else if dynamicDuration := timeWindow.MetricTimeWindowMetricTimeWindowDynamicDuration; dynamicDuration != nil {
 		return types.StringPointerValue(dynamicDuration.MetricTimeWindowDynamicDuration)
 	} else {
-		return types.StringNull()
+		return types.StringValue(alerttypes.MetricFilterOperationTypeProtoToSchemaMap[alerts.METRICTIMEWINDOWVALUE_METRIC_TIME_WINDOW_VALUE_MINUTES_1_OR_UNSPECIFIED])
 	}
 }
 
@@ -4142,8 +4327,12 @@ func flattenTracingTimeWindow(timeWindow *alerts.TracingTimeWindow) types.String
 	if timeWindow == nil {
 		return types.StringNull()
 	}
+	timeWindowValue := timeWindow.TracingTimeWindowValue
+	if timeWindow == nil {
+		timeWindowValue = alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED.Ptr()
+	}
 
-	return types.StringValue(alerttypes.TracingTimeWindowProtoToSchemaMap[timeWindow.GetTracingTimeWindowValue()])
+	return types.StringValue(alerttypes.TracingTimeWindowProtoToSchemaMap[*timeWindowValue])
 }
 
 func flattenMetricAnomaly(ctx context.Context, anomaly *alerts.MetricAnomalyType) (types.Object, diag.Diagnostics) {
@@ -4188,12 +4377,17 @@ func flattenMetricAnomalyCondition(ctx context.Context, condition *alerts.Metric
 		return types.ObjectNull(alertschema.MetricAnomalyConditionAttr()), nil
 	}
 
+	conditionType := condition.ConditionType
+	if conditionType == nil {
+		conditionType = alerts.METRICANOMALYCONDITIONTYPE_METRIC_ANOMALY_CONDITION_TYPE_MORE_THAN_USUAL_OR_UNSPECIFIED.Ptr()
+	}
+
 	return types.ObjectValueFrom(ctx, alertschema.MetricAnomalyConditionAttr(), alerttypes.MetricAnomalyConditionModel{
 		MinNonNullValuesPct: types.Int64PointerValue(condition.MinNonNullValuesPct),
 		Threshold:           types.Float64PointerValue(condition.Threshold),
 		ForOverPct:          types.Int64PointerValue(condition.ForOverPct),
 		OfTheLast:           flattenMetricTimeWindow(condition.OfTheLast),
-		ConditionType:       types.StringValue(alerttypes.MetricAnomalyConditionMap[condition.GetConditionType()]),
+		ConditionType:       types.StringValue(alerttypes.MetricAnomalyConditionMap[*conditionType]),
 	},
 	)
 }
@@ -4241,10 +4435,14 @@ func flattenFlowStage(ctx context.Context, stage *alerts.FlowStages) (*alerttype
 	if err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Timeframe Ms", fmt.Sprintf("Could not parse Timeframe Ms value '%s' to int64: %s", *stage.TimeframeMs, err.Error()))}
 	}
+	timeFrameType := stage.TimeframeType
+	if timeFrameType == nil {
+		timeFrameType = alerts.TIMEFRAMETYPE_TIMEFRAME_TYPE_UNSPECIFIED.Ptr()
+	}
 	flowStageModel := &alerttypes.FlowStageModel{
 		FlowStagesGroups: flowStagesGroups,
 		TimeframeMs:      types.Int64PointerValue(&timeFrameMs),
-		TimeframeType:    types.StringValue(alerttypes.FlowStageTimeFrameTypeProtoToSchemaMap[stage.GetTimeframeType()]),
+		TimeframeType:    types.StringValue(alerttypes.FlowStageTimeFrameTypeProtoToSchemaMap[*timeFrameType]),
 	}
 	return flowStageModel, nil
 
@@ -4428,10 +4626,14 @@ func flattenSloTimeDuration(ctx context.Context, td *alerts.TimeDuration) (types
 	if err != nil {
 		return types.ObjectNull(alertschema.SloDurationAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Duration", fmt.Sprintf("Could not parse Duration value '%s' to int64: %s", *td.Duration, err.Error()))}
 	}
+	unit := td.Unit
+	if unit == nil {
+		unit = alerts.DURATIONUNIT_DURATION_UNIT_UNSPECIFIED.Ptr()
+	}
 	return types.ObjectValueFrom(ctx, alertschema.SloDurationWrapperAttr(), alerttypes.SloThresholdDurationWrapperModel{
 		TimeDuration: types.ObjectValueMust(alertschema.SloDurationAttr(), map[string]attr.Value{
 			"duration": types.Int64Value(duration),
-			"unit":     types.StringValue(alerttypes.DurationUnitProtoToSchemaMap[td.GetUnit()]),
+			"unit":     types.StringValue(alerttypes.DurationUnitProtoToSchemaMap[*unit]),
 		}),
 	})
 }
