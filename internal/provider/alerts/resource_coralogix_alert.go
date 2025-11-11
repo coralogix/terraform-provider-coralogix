@@ -203,8 +203,12 @@ func extractIncidentsSettings(ctx context.Context, incidentsSettingsObject types
 		return nil, diags
 	}
 
-	incidentsSettings := &alerts.AlertDefIncidentSettings{
-		NotifyOn: alerttypes.NotifyOnSchemaToProtoMap[incidentsSettingsModel.NotifyOn.ValueString()].Ptr(),
+	incidentsSettings := &alerts.AlertDefIncidentSettings{}
+
+	if incidentsSettings.NotifyOn != nil {
+		incidentsSettings.NotifyOn = alerttypes.NotifyOnSchemaToProtoMap[incidentsSettingsModel.NotifyOn.ValueString()].Ptr()
+	} else {
+		incidentsSettings.NotifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED.Ptr()
 	}
 
 	incidentsSettings, diags := expandIncidentsSettingsByRetriggeringPeriod(ctx, incidentsSettings, incidentsSettingsModel.RetriggeringPeriod)
@@ -330,13 +334,18 @@ func extractDestinations(ctx context.Context, notificationDestinations types.Lis
 		destination := alerts.NotificationDestination{
 			ConnectorId: destinationModel.ConnectorId.ValueStringPointer(),
 			PresetId:    &presetId,
-			NotifyOn:    alerttypes.NotifyOnSchemaToProtoMap[destinationModel.NotifyOn.ValueString()].Ptr(),
 			TriggeredRoutingOverrides: &alerts.NotificationRouting{
 				ConfigOverrides: triggeredRoutingOverrides,
 			},
 			ResolvedRouteOverrides: &alerts.NotificationRouting{
 				ConfigOverrides: resolvedRoutingOverrides,
 			},
+		}
+
+		if destination.NotifyOn != nil {
+			destination.NotifyOn = alerttypes.NotifyOnSchemaToProtoMap[destinationModel.NotifyOn.ValueString()].Ptr()
+		} else {
+			destination.NotifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED.Ptr()
 		}
 		expandedDestinations = append(expandedDestinations, destination)
 	}
@@ -432,20 +441,27 @@ func extractNotificationRouter(ctx context.Context, routerObject types.Object) (
 		return nil, diags
 	}
 
-	notifyOn := alerttypes.NotifyOnSchemaToProtoMap[routerModel.NotifyOn.ValueString()]
 	id := "router_default"
 	router := &alerts.NotificationRouter{
-		Id:       &id,
-		NotifyOn: &notifyOn,
+		Id: &id,
+	}
+
+	if router.NotifyOn != nil {
+		router.NotifyOn = alerttypes.NotifyOnSchemaToProtoMap[routerModel.NotifyOn.ValueString()].Ptr()
+	} else {
+		router.NotifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED.Ptr()
 	}
 
 	return router, nil
 }
 
 func extractAdvancedTargetSetting(ctx context.Context, webhooksSettingsModel alerttypes.WebhooksSettingsModel) (*alerts.AlertDefWebhooksSettings, diag.Diagnostics) {
-	notifyOn := alerttypes.NotifyOnSchemaToProtoMap[webhooksSettingsModel.NotifyOn.ValueString()]
-	advancedTargetSettings := &alerts.AlertDefWebhooksSettings{
-		NotifyOn: &notifyOn,
+	advancedTargetSettings := &alerts.AlertDefWebhooksSettings{}
+
+	if advancedTargetSettings.NotifyOn != nil {
+		advancedTargetSettings.NotifyOn = alerttypes.NotifyOnSchemaToProtoMap[webhooksSettingsModel.NotifyOn.ValueString()].Ptr()
+	} else {
+		advancedTargetSettings.NotifyOn = alerts.NOTIFYON_NOTIFY_ON_TRIGGERED_ONLY_UNSPECIFIED.Ptr()
 	}
 	advancedTargetSettings, diags := expandAlertNotificationByRetriggeringPeriod(ctx, advancedTargetSettings, webhooksSettingsModel.RetriggeringPeriod)
 	if diags.HasError() {
@@ -2957,6 +2973,7 @@ func flattenAdvancedTargetSettings(ctx context.Context, webhooksSettings []alert
 			IntegrationID:      types.StringNull(),
 			Recipients:         types.SetNull(types.StringType),
 		}
+
 		integration := notification.Integration
 		if integration != nil {
 			if integrationIdType := integration.V3IntegrationTypeIntegrationId; integrationIdType != nil {
