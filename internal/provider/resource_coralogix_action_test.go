@@ -22,12 +22,9 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var actionResourceName = "coralogix_action.test"
@@ -112,13 +109,9 @@ func testAccCheckActionDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &cxsdk.GetActionRequest{
-			Id: wrapperspb.String(rs.Primary.ID),
-		}
-
-		resp, err := client.Get(ctx, req)
-		if err == nil {
-			if resp.Action.Id.Value == rs.Primary.ID {
+		resp, _, err := client.ActionsServiceGetAction(ctx, rs.Primary.ID).Execute()
+		if err == nil && resp.Action != nil && resp.Action.Id != nil {
+			if *resp.Action.Id == rs.Primary.ID {
 				return fmt.Errorf("action still exists: %s", rs.Primary.ID)
 			}
 		}
