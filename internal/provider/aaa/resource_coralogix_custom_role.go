@@ -141,6 +141,10 @@ func (r *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 	result, httpResponse, err := r.client.
 		RoleManagementServiceGetCustomRole(ctx, *createResult.Id).
 		Execute()
+	if err != nil {
+		resp.Diagnostics.AddError("Error refreshing updated coralogix_custom_role. State was not updated", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
+		return
+	}
 	log.Printf("[INFO] Created new coralogix_custom_role: %s", utils.FormatJSON(result))
 
 	state := flattenCustomRole(result.Role)
@@ -173,8 +177,8 @@ func (r *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_custom_role %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
+				fmt.Sprintf("coralogix_custom_role %v is in state, but no longer exists in Coralogix backend", *id),
+				fmt.Sprintf("%v will be recreated when you apply", *id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
@@ -218,18 +222,23 @@ func (r *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("coralogix_custom_role %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
+				fmt.Sprintf("coralogix_custom_role %v is in state, but no longer exists in Coralogix backend", *id),
+				fmt.Sprintf("%v will be recreated when you apply", *id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error updating coralogix_custom_role", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", nil))
+			resp.Diagnostics.AddError("Error updating coralogix_custom_role", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", rq))
 		}
 		return
 	}
 	result, httpResponse, err := r.client.
 		RoleManagementServiceGetCustomRole(ctx, *id).
 		Execute()
+
+	if err != nil {
+		resp.Diagnostics.AddError("Error refreshing updated coralogix_custom_role. State was not updated", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
+		return
+	}
 	log.Printf("[INFO] Replaced new coralogix_custom_role: %s", utils.FormatJSON(result))
 
 	state := flattenCustomRole(result.Role)
