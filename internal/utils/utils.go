@@ -853,7 +853,7 @@ func TypeStringToWrapperspbUint32(str types.String) (*wrapperspb.UInt32Value, di
 }
 
 func TypeStringToInt64Pointer(str types.String) (*int64, diag.Diagnostics) {
-	parsed, err := strconv.ParseUint(str.ValueString(), 10, 64)
+	parsed, err := strconv.ParseInt(str.ValueString(), 10, 64)
 	if err != nil {
 		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Failed to convert string to int64", err.Error())}
 	}
