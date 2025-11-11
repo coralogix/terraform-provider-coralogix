@@ -28,6 +28,7 @@ import (
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 	webhhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
 	presets "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/presets_service"
+	roless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/role_management_service"
 	scopess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/scopes_service"
 
 	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
@@ -35,12 +36,8 @@ import (
 
 type ClientSet struct {
 	actions           *cxsdk.ActionsClient
-	alerts            *alerts.AlertDefinitionsServiceAPIService
-	apikeys           *apiKeys.APIKeysServiceAPIService
 	enrichments       *cxsdk.EnrichmentsClient
 	dataSet           *cxsdk.DataSetClient
-	webhooks          *webhhooks.OutgoingWebhooksServiceAPIService
-	slos              *slos.SlosServiceAPIService
 	legacySlos        *cxsdk.LegacySLOsClient
 	dashboards        *cxsdk.DashboardsClient
 	archiveLogs       *cxsdk.ArchiveLogsClient
@@ -53,18 +50,23 @@ type ClientSet struct {
 	ruleGroups          *cxsdk.RuleGroupsClient
 	recordingRuleGroups *cxsdk.RecordingRuleGroupSetsClient
 	users               *cxsdk.UsersClient
-	customRole          *cxsdk.RolesClient
 	events2Metrics      *cxsdk.Events2MetricsClient
 	groupGrpc           *cxsdk.GroupsClient
-	scopes              *scopess.ScopesServiceAPIService
-	connectors          *connectors.ConnectorsServiceAPIService
-	presets             *presets.PresetsServiceAPIService
-	globalRouters       *globalRouters.GlobalRoutersServiceAPIService
-	ipaccess            *ipaccess.IPAccessServiceAPIService
-	integrations        *integrations.IntegrationServiceAPIService
 	teams               *cxsdk.TeamsClient
-	grafana             *GrafanaClient
-	groups              *GroupsClient
+
+	alerts        *alerts.AlertDefinitionsServiceAPIService
+	apikeys       *apiKeys.APIKeysServiceAPIService
+	webhooks      *webhhooks.OutgoingWebhooksServiceAPIService
+	slos          *slos.SlosServiceAPIService
+	customRole    *roless.RoleManagementServiceAPIService
+	scopes        *scopess.ScopesServiceAPIService
+	connectors    *connectors.ConnectorsServiceAPIService
+	presets       *presets.PresetsServiceAPIService
+	globalRouters *globalRouters.GlobalRoutersServiceAPIService
+	ipaccess      *ipaccess.IPAccessServiceAPIService
+	integrations  *integrations.IntegrationServiceAPIService
+	grafana       *GrafanaClient
+	groups        *GroupsClient
 }
 
 func (c *ClientSet) RuleGroups() *cxsdk.RuleGroupsClient {
@@ -130,7 +132,7 @@ func (c *ClientSet) AlertSchedulers() *cxsdk.AlertSchedulerClient {
 	return c.alertScheduler
 }
 
-func (c *ClientSet) CustomRoles() *cxsdk.RolesClient {
+func (c *ClientSet) CustomRoles() *roless.RoleManagementServiceAPIService {
 	return c.customRole
 }
 
@@ -201,11 +203,11 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		users:               cxsdk.NewUsersClient(apiKeySdk),
 		ruleGroups:          cxsdk.NewRuleGroupsClient(apiKeySdk),
 		recordingRuleGroups: cxsdk.NewRecordingRuleGroupSetsClient(apiKeySdk),
-		customRole:          cxsdk.NewRolesClient(apiKeySdk),
 		events2Metrics:      cxsdk.NewEvents2MetricsClient(apiKeySdk),
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
 		alertScheduler:      cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
+		customRole:    cxsdkOpenapi.NewCustomRolesClient(oasTfCPC),
 		scopes:        cxsdkOpenapi.NewScopesClient(oasTfCPC),
 		presets:       cxsdkOpenapi.NewPresetsClient(oasTfCPC),
 		connectors:    cxsdkOpenapi.NewConnectorsClient(oasTfCPC),
