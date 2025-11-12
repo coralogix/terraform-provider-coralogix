@@ -20,10 +20,9 @@ import (
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
+	"github.com/coralogix/terraform-provider-coralogix/internal/provider/dataplans"
+	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	"google.golang.org/protobuf/encoding/protojson"
-
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -95,12 +94,11 @@ func testAccTCOPoliciesLogsCheckDestroy(s *terraform.State) error {
 		if rs.Type != "coralogix_tco_policies_logs" {
 			continue
 		}
-		logSource := cxsdk.TCOPolicySourceTypeLogs
 
-		if resp, err := client.List(ctx, &cxsdk.GetCompanyPoliciesRequest{SourceType: &logSource}); err == nil {
+		if result, _, err := client.PoliciesServiceGetCompanyPolicies(ctx).SourceType(dataplans.LogSource).Execute(); err == nil {
 			if err == nil {
-				if len(resp.GetPolicies()) != 0 {
-					return fmt.Errorf("tco-policies still exist: %s", protojson.Format(resp))
+				if len(result.GetPolicies()) > 0 {
+					return fmt.Errorf("tco-policies still exist: %s", utils.FormatJSON(result))
 				}
 			}
 		}

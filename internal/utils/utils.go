@@ -564,12 +564,6 @@ func (u UrlValidationFuncFramework) ValidateString(ctx context.Context, req vali
 	}
 }
 
-func FlattenUtc(timeZone string) int32 {
-	utcStr := strings.Split(timeZone, "UTC")[1]
-	utc, _ := strconv.Atoi(utcStr)
-	return int32(utc)
-}
-
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 func RandStringBytes(n int) string {

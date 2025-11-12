@@ -28,6 +28,7 @@ import (
 	integrations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 	webhhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
+	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
 	presets "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/presets_service"
 	roless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/role_management_service"
 	scopess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/scopes_service"
@@ -43,7 +44,6 @@ type ClientSet struct {
 	archiveLogs       *cxsdk.ArchiveLogsClient
 	archiveMetrics    *cxsdk.ArchiveMetricsClient
 	archiveRetentions *cxsdk.ArchiveRetentionsClient
-	tcoPolicies       *cxsdk.TCOPoliciesClient
 	// alertScheduler      *alertScheduler.AlertSchedulerRuleServiceAPIService
 	alertScheduler      *cxsdk.AlertSchedulerClient
 	dahboardsFolders    *cxsdk.DashboardsFoldersClient
@@ -54,6 +54,7 @@ type ClientSet struct {
 	groupGrpc           *cxsdk.GroupsClient
 	teams               *cxsdk.TeamsClient
 
+	tcoPolicies   *tcoPolicys.PoliciesServiceAPIService
 	actions       *actionss.ActionsServiceAPIService
 	alerts        *alerts.AlertDefinitionsServiceAPIService
 	apikeys       *apiKeys.APIKeysServiceAPIService
@@ -105,7 +106,7 @@ func (c *ClientSet) RecordingRuleGroupsSets() *cxsdk.RecordingRuleGroupSetsClien
 	return c.recordingRuleGroups
 }
 
-func (c *ClientSet) TCOPolicies() *cxsdk.TCOPoliciesClient {
+func (c *ClientSet) TCOPolicies() *tcoPolicys.PoliciesServiceAPIService {
 	return c.tcoPolicies
 }
 
@@ -198,7 +199,6 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		archiveLogs:         cxsdk.NewArchiveLogsClient(apiKeySdk),
 		archiveMetrics:      cxsdk.NewArchiveMetricsClient(apiKeySdk),
 		archiveRetentions:   cxsdk.NewArchiveRetentionsClient(apiKeySdk),
-		tcoPolicies:         cxsdk.NewTCOPoliciesClient(apiKeySdk),
 		dahboardsFolders:    cxsdk.NewDashboardsFoldersClient(apiKeySdk),
 		users:               cxsdk.NewUsersClient(apiKeySdk),
 		ruleGroups:          cxsdk.NewRuleGroupsClient(apiKeySdk),
@@ -207,6 +207,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
 		alertScheduler:      cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
+		tcoPolicies:   cxsdkOpenapi.NewTCOPoliciesClient(oasTfCPC),
 		actions:       cxsdkOpenapi.NewActionsClient(oasTfCPC),
 		customRole:    cxsdkOpenapi.NewCustomRolesClient(oasTfCPC),
 		scopes:        cxsdkOpenapi.NewScopesClient(oasTfCPC),
