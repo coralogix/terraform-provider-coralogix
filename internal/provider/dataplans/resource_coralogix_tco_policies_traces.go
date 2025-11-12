@@ -422,8 +422,10 @@ func (r *TCOPoliciesTracesResource) Delete(ctx context.Context, _ resource.Delet
 	ctx, cancel := context.WithTimeout(ctx, 120*time.Second)
 	defer cancel()
 
-	rq := r.client.PoliciesServiceAtomicOverwriteLogPolicies(ctx)
-	log.Printf("[INFO] Updating coralogix_tco_policies_traces: %s", utils.FormatJSON(rq))
+	rq := r.client.
+		PoliciesServiceAtomicOverwriteSpanPolicies(ctx).
+		AtomicOverwriteSpanPoliciesRequest(*tcoPolicys.NewAtomicOverwriteSpanPoliciesRequestWithDefaults())
+	log.Printf("[INFO] Deleting coralogix_tco_policies_traces: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting coralogix_tco_policies_traces",
