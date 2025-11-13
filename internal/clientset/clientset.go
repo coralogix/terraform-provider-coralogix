@@ -32,6 +32,7 @@ import (
 	presets "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/presets_service"
 	roless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/role_management_service"
 	scopess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/scopes_service"
+	archiveLogs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/target_service"
 
 	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 )
@@ -41,7 +42,7 @@ type ClientSet struct {
 	dataSet           *cxsdk.DataSetClient
 	legacySlos        *cxsdk.LegacySLOsClient
 	dashboards        *cxsdk.DashboardsClient
-	archiveLogs       *cxsdk.ArchiveLogsClient
+	archiveLogs       *archiveLogs.TargetServiceAPIService
 	archiveMetrics    *cxsdk.ArchiveMetricsClient
 	archiveRetentions *cxsdk.ArchiveRetentionsClient
 	// alertScheduler      *alertScheduler.AlertSchedulerRuleServiceAPIService
@@ -126,7 +127,7 @@ func (c *ClientSet) ArchiveMetrics() *cxsdk.ArchiveMetricsClient {
 	return c.archiveMetrics
 }
 
-func (c *ClientSet) ArchiveLogs() *cxsdk.ArchiveLogsClient {
+func (c *ClientSet) ArchiveLogs() *archiveLogs.TargetServiceAPIService {
 	return c.archiveLogs
 }
 
@@ -196,7 +197,6 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		dataSet:             cxsdk.NewDataSetClient(apiKeySdk),
 		legacySlos:          cxsdk.NewLegacySLOsClient(apiKeySdk),
 		dashboards:          cxsdk.NewDashboardsClient(apiKeySdk),
-		archiveLogs:         cxsdk.NewArchiveLogsClient(apiKeySdk),
 		archiveMetrics:      cxsdk.NewArchiveMetricsClient(apiKeySdk),
 		archiveRetentions:   cxsdk.NewArchiveRetentionsClient(apiKeySdk),
 		dahboardsFolders:    cxsdk.NewDashboardsFoldersClient(apiKeySdk),
@@ -207,6 +207,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
 		alertScheduler:      cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
+		archiveLogs:   cxsdkOpenapi.NewArchiveLogsTargetClient(oasTfCPC),
 		tcoPolicies:   cxsdkOpenapi.NewTCOPoliciesClient(oasTfCPC),
 		actions:       cxsdkOpenapi.NewActionsClient(oasTfCPC),
 		customRole:    cxsdkOpenapi.NewCustomRolesClient(oasTfCPC),

@@ -18,11 +18,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	archiveLogs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/target_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -32,9 +34,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/encoding/protojson"
 )
+
+// Safeguard against empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
+const RESOURCE_ID_ARCHIVE_LOGS string = "archive-logs-settings"
 
 var (
 	_ resource.ResourceWithConfigure   = &ArchiveLogsResource{}
@@ -55,7 +58,7 @@ func NewArchiveLogsResource() resource.Resource {
 }
 
 type ArchiveLogsResource struct {
-	client *cxsdk.ArchiveLogsClient
+	client *archiveLogs.TargetServiceAPIService
 }
 
 func (r *ArchiveLogsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -135,24 +138,24 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 		return
 	}
 
-	createReq := extractArchiveLogs(*plan)
+	rq := extractArchiveLogs(*plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Creating new archive-logs: %s", protojson.Format(createReq))
-	_, err := r.client.Update(ctx, createReq)
+	log.Printf("[INFO] Creating coralogix_archive_logs: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := r.client.
+		S3TargetServiceSetTarget(ctx).
+		SetTargetResponse(rq).
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error creating archive-logs",
-			utils.FormatRpcErrors(err, cxsdk.ArchiveLogsSetTargetRPC, protojson.Format(createReq)),
-		)
+		resp.Diagnostics.AddError("Error replacing coralogix_archive_logs", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq))
 		return
 	}
-	readResp, err := r.client.Get(ctx)
-	log.Printf("[INFO] Submitted new archive-logs: %s", protojson.Format(readResp))
-	plan = flattenArchiveLogs(readResp, RESOURCE_ID_ARCHIVE_LOGS)
+	log.Printf("[INFO] Created coralogix_archive_logs: %s", utils.FormatJSON(result))
+
+	plan = flattenArchiveLogs(result.Target.TargetS3, RESOURCE_ID_ARCHIVE_LOGS)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -162,29 +165,26 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 	resp.Diagnostics.Append(diags...)
 }
 
-func flattenArchiveLogs(target *cxsdk.GetTargetResponse, id string) *ArchiveLogsResourceModel {
-	if target == nil {
+func flattenArchiveLogs(targetS3 *archiveLogs.TargetS3, id string) *ArchiveLogsResourceModel {
+	if targetS3 == nil {
 		return nil
 	}
-
 	return &ArchiveLogsResourceModel{
 		ID:                types.StringValue(id),
-		Active:            types.BoolValue(target.Target.ArchiveSpec.GetIsActive()),
-		Bucket:            types.StringValue(target.Target.GetS3().GetBucket()),
-		Region:            types.StringValue(target.Target.GetS3().GetRegion()),
-		ArchivingFormatId: types.StringValue(target.Target.ArchiveSpec.GetArchivingFormatId()),
-		EnableTags:        types.BoolValue(target.Target.ArchiveSpec.GetEnableTags()),
+		Active:            types.BoolValue(targetS3.ArchiveSpec.GetIsActive()),
+		Bucket:            types.StringValue(targetS3.GetS3().Bucket),
+		Region:            types.StringPointerValue(targetS3.GetS3().Region),
+		ArchivingFormatId: types.StringValue(targetS3.ArchiveSpec.GetArchivingFormatId()),
+		EnableTags:        types.BoolValue(targetS3.ArchiveSpec.GetEnableTags()),
 	}
 }
 
-func extractArchiveLogs(plan ArchiveLogsResourceModel) *cxsdk.SetTargetRequest {
-	return &cxsdk.SetTargetRequest{
+func extractArchiveLogs(plan ArchiveLogsResourceModel) archiveLogs.SetTargetResponse {
+	return archiveLogs.SetTargetResponse{
 		IsActive: plan.Active.ValueBool(),
-		TargetSpec: &cxsdk.SetS3TargetRequest{
-			S3: &cxsdk.Target{
-				Bucket: plan.Bucket.ValueString(),
-				Region: utils.TypeStringToStringPointer(plan.Region),
-			},
+		S3: &archiveLogs.S3TargetSpec{
+			Bucket: plan.Bucket.ValueString(),
+			Region: utils.TypeStringToStringPointer(plan.Region),
 		},
 	}
 }
@@ -199,30 +199,27 @@ func (r *ArchiveLogsResource) Read(ctx context.Context, req resource.ReadRequest
 
 	//Get refreshed ArchiveLogs value from Coralogix
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Reading archive-logs: %s", id)
-	getResp, err := r.client.Get(ctx)
+	rq := r.client.S3TargetServiceGetTarget(ctx)
+	log.Printf("[INFO] Reading coralogix_archive_logs: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("archive-logs %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("coralogix_archive_logs %q is in state, but no longer exists in Coralogix backend", id),
 				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError(
-				"Error reading archive-logs",
-				utils.FormatRpcErrors(err, cxsdk.ArchiveLogsGetTargetRPC, ""),
+			resp.Diagnostics.AddError("Error reading coralogix_archive_logs",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received archive-logs: %s", protojson.Format(getResp))
+	log.Printf("[INFO] Read coralogix_archive_logs: %s", utils.FormatJSON(result))
 
-	state = flattenArchiveLogs(getResp, id)
-	//
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	state = flattenArchiveLogs(result.Target.TargetS3, id)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -234,33 +231,32 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	updateReq := extractArchiveLogs(*plan)
+	rq := extractArchiveLogs(*plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Updating archive-logs: %s", protojson.Format(updateReq))
-	updateResp, err := r.client.Update(ctx, updateReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error updating archive-logs",
-			utils.FormatRpcErrors(err, cxsdk.E2MCreateRPC, protojson.Format(updateReq)),
-		)
-		return
-	}
-	log.Printf("[INFO] Submitted updated archive-logs %s", protojson.Format(updateResp))
+	log.Printf("[INFO] Updating coralogix_archive_logs: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := r.client.
+		S3TargetServiceSetTarget(ctx).
+		SetTargetResponse(rq).
+		Execute()
 
-	readResp, err := r.client.Get(ctx)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error reading archive-logs",
-			utils.FormatRpcErrors(err, cxsdk.ArchiveLogsGetTargetRPC, ""),
-		)
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("coralogix_archive_logs %v is in state, but no longer exists in Coralogix backend", rq),
+				fmt.Sprintf("%v will be recreated when you apply", rq),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error replacing coralogix_archive_logs", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
+		}
 		return
 	}
-	plan = flattenArchiveLogs(readResp, plan.ID.ValueString())
+	log.Printf("[INFO] Replaced coralogix_archive_logs: %s", utils.FormatJSON(result))
+
+	plan = flattenArchiveLogs(result.Target.TargetS3, plan.ID.ValueString())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -271,8 +267,6 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 }
 
 func (r *ArchiveLogsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-
+	// This API doesn't support deletion :(
+	log.Printf("[INFO] coralogix_archive_logs cannot be deleted")
 }
-
-// Safeguard against empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
-const RESOURCE_ID_ARCHIVE_LOGS string = "archive-logs-settings"
