@@ -207,7 +207,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
 		alertScheduler:      cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
-		archiveLogs:   cxsdkOpenapi.NewArchiveLogsTargetClient(oasTfCPC),
+		archiveLogs:   cxsdkOpenapi.NewArchiveLogsClient(oasTfCPC),
 		tcoPolicies:   cxsdkOpenapi.NewTCOPoliciesClient(oasTfCPC),
 		actions:       cxsdkOpenapi.NewActionsClient(oasTfCPC),
 		customRole:    cxsdkOpenapi.NewCustomRolesClient(oasTfCPC),
