@@ -18,12 +18,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
@@ -36,16 +34,18 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+
+	actionss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/actions_service"
 )
 
 var (
 	_                                       resource.ResourceWithConfigure   = &ActionResource{}
 	_                                       resource.ResourceWithImportState = &ActionResource{}
-	actionSchemaSourceTypeToProtoSourceType                                  = map[string]cxsdk.SourceType{
-		"Log":     cxsdk.SourceTypeLog,
-		"DataMap": cxsdk.SourceTypeDataMap,
+	actionSchemaSourceTypeToProtoSourceType                                  = map[string]actionss.V2SourceType{
+		"Log":     actionss.V2SOURCETYPE_SOURCE_TYPE_LOG,
+		"DataMap": actionss.V2SOURCETYPE_SOURCE_TYPE_DATA_MAP,
 	}
 	actionProtoSourceTypeToSchemaSourceType = utils.ReverseMap(actionSchemaSourceTypeToProtoSourceType)
 	actionValidSourceTypes                  = utils.GetKeys(actionSchemaSourceTypeToProtoSourceType)
@@ -56,7 +56,7 @@ func NewActionResource() resource.Resource {
 }
 
 type ActionResource struct {
-	client *cxsdk.ActionsClient
+	client *actionss.ActionsServiceAPIService
 }
 
 func (r *ActionResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -164,42 +164,41 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	createActionRequest, diags := extractCreateAction(ctx, plan)
+	rq, diags := extractCreateAction(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	actionStr := protojson.Format(createActionRequest)
-	log.Printf("[INFO] Creating new action: %s", actionStr)
-	createResp, err := r.client.Create(ctx, createActionRequest)
+	log.Printf("[INFO] Creating new coralogix_action: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := r.client.
+		ActionsServiceCreateAction(ctx).
+		ActionsServiceCreateActionRequest(*rq).
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err)
-		resp.Diagnostics.AddError("Error creating Action",
-			utils.FormatRpcErrors(err, cxsdk.CreateActionRPC, actionStr),
+		resp.Diagnostics.AddError("Error creating coralogix_action",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	action := createResp.GetAction()
-	log.Printf("[INFO] Submitted new action: %s", protojson.Format(action))
+	log.Printf("[INFO] Created new coralogix_action: %s", utils.FormatJSON(result))
+	action := result.GetAction()
 
-	plan = flattenAction(action)
-
-	// Set state to fully populated data
-	diags = resp.State.Set(ctx, plan)
-	resp.Diagnostics.Append(diags...)
+	plan = flattenAction(&action)
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
-func flattenAction(action *cxsdk.Action) ActionResourceModel {
+func flattenAction(action *actionss.V2Action) ActionResourceModel {
 	return ActionResourceModel{
-		ID:           types.StringValue(action.GetId().GetValue()),
-		Name:         types.StringValue(action.GetName().GetValue()),
-		URL:          types.StringValue(action.GetUrl().GetValue()),
-		IsPrivate:    types.BoolValue(action.GetIsPrivate().GetValue()),
+		ID:           types.StringValue(action.GetId()),
+		Name:         types.StringValue(action.GetName()),
+		URL:          types.StringValue(action.GetUrl()),
+		IsPrivate:    types.BoolValue(action.GetIsPrivate()),
 		SourceType:   types.StringValue(actionProtoSourceTypeToSchemaSourceType[action.GetSourceType()]),
-		Applications: utils.WrappedStringSliceToTypeStringSet(action.GetApplicationNames()),
-		Subsystems:   utils.WrappedStringSliceToTypeStringSet(action.GetSubsystemNames()),
-		CreatedBy:    types.StringValue(action.GetCreatedBy().GetValue()),
-		IsHidden:     types.BoolValue(action.GetIsHidden().GetValue()),
+		Applications: utils.StringSliceToTypeStringSet(action.GetApplicationNames()),
+		Subsystems:   utils.StringSliceToTypeStringSet(action.GetSubsystemNames()),
+		CreatedBy:    types.StringValue(action.GetCreatedBy()),
+		IsHidden:     types.BoolValue(action.GetIsHidden()),
 	}
 }
 
@@ -211,38 +210,34 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	//Get refreshed Action value from Coralogix
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Reading Action: %s", id)
-	getActionReq := &cxsdk.GetActionRequest{Id: wrapperspb.String(id)}
-	getActionResp, err := r.client.Get(ctx, getActionReq)
+
+	rq := r.client.
+		ActionsServiceGetAction(ctx, id)
+
+	log.Printf("[INFO] Reading coralogix_action: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := rq.
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Action %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
+				fmt.Sprintf("coralogix_action %v is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%v will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Action",
-				utils.FormatRpcErrors(err, cxsdk.GetActionRPC, protojson.Format(getActionReq)),
-			)
+			resp.Diagnostics.AddError("Error reading coralogix_action", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		}
 		return
 	}
-	action := getActionResp.GetAction()
-	log.Printf("[INFO] Received Action: %s", protojson.Format(action))
+	log.Printf("[INFO] Replaced new coralogix_action: %s", utils.FormatJSON(result))
+	state = flattenAction(result.Action)
 
-	state = flattenAction(action)
-	//
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Retrieve values from plan
 	var plan ActionResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -250,50 +245,32 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		return
 	}
 
-	actionUpdateReq, diags := extractUpdateAction(ctx, plan)
+	rq, diags := extractUpdateAction(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Updating Action: %s", protojson.Format(actionUpdateReq))
-	actionUpdateResp, err := r.client.Replace(ctx, actionUpdateReq)
+	log.Printf("[INFO] Replacing new coralogix_action: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := r.client.ActionsServiceReplaceAction(ctx).
+		ActionsServiceReplaceActionRequest(*rq).
+		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error updating Action",
-			utils.FormatRpcErrors(err, cxsdk.ReplaceActionRPC, protojson.Format(actionUpdateReq)),
-		)
-		return
-	}
-	log.Printf("[INFO] Submitted updated Action: %s", protojson.Format(actionUpdateResp))
-
-	// Get refreshed Action value from Coralogix
-	id := plan.ID.ValueString()
-	getActionReq := &cxsdk.GetActionRequest{Id: wrapperspb.String(id)}
-	getActionResp, err := r.client.Get(ctx, getActionReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Action %q is in state, but no longer exists in Coralogix backend", id),
-				fmt.Sprintf("%s will be recreated when you apply", id),
+				fmt.Sprintf("coralogix_action %v is in state, but no longer exists in Coralogix backend", rq.Action.Id),
+				fmt.Sprintf("%v will be recreated when you apply", rq.Action.Id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Action",
-				utils.FormatRpcErrors(err, cxsdk.GetActionRPC, protojson.Format(getActionReq)),
-			)
+			resp.Diagnostics.AddError("Error updating coralogix_action", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", rq))
 		}
 		return
 	}
-	log.Printf("[INFO] Received Action: %s", protojson.Format(getActionResp))
+	log.Printf("[INFO] Replaced new coralogix_action: %s", utils.FormatJSON(result))
 
-	plan = flattenAction(getActionResp.GetAction())
+	plan = flattenAction(result.Action)
 
-	// Set state to fully populated data
-	diags = resp.State.Set(ctx, plan)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
 func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -305,16 +282,18 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting Action %s", id)
-	deleteReq := &cxsdk.DeleteActionRequest{Id: wrapperspb.String(id)}
-	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting Action %s", id),
-			utils.FormatRpcErrors(err, cxsdk.DeleteActionRPC, protojson.Format(deleteReq)),
+	rq := r.client.ActionsServiceDeleteAction(ctx, id)
+	log.Printf("[INFO] Deleting coralogix_action: %s", utils.FormatJSON(rq))
+
+	result, httpResponse, err := rq.Execute()
+
+	if err != nil {
+		resp.Diagnostics.AddError("Error deleting coralogix_action",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Action %s deleted", id)
+	log.Printf("[INFO] Deleted coralogix_action: %s", utils.FormatJSON(result))
 }
 
 type ActionResourceModel struct {
@@ -329,52 +308,43 @@ type ActionResourceModel struct {
 	IsHidden     types.Bool   `tfsdk:"is_hidden"`
 }
 
-func extractCreateAction(ctx context.Context, plan ActionResourceModel) (*cxsdk.CreateActionRequest, diag.Diagnostics) {
+func extractCreateAction(ctx context.Context, plan ActionResourceModel) (*actionss.ActionsServiceCreateActionRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	name := utils.TypeStringToWrapperspbString(plan.Name)
-	url := utils.TypeStringToWrapperspbString(plan.URL)
-	isPrivate := wrapperspb.Bool(plan.IsPrivate.ValueBool())
+
 	sourceType := actionSchemaSourceTypeToProtoSourceType[plan.SourceType.ValueString()]
-	applicationNames, dgs := utils.TypeStringSliceToWrappedStringSlice(ctx, plan.Applications.Elements())
+	applicationNames, dgs := utils.TypeStringSliceToStringSlice(ctx, plan.Applications.Elements())
 	diags = append(diags, dgs...)
-	subsystemNames, dgs := utils.TypeStringSliceToWrappedStringSlice(ctx, plan.Subsystems.Elements())
+	subsystemNames, dgs := utils.TypeStringSliceToStringSlice(ctx, plan.Subsystems.Elements())
 	diags = append(diags, dgs...)
 
-	return &cxsdk.CreateActionRequest{
-		Name:             name,
-		Url:              url,
-		IsPrivate:        isPrivate,
-		SourceType:       sourceType,
+	return &actionss.ActionsServiceCreateActionRequest{
+		Name:             plan.Name.ValueStringPointer(),
+		Url:              plan.URL.ValueStringPointer(),
+		IsPrivate:        plan.IsPrivate.ValueBoolPointer(),
+		SourceType:       &sourceType,
 		ApplicationNames: applicationNames,
 		SubsystemNames:   subsystemNames,
 	}, diags
 }
 
-func extractUpdateAction(ctx context.Context, plan ActionResourceModel) (*cxsdk.ReplaceActionRequest, diag.Diagnostics) {
+func extractUpdateAction(ctx context.Context, plan ActionResourceModel) (*actionss.ActionsServiceReplaceActionRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	id := wrapperspb.String(plan.ID.ValueString())
-	name := utils.TypeStringToWrapperspbString(plan.Name)
-	url := utils.TypeStringToWrapperspbString(plan.URL)
-	isPrivate := wrapperspb.Bool(plan.IsPrivate.ValueBool())
-	sourceType := actionSchemaSourceTypeToProtoSourceType[plan.SourceType.ValueString()]
-	applicationNames, dgs := utils.TypeStringSliceToWrappedStringSlice(ctx, plan.Applications.Elements())
-	if dgs.HasError() {
-		diags = append(diags, dgs...)
-	}
-	subsystemNames, dgs := utils.TypeStringSliceToWrappedStringSlice(ctx, plan.Subsystems.Elements())
-	if dgs.HasError() {
-		diags = append(diags, dgs...)
-	}
-	isHidden := wrapperspb.Bool(plan.IsHidden.ValueBool())
 
-	return &cxsdk.ReplaceActionRequest{
-		Action: &cxsdk.Action{
-			Id:               id,
-			Name:             name,
-			Url:              url,
-			IsPrivate:        isPrivate,
-			IsHidden:         isHidden,
-			SourceType:       sourceType,
+	sourceType := actionSchemaSourceTypeToProtoSourceType[plan.SourceType.ValueString()]
+	applicationNames, dgs := utils.TypeStringSliceToStringSlice(ctx, plan.Applications.Elements())
+	diags = append(diags, dgs...)
+
+	subsystemNames, dgs := utils.TypeStringSliceToStringSlice(ctx, plan.Subsystems.Elements())
+	diags = append(diags, dgs...)
+
+	return &actionss.ActionsServiceReplaceActionRequest{
+		Action: &actionss.V2Action{
+			Id:               plan.ID.ValueStringPointer(),
+			Name:             plan.Name.ValueStringPointer(),
+			Url:              plan.URL.ValueStringPointer(),
+			IsPrivate:        plan.IsPrivate.ValueBoolPointer(),
+			IsHidden:         plan.IsHidden.ValueBoolPointer(),
+			SourceType:       &sourceType,
 			ApplicationNames: applicationNames,
 			SubsystemNames:   subsystemNames,
 		},

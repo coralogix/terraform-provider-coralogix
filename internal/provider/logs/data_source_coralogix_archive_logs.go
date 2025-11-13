@@ -18,17 +18,16 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	archiveLogs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/target_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var _ datasource.DataSourceWithConfigure = &ArchiveLogsDataSource{}
@@ -38,7 +37,7 @@ func NewArchiveLogsDataSource() datasource.DataSource {
 }
 
 type ArchiveLogsDataSource struct {
-	client *cxsdk.ArchiveLogsClient
+	client *archiveLogs.TargetServiceAPIService
 }
 
 func (d *ArchiveLogsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -76,29 +75,27 @@ func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	//Get refreshed archive-Logs value from Coralogix
 	id := data.ID.ValueString()
-	log.Print("[INFO] Reading archive-logs")
-	getResp, err := d.client.Get(ctx)
+	rq := d.client.S3TargetServiceGetTarget(ctx)
+	log.Printf("[INFO] Reading coralogix_archive_logs: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
-			data.ID = types.StringNull()
-			resp.Diagnostics.AddWarning(err.Error(),
-				fmt.Sprintf("archive-Logs %q is in state, but no longer exists in Coralogix backend", id),
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("coralogix_archive_logs %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError(
-				"Error reading archive-logs",
-				utils.FormatRpcErrors(err, cxsdk.ArchiveLogsGetTargetRPC, ""),
+			resp.Diagnostics.AddError("Error reading coralogix_archive_logs",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received archive-logs: %s", protojson.Format(getResp))
+	log.Printf("[INFO] Read coralogix_archive_logs: %s", utils.FormatJSON(result))
 
-	data = flattenArchiveLogs(getResp, id)
+	data = flattenArchiveLogs(result.Target.TargetS3, id)
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

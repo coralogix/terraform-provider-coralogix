@@ -224,7 +224,7 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	// Set state to fully populated data
+
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
@@ -409,7 +409,6 @@ func (r *ArchiveMetricsResource) Read(ctx context.Context, req resource.ReadRequ
 }
 
 func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Retrieve values from plan
 	var plan *ArchiveMetricsResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	if diags.HasError() {
@@ -449,7 +448,7 @@ func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.Update
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	// Set state to fully populated data
+
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }

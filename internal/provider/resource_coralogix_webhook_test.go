@@ -22,12 +22,9 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 type webhookTestFields struct {
@@ -379,11 +376,9 @@ func testAccCheckWebhookDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.Get(ctx, &cxsdk.GetOutgoingWebhookRequest{Id: wrapperspb.String(rs.Primary.ID)})
+		_, _, err := client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, rs.Primary.ID).Execute()
 		if err == nil {
-			if resp.GetWebhook().GetId().GetValue() == rs.Primary.ID {
-				return fmt.Errorf("webhook still exists: %s", rs.Primary.ID)
-			}
+			return fmt.Errorf("webhook still exists: %v, %v", rs.Primary.ID, err)
 		}
 	}
 

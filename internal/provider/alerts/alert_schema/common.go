@@ -19,9 +19,8 @@ import (
 	"fmt"
 	"regexp"
 
+	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
 	alerttypes "github.com/coralogix/terraform-provider-coralogix/internal/provider/alerts/alert_types"
-
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
@@ -496,7 +495,7 @@ func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 			"auto_retire_timeframe": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
-				Default:  stringdefault.StaticString(alerttypes.AutoRetireTimeframeProtoToSchemaMap[cxsdk.AutoRetireTimeframeNeverOrUnspecified]),
+				Default:  stringdefault.StaticString(alerttypes.AutoRetireTimeframeProtoToSchemaMap[alerts.V3AUTORETIRETIMEFRAME_AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED]),
 				Validators: []validator.String{
 					stringvalidator.OneOf(alerttypes.ValidAutoRetireTimeframes...),
 				},
@@ -505,7 +504,7 @@ func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 		},
 		Default: objectdefault.StaticValue(types.ObjectValueMust(UndetectedValuesManagementAttr(), map[string]attr.Value{
 			"trigger_undetected_values": types.BoolValue(false),
-			"auto_retire_timeframe":     types.StringValue(alerttypes.AutoRetireTimeframeProtoToSchemaMap[cxsdk.AutoRetireTimeframeNeverOrUnspecified]),
+			"auto_retire_timeframe":     types.StringValue(alerttypes.AutoRetireTimeframeProtoToSchemaMap[alerts.V3AUTORETIRETIMEFRAME_AUTO_RETIRE_TIMEFRAME_NEVER_OR_UNSPECIFIED]),
 		})),
 	}
 }

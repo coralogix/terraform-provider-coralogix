@@ -57,7 +57,7 @@ var (
 	schemaToProtoThresholdSymbolType = utils.ReverseMap(protoToSchemaThresholdSymbolType)
 	validThresholdSymbolTypes        = utils.GetKeys(schemaToProtoThresholdSymbolType)
 	protoToSchemaSLOCompareType      = map[cxsdk.CompareType]string{
-		cxsdk.SloCompareTypeUnspecified: "unspecified",
+		cxsdk.SloCompareTypeUnspecified: utils.UNSPECIFIED,
 		cxsdk.SloCompareTypeIs:          "is",
 		cxsdk.SloCompareTypeStartsWith:  "starts_with",
 		cxsdk.SloCompareTypeEndsWith:    "ends_with",
@@ -66,7 +66,7 @@ var (
 	schemaToProtoSLOCompareType = utils.ReverseMap(protoToSchemaSLOCompareType)
 	validSLOCompareTypes        = utils.GetKeys(schemaToProtoSLOCompareType)
 	protoToSchemaSLOPeriod      = map[cxsdk.SloPeriod]string{
-		cxsdk.SloPeriodUnspecified: "unspecified",
+		cxsdk.SloPeriodUnspecified: utils.UNSPECIFIED,
 		cxsdk.SloPeriod7Days:       "7_days",
 		cxsdk.SloPeriod14Days:      "14_days",
 		cxsdk.SloPeriod30Days:      "30_days",
@@ -74,7 +74,7 @@ var (
 	schemaToProtoSLOPeriod = utils.ReverseMap(protoToSchemaSLOPeriod)
 	validSLOPeriods        = utils.GetKeys(schemaToProtoSLOPeriod)
 	protoToSchemaSLOStatus = map[cxsdk.SloStatus]string{
-		cxsdk.LegacySloStatusUnspecified: "unspecified",
+		cxsdk.LegacySloStatusUnspecified: utils.UNSPECIFIED,
 		cxsdk.LegacySloStatusOk:          "ok",
 		cxsdk.LegacySloStatusBreached:    "breached",
 	}
@@ -300,7 +300,7 @@ func (r *SLOResource) Create(ctx context.Context, req resource.CreateRequest, re
 		resp.Diagnostics = diags
 		return
 	}
-	// Set state to fully populated data
+
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
@@ -538,7 +538,6 @@ func (r *SLOResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		return
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }

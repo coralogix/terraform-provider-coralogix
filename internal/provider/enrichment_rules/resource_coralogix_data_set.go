@@ -15,9 +15,10 @@
 package enrichment_rules
 
 import (
+	"bufio"
 	"context"
-	"encoding/csv"
 	"fmt"
+	"hash/adler32"
 	"io"
 	"log"
 	"os"
@@ -37,6 +38,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
+
+const MAX_READ_BUFF = 10_000
 
 var fileContentLimit = int(1e6)
 
@@ -286,8 +289,12 @@ func expandFileAndModificationTime(d *schema.ResourceData) (*cxsdk.File, string,
 		return nil, modificationTime, err
 	}
 
+	h := adler32.New()
+	h.Write([]byte(fileContent))
+	name := fmt.Sprintf("%x", h.Sum(nil))
+
 	return &cxsdk.File{
-		Name:      wrapperspb.String(" "),
+		Name:      wrapperspb.String(name),
 		Extension: wrapperspb.String("csv"),
 		Content:   &cxsdk.FileTextual{Textual: wrapperspb.String(fileContent)},
 	}, modificationTime, nil
@@ -296,23 +303,27 @@ func expandFileAndModificationTime(d *schema.ResourceData) (*cxsdk.File, string,
 func expandFileContent(d *schema.ResourceData) (fileContent string, modificationTime string, err error) {
 	if fileContent, ok := d.GetOk("file_content"); !ok {
 		uploadedFile := d.Get("uploaded_file").([]interface{})[0].(map[string]interface{})
-
+		content := make([]string, 0)
 		path := uploadedFile["path"].(string)
 
 		f, err := os.Open(path)
 		if err != nil {
 			return "", "", err
 		}
-		csvReader := csv.NewReader(f)
+		bf := bufio.NewReader(f)
+
+		buf := make([]byte, MAX_READ_BUFF)
+	outer:
 		for {
-			rec, err := csvReader.Read()
-			if err == io.EOF {
-				break
+			switch n, err := bf.Read(buf); err {
+			case nil, io.EOF:
+				content = append(content, string(buf[0:n]))
+				if n != MAX_READ_BUFF {
+					break outer
+				}
+			default:
+				log.Fatal(err)
 			}
-			if err != nil {
-				return "", "", err
-			}
-			fileContent = strings.Join(rec, "")
 		}
 
 		stats, err := os.Stat(path)
@@ -321,7 +332,7 @@ func expandFileContent(d *schema.ResourceData) (fileContent string, modification
 		}
 		modificationTime := stats.ModTime().String()
 
-		return fileContent.(string), modificationTime, nil
+		return strings.Join(content, ""), modificationTime, nil
 	} else {
 		return fileContent.(string), "", nil
 	}

@@ -18,11 +18,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -38,9 +40,9 @@ var (
 	_ resource.ResourceWithImportState = &IpAccessResource{}
 
 	CustomerSupportAccessSchemaToApi = map[string]ipaccess.CoralogixCustomerSupportAccess{
-		"unspecified": ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED,
-		"disabled":    ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED,
-		"enabled":     ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED,
+		utils.UNSPECIFIED: ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED,
+		"disabled":        ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_DISABLED,
+		"enabled":         ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_ENABLED,
 	}
 	CustomerSupportAccessApiToSchema       = utils.ReverseMap(CustomerSupportAccessSchemaToApi)
 	ValidCustomerSupportAccessSchemaValues = utils.GetKeys(CustomerSupportAccessSchemaToApi)
@@ -83,7 +85,7 @@ func (r *IpAccessResource) Schema(ctx context.Context, req resource.SchemaReques
 				Validators: []validator.String{
 					stringvalidator.OneOf(ValidCustomerSupportAccessSchemaValues...),
 				},
-				Default: stringdefault.StaticString("unspecified"),
+				Default: stringdefault.StaticString(utils.UNSPECIFIED),
 			},
 			"ip_access": schema.SetNestedAttribute{
 				NestedObject: schema.NestedAttributeObject{
@@ -123,20 +125,20 @@ func (r *IpAccessResource) Create(ctx context.Context, req resource.CreateReques
 		EnableCoralogixCustomerSupportAccess: &accessEnabled,
 		IpAccess:                             extractIpAccessRules(data.Rules),
 	}
-	log.Printf("[INFO] Creating new resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Creating new coralogix_ip_access: %s", utils.FormatJSON(rq))
 
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		IpAccessServiceCreateCompanyIpAccessSettings(ctx).
 		CreateCompanyIPAccessSettingsRequest(rq).
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating resource",
-			utils.FormatOpenAPIErrors(err, "Create", rq),
+		resp.Diagnostics.AddError("Error creating coralogix_ip_access",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	log.Printf("[INFO] Created new resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Created new coralogix_ip_access: %s", utils.FormatJSON(result))
 	state := flattenCreateResponse(result)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -150,19 +152,19 @@ func (r *IpAccessResource) Read(ctx context.Context, req resource.ReadRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	log.Printf("[INFO] Reading new resource")
+	log.Printf("[INFO] Reading coralogix_ip_access")
 
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		IpAccessServiceGetCompanyIpAccessSettings(ctx).
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error read resource",
-			utils.FormatOpenAPIErrors(err, "Read", nil),
+		resp.Diagnostics.AddError("Error reading coralogix_ip_access",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Read new resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Read new coralogix_ip_access: %s", utils.FormatJSON(result))
 	state := flattenReadResponse(result)
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -182,20 +184,26 @@ func (r *IpAccessResource) Update(ctx context.Context, req resource.UpdateReques
 		EnableCoralogixCustomerSupportAccess: &accessEnabled,
 		IpAccess:                             extractIpAccessRules(data.Rules),
 	}
-	log.Printf("[INFO] Updating resource: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Updating coralogix_ip_access: %s", utils.FormatJSON(rq))
 
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		IpAccessServiceReplaceCompanyIpAccessSettings(ctx).
 		ReplaceCompanyIPAccessSettingsRequest(rq).
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error replacing resource",
-			utils.FormatOpenAPIErrors(err, "Replace", rq),
-		)
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				"coralogix_ip_access is in state, but no longer exists in Coralogix backend",
+				"it will be recreated when you apply",
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error creating coralogix_ip_access", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
+		}
 		return
 	}
-	log.Printf("[INFO] Updated resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Replaced coralogix_ip_access: %s", utils.FormatJSON(result))
 
 	state := flattenReplaceResponse(result)
 
@@ -210,19 +218,19 @@ func (r *IpAccessResource) Delete(ctx context.Context, req resource.DeleteReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	log.Printf("[INFO] Deleting resource")
+	log.Printf("[INFO] Deleting coralogix_ip_access")
 
-	result, _, err := r.client.
+	result, httpResponse, err := r.client.
 		IpAccessServiceDeleteCompanyIpAccessSettings(ctx).
 		Execute()
 
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting resource",
-			utils.FormatOpenAPIErrors(err, "Delete", nil),
+		resp.Diagnostics.AddError("Error deleting coralogix_ip_access",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted resource: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Deleted coralogix_ip_access: %s", utils.FormatJSON(result))
 }
 
 func (r *IpAccessResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -251,8 +259,8 @@ func extractIpAccessRules(rules []IpAccessRuleModel) []ipaccess.IpAccess {
 	for i, rule := range rules {
 		mappedRules[i] = ipaccess.IpAccess{
 			Name:    rule.Name.ValueStringPointer(),
-			IpRange: rule.IpRange.ValueString(),
-			Enabled: rule.Enabled.ValueBool(),
+			IpRange: rule.IpRange.ValueStringPointer(),
+			Enabled: rule.Enabled.ValueBoolPointer(),
 		}
 	}
 	return mappedRules
@@ -299,8 +307,8 @@ func flattenReadResponse(resp *ipaccess.GetCompanyIpAccessSettingsResponse) IpAc
 
 func flattenIPAccess(r *ipaccess.IpAccess) IpAccessRuleModel {
 	return IpAccessRuleModel{
-		Name:    types.StringValue(*r.Name),
-		IpRange: types.StringValue(r.IpRange),
-		Enabled: types.BoolValue(r.Enabled),
+		Name:    types.StringPointerValue(r.Name),
+		IpRange: types.StringPointerValue(r.IpRange),
+		Enabled: types.BoolValue((r.Enabled != nil && *r.Enabled) || false),
 	}
 }

@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	clientset "github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
@@ -42,212 +43,216 @@ func main() {
 	if ok {
 		region = shortRegion
 	}
+
+	ctx := context.Background()
 	region = strings.TrimSpace(strings.ToLower(region))
 	log.Println("Cleaning up all resources in region:", region)
+
+	cs := clientset.NewClientSet(region, apiKey, cxsdk.CoralogixGrpcEndpointFromRegion(region))
 	// Dashboards
-	dashboardClient := cxsdk.NewDashboardsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	dashboards, err := dashboardClient.List(context.Background())
+	dashboardClient := cs.Dashboards()
+	dashboards, err := dashboardClient.List(ctx)
 
 	if err == nil {
 		log.Println("Deleting all dashboards")
 		for _, d := range dashboards.GetItems() {
-			dashboardClient.Delete(context.Background(), &cxsdk.DeleteDashboardRequest{DashboardId: d.GetId()})
+			dashboardClient.Delete(ctx, &cxsdk.DeleteDashboardRequest{DashboardId: d.GetId()})
 		}
 	} else {
 		log.Fatal("Error listing Dashboards:", err)
 	}
 
 	// Alerts
-	alertClient := cxsdk.NewAlertsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	alerts, err := alertClient.List(context.Background(), &cxsdk.ListAlertDefsRequest{})
+	alertClient := cs.Alerts()
+	alerts, err := alertClient.List(ctx, &cxsdk.ListAlertDefsRequest{})
 	if err == nil {
 		log.Println("Deleting all alerts")
 
 		for _, alert := range alerts.GetAlertDefs() {
-			alertClient.Delete(context.Background(), &cxsdk.DeleteAlertDefRequest{Id: alert.GetId()})
+			alertClient.Delete(ctx, &cxsdk.DeleteAlertDefRequest{Id: alert.GetId()})
 		}
 	} else {
 		log.Fatal("Error listing Alerts:", err)
 	}
 
 	// Scopes
-	scopesClient := cxsdk.NewScopesClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	scopes, err := scopesClient.List(context.Background(), &cxsdk.GetTeamScopesRequest{})
+	scopesClient := cs.Scopes()
+	scopes, err := scopesClient.List(ctx, &cxsdk.GetTeamScopesRequest{})
 	if err == nil {
 		log.Println("Deleting all Scopes")
 		for _, scope := range scopes.GetScopes() {
-			scopesClient.Delete(context.Background(), &cxsdk.DeleteScopeRequest{Id: scope.GetId()})
+			scopesClient.Delete(ctx, &cxsdk.DeleteScopeRequest{Id: scope.GetId()})
 		}
 	} else {
 		log.Fatal("Error listing Scopes:", err)
 	}
 
 	// Custom Roles
-	rolesClients := cxsdk.NewRolesClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	roles, err := rolesClients.List(context.Background(), &cxsdk.ListCustomRolesRequest{})
+	rolesClients := cs.CustomRoles()
+	roles, err := rolesClients.List(ctx, &cxsdk.ListCustomRolesRequest{})
 	if err == nil {
 		log.Println("Deleting all custom roles")
 		for _, role := range roles.GetRoles() {
-			rolesClients.Delete(context.Background(), &cxsdk.DeleteRoleRequest{RoleId: role.GetRoleId()})
+			rolesClients.Delete(ctx, &cxsdk.DeleteRoleRequest{RoleId: role.GetRoleId()})
 		}
 	} else {
 		log.Fatal("Error listing custom roles:", err)
 	}
 
 	// Enrichments
-	enrichmentClient := cxsdk.NewEnrichmentClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	enrichments, err := enrichmentClient.List(context.Background(), &cxsdk.GetEnrichmentsRequest{})
+	enrichmentClient := cs.Enrichments()
+	enrichments, err := enrichmentClient.List(ctx, &cxsdk.GetEnrichmentsRequest{})
 	if err == nil {
 		log.Println("Deleting all Enrichments")
 		ids := make([]*wrapperspb.UInt32Value, 0)
 		for _, enrichment := range enrichments.GetEnrichments() {
 			ids = append(ids, wrapperspb.UInt32(enrichment.GetId()))
 		}
-		enrichmentClient.Delete(context.Background(), &cxsdk.DeleteEnrichmentsRequest{EnrichmentIds: ids})
+		enrichmentClient.Delete(ctx, &cxsdk.DeleteEnrichmentsRequest{EnrichmentIds: ids})
 	} else {
 		log.Fatal("Error listing Enrichments:", err)
 	}
 
 	// DataSets
-	dataSetClient := cxsdk.NewDataSetClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	dataSets, err := dataSetClient.List(context.Background(), &cxsdk.ListDataSetsRequest{})
+	dataSetClient := cs.DataSet()
+	dataSets, err := dataSetClient.List(ctx, &cxsdk.ListDataSetsRequest{})
 	if err == nil {
 		log.Println("Deleting all DataSets")
 		for _, enrichment := range dataSets.GetCustomEnrichments() {
-			dataSetClient.Delete(context.Background(), &cxsdk.DeleteDataSetRequest{CustomEnrichmentId: wrapperspb.UInt32(enrichment.GetId())})
+			dataSetClient.Delete(ctx, &cxsdk.DeleteDataSetRequest{CustomEnrichmentId: wrapperspb.UInt32(enrichment.GetId())})
 		}
 	} else {
 		log.Fatal("Error listing DataSets:", err)
 	}
 
 	// Webhooks
-	webhookClient := cxsdk.NewWebhooksClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	webhooks, err := webhookClient.List(context.Background(), &cxsdk.ListAllOutgoingWebhooksRequest{})
+	webhookClient := cs.Webhooks()
+	webhooks, _, err := webhookClient.OutgoingWebhooksServiceListAllOutgoingWebhooks(ctx).Execute()
 	if err == nil {
 		log.Println("Deleting all webhooks")
 		for _, webhook := range webhooks.GetDeployed() {
-			webhookClient.Delete(context.Background(), &cxsdk.DeleteOutgoingWebhookRequest{Id: webhook.GetId()})
+			webhookClient.OutgoingWebhooksServiceDeleteOutgoingWebhook(ctx, webhook.GetId()).Execute()
 		}
 	} else {
 		log.Fatal("Error listing webhooks:", err)
 	}
 
 	// Recording Rules
-	recordingRulesGroupsSetClient := cxsdk.NewRecordingRuleGroupSetsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	recordingRulesGroupsSets, err := recordingRulesGroupsSetClient.List(context.Background())
+	recordingRulesGroupsSetClient := cs.RecordingRuleGroupsSets()
+	recordingRulesGroupsSets, err := recordingRulesGroupsSetClient.List(ctx)
 	if err == nil {
 		log.Println("Deleting all recording rules")
 		for _, recordingRulesGroupsSet := range recordingRulesGroupsSets.GetSets() {
-			recordingRulesGroupsSetClient.Delete(context.Background(), &cxsdk.DeleteRuleGroupSetRequest{Id: recordingRulesGroupsSet.GetId()})
+			recordingRulesGroupsSetClient.Delete(ctx, &cxsdk.DeleteRuleGroupSetRequest{Id: recordingRulesGroupsSet.GetId()})
 		}
 	} else {
 		log.Fatal("Error listing recording rules:", err)
 	}
 
 	// Events2Metrics
-	events2metricsClient := cxsdk.NewEvents2MetricsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	events2metrics, err := events2metricsClient.List(context.Background())
+	events2metricsClient := cs.Events2Metrics()
+	events2metrics, err := events2metricsClient.List(ctx)
 	if err == nil {
 		log.Println("Deleting all events2metrics")
 		for _, events2metric := range events2metrics.GetE2M() {
-			events2metricsClient.Delete(context.Background(), &cxsdk.DeleteE2MRequest{Id: events2metric.GetId()})
+			events2metricsClient.Delete(ctx, &cxsdk.DeleteE2MRequest{Id: events2metric.GetId()})
 		}
 	} else {
 		log.Fatal("Error listing events2metrics:", err)
 	}
 
 	// Dashboard folders
-	dashboardsFolderClient := cxsdk.NewDashboardsFoldersClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	dashboardsFolders, err := dashboardsFolderClient.List(context.Background())
+	dashboardsFolderClient := cs.DashboardsFolders()
+	dashboardsFolders, err := dashboardsFolderClient.List(ctx)
 	if err == nil {
 		log.Println("Deleting all dashboard folders")
 		for _, dashboardsFolder := range dashboardsFolders.GetFolder() {
-			dashboardsFolderClient.Delete(context.Background(), &cxsdk.DeleteDashboardFolderRequest{FolderId: dashboardsFolder.GetId()})
+			dashboardsFolderClient.Delete(ctx, &cxsdk.DeleteDashboardFolderRequest{FolderId: dashboardsFolder.GetId()})
 		}
 	} else {
 		log.Fatal("Error listing dashboard folders:", err)
 	}
 
 	// TCO
-	tcoPoliciesTracesClient := cxsdk.NewTCOPoliciesClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	tcoPolicies, err := tcoPoliciesTracesClient.List(context.Background(), &cxsdk.GetCompanyPoliciesRequest{})
+	tcoPoliciesTracesClient := cs.TCOPolicies()
+	tcoPolicies, err := tcoPoliciesTracesClient.List(ctx, &cxsdk.GetCompanyPoliciesRequest{})
 	if err == nil {
 		log.Println("Deleting all TCO Traces policies")
 
 		for _, tcoPolicy := range tcoPolicies.GetPolicies() {
-			tcoPoliciesTracesClient.Delete(context.Background(), &cxsdk.DeletePolicyRequest{Id: tcoPolicy.GetId()})
+			tcoPoliciesTracesClient.Delete(ctx, &cxsdk.DeletePolicyRequest{Id: tcoPolicy.GetId()})
 		}
 	} else {
 		log.Fatal("Error listing TCO policies:", err)
 	}
 
-	tcoPoliciesLogsClient := cxsdk.NewTCOPoliciesClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	tcoPolicies, err = tcoPoliciesLogsClient.List(context.Background(), &cxsdk.GetCompanyPoliciesRequest{})
+	tcoPoliciesLogsClient := cs.TCOPolicies()
+	tcoPolicies, err = tcoPoliciesLogsClient.List(ctx, &cxsdk.GetCompanyPoliciesRequest{})
 	if err == nil {
 		log.Println("Deleting all TCO Logs policies")
 
 		for _, tcoPolicy := range tcoPolicies.GetPolicies() {
-			tcoPoliciesLogsClient.Delete(context.Background(), &cxsdk.DeletePolicyRequest{Id: tcoPolicy.GetId()})
+			tcoPoliciesLogsClient.Delete(ctx, &cxsdk.DeletePolicyRequest{Id: tcoPolicy.GetId()})
 		}
 	} else {
 		log.Fatal("Error listing TCO Logs policies:", err)
 	}
 	// Groups
 	groupClient := cxsdk.NewGroupsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	groups, err := groupClient.List(context.Background(), &cxsdk.GetTeamGroupsRequest{})
+	groups, err := groupClient.List(ctx, &cxsdk.GetTeamGroupsRequest{})
 
 	if err == nil {
 		log.Println("Deleting all groups")
 
 		for _, group := range groups.GetGroups() {
-			groupClient.Delete(context.Background(), &cxsdk.DeleteTeamGroupRequest{GroupId: group.GetGroupId()})
+			groupClient.Delete(ctx, &cxsdk.DeleteTeamGroupRequest{GroupId: group.GetGroupId()})
 		}
 	} else {
 		log.Fatal("Error listing groups:", err)
 	}
 	// Connectors
-	notificationClient := cxsdk.NewNotificationsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	listConnectorsRes, err := notificationClient.ListConnectors(context.Background(), &cxsdk.ListConnectorsRequest{})
+	connectors, globalRouters, presets := cs.GetNotifications()
+	listConnectorsRes, _, err := connectors.ConnectorsServiceListConnectorSummaries(ctx).Execute()
 	if err == nil {
 		log.Println("Deleting all connectors")
 		for _, connector := range listConnectorsRes.Connectors {
-			notificationClient.DeleteConnector(context.Background(), &cxsdk.DeleteConnectorRequest{Id: connector.GetId()})
+			connectors.ConnectorsServiceDeleteConnector(ctx, *connector.Id).Execute()
 		}
 	} else {
 		log.Fatal("Error listing connectors:", err)
 	}
 
 	// Presets
-	listPresetsRes, err := notificationClient.ListPresetSummaries(context.Background(),
-		&cxsdk.ListPresetSummariesRequest{})
+	listPresetsRes, _, err := presets.PresetsServiceListPresetSummaries(ctx).Execute()
 	if err == nil {
 		log.Println("Deleting all presets")
 		for _, preset := range listPresetsRes.PresetSummaries {
-			notificationClient.DeleteCustomPreset(context.Background(), &cxsdk.DeleteCustomPresetRequest{Id: preset.GetId()})
+			presets.PresetsServiceDeleteCustomPreset(ctx, *preset.Id).Execute()
 		}
 	} else {
 		log.Fatal("Error listing presets:", err)
 	}
 
 	// Global Routers
-	listRoutersRes, err := notificationClient.ListGlobalRouters(context.Background(), &cxsdk.ListGlobalRoutersRequest{})
+	listRoutersRes, _, err := globalRouters.GlobalRoutersServiceListGlobalRouters(ctx).Execute()
 	if err == nil {
 		log.Println("Deleting all global routers")
-		for _, router := range listRoutersRes.Routers {
-			notificationClient.DeleteGlobalRouter(context.Background(), &cxsdk.DeleteGlobalRouterRequest{Id: router.GetId()})
+		for _, r := range listRoutersRes.Routers {
+			globalRouters.GlobalRoutersServiceDeleteGlobalRouter(ctx, *r.Id).Execute()
 		}
+		globalRouters.GlobalRoutersServiceDeleteGlobalRouter(ctx, "router_default").Execute()
 	} else {
 		log.Fatal("Error listing global routers:", err)
 	}
 
 	// Users
-	usersClient := cxsdk.NewUsersClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	users, err := usersClient.List(context.Background())
+	usersClient := cs.Users()
+	users, err := usersClient.List(ctx)
 	if err == nil {
 		log.Println("Deleting all users")
 		for _, user := range users {
 			if user.ID != nil {
-				usersClient.Delete(context.Background(), *user.ID)
+				usersClient.Delete(ctx, *user.ID)
 			}
 		}
 	} else {
@@ -256,12 +261,12 @@ func main() {
 
 	// Views
 	viewsClient := cxsdk.NewViewsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	views, err := viewsClient.List(context.Background(), &cxsdk.ListViewsRequest{})
+	views, err := viewsClient.List(ctx, &cxsdk.ListViewsRequest{})
 	if err == nil {
 		log.Println("Deleting all views")
 		for _, view := range views.Views {
 			if view.Id != nil {
-				viewsClient.Delete(context.Background(), &cxsdk.DeleteViewRequest{
+				viewsClient.Delete(ctx, &cxsdk.DeleteViewRequest{
 					Id: view.Id,
 				})
 			}
@@ -272,17 +277,51 @@ func main() {
 
 	// Views
 	viewFoldersClient := cxsdk.NewViewFoldersClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
-	viewFolders, err := viewFoldersClient.List(context.Background(), &cxsdk.ListViewFoldersRequest{})
+	viewFolders, err := viewFoldersClient.List(ctx, &cxsdk.ListViewFoldersRequest{})
 	if err == nil {
 		log.Println("Deleting all viewFolders")
 		for _, f := range viewFolders.Folders {
 			if f.Id != nil {
-				viewFoldersClient.Delete(context.Background(), &cxsdk.DeleteViewFolderRequest{
+				viewFoldersClient.Delete(ctx, &cxsdk.DeleteViewFolderRequest{
 					Id: f.Id,
 				})
 			}
 		}
 	} else {
-		log.Fatal("Error listing users:", err)
+		log.Fatal("Error listing views:", err)
+	}
+
+	// IPAccesss
+	ipaccessClient := cs.IpAccess()
+	ipaccess, _, err := ipaccessClient.IpAccessServiceGetCompanyIpAccessSettings(ctx).Execute()
+	if err == nil {
+		log.Println("Deleting all IpAccess")
+		if ipaccess.Settings.IpAccess != nil {
+			for _ = range *ipaccess.Settings.IpAccess {
+				ipaccessClient.IpAccessServiceDeleteCompanyIpAccessSettings(ctx).Execute()
+			}
+		}
+	} else {
+		log.Fatal("Error listing IP Access:", err)
+	}
+
+	// SLOs
+	sloClient := cs.SLOs()
+	slos, _, err := sloClient.SlosServiceListSlos(ctx).Execute()
+	if err == nil {
+		log.Println("Deleting all SLOs")
+		for _, f := range slos.Slos {
+			var id string
+			if f.SloRequestBasedMetricSli != nil {
+				id = *f.SloRequestBasedMetricSli.Id
+			} else if f.SloWindowBasedMetricSli != nil {
+				id = *f.SloWindowBasedMetricSli.Id
+			} else {
+				continue
+			}
+			sloClient.SlosServiceDeleteSlo(ctx, id).Execute()
+		}
+	} else {
+		log.Fatal("Error listing SLOs:", err)
 	}
 }

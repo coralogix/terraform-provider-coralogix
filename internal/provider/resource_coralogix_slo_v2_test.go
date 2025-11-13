@@ -21,7 +21,6 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -29,7 +28,6 @@ import (
 var sloV2ResourceName = "coralogix_slo_v2.test"
 
 func TestAccCoralogixResourceSLOV2RequestBased(t *testing.T) {
-	t.Skip("SLOv2 is deactivated for now")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -49,7 +47,6 @@ func TestAccCoralogixResourceSLOV2RequestBased(t *testing.T) {
 }
 
 func TestAccCoralogixResourceSLOV2WindowBased(t *testing.T) {
-	t.Skip("SLOv2 is deactivated for now")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -77,9 +74,9 @@ func testAccSLOV2CheckDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := client.Get(ctx, &cxsdk.GetServiceSloRequest{Id: rs.Primary.ID})
+		_, _, err := client.SlosServiceGetSlo(ctx, rs.Primary.ID).Execute()
 		if err == nil {
-			return fmt.Errorf("slo still exists: %s", rs.Primary.ID)
+			return fmt.Errorf("slo still exists: %v, %v", rs.Primary.ID, err)
 		}
 	}
 	return nil

@@ -18,57 +18,73 @@ import (
 	"log"
 	"strings"
 
-	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
-
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	actionss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/actions_service"
+	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
+	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
+	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
+	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
+	integrations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"
+	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
+	webhhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
+	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
+	presets "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/presets_service"
+	roless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/role_management_service"
+	scopess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/scopes_service"
+	archiveLogs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/target_service"
+
+	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 )
 
 type ClientSet struct {
-	actions             *cxsdk.ActionsClient
-	alerts              *cxsdk.AlertsClient
-	apikeys             *cxsdk.ApikeysClient
-	integrations        *cxsdk.IntegrationsClient
-	enrichments         *cxsdk.EnrichmentsClient
-	dataSet             *cxsdk.DataSetClient
-	webhooks            *cxsdk.WebhooksClient
-	slos                *cxsdk.SLOsClient
-	legacySlos          *cxsdk.LegacySLOsClient
-	scopes              *cxsdk.ScopesClient
-	dashboards          *cxsdk.DashboardsClient
-	archiveLogs         *cxsdk.ArchiveLogsClient
-	archiveMetrics      *cxsdk.ArchiveMetricsClient
-	archiveRetentions   *cxsdk.ArchiveRetentionsClient
-	tcoPolicies         *cxsdk.TCOPoliciesClient
+	enrichments       *cxsdk.EnrichmentsClient
+	dataSet           *cxsdk.DataSetClient
+	legacySlos        *cxsdk.LegacySLOsClient
+	dashboards        *cxsdk.DashboardsClient
+	archiveLogs       *archiveLogs.TargetServiceAPIService
+	archiveMetrics    *cxsdk.ArchiveMetricsClient
+	archiveRetentions *cxsdk.ArchiveRetentionsClient
+	// alertScheduler      *alertScheduler.AlertSchedulerRuleServiceAPIService
 	alertScheduler      *cxsdk.AlertSchedulerClient
 	dahboardsFolders    *cxsdk.DashboardsFoldersClient
 	ruleGroups          *cxsdk.RuleGroupsClient
 	recordingRuleGroups *cxsdk.RecordingRuleGroupSetsClient
 	users               *cxsdk.UsersClient
-	customRole          *cxsdk.RolesClient
 	events2Metrics      *cxsdk.Events2MetricsClient
 	groupGrpc           *cxsdk.GroupsClient
-	notifications       *cxsdk.NotificationsClient
-	ipaccess            *ipaccess.IPAccessServiceAPIService
+	teams               *cxsdk.TeamsClient
 
-	grafana *GrafanaClient
-	groups  *GroupsClient
+	tcoPolicies   *tcoPolicys.PoliciesServiceAPIService
+	actions       *actionss.ActionsServiceAPIService
+	alerts        *alerts.AlertDefinitionsServiceAPIService
+	apikeys       *apiKeys.APIKeysServiceAPIService
+	webhooks      *webhhooks.OutgoingWebhooksServiceAPIService
+	slos          *slos.SlosServiceAPIService
+	customRole    *roless.RoleManagementServiceAPIService
+	scopes        *scopess.ScopesServiceAPIService
+	connectors    *connectors.ConnectorsServiceAPIService
+	presets       *presets.PresetsServiceAPIService
+	globalRouters *globalRouters.GlobalRoutersServiceAPIService
+	ipaccess      *ipaccess.IPAccessServiceAPIService
+	integrations  *integrations.IntegrationServiceAPIService
+	grafana       *GrafanaClient
+	groups        *GroupsClient
 }
 
 func (c *ClientSet) RuleGroups() *cxsdk.RuleGroupsClient {
 	return c.ruleGroups
 }
 
-func (c *ClientSet) Alerts() *cxsdk.AlertsClient {
+func (c *ClientSet) Alerts() *alerts.AlertDefinitionsServiceAPIService {
 	return c.alerts
 }
 
-func (c *ClientSet) APIKeys() *cxsdk.ApikeysClient {
+func (c *ClientSet) APIKeys() *apiKeys.APIKeysServiceAPIService {
 	return c.apikeys
 }
 
-func (c *ClientSet) Actions() *cxsdk.ActionsClient {
+func (c *ClientSet) Actions() *actionss.ActionsServiceAPIService {
 	return c.actions
 }
 func (c *ClientSet) Enrichments() *cxsdk.EnrichmentsClient {
@@ -91,11 +107,11 @@ func (c *ClientSet) RecordingRuleGroupsSets() *cxsdk.RecordingRuleGroupSetsClien
 	return c.recordingRuleGroups
 }
 
-func (c *ClientSet) TCOPolicies() *cxsdk.TCOPoliciesClient {
+func (c *ClientSet) TCOPolicies() *tcoPolicys.PoliciesServiceAPIService {
 	return c.tcoPolicies
 }
 
-func (c *ClientSet) Webhooks() *cxsdk.WebhooksClient {
+func (c *ClientSet) Webhooks() *webhhooks.OutgoingWebhooksServiceAPIService {
 	return c.webhooks
 }
 
@@ -111,7 +127,7 @@ func (c *ClientSet) ArchiveMetrics() *cxsdk.ArchiveMetricsClient {
 	return c.archiveMetrics
 }
 
-func (c *ClientSet) ArchiveLogs() *cxsdk.ArchiveLogsClient {
+func (c *ClientSet) ArchiveLogs() *archiveLogs.TargetServiceAPIService {
 	return c.archiveLogs
 }
 
@@ -119,11 +135,11 @@ func (c *ClientSet) AlertSchedulers() *cxsdk.AlertSchedulerClient {
 	return c.alertScheduler
 }
 
-func (c *ClientSet) CustomRoles() *cxsdk.RolesClient {
+func (c *ClientSet) CustomRoles() *roless.RoleManagementServiceAPIService {
 	return c.customRole
 }
 
-func (c *ClientSet) SLOs() *cxsdk.SLOsClient {
+func (c *ClientSet) SLOs() *slos.SlosServiceAPIService {
 	return c.slos
 }
 
@@ -139,11 +155,11 @@ func (c *ClientSet) Users() *cxsdk.UsersClient {
 	return c.users
 }
 
-func (c *ClientSet) Scopes() *cxsdk.ScopesClient {
+func (c *ClientSet) Scopes() *scopess.ScopesServiceAPIService {
 	return c.scopes
 }
 
-func (c *ClientSet) Integrations() *cxsdk.IntegrationsClient {
+func (c *ClientSet) Integrations() *integrations.IntegrationServiceAPIService {
 	return c.integrations
 }
 
@@ -155,13 +171,17 @@ func (c *ClientSet) GroupGrpc() *cxsdk.GroupsClient {
 	return c.groupGrpc
 }
 
-func (c *ClientSet) GetNotifications() *cxsdk.NotificationsClient {
-	return c.notifications
+func (c *ClientSet) GetNotifications() (*connectors.ConnectorsServiceAPIService, *globalRouters.GlobalRoutersServiceAPIService, *presets.PresetsServiceAPIService) {
+	return c.connectors, c.globalRouters, c.presets
 
 }
 
 func (c *ClientSet) LegacySLOs() *cxsdk.LegacySLOsClient {
 	return c.legacySlos
+}
+
+func (c *ClientSet) Teams() *cxsdk.TeamsClient {
+	return c.teams
 }
 
 func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
@@ -172,33 +192,37 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	log.Printf("[INFO] Using API URL: %v\n", url)
 	oasTfCPC := cxsdkOpenapi.NewSDKCallPropertiesCreatorTerraform(url, apiKey, TF_PROVIDER_VERSION)
 	return &ClientSet{
-		apikeys:             cxsdk.NewAPIKeysClient(apiKeySdk),
-		actions:             cxsdk.NewActionsClient(apiKeySdk),
-		integrations:        cxsdk.NewIntegrationsClient(apiKeySdk),
 		enrichments:         cxsdk.NewEnrichmentClient(apiKeySdk),
-		alerts:              cxsdk.NewAlertsClientWithCustomLabels(apiKeySdk, map[string]string{}),
+		alerts:              cxsdkOpenapi.NewAlertsClient(oasTfCPC),
 		dataSet:             cxsdk.NewDataSetClient(apiKeySdk),
-		webhooks:            cxsdk.NewWebhooksClient(apiKeySdk),
-		slos:                cxsdk.NewSLOsClient(apiKeySdk),
 		legacySlos:          cxsdk.NewLegacySLOsClient(apiKeySdk),
-		scopes:              cxsdk.NewScopesClient(apiKeySdk),
 		dashboards:          cxsdk.NewDashboardsClient(apiKeySdk),
-		archiveLogs:         cxsdk.NewArchiveLogsClient(apiKeySdk),
 		archiveMetrics:      cxsdk.NewArchiveMetricsClient(apiKeySdk),
 		archiveRetentions:   cxsdk.NewArchiveRetentionsClient(apiKeySdk),
-		tcoPolicies:         cxsdk.NewTCOPoliciesClient(apiKeySdk),
-		alertScheduler:      cxsdk.NewAlertSchedulerClient(apiKeySdk),
 		dahboardsFolders:    cxsdk.NewDashboardsFoldersClient(apiKeySdk),
 		users:               cxsdk.NewUsersClient(apiKeySdk),
 		ruleGroups:          cxsdk.NewRuleGroupsClient(apiKeySdk),
 		recordingRuleGroups: cxsdk.NewRecordingRuleGroupSetsClient(apiKeySdk),
-		customRole:          cxsdk.NewRolesClient(apiKeySdk),
 		events2Metrics:      cxsdk.NewEvents2MetricsClient(apiKeySdk),
 		groupGrpc:           cxsdk.NewGroupsClient(apiKeySdk),
-		notifications:       cxsdk.NewNotificationsClient(apiKeySdk),
-		ipaccess:            cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
+		alertScheduler:      cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
-		grafana: NewGrafanaClient(apikeyCPC),
-		groups:  NewGroupsClient(apikeyCPC),
+		archiveLogs:   cxsdkOpenapi.NewArchiveLogsClient(oasTfCPC),
+		tcoPolicies:   cxsdkOpenapi.NewTCOPoliciesClient(oasTfCPC),
+		actions:       cxsdkOpenapi.NewActionsClient(oasTfCPC),
+		customRole:    cxsdkOpenapi.NewCustomRolesClient(oasTfCPC),
+		scopes:        cxsdkOpenapi.NewScopesClient(oasTfCPC),
+		presets:       cxsdkOpenapi.NewPresetsClient(oasTfCPC),
+		connectors:    cxsdkOpenapi.NewConnectorsClient(oasTfCPC),
+		globalRouters: cxsdkOpenapi.NewGlobalRoutersClient(oasTfCPC),
+		integrations:  cxsdkOpenapi.NewIntegrationsClient(oasTfCPC),
+		slos:          cxsdkOpenapi.NewSLOsClient(oasTfCPC),
+		apikeys:       cxsdkOpenapi.NewAPIKeysClient(oasTfCPC),
+		webhooks:      cxsdkOpenapi.NewWebhooksClient(oasTfCPC),
+		// alertScheduler: cxsdkOpenapi.NewAlertSchedulerClient(oasTfCPC),
+		ipaccess: cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
+		teams:    cxsdk.NewTeamsClient(apiKeySdk),
+		grafana:  NewGrafanaClient(apikeyCPC),
+		groups:   NewGroupsClient(apikeyCPC),
 	}
 }

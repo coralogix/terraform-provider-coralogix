@@ -130,8 +130,8 @@ func TestAccCoralogixResourceSlackPreset(t *testing.T) {
 				Config: testAccResourceCoralogixSlackPresetUpdate(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(slackPresetResourceName, "id", name),
-					resource.TestCheckResourceAttr(slackPresetResourceName, "name", "slack example updated"),
-					resource.TestCheckResourceAttr(slackPresetResourceName, "description", "slack preset example"),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "name", name),
+					resource.TestCheckResourceAttr(slackPresetResourceName, "description", "slack preset example updated"),
 					resource.TestCheckResourceAttr(slackPresetResourceName, "entity_type", "alerts"),
 					resource.TestCheckResourceAttr(slackPresetResourceName, "connector_type", "slack"),
 					resource.TestCheckResourceAttr(slackPresetResourceName, "parent_id", "preset_system_slack_alerts_basic"),
@@ -326,8 +326,8 @@ func testAccResourceCoralogixSlackPreset(name string) string {
 func testAccResourceCoralogixSlackPresetUpdate(name string) string {
 	return fmt.Sprintf(`resource "coralogix_preset" "slack_example" {
       id               = "%[1]v"
-      name             = "slack example updated"
-      description      = "slack preset example"
+      name             = "%[1]v"
+      description      = "slack preset example updated"
       entity_type      = "alerts"
       connector_type   = "slack"
       parent_id        = "preset_system_slack_alerts_basic"

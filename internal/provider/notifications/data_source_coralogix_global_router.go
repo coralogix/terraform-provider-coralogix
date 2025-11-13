@@ -16,10 +16,11 @@ package notifications
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
@@ -28,7 +29,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
@@ -40,7 +40,7 @@ func NewGlobalRouterDataSource() datasource.DataSource {
 }
 
 type GlobalRouterDataSource struct {
-	client *cxsdk.NotificationsClient
+	client *globalRouters.GlobalRoutersServiceAPIService
 }
 
 func (d *GlobalRouterDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -61,7 +61,7 @@ func (d *GlobalRouterDataSource) Configure(_ context.Context, req datasource.Con
 		return
 	}
 
-	d.client = clientSet.GetNotifications()
+	_, d.client, _ = clientSet.GetNotifications()
 }
 
 func (d *GlobalRouterDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -95,56 +95,61 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 
-	var globalRouterID string
-	//Get refreshed GlobalRouter value from Coralogix
+	var routerID string
+	//Get refreshed connector value from Coralogix
 	if name := data.Name.ValueString(); name != "" {
-		log.Printf("[INFO] Listing GlobalRouters to find by name: %s", name)
-		listGlobalRouterResp, err := d.client.ListGlobalRouters(ctx, &cxsdk.ListGlobalRoutersRequest{})
+		log.Printf("[INFO] Listing coralogix_global_router to find by name: %s", name)
+		listResult, httpResponse, err := d.client.
+			GlobalRoutersServiceListGlobalRouters(ctx).
+			Execute()
+
 		if err != nil {
-			log.Printf("[ERROR] Received error when listing globalRouters: %s", err.Error())
-			listGlobalRouterReqStr, _ := json.Marshal(listGlobalRouterResp)
 			resp.Diagnostics.AddError(
-				"Error listing GlobalRouters",
-				utils.FormatRpcErrors(err, "List", string(listGlobalRouterReqStr)),
+				"Error listing coralogix_global_router",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "List", nil),
 			)
 			return
 		}
 
-		for _, globalRouter := range listGlobalRouterResp.Routers {
-			if globalRouter.Name == data.Name.ValueString() {
-				globalRouterID = *globalRouter.Id
+		for _, router := range listResult.Routers {
+			if *router.Name == data.Name.ValueString() {
+				routerID = *router.Id
 				break
 			}
 		}
 
-		if globalRouterID == "" {
-			resp.Diagnostics.AddError(fmt.Sprintf("globalRouter with name %q not found", name), "")
+		if routerID == "" {
+			resp.Diagnostics.AddError(fmt.Sprintf("coralogix_global_router with name %q not found", name), "")
 			return
 		}
 	} else if id := data.ID.ValueString(); id != "" {
-		globalRouterID = id
+		routerID = id
 	} else {
-		resp.Diagnostics.AddError("globalRouter ID or name must be set", "")
+		resp.Diagnostics.AddError("ID or name must be set", "")
 		return
 	}
+	rq := d.client.GlobalRoutersServiceGetGlobalRouter(ctx, routerID)
 
-	getGlobalRouterResp, err := d.client.GetGlobalRouter(ctx, &cxsdk.GetGlobalRouterRequest{Id: globalRouterID})
+	log.Printf("[INFO] Reading coralogix_global_router: %s", utils.FormatJSON(rq))
+
+	result, httpResponse, err := rq.
+		Execute()
+
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get globalRouter", err.Error())
-		return
-	}
-	if getGlobalRouterResp == nil {
-		resp.Diagnostics.AddError("globalRouter not found", "globalRouter not found")
+		resp.Diagnostics.AddError("Error reading coralogix_global_router",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+		)
 		return
 	}
 
-	data, diags = flattenGlobalRouter(ctx, getGlobalRouterResp.Router)
+	log.Printf("[INFO] Read coralogix_global_router: %s", utils.FormatJSON(result))
+
+	data, diags = flattenGlobalRouter(ctx, result.Router)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 }

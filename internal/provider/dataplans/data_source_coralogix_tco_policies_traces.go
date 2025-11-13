@@ -18,15 +18,15 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -39,7 +39,7 @@ func NewTCOPoliciesTracesDataSource() datasource.DataSource {
 }
 
 type TCOPoliciesTracesDataSource struct {
-	client *cxsdk.TCOPoliciesClient
+	client *tcoPolicys.PoliciesServiceAPIService
 }
 
 func (d *TCOPoliciesTracesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -82,25 +82,29 @@ func (d *TCOPoliciesTracesDataSource) Read(ctx context.Context, _ datasource.Rea
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	getPoliciesReq := &cxsdk.GetCompanyPoliciesRequest{SourceType: &tracesSource}
-	log.Printf("[INFO] Reading tco-policies-traces")
-	getPoliciesResp, err := d.client.List(ctx, getPoliciesReq)
-	for err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if utils.RetryableStatusCode(cxsdk.Code(err)) {
-			log.Print("[INFO] Retrying to read tco-policies-traces")
-			getPoliciesResp, err = d.client.List(ctx, getPoliciesReq)
-			continue
+	log.Printf("[INFO] Reading coralogix_tco_policies_traces")
+	result, httpResponse, err := d.client.
+		PoliciesServiceGetCompanyPolicies(ctx).
+		SourceType(TracesSource).
+		Execute()
+
+	if err != nil {
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				"coralogix_tco_policies_traces is in state, but no longer exists in Coralogix backend",
+				"coralogix_tco_policies_traces will be recreated when you apply",
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error reading coralogix_tco_policies_traces",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+			)
 		}
-		resp.Diagnostics.AddError(
-			"Error reading tco-policies-traces",
-			utils.FormatRpcErrors(err, getCompanyPoliciesURL, protojson.Format(getPoliciesReq)),
-		)
 		return
 	}
-	log.Printf("[INFO] Received tco-policies-traces: %s", protojson.Format(getPoliciesResp))
+	log.Printf("[INFO] Read coralogix_tco_policies_traces: %s", utils.FormatJSON(result))
 
-	state, diags := flattenGetTCOTracesPoliciesList(ctx, getPoliciesResp)
+	state, diags := flattenGetTCOTracesPoliciesList(ctx, result)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return

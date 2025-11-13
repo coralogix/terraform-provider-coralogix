@@ -173,7 +173,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																								"promql_query_type": schema.StringAttribute{
 																									Optional: true,
 																									Computed: true,
-																									Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																									Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																								},
 																							},
 																							Optional: true,
@@ -217,7 +217,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																					Validators: []validator.String{
 																						stringvalidator.OneOf(dashboardwidgets.DashboardValidScaleTypes...),
 																					},
-																					Default:             stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																					Default:             stringdefault.StaticString(utils.UNSPECIFIED),
 																					MarkdownDescription: fmt.Sprintf("The scale type. Valid values are: %s.", strings.Join(dashboardwidgets.DashboardValidScaleTypes, ", ")),
 																				},
 																				"name": schema.StringAttribute{
@@ -261,7 +261,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																					Validators: []validator.String{
 																						stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																					},
-																					Default: stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																					Default: stringdefault.StaticString(utils.UNSPECIFIED),
 																				},
 																			},
 																		},
@@ -388,7 +388,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																					"promql_query_type": schema.StringAttribute{
 																						Optional: true,
 																						Computed: true,
-																						Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																						Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																					},
 																				},
 																				Optional: true,
@@ -465,7 +465,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																				MarkdownDescription: fmt.Sprintf("The order direction. Can be one of %q.", dashboardwidgets.DashboardValidOrderDirections),
 																				Optional:            true,
 																				Computed:            true,
-																				Default:             stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																				Default:             stringdefault.StaticString(utils.UNSPECIFIED),
 																			},
 																		},
 																		Optional: true,
@@ -476,7 +476,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
-																		Default:             stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																		Default:             stringdefault.StaticString(utils.UNSPECIFIED),
 																		MarkdownDescription: fmt.Sprintf("The data mode type. Can be one of %q.", dashboardwidgets.DashboardValidDataModeTypes),
 																	},
 																},
@@ -521,7 +521,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																						MarkdownDescription: fmt.Sprintf("The type of aggregation. Can be one of %q.", dashboardwidgets.DashboardValidGaugeAggregations),
 																						Optional:            true,
 																						Computed:            true,
-																						Default:             stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																						Default:             stringdefault.StaticString(utils.UNSPECIFIED),
 																					},
 																					"filters": dashboardwidgets.MetricFiltersSchema(),
 																				},
@@ -618,7 +618,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																	"data_mode_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
@@ -627,7 +627,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																	"threshold_by": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidGaugeThresholdBy...),
 																		},
@@ -778,7 +778,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																			"label_source": schema.StringAttribute{
 																				Optional: true,
 																				Computed: true,
-																				Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																				Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																				Validators: []validator.String{
 																					stringvalidator.OneOf(dashboardwidgets.DashboardValidPieChartLabelSources...),
 																				},
@@ -818,7 +818,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																	"unit": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																	},
 																	"color_scheme": schema.StringAttribute{
 																		Optional: true,
@@ -830,7 +830,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																	"data_mode_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
@@ -972,7 +972,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																	"scale_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																	},
 																	"colors_by": schema.StringAttribute{
 																		Optional: true,
@@ -1014,7 +1014,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																	"unit": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidUnits...),
 																		},
@@ -1023,7 +1023,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																	"sort_by": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidSortBy...),
 																		},
@@ -1039,7 +1039,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																	"data_mode_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
@@ -1138,7 +1138,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																	"scale_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																	},
 																	"colors_by": schema.StringAttribute{
 																		Optional: true,
@@ -1146,7 +1146,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																	"unit": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidUnits...),
 																		},
@@ -1166,7 +1166,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																	"sort_by": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidSortBy...),
 																		},
@@ -1181,7 +1181,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 																	"data_mode_type": schema.StringAttribute{
 																		Optional: true,
 																		Computed: true,
-																		Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+																		Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 																		Validators: []validator.String{
 																			stringvalidator.OneOf(dashboardwidgets.DashboardValidDataModeTypes...),
 																		},
@@ -1443,7 +1443,7 @@ func dashboardSchemaAttributesV2() map[string]schema.Attribute {
 													"refresh_strategy": schema.StringAttribute{
 														Optional: true,
 														Computed: true,
-														Default:  stringdefault.StaticString(dashboardwidgets.UNSPECIFIED),
+														Default:  stringdefault.StaticString(utils.UNSPECIFIED),
 														Validators: []validator.String{
 															stringvalidator.OneOf(dashboardwidgets.DashboardValidRefreshStrategies...),
 														},

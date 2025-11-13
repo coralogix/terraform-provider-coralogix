@@ -21,8 +21,6 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -71,9 +69,10 @@ func testAccCheckScopeDestroy(s *terraform.State) error {
 			continue
 		}
 
-		resp, err := client.Get(ctx, &cxsdk.GetTeamScopesByIDsRequest{
-			Ids: []string{rs.Primary.ID},
-		})
+		resp, _, err := client.
+			ScopesServiceGetTeamScopesByIds(ctx).
+			Ids([]string{rs.Primary.ID}).
+			Execute()
 		if err == nil && resp != nil && resp.Scopes != nil && len(resp.Scopes) > 0 {
 			return fmt.Errorf("Scope still exists: %v", rs.Primary.ID)
 		}

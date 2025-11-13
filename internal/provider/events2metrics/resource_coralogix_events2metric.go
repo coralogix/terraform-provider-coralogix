@@ -867,7 +867,6 @@ func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateR
 
 	plan = flattenE2M(ctx, e2mCreateResp.GetE2M())
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
@@ -958,7 +957,6 @@ func (r *Events2MetricResource) Update(ctx context.Context, req resource.UpdateR
 
 	plan = flattenE2M(ctx, e2mUpdateResp.GetE2M())
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }

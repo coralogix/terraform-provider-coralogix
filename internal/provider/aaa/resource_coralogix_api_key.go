@@ -18,14 +18,17 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"reflect"
 	"strconv"
 	"strings"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+
+	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -39,8 +42,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"golang.org/x/exp/slices"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func NewApiKeyResource() resource.Resource {
@@ -48,7 +49,7 @@ func NewApiKeyResource() resource.Resource {
 }
 
 type ApiKeyResource struct {
-	client *cxsdk.ApikeysClient
+	client *apiKeys.APIKeysServiceAPIService
 }
 
 func (r *ApiKeyResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -268,31 +269,33 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
-	createApiKeyRequest, diags := makeCreateApiKeyRequest(ctx, desiredState)
+	rq, diags := makeCreateApiKeyRequest(ctx, desiredState)
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return
 	}
-	log.Printf("[INFO] Creating new ApiKey: %s", protojson.Format(createApiKeyRequest))
-	createApiKeyResp, err := r.client.Create(ctx, createApiKeyRequest)
+	log.Printf("[INFO] Creating new coralogix_api_key: %s", utils.FormatJSON(rq))
+
+	result, httpResponse, err := r.client.
+		ApiKeysServiceCreateApiKey(context.Background()).
+		CreateApiKeyRequest(*rq).
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error creating Api Key",
-			utils.FormatRpcErrors(err, cxsdk.CreateAPIKeyRPC, protojson.Format(createApiKeyRequest)),
+		resp.Diagnostics.AddError("Error creating coralogix_api_key",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	log.Printf("[INFO] Create api key with ID: %s", createApiKeyResp.KeyId)
+	log.Printf("[INFO] Created new coralogix_api_key: %s", utils.FormatJSON(result))
 
-	currentKeyId := createApiKeyResp.GetKeyId()
-	key, diags := r.getKeyInfo(ctx, &currentKeyId, &createApiKeyResp.Value)
+	currentKeyId := result.GetKeyId()
+	key, diags := getKeyInfo(ctx, r.client, &currentKeyId, result.Value)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, key)
 	resp.Diagnostics.Append(diags...)
 }
@@ -305,12 +308,16 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	key, diags := r.getKeyInfo(ctx, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer())
+	log.Printf("[INFO] Reading coralogix_api_key: %s", currentState.ID.ValueString())
+
+	key, diags := getKeyInfo(ctx, r.client, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer())
 	if diags.HasError() {
+		resp.State.RemoveResource(ctx)
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	// Set state to fully populated data
+	log.Printf("[INFO] Read new coralogix_api_key: %s", utils.FormatJSON(key))
+
 	diags = resp.State.Set(ctx, key)
 	resp.Diagnostics.Append(diags...)
 }
@@ -329,12 +336,11 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 	id := currentState.ID.ValueString()
+	rq := apiKeys.UpdateApiKeyRequest{}
 
-	var updateApiKeyRequest = cxsdk.UpdateAPIKeyRequest{
-		KeyId: id,
-	}
+	// Detect changes and construct request
 	if currentState.Name.ValueString() != desiredState.Name.ValueString() {
-		updateApiKeyRequest.NewName = desiredState.Name.ValueStringPointer()
+		rq.NewName = desiredState.Name.ValueStringPointer()
 	}
 
 	if !reflect.DeepEqual(currentState.Permissions.Elements(), desiredState.Permissions.Elements()) {
@@ -343,7 +349,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 			resp.Diagnostics.Append(diags...)
 			return
 		}
-		updateApiKeyRequest.Permissions = &cxsdk.APIKeyPermissionsUpdate{
+		rq.Permissions = &apiKeys.UpdateApiKeyRequestPermissions{
 			Permissions: permissions,
 		}
 	}
@@ -354,13 +360,13 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 			resp.Diagnostics.Append(diags...)
 			return
 		}
-		updateApiKeyRequest.Presets = &cxsdk.APIKeyPresetsUpdate{
+		rq.Presets = &apiKeys.Presets{
 			Presets: presets,
 		}
 	}
 
 	if currentState.Active.ValueBool() != desiredState.Active.ValueBool() {
-		updateApiKeyRequest.IsActive = desiredState.Active.ValueBoolPointer()
+		rq.IsActive = desiredState.Active.ValueBoolPointer()
 	}
 
 	if currentState.Hashed.ValueBool() != desiredState.Hashed.ValueBool() {
@@ -370,24 +376,36 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		)
 		return
 	}
-	log.Printf("[INFO] Updating  ApiKey %s to  %s", id, protojson.Format(&updateApiKeyRequest))
 
-	_, err := r.client.Update(ctx, &updateApiKeyRequest)
+	log.Printf("[INFO] Updating coralogix_api_key: %s", utils.FormatJSON(rq))
+
+	result, httpResponse, err := r.client.
+		ApiKeysServiceUpdateApiKey(ctx, id).
+		UpdateApiKeyRequest(rq).
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error updating Api Key",
-			utils.FormatRpcErrors(err, cxsdk.UpdateAPIKeyRPC, protojson.Format(&updateApiKeyRequest)),
-		)
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("coralogix_api_key %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error creating coralogix_api_key", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", rq))
+		}
 		return
 	}
+	log.Printf("[INFO] Updated coralogix_api_key: %s", utils.FormatJSON(result))
 
-	key, diags := r.getKeyInfo(ctx, &id, currentState.Value.ValueStringPointer())
+	key, diags := getKeyInfo(ctx, r.client, &id, currentState.Value.ValueStringPointer())
 	if diags.HasError() {
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, key)...)
+	diags = resp.State.Set(ctx, key)
+	resp.Diagnostics.Append(diags...)
+
 }
 
 func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -399,69 +417,49 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 
 	id := currentState.ID.ValueString()
-	deleteApiKeyRequest, diags := makeDeleteApi(&id)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
+
+	if resp.Diagnostics.HasError() {
 		return
 	}
-	_, err := r.client.Delete(ctx, deleteApiKeyRequest)
+	log.Printf("[INFO] Deleting resource %s", id)
+
+	result, httpResponse, err := r.client.
+		ApiKeysServiceDeleteApiKey(ctx, id).
+		Execute()
 
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error getting Api Key",
-			utils.FormatRpcErrors(err, cxsdk.DeleteAPIKeyRPC, protojson.Format(deleteApiKeyRequest)),
+		resp.Diagnostics.AddError("Error deleting coralogix_api_key",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-
-	log.Printf("[INFO] Api Key %s deleted", id)
+	log.Printf("[INFO] Deleted coralogix_api_key: %s", utils.FormatJSON(result))
 }
 
-func (r *ApiKeyResource) getKeyInfo(ctx context.Context, id *string, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
-	getApiKeyRequest, diags := makeGetApiKeyRequest(id)
-	if diags.HasError() {
-		return nil, diags
-	}
-	log.Printf("[INFO] Get api key with ID: %s", getApiKeyRequest)
-	getApiKeyResponse, err := r.client.Get(ctx, getApiKeyRequest)
+func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *string, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
+	log.Printf("[INFO] Reading resource: %v", id)
+
+	result, httpResponse, err := r.
+		ApiKeysServiceGetApiKey(ctx, *id).
+		Execute()
 
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
-			diags.AddError(
-				"Error getting Api Key",
-				fmt.Sprintf("Api Key with id %s not found", *id),
-			)
-		} else {
-			diags.AddError(
-				"Error getting Api Key",
-				utils.FormatRpcErrors(err, cxsdk.GetAPIKeyRPC, protojson.Format(getApiKeyRequest)),
-			)
-		}
+		diags := diag.Diagnostics{}
+		diags.AddError("Error reading coralogix_api_key",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+		)
 		return nil, diags
 	}
-	log.Printf("[INFO] Got api key info: %s", protojson.Format(getApiKeyResponse))
-	key, diags := flattenGetApiKeyResponse(ctx, id, getApiKeyResponse, keyValue)
+	log.Printf("[INFO] Read new coralogix_api_key: %s", utils.FormatJSON(result))
+
+	key, diags := flattenGetApiKeyResponse(ctx, id, result, keyValue)
 	if diags.HasError() {
 		return nil, diags
 	}
 	return key, nil
 }
 
-func makeGetApiKeyRequest(apiKeyId *string) (*cxsdk.GetAPIKeyRequest, diag.Diagnostics) {
-	return &cxsdk.GetAPIKeyRequest{
-		KeyId: *apiKeyId,
-	}, nil
-}
-
-func makeDeleteApi(apiKeyId *string) (*cxsdk.DeleteAPIKeyRequest, diag.Diagnostics) {
-	return &cxsdk.DeleteAPIKeyRequest{
-		KeyId: *apiKeyId,
-	}, nil
-}
-
-func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *cxsdk.GetAPIKeyResponse, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
+func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *apiKeys.GetApiKeyResponse, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	permissions := utils.StringSliceToTypeStringSet(response.KeyInfo.KeyPermissions.Permissions)
@@ -470,7 +468,7 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *c
 	}
 	presetNames := make([]attr.Value, len(response.KeyInfo.KeyPermissions.Presets))
 	for i, p := range response.KeyInfo.KeyPermissions.Presets {
-		presetNames[i] = types.StringValue(p.Name)
+		presetNames[i] = types.StringPointerValue(p.Name)
 	}
 
 	presets, diags := types.SetValueFrom(ctx, types.StringType, presetNames)
@@ -479,10 +477,12 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *c
 	}
 
 	var key types.String
-	if response.KeyInfo.Hashed && keyValue == nil {
-		diags.AddError("Key argument is require", "Key value is required")
+	hashedKey := (response.KeyInfo.Hashed != nil && *response.KeyInfo.Hashed || false)
+	active := (response.KeyInfo.Active != nil && *response.KeyInfo.Active || false)
+	if hashedKey && keyValue == nil {
+		diags.AddError("Key value is required", "Key value is required")
 		return nil, diags
-	} else if !response.KeyInfo.Hashed {
+	} else if !hashedKey {
 		key = types.StringValue(response.KeyInfo.GetValue())
 	} else {
 		key = types.StringValue(*keyValue)
@@ -492,16 +492,16 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *c
 	return &ApiKeyModel{
 		ID:          types.StringValue(*apiKeyId),
 		Value:       key,
-		Name:        types.StringValue(response.KeyInfo.Name),
-		Active:      types.BoolValue(response.KeyInfo.Active),
-		Hashed:      types.BoolValue(response.KeyInfo.Hashed),
+		Name:        types.StringPointerValue(response.KeyInfo.Name),
+		Active:      types.BoolValue(active),
+		Hashed:      types.BoolValue(hashedKey),
 		Permissions: permissions,
 		Presets:     presets,
 		Owner:       &owner,
 	}, nil
 }
 
-func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*cxsdk.CreateAPIKeyRequest, diag.Diagnostics) {
+func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*apiKeys.CreateApiKeyRequest, diag.Diagnostics) {
 	permissions, diags := utils.TypeStringSliceToStringSlice(ctx, apiKeyModel.Permissions.Elements())
 	if diags.HasError() {
 		return nil, diags
@@ -516,31 +516,31 @@ func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*cx
 	if diags.HasError() {
 		return nil, diags
 	}
-
-	return &cxsdk.CreateAPIKeyRequest{
-		Name:  apiKeyModel.Name.ValueString(),
+	hashed := false
+	return &apiKeys.CreateApiKeyRequest{
+		Name:  apiKeyModel.Name.ValueStringPointer(),
 		Owner: &owner,
-		KeyPermissions: &cxsdk.APIKeyPermissions{
+		KeyPermissions: &apiKeys.CreateApiKeyRequestKeyPermissions{
 			Presets:     presets,
 			Permissions: permissions,
 		},
-		Hashed: false, // this has to be false or the GetApiKey will fail (encrypted keys are not readable)
-	}, nil
+		Hashed: &hashed, // this has to be false or the GetApiKey will fail (encrypted keys are not readable)
+	}, diags
 }
 
-func extractOwner(keyModel *ApiKeyModel) (cxsdk.Owner, diag.Diagnostics) {
+func extractOwner(keyModel *ApiKeyModel) (apiKeys.Owner, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	if keyModel.Owner.UserId.ValueString() != "" {
-		return cxsdk.Owner{
-			Owner: &cxsdk.OwnerUserID{
-				UserId: keyModel.Owner.UserId.ValueString(),
+		return apiKeys.Owner{
+			OwnerUserId: &apiKeys.OwnerUserId{
+				UserId: keyModel.Owner.UserId.ValueStringPointer(),
 			},
 		}, diags
 	} else {
 		if keyModel.Owner.OrganisationId.ValueString() != "" {
-			return cxsdk.Owner{
-				Owner: &cxsdk.OwnerOrganisationID{
-					OrganisationId: keyModel.Owner.OrganisationId.ValueString(),
+			return apiKeys.Owner{
+				OwnerOrganisationId: &apiKeys.OwnerOrganisationId{
+					OrganisationId: keyModel.Owner.OrganisationId.ValueStringPointer(),
 				},
 			}, diags
 		} else {
@@ -548,30 +548,30 @@ func extractOwner(keyModel *ApiKeyModel) (cxsdk.Owner, diag.Diagnostics) {
 			if err != nil {
 				diags.AddError("Invalid team id", "Team id must be a int")
 			}
-			return cxsdk.Owner{
-				Owner: &cxsdk.OwnerTeamID{
-					TeamId: uint32(teamId),
+			teamIdP := int64(teamId)
+			return apiKeys.Owner{
+				OwnerTeamId: &apiKeys.OwnerTeamId{
+					TeamId: &teamIdP,
 				},
 			}, diags
 		}
 	}
 }
 
-func flattenOwner(owner *cxsdk.Owner) Owner {
-	switch owner.Owner.(type) {
-	case *cxsdk.OwnerTeamID:
+func flattenOwner(owner *apiKeys.Owner) Owner {
+	if owner.OwnerOrganisationId != nil {
 		return Owner{
-			TeamId: types.StringValue(strconv.Itoa(int(owner.GetTeamId()))),
+			OrganisationId: types.StringValue(*owner.OwnerOrganisationId.OrganisationId),
 		}
-	case *cxsdk.OwnerUserID:
+	} else if owner.OwnerUserId != nil {
 		return Owner{
-			UserId: types.StringValue(owner.GetUserId()),
+			UserId: types.StringValue(*owner.OwnerUserId.UserId),
 		}
-	case *cxsdk.OwnerOrganisationID:
+	} else if owner.OwnerTeamId != nil {
 		return Owner{
-			OrganisationId: types.StringValue(owner.GetOrganisationId()),
+			TeamId: types.StringValue(strconv.Itoa(int(*owner.OwnerTeamId.TeamId))),
 		}
-	default:
+	} else {
 		return Owner{}
 	}
 }

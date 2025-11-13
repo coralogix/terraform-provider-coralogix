@@ -729,7 +729,6 @@ func (r DashboardResource) Create(ctx context.Context, req resource.CreateReques
 	log.Printf("[INFO] Flattened Dashboard: %v", flattenedDashboard)
 	plan = *flattenedDashboard
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }
@@ -1265,7 +1264,7 @@ func expandSectionOptions(_ context.Context, option SectionOptionsModel) (*cxsdk
 	if !option.Color.IsNull() {
 		mappedColor := cxsdk.DashboardSectionPredefinedColorValueLookup[fmt.Sprintf("SECTION_PREDEFINED_COLOR_%s", strings.ToUpper(option.Color.ValueString()))]
 		// this means the color field somehow wasn't validated
-		if mappedColor == 0 && option.Color.String() != dashboardwidgets.UNSPECIFIED {
+		if mappedColor == 0 && option.Color.String() != utils.UNSPECIFIED {
 			return nil, diag.Diagnostics{
 				diag.NewErrorDiagnostic(
 					"Extract Dashboard Section Options Error",
@@ -6064,7 +6063,6 @@ func (r *DashboardResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 	plan = *flattenedDashboard
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 }

@@ -3,12 +3,12 @@
 page_title: "coralogix_preset Resource - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix Preset. NOTE: This resource is in alpha stage.
+  Coralogix Preset. NOTE: This resource is in Beta stage.
 ---
 
 # coralogix_preset (Resource)
 
-Coralogix Preset. **NOTE:** This resource is in alpha stage.
+Coralogix Preset. **NOTE:** This resource is in Beta stage.
 
 ## Example Usage
 
@@ -124,8 +124,8 @@ resource "coralogix_preset" "pagerduty_example" {
 
 ### Required
 
-- `connector_type` (String) The type of connector for the preset. Valid values are: generic_https, pagerduty, slack, unspecified
-- `entity_type` (String) The type of entity for the preset. Valid values are: alerts, unspecified
+- `connector_type` (String) The type of connector for the preset. Valid values are: generic_https, pagerduty, service_now, slack, unspecified
+- `entity_type` (String) The type of entity for the preset. Valid values are: alerts, cases, test_notifications, unspecified
 - `name` (String)
 - `parent_id` (String)
 

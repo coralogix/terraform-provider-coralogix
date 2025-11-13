@@ -22,12 +22,10 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	"google.golang.org/protobuf/encoding/protojson"
+	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/grpc/codes"
 )
 
 var _ datasource.DataSourceWithConfigure = &ApiKeyDataSource{}
@@ -37,14 +35,14 @@ func NewApiKeyDataSource() datasource.DataSource {
 }
 
 type ApiKeyDataSource struct {
-	client *cxsdk.ApikeysClient
+	client *apiKeys.APIKeysServiceAPIService
 }
 
-func (d *ApiKeyDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+func (r *ApiKeyDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_api_key"
 }
 
-func (d *ApiKeyDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (r *ApiKeyDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -53,68 +51,52 @@ func (d *ApiKeyDataSource) Configure(_ context.Context, req datasource.Configure
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *cxsdk.ClientSet, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *apiKeys.APIKeysServiceAPIService, got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
 
-	d.client = clientSet.APIKeys()
+	r.client = clientSet.APIKeys()
 }
 
-func (d *ApiKeyDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r ApiKeyResource
+func (r *ApiKeyDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	var d ApiKeyResource
 	var resourceResp resource.SchemaResponse
-	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
+	d.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
-func (d *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+func (r *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data *ApiKeyModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	log.Printf("[INFO] Reading ApiKey")
+	id := data.ID.ValueString()
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	//Get refreshed API Keys value from Coralogix
-	id := data.ID.ValueString()
-	log.Printf("[INFO] Reading ApiKey: %s", id)
-	getApiKey := &cxsdk.GetAPIKeyRequest{
-		KeyId: id,
-	}
+	log.Printf("[INFO] Reading coralogix_api_key: %s", id)
 
-	getApiKeyResponse, err := d.client.Get(ctx, getApiKey)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
-			resp.Diagnostics.AddWarning(err.Error(),
-				fmt.Sprintf("API Keys %q is in state, but no longer exists in Coralogix backend", id),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading API Keys",
-				utils.FormatRpcErrors(err, cxsdk.GetAPIKeyRPC, protojson.Format(getApiKey)),
-			)
-		}
+	result, diags := getKeyInfo(ctx, r.client, &id, data.Value.ValueStringPointer())
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Received API Keys: %s", protojson.Format(getApiKeyResponse))
+	log.Printf("[INFO] Read new coralogix_api_key: %s", utils.FormatJSON(result))
 
-	if getApiKeyResponse.KeyInfo.Hashed {
+	diags = resp.State.Set(ctx, result)
+	resp.Diagnostics.Append(diags...)
+
+	if result.Hashed.ValueBool() {
 		resp.Diagnostics.AddError(
 			"Error reading API Keys",
 			"Reading an hashed key is impossible",
 		)
 		return
 	}
-	response, diags := flattenGetApiKeyResponse(ctx, &id, getApiKeyResponse, getApiKeyResponse.KeyInfo.Value)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
 
 	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &response)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
 }

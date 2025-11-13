@@ -22,10 +22,8 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/google/uuid"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var alertResourceName = "coralogix_alert.test"
@@ -1431,13 +1429,9 @@ func testAccCheckAlertDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &cxsdk.GetAlertDefRequest{
-			Id: wrapperspb.String(rs.Primary.ID),
-		}
-
-		resp, err := client.Get(ctx, req)
+		resp, _, err := client.AlertDefsServiceGetAlertDef(ctx, rs.Primary.ID).Execute()
 		if err == nil {
-			if resp.AlertDef.Id.Value == rs.Primary.ID {
+			if *resp.AlertDef.Id == rs.Primary.ID {
 				return fmt.Errorf("alert still exists: %s", rs.Primary.ID)
 			}
 		}
@@ -1815,10 +1809,14 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) st
   }
 
   resource "coralogix_global_router" "example" {
-    name        = "global router example"
+    name        = "%[1]v"
     description = "global router example"
+    matching_routing_labels = {
+      "routing.environment" = "%[1]v"
+    }
     rules       = [
       {
+        entity_type = "alerts"
         name = "rule-name"
         condition = "alertDef.priority == \"P1\""
         targets = [
@@ -1838,8 +1836,9 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) st
   priority    = "P3"
 
   labels = {
-    alert_type        = "security"
-    security_severity = "low"
+    "alert_type"        = "security"
+    "security_severity" = "low"
+    "routing.environment" = "production"
   }
 
   notification_group = {
@@ -1956,20 +1955,22 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter(name string) string {
   }
 
   resource "coralogix_global_router" "example" {
-    name        = "global router example"
+    id          = "%[1]v"
+    name        = "%[1]v"
     description = "global router example"
-    rules       = [
-      {
+    matching_routing_labels = {
+      "routing.environment" = "%[1]v"
+    }
+
+    rules       = [{
+        entity_type = "alerts"
         name = "rule-name"
         condition = "alertDef.priority == \"P1\""
-        targets = [
-          {
+        targets = [{
             connector_id   = coralogix_connector.slack_example.id
             preset_id      = coralogix_preset.slack_example.id
-          }
-        ]
-      }
-    ]
+        }]
+    }]
   }
 
   resource "coralogix_alert" "test" {

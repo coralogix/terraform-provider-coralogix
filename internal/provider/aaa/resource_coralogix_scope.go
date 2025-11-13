@@ -18,18 +18,16 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+
+	scopess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/scopes_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
-
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-
-	"google.golang.org/grpc/codes"
-
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -42,14 +40,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-var availableEntityTypes = []string{"logs", "spans", "unspecified"}
+var availableEntityTypes = []string{"logs", "spans", utils.UNSPECIFIED}
 
 func NewScopeResource() resource.Resource {
 	return &ScopeResource{}
 }
 
 type ScopeResource struct {
-	client *cxsdk.ScopesClient
+	client *scopess.ScopesServiceAPIService
 }
 
 func (r *ScopeResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -156,41 +154,27 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 
-	createScopeReq, diags := extractCreateScope(plan)
+	rq, diags := extractCreateScope(plan)
 	if diags.HasError() {
-		resp.Diagnostics = diags
+		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Creating new Scope: %s", protojson.Format(createScopeReq))
-	createScopeResp, err := r.client.Create(ctx, createScopeReq)
+
+	log.Printf("[INFO] Creating new coralogix_scope: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := r.client.
+		ScopesServiceCreateScope(ctx).
+		CreateScopeRequest(*rq).
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error creating Scope",
-			utils.FormatRpcErrors(err, cxsdk.CreateScopeRPC, protojson.Format(createScopeReq)),
+		resp.Diagnostics.AddError("Error creating coralogix_scope",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted new scope: %s", protojson.Format(createScopeResp))
+	log.Printf("[INFO] Created new coralogix_scope: %s", utils.FormatJSON(result))
+	state := flattenScope(result.Scope)
 
-	getScopeReq := &cxsdk.GetTeamScopesByIDsRequest{
-		Ids: []string{createScopeResp.Scope.Id},
-	}
-	log.Printf("[INFO] Getting new Scope: %s", protojson.Format(getScopeReq))
-
-	getScopeResp, err := r.client.Get(ctx, getScopeReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error reading Scope",
-			utils.FormatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
-		)
-		return
-	}
-	log.Printf("[INFO] Received Scope: %s", protojson.Format(getScopeResp))
-	state := flattenScope(getScopeResp)[0]
-
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -199,53 +183,48 @@ func EntityType(s string) string {
 	return strings.ToUpper(fmt.Sprintf("ENTITY_TYPE_%v", s))
 }
 
-func extractCreateScope(plan *ScopeResourceModel) (*cxsdk.CreateScopeRequest, diag.Diagnostics) {
-	var filters []*cxsdk.ScopeFilter
+func extractCreateScope(plan *ScopeResourceModel) (*scopess.CreateScopeRequest, diag.Diagnostics) {
+	var filters []scopess.ScopesV1Filter
 
 	for _, filter := range plan.Filters {
-		entityType := cxsdk.EntityTypeValueLookup[EntityType(filter.EntityType.ValueString())]
-
-		if entityType == 0 && filter.EntityType.ValueString() != "unspecified" {
-			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid entity type", fmt.Sprintf("Invalid entity type: %s", filter.EntityType.ValueString()))}
+		et, err := scopess.NewV1EntityTypeFromValue(EntityType(filter.EntityType.ValueString()))
+		if err != nil {
+			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid entity type", fmt.Sprintf("Invalid entity type: %s", err))}
 		}
-		filters = append(filters, &cxsdk.ScopeFilter{
-			Expression: filter.Expression.ValueString(),
-			EntityType: cxsdk.EntityType(entityType),
+
+		filters = append(filters, scopess.ScopesV1Filter{
+			Expression: filter.Expression.ValueStringPointer(),
+			EntityType: et,
 		})
 	}
 
-	return &cxsdk.CreateScopeRequest{
+	return &scopess.CreateScopeRequest{
 		DisplayName:       plan.DisplayName.ValueString(),
 		Description:       plan.Description.ValueStringPointer(),
 		Filters:           filters,
-		DefaultExpression: plan.DefaultExpression.ValueString(),
+		DefaultExpression: plan.DefaultExpression.ValueStringPointer(),
 	}, nil
 }
 
-func flattenScope(resp *cxsdk.GetScopesResponse) []ScopeResourceModel {
-	var scopes []ScopeResourceModel
-	for _, scope := range resp.GetScopes() {
-		description := types.StringNull()
-		if scope.GetDescription() != "" {
-			description = types.StringValue(scope.GetDescription())
-		}
-		scopes = append(scopes, ScopeResourceModel{
-			ID:                types.StringValue(scope.GetId()),
-			DisplayName:       types.StringValue(scope.GetDisplayName()),
-			Description:       description,
-			DefaultExpression: types.StringValue(scope.GetDefaultExpression()),
-			TeamId:            types.StringValue(strconv.Itoa(int(scope.GetTeamId()))),
-			Filters:           flattenScopeFilters(scope.GetFilters()),
-		})
+func flattenScope(scope scopess.ScopesV1Scope) ScopeResourceModel {
+	description := types.StringNull()
+	if scope.GetDescription() != "" {
+		description = types.StringValue(scope.GetDescription())
 	}
-	return scopes
+	return ScopeResourceModel{
+		ID:                types.StringValue(scope.GetId()),
+		DisplayName:       types.StringValue(scope.GetDisplayName()),
+		Description:       description,
+		DefaultExpression: types.StringValue(scope.GetDefaultExpression()),
+		TeamId:            types.StringValue(strconv.Itoa(int(scope.GetTeamId()))),
+		Filters:           flattenScopeFilters(scope.GetFilters()),
+	}
 }
 
-func flattenScopeFilters(filters []*cxsdk.ScopeFilter) []ScopeFilterModel {
+func flattenScopeFilters(filters []scopess.ScopesV1Filter) []ScopeFilterModel {
 	var result []ScopeFilterModel
 	for _, filter := range filters {
-
-		entityTypeRaw := strings.ToLower(cxsdk.EntityTypeNameLookup[int32(filter.GetEntityType())])
+		entityTypeRaw := strings.ToLower(string(filter.GetEntityType()))
 		entityType, _ := strings.CutPrefix(entityTypeRaw, "entity_type_")
 		result = append(result, ScopeFilterModel{
 			EntityType: types.StringValue(entityType),
@@ -262,33 +241,35 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	id := plan.ID.ValueString()
 
-	getScopeReq := &cxsdk.GetTeamScopesByIDsRequest{
-		Ids: []string{plan.ID.ValueString()},
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
 	}
-	log.Printf("[INFO] Reading Scope: %s", protojson.Format(getScopeReq))
-	getScopeResp, err := r.client.Get(ctx, getScopeReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+
+	rq := r.client.
+		ScopesServiceGetTeamScopesByIds(ctx).Ids([]string{id})
+
+	log.Printf("[INFO] Reading coralogix_scope: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := rq.
+		Execute()
+
+	if err != nil && len(result.Scopes) == 0 {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Scope %v is in state, but no longer exists in Coralogix backend", plan.ID.ValueString()),
-				fmt.Sprintf("%q will be recreated when you apply", plan.ID.ValueString()),
+				fmt.Sprintf("coralogix_scope %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Scope",
-				utils.FormatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
-			)
+			resp.Diagnostics.AddError("Error reading coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		}
 		return
 	}
-	log.Printf("[INFO] Received Scope: %s", protojson.Format(getScopeResp))
+	log.Printf("[INFO] Replaced new coralogix_scope: %s", utils.FormatJSON(result))
+	state := flattenScope(result.Scopes[0])
 
-	state := flattenScope(getScopeResp)[0]
-
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -300,63 +281,55 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	id := plan.ID.ValueString()
 
-	updateReq, diags := extractUpdateScope(plan)
+	rq, diags := extractUpdateScope(plan)
 	if diags.HasError() {
-		resp.Diagnostics = diags
 		return
 	}
-	log.Printf("[INFO] Updating Scope: %s", protojson.Format(updateReq))
+	log.Printf("[INFO] Replacing new coralogix_scope: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := r.client.
+		ScopesServiceUpdateScope(ctx).
+		UpdateScopeRequest(*rq).
+		Execute()
 
-	_, err := r.client.Update(ctx, updateReq)
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error updating Scope",
-			utils.FormatRpcErrors(err, cxsdk.UpdateScopeRPC, protojson.Format(updateReq)),
-		)
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("coralogix_scope %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error updating coralogix_scope", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
+		}
 		return
 	}
+	log.Printf("[INFO] Replaced new coralogix_scope: %s", utils.FormatJSON(result))
 
-	log.Printf("[INFO] Updated scope: %s", plan.ID.ValueString())
+	state := flattenScope(result.Scope)
 
-	getScopeReq := &cxsdk.GetTeamScopesByIDsRequest{
-		Ids: []string{plan.ID.ValueString()},
-	}
-	getScopeResp, err := r.client.Get(ctx, getScopeReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error reading Scope",
-			utils.FormatRpcErrors(err, cxsdk.GetTeamScopesByIDsRPC, protojson.Format(getScopeReq)),
-		)
-		return
-	}
-	log.Printf("[INFO] Received Scope: %s", protojson.Format(getScopeResp))
-	state := flattenScope(getScopeResp)[0]
-
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
 
-func extractUpdateScope(plan *ScopeResourceModel) (*cxsdk.UpdateScopeRequest, diag.Diagnostics) {
+func extractUpdateScope(plan *ScopeResourceModel) (*scopess.UpdateScopeRequest, diag.Diagnostics) {
 
-	var filters []*cxsdk.ScopeFilter
+	var filters []scopess.ScopesV1Filter
 
 	for _, filter := range plan.Filters {
-		entityType := cxsdk.EntityTypeValueLookup[EntityType(filter.EntityType.ValueString())]
-
-		if entityType == 0 && filter.EntityType.ValueString() != "unspecified" {
-			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid entity type", fmt.Sprintf("Invalid entity type: %s", filter.EntityType.ValueString()))}
+		et, err := scopess.NewV1EntityTypeFromValue(EntityType(filter.EntityType.ValueString()))
+		if err != nil {
+			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid entity type", fmt.Sprintf("Invalid entity type: %s", err))}
 		}
-		filters = append(filters, &cxsdk.ScopeFilter{
-			Expression: filter.Expression.ValueString(),
-			EntityType: cxsdk.EntityType(entityType),
+
+		filters = append(filters, scopess.ScopesV1Filter{
+			Expression: filter.Expression.ValueStringPointer(),
+			EntityType: et,
 		})
 	}
 
-	return &cxsdk.UpdateScopeRequest{
+	return &scopess.UpdateScopeRequest{
 		Id:                plan.ID.ValueString(),
 		DisplayName:       plan.DisplayName.ValueString(),
 		Description:       plan.Description.ValueStringPointer(),
@@ -373,18 +346,19 @@ func (r *ScopeResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		return
 	}
 
-	log.Printf("[INFO] Deleting Scope: %s", state.ID.ValueString())
+	id := state.ID.ValueString()
 
-	deleteReq := &cxsdk.DeleteScopeRequest{Id: state.ID.ValueString()}
-	log.Printf("[INFO] Deleting Scope: %s", protojson.Format(deleteReq))
-	_, err := r.client.Delete(ctx, deleteReq)
+	log.Printf("[INFO] Deleting coralogix_scope")
+
+	result, httpResponse, err := r.client.
+		ScopesServiceDeleteScope(ctx, id).
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error deleting Scope",
-			utils.FormatRpcErrors(err, cxsdk.DeleteScopeRPC, protojson.Format(deleteReq)),
+		resp.Diagnostics.AddError("Error deleting coralogix_scope",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted scope: %s", state.ID.ValueString())
+	log.Printf("[INFO] Deleted coralogix_scope: %s", utils.FormatJSON(result))
 }

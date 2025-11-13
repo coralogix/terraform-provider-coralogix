@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
+	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -32,10 +32,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/encoding/protojson"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+
+	roless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/role_management_service"
 )
 
 func NewCustomRoleSource() resource.Resource {
@@ -43,10 +43,10 @@ func NewCustomRoleSource() resource.Resource {
 }
 
 type CustomRoleSource struct {
-	client *cxsdk.RolesClient
+	client *roless.RoleManagementServiceAPIService
 }
 
-func (c *CustomRoleSource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *CustomRoleSource) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_custom_role"
 }
 
@@ -58,7 +58,7 @@ type RolesModel struct {
 	Permissions types.Set    `tfsdk:"permissions"`
 }
 
-func (c *CustomRoleSource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *CustomRoleSource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -72,10 +72,10 @@ func (c *CustomRoleSource) Configure(ctx context.Context, req resource.Configure
 		return
 	}
 
-	c.client = clientSet.CustomRoles()
+	r.client = clientSet.CustomRoles()
 }
 
-func (c *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 0,
 		Attributes: map[string]schema.Attribute{
@@ -111,202 +111,213 @@ func (c *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, r
 	}
 }
 
-func (c *CustomRoleSource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var desiredState *RolesModel
-	diags := req.Plan.Get(ctx, &desiredState)
+func (r *CustomRoleSource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	var plan *RolesModel
+	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	createCustomRoleRequest, diags := makeCreateCustomRoleRequest(ctx, desiredState)
-	if diags.HasError() {
-		resp.Diagnostics = diags
+	rq, diags := extractCreateCustomRoleRequest(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	log.Printf("[INFO] Creating Custom Role: %s", protojson.Format(createCustomRoleRequest))
-	createCustomRoleResponse, err := c.client.Create(ctx, createCustomRoleRequest)
+	log.Printf("[INFO] Creating new coralogix_custom_role: %s", utils.FormatJSON(rq))
+	createResult, httpResponse, err := r.client.
+		RoleManagementServiceCreateRole(ctx).
+		RoleManagementServiceCreateRoleRequest(*rq).
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error creating Custom Role",
-			utils.FormatRpcErrors(err, cxsdk.RolesCreateRoleRPC, protojson.Format(createCustomRoleRequest)),
+		resp.Diagnostics.AddError("Error creating coralogix_custom_role",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	log.Printf("[INFO] Created custom role with ID: %v", createCustomRoleResponse.Id)
 
-	desiredState.ID = types.StringValue(strconv.FormatInt(int64(createCustomRoleResponse.Id), 10))
+	result, httpResponse, err := r.client.
+		RoleManagementServiceGetCustomRole(ctx, *createResult.Id).
+		Execute()
+	if err != nil {
+		resp.Diagnostics.AddError("Error refreshing updated coralogix_custom_role. State was not updated", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
+		return
+	}
+	log.Printf("[INFO] Created new coralogix_custom_role: %s", utils.FormatJSON(result))
 
-	// Set state to fully populated data
-	diags = resp.State.Set(ctx, desiredState)
+	state := flattenCustomRole(result.Role)
+
+	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
 
-func (c *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var currentState *RolesModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &currentState)...)
+func (r *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state *RolesModel
+
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	roleId, err := strconv.Atoi(currentState.ID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Id", "Custom role id must be an int")
+
+	id, diags := utils.TypeStringToInt64Pointer(state.ID)
+	if diags.HasError() {
 		return
 	}
 
-	readReq := &cxsdk.GetCustomRoleRequest{RoleId: uint32(roleId)}
-	log.Printf("[INFO] Reading Custom Role: %s", protojson.Format(readReq))
-	role, err := c.client.Get(ctx, readReq)
+	rq := r.client.
+		RoleManagementServiceGetCustomRole(ctx, *id)
+
+	log.Printf("[INFO] Reading coralogix_custom_role: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := rq.
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				fmt.Sprintf("Custom Role %q is in state, but no longer exists in Coralogix backend", roleId),
-				fmt.Sprintf("%d will be recreated when you apply", roleId),
+				fmt.Sprintf("coralogix_custom_role %v is in state, but no longer exists in Coralogix backend", *id),
+				fmt.Sprintf("%v will be recreated when you apply", *id),
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError(
-				"Error reading Custom Role",
-				utils.FormatRpcErrors(err, cxsdk.RolesGetCustomRoleRPC, protojson.Format(readReq)),
-			)
+			resp.Diagnostics.AddError("Error reading coralogix_custom_role", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		}
 		return
 	}
-	flattenedRule, diags := flattenCustomRole(ctx, role.GetRole())
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	resp.Diagnostics.Append(resp.State.Set(ctx, flattenedRule)...)
+	log.Printf("[INFO] Replaced new coralogix_custom_role: %s", utils.FormatJSON(result))
+	state = flattenCustomRole(result.Role)
+
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
 }
 
-func (c *CustomRoleSource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var currentState, desiredState *RolesModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &currentState)...)
+func (r *CustomRoleSource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan *RolesModel
+
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &desiredState)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	roleId, err := strconv.Atoi(currentState.ID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Id", "Custom role id must be an int")
-		return
-	}
-	var updateRoleRequest = cxsdk.UpdateRoleRequest{
-		RoleId: uint32(roleId),
-	}
-
-	if currentState.ParentRole != desiredState.ParentRole {
-		resp.Diagnostics.AddError("Custom role update error", "ParentRole can not be updated!")
-		return
-	}
-
-	if currentState.Name != desiredState.Name {
-		updateRoleRequest.NewName = desiredState.Name.ValueStringPointer()
-	}
-	if currentState.Description != desiredState.Description {
-		updateRoleRequest.NewDescription = desiredState.Description.ValueStringPointer()
-	}
-
-	if !currentState.Permissions.Equal(desiredState.Permissions) {
-		permissions, diags := utils.TypeStringSliceToStringSlice(ctx, desiredState.Permissions.Elements())
-		if diags.HasError() {
-			diags.AddError("Custom role update error", "Error extracting permissions")
-			resp.Diagnostics.Append(diags...)
-			return
-		}
-		updateRoleRequest.NewPermissions = &cxsdk.RolePermissions{
-			Permissions: permissions,
-		}
-	}
-
-	_, err = c.client.Update(ctx, &updateRoleRequest)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error updating custom role",
-			utils.FormatRpcErrors(err, cxsdk.RolesUpdateRoleRPC, protojson.Format(&updateRoleRequest)),
-		)
-		return
-	}
-
-	log.Printf("[INFO] Custom Role %v updated", roleId)
-
-	// Set state to fully populated data
-	resp.Diagnostics.Append(resp.State.Set(ctx, desiredState)...)
-}
-
-func (c *CustomRoleSource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
-}
-
-func (c *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var currentState *RolesModel
-	diags := req.State.Get(ctx, &currentState)
+	id, diags := utils.TypeStringToInt64Pointer(plan.ID)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	id, err := strconv.Atoi(currentState.ID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Invalid Id", "Custom role id must be an int")
+	rq, diags := extractUpdateCustomRoleRequest(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
-	deleteRoleRequest := cxsdk.DeleteRoleRequest{
-		RoleId: uint32(id),
+
+	log.Printf("[INFO] Replacing new coralogix_custom_role: %s", utils.FormatJSON(rq))
+	_, httpResponse, err := r.client.
+		RoleManagementServiceUpdateRole(ctx, *id).
+		RoleManagementServiceUpdateRoleRequest(*rq).
+		Execute()
+
+	if err != nil {
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("coralogix_custom_role %v is in state, but no longer exists in Coralogix backend", *id),
+				fmt.Sprintf("%v will be recreated when you apply", *id),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error updating coralogix_custom_role", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", rq))
+		}
+		return
+	}
+	result, httpResponse, err := r.client.
+		RoleManagementServiceGetCustomRole(ctx, *id).
+		Execute()
+
+	if err != nil {
+		resp.Diagnostics.AddError("Error refreshing updated coralogix_custom_role. State was not updated", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
+		return
+	}
+	log.Printf("[INFO] Replaced new coralogix_custom_role: %s", utils.FormatJSON(result))
+
+	state := flattenCustomRole(result.Role)
+
+	diags = resp.State.Set(ctx, state)
+	resp.Diagnostics.Append(diags...)
+}
+
+func (r *CustomRoleSource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state *RolesModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
 	}
 
-	_, err = c.client.Delete(ctx, &deleteRoleRequest)
+	id, diags := utils.TypeStringToInt64Pointer(state.ID)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	rq := r.client.
+		RoleManagementServiceDeleteRole(ctx, *id)
+	log.Printf("[INFO] Deleting coralogix_custom_role: %s", utils.FormatJSON(rq))
+
+	result, httpResponse, err := rq.
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error deleting Custom Role",
-			utils.FormatRpcErrors(err, cxsdk.RolesDeleteRoleRPC, protojson.Format(&deleteRoleRequest)),
+		resp.Diagnostics.AddError("Error deleting coralogix_custom_role",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-
-	log.Printf("[INFO] Custom Role %v deleted", id)
+	log.Printf("[INFO] Deleted coralogix_custom_role: %s", utils.FormatJSON(result))
 }
 
-func makeCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) (*cxsdk.CreateRoleRequest, diag.Diagnostics) {
+func extractCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) (*roless.RoleManagementServiceCreateRoleRequest, diag.Diagnostics) {
 	permissions, diags := utils.TypeStringSliceToStringSlice(ctx, roleModel.Permissions.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	return &cxsdk.CreateRoleRequest{
-		Name:        roleModel.Name.ValueString(),
-		Description: roleModel.Description.ValueString(),
-		Permissions: permissions,
-		ParentRole:  &cxsdk.CreateRoleRequestParentRoleName{ParentRoleName: roleModel.ParentRole.ValueString()},
+	return &roless.RoleManagementServiceCreateRoleRequest{
+
+		CreateRoleRequestParentRoleName: &roless.CreateRoleRequestParentRoleName{
+			ParentRoleName: roleModel.ParentRole.ValueStringPointer(),
+			Name:           roleModel.Name.ValueStringPointer(),
+			Description:    roleModel.Description.ValueStringPointer(),
+			Permissions:    permissions,
+		},
 	}, nil
 }
 
-func flattenCustomRole(ctx context.Context, customRole *cxsdk.CustomRole) (*RolesModel, diag.Diagnostics) {
-	var diags diag.Diagnostics
+func flattenCustomRole(customRole *roless.V2CustomRole) *RolesModel {
 
-	permissions, diags := types.SetValueFrom(ctx, types.StringType, customRole.Permissions)
+	return &RolesModel{
+		ID:          utils.Int64ToStringValue(customRole.RoleId),
+		ParentRole:  types.StringPointerValue(customRole.ParentRoleName),
+		Permissions: utils.StringSliceToTypeStringSet(customRole.Permissions),
+		Description: types.StringPointerValue(customRole.Description),
+		Name:        types.StringPointerValue(customRole.Name),
+	}
+}
+
+func extractUpdateCustomRoleRequest(ctx context.Context, model *RolesModel) (*roless.RoleManagementServiceUpdateRoleRequest, diag.Diagnostics) {
+	permissions, diags := utils.TypeStringSliceToStringSlice(ctx, model.Permissions.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
-
-	model := RolesModel{
-		ID:          types.StringValue(strconv.Itoa(int(customRole.RoleId))),
-		ParentRole:  types.StringValue(customRole.ParentRoleName),
-		Permissions: permissions,
-		Description: types.StringValue(customRole.Description),
-		Name:        types.StringValue(customRole.Name),
-	}
-
-	return &model, nil
+	return &roless.RoleManagementServiceUpdateRoleRequest{
+		NewDescription: model.Description.ValueStringPointer(),
+		NewName:        model.Name.ValueStringPointer(),
+		NewPermissions: &roless.V2Permissions{
+			Permissions: permissions,
+		},
+	}, nil
 }

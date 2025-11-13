@@ -30,7 +30,7 @@ import (
 var sloResourceName = "coralogix_slo.test"
 
 func TestAccCoralogixResourceSLOCreate(t *testing.T) {
-	t.Skip("Faulty test")
+	t.Skip("A required Metric is missing")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -39,6 +39,7 @@ func TestAccCoralogixResourceSLOCreate(t *testing.T) {
 			{
 				Config:  testAccCoralogixResourceSLO(),
 				Destroy: false,
+
 				Check: resource.ComposeTestCheckFunc(
 					resource.TestCheckResourceAttr(sloResourceName, "name", "coralogix_slo_example"),
 					resource.TestCheckResourceAttr(sloResourceName, "service_name", "service_name"),
@@ -103,14 +104,14 @@ func testAccCoralogixResourceSLO() string {
 	return `
 variable "test" {
 	type 		= string
-	default 	= 1
+	default 	= 1000000
 }
 resource "coralogix_slo" "test" {
 	name            		= "coralogix_slo_example"
 	service_name    		= "service_name"
 	description     		= "description"
 	target_percentage 		= 50
-	type            		= "latency"
+	type            		= "error"
 	threshold_microseconds 	= var.test
 	threshold_symbol_type 	= "greater"
 	period			        = "7_days"

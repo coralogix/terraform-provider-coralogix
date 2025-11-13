@@ -28,7 +28,7 @@ data "coralogix_slo_v2" "data_example" {
 ### Read-Only
 
 - `description` (String) Optional SLO description.
-- `grouping` (Attributes) Optional grouping configuration for SLO evaluations. (see [below for nested schema](#nestedatt--grouping))
+- `grouping` (Attributes) Grouping configuration for SLO evaluations. (see [below for nested schema](#nestedatt--grouping))
 - `labels` (Map of String) Optional map of labels to attach to the SLO.
 - `name` (String) SLO name.
 - `sli` (Attributes) SLI definition: exactly one of request_based_metric_sli or window_based_metric_sli must be provided. (see [below for nested schema](#nestedatt--sli))

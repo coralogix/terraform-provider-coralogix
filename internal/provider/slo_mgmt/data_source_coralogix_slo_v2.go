@@ -18,16 +18,16 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+
+	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 func NewSLOV2DataSource() datasource.DataSource {
@@ -35,7 +35,7 @@ func NewSLOV2DataSource() datasource.DataSource {
 }
 
 type SLOV2DataSource struct {
-	client *cxsdk.SLOsClient
+	client *slos.SlosServiceAPIService
 }
 
 func (d *SLOV2DataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -68,41 +68,41 @@ func (d *SLOV2DataSource) Schema(ctx context.Context, _ datasource.SchemaRequest
 }
 
 func (d *SLOV2DataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *SLOV2ResourceModel
-	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
+	var state *SLOV2ResourceModel
+	diags := req.Config.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	//Get refreshed sli value from Coralogix
-	id := data.ID.ValueString()
-	log.Printf("[INFO] Reading SLO: %s", id)
-	getSLOReq := &cxsdk.GetServiceSloRequest{Id: id}
-	getSLOResp, err := d.client.Get(ctx, getSLOReq)
+	//Get refreshed SLO value from Coralogix
+	id := state.ID.ValueString()
+	rq := d.client.SlosServiceGetSlo(ctx, id)
+	log.Printf("[INFO] Reading new coralogix_slo_v2: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := rq.Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				err.Error(),
-				fmt.Sprintf("SLO %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("coralogix_slo_v2 %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError(
-				"Error reading SLO",
-				utils.FormatRpcErrors(err, cxsdk.SloGetRPC, protojson.Format(getSLOReq)),
+			resp.Diagnostics.AddError("Error reading coralogix_slo_v2",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	slo := getSLOResp.GetSlo()
-	log.Printf("[INFO] Received SLO: %s", protojson.Format(slo))
+	log.Printf("[INFO] Read coralogix_slo_v2: %s", utils.FormatJSON(result))
 
-	data, diags := flattenSLOV2(ctx, slo)
+	state, diags = flattenSLOV2(ctx, &result.Slo)
 	if diags.HasError() {
 		resp.Diagnostics = diags
 		return
 	}
 
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
 }

@@ -336,6 +336,10 @@ func StringSliceToTypeStringSet(s []string) types.Set {
 	return types.SetValueMust(types.StringType, elements)
 }
 
+func Int64ToStringValue(v *int64) types.String {
+	return types.StringValue(strconv.FormatInt(*v, 10))
+}
+
 func Int32SliceToTypeInt64Set(arr []int32) types.Set {
 	if len(arr) == 0 {
 		return types.SetNull(types.Int64Type)
@@ -347,11 +351,22 @@ func Int32SliceToTypeInt64Set(arr []int32) types.Set {
 	return types.SetValueMust(types.StringType, elements)
 }
 
+func StringSliceToTypeStringList(s []string) types.List {
+	if len(s) == 0 {
+		return types.ListNull(types.StringType)
+	}
+	elements := make([]attr.Value, 0)
+	for _, v := range s {
+		elements = append(elements, types.StringValue(v))
+	}
+	return types.ListValueMust(types.StringType, elements)
+}
+
 func WrappedStringSliceToTypeStringList(s []*wrapperspb.StringValue) types.List {
 	if len(s) == 0 {
 		return types.ListNull(types.StringType)
 	}
-	elements := make([]attr.Value, 0, len(s))
+	elements := make([]attr.Value, 0)
 	for _, v := range s {
 		elements = append(elements, types.StringValue(v.GetValue()))
 	}
@@ -547,12 +562,6 @@ func (u UrlValidationFuncFramework) ValidateString(ctx context.Context, req vali
 			),
 		)
 	}
-}
-
-func FlattenUtc(timeZone string) int32 {
-	utcStr := strings.Split(timeZone, "UTC")[1]
-	utc, _ := strconv.Atoi(utcStr)
-	return int32(utc)
 }
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -765,9 +774,34 @@ func ParseNumUint32(desired string) uint32 {
 }
 
 func TypeMapToStringMap(ctx context.Context, m types.Map) (map[string]string, diag.Diagnostics) {
+	if m.IsNull() || m.IsUnknown() {
+		return nil, nil
+	}
 	var result map[string]string
 	diags := m.ElementsAs(ctx, &result, true)
 	return result, diags
+}
+
+func StringMapToTypeMap(ctx context.Context, m *map[string]string) (types.Map, diag.Diagnostics) {
+	if m != nil {
+		return types.MapValueFrom(ctx, types.StringType, m)
+	} else {
+		return types.MapNull(types.StringType), nil
+	}
+}
+
+func StringNullIfUnknown(s types.String) *string {
+	if s.IsNull() || s.IsUnknown() {
+		return nil
+	}
+	return s.ValueStringPointer()
+}
+
+func UuidCreateIfNull(uuid types.String) string {
+	if uuid.IsNull() || uuid.IsUnknown() {
+		return gouuid.NewString()
+	}
+	return uuid.ValueString()
 }
 
 func ExpandUuid(uuid types.String) *wrapperspb.StringValue {
@@ -812,6 +846,15 @@ func TypeStringToWrapperspbUint32(str types.String) (*wrapperspb.UInt32Value, di
 	return wrapperspb.UInt32(uint32(parsed)), nil
 }
 
+func TypeStringToInt64Pointer(str types.String) (*int64, diag.Diagnostics) {
+	parsed, err := strconv.ParseInt(str.ValueString(), 10, 64)
+	if err != nil {
+		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Failed to convert string to int64", err.Error())}
+	}
+	ret := int64(parsed)
+	return &ret, nil
+}
+
 func WrapperspbUint32ToString(num *wrapperspb.UInt32Value) types.String {
 	if num == nil {
 		return types.StringNull()
@@ -841,21 +884,6 @@ func ParseDuration(ti, fieldsName string) (*time.Duration, diag.Diagnostic) {
 		return nil, diag.NewErrorDiagnostic(fmt.Sprintf("Error Expand %s", fieldsName), fmt.Sprintf("error parsing duration unit: %s", unit))
 	}
 	return &duration, nil
-}
-
-func ExtractStringMap(ctx context.Context, typesMap types.Map) (map[string]string, diag.Diagnostics) {
-	var diags diag.Diagnostics
-	extractedDetails := make(map[string]string)
-	if typesMap.IsNull() || typesMap.IsUnknown() {
-		return nil, diags
-	}
-
-	typesMap.ElementsAs(ctx, &extractedDetails, true)
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	return extractedDetails, diags
 }
 
 func JSONStringsEqualPlanModifier(_ context.Context, plan planmodifier.StringRequest, req *stringplanmodifier.RequiresReplaceIfFuncResponse) {

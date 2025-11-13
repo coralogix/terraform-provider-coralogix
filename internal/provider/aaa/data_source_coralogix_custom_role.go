@@ -18,10 +18,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strconv"
-
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -32,7 +28,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
-	"google.golang.org/grpc/codes"
+
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	roless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/role_management_service"
 )
 
 var _ datasource.DataSourceWithConfigure = &CustomRoleDataSource{}
@@ -42,7 +40,7 @@ func NewCustomRoleDataSource() datasource.DataSource {
 }
 
 type CustomRoleDataSource struct {
-	client *cxsdk.RolesClient
+	client *roless.RoleManagementServiceAPIService
 }
 
 func (d *CustomRoleDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -92,109 +90,78 @@ func (d *CustomRoleDataSource) Schema(ctx context.Context, _ datasource.SchemaRe
 func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data *RolesModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-	log.Printf("[INFO] Reading Custom Role")
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	//Get refreshed Action value from Coralogix
-	var customRole *cxsdk.CustomRole
-	if id := data.ID.ValueString(); id != "" {
-		roleId, err := strconv.Atoi(id)
-		if err != nil {
-			resp.Diagnostics.AddError("Invalid Id", "Custom role id must be an int")
-			return
-		}
-		log.Printf("[INFO] Reading Custom Role: %v", roleId)
-		customRole, err = getRoleById(ctx, resp, d.client, roleId)
-		if err != nil {
-			resp.Diagnostics.AddError("Error reading custom role", err.Error())
-			return
-		}
+	id, diags := utils.TypeStringToInt64Pointer(data.ID)
+
+	var customRole *roless.V2CustomRole
+	if !diags.HasError() {
+		customRole = getRoleById(ctx, resp, d.client, *id)
 	} else if name := data.Name.ValueString(); name != "" {
-		var err error
-		log.Printf("[INFO] Reading Custom Role: %v", name)
-		customRole, err = getRoleByName(ctx, resp, d.client, name)
-		if err != nil {
-			resp.Diagnostics.AddError("Error reading custom role", err.Error())
-			return
-		}
+		customRole = getRoleByName(ctx, resp, d.client, name)
 	} else {
-		resp.Diagnostics.AddError("Invalid Id or Name", "Custom role id or name must be provided")
+		resp.Diagnostics.AddError("Invalid Id or Name", "coralogix_custom_role id or name must be provided")
+	}
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	model, diags := flattenCustomRole(ctx, customRole)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
+	model := flattenCustomRole(customRole)
 
-	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
 }
 
-func getRoleById(ctx context.Context, resp *datasource.ReadResponse, client *cxsdk.RolesClient, roleId int) (*cxsdk.CustomRole, error) {
-	getCustomRoleRequest := &cxsdk.GetCustomRoleRequest{
-		RoleId: uint32(roleId),
-	}
-	createCustomRoleResponse, err := client.Get(ctx, getCustomRoleRequest)
+func getRoleById(ctx context.Context, resp *datasource.ReadResponse, client *roless.RoleManagementServiceAPIService, id int64) *roless.V2CustomRole {
+	rq := client.
+		RoleManagementServiceGetCustomRole(ctx, id)
+
+	log.Printf("[INFO] Reading coralogix_custom_role: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := rq.
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
-			resp.Diagnostics.AddWarning(
-				err.Error(),
-				fmt.Sprintf("Custom role  %q is in state, but no longer exists in Coralogix backend", roleId),
-			)
-		} else {
-			resp.Diagnostics.AddError(
-				"Error reading custom role",
-				utils.FormatRpcErrors(err, cxsdk.RolesGetCustomRoleRPC, protojson.Format(getCustomRoleRequest)),
-			)
-		}
-		return nil, err
+		resp.Diagnostics.AddError("Error reading coralogix_custom_role", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
+		return nil
 	}
-	log.Printf("[INFO] Received Custom Role: %s", protojson.Format(createCustomRoleResponse))
-	return createCustomRoleResponse.GetRole(), nil
+	return result.Role
 }
 
-func getRoleByName(ctx context.Context, resp *datasource.ReadResponse, client *cxsdk.RolesClient, roleName string) (*cxsdk.CustomRole, error) {
-	listCustomRolesRequest := &cxsdk.ListCustomRolesRequest{}
-	listCustomRolesResponse, err := client.List(ctx, listCustomRolesRequest)
-	if err != nil {
-		log.Printf("[ERROR] Received error while listing custom roles: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error listing custom roles",
-			utils.FormatRpcErrors(err, cxsdk.RolesListCustomRolesRPC, protojson.Format(listCustomRolesRequest)),
-		)
-		return nil, err
-	}
+func getRoleByName(ctx context.Context, resp *datasource.ReadResponse, client *roless.RoleManagementServiceAPIService, roleName string) *roless.V2CustomRole {
+	log.Printf("[INFO] Reading coralogix_custom_role: %v", roleName)
 
+	result, httpResponse, err := client.RoleManagementServiceListCustomRoles(ctx).
+		Execute()
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading coralogix_custom_role", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
+		return nil
+	}
 	var found bool
-	var result *cxsdk.CustomRole
-	for _, role := range listCustomRolesResponse.GetRoles() {
+	var foundRole *roless.V2CustomRole
+	for _, role := range result.GetRoles() {
 		if role.GetName() == roleName {
 			if found {
 				resp.Diagnostics.AddError(
-					"Multiple custom roles found",
-					fmt.Sprintf("Multiple custom roles found with name %q", roleName),
+					"Multiple coralogix_custom_roles found",
+					fmt.Sprintf("Multiple coralogix_custom_roles found with name %q", roleName),
 				)
-				return nil, fmt.Errorf("multiple custom roles found with name %q", roleName)
+				return nil
 			}
 			found = true
-			result = role
+			foundRole = &role
 		}
 	}
 
 	if !found {
 		resp.Diagnostics.AddError(
-			"Custom role not found",
-			fmt.Sprintf("Custom role %q not found", roleName),
+			"coralogix_custom_role not found",
+			fmt.Sprintf("coralogix_custom_role %q not found", roleName),
 		)
-		return nil, fmt.Errorf("custom role %q not found", roleName)
+		return nil
 	}
 
-	log.Printf("[INFO] Received Custom Role: %s", protojson.Format(result))
-	return result, nil
+	log.Printf("[INFO] Received coralogix_custom_role: %s", utils.FormatJSON(foundRole))
+	return foundRole
 }

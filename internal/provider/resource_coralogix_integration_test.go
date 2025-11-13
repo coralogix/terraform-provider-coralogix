@@ -22,10 +22,8 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var integrationWithoutSensitiveDataName = "aws-metrics-collector"
@@ -112,11 +110,9 @@ func testAccCheckIntegrationDestroy(s *terraform.State) error {
 			continue
 		}
 
-		_, err := client.Get(ctx, &cxsdk.GetDeployedIntegrationRequest{
-			IntegrationId: wrapperspb.String(rs.Primary.ID),
-		})
+		_, _, err := client.IntegrationServiceGetDeployedIntegration(ctx, rs.Primary.ID).Execute()
 		if err == nil {
-			return fmt.Errorf("Integration still exists: %v", rs.Primary.ID)
+			return fmt.Errorf("Integration still exists: %v, %v", rs.Primary.ID, err)
 		}
 	}
 	return nil

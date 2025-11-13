@@ -16,19 +16,19 @@ package notifications
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	presets "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/presets_service"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
@@ -40,7 +40,7 @@ func NewPresetDataSource() datasource.DataSource {
 }
 
 type PresetDataSource struct {
-	client *cxsdk.NotificationsClient
+	client *presets.PresetsServiceAPIService
 }
 
 func (d *PresetDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -61,7 +61,7 @@ func (d *PresetDataSource) Configure(_ context.Context, req datasource.Configure
 		return
 	}
 
-	d.client = clientSet.GetNotifications()
+	_, _, d.client = clientSet.GetNotifications()
 }
 
 func (d *PresetDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -98,55 +98,55 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	var presetID string
 	//Get refreshed preset value from Coralogix
 	if name := data.Name.ValueString(); name != "" {
-		log.Printf("[INFO] Listing presets to find by name: %s", name)
-		alertType := cxsdk.EntityTypeAlerts
-		listPresetReq := &cxsdk.ListPresetSummariesRequest{EntityType: &alertType}
-		listPresetResp, err := d.client.ListPresetSummaries(ctx, listPresetReq)
+		log.Printf("[INFO] Listing resource to find by name: %s", name)
+		listResult, httpResponse, err := d.client.
+			PresetsServiceListPresetSummaries(ctx).
+			Execute()
+
 		if err != nil {
-			log.Printf("[ERROR] Received error when listing presets: %s", err.Error())
-			listPresetReqStr, _ := json.Marshal(listPresetResp)
 			resp.Diagnostics.AddError(
-				"Error listing presets",
-				utils.FormatRpcErrors(err, "List", string(listPresetReqStr)),
+				"Error listing coralogix_preset",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "List", nil),
 			)
 			return
 		}
 
-		for _, preset := range listPresetResp.PresetSummaries {
-			if preset.Name == data.Name.ValueString() {
-				presetID = preset.Id
+		for _, preset := range listResult.PresetSummaries {
+			if *preset.Name == data.Name.ValueString() {
+				presetID = *preset.Id
 				break
 			}
 		}
 
 		if presetID == "" {
-			resp.Diagnostics.AddError(fmt.Sprintf("preset with name %q not found", name), "")
+			resp.Diagnostics.AddError(fmt.Sprintf("coralogix_preset with name %q not found", name), "")
 			return
 		}
 	} else if id := data.ID.ValueString(); id != "" {
 		presetID = id
 	} else {
-		resp.Diagnostics.AddError("preset id or name must be set", "")
+		resp.Diagnostics.AddError("ID or name must be set", "")
 		return
 	}
+	rq := d.client.PresetsServiceGetPreset(ctx, presetID)
+	log.Printf("[INFO] Reading coralogix_preset: %s", utils.FormatJSON(rq))
 
-	getPresetResp, err := d.client.GetPreset(ctx, &cxsdk.GetPresetRequest{Id: presetID})
+	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Failed to get preset", err.Error())
+		resp.Diagnostics.AddError("Error reading coralogix_preset",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+		)
 		return
-	}
-	if getPresetResp == nil {
-		resp.Diagnostics.AddError("preset not found", "preset not found")
-		return
-	}
 
-	data, diags = flattenPreset(ctx, getPresetResp.Preset)
+	}
+	log.Printf("[INFO] Read coralogix_preset: %s", utils.FormatJSON(result))
+
+	data, diags = flattenPreset(ctx, result.Preset)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	// Set state to fully populated data
 	diags = resp.State.Set(ctx, &data)
 	resp.Diagnostics.Append(diags...)
 }

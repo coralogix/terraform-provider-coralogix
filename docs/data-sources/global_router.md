@@ -3,12 +3,12 @@
 page_title: "coralogix_global_router Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  Coralogix GlobalRouter. Note: This resource is in alpha stage.
+  Coralogix GlobalRouter. Note: This resource is in Beta stage.
 ---
 
 # coralogix_global_router (Data Source)
 
-Coralogix GlobalRouter. **Note:** This resource is in alpha stage.
+Coralogix GlobalRouter. **Note:** This resource is in Beta stage.
 
 ## Example Usage
 
@@ -27,15 +27,15 @@ data "coralogix_global_router" "example_data_by_name" {
 
 ### Optional
 
-- `id` (String) The ID of the GlobalRouter.
+- `id` (String) The ID of the GlobalRouter. Use `router_default` for the default; leave empty for auto generated or provide your own (unique) id.
 - `name` (String) Name of the GlobalRouter.
 
 ### Read-Only
 
 - `description` (String) Description of the GlobalRouter.
 - `entity_labels` (Map of String)
-- `entity_type` (String) Type of the entity. Valid values are: alerts, unspecified
 - `fallback` (Attributes List) Fallback routing targets. (see [below for nested schema](#nestedatt--fallback))
+- `matching_routing_labels` (Map of String) Routers other than `router_default` require at least one of the following keys to be set: `routing.environment`, `routing.service`, `routing.group`
 - `rules` (Attributes List) Routing rules for the GlobalRouter. (see [below for nested schema](#nestedatt--rules))
 
 <a id="nestedatt--fallback"></a>
@@ -55,6 +55,7 @@ Read-Only:
 
 - `condition` (String)
 - `custom_details` (Map of String) Custom details for the rule.
+- `entity_type` (String)
 - `name` (String) Name of the routing rule.
 - `targets` (Attributes List) Routing targets for the rule. (see [below for nested schema](#nestedatt--rules--targets))
 
