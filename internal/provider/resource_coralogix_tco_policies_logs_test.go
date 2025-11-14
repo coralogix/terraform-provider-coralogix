@@ -139,6 +139,7 @@ policies = [{
 {
 	name            = "Example tco_policy from terraform 3"
 	priority        = "high"
+	enabled         = false
 	severities      = ["debug", "verbose", "info"]
 	applications    = {
 		rule_type   = "starts_with"

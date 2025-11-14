@@ -555,12 +555,12 @@ func extractOverwriteTcoPoliciesLogs(ctx context.Context, plan *TCOPoliciesListM
 			diags.Append(dg...)
 			continue
 		}
-		createPolicyRequest, dgs := extractTcoPolicyLog(ctx, tcoPolicy)
+		policyRq, dgs := extractTcoPolicyLog(ctx, tcoPolicy)
 		if dgs.HasError() {
 			diags.Append(dgs...)
 			continue
 		}
-		policies = append(policies, *createPolicyRequest)
+		policies = append(policies, *policyRq)
 	}
 
 	if diags.HasError() {
@@ -618,6 +618,7 @@ func extractTcoPolicyLog(ctx context.Context, plan TCOPolicyLogsModel) (*tcoPoli
 	if diags.HasError() {
 		return nil, diags
 	}
+	enabled := !plan.Enabled.ValueBool()
 
 	return &tcoPolicys.CreateLogPolicyRequest{
 		Policy: tcoPolicys.CreateGenericPolicyRequest{
@@ -627,6 +628,7 @@ func extractTcoPolicyLog(ctx context.Context, plan TCOPolicyLogsModel) (*tcoPoli
 			ApplicationRule:  applicationRule,
 			SubsystemRule:    subsystemRule,
 			ArchiveRetention: archiveRetention,
+			Disabled:         &enabled,
 		},
 		LogRules: tcoPolicys.LogRules{
 			Severities: severities,

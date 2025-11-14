@@ -488,6 +488,7 @@ func extractTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesModel) (*tc
 	if diags.HasError() {
 		return nil, diags
 	}
+	enabled := !plan.Enabled.ValueBool()
 
 	return &tcoPolicys.CreateSpanPolicyRequest{
 		Policy: tcoPolicys.CreateGenericPolicyRequest{
@@ -497,6 +498,7 @@ func extractTcoPolicyTraces(ctx context.Context, plan TCOPolicyTracesModel) (*tc
 			ApplicationRule:  applicationRule,
 			SubsystemRule:    subsystemRule,
 			ArchiveRetention: archiveRetention,
+			Disabled:         &enabled,
 		},
 		SpanRules: tcoPolicys.SpanRules{
 			ServiceRule: services,
