@@ -252,8 +252,8 @@ func testAccResourceCoralogixGlobalRouter(name string) string {
     resource "coralogix_global_router" "example" {
       name        = "%[1]v"
       description = "%[1]v"
-      matching_routing_labels = {
-        "routing.environment" = "%[1]v" 
+      routing_labels = {
+        environment = "%[1]v" 
       }
       rules       = [
         {
@@ -448,8 +448,8 @@ func testAccResourceCoralogixGlobalRouterUpdate(name string) string {
     resource "coralogix_global_router" "example" {
       name        = "%[1]v updated"
       description = "%[1]v"
-      matching_routing_labels = {
-        "routing.environment" = "%[1]v" 
+      routing_labels = {
+        environment = "%[1]v" 
       }
       rules       = [
         {
