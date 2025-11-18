@@ -703,10 +703,12 @@ func V3() schema.Schema {
 				Attributes: map[string]schema.Attribute{
 					"group_by_keys": schema.ListAttribute{
 						Optional:    true,
+						Computed:    true,
 						ElementType: types.StringType,
 					},
 					"webhooks_settings": schema.SetNestedAttribute{
 						Optional: true,
+						Computed: true,
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"retriggering_period": schema.SingleNestedAttribute{
@@ -747,8 +749,8 @@ func V3() schema.Schema {
 					},
 					"destinations": schema.ListNestedAttribute{
 						Optional:            true,
-						DeprecationMessage:  "Notification center is subject to change, use with care.",
-						MarkdownDescription: "Deprecated: Link a 3rd party notification to an alert.",
+						Computed:            true,
+						MarkdownDescription: "Link a 3rd party notification to an alert.",
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"connector_id": schema.StringAttribute{
@@ -875,6 +877,7 @@ func V3() schema.Schema {
 			},
 			"labels": schema.MapAttribute{
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
 			},
 		},

@@ -129,6 +129,7 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 			"labels": schema.MapAttribute{
 				ElementType:         types.StringType,
 				Optional:            true,
+				Computed:            true,
 				MarkdownDescription: "Optional map of labels to attach to the SLO. ",
 			},
 			"grouping": schema.SingleNestedAttribute{
