@@ -280,8 +280,10 @@ func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.St
 			StateUpgrader: upgradeDashboardStateV1ToV2,
 		},
 		2: {
-			PriorSchema:   &schemaV2,
-			StateUpgrader: upgradeDashboardStateV2ToV3,
+			PriorSchema: &schemaV2,
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				upgradeDashboardStateV3ToV4(ctx, req, resp, r.client)
+			},
 		},
 		3: {
 			PriorSchema: &schemaV3,
@@ -293,6 +295,7 @@ func (r DashboardResource) UpgradeState(_ context.Context) map[int64]resource.St
 }
 
 func upgradeDashboardStateV3ToV4(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse, client *cxsdk.DashboardsClient) {
+	log.Printf("[INFO] Upgrading state from v%v", req.State.Schema.GetVersion())
 	var state DashboardResourceModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
