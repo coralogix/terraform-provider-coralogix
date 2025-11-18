@@ -51,6 +51,18 @@ var (
 	actionValidSourceTypes                  = utils.GetKeys(actionSchemaSourceTypeToProtoSourceType)
 )
 
+type ActionResourceModel struct {
+	ID           types.String `tfsdk:"id"`
+	Name         types.String `tfsdk:"name"`
+	URL          types.String `tfsdk:"url"`
+	IsPrivate    types.Bool   `tfsdk:"is_private"`
+	SourceType   types.String `tfsdk:"source_type"`
+	Applications types.Set    `tfsdk:"applications"`
+	Subsystems   types.Set    `tfsdk:"subsystems"`
+	CreatedBy    types.String `tfsdk:"created_by"`
+	IsHidden     types.Bool   `tfsdk:"is_hidden"`
+}
+
 func NewActionResource() resource.Resource {
 	return &ActionResource{}
 }
@@ -127,14 +139,16 @@ func (r *ActionResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			"applications": schema.SetAttribute{
 				ElementType: types.StringType,
 				Optional:    true,
+				Computed:    true,
 				Validators: []validator.Set{
 					setvalidator.SizeAtLeast(1),
 				},
 				MarkdownDescription: "Applies the action for specific applications.",
 			},
 			"subsystems": schema.SetAttribute{
-				ElementType: types.StringType,
 				Optional:    true,
+				Computed:    true,
+				ElementType: types.StringType,
 				Validators: []validator.Set{
 					setvalidator.SizeAtLeast(1),
 				},
@@ -294,18 +308,6 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		return
 	}
 	log.Printf("[INFO] Deleted coralogix_action: %s", utils.FormatJSON(result))
-}
-
-type ActionResourceModel struct {
-	ID           types.String `tfsdk:"id"`
-	Name         types.String `tfsdk:"name"`
-	URL          types.String `tfsdk:"url"`
-	IsPrivate    types.Bool   `tfsdk:"is_private"`
-	SourceType   types.String `tfsdk:"source_type"`
-	Applications types.Set    `tfsdk:"applications"`
-	Subsystems   types.Set    `tfsdk:"subsystems"`
-	CreatedBy    types.String `tfsdk:"created_by"`
-	IsHidden     types.Bool   `tfsdk:"is_hidden"`
 }
 
 func extractCreateAction(ctx context.Context, plan ActionResourceModel) (*actionss.ActionsServiceCreateActionRequest, diag.Diagnostics) {

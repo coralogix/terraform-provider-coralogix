@@ -165,6 +165,7 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			},
 			"config_overrides": schema.ListNestedAttribute{
 				Optional: true,
+				Computed: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"condition_type": schema.SingleNestedAttribute{
