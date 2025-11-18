@@ -1093,6 +1093,7 @@ Feat:
 
 Fix:
 * Line Chart now actually supports data prime queries
+* A state upgrade bug for v2 schemas that prevented upgrades.
 
 ## resource/coralogix_global_router
 
@@ -1114,6 +1115,7 @@ Feat:
 Fix:
 
 - A bug prevented changes to `groups.labels` from the server to be correctly recognized
+
 
 ### Breaking:
 
