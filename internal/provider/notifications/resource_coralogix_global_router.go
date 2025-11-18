@@ -386,12 +386,18 @@ func extractRoutingLabels(routingLabels *RoutingLabelsModel) *globalRouters.Rout
 	if routingLabels == nil {
 		return nil
 	}
+	routing := globalRouters.NewRoutingLabelsWithDefaults()
 
-	return &globalRouters.RoutingLabels{
-		Environment: routingLabels.Environment.ValueStringPointer(),
-		Service:     routingLabels.Service.ValueStringPointer(),
-		Team:        routingLabels.Team.ValueStringPointer(),
+	if !routingLabels.Service.IsUnknown() {
+		routing.Service = routingLabels.Service.ValueStringPointer()
 	}
+	if !routingLabels.Team.IsUnknown() {
+		routing.Team = routingLabels.Team.ValueStringPointer()
+	}
+	if !routingLabels.Environment.IsUnknown() {
+		routing.Environment = routingLabels.Environment.ValueStringPointer()
+	}
+	return routing
 
 }
 
