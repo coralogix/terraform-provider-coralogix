@@ -171,6 +171,7 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			},
 			"config_overrides": schema.ListNestedAttribute{
 				Optional: true,
+				Computed: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"entity_type": schema.StringAttribute{
