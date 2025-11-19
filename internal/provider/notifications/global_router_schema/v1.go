@@ -56,13 +56,27 @@ func V1() schema.Schema {
 				Optional:            true,
 				MarkdownDescription: "Description of the GlobalRouter.",
 			},
-			"matching_routing_labels": schema.MapAttribute{
+			"routing_labels": schema.SingleNestedAttribute{
 				Optional:            true,
-				ElementType:         types.StringType,
-				MarkdownDescription: "Routers other than `router_default` require at least one of the following keys to be set: `routing.environment`, `routing.service`, `routing.group`",
+				MarkdownDescription: "Routers other than `router_default` require at least one of the properties to be set. Note that these values are globally unique.",
+				Attributes: map[string]schema.Attribute{
+					"environment": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+					},
+					"service": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+					},
+					"team": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+					},
+				},
 			},
 			"rules": schema.ListNestedAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Routing rules for the GlobalRouter.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -79,6 +93,7 @@ func V1() schema.Schema {
 						},
 						"targets": schema.ListNestedAttribute{
 							Optional:    true,
+							Computed:    true,
 							Description: "Routing targets for the rule.",
 							NestedObject: schema.NestedAttributeObject{
 								Attributes: map[string]schema.Attribute{
@@ -92,6 +107,7 @@ func V1() schema.Schema {
 									},
 									"custom_details": schema.MapAttribute{
 										Optional:    true,
+										Computed:    true,
 										ElementType: types.StringType,
 										Description: "Custom details for the target.",
 									},
@@ -100,6 +116,7 @@ func V1() schema.Schema {
 						},
 						"custom_details": schema.MapAttribute{
 							Optional:    true,
+							Computed:    true,
 							ElementType: types.StringType,
 							Description: "Custom details for the rule.",
 						},
@@ -112,6 +129,7 @@ func V1() schema.Schema {
 			},
 			"fallback": schema.ListNestedAttribute{
 				Optional:    true,
+				Computed:    true,
 				Description: "Fallback routing targets.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -125,6 +143,7 @@ func V1() schema.Schema {
 						},
 						"custom_details": schema.MapAttribute{
 							Optional:    true,
+							Computed:    true,
 							ElementType: types.StringType,
 							Description: "Custom details for the target.",
 						},
@@ -133,6 +152,7 @@ func V1() schema.Schema {
 			},
 			"entity_labels": schema.MapAttribute{
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
 			},
 		},

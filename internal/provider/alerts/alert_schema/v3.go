@@ -31,9 +31,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -703,10 +706,18 @@ func V3() schema.Schema {
 				Attributes: map[string]schema.Attribute{
 					"group_by_keys": schema.ListAttribute{
 						Optional:    true,
+						Computed:    true,
 						ElementType: types.StringType,
+						PlanModifiers: []planmodifier.List{
+							listplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"webhooks_settings": schema.SetNestedAttribute{
 						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.Set{
+							setplanmodifier.UseStateForUnknown(),
+						},
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"retriggering_period": schema.SingleNestedAttribute{
@@ -746,9 +757,12 @@ func V3() schema.Schema {
 						},
 					},
 					"destinations": schema.ListNestedAttribute{
-						Optional:            true,
-						DeprecationMessage:  "Notification center is subject to change, use with care.",
-						MarkdownDescription: "Deprecated: Link a 3rd party notification to an alert.",
+						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.List{
+							listplanmodifier.UseStateForUnknown(),
+						},
+						MarkdownDescription: "Link a 3rd party notification to an alert.",
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"connector_id": schema.StringAttribute{
@@ -875,7 +889,11 @@ func V3() schema.Schema {
 			},
 			"labels": schema.MapAttribute{
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
+				PlanModifiers: []planmodifier.Map{
+					mapplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

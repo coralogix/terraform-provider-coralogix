@@ -390,6 +390,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"headers": schema.MapAttribute{
 						Optional:            true,
+						Computed:            true,
 						ElementType:         types.StringType,
 						MarkdownDescription: "Webhook headers. Map of string to string.",
 					},
@@ -437,6 +438,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					},
 					"attachments": schema.ListNestedAttribute{
 						Optional: true,
+						Computed: true,
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"type": schema.StringAttribute{
@@ -537,6 +539,7 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Attributes: map[string]schema.Attribute{
 					"emails": schema.ListAttribute{
 						Optional:            true,
+						Computed:            true,
 						ElementType:         types.StringType,
 						MarkdownDescription: "Emails list.",
 					},

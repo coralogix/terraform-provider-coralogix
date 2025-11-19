@@ -188,6 +188,7 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 						},
 						"severities": schema.SetAttribute{
 							Optional:    true,
+							Computed:    true,
 							ElementType: types.StringType,
 							Validators: []validator.Set{
 								setvalidator.SizeAtLeast(1),

@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -107,7 +108,7 @@ func (r AlertResource) GenericUpgradeState(_ any) func(context.Context, resource
 		resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &state)...)
 		//Get refreshed Alert value from Coralogix
 		id := state.ValueString()
-		log.Printf("[INFO] Reading Alert: %s", id)
+		log.Printf("[INFO] Reading coralogix_alert: %s", id)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -126,14 +127,14 @@ func (r AlertResource) GenericUpgradeState(_ any) func(context.Context, resource
 		getAlertResp, httpResponse, err := r.client.AlertDefsServiceGetAlertDef(ctx, id).Execute()
 		if err != nil {
 			log.Printf("[ERROR] Received error: %s", err.Error())
-			resp.Diagnostics.AddError("Error creating resource",
+			resp.Diagnostics.AddError("Error creating coralogix_alert",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", id),
 			)
 			return
 		}
 
 		alert := getAlertResp.GetAlertDef()
-		log.Printf("[INFO] Received Alert for %q: %s", id, utils.FormatJSON(alert))
+		log.Printf("[INFO] Received coralogix_alert for %q: %s", id, utils.FormatJSON(alert))
 
 		newState, diags := flattenAlert(ctx, alert, &schedule)
 		if diags.HasError() {
@@ -159,27 +160,127 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	createAlertRequest := alerts.CreateAlertDefinitionRequest{AlertDefProperties: alertProperties}
-	log.Printf("[INFO] Creating new Alert: %s", utils.FormatJSON(createAlertRequest))
-	createResp, httpResponse, err := r.client.AlertDefsServiceCreateAlertDef(ctx).CreateAlertDefinitionRequest(createAlertRequest).Execute()
+	rq := alerts.CreateAlertDefinitionRequest{AlertDefProperties: alertProperties}
+	log.Printf("[INFO] Creating new coralogix_alert: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := r.client.AlertDefsServiceCreateAlertDef(ctx).CreateAlertDefinitionRequest(rq).Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating alert",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", createAlertRequest),
+		resp.Diagnostics.AddError("Error creating coralogix_alert",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	alert := createResp.GetAlertDef()
-	log.Printf("[INFO] Submitted new alert: %s", utils.FormatJSON(alert))
-
-	plan, diags = flattenAlert(ctx, alert, &plan.Schedule)
+	log.Printf("[INFO] Created coralogix_alert: %s", utils.FormatJSON(result))
+	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	log.Printf("[INFO] Created Alert: %s", utils.FormatJSON(alert))
+	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+
+func (r *AlertResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	// Retrieve values from plan
+	var plan *alerttypes.AlertResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	alertProperties, diags := extractAlertProperties(ctx, plan)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	id := plan.ID.ValueString()
+	rq := &alerts.ReplaceAlertDefinitionRequest{
+		Id:                 &id,
+		AlertDefProperties: alertProperties,
+	}
+	log.Printf("[INFO] Replacing coralogix_alert: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := r.client.
+		AlertDefsServiceReplaceAlertDef(ctx).
+		ReplaceAlertDefinitionRequest(*rq).Execute()
+	if err != nil {
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("coralogix_alert %v is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%v will be recreated when you apply", id),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error replacing coralogix_alert", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq))
+		}
+		return
+	}
+	log.Printf("[INFO] Replaced coralogix_alert: %s", utils.FormatJSON(result))
+	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+}
+
+func (r *AlertResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state alerttypes.AlertResourceModel
+	diags := req.State.Get(ctx, &state)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	id := state.ID.ValueString()
+	log.Printf("[INFO] Deleting coralogix_alert %s", id)
+	_, httpResponse, err := r.client.
+		AlertDefsServiceDeleteAlertDef(ctx, id).
+		Execute()
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading alert",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", id),
+		)
+		return
+	}
+	log.Printf("[INFO] Deleted coralogix_alert: %v", id)
+}
+
+func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+	var state *alerttypes.AlertResourceModel
+	diags := req.State.Get(ctx, &state)
+
+	id := state.ID.ValueString()
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	rq := r.client.AlertDefsServiceGetAlertDef(ctx, id)
+	log.Printf("[INFO] Reading coralogix_alert: %s", utils.FormatJSON(rq))
+
+	result, httpResponse, err := rq.Execute()
+	if err != nil {
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("coralogix_alert %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error reading coralogix_alert",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+			)
+		}
+		return
+	}
+	log.Printf("[INFO] Read coralogix_alert: %s", utils.FormatJSON(result))
+
+	state, diags = flattenAlert(ctx, result.GetAlertDef(), &state.Schedule)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 func extractAlertProperties(ctx context.Context, plan *alerttypes.AlertResourceModel) (*alerts.AlertDefProperties, diag.Diagnostics) {
@@ -2637,37 +2738,6 @@ func extractAlertDef(ctx context.Context, def types.Object) (*alerts.FlowStagesG
 
 }
 
-func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var state *alerttypes.AlertResourceModel
-	diags := req.State.Get(ctx, &state)
-	//Get refreshed Alert value from Coralogix
-	id := state.ID.ValueString()
-	log.Printf("[INFO] Reading Alert: %s", id)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	getAlertResp, httpResponse, err := r.client.AlertDefsServiceGetAlertDef(ctx, id).Execute()
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError("Error reading alert",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", id),
-		)
-		return
-	}
-	alert := getAlertResp.GetAlertDef()
-	log.Printf("[INFO] Received Alert: %s", utils.FormatJSON(alert))
-
-	state, diags = flattenAlert(ctx, alert, &state.Schedule)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
-}
-
 func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *types.Object) (*alerttypes.AlertResourceModel, diag.Diagnostics) {
 	alertProperties := alert.AlertDefProperties
 
@@ -4636,70 +4706,4 @@ func flattenSloTimeDuration(ctx context.Context, td *alerts.TimeDuration) (types
 			"unit":     types.StringValue(alerttypes.DurationUnitProtoToSchemaMap[*unit]),
 		}),
 	})
-}
-
-func (r *AlertResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Retrieve values from plan
-	var plan *alerttypes.AlertResourceModel
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	alertProperties, diags := extractAlertProperties(ctx, plan)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	updateAlertReq := &alerts.ReplaceAlertDefinitionRequest{
-		Id:                 plan.ID.ValueStringPointer(),
-		AlertDefProperties: alertProperties,
-	}
-	log.Printf("[INFO] Updating Alert: %s", utils.FormatJSON(updateAlertReq))
-	alertUpdateResp, httpResponse, err := r.client.AlertDefsServiceReplaceAlertDef(ctx).ReplaceAlertDefinitionRequest(*updateAlertReq).Execute()
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading alert",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Update", plan.ID.String()),
-		)
-		return
-	}
-	log.Printf("[INFO] Submitted updated Alert: %s", utils.FormatJSON(alertUpdateResp))
-
-	getAlertResp, httpResponse, err := r.client.AlertDefsServiceGetAlertDef(ctx, *alertUpdateResp.AlertDef.Id).Execute()
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading alert",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", plan.ID.String()),
-		)
-		return
-	}
-	log.Printf("[INFO] Received Alert: %s", utils.FormatJSON(getAlertResp))
-
-	plan, diags = flattenAlert(ctx, getAlertResp.GetAlertDef(), &plan.Schedule)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
-}
-
-func (r *AlertResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var state alerttypes.AlertResourceModel
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	id := state.ID.ValueString()
-	log.Printf("[INFO] Delteting Alert %s", id)
-	_, httpResponse, err := r.client.AlertDefsServiceDeleteAlertDef(ctx, id).Execute()
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading alert",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", id),
-		)
-		return
-	}
-	log.Printf("[INFO] Alert %s deleted", id)
 }

@@ -35,7 +35,7 @@ data "coralogix_global_router" "example_data_by_name" {
 - `description` (String) Description of the GlobalRouter.
 - `entity_labels` (Map of String)
 - `fallback` (Attributes List) Fallback routing targets. (see [below for nested schema](#nestedatt--fallback))
-- `matching_routing_labels` (Map of String) Routers other than `router_default` require at least one of the following keys to be set: `routing.environment`, `routing.service`, `routing.group`
+- `routing_labels` (Attributes) Routers other than `router_default` require at least one of the properties to be set. Note that these values are globally unique. (see [below for nested schema](#nestedatt--routing_labels))
 - `rules` (Attributes List) Routing rules for the GlobalRouter. (see [below for nested schema](#nestedatt--rules))
 
 <a id="nestedatt--fallback"></a>
@@ -46,6 +46,16 @@ Read-Only:
 - `connector_id` (String) ID of the connector.
 - `custom_details` (Map of String) Custom details for the target.
 - `preset_id` (String) ID of the preset.
+
+
+<a id="nestedatt--routing_labels"></a>
+### Nested Schema for `routing_labels`
+
+Read-Only:
+
+- `environment` (String)
+- `service` (String)
+- `team` (String)
 
 
 <a id="nestedatt--rules"></a>

@@ -1811,8 +1811,8 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) st
   resource "coralogix_global_router" "example" {
     name        = "%[1]v"
     description = "global router example"
-    matching_routing_labels = {
-      "routing.environment" = "%[1]v"
+    routing_labels = {
+      environment = "%[1]v"
     }
     rules       = [
       {
@@ -1838,7 +1838,7 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) st
   labels = {
     "alert_type"        = "security"
     "security_severity" = "low"
-    "routing.environment" = "production"
+    environment = "production"
   }
 
   notification_group = {
@@ -1958,8 +1958,8 @@ func testAccCoralogixResourceAlertLogsLessThanWithRouter(name string) string {
     id          = "%[1]v"
     name        = "%[1]v"
     description = "global router example"
-    matching_routing_labels = {
-      "routing.environment" = "%[1]v"
+    routing_labels = {
+      environment = "%[1]v"
     }
 
     rules       = [{

@@ -88,6 +88,8 @@ func (r *IpAccessResource) Schema(ctx context.Context, req resource.SchemaReques
 				Default: stringdefault.StaticString(utils.UNSPECIFIED),
 			},
 			"ip_access": schema.SetNestedAttribute{
+				Optional: true,
+				Computed: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"enabled": schema.BoolAttribute{
@@ -104,8 +106,6 @@ func (r *IpAccessResource) Schema(ctx context.Context, req resource.SchemaReques
 						},
 					},
 				},
-				Optional: true,
-				Computed: true,
 			},
 		},
 	}

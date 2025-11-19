@@ -43,13 +43,13 @@ type GlobalRouterResource struct {
 }
 
 type GlobalRouterResourceModel struct {
-	ID                    types.String `tfsdk:"id"`
-	Name                  types.String `tfsdk:"name"`
-	Description           types.String `tfsdk:"description"`
-	Rules                 types.List   `tfsdk:"rules"`    // RoutingRuleModel
-	FallBack              types.List   `tfsdk:"fallback"` // RoutingTargetModel
-	EntityLabels          types.Map    `tfsdk:"entity_labels"`
-	MatchingRoutingLabels types.Map    `tfsdk:"matching_routing_labels"`
+	ID            types.String        `tfsdk:"id"`
+	Name          types.String        `tfsdk:"name"`
+	Description   types.String        `tfsdk:"description"`
+	Rules         types.List          `tfsdk:"rules"`    // RoutingRuleModel
+	FallBack      types.List          `tfsdk:"fallback"` // RoutingTargetModel
+	EntityLabels  types.Map           `tfsdk:"entity_labels"`
+	RoutingLabels *RoutingLabelsModel `tfsdk:"routing_labels"`
 }
 
 type RoutingRuleModel struct {
@@ -64,6 +64,12 @@ type RoutingTargetModel struct {
 	ConnectorId   types.String `tfsdk:"connector_id"`
 	PresetId      types.String `tfsdk:"preset_id"`
 	CustomDetails types.Map    `tfsdk:"custom_details"`
+}
+
+type RoutingLabelsModel struct {
+	Environment types.String `tfsdk:"environment"`
+	Service     types.String `tfsdk:"service"`
+	Team        types.String `tfsdk:"team"`
 }
 
 func (r *GlobalRouterResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -155,7 +161,7 @@ func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
-	router, diags := extractRouter(ctx, plan)
+	router, diags := extractGlobalRouter(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -236,7 +242,7 @@ func (r GlobalRouterResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 	id := plan.ID.ValueString()
 
-	router, diags := extractRouter(ctx, plan)
+	router, diags := extractGlobalRouter(ctx, plan)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -292,7 +298,7 @@ func (r GlobalRouterResource) Delete(ctx context.Context, req resource.DeleteReq
 	log.Printf("[INFO] GlobalRouter %s deleted", id)
 }
 
-func extractRouter(ctx context.Context, plan *GlobalRouterResourceModel) (*globalRouters.GlobalRouter, diag.Diagnostics) {
+func extractGlobalRouter(ctx context.Context, plan *GlobalRouterResourceModel) (*globalRouters.GlobalRouter, diag.Diagnostics) {
 	rules, diags := extractGlobalRouterRules(ctx, plan.Rules)
 	if diags.HasError() {
 		return nil, diags
@@ -307,23 +313,21 @@ func extractRouter(ctx context.Context, plan *GlobalRouterResourceModel) (*globa
 	if diags.HasError() {
 		return nil, diags
 	}
-	entityLabelMatchers, diags := utils.TypeMapToStringMap(ctx, plan.MatchingRoutingLabels)
-	if diags.HasError() {
-		return nil, diags
-	}
+	routingLabels := extractRoutingLabels(plan.RoutingLabels)
+
 	var routerId *string
 	if !(plan.ID.IsNull() || plan.ID.IsUnknown()) {
 		routerId = plan.ID.ValueStringPointer()
 	}
 
 	return &globalRouters.GlobalRouter{
-		Id:                 routerId,
-		Name:               plan.Name.ValueStringPointer(),
-		Description:        plan.Description.ValueStringPointer(),
-		Rules:              rules,
-		Fallback:           fallback,
-		EntityLabels:       &entityLabels,
-		EntityLabelMatcher: &entityLabelMatchers,
+		Id:            routerId,
+		Name:          plan.Name.ValueStringPointer(),
+		Description:   plan.Description.ValueStringPointer(),
+		Rules:         rules,
+		Fallback:      fallback,
+		EntityLabels:  &entityLabels,
+		RoutingLabels: routingLabels,
 	}, nil
 }
 
@@ -378,6 +382,25 @@ func extractRoutingRule(ctx context.Context, routingModel RoutingRuleModel) (*gl
 	}, nil
 }
 
+func extractRoutingLabels(routingLabels *RoutingLabelsModel) *globalRouters.RoutingLabels {
+	if routingLabels == nil {
+		return nil
+	}
+	routing := globalRouters.NewRoutingLabelsWithDefaults()
+
+	if !routingLabels.Service.IsUnknown() {
+		routing.Service = routingLabels.Service.ValueStringPointer()
+	}
+	if !routingLabels.Team.IsUnknown() {
+		routing.Team = routingLabels.Team.ValueStringPointer()
+	}
+	if !routingLabels.Environment.IsUnknown() {
+		routing.Environment = routingLabels.Environment.ValueStringPointer()
+	}
+	return routing
+
+}
+
 func extractRoutingTargets(ctx context.Context, targets types.List) ([]globalRouters.RoutingTarget, diag.Diagnostics) {
 	if targets.IsNull() || targets.IsUnknown() {
 		return nil, nil
@@ -427,10 +450,7 @@ func flattenGlobalRouter(ctx context.Context, globalRouter *globalRouters.Global
 		return nil, diags
 	}
 
-	matchingRoutingLabels, diags := utils.StringMapToTypeMap(ctx, globalRouter.EntityLabelMatcher)
-	if diags.HasError() {
-		return nil, diags
-	}
+	routingLabels := flattenRoutingLabels(globalRouter.RoutingLabels)
 
 	entityLabels, diags := utils.StringMapToTypeMap(ctx, globalRouter.EntityLabels)
 	if diags.HasError() {
@@ -442,13 +462,13 @@ func flattenGlobalRouter(ctx context.Context, globalRouter *globalRouters.Global
 		return nil, diags
 	}
 	return &GlobalRouterResourceModel{
-		ID:                    types.StringValue(globalRouter.GetId()),
-		Name:                  types.StringValue(globalRouter.GetName()),
-		Description:           types.StringValue(globalRouter.GetDescription()),
-		Rules:                 rules,
-		FallBack:              fallback,
-		EntityLabels:          entityLabels,
-		MatchingRoutingLabels: matchingRoutingLabels,
+		ID:            types.StringValue(globalRouter.GetId()),
+		Name:          types.StringValue(globalRouter.GetName()),
+		Description:   types.StringValue(globalRouter.GetDescription()),
+		Rules:         rules,
+		FallBack:      fallback,
+		EntityLabels:  entityLabels,
+		RoutingLabels: routingLabels,
 	}, nil
 }
 
@@ -491,6 +511,18 @@ func flattenFallback(ctx context.Context, targets []globalRouters.RoutingTarget)
 	}
 
 	return types.ListValueFrom(ctx, types.ObjectType{AttrTypes: globalrouterschema.RoutingTargetAttr()}, fallbackTargetList)
+}
+
+func flattenRoutingLabels(r *globalRouters.RoutingLabels) *RoutingLabelsModel {
+	if r == nil {
+		return nil
+	}
+
+	return &RoutingLabelsModel{
+		Environment: types.StringPointerValue(r.Environment),
+		Service:     types.StringPointerValue(r.Service),
+		Team:        types.StringPointerValue(r.Team),
+	}
 }
 
 func flattenRoutingRule(ctx context.Context, rule *globalRouters.RoutingRule) (types.Object, diag.Diagnostics) {

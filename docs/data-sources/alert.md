@@ -56,7 +56,7 @@ Read-Only:
 
 Read-Only:
 
-- `destinations` (Attributes List) Deprecated: Link a 3rd party notification to an alert. (see [below for nested schema](#nestedatt--notification_group--destinations))
+- `destinations` (Attributes List) Link a 3rd party notification to an alert. (see [below for nested schema](#nestedatt--notification_group--destinations))
 - `group_by_keys` (List of String)
 - `router` (Attributes) (see [below for nested schema](#nestedatt--notification_group--router))
 - `webhooks_settings` (Attributes Set) (see [below for nested schema](#nestedatt--notification_group--webhooks_settings))

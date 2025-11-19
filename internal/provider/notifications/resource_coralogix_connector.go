@@ -171,6 +171,7 @@ func (r *ConnectorResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			},
 			"config_overrides": schema.ListNestedAttribute{
 				Optional: true,
+				Computed: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"entity_type": schema.StringAttribute{
@@ -349,7 +350,7 @@ func (r ConnectorResource) Delete(ctx context.Context, req resource.DeleteReques
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting coralogix_connector",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", id),
 		)
 		return
 	}
@@ -425,6 +426,9 @@ func extractConnectorConfigField(connectorConfigField ConnectorConfigFieldModel)
 }
 
 func extractConfigOverrides(ctx context.Context, overrides types.List) ([]connectors.EntityTypeConfigOverrides, diag.Diagnostics) {
+	if overrides.IsNull() || overrides.IsUnknown() {
+		return nil, nil
+	}
 	var diags diag.Diagnostics
 	var connectorOverridesObjects []types.Object
 	overrides.ElementsAs(ctx, &connectorOverridesObjects, true)
