@@ -150,7 +150,7 @@ func OldProvider() *oldSchema.Provider {
 				}
 			} else if domain, ok := d.GetOk("domain"); ok && domain.(string) != "" {
 				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
-				cxEnv = targetUrl
+				cxEnv = domain.(string)
 			} else if env = strings.ToUpper(os.Getenv("CORALOGIX_ENV")); env != "" {
 				if url, ok := terraformEnvironmentAliasToGrpcUrl[env.(string)]; !ok {
 					return nil, diag.Errorf("The Coralogix env must be one of %q", validEnvironmentAliases)
@@ -160,6 +160,7 @@ func OldProvider() *oldSchema.Provider {
 				}
 			} else if domain := os.Getenv("CORALOGIX_DOMAIN"); domain != "" {
 				targetUrl = fmt.Sprintf("ng-api-grpc.%s:443", domain)
+				cxEnv = domain
 			} else {
 				return nil, diag.Errorf("At least one of the fields 'env' or 'domain', or one of the environment variables 'CORALOGIX_ENV' or 'CORALOGIX_DOMAIN' have to be defined")
 			}
@@ -172,7 +173,7 @@ func OldProvider() *oldSchema.Provider {
 			if apiKey == "" {
 				return nil, diag.Errorf("At least one of the field 'api_key' or environment variable 'CORALOGIX_API_KEY' have to be defined")
 			}
-			if cxEnv == "" || len(cxEnv) > 3 {
+			if cxEnv == "" {
 				cxEnv = terraformEnvironmentAliasToSdkEnvironment[cxEnv]
 			}
 

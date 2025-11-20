@@ -1093,6 +1093,7 @@ Feat:
 
 Fix:
 * Line Chart now actually supports data prime queries
+* A state upgrade bug for v2 schemas that prevented upgrades.
 
 ## resource/coralogix_global_router
 
@@ -1112,12 +1113,15 @@ Feat:
 ## resource/coralogix_slo_v2
 
 Fix:
-
 - A bug prevented changes to `groups.labels` from the server to be correctly recognized
 
 ### Breaking:
-
 - groups.labels is now read-only
+
+## resource/coralogix_tco_policies_logs, resource/coralogix_tco_policies_traces
+
+Fix:
+- Enabling/disabling a policy wasn't correctly recognized.
 
 
 # Release 4.0.0

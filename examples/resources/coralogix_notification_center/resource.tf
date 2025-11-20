@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 2.0"
+      version = "~> 3.0"
       source  = "coralogix/coralogix"
     }
   }
@@ -13,6 +13,7 @@ provider "coralogix" {
 }
 
 //Examples of connectors
+
 resource "coralogix_connector" "generic_https_example" {
   id               = "generic_https_example" //This field is optional, if not provided a random id will be generated
   type             = "generic_https"
@@ -263,6 +264,7 @@ resource "coralogix_preset" "pagerduty_example" {
 }
 
 //Examples of global router
+
 resource "coralogix_global_router" "example" {
   name        = "global router example"
   description = "global router example"
