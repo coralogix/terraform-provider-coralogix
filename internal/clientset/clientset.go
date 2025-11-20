@@ -188,7 +188,10 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	apiKeySdk := cxsdk.NewSDKCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 
-	url := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
+	url, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
+	if !found {
+		url = cxsdkOpenapi.URLFromDomain(region)
+	}
 	log.Printf("[INFO] Using API URL: %v\n", url)
 	oasTfCPC := cxsdkOpenapi.NewSDKCallPropertiesCreatorTerraform(url, apiKey, TF_PROVIDER_VERSION)
 	return &ClientSet{

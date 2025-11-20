@@ -1838,7 +1838,7 @@ func testAccCoralogixResourceAlertLogsLessThanWithRoutingUpdated(name string) st
   labels = {
     "alert_type"        = "security"
     "security_severity" = "low"
-    environment = "production"
+    "environment" = "production"
   }
 
   notification_group = {
