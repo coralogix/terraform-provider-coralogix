@@ -77,9 +77,7 @@ resource "coralogix_connector" "slack_example" {
   ]
 }
 ```
-Running `terraform apply` with the above configuration will create a Connector in Coralogix, as shown in the screenshot below:
-
-![Screenshot of a connector on the Coralogix web UI](./images/connector.png)
+Running `terraform apply` with the above configuration will create a Connector in Coralogix. Check the web UI for results.
 
 ---
 
@@ -116,9 +114,7 @@ resource "coralogix_preset" "slack_example" {
   ]
 }
 ```
-Running `terraform apply` with the above configuration will create a Preset in Coralogix, as shown in the screenshot below:
-
-![Screenshot of a preset on the Coralogix web UI](./images/preset.png)
+Running `terraform apply` with the above configuration will create a Preset in Coralogix. Check the web UI for results.
 
 ---
 
@@ -159,9 +155,7 @@ resource "coralogix_global_router" "router_example" {
   ]
 }
 ```
-Running `terraform apply` with the above configuration will create a Global Router in Coralogix, as shown in the screenshot below:
-
-![Screenshot of a router on the Coralogix web UI](./images/router.png)
+Running `terraform apply` with the above configuration will create a Global Router in Coralogix. Check the web UI for results.
 
 ---
 
@@ -208,9 +202,7 @@ resource "coralogix_alert" "example_with_router" {
   }
 }
 ```
-Running `terraform apply` with the above configuration will create an Alert in Coralogix, as shown in the screenshot below:
-
-<img width="1709" height="884" alt="Screenshot of an alert on the Coralogix web UI" src="https://github.com/user-attachments/assets/5f2b2759-4a31-4393-89b7-b16b89d06684" />
+Running `terraform apply` with the above configuration will create an Alert in Coralogix. Check the web UI for results.
 
 ---
 
