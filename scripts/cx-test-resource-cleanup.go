@@ -64,12 +64,12 @@ func main() {
 
 	// Alerts
 	alertClient := cs.Alerts()
-	alerts, err := alertClient.List(ctx, &cxsdk.ListAlertDefsRequest{})
+	alerts, _, err := alertClient.AlertDefsServiceListAlertDefs(ctx).Execute()
 	if err == nil {
 		log.Println("Deleting all alerts")
 
 		for _, alert := range alerts.GetAlertDefs() {
-			alertClient.Delete(ctx, &cxsdk.DeleteAlertDefRequest{Id: alert.GetId()})
+			alertClient.AlertDefsServiceDeleteAlertDef(ctx, alert.GetId()).Execute()
 		}
 	} else {
 		log.Fatal("Error listing Alerts:", err)
@@ -77,11 +77,11 @@ func main() {
 
 	// Scopes
 	scopesClient := cs.Scopes()
-	scopes, err := scopesClient.List(ctx, &cxsdk.GetTeamScopesRequest{})
+	scopes, _, err := scopesClient.ScopesServiceGetTeamScopes(ctx).Execute()
 	if err == nil {
 		log.Println("Deleting all Scopes")
 		for _, scope := range scopes.GetScopes() {
-			scopesClient.Delete(ctx, &cxsdk.DeleteScopeRequest{Id: scope.GetId()})
+			scopesClient.ScopesServiceDeleteScope(ctx, scope.GetId()).Execute()
 		}
 	} else {
 		log.Fatal("Error listing Scopes:", err)
@@ -89,11 +89,11 @@ func main() {
 
 	// Custom Roles
 	rolesClients := cs.CustomRoles()
-	roles, err := rolesClients.List(ctx, &cxsdk.ListCustomRolesRequest{})
+	roles, _, err := rolesClients.RoleManagementServiceListCustomRoles(ctx).Execute()
 	if err == nil {
 		log.Println("Deleting all custom roles")
 		for _, role := range roles.GetRoles() {
-			rolesClients.Delete(ctx, &cxsdk.DeleteRoleRequest{RoleId: role.GetRoleId()})
+			rolesClients.RoleManagementServiceDeleteRole(ctx, role.GetRoleId()).Execute()
 		}
 	} else {
 		log.Fatal("Error listing custom roles:", err)
@@ -175,24 +175,33 @@ func main() {
 
 	// TCO
 	tcoPoliciesTracesClient := cs.TCOPolicies()
-	tcoPolicies, err := tcoPoliciesTracesClient.List(ctx, &cxsdk.GetCompanyPoliciesRequest{})
+	tcoPolicies, _, err := tcoPoliciesTracesClient.PoliciesServiceGetCompanyPolicies(ctx).Execute()
 	if err == nil {
 		log.Println("Deleting all TCO Traces policies")
 
 		for _, tcoPolicy := range tcoPolicies.GetPolicies() {
-			tcoPoliciesTracesClient.Delete(ctx, &cxsdk.DeletePolicyRequest{Id: tcoPolicy.GetId()})
+			if tcoPolicy.PolicyLogRules != nil {
+				tcoPoliciesTracesClient.PoliciesServiceDeletePolicy(ctx, tcoPolicy.PolicyLogRules.GetId()).Execute()
+			}
+			if tcoPolicy.PolicySpanRules != nil {
+				tcoPoliciesTracesClient.PoliciesServiceDeletePolicy(ctx, tcoPolicy.PolicySpanRules.GetId()).Execute()
+			}
 		}
 	} else {
 		log.Fatal("Error listing TCO policies:", err)
 	}
 
 	tcoPoliciesLogsClient := cs.TCOPolicies()
-	tcoPolicies, err = tcoPoliciesLogsClient.List(ctx, &cxsdk.GetCompanyPoliciesRequest{})
+	tcoPolicies, _, err = tcoPoliciesLogsClient.PoliciesServiceGetCompanyPolicies(ctx).Execute()
 	if err == nil {
 		log.Println("Deleting all TCO Logs policies")
-
 		for _, tcoPolicy := range tcoPolicies.GetPolicies() {
-			tcoPoliciesLogsClient.Delete(ctx, &cxsdk.DeletePolicyRequest{Id: tcoPolicy.GetId()})
+			if tcoPolicy.PolicyLogRules != nil {
+				tcoPoliciesLogsClient.PoliciesServiceDeletePolicy(ctx, tcoPolicy.PolicyLogRules.GetId()).Execute()
+			}
+			if tcoPolicy.PolicySpanRules != nil {
+				tcoPoliciesLogsClient.PoliciesServiceDeletePolicy(ctx, tcoPolicy.PolicySpanRules.GetId()).Execute()
+			}
 		}
 	} else {
 		log.Fatal("Error listing TCO Logs policies:", err)
