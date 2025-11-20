@@ -14,7 +14,7 @@ Manage your Coralogix account from Terraform, including alerts, dashboards, and 
 terraform {
   required_providers {
     coralogix = {
-      version = "~> 2.0"
+      version = "~> 3.0"
       source  = "coralogix/coralogix"
     }
   }
