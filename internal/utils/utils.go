@@ -773,6 +773,14 @@ func ParseNumUint32(desired string) uint32 {
 	return uint32(parsed)
 }
 
+func ParseNumInt64(desired string) int64 {
+	parsed, err := strconv.ParseUint(desired, 10, 64)
+	if err != nil {
+		return 0
+	}
+	return int64(parsed)
+}
+
 func TypeMapToStringMap(ctx context.Context, m types.Map) (map[string]string, diag.Diagnostics) {
 	if m.IsNull() || m.IsUnknown() {
 		return nil, nil
