@@ -167,7 +167,6 @@ func resourceSchemaV1() schema.Schema {
 
 func resourceSchemaV0() schema.Schema {
 	return schema.Schema{
-
 		Version: 0,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

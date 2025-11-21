@@ -100,7 +100,7 @@ func (r *GlobalRouterResource) Schema(_ context.Context, _ resource.SchemaReques
 func (r *GlobalRouterResource) UpgradeState(_ context.Context) map[int64]resource.StateUpgrader {
 	v0 := globalrouterschema.V0()
 	return map[int64]resource.StateUpgrader{
-		1: {
+		0: {
 			PriorSchema:   &v0,
 			StateUpgrader: r.fetchGlobalRouterFromServer,
 		},
@@ -111,15 +111,15 @@ func (r *GlobalRouterResource) fetchGlobalRouterFromServer(ctx context.Context, 
 	log.Printf("[INFO] Upgrading state from version: %v", req.State.Schema.GetVersion())
 
 	var state *GlobalRouterResourceModel
-
-	diags := req.State.Get(ctx, &state)
+	id := types.StringValue("")
+	diags := req.State.GetAttribute(ctx, path.Root("id"), &id)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	id := state.ID.ValueString()
-	rq := r.client.GlobalRoutersServiceGetGlobalRouter(ctx, id)
+	// id := state.ID.ValueString()
+	rq := r.client.GlobalRoutersServiceGetGlobalRouter(ctx, id.ValueString())
 
 	log.Printf("[INFO] Reading coralogix_global_router: %s", utils.FormatJSON(rq))
 
@@ -313,6 +313,7 @@ func extractGlobalRouter(ctx context.Context, plan *GlobalRouterResourceModel) (
 	if diags.HasError() {
 		return nil, diags
 	}
+
 	routingLabels := extractRoutingLabels(plan.RoutingLabels)
 
 	var routerId *string
@@ -514,7 +515,7 @@ func flattenFallback(ctx context.Context, targets []globalRouters.RoutingTarget)
 }
 
 func flattenRoutingLabels(r *globalRouters.RoutingLabels) *RoutingLabelsModel {
-	if r == nil {
+	if r == nil || (r.Environment == nil && r.Service == nil && r.Team == nil) {
 		return nil
 	}
 

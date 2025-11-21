@@ -1123,6 +1123,13 @@ Fix:
 Fix:
 - Enabling/disabling a policy wasn't correctly recognized.
 
+# Release 3.0.1
+
+## resource/coralogix_global_router
+
+Fix:
+- State upgrade issue was resolved
+
 
 # Release 4.0.0
 

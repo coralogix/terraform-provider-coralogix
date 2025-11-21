@@ -58,7 +58,7 @@ func V1() schema.Schema {
 			},
 			"routing_labels": schema.SingleNestedAttribute{
 				Optional:            true,
-				MarkdownDescription: "Routers other than `router_default` require at least one of the properties to be set. Note that these values are globally unique.",
+				MarkdownDescription: "Routers other than `router_default` require at least one of the properties to be set. Note that these values are globally unique. Labels matching is linked with AND, so an alert has to have all labels specified below.",
 				Attributes: map[string]schema.Attribute{
 					"environment": schema.StringAttribute{
 						Optional: true,
