@@ -127,8 +127,11 @@ resource "coralogix_global_router" "router_example" {
   name        = "Production environment router"
   description = "Router for production environment notifications"
   
-  matching_routing_labels = {
-    routing.environment = "production" # Match alerts with label 'routing.environment:production'
+  # Match alerts that have ALL of the following labels labels 'routing.environment:production', 'routing.service:checkout', and 'routing.team:commerce-platform'
+  routing_labels = {
+    environment = "production"
+    service     = "checkout"
+    team        = "commerce-platform"
   }
   
   rules = [

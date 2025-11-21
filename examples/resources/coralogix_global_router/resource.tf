@@ -13,10 +13,12 @@ resource "coralogix_global_router" "example" {
   name        = "global router example"
   description = "global router example"
 
-  matching_routing_labels = {
-    "routing.environment" = "production"
+  routing_labels = {
+    environment = "production"
+    service     = "checkout"
+    team        = "commerce-platform"
   }
-
+  
   rules = [{
     entity_type = "alerts"
     name        = "rule-name"
