@@ -31,6 +31,7 @@ import (
 	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
 	presets "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/presets_service"
 	recRuless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/recording_rules_service"
+	retss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/retentions_service"
 	roless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/role_management_service"
 	scopess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/scopes_service"
 	archiveLogs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/target_service"
@@ -39,13 +40,11 @@ import (
 )
 
 type ClientSet struct {
-	enrichments       *cxsdk.EnrichmentsClient
-	dataSet           *cxsdk.DataSetClient
-	legacySlos        *cxsdk.LegacySLOsClient
-	dashboards        *cxsdk.DashboardsClient
-	archiveLogs       *archiveLogs.TargetServiceAPIService
-	archiveMetrics    *cxsdk.ArchiveMetricsClient
-	archiveRetentions *cxsdk.ArchiveRetentionsClient
+	enrichments    *cxsdk.EnrichmentsClient
+	dataSet        *cxsdk.DataSetClient
+	legacySlos     *cxsdk.LegacySLOsClient
+	dashboards     *cxsdk.DashboardsClient
+	archiveMetrics *cxsdk.ArchiveMetricsClient
 	// alertScheduler      *alertScheduler.AlertSchedulerRuleServiceAPIService
 	alertScheduler   *cxsdk.AlertSchedulerClient
 	dahboardsFolders *cxsdk.DashboardsFoldersClient
@@ -55,6 +54,8 @@ type ClientSet struct {
 	groupGrpc        *cxsdk.GroupsClient
 	teams            *cxsdk.TeamsClient
 
+	archiveLogs         *archiveLogs.TargetServiceAPIService
+	archiveRetentions   *retss.RetentionsServiceAPIService
 	recordingRuleGroups *recRuless.RecordingRulesServiceAPIService
 	tcoPolicies         *tcoPolicys.PoliciesServiceAPIService
 	actions             *actionss.ActionsServiceAPIService
@@ -120,7 +121,7 @@ func (c *ClientSet) Events2Metrics() *cxsdk.Events2MetricsClient {
 	return c.events2Metrics
 }
 
-func (c *ClientSet) ArchiveRetentions() *cxsdk.ArchiveRetentionsClient {
+func (c *ClientSet) ArchiveRetentions() *retss.RetentionsServiceAPIService {
 	return c.archiveRetentions
 }
 
@@ -196,20 +197,20 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	log.Printf("[INFO] Using API URL: %v\n", url)
 	oasTfCPC := cxsdkOpenapi.NewSDKCallPropertiesCreatorTerraform(url, apiKey, TF_PROVIDER_VERSION)
 	return &ClientSet{
-		enrichments:       cxsdk.NewEnrichmentClient(apiKeySdk),
-		alerts:            cxsdkOpenapi.NewAlertsClient(oasTfCPC),
-		dataSet:           cxsdk.NewDataSetClient(apiKeySdk),
-		legacySlos:        cxsdk.NewLegacySLOsClient(apiKeySdk),
-		dashboards:        cxsdk.NewDashboardsClient(apiKeySdk),
-		archiveMetrics:    cxsdk.NewArchiveMetricsClient(apiKeySdk),
-		archiveRetentions: cxsdk.NewArchiveRetentionsClient(apiKeySdk),
-		dahboardsFolders:  cxsdk.NewDashboardsFoldersClient(apiKeySdk),
-		users:             cxsdk.NewUsersClient(apiKeySdk),
-		ruleGroups:        cxsdk.NewRuleGroupsClient(apiKeySdk),
-		events2Metrics:    cxsdk.NewEvents2MetricsClient(apiKeySdk),
-		groupGrpc:         cxsdk.NewGroupsClient(apiKeySdk),
-		alertScheduler:    cxsdk.NewAlertSchedulerClient(apiKeySdk),
+		enrichments:      cxsdk.NewEnrichmentClient(apiKeySdk),
+		dataSet:          cxsdk.NewDataSetClient(apiKeySdk),
+		legacySlos:       cxsdk.NewLegacySLOsClient(apiKeySdk),
+		dashboards:       cxsdk.NewDashboardsClient(apiKeySdk),
+		archiveMetrics:   cxsdk.NewArchiveMetricsClient(apiKeySdk),
+		dahboardsFolders: cxsdk.NewDashboardsFoldersClient(apiKeySdk),
+		users:            cxsdk.NewUsersClient(apiKeySdk),
+		ruleGroups:       cxsdk.NewRuleGroupsClient(apiKeySdk),
+		events2Metrics:   cxsdk.NewEvents2MetricsClient(apiKeySdk),
+		groupGrpc:        cxsdk.NewGroupsClient(apiKeySdk),
+		alertScheduler:   cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
+		alerts:              cxsdkOpenapi.NewAlertsClient(oasTfCPC),
+		archiveRetentions:   cxsdkOpenapi.NewArchiveRetentionsClient(oasTfCPC),
 		recordingRuleGroups: cxsdkOpenapi.NewRecordingRulesClient(oasTfCPC),
 		archiveLogs:         cxsdkOpenapi.NewArchiveLogsClient(oasTfCPC),
 		tcoPolicies:         cxsdkOpenapi.NewTCOPoliciesClient(oasTfCPC),

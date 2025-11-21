@@ -18,11 +18,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	retss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/retentions_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -35,8 +37,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var (
@@ -44,12 +44,15 @@ var (
 	_ resource.ResourceWithImportState = &ArchiveRetentionsResource{}
 )
 
+// Safeguard against empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
+const RESOURCE_ID_ARCHIVE_RETENTIONS string = "archive-retention-settings"
+
 func NewArchiveRetentionsResource() resource.Resource {
 	return &ArchiveRetentionsResource{}
 }
 
 type ArchiveRetentionsResource struct {
-	client *cxsdk.ArchiveRetentionsClient
+	client *retss.RetentionsServiceAPIService
 }
 
 func (r *ArchiveRetentionsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -161,45 +164,38 @@ func (r *ArchiveRetentionsResource) Create(ctx context.Context, req resource.Cre
 		return
 	}
 
-	log.Print("[INFO] Reading archive-retentions")
-	getArchiveRetentionsReq := &cxsdk.GetRetentionsRequest{}
-	getArchiveRetentionsResp, err := r.client.Get(ctx, getArchiveRetentionsReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		utils.FormatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq))
-		return
-	}
-	log.Printf("[INFO] Received archive-retentions: %s", protojson.Format(getArchiveRetentionsResp))
+	readRq := r.client.RetentionsServiceGetRetentions(ctx)
+	log.Printf("[INFO] Reading coralogix_archive_retentions: %v", readRq)
+	readResult, httpResponse, err := readRq.Execute()
 
-	createArchiveRetentions, diags := extractCreateArchiveRetentions(ctx, plan, getArchiveRetentionsResp.GetRetentions())
+	rq, diags := extractCreateArchiveRetentions(ctx, plan, readResult.Retentions)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	archiveRetentionStr := protojson.Format(createArchiveRetentions)
-	log.Printf("[INFO] Updating archive-retentions: %s", archiveRetentionStr)
-	updateResp, err := r.client.Update(ctx, createArchiveRetentions)
+
+	log.Printf("[INFO] Creating new coralogix_archive_retentions: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := r.client.
+		RetentionsServiceUpdateRetentions(ctx).
+		UpdateRetentionsRequest(*rq).
+		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		diags.AddError(
-			"Error creating archive-retentions",
-			utils.FormatRpcErrors(err, cxsdk.ArchiveRetentionUpdateRetentionsRPC, archiveRetentionStr),
+		resp.Diagnostics.AddError("Error creating coralogix_archive_retentions",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted updated archive-retentions: %s", protojson.Format(updateResp))
-
-	plan, diags = flattenArchiveRetentions(ctx, updateResp.GetRetentions(), RESOURCE_ID_ARCHIVE_RETENTIONS)
+	log.Printf("[INFO] Created new coralogix_archive_retentions: %s", utils.FormatJSON(result))
+	state, diags := flattenArchiveRetentions(ctx, result.Retentions, RESOURCE_ID_ARCHIVE_RETENTIONS)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	diags = resp.State.Set(ctx, plan)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
-func flattenArchiveRetentions(ctx context.Context, retentions []*cxsdk.Retention, id string) (*ArchiveRetentionsResourceModel, diag.Diagnostics) {
+func flattenArchiveRetentions(ctx context.Context, retentions []retss.ArchiveV1Retention, id string) (*ArchiveRetentionsResourceModel, diag.Diagnostics) {
 	if len(retentions) == 0 {
 		r, _ := types.ListValueFrom(ctx, types.ObjectType{AttrTypes: archiveRetentionAttributes()}, []types.Object{})
 		return &ArchiveRetentionsResourceModel{
@@ -207,15 +203,18 @@ func flattenArchiveRetentions(ctx context.Context, retentions []*cxsdk.Retention
 			ID:         types.StringValue(id),
 		}, nil
 	}
-
 	var diags diag.Diagnostics
 	var retentionsObjects []types.Object
 	for _, retention := range retentions {
+		order := types.Int64Null()
+		if retention.Order != nil {
+			order = types.Int64Value(int64(*retention.Order))
+		}
 		retentionModel := &ArchiveRetentionResourceModel{
-			ID:       utils.WrapperspbStringToTypeString(retention.GetId()),
-			Order:    utils.WrapperspbInt32ToTypeInt64(retention.GetOrder()),
-			Name:     utils.WrapperspbStringToTypeString(retention.GetName()),
-			Editable: utils.WrapperspbBoolToTypeBool(retention.GetEditable()),
+			ID:       types.StringValue(retention.GetId()),
+			Order:    order,
+			Name:     types.StringValue(retention.GetName()),
+			Editable: types.BoolValue(retention.GetEditable()),
 		}
 		retentionObject, flattenDiags := types.ObjectValueFrom(ctx, archiveRetentionAttributes(), retentionModel)
 		if flattenDiags.HasError() {
@@ -248,9 +247,9 @@ func archiveRetentionAttributes() map[string]attr.Type {
 	}
 }
 
-func extractCreateArchiveRetentions(ctx context.Context, plan *ArchiveRetentionsResourceModel, exitingRetentions []*cxsdk.Retention) (*cxsdk.UpdateRetentionsRequest, diag.Diagnostics) {
+func extractCreateArchiveRetentions(ctx context.Context, plan *ArchiveRetentionsResourceModel, exitingRetentions []retss.ArchiveV1Retention) (*retss.UpdateRetentionsRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	var retentions []*cxsdk.RetentionUpdateElement
+	var retentions []retss.RetentionUpdateElement
 	var retentionsObjects []types.Object
 	plan.Retentions.ElementsAs(ctx, &retentionsObjects, true)
 	for i, retentionObject := range retentionsObjects {
@@ -259,25 +258,26 @@ func extractCreateArchiveRetentions(ctx context.Context, plan *ArchiveRetentions
 			diags.Append(dg...)
 			continue
 		}
-		retentions = append(retentions, &cxsdk.RetentionUpdateElement{
-			Id:   wrapperspb.String(exitingRetentions[i].GetId().GetValue()),
-			Name: utils.TypeStringToWrapperspbString(retentionModel.Name),
+		retentions = append(retentions, retss.RetentionUpdateElement{
+			Id:   exitingRetentions[i].Id,
+			Name: retentionModel.Name.ValueStringPointer(),
 		})
 
 	}
-	retentions[0].Name = wrapperspb.String("Default")
-	return &cxsdk.UpdateRetentionsRequest{
+	name := "Default"
+	retentions[0].Name = &name
+	return &retss.UpdateRetentionsRequest{
 		RetentionUpdateElements: retentions,
 	}, diags
 }
 
-func extractUpdateArchiveRetentions(ctx context.Context, plan, state *ArchiveRetentionsResourceModel) (*cxsdk.UpdateRetentionsRequest, diag.Diagnostics) {
+func extractUpdateArchiveRetentions(ctx context.Context, plan, state *ArchiveRetentionsResourceModel) (*retss.UpdateRetentionsRequest, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	var planRetentionsObjects, stateRetentionsObjects []types.Object
 	plan.Retentions.ElementsAs(ctx, &planRetentionsObjects, true)
 	state.Retentions.ElementsAs(ctx, &stateRetentionsObjects, true)
 
-	var retentions []*cxsdk.RetentionUpdateElement
+	var retentions []retss.RetentionUpdateElement
 	for i := range planRetentionsObjects {
 		var planRetentionModel, stateRetentionModel ArchiveRetentionResourceModel
 		if dg := planRetentionsObjects[i].As(ctx, &planRetentionModel, basetypes.ObjectAsOptions{}); dg.HasError() {
@@ -288,13 +288,14 @@ func extractUpdateArchiveRetentions(ctx context.Context, plan, state *ArchiveRet
 			diags.Append(dg...)
 			continue
 		}
-		retentions = append(retentions, &cxsdk.RetentionUpdateElement{
-			Id:   utils.TypeStringToWrapperspbString(stateRetentionModel.ID),
-			Name: utils.TypeStringToWrapperspbString(planRetentionModel.Name),
+		retentions = append(retentions, retss.RetentionUpdateElement{
+			Id:   stateRetentionModel.ID.ValueStringPointer(),
+			Name: planRetentionModel.Name.ValueStringPointer(),
 		})
 	}
-	retentions[0].Name = wrapperspb.String("Default")
-	return &cxsdk.UpdateRetentionsRequest{
+	name := "Default"
+	retentions[0].Name = &name
+	return &retss.UpdateRetentionsRequest{
 		RetentionUpdateElements: retentions,
 	}, diags
 }
@@ -306,28 +307,36 @@ func (r *ArchiveRetentionsResource) Read(ctx context.Context, req resource.ReadR
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	log.Print("[INFO] Reading archive-retentions")
-	getArchiveRetentionsReq := &cxsdk.GetRetentionsRequest{}
-	getArchiveRetentionsResp, err := r.client.Get(ctx, getArchiveRetentionsReq)
+	id := state.ID.ValueString()
+	rq := r.client.RetentionsServiceGetRetentions(ctx)
+	log.Printf("[INFO] Reading coralogix_archive_retentions: %v", rq)
+	result, httpResponse, err := rq.Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		utils.FormatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq))
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				"coralogix_archive_retentions is in state, but no longer exists in Coralogix backend",
+				"coralogix_archive_retentions will be recreated when you apply",
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error reading coralogix_archive_retentions",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+			)
+		}
 		return
 	}
-	log.Printf("[INFO] Received archive-retentions: %s", protojson.Format(getArchiveRetentionsResp))
+	log.Printf("[INFO] Read coralogix_archive_retentions: %s", utils.FormatJSON(result))
 
-	state, diags = flattenArchiveRetentions(ctx, getArchiveRetentionsResp.GetRetentions(), state.ID.ValueString())
+	state, diags = flattenArchiveRetentions(ctx, result.Retentions, id)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 func (r *ArchiveRetentionsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Retrieve values from plan
 	var plan *ArchiveRetentionsResourceModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -342,44 +351,32 @@ func (r *ArchiveRetentionsResource) Update(ctx context.Context, req resource.Upd
 		return
 	}
 
-	archiveRetentionsUpdateReq, diags := extractUpdateArchiveRetentions(ctx, plan, state)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-	log.Printf("[INFO] Updating archive-retentions: %s", protojson.Format(archiveRetentionsUpdateReq))
-	archiveRetentionsUpdateResp, err := r.client.Update(ctx, archiveRetentionsUpdateReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error updating archive-retentions",
-			utils.FormatRpcErrors(err, cxsdk.ArchiveRetentionUpdateRetentionsRPC, protojson.Format(archiveRetentionsUpdateResp)),
-		)
-		return
-	}
-	log.Printf("[INFO] Submitted updated archive-retentions: %s", protojson.Format(archiveRetentionsUpdateResp))
-
-	// Get refreshed archive-retentions value from Coralogix
-	getArchiveRetentionsReq := &cxsdk.GetRetentionsRequest{}
-	getArchiveRetentionsResp, err := r.client.Get(ctx, getArchiveRetentionsReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error reading archive-retentions",
-			utils.FormatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq)),
-		)
-		return
-	}
-	log.Printf("[INFO] Received archive-retentions: %s", protojson.Format(getArchiveRetentionsResp))
-
-	plan, diags = flattenArchiveRetentions(ctx, getArchiveRetentionsResp.GetRetentions(), state.ID.ValueString())
+	rq, diags := extractUpdateArchiveRetentions(ctx, plan, state)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	diags = resp.State.Set(ctx, plan)
-	resp.Diagnostics.Append(diags...)
+	log.Printf("[INFO] Replacing new coralogix_archive_retentions: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := r.client.
+		RetentionsServiceUpdateRetentions(ctx).
+		UpdateRetentionsRequest(*rq).
+		Execute()
+	if err != nil {
+		resp.Diagnostics.AddError("Error Replacing coralogix_archive_retentions",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq),
+		)
+		return
+	}
+	log.Printf("[INFO] Replaced coralogix_archive_retentions: %s", utils.FormatJSON(result))
+
+	state, diags = flattenArchiveRetentions(ctx, result.Retentions, RESOURCE_ID_ARCHIVE_RETENTIONS)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 func (r *ArchiveRetentionsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -390,16 +387,20 @@ func (r *ArchiveRetentionsResource) Delete(ctx context.Context, req resource.Del
 		return
 	}
 
-	log.Print("[INFO] Deleting archive-retentions")
-	deleteReq := &cxsdk.UpdateRetentionsRequest{}
-	if _, err := r.client.Update(ctx, deleteReq); err != nil {
-		resp.Diagnostics.AddError(
-			"Error Deleting archive-retentions",
-			utils.FormatRpcErrors(err, cxsdk.ArchiveRetentionUpdateRetentionsRPC, protojson.Format(deleteReq)),
+	rq := retss.UpdateRetentionsRequest{}
+
+	log.Printf("[INFO] Deleting new coralogix_archive_retentions: %s", utils.FormatJSON(rq))
+	result, httpResponse, err := r.client.
+		RetentionsServiceUpdateRetentions(ctx).
+		UpdateRetentionsRequest(rq).
+		Execute()
+	if err != nil {
+		resp.Diagnostics.AddError("Error Deleting coralogix_archive_retentions",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", rq),
 		)
 		return
 	}
-	log.Print("[INFO] archive-retentions were deleted")
+	log.Printf("[INFO] Deleted coralogix_archive_retentions: %s", utils.FormatJSON(result))
 }
 
 func (r *ArchiveRetentionsResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -418,6 +419,3 @@ func (r *ArchiveRetentionsResource) Configure(_ context.Context, req resource.Co
 
 	r.client = clientSet.ArchiveRetentions()
 }
-
-// Safeguard against empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
-const RESOURCE_ID_ARCHIVE_RETENTIONS string = "archive-retention-settings"
