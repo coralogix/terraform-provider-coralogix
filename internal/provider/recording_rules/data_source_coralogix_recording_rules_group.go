@@ -18,16 +18,16 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-	"google.golang.org/protobuf/encoding/protojson"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	recRuless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/recording_rules_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/grpc/codes"
 )
 
 var _ datasource.DataSourceWithConfigure = &RecordingRuleGroupSetDataSource{}
@@ -37,7 +37,7 @@ func NewRecordingRuleGroupSetDataSource() datasource.DataSource {
 }
 
 type RecordingRuleGroupSetDataSource struct {
-	client *cxsdk.RecordingRuleGroupSetsClient
+	client *recRuless.RecordingRulesServiceAPIService
 }
 
 func (d *RecordingRuleGroupSetDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -76,33 +76,33 @@ func (d *RecordingRuleGroupSetDataSource) Read(ctx context.Context, req datasour
 		return
 	}
 
-	//Get refreshed recording-rule-group-set value from Coralogix
 	id := data.ID.ValueString()
-	log.Printf("[INFO] Reading recording-rule-group-set: %s", id)
-	getReq := &cxsdk.GetRuleGroupSetRequest{Id: id}
-	getResp, err := d.client.Get(ctx, getReq)
+
+	log.Printf("[INFO] Reading coralogix_recording_rule_groups")
+	result, httpResponse, err := d.client.
+		RuleGroupSetsFetch(ctx, id).
+		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		if cxsdk.Code(err) == codes.NotFound {
+		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				err.Error(),
-				fmt.Sprintf("recording-rule-group-set %q is in state, but no longer exists in Coralogix backend", id),
+				"coralogix_recording_rule_groups is in state, but no longer exists in Coralogix backend",
+				"coralogix_recording_rule_groups will be recreated when you apply",
 			)
+			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError(
-				"Error reading recording-rule-group-set",
-				utils.FormatRpcErrors(err, getRuleGroupURL, protojson.Format(getReq)),
+			resp.Diagnostics.AddError("Error reading coralogix_recording_rule_groups",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Received recording-rule-group-set: %s", protojson.Format(getResp))
+	log.Printf("[INFO] Read coralogix_recording_rule_groups: %s", utils.FormatJSON(result))
 
-	data, diags := flattenRecordingRuleGroupSet(ctx, &RecordingRuleGroupSetResourceModel{}, getResp)
+	state, diags := flattenRecordingRuleGroupSet(ctx, data, result)
 	if diags.HasError() {
-		resp.Diagnostics = diags
+		resp.Diagnostics.Append(diags...)
 		return
 	}
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }

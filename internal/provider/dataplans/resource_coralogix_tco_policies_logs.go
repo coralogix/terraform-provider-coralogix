@@ -391,7 +391,7 @@ func (r *TCOPoliciesLogsResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	log.Printf("[INFO] Updating coralogix_tco_policies_logs: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Replacing coralogix_tco_policies_logs: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		PoliciesServiceAtomicOverwriteLogPolicies(ctx).
 		AtomicOverwriteLogPoliciesRequest(*rq).
