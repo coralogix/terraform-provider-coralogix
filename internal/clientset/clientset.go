@@ -27,6 +27,7 @@ import (
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
 	integrations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
+	ams "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/metrics_data_archive_service"
 	webhhooks "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/outgoing_webhooks_service"
 	tcoPolicys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/policies_service"
 	presets "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/presets_service"
@@ -40,11 +41,10 @@ import (
 )
 
 type ClientSet struct {
-	enrichments    *cxsdk.EnrichmentsClient
-	dataSet        *cxsdk.DataSetClient
-	legacySlos     *cxsdk.LegacySLOsClient
-	dashboards     *cxsdk.DashboardsClient
-	archiveMetrics *cxsdk.ArchiveMetricsClient
+	enrichments *cxsdk.EnrichmentsClient
+	dataSet     *cxsdk.DataSetClient
+	legacySlos  *cxsdk.LegacySLOsClient
+	dashboards  *cxsdk.DashboardsClient
 	// alertScheduler      *alertScheduler.AlertSchedulerRuleServiceAPIService
 	alertScheduler   *cxsdk.AlertSchedulerClient
 	dahboardsFolders *cxsdk.DashboardsFoldersClient
@@ -54,6 +54,7 @@ type ClientSet struct {
 	groupGrpc        *cxsdk.GroupsClient
 	teams            *cxsdk.TeamsClient
 
+	archiveMetrics      *ams.MetricsDataArchiveServiceAPIService
 	archiveLogs         *archiveLogs.TargetServiceAPIService
 	archiveRetentions   *retss.RetentionsServiceAPIService
 	recordingRuleGroups *recRuless.RecordingRulesServiceAPIService
@@ -125,7 +126,7 @@ func (c *ClientSet) ArchiveRetentions() *retss.RetentionsServiceAPIService {
 	return c.archiveRetentions
 }
 
-func (c *ClientSet) ArchiveMetrics() *cxsdk.ArchiveMetricsClient {
+func (c *ClientSet) ArchiveMetrics() *ams.MetricsDataArchiveServiceAPIService {
 	return c.archiveMetrics
 }
 
@@ -201,14 +202,15 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		dataSet:          cxsdk.NewDataSetClient(apiKeySdk),
 		legacySlos:       cxsdk.NewLegacySLOsClient(apiKeySdk),
 		dashboards:       cxsdk.NewDashboardsClient(apiKeySdk),
-		archiveMetrics:   cxsdk.NewArchiveMetricsClient(apiKeySdk),
 		dahboardsFolders: cxsdk.NewDashboardsFoldersClient(apiKeySdk),
 		users:            cxsdk.NewUsersClient(apiKeySdk),
 		ruleGroups:       cxsdk.NewRuleGroupsClient(apiKeySdk),
 		events2Metrics:   cxsdk.NewEvents2MetricsClient(apiKeySdk),
 		groupGrpc:        cxsdk.NewGroupsClient(apiKeySdk),
 		alertScheduler:   cxsdk.NewAlertSchedulerClient(apiKeySdk),
+		teams:            cxsdk.NewTeamsClient(apiKeySdk),
 
+		archiveMetrics:      cxsdkOpenapi.NewArchiveMetricsClient(oasTfCPC),
 		alerts:              cxsdkOpenapi.NewAlertsClient(oasTfCPC),
 		archiveRetentions:   cxsdkOpenapi.NewArchiveRetentionsClient(oasTfCPC),
 		recordingRuleGroups: cxsdkOpenapi.NewRecordingRulesClient(oasTfCPC),
@@ -224,10 +226,9 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		slos:                cxsdkOpenapi.NewSLOsClient(oasTfCPC),
 		apikeys:             cxsdkOpenapi.NewAPIKeysClient(oasTfCPC),
 		webhooks:            cxsdkOpenapi.NewWebhooksClient(oasTfCPC),
+		ipaccess:            cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
 		// alertScheduler: cxsdkOpenapi.NewAlertSchedulerClient(oasTfCPC),
-		ipaccess: cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
-		teams:    cxsdk.NewTeamsClient(apiKeySdk),
-		grafana:  NewGrafanaClient(apikeyCPC),
-		groups:   NewGroupsClient(apikeyCPC),
+		grafana: NewGrafanaClient(apikeyCPC),
+		groups:  NewGroupsClient(apikeyCPC),
 	}
 }
