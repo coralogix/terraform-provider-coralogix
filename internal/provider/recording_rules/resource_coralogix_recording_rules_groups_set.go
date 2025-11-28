@@ -24,6 +24,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -46,13 +47,9 @@ import (
 )
 
 var (
-	_                  resource.ResourceWithConfigure    = &RecordingRuleGroupSetResource{}
-	_                  resource.ResourceWithImportState  = &RecordingRuleGroupSetResource{}
-	_                  resource.ResourceWithUpgradeState = &RecordingRuleGroupSetResource{}
-	createRuleGroupURL                                   = "rule_manager.groups.RuleGroupSets/Create"
-	getRuleGroupURL                                      = "rule_manager.groups.RuleGroupSets/Fetch"
-	updateRuleGroupURL                                   = "rule_manager.groups.RuleGroupSets/Update"
-	deleteRuleGroupURL                                   = "rule_manager.groups.RuleGroupSets/Delete"
+	_ resource.ResourceWithConfigure    = &RecordingRuleGroupSetResource{}
+	_ resource.ResourceWithImportState  = &RecordingRuleGroupSetResource{}
+	_ resource.ResourceWithUpgradeState = &RecordingRuleGroupSetResource{}
 )
 
 type RecordingRuleGroupSetResourceModel struct {
@@ -381,6 +378,10 @@ func recordingRulesSchema() schema.NestedAttributeObject {
 			"labels": schema.MapAttribute{
 				ElementType: types.StringType,
 				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []planmodifier.Map{
+					mapplanmodifier.UseStateForUnknown(),
+				},
 				Description: "Labels to add or overwrite before storing the result.",
 			},
 		},
@@ -400,7 +401,7 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Replacing coralogix_recording_rule_groups: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Creating coralogix_recording_rule_groups: %s", utils.FormatJSON(rq))
 
 	createResult, httpResponse, err := r.client.RuleGroupSetsCreate(ctx).
 		CreateRuleGroupSet(*rq).
@@ -422,7 +423,7 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 		)
 		return
 	}
-	log.Printf("[INFO] Replaced coralogix_recording_rule_groups: %s", utils.FormatJSON(result))
+	log.Printf("[INFO] Created coralogix_recording_rule_groups: %s", utils.FormatJSON(result))
 
 	plan.ID = types.StringValue(id)
 	plan, diags = flattenRecordingRuleGroupSet(ctx, plan, result)
@@ -439,7 +440,10 @@ func (r *RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.R
 
 	var state *RecordingRuleGroupSetResourceModel
 	diags := req.State.Get(ctx, &state)
-
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
 	id := state.ID.ValueString()
 
 	log.Printf("[INFO] Reading coralogix_recording_rule_groups")
@@ -658,6 +662,7 @@ func flattenRecordingRules(ctx context.Context, rules []recRuless.OutRule) (type
 }
 
 func flattenRecordingRule(ctx context.Context, rule *recRuless.OutRule) (*RecordingRuleModel, diag.Diagnostics) {
+	log.Printf("HELLO - %v", rule.Labels)
 	labels, diags := types.MapValueFrom(ctx, types.StringType, rule.GetLabels())
 	if diags.HasError() {
 		return nil, diags

@@ -443,7 +443,6 @@ func extractArchiveMetrics(ctx context.Context, plan ArchiveMetricsResourceModel
 		if diags.HasError() {
 			return nil, diags
 		}
-		log.Printf("HELLO %v", tenantConfig.ConfigureTenantRequestS3)
 		tenantConfig.ConfigureTenantRequestS3 = &ams.ConfigureTenantRequestS3{
 			S3: &ams.S3Config{
 				Bucket: s3Config.Bucket.ValueStringPointer(),
