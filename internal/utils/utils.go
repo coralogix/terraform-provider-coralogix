@@ -797,7 +797,7 @@ func ParseNumInt64(desired string) int64 {
 	if err != nil {
 		return 0
 	}
-	return int64(parsed)
+	return parsed
 }
 
 func TypeMapToStringMap(ctx context.Context, m types.Map) (map[string]string, diag.Diagnostics) {
