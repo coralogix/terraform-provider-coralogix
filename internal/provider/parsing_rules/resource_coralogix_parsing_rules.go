@@ -26,9 +26,7 @@ import (
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	prgs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/rule_groups_service"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -40,6 +38,9 @@ import (
 )
 
 var (
+	_ resource.ResourceWithConfigure   = &ParsingRulesResource{}
+	_ resource.ResourceWithImportState = &ParsingRulesResource{}
+
 	rulesSchemaSeverityToApiSeverity = map[string]prgs.Value{
 		"debug":    prgs.VALUE_VALUE_DEBUG_OR_UNSPECIFIED,
 		"verbose":  prgs.VALUE_VALUE_VERBOSE,
@@ -79,7 +80,7 @@ type ParsingRulesModel struct {
 	ID          types.String `tfsdk:"id"`
 	Creator     types.String `tfsdk:"creator"`
 	Description types.String `tfsdk:"description"`
-	Enabled     types.Bool   `tfsdk:"enabled"`
+	Active      types.Bool   `tfsdk:"active"`
 	Hidden      types.Bool   `tfsdk:"hidden"`
 	Name        types.String `tfsdk:"name"`
 	Order       types.Int64  `tfsdk:"order"`
@@ -219,18 +220,18 @@ type ParseJsonFieldModel struct {
 }
 
 func NewParsingRulesResource() resource.Resource {
-	return &ParsingRules{}
+	return &ParsingRulesResource{}
 }
 
-type ParsingRules struct {
+type ParsingRulesResource struct {
 	client *prgs.RuleGroupsServiceAPIService
 }
 
-func (r *ParsingRules) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+func (r *ParsingRulesResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-func (r *ParsingRules) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+func (r *ParsingRulesResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -247,14 +248,18 @@ func (r *ParsingRules) Configure(ctx context.Context, req resource.ConfigureRequ
 	r.client = clientSet.ParsingRuleGroups()
 }
 
-func (r *ParsingRules) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+func (r *ParsingRulesResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_parsing_rules"
 }
 
-func (r *ParsingRules) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+func (r *ParsingRulesResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 0,
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+			},
 			"name": schema.StringAttribute{
 				Required:    true,
 				Description: "Rule-group name",
@@ -314,43 +319,42 @@ func (r *ParsingRules) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 							Default:  booldefault.StaticBool(true),
 						},
 						"order": schema.Int64Attribute{
-							Optional: true,
 							Computed: true,
 						},
 						"rules": schema.ListNestedAttribute{
 							Required: true,
 							NestedObject: schema.NestedAttributeObject{
-								Validators: []validator.Object{
-									objectvalidator.ExactlyOneOf(
-										path.MatchRoot("rule_subgroups").
-											AtAnyListIndex().AtName("rules").
-											AtAnyListIndex().AtName("parse"),
-										path.MatchRoot("rule_subgroups").
-											AtAnyListIndex().AtName("rules").
-											AtAnyListIndex().AtName("block"),
-										path.MatchRoot("rule_subgroups").
-											AtAnyListIndex().AtName("rules").
-											AtAnyListIndex().AtName("json_extract"),
-										path.MatchRoot("rule_subgroups").
-											AtAnyListIndex().AtName("rules").
-											AtAnyListIndex().AtName("replace"),
-										path.MatchRoot("rule_subgroups").
-											AtAnyListIndex().AtName("rules").
-											AtAnyListIndex().AtName("extract_timestamp"),
-										path.MatchRoot("rule_subgroups").
-											AtAnyListIndex().AtName("rules").
-											AtAnyListIndex().AtName("remove_fields"),
-										path.MatchRoot("rule_subgroups").
-											AtAnyListIndex().AtName("rules").
-											AtAnyListIndex().AtName("json_stringify"),
-										path.MatchRoot("rule_subgroups").
-											AtAnyListIndex().AtName("rules").
-											AtAnyListIndex().AtName("extract"),
-										path.MatchRoot("rule_subgroups").
-											AtAnyListIndex().AtName("rules").
-											AtAnyListIndex().AtName("parse_json_field"),
-									),
-								},
+								// Validators: []validator.Object{
+								// 	objectvalidator.ExactlyOneOf(
+								// 		path.MatchRoot("rule_subgroups").
+								// 			AtAnyListIndex().AtName("rules").
+								// 			AtAnyListIndex().AtName("parse"),
+								// 		path.MatchRoot("rule_subgroups").
+								// 			AtAnyListIndex().AtName("rules").
+								// 			AtAnyListIndex().AtName("block"),
+								// 		path.MatchRoot("rule_subgroups").
+								// 			AtAnyListIndex().AtName("rules").
+								// 			AtAnyListIndex().AtName("json_extract"),
+								// 		path.MatchRoot("rule_subgroups").
+								// 			AtAnyListIndex().AtName("rules").
+								// 			AtAnyListIndex().AtName("replace"),
+								// 		path.MatchRoot("rule_subgroups").
+								// 			AtAnyListIndex().AtName("rules").
+								// 			AtAnyListIndex().AtName("extract_timestamp"),
+								// 		path.MatchRoot("rule_subgroups").
+								// 			AtAnyListIndex().AtName("rules").
+								// 			AtAnyListIndex().AtName("remove_fields"),
+								// 		path.MatchRoot("rule_subgroups").
+								// 			AtAnyListIndex().AtName("rules").
+								// 			AtAnyListIndex().AtName("json_stringify"),
+								// 		path.MatchRoot("rule_subgroups").
+								// 			AtAnyListIndex().AtName("rules").
+								// 			AtAnyListIndex().AtName("extract"),
+								// 		path.MatchRoot("rule_subgroups").
+								// 			AtAnyListIndex().AtName("rules").
+								// 			AtAnyListIndex().AtName("parse_json_field"),
+								// 	),
+								// },
 								Attributes: map[string]schema.Attribute{
 									"parse": schema.SingleNestedAttribute{
 										Optional:   true,
@@ -391,7 +395,7 @@ func (r *ParsingRules) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 	}
 }
 
-func (r *ParsingRules) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+func (r *ParsingRulesResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	var plan *ParsingRulesModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -422,7 +426,7 @@ func (r *ParsingRules) Create(ctx context.Context, req resource.CreateRequest, r
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
-func (r *ParsingRules) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+func (r *ParsingRulesResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan *ParsingRulesModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -451,7 +455,7 @@ func (r *ParsingRules) Update(ctx context.Context, req resource.UpdateRequest, r
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
-func (r *ParsingRules) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+func (r *ParsingRulesResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state *ParsingRulesModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -487,7 +491,7 @@ func (r *ParsingRules) Read(ctx context.Context, req resource.ReadRequest, resp 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-func (r *ParsingRules) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r *ParsingRulesResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var state *ParsingRulesModel
 	diags := req.State.Get(ctx, &state)
 	resp.Diagnostics.Append(diags...)
@@ -510,7 +514,7 @@ func extractParsingRules(plan *ParsingRulesModel) *prgs.RuleGroupsServiceCreateR
 	return &prgs.RuleGroupsServiceCreateRuleGroupRequest{
 		Creator:       plan.Creator.ValueStringPointer(),
 		Description:   plan.Description.ValueStringPointer(),
-		Enabled:       plan.Enabled.ValueBoolPointer(),
+		Enabled:       plan.Active.ValueBoolPointer(),
 		Hidden:        plan.Hidden.ValueBoolPointer(),
 		Name:          plan.Name.ValueStringPointer(),
 		Order:         plan.Order.ValueInt64Pointer(),
@@ -561,7 +565,7 @@ func flattenParsingRules(rgrp *prgs.RuleGroup) *ParsingRulesModel {
 		ID:            types.StringPointerValue(rgrp.Id),
 		Creator:       types.StringPointerValue(rgrp.Creator),
 		Description:   types.StringPointerValue(rgrp.Description),
-		Enabled:       types.BoolPointerValue(rgrp.Enabled),
+		Active:        types.BoolPointerValue(rgrp.Enabled),
 		Hidden:        types.BoolPointerValue(rgrp.Hidden),
 		Name:          types.StringPointerValue(rgrp.Name),
 		Order:         types.Int64PointerValue(rgrp.Order),
@@ -721,16 +725,10 @@ func commonRulesAttrs() map[string]schema.Attribute {
 		},
 		"order": schema.Int64Attribute{
 			Computed:    true,
-			Optional:    true,
-			Description: "Determines the index of the rule inside the rule-subgroup. If not set, will be computed by the order it was declared (1-based indexing).",
-			Validators: []validator.Int64{
-				int64validator.AtLeast(1),
-			},
+			Description: "Determines the index of the rule inside the rule-subgroup. Will be computed by the order it was declared (1-based indexing).",
 		},
 	}
 }
-
-//"Determines the index of the rule inside the rule-subgroup." 				"If not set, will be computed by the order it was declared. (1 based indexing).",
 
 func appendSourceFieldAttrs(m map[string]schema.Attribute) map[string]schema.Attribute {
 	m["source_field"] = schema.StringAttribute{
@@ -762,14 +760,16 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 	}
 	subgroupRules := make([]prgs.CreateRuleGroupRequestCreateRuleSubgroup, len(subgroups))
 	for g, groups := range subgroups {
+		order := int64(g) + 1
 		rules := make([]prgs.CreateRuleGroupRequestCreateRuleSubgroupCreateRule, 0)
 
 		subgroupRules[g] = prgs.CreateRuleGroupRequestCreateRuleSubgroup{
 			Enabled: groups.Active.ValueBoolPointer(),
-			Order:   groups.Order.ValueInt64Pointer(),
+			Order:   &order,
 		}
 
-		for _, rule := range groups.Rules {
+		for i, rule := range groups.Rules {
+			order := int64(i) + 1
 			if r := rule.Block; r != nil {
 				var params prgs.RuleParameters
 				if r.BlockMatchingLogs.ValueBool() {
@@ -795,7 +795,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Description: r.Description.ValueStringPointer(),
 					Enabled:     r.Active.ValueBoolPointer(),
 					Name:        r.Name.ValueStringPointer(),
-					Order:       r.Order.ValueInt64Pointer(),
+					Order:       &order,
 					Parameters:  &params,
 					SourceField: r.SourceField.ValueStringPointer(),
 				})
@@ -807,7 +807,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Description: r.Description.ValueStringPointer(),
 					Enabled:     r.Active.ValueBoolPointer(),
 					Name:        r.Name.ValueStringPointer(),
-					Order:       r.Order.ValueInt64Pointer(),
+					Order:       &order,
 					// SourceField: &defaultSourceFieldName,
 					Parameters: &prgs.RuleParameters{
 						RuleParametersJsonExtractParameters: &prgs.RuleParametersJsonExtractParameters{
@@ -825,7 +825,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Description: r.Description.ValueStringPointer(),
 					Enabled:     r.Active.ValueBoolPointer(),
 					Name:        r.Name.ValueStringPointer(),
-					Order:       r.Order.ValueInt64Pointer(),
+					Order:       &order,
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
 						RuleParametersReplaceParameters: &prgs.RuleParametersReplaceParameters{
@@ -845,7 +845,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Description: r.Description.ValueStringPointer(),
 					Enabled:     r.Active.ValueBoolPointer(),
 					Name:        r.Name.ValueStringPointer(),
-					Order:       r.Order.ValueInt64Pointer(),
+					Order:       &order,
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
 						RuleParametersExtractTimestampParameters: &prgs.RuleParametersExtractTimestampParameters{
@@ -863,7 +863,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Description: r.Description.ValueStringPointer(),
 					Enabled:     r.Active.ValueBoolPointer(),
 					Name:        r.Name.ValueStringPointer(),
-					Order:       r.Order.ValueInt64Pointer(),
+					Order:       &order,
 					// SourceField: &defaultSourceFieldName,
 					Parameters: &prgs.RuleParameters{
 						RuleParametersRemoveFieldsParameters: &prgs.RuleParametersRemoveFieldsParameters{
@@ -881,7 +881,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Description: r.Description.ValueStringPointer(),
 					Enabled:     r.Active.ValueBoolPointer(),
 					Name:        r.Name.ValueStringPointer(),
-					Order:       r.Order.ValueInt64Pointer(),
+					Order:       &order,
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
 						RuleParametersJsonStringifyParameters: &prgs.RuleParametersJsonStringifyParameters{
@@ -899,7 +899,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Description: r.Description.ValueStringPointer(),
 					Enabled:     r.Active.ValueBoolPointer(),
 					Name:        r.Name.ValueStringPointer(),
-					Order:       r.Order.ValueInt64Pointer(),
+					Order:       &order,
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
 						RuleParametersExtractParameters: &prgs.RuleParametersExtractParameters{
@@ -919,7 +919,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Description: r.Description.ValueStringPointer(),
 					Enabled:     r.Active.ValueBoolPointer(),
 					Name:        r.Name.ValueStringPointer(),
-					Order:       r.Order.ValueInt64Pointer(),
+					Order:       &order,
 					SourceField: r.SourceField.ValueStringPointer(),
 					Parameters: &prgs.RuleParameters{
 						RuleParametersJsonParseParameters: &prgs.RuleParametersJsonParseParameters{
