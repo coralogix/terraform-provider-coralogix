@@ -621,7 +621,7 @@ func TestAccCoralogixResourceParsingRules_update_order_inside_rule_group(t *test
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r.creator),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "description", r.description),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.#", "3"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.#", "4"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.extract.name", "rule2"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.extract.order", "1"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.1.parse.name", "rule3"),
