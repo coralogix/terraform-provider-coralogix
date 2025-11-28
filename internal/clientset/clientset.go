@@ -34,6 +34,7 @@ import (
 	recRuless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/recording_rules_service"
 	retss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/retentions_service"
 	roless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/role_management_service"
+	prgs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/rule_groups_service"
 	scopess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/scopes_service"
 	archiveLogs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/target_service"
 
@@ -54,6 +55,7 @@ type ClientSet struct {
 	groupGrpc        *cxsdk.GroupsClient
 	teams            *cxsdk.TeamsClient
 
+	parsingRuleGroups   *prgs.RuleGroupsServiceAPIService
 	archiveMetrics      *ams.MetricsDataArchiveServiceAPIService
 	archiveLogs         *archiveLogs.TargetServiceAPIService
 	archiveRetentions   *retss.RetentionsServiceAPIService
@@ -73,6 +75,10 @@ type ClientSet struct {
 	integrations        *integrations.IntegrationServiceAPIService
 	grafana             *GrafanaClient
 	groups              *GroupsClient
+}
+
+func (c *ClientSet) ParsingRuleGroups() *prgs.RuleGroupsServiceAPIService {
+	return c.parsingRuleGroups
 }
 
 func (c *ClientSet) RuleGroups() *cxsdk.RuleGroupsClient {
@@ -210,6 +216,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		alertScheduler:   cxsdk.NewAlertSchedulerClient(apiKeySdk),
 		teams:            cxsdk.NewTeamsClient(apiKeySdk),
 
+		parsingRuleGroups:   cxsdkOpenapi.NewRuleGroupsClient(oasTfCPC),
 		archiveMetrics:      cxsdkOpenapi.NewArchiveMetricsClient(oasTfCPC),
 		alerts:              cxsdkOpenapi.NewAlertsClient(oasTfCPC),
 		archiveRetentions:   cxsdkOpenapi.NewArchiveRetentionsClient(oasTfCPC),

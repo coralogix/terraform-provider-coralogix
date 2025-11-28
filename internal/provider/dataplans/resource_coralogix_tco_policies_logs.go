@@ -649,7 +649,7 @@ func expandTCOPolicyRule(ctx context.Context, rule types.Object) (*tcoPolicys.Qu
 	}
 
 	ruleType := tcoPoliciesRuleTypeSchemaToApi[tcoRuleModel.RuleType.ValueString()]
-	names, diags := utils.TypeStringSliceToStringSlice(ctx, tcoRuleModel.Names.Elements())
+	names, diags := utils.TypeStringElementsToStringSlice(ctx, tcoRuleModel.Names.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
