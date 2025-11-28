@@ -310,6 +310,7 @@ func (r *ParsingRules) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 						},
 						"active": schema.BoolAttribute{
 							Optional: true,
+							Computed: true,
 							Default:  booldefault.StaticBool(true),
 						},
 						"order": schema.Int64Attribute{
@@ -589,6 +590,7 @@ func blockAttrs() map[string]schema.Attribute {
 	}
 	blockSchema["block_all_matching_blocks"] = schema.BoolAttribute{
 		Optional:            true,
+		Computed:            true,
 		Default:             booldefault.StaticBool(true),
 		MarkdownDescription: "Block Logic. If true or nor set - blocking all matching blocks, if false - blocking all non-matching blocks.",
 	}
@@ -664,6 +666,7 @@ func jsonStringifyFieldsAttrs() map[string]schema.Attribute {
 	jsonStringifySchema = appendDestinationFieldAttrs(jsonStringifySchema)
 	jsonStringifySchema["keep_source_field"] = schema.BoolAttribute{
 		Optional:    true,
+		Computed:    true,
 		Default:     booldefault.StaticBool(false),
 		Description: "Determines whether to keep or to delete the source field.",
 	}
@@ -683,11 +686,13 @@ func parseJsonFieldAttrs() map[string]schema.Attribute {
 	parseJsonFieldSchema = appendDestinationFieldAttrs(parseJsonFieldSchema)
 	parseJsonFieldSchema["keep_source_field"] = schema.BoolAttribute{
 		Optional:    true,
+		Computed:    true,
 		Default:     booldefault.StaticBool(false),
 		Description: "Determines whether to keep or to delete the source field.",
 	}
 	parseJsonFieldSchema["keep_destination_field"] = schema.BoolAttribute{
 		Optional:    true,
+		Computed:    true,
 		Default:     booldefault.StaticBool(true),
 		Description: "Determines whether to keep or to delete the destination field.",
 	}
@@ -710,6 +715,7 @@ func commonRulesAttrs() map[string]schema.Attribute {
 		},
 		"active": schema.BoolAttribute{
 			Optional:    true,
+			Computed:    true,
 			Default:     booldefault.StaticBool(true),
 			Description: "Determines whether the rule will be active or not.",
 		},
