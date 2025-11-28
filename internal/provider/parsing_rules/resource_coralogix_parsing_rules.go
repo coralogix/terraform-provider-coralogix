@@ -16,7 +16,6 @@ package parsing_rules
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -778,8 +777,6 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 		}
 
 		for i, rule := range groups.Rules {
-			val, _ := json.MarshalIndent(rules, "", "  ")
-			log.Printf("HELLO %v", string(val))
 			order := int64(i) + 1
 			if r := rule.Block; r != nil {
 				var params prgs.RuleParameters
@@ -1016,7 +1013,7 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 						SourceField:       types.StringPointerValue(rule.SourceField),
 						RegularExpression: types.StringPointerValue(p.AllowParameters.Rule),
 						KeepBlockedLogs:   types.BoolPointerValue(p.AllowParameters.KeepBlockedLogs),
-						BlockMatchingLogs: types.BoolPointerValue(p.AllowParameters.KeepBlockedLogs),
+						BlockMatchingLogs: types.BoolValue(true),
 					},
 				})
 			} else if p := params.RuleParametersBlockParameters; p != nil {
@@ -1030,7 +1027,7 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 						SourceField:       types.StringPointerValue(rule.SourceField),
 						RegularExpression: types.StringPointerValue(p.BlockParameters.Rule),
 						KeepBlockedLogs:   types.BoolPointerValue(p.BlockParameters.KeepBlockedLogs),
-						BlockMatchingLogs: types.BoolPointerValue(p.BlockParameters.KeepBlockedLogs),
+						BlockMatchingLogs: types.BoolValue(false),
 					},
 				})
 			} else if p := params.RuleParametersExtractParameters; p != nil {
