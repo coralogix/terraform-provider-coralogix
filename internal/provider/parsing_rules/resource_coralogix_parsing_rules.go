@@ -16,6 +16,7 @@ package parsing_rules
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -75,7 +76,7 @@ var (
 	rulesApiFormatStandardToSchemaFormatStandard = utils.ReverseMap(rulesSchemaFormatStandardToApiFormatStandard)
 	parsingRulesValidFormatStandards             = utils.GetKeys(rulesSchemaFormatStandardToApiFormatStandard)
 
-	// defaultSourceFieldName = "text"
+	defaultSourceFieldName = "text"
 )
 
 type ParsingRulesModel struct {
@@ -777,6 +778,8 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 		}
 
 		for i, rule := range groups.Rules {
+			val, _ := json.MarshalIndent(rules, "", "  ")
+			log.Printf("HELLO %v", string(val))
 			order := int64(i) + 1
 			if r := rule.Block; r != nil {
 				var params prgs.RuleParameters
@@ -816,7 +819,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Enabled:     r.Active.ValueBoolPointer(),
 					Name:        r.Name.ValueStringPointer(),
 					Order:       &order,
-					// SourceField: &defaultSourceFieldName,
+					SourceField: &defaultSourceFieldName,
 					Parameters: &prgs.RuleParameters{
 						RuleParametersJsonExtractParameters: &prgs.RuleParametersJsonExtractParameters{
 							JsonExtractParameters: &prgs.JsonExtractParameters{
@@ -872,7 +875,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 					Enabled:     r.Active.ValueBoolPointer(),
 					Name:        r.Name.ValueStringPointer(),
 					Order:       &order,
-					// SourceField: &defaultSourceFieldName,
+					SourceField: &defaultSourceFieldName,
 					Parameters: &prgs.RuleParameters{
 						RuleParametersRemoveFieldsParameters: &prgs.RuleParametersRemoveFieldsParameters{
 							RemoveFieldsParameters: &prgs.RemoveFieldsParameters{
@@ -936,6 +939,24 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 								DestinationField: r.DestinationField.ValueStringPointer(),
 								EscapedValue:     &escapeValue,
 								OverrideDest:     &overrideDestination,
+							},
+						},
+					},
+				})
+			}
+
+			if r := rule.Parse; r != nil {
+				rules = append(rules, prgs.CreateRuleGroupRequestCreateRuleSubgroupCreateRule{
+					Description: r.Description.ValueStringPointer(),
+					Enabled:     r.Active.ValueBoolPointer(),
+					Name:        r.Name.ValueStringPointer(),
+					Order:       &order,
+					SourceField: r.SourceField.ValueStringPointer(),
+					Parameters: &prgs.RuleParameters{
+						RuleParametersParseParameters: &prgs.RuleParametersParseParameters{
+							ParseParameters: &prgs.ParseParameters{
+								DestinationField: r.DestinationField.ValueStringPointer(),
+								Rule:             r.RegularExpression.ValueStringPointer(),
 							},
 						},
 					},

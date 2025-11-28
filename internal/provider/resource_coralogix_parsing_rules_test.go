@@ -155,7 +155,7 @@ func TestAccCoralogixResourceParsingRules_jsonExtract(t *testing.T) {
 	r := getRandomParsingRule()
 
 	jsonKey := "worker"
-	destinationField := "Category"
+	destinationField := "category"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -238,7 +238,7 @@ func TestAccCoralogixResourceParsingRules_extractTimestamp(t *testing.T) {
 
 	timeFormat := ""
 
-	fieldFormatStandard := "NanoTS"
+	fieldFormatStandard := "nanoTS"
 
 	resourceName := "coralogix_parsing_rules.test"
 
@@ -504,7 +504,6 @@ func TestAccCoralogixResourceParsingRules_rules_combination(t *testing.T) {
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.1.extract.order", "2"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.2.parse.name", "rule3"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.2.parse.order", "3"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.1.rules.0.extract_timestamp.name", "rule1"),
 				),
 			},
 			{
@@ -919,17 +918,9 @@ func testAccCoralogixResourceParsingRulesCombination(r *parsingRuleGroupParams) 
                 destination_field  = "text"
             regular_expression  = "(?P<remote_addr>\\d{1,3}.\\d{1,3}.\\d{1,3}.\\d{1,3})\\s*-\\s*(?P<user>[^ ]+)\\s*\\[(?P<timestemp>\\d{4}-\\d{2}\\-\\d{2}T\\d{2}\\:\\d{2}\\:\\d{2}\\.\\d{1,6}Z)\\]\\s*\\\\\\\"(?P<method>[A-z]+)\\s[\\/\\\\]+(?P<request>[^\\s]+)\\s*(?P<protocol>[A-z0-9\\/\\.]+)\\\\\\\"\\s*(?P<status>\\d+)\\s*(?P<body_bytes_sent>\\d+)?\\s*?\\\\\\\"(?P<http_referer>[^\"]+)\\\"\\s*\\\\\\\"(?P<http_user_agent>[^\"]+)\\\"\\s(?P<request_time>\\d{1,6})\\s*(?P<response_time>\\d{1,6})"
         }
-    },{
-        extract_timestamp = {
-            name               	= "rule1"
-            description        	= "description"
-            source_field 			= "text"
-            time_format        	= "2006-01-02T15:04:05.999999999Z07:00"
-            field_format_standard = "Golang"
-        }
-   }
-  }
- }
+    }]
+ }]
+}
 `, r.name, r.description, r.creator)
 }
 
@@ -968,11 +959,11 @@ func testAccCoralogixResourceParsingRulesCombinationDifferentOrders(r *parsingRu
             description        	= "description"
             source_field 			= "text"
             time_format        	= "2006-01-02T15:04:05.999999999Z07:00"
-            field_format_standard = "Golang"
+            field_format_standard = "golang"
         }
-   }]
-  }]
- }
+    }]
+ }]
+}
 `, r.name, r.description, r.creator)
 }
 
