@@ -453,7 +453,7 @@ func TestAccCoralogixResourceParsingRules_parseJsonField(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "id"),
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "order"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "hidden", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r.creator),
@@ -836,7 +836,7 @@ func testAccCoralogixResourceParsingRulesExtract(r *parsingRuleGroupParams, regE
   creator      = "%s"
    rule_subgroups = [{
     rules = [{
-        extract {
+        extract = {
             name               = "%s"
             description        = "%s"
             source_field       = "text"
@@ -875,7 +875,7 @@ func testAccCoralogixResourceParsingRulesParseJsonField(r *parsingRuleGroupParam
   creator      = "%s"
   rule_subgroups = [{
     rules = [{
-        parse_json_field {
+        parse_json_field = {
             name               = "%s"
             description        = "%s"
             source_field       = "text"

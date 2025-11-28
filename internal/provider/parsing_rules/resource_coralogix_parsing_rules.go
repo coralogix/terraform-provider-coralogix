@@ -29,10 +29,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -277,17 +279,23 @@ func (r *ParsingRulesResource) Schema(_ context.Context, _ resource.SchemaReques
 			"applications": schema.SetAttribute{
 				ElementType: types.StringType,
 				Optional:    true,
+				Computed:    true,
+				Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{})),
 				Description: "Rules will execute on logs that match the following applications.",
 			},
 			"subsystems": schema.SetAttribute{
 				ElementType: types.StringType,
 				Optional:    true,
+				Computed:    true,
+				Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{})),
 				Description: "Rules will execute on logs that match the following subsystems.",
 			},
 			"severities": schema.SetAttribute{
 				ElementType: types.StringType,
 				Optional:    true,
+				Computed:    true,
 				Description: fmt.Sprintf("Rules will execute on logs that match the these severities. Can be one of %q", parsingRulesValidSeverities),
+				Default:     setdefault.StaticValue(types.SetValueMust(types.StringType, []attr.Value{})),
 				Validators: []validator.Set{
 					setvalidator.ValueStringsAre(stringvalidator.OneOf(parsingRulesValidSeverities...)),
 				},
