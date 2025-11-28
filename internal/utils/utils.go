@@ -793,7 +793,7 @@ func ParseNumUint32(desired string) uint32 {
 }
 
 func ParseNumInt64(desired string) int64 {
-	parsed, err := strconv.ParseUint(desired, 10, 64)
+	parsed, err := strconv.ParseInt(desired, 10, 64)
 	if err != nil {
 		return 0
 	}
