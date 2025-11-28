@@ -98,7 +98,7 @@ func TestAccCoralogixResourceParsingRules_block(t *testing.T) {
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.description", r.parsingRuleParams.description),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.source_field", "text"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.keep_blocked_logs", keepBlockedLogs),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.blocking_all_matching_blocks", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.block_all_matching_blocks", "true"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.regular_expression", "sql_error_code\\s*=\\s*28000"),
 				),
 			},
@@ -138,7 +138,7 @@ func TestAccCoralogixResourceParsingRules_allow(t *testing.T) {
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.name", r.parsingRuleParams.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.description", r.parsingRuleParams.description),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.keep_blocked_logs", keepBlockedLogs),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.blocking_all_matching_blocks", "false"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.block_all_matching_blocks", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.block.regular_expression", "sql_error_code\\s*=\\s*28000"),
 				),
 			},
@@ -763,7 +763,7 @@ func testAccCoralogixResourceParsingRulesAllow(r *parsingRuleGroupParams, regEx,
             source_field 			= "text"
             regular_expression	= "%s"
             keep_blocked_logs     = "%s"
-            blocking_all_matching_blocks = false
+            block_all_matching_blocks = false
         }
    }]
   }]
