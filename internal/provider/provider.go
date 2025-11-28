@@ -379,6 +379,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		notifications.NewConnectorDataSource,
 		notifications.NewGlobalRouterDataSource,
 		notifications.NewPresetDataSource,
+		parsing_rules.NewParsingRulesDataSource,
 	}
 }
 

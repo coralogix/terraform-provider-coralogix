@@ -39,6 +39,18 @@ type parsingRuleGroupParams struct {
 	name, description, creator string
 }
 
+func getRandomParsingRule() *parsingRuleGroupParams {
+	return &parsingRuleGroupParams{
+		name:        acctest.RandomWithPrefix("tf-acc-test"),
+		description: acctest.RandomWithPrefix("tf-acc-test"),
+		creator:     acctest.RandomWithPrefix("tf-acc-test"),
+		parsingRuleParams: parsingRuleParams{
+			name:        acctest.RandomWithPrefix("tf-acc-test"),
+			description: acctest.RandomWithPrefix("tf-acc-test"),
+		},
+	}
+}
+
 func TestAccCoralogixResourceParsingRules_severities(t *testing.T) {
 	var parsingRulesGroupResourceName = "coralogix_parsing_rules.bug_example"
 
@@ -643,18 +655,6 @@ func TestAccCoralogixResourceParsingRulesOrder(t *testing.T) {
 			},
 		},
 	})
-}
-
-func getRandomParsingRule() *parsingRuleGroupParams {
-	return &parsingRuleGroupParams{
-		name:        acctest.RandomWithPrefix("tf-acc-test"),
-		description: acctest.RandomWithPrefix("tf-acc-test"),
-		creator:     acctest.RandomWithPrefix("tf-acc-test"),
-		parsingRuleParams: parsingRuleParams{
-			name:        acctest.RandomWithPrefix("tf-acc-test"),
-			description: acctest.RandomWithPrefix("tf-acc-test"),
-		},
-	}
 }
 
 func testAccCheckParsingRuleDestroy(s *terraform.State) error {
