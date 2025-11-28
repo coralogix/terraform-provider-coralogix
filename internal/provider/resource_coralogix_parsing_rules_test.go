@@ -743,8 +743,8 @@ func testAccCoralogixResourceParsingRulesReplace(r *parsingRuleGroupParams, regE
             regular_expression	= "%s"
             replacement_string  = "%s"
         }
-    }
-  }
+    }]
+  }]
  }
 `, r.name, r.description, r.creator, r.parsingRuleParams.name, r.parsingRuleParams.description, regEx, replacementString)
 }
