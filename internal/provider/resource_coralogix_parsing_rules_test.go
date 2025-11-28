@@ -86,7 +86,7 @@ func TestAccCoralogixResourceParsingRules_block(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "id"),
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "order"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "hidden", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r.creator),
@@ -167,7 +167,7 @@ func TestAccCoralogixResourceParsingRules_jsonExtract(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "id"),
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "order"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "hidden", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r.creator),
@@ -208,7 +208,7 @@ func TestAccCoralogixResourceParsingRules_replace(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "id"),
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "order"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "hidden", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r.creator),
@@ -252,7 +252,7 @@ func TestAccCoralogixResourceParsingRules_extractTimestamp(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "id"),
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "order"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "hidden", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r.creator),
@@ -292,7 +292,7 @@ func TestAccCoralogixResourceParsingRules_removeFields(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "id"),
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "order"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "hidden", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r.creator),
@@ -330,7 +330,7 @@ func TestAccCoralogixResourceParsingRules_jsonStringify(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "id"),
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "order"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "hidden", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r.creator),
@@ -371,7 +371,7 @@ func TestAccCoralogixResourceParsingRules_extract(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "id"),
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "order"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "hidden", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r.creator),
@@ -412,7 +412,7 @@ func TestAccCoralogixResourceParsingRules_parse(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "id"),
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "order"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "hidden", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r.creator),
@@ -492,7 +492,7 @@ func TestAccCoralogixResourceParsingRules_rules_combination(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "id"),
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "order"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "hidden", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r.creator),
@@ -531,7 +531,7 @@ func TestAccCoralogixResourceParsingRules_update(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "id"),
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "order"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "hidden", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r1.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r1.creator),
@@ -553,7 +553,7 @@ func TestAccCoralogixResourceParsingRules_update(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "id"),
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "order"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "hidden", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r2.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r2.creator),
@@ -583,7 +583,7 @@ func TestAccCoralogixResourceParsingRules_update_order_inside_rule_group(t *test
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "id"),
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "order"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "hidden", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r.creator),
@@ -608,7 +608,7 @@ func TestAccCoralogixResourceParsingRules_update_order_inside_rule_group(t *test
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "id"),
 					resource.TestCheckResourceAttrSet(parsingRulesGroupResourceName, "order"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "active", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "hidden", "false"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", r.name),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "creator", r.creator),
@@ -755,6 +755,7 @@ func testAccCoralogixResourceParsingRulesAllow(r *parsingRuleGroupParams, regEx,
   name         = "%s"
   description  = "%s"
   creator      = "%s"
+  active       = "true"
   rule_subgroups = [{
     rules = [{
         block = {
