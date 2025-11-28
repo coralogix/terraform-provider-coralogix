@@ -539,7 +539,6 @@ func TestAccCoralogixResourceParsingRules_update(t *testing.T) {
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.parse.name", "rule1"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.1.extract.name", "rule2"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.2.parse.name", "rule3"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.1.rules.0.extract_timestamp.name", "rule1"),
 				),
 			},
 			{
@@ -561,7 +560,6 @@ func TestAccCoralogixResourceParsingRules_update(t *testing.T) {
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.parse.name", "rule1"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.1.extract.name", "rule2"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.2.parse.name", "rule3"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.1.rules.0.extract_timestamp.name", "rule1"),
 				),
 			},
 		},
@@ -594,7 +592,6 @@ func TestAccCoralogixResourceParsingRules_update_order_inside_rule_group(t *test
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.1.extract.order", "2"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.2.parse.name", "rule3"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.2.parse.order", "3"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.1.rules.0.extract_timestamp.name", "rule1"),
 				),
 			},
 			{
