@@ -662,7 +662,6 @@ func flattenRecordingRules(ctx context.Context, rules []recRuless.OutRule) (type
 }
 
 func flattenRecordingRule(ctx context.Context, rule *recRuless.OutRule) (*RecordingRuleModel, diag.Diagnostics) {
-	log.Printf("HELLO - %v", rule.Labels)
 	labels, diags := types.MapValueFrom(ctx, types.StringType, rule.GetLabels())
 	if diags.HasError() {
 		return nil, diags
