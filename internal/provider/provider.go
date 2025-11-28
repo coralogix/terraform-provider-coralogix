@@ -411,5 +411,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		notifications.NewConnectorResource,
 		notifications.NewGlobalRouterResource,
 		notifications.NewPresetResource,
+		parsing_rules.NewParsingRulesResource,
 	}
 }

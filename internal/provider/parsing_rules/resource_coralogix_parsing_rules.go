@@ -218,7 +218,7 @@ type ParseJsonFieldModel struct {
 	KeepDestinationField types.Bool   `tfsdk:"keep_destination_field"`
 }
 
-func NewParsingRules() resource.Resource {
+func NewParsingRulesResource() resource.Resource {
 	return &ParsingRules{}
 }
 
@@ -248,7 +248,7 @@ func (r *ParsingRules) Configure(ctx context.Context, req resource.ConfigureRequ
 }
 
 func (r *ParsingRules) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_archive_metrics"
+	resp.TypeName = req.ProviderTypeName + "_parsing_rules"
 }
 
 func (r *ParsingRules) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -751,7 +751,7 @@ func appendRegularExpressionAttrs(m map[string]schema.Attribute) map[string]sche
 }
 
 func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroupRequestCreateRuleSubgroup {
-	if subgroups == nil || len(subgroups) == 0 {
+	if len(subgroups) == 0 {
 		return nil
 	}
 	subgroupRules := make([]prgs.CreateRuleGroupRequestCreateRuleSubgroup, len(subgroups))
