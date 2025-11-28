@@ -12,39 +12,38 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package recording_rules
+package parsing_rules
 
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	recRuless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/recording_rules_service"
+	prgs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/rule_groups_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 )
 
-var _ datasource.DataSourceWithConfigure = &RecordingRuleGroupSetDataSource{}
+var _ datasource.DataSourceWithConfigure = &ParsingRulesDataSource{}
 
-func NewRecordingRuleGroupSetDataSource() datasource.DataSource {
-	return &RecordingRuleGroupSetDataSource{}
+func NewParsingRulesDataSource() datasource.DataSource {
+	return &ParsingRulesDataSource{}
 }
 
-type RecordingRuleGroupSetDataSource struct {
-	client *recRuless.RecordingRulesServiceAPIService
+type ParsingRulesDataSource struct {
+	client *prgs.RuleGroupsServiceAPIService
 }
 
-func (d *RecordingRuleGroupSetDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_recording_rules_groups_set"
+func (d *ParsingRulesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_parsing_rules"
 }
 
-func (d *RecordingRuleGroupSetDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+func (d *ParsingRulesDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
 	}
@@ -58,51 +57,42 @@ func (d *RecordingRuleGroupSetDataSource) Configure(_ context.Context, req datas
 		return
 	}
 
-	d.client = clientSet.RecordingRuleGroupsSets()
+	d.client = clientSet.ParsingRuleGroups()
 }
 
-func (d *RecordingRuleGroupSetDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
-	var r RecordingRuleGroupSetResource
+func (d *ParsingRulesDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	var r ParsingRulesResource
 	var resourceResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
 }
 
-func (d *RecordingRuleGroupSetDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *RecordingRuleGroupSetResourceModel
+func (d *ParsingRulesDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
+	var data *ParsingRulesModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	id := data.ID.ValueString()
-
-	log.Printf("[INFO] Reading coralogix_recording_rule_groups")
 	result, httpResponse, err := d.client.
-		RuleGroupSetsFetch(ctx, id).
+		RuleGroupsServiceGetRuleGroup(ctx, data.ID.ValueString()).
 		Execute()
+
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				"coralogix_recording_rule_groups is in state, but no longer exists in Coralogix backend",
-				"coralogix_recording_rule_groups will be recreated when you apply",
+				"coralogix_parsing_rules is in state, but no longer exists in Coralogix backend",
+				"coralogix_parsing_rules will be recreated when you apply",
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error reading coralogix_recording_rule_groups",
+			resp.Diagnostics.AddError("Error reading coralogix_parsing_rules",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_recording_rule_groups: %s", utils.FormatJSON(result))
-
-	state, diags := flattenRecordingRuleGroupSet(ctx, data, result)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
+	state := flattenParsingRules(result.RuleGroup)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }

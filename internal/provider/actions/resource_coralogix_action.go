@@ -314,9 +314,9 @@ func extractCreateAction(ctx context.Context, plan ActionResourceModel) (*action
 	var diags diag.Diagnostics
 
 	sourceType := actionSchemaSourceTypeToProtoSourceType[plan.SourceType.ValueString()]
-	applicationNames, dgs := utils.TypeStringSliceToStringSlice(ctx, plan.Applications.Elements())
+	applicationNames, dgs := utils.TypeStringElementsToStringSlice(ctx, plan.Applications.Elements())
 	diags = append(diags, dgs...)
-	subsystemNames, dgs := utils.TypeStringSliceToStringSlice(ctx, plan.Subsystems.Elements())
+	subsystemNames, dgs := utils.TypeStringElementsToStringSlice(ctx, plan.Subsystems.Elements())
 	diags = append(diags, dgs...)
 
 	return &actionss.ActionsServiceCreateActionRequest{
@@ -333,10 +333,10 @@ func extractUpdateAction(ctx context.Context, plan ActionResourceModel) (*action
 	var diags diag.Diagnostics
 
 	sourceType := actionSchemaSourceTypeToProtoSourceType[plan.SourceType.ValueString()]
-	applicationNames, dgs := utils.TypeStringSliceToStringSlice(ctx, plan.Applications.Elements())
+	applicationNames, dgs := utils.TypeStringElementsToStringSlice(ctx, plan.Applications.Elements())
 	diags = append(diags, dgs...)
 
-	subsystemNames, dgs := utils.TypeStringSliceToStringSlice(ctx, plan.Subsystems.Elements())
+	subsystemNames, dgs := utils.TypeStringElementsToStringSlice(ctx, plan.Subsystems.Elements())
 	diags = append(diags, dgs...)
 
 	return &actionss.ActionsServiceReplaceActionRequest{

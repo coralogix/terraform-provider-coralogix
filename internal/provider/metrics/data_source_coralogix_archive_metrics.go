@@ -18,14 +18,16 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	ams "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/metrics_data_archive_service"
+
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"google.golang.org/protobuf/encoding/protojson"
 )
 
 var _ datasource.DataSourceWithConfigure = &ArchiveMetricsDataSource{}
@@ -35,7 +37,7 @@ func NewArchiveMetricsDataSource() datasource.DataSource {
 }
 
 type ArchiveMetricsDataSource struct {
-	client *cxsdk.ArchiveMetricsClient
+	client *ams.MetricsDataArchiveServiceAPIService
 }
 
 func (d *ArchiveMetricsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -74,23 +76,36 @@ func (d *ArchiveMetricsDataSource) Read(ctx context.Context, req datasource.Read
 		return
 	}
 
-	log.Print("[INFO] Reading archive-metrics")
-	getResp, err := d.client.Get(ctx)
+	rq := d.client.
+		MetricsConfiguratorPublicServiceGetTenantConfig(ctx)
+	log.Printf("[INFO] Reading new coralogix_archive_metrics: %s", utils.FormatJSON(rq))
+
+	result, httpResponse, err := rq.
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-
-		resp.Diagnostics.AddError(
-			"Error reading archive-metrics",
-			utils.FormatRpcErrors(err, cxsdk.ArchiveMetricsGetTenantConfigRPC, ""),
-		)
-	}
-	log.Printf("[INFO] Received archive-metrics: %s", protojson.Format(getResp))
-
-	data, diags := flattenArchiveMetrics(ctx, getResp.GetTenantConfig(), data.ID.ValueString())
-	if diags.HasError() {
-		resp.Diagnostics = diags
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				"coralogix_archive_metrics is in state, but no longer exists in Coralogix backend",
+				"coralogix_archive_metrics will be recreated when you apply",
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error reading coralogix_archive_metrics",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+			)
+		}
 		return
 	}
-	// Save data into Terraform state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+
+	log.Printf("[INFO] Created new coralogix_archive_metrics: %s", utils.FormatJSON(result))
+
+	state, diags := flattenArchiveMetrics(ctx, result.TenantConfig, data.ID.ValueString())
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	diags = resp.State.Set(ctx, &state)
+	resp.Diagnostics.Append(diags...)
 }

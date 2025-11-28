@@ -843,7 +843,7 @@ func extractFilter(ctx context.Context, filter types.Object) (*cxsdk.AlertSchedu
 	whatExpression := filterModel.WhatExpression.ValueString()
 
 	if !(filterModel.AlertsUniqueIDs.IsNull() || filterModel.AlertsUniqueIDs.IsUnknown()) {
-		ids, diags := utils.TypeStringSliceToStringSlice(ctx, filterModel.AlertsUniqueIDs.Elements())
+		ids, diags := utils.TypeStringElementsToStringSlice(ctx, filterModel.AlertsUniqueIDs.Elements())
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -1065,7 +1065,7 @@ func expandFrequency(ctx context.Context, dynamic *cxsdk.RecurringDynamicInner, 
 			return nil, diags
 		}
 
-		days, diags := utils.TypeStringSliceToStringSlice(ctx, weeklyModel.Days.Elements())
+		days, diags := utils.TypeStringElementsToStringSlice(ctx, weeklyModel.Days.Elements())
 		if diags.HasError() {
 			return nil, diags
 		}
