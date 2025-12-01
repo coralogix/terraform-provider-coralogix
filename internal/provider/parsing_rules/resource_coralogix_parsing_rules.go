@@ -1013,7 +1013,7 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 						SourceField:       types.StringPointerValue(rule.SourceField),
 						RegularExpression: types.StringPointerValue(p.AllowParameters.Rule),
 						KeepBlockedLogs:   types.BoolPointerValue(p.AllowParameters.KeepBlockedLogs),
-						BlockMatchingLogs: types.BoolValue(true),
+						BlockMatchingLogs: types.BoolValue(false),
 					},
 				})
 			} else if p := params.RuleParametersBlockParameters; p != nil {
@@ -1027,7 +1027,7 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 						SourceField:       types.StringPointerValue(rule.SourceField),
 						RegularExpression: types.StringPointerValue(p.BlockParameters.Rule),
 						KeepBlockedLogs:   types.BoolPointerValue(p.BlockParameters.KeepBlockedLogs),
-						BlockMatchingLogs: types.BoolValue(false),
+						BlockMatchingLogs: types.BoolValue(true),
 					},
 				})
 			} else if p := params.RuleParametersExtractParameters; p != nil {
