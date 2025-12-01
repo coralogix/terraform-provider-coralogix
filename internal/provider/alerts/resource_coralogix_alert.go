@@ -1177,11 +1177,21 @@ func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *alert
 	if diags.HasError() {
 		return nil, diags
 	}
+
+	var anomalyAlertSettings *alerts.AnomalyAlertSettings
+	if !anomalyModel.PercentageOfDeviation.IsNull() && !anomalyModel.PercentageOfDeviation.IsUnknown() {
+		percentageValue := float32(anomalyModel.PercentageOfDeviation.ValueFloat64())
+		anomalyAlertSettings = &alerts.AnomalyAlertSettings{
+			PercentageOfDeviation: &percentageValue,
+		}
+	}
+
 	properties.AlertDefPropertiesLogsAnomaly.LogsAnomaly = &alerts.LogsAnomalyType{
 		LogsFilter:                logsFilter,
 		Rules:                     rules,
 		NotificationPayloadFilter: notificationPayloadFilter,
 		EvaluationDelayMs:         anomalyModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		AnomalyAlertSettings:      anomalyAlertSettings,
 	}
 
 	properties.AlertDefPropertiesLogsAnomaly.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_ANOMALY.Ptr()
@@ -2263,10 +2273,19 @@ func expandMetricAnomalyAlertTypeDefinition(ctx context.Context, properties *ale
 		return nil, diags
 	}
 
+	var anomalyAlertSettings *alerts.AnomalyAlertSettings
+	if !metricAnomalyModel.PercentageOfDeviation.IsNull() && !metricAnomalyModel.PercentageOfDeviation.IsUnknown() {
+		percentageValue := float32(metricAnomalyModel.PercentageOfDeviation.ValueFloat64())
+		anomalyAlertSettings = &alerts.AnomalyAlertSettings{
+			PercentageOfDeviation: &percentageValue,
+		}
+	}
+
 	properties.AlertDefPropertiesMetricAnomaly.MetricAnomaly = &alerts.MetricAnomalyType{
-		MetricFilter:      metricFilter,
-		Rules:             rules,
-		EvaluationDelayMs: metricAnomalyModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		MetricFilter:         metricFilter,
+		Rules:                rules,
+		EvaluationDelayMs:    metricAnomalyModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		AnomalyAlertSettings: anomalyAlertSettings,
 	}
 	properties.AlertDefPropertiesMetricAnomaly.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_METRIC_ANOMALY.Ptr()
 
@@ -3645,11 +3664,20 @@ func flattenLogsAnomaly(ctx context.Context, anomaly *alerts.LogsAnomalyType) (t
 	if diags.HasError() {
 		return types.ObjectNull(alertschema.LogsAnomalyAttr()), diags
 	}
+
+	var percentageOfDeviation types.Float64
+	if anomaly.AnomalyAlertSettings != nil && anomaly.AnomalyAlertSettings.PercentageOfDeviation != nil {
+		percentageOfDeviation = types.Float64Value(float64(*anomaly.AnomalyAlertSettings.PercentageOfDeviation))
+	} else {
+		percentageOfDeviation = types.Float64Null()
+	}
+
 	logsMoreThanUsualModel := alerttypes.LogsAnomalyModel{
 		LogsFilter:                logsFilter,
 		Rules:                     rules,
 		NotificationPayloadFilter: utils.StringSliceToTypeStringSet(anomaly.GetNotificationPayloadFilter()),
 		CustomEvaluationDelay:     types.Int32PointerValue(anomaly.EvaluationDelayMs),
+		PercentageOfDeviation:     percentageOfDeviation,
 	}
 	return types.ObjectValueFrom(ctx, alertschema.LogsAnomalyAttr(), logsMoreThanUsualModel)
 }
@@ -4434,10 +4462,19 @@ func flattenMetricAnomaly(ctx context.Context, anomaly *alerts.MetricAnomalyType
 	if diags.HasError() {
 		return types.ObjectNull(alertschema.MetricAnomalyAttr()), diags
 	}
+
+	var percentageOfDeviation types.Float64
+	if anomaly.AnomalyAlertSettings != nil && anomaly.AnomalyAlertSettings.PercentageOfDeviation != nil {
+		percentageOfDeviation = types.Float64Value(float64(*anomaly.AnomalyAlertSettings.PercentageOfDeviation))
+	} else {
+		percentageOfDeviation = types.Float64Null()
+	}
+
 	anomalyModel := alerttypes.MetricAnomalyModel{
 		MetricFilter:          metricFilter,
 		Rules:                 rules,
 		CustomEvaluationDelay: types.Int32PointerValue(anomaly.EvaluationDelayMs),
+		PercentageOfDeviation: percentageOfDeviation,
 	}
 	return types.ObjectValueFrom(ctx, alertschema.MetricAnomalyAttr(), anomalyModel)
 }

@@ -165,6 +165,7 @@ resource "coralogix_alert" "test" {
       notification_payload_filter = [
         "coralogix.metadata.sdkId", "coralogix.metadata.sdkName", "coralogix.metadata.sdkVersion"
       ]
+      percentage_of_deviation = 15.5
     }
   }
 }
