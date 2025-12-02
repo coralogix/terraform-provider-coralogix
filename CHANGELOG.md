@@ -1130,6 +1130,20 @@ Fix:
 Fix:
 - State upgrade issue was resolved
 
+# Release 3.0.2
+
+**Note** From now on, the provider will follow actual semver. 
+
+**Internal:**
+* Some more Restructuring
+
+## resource/coralogix_parsing_rules, data_source/coralogix_parsing_rules
+
+- New addition! These will replace `coralogix_rules_group`
+
+## resource/coralogix_rules_group, data_source/coralogix_rules_group
+
+- Deprecated in favor of the new `coralogix_parsing_rules` (Phase out date TBD)
 
 # Release 4.0.0
 

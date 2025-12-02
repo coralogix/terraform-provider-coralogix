@@ -508,6 +508,8 @@ func (r *ParsingRulesResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 	id := state.ID.ValueString()
 	rq := r.client.RuleGroupsServiceDeleteRuleGroup(ctx, id)
+	log.Printf("[INFO] Deleting coralogix_parsing_rules: %v", utils.FormatJSON(rq))
+
 	_, httpResponse, err := rq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting coralogix_parsing_rules",

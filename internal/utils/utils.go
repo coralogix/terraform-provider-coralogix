@@ -364,10 +364,6 @@ func StringSliceToTypeStringList(s []string) types.List {
 
 func StringSliceToTypeStringSlice(s []string) []types.String {
 	elements := make([]types.String, 0)
-
-	if len(s) == 0 {
-		return elements
-	}
 	for _, v := range s {
 		elements = append(elements, types.StringValue(v))
 	}
