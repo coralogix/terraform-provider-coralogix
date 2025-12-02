@@ -197,6 +197,10 @@ func V2() schema.Schema {
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
 							"custom_evaluation_delay":     evaluationDelaySchema(),
+							"percentage_of_deviation":     schema.Float64Attribute{
+								Optional:            true,
+								MarkdownDescription: "The percentage of deviation from the baseline for triggering the alert.",
+							},
 							"logs_filter":                 logsFilterSchema(),
 							"notification_payload_filter": notificationPayloadFilterSchema(),
 							"rules": schema.SetNestedAttribute{
@@ -412,7 +416,11 @@ func V2() schema.Schema {
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
 							"custom_evaluation_delay": evaluationDelaySchema(),
-							"metric_filter":           metricFilterSchema(),
+							"percentage_of_deviation": schema.Float64Attribute{
+								Optional:            true,
+								MarkdownDescription: "The percentage of deviation from the baseline for triggering the alert.",
+							},
+							"metric_filter":         metricFilterSchema(),
 							"rules": schema.SetNestedAttribute{
 								Required:   true,
 								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
