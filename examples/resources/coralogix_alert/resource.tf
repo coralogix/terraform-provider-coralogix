@@ -137,6 +137,7 @@ resource "coralogix_alert" "test" {
 
   type_definition = {
     logs_anomaly = {
+      percentage_of_deviation = 15.5
       rules = [{
         condition = {
           minimum_threshold = 2
@@ -350,6 +351,7 @@ resource "coralogix_alert" "test" {
 #   priority    = "P1"
 #   type_definition = {
 #     metric_anomaly = {
+#       percentage_of_deviation = 20
 #       metric_filter = {
 #         promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
 #       }
