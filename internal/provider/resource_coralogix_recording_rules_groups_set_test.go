@@ -23,7 +23,6 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -142,10 +141,9 @@ func testAccCheckRecordingRulesGroupDestroy(s *terraform.State) error {
 			continue
 		}
 
-		req := &cxsdk.GetRuleGroupSetRequest{Id: rs.Primary.ID}
-		resp, err := client.Get(ctx, req)
+		resp, _, err := client.RuleGroupSetsFetch(ctx, rs.Primary.ID).Execute()
 		if err == nil {
-			if resp != nil && resp.Id == rs.Primary.ID {
+			if resp != nil && *resp.Id == rs.Primary.ID {
 				return fmt.Errorf("coralogix_recording_rules_groups_set still exists: %s", rs.Primary.ID)
 			}
 		}

@@ -343,7 +343,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	if !reflect.DeepEqual(currentState.Permissions.Elements(), desiredState.Permissions.Elements()) {
-		permissions, diags := utils.TypeStringSliceToStringSlice(ctx, desiredState.Permissions.Elements())
+		permissions, diags := utils.TypeStringElementsToStringSlice(ctx, desiredState.Permissions.Elements())
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
@@ -354,7 +354,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	if !reflect.DeepEqual(currentState.Presets.Elements(), desiredState.Presets.Elements()) {
-		presets, diags := utils.TypeStringSliceToStringSlice(ctx, desiredState.Presets.Elements())
+		presets, diags := utils.TypeStringElementsToStringSlice(ctx, desiredState.Presets.Elements())
 		if diags.HasError() {
 			resp.Diagnostics.Append(diags...)
 			return
@@ -501,12 +501,12 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 }
 
 func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*apiKeys.CreateApiKeyRequest, diag.Diagnostics) {
-	permissions, diags := utils.TypeStringSliceToStringSlice(ctx, apiKeyModel.Permissions.Elements())
+	permissions, diags := utils.TypeStringElementsToStringSlice(ctx, apiKeyModel.Permissions.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	presets, diags := utils.TypeStringSliceToStringSlice(ctx, apiKeyModel.Presets.Elements())
+	presets, diags := utils.TypeStringElementsToStringSlice(ctx, apiKeyModel.Presets.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}

@@ -391,7 +391,7 @@ func (r *TCOPoliciesLogsResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	log.Printf("[INFO] Updating coralogix_tco_policies_logs: %s", utils.FormatJSON(rq))
+	log.Printf("[INFO] Replacing coralogix_tco_policies_logs: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		PoliciesServiceAtomicOverwriteLogPolicies(ctx).
 		AtomicOverwriteLogPoliciesRequest(*rq).
@@ -649,7 +649,7 @@ func expandTCOPolicyRule(ctx context.Context, rule types.Object) (*tcoPolicys.Qu
 	}
 
 	ruleType := tcoPoliciesRuleTypeSchemaToApi[tcoRuleModel.RuleType.ValueString()]
-	names, diags := utils.TypeStringSliceToStringSlice(ctx, tcoRuleModel.Names.Elements())
+	names, diags := utils.TypeStringElementsToStringSlice(ctx, tcoRuleModel.Names.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}

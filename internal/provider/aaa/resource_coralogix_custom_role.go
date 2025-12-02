@@ -281,7 +281,7 @@ func (r *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteReques
 }
 
 func extractCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) (*roless.RoleManagementServiceCreateRoleRequest, diag.Diagnostics) {
-	permissions, diags := utils.TypeStringSliceToStringSlice(ctx, roleModel.Permissions.Elements())
+	permissions, diags := utils.TypeStringElementsToStringSlice(ctx, roleModel.Permissions.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -309,7 +309,7 @@ func flattenCustomRole(customRole *roless.V2CustomRole) *RolesModel {
 }
 
 func extractUpdateCustomRoleRequest(ctx context.Context, model *RolesModel) (*roless.RoleManagementServiceUpdateRoleRequest, diag.Diagnostics) {
-	permissions, diags := utils.TypeStringSliceToStringSlice(ctx, model.Permissions.Elements())
+	permissions, diags := utils.TypeStringElementsToStringSlice(ctx, model.Permissions.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}

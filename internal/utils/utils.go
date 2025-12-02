@@ -362,6 +362,14 @@ func StringSliceToTypeStringList(s []string) types.List {
 	return types.ListValueMust(types.StringType, elements)
 }
 
+func StringSliceToTypeStringSlice(s []string) []types.String {
+	elements := make([]types.String, 0)
+	for _, v := range s {
+		elements = append(elements, types.StringValue(v))
+	}
+	return elements
+}
+
 func WrappedStringSliceToTypeStringList(s []*wrapperspb.StringValue) types.List {
 	if len(s) == 0 {
 		return types.ListNull(types.StringType)
@@ -443,7 +451,7 @@ func TypeBoolToWrapperspbBool(v types.Bool) *wrapperspb.BoolValue {
 	return wrapperspb.Bool(v.ValueBool())
 }
 
-func TypeStringSliceToStringSlice(ctx context.Context, s []attr.Value) ([]string, diag.Diagnostics) {
+func TypeStringElementsToStringSlice(ctx context.Context, s []attr.Value) ([]string, diag.Diagnostics) {
 	result := make([]string, 0, len(s))
 	var diags diag.Diagnostics
 	for _, v := range s {
@@ -463,6 +471,13 @@ func TypeStringSliceToStringSlice(ctx context.Context, s []attr.Value) ([]string
 		return nil, diags
 	}
 	return result, nil
+}
+func TypeStringSliceToStringSlice(s []types.String) []string {
+	result := make([]string, 0, len(s))
+	for _, v := range s {
+		result = append(result, v.ValueString())
+	}
+	return result
 }
 
 func TypeInt64SliceToInt32Slice(ctx context.Context, s []attr.Value) ([]int32, diag.Diagnostics) {
@@ -771,6 +786,14 @@ func ParseNumUint32(desired string) uint32 {
 		return 0
 	}
 	return uint32(parsed)
+}
+
+func ParseNumInt64(desired string) int64 {
+	parsed, err := strconv.ParseInt(desired, 10, 64)
+	if err != nil {
+		return 0
+	}
+	return parsed
 }
 
 func TypeMapToStringMap(ctx context.Context, m types.Map) (map[string]string, diag.Diagnostics) {

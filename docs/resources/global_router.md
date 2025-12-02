@@ -33,7 +33,6 @@ resource "coralogix_global_router" "example" {
     service     = "checkout"
     team        = "commerce-platform"
   }
-  
   rules = [{
     entity_type = "alerts"
     name        = "rule-name"
