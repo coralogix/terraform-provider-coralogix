@@ -510,7 +510,7 @@ func (r *ParsingRulesResource) Delete(ctx context.Context, req resource.DeleteRe
 	rq := r.client.RuleGroupsServiceDeleteRuleGroup(ctx, id)
 	_, httpResponse, err := rq.Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error reading coralogix_parsing_rules",
+		resp.Diagnostics.AddError("Error deleting coralogix_parsing_rules",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 	}
