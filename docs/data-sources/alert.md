@@ -241,6 +241,7 @@ Read-Only:
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter))
 - `notification_payload_filter` (Set of String)
+- `percentage_of_deviation` (Number) The percentage of deviation from the baseline for triggering the alert.
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--rules))
 
 <a id="nestedatt--type_definition--logs_anomaly--logs_filter"></a>
@@ -832,6 +833,7 @@ Read-Only:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `metric_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--metric_filter))
+- `percentage_of_deviation` (Number) The percentage of deviation from the baseline for triggering the alert.
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--metric_anomaly--rules))
 
 <a id="nestedatt--type_definition--metric_anomaly--metric_filter"></a>

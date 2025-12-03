@@ -152,6 +152,7 @@ resource "coralogix_alert" "test" {
 
   type_definition = {
     logs_anomaly = {
+      percentage_of_deviation = 15.5
       rules = [{
         condition = {
           minimum_threshold = 2
@@ -365,6 +366,7 @@ resource "coralogix_alert" "test" {
 #   priority    = "P1"
 #   type_definition = {
 #     metric_anomaly = {
+#       percentage_of_deviation = 20
 #       metric_filter = {
 #         promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"
 #       }
@@ -800,6 +802,7 @@ Optional:
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_anomaly--logs_filter))
 - `notification_payload_filter` (Set of String)
+- `percentage_of_deviation` (Number) The percentage of deviation from the baseline for triggering the alert.
 
 <a id="nestedatt--type_definition--logs_anomaly--rules"></a>
 ### Nested Schema for `type_definition.logs_anomaly.rules`
@@ -1460,6 +1463,7 @@ Required:
 Optional:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `percentage_of_deviation` (Number) The percentage of deviation from the baseline for triggering the alert.
 
 <a id="nestedatt--type_definition--metric_anomaly--metric_filter"></a>
 ### Nested Schema for `type_definition.metric_anomaly.metric_filter`

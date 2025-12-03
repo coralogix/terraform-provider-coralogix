@@ -1130,6 +1130,12 @@ Fix:
 Fix:
 - State upgrade issue was resolved
 
+# Release 3.0.2
+
+## resource/coralogix_alert
+
+Feat:
+* Added `percentage_of_deviation` field to `logs_anomaly` and `metric_anomaly` alert types to configure the percentage of deviation from baseline for triggering anomaly alerts.
 
 # Release 4.0.0
 
