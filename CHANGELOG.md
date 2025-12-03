@@ -1132,10 +1132,18 @@ Fix:
 
 # Release 3.0.2
 
-## resource/coralogix_alert
+**Note** From now on, the provider will follow actual semver. 
 
-Feat:
-* Added `percentage_of_deviation` field to `logs_anomaly` and `metric_anomaly` alert types to configure the percentage of deviation from baseline for triggering anomaly alerts.
+**Internal:**
+* Some more Restructuring
+
+## resource/coralogix_parsing_rules, data_source/coralogix_parsing_rules
+
+- New addition! These will replace `coralogix_rules_group`
+
+## resource/coralogix_rules_group, data_source/coralogix_rules_group
+
+- Deprecated in favor of the new `coralogix_parsing_rules` (Phase out date TBD)
 
 # Release 4.0.0
 

@@ -87,9 +87,9 @@ func ResourceCoralogixRulesGroup() *schema.Resource {
 			Delete: schema.DefaultTimeout(30 * time.Second),
 		},
 
-		Schema: RulesGroupSchema(),
-
-		Description: "Rule-group is list of rule-subgroups with 'and' (&&) operation between. For more info please review - https://coralogix.com/docs/log-parsing-rules/ .",
+		Schema:             RulesGroupSchema(),
+		DeprecationMessage: "This resource will be removed in a future release. Please use coralogix_parsing_rules instead.",
+		Description:        "**DEPRECATED** Rule-group is list of rule-subgroups with 'and' (&&) operation between. For more info please review - https://coralogix.com/docs/log-parsing-rules/ .",
 	}
 }
 

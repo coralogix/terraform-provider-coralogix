@@ -1119,7 +1119,7 @@ func expandSendLog(sendLog *SendLogModel) *webhooks.OutgoingWebhookInputDataSend
 }
 
 func expandEmailGroup(ctx context.Context, emailGroup *EmailGroupModel) (*webhooks.OutgoingWebhookInputDataEmailGroup, diag.Diagnostics) {
-	emailAddresses, diags := utils.TypeStringSliceToStringSlice(ctx, emailGroup.Emails.Elements())
+	emailAddresses, diags := utils.TypeStringElementsToStringSlice(ctx, emailGroup.Emails.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}

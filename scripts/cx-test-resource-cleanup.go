@@ -59,7 +59,7 @@ func main() {
 			dashboardClient.Delete(ctx, &cxsdk.DeleteDashboardRequest{DashboardId: d.GetId()})
 		}
 	} else {
-		log.Fatal("Error listing Dashboards:", err)
+		log.Print("Error listing Dashboards:", err)
 	}
 
 	// Alerts
@@ -72,7 +72,7 @@ func main() {
 			alertClient.AlertDefsServiceDeleteAlertDef(ctx, alert.GetId()).Execute()
 		}
 	} else {
-		log.Fatal("Error listing Alerts:", err)
+		log.Print("Error listing Alerts:", err)
 	}
 
 	// Scopes
@@ -84,7 +84,7 @@ func main() {
 			scopesClient.ScopesServiceDeleteScope(ctx, scope.GetId()).Execute()
 		}
 	} else {
-		log.Fatal("Error listing Scopes:", err)
+		log.Print("Error listing Scopes:", err)
 	}
 
 	// Custom Roles
@@ -96,7 +96,7 @@ func main() {
 			rolesClients.RoleManagementServiceDeleteRole(ctx, role.GetRoleId()).Execute()
 		}
 	} else {
-		log.Fatal("Error listing custom roles:", err)
+		log.Print("Error listing custom roles:", err)
 	}
 
 	// Enrichments
@@ -110,7 +110,7 @@ func main() {
 		}
 		enrichmentClient.Delete(ctx, &cxsdk.DeleteEnrichmentsRequest{EnrichmentIds: ids})
 	} else {
-		log.Fatal("Error listing Enrichments:", err)
+		log.Print("Error listing Enrichments:", err)
 	}
 
 	// DataSets
@@ -122,7 +122,7 @@ func main() {
 			dataSetClient.Delete(ctx, &cxsdk.DeleteDataSetRequest{CustomEnrichmentId: wrapperspb.UInt32(enrichment.GetId())})
 		}
 	} else {
-		log.Fatal("Error listing DataSets:", err)
+		log.Print("Error listing DataSets:", err)
 	}
 
 	// Webhooks
@@ -134,19 +134,24 @@ func main() {
 			webhookClient.OutgoingWebhooksServiceDeleteOutgoingWebhook(ctx, webhook.GetId()).Execute()
 		}
 	} else {
-		log.Fatal("Error listing webhooks:", err)
+		log.Print("Error listing webhooks:", err)
 	}
 
 	// Recording Rules
-	recordingRulesGroupsSetClient := cs.RecordingRuleGroupsSets()
-	recordingRulesGroupsSets, err := recordingRulesGroupsSetClient.List(ctx)
+	recordingRulesGroupsSetClient := cs.ParsingRuleGroups()
+	recordingRulesGroupsSets, _, err := recordingRulesGroupsSetClient.RuleGroupsServiceListRuleGroups(ctx).Execute()
 	if err == nil {
-		log.Println("Deleting all recording rules")
-		for _, recordingRulesGroupsSet := range recordingRulesGroupsSets.GetSets() {
-			recordingRulesGroupsSetClient.Delete(ctx, &cxsdk.DeleteRuleGroupSetRequest{Id: recordingRulesGroupsSet.GetId()})
+		log.Println("Deleting all parsing rules")
+		groupIds := make([]string, 0)
+		for _, recordingRulesGroupsSet := range recordingRulesGroupsSets.RuleGroups {
+			groupIds = append(groupIds, *recordingRulesGroupsSet.Id)
+		}
+		_, _, err = recordingRulesGroupsSetClient.RuleGroupsServiceBulkDeleteRuleGroup(ctx).GroupIds(groupIds).Execute()
+		if err != nil {
+			log.Println("Error deleting all parsing rules:", err)
 		}
 	} else {
-		log.Fatal("Error listing recording rules:", err)
+		log.Print("Error listing parsing rules:", err)
 	}
 
 	// Events2Metrics
@@ -158,7 +163,7 @@ func main() {
 			events2metricsClient.Delete(ctx, &cxsdk.DeleteE2MRequest{Id: events2metric.GetId()})
 		}
 	} else {
-		log.Fatal("Error listing events2metrics:", err)
+		log.Print("Error listing events2metrics:", err)
 	}
 
 	// Dashboard folders
@@ -170,7 +175,7 @@ func main() {
 			dashboardsFolderClient.Delete(ctx, &cxsdk.DeleteDashboardFolderRequest{FolderId: dashboardsFolder.GetId()})
 		}
 	} else {
-		log.Fatal("Error listing dashboard folders:", err)
+		log.Print("Error listing dashboard folders:", err)
 	}
 
 	// TCO
@@ -188,7 +193,7 @@ func main() {
 			}
 		}
 	} else {
-		log.Fatal("Error listing TCO policies:", err)
+		log.Print("Error listing TCO policies:", err)
 	}
 
 	tcoPoliciesLogsClient := cs.TCOPolicies()
@@ -204,7 +209,7 @@ func main() {
 			}
 		}
 	} else {
-		log.Fatal("Error listing TCO Logs policies:", err)
+		log.Print("Error listing TCO Logs policies:", err)
 	}
 	// Groups
 	groupClient := cxsdk.NewGroupsClient(cxsdk.NewSDKCallPropertiesCreator(region, cxsdk.NewAuthContext(apiKey, apiKey)))
@@ -217,7 +222,7 @@ func main() {
 			groupClient.Delete(ctx, &cxsdk.DeleteTeamGroupRequest{GroupId: group.GetGroupId()})
 		}
 	} else {
-		log.Fatal("Error listing groups:", err)
+		log.Print("Error listing groups:", err)
 	}
 	// Connectors
 	connectors, globalRouters, presets := cs.GetNotifications()
@@ -228,7 +233,7 @@ func main() {
 			connectors.ConnectorsServiceDeleteConnector(ctx, *connector.Id).Execute()
 		}
 	} else {
-		log.Fatal("Error listing connectors:", err)
+		log.Print("Error listing connectors:", err)
 	}
 
 	// Presets
@@ -239,7 +244,7 @@ func main() {
 			presets.PresetsServiceDeleteCustomPreset(ctx, *preset.Id).Execute()
 		}
 	} else {
-		log.Fatal("Error listing presets:", err)
+		log.Print("Error listing presets:", err)
 	}
 
 	// Global Routers
@@ -251,7 +256,7 @@ func main() {
 		}
 		globalRouters.GlobalRoutersServiceDeleteGlobalRouter(ctx, "router_default").Execute()
 	} else {
-		log.Fatal("Error listing global routers:", err)
+		log.Print("Error listing global routers:", err)
 	}
 
 	// Users
@@ -265,7 +270,7 @@ func main() {
 			}
 		}
 	} else {
-		log.Fatal("Error listing users:", err)
+		log.Print("Error listing users:", err)
 	}
 
 	// Views
@@ -281,7 +286,7 @@ func main() {
 			}
 		}
 	} else {
-		log.Fatal("Error listing users:", err)
+		log.Print("Error listing users:", err)
 	}
 
 	// Views
@@ -297,7 +302,7 @@ func main() {
 			}
 		}
 	} else {
-		log.Fatal("Error listing views:", err)
+		log.Print("Error listing views:", err)
 	}
 
 	// IPAccesss
@@ -311,7 +316,7 @@ func main() {
 			}
 		}
 	} else {
-		log.Fatal("Error listing IP Access:", err)
+		log.Print("Error listing IP Access:", err)
 	}
 
 	// SLOs
@@ -331,6 +336,6 @@ func main() {
 			sloClient.SlosServiceDeleteSlo(ctx, id).Execute()
 		}
 	} else {
-		log.Fatal("Error listing SLOs:", err)
+		log.Print("Error listing SLOs:", err)
 	}
 }

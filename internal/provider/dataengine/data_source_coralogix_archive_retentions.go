@@ -19,9 +19,8 @@ import (
 	"fmt"
 	"log"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
-
-	"google.golang.org/protobuf/encoding/protojson"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	retss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/retentions_service"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -37,7 +36,7 @@ func NewArchiveRetentionsDataSource() datasource.DataSource {
 }
 
 type ArchiveRetentionsDataSource struct {
-	client *cxsdk.ArchiveRetentionsClient
+	client *retss.RetentionsServiceAPIService
 }
 
 func (d *ArchiveRetentionsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -76,27 +75,24 @@ func (d *ArchiveRetentionsDataSource) Read(ctx context.Context, req datasource.R
 		return
 	}
 
-	//Get refreshed archive-retentions value from Coralogix
-	log.Print("[INFO] Reading archive-retentions:")
-	getArchiveRetentionsReq := &cxsdk.GetRetentionsRequest{}
-	getArchiveRetentionsResp, err := d.client.Get(ctx, getArchiveRetentionsReq)
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error reading archive-retentions",
-			utils.FormatRpcErrors(err, cxsdk.ArchiveRetentionGetRetentionsRPC, protojson.Format(getArchiveRetentionsReq)),
-		)
+	id := data.ID.ValueString()
 
+	rq := d.client.RetentionsServiceGetRetentions(ctx)
+	log.Printf("[INFO] Reading coralogix_archive_retentions: %v", rq)
+	result, httpResponse, err := rq.Execute()
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading coralogix_archive_retentions",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+		)
 		return
 	}
-	log.Printf("[INFO] Received archive-retentions: %s", protojson.Format(getArchiveRetentionsResp))
+	log.Printf("[INFO] Read coralogix_archive_retentions: %s", utils.FormatJSON(result))
 
-	data, diags := flattenArchiveRetentions(ctx, getArchiveRetentionsResp.GetRetentions(), data.ID.ValueString())
+	data, diags := flattenArchiveRetentions(ctx, result.Retentions, id)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

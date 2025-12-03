@@ -347,7 +347,7 @@ func extractNotificationGroup(ctx context.Context, notificationGroupObject types
 		return nil, diags
 	}
 
-	groupByFields, diags := utils.TypeStringSliceToStringSlice(ctx, notificationGroupModel.GroupByKeys.Elements())
+	groupByFields, diags := utils.TypeStringElementsToStringSlice(ctx, notificationGroupModel.GroupByKeys.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -580,7 +580,7 @@ func extractAdvancedTargetSetting(ctx context.Context, webhooksSettingsModel ale
 			},
 		}
 	} else if !webhooksSettingsModel.Recipients.IsNull() && !webhooksSettingsModel.Recipients.IsUnknown() {
-		emails, diags := utils.TypeStringSliceToStringSlice(ctx, webhooksSettingsModel.Recipients.Elements())
+		emails, diags := utils.TypeStringElementsToStringSlice(ctx, webhooksSettingsModel.Recipients.Elements())
 		if diags.HasError() {
 			return nil, diags
 		}
@@ -776,12 +776,12 @@ func expandLogsImmediateAlertTypeDefinition(ctx context.Context, properties *ale
 		return nil, diags
 	}
 
-	notificationPayloadFilter, diags := utils.TypeStringSliceToStringSlice(ctx, immediateModel.NotificationPayloadFilter.Elements())
+	notificationPayloadFilter, diags := utils.TypeStringElementsToStringSlice(ctx, immediateModel.NotificationPayloadFilter.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	groupBy, diags := utils.TypeStringSliceToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -968,12 +968,12 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *alerts.A
 		return nil, diags
 	}
 
-	notificationPayloadFilter, diags := utils.TypeStringSliceToStringSlice(ctx, thresholdModel.NotificationPayloadFilter.Elements())
+	notificationPayloadFilter, diags := utils.TypeStringElementsToStringSlice(ctx, thresholdModel.NotificationPayloadFilter.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	groupBy, diags := utils.TypeStringSliceToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1131,12 +1131,12 @@ func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *alert
 		return nil, diags
 	}
 
-	notificationPayloadFilter, diags := utils.TypeStringSliceToStringSlice(ctx, anomalyModel.NotificationPayloadFilter.Elements())
+	notificationPayloadFilter, diags := utils.TypeStringElementsToStringSlice(ctx, anomalyModel.NotificationPayloadFilter.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	groupBy, diags := utils.TypeStringSliceToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1247,12 +1247,12 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *ale
 		return nil, diags
 	}
 
-	notificationPayloadFilter, diags := utils.TypeStringSliceToStringSlice(ctx, ratioThresholdModel.NotificationPayloadFilter.Elements())
+	notificationPayloadFilter, diags := utils.TypeStringElementsToStringSlice(ctx, ratioThresholdModel.NotificationPayloadFilter.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
 
-	groupBy, diags := utils.TypeStringSliceToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1402,7 +1402,7 @@ func expandLogsNewValueAlertTypeDefinition(ctx context.Context, properties *aler
 		return nil, diags
 	}
 
-	notificationPayloadFilter, diags := utils.TypeStringSliceToStringSlice(ctx, newValueModel.NotificationPayloadFilter.Elements())
+	notificationPayloadFilter, diags := utils.TypeStringElementsToStringSlice(ctx, newValueModel.NotificationPayloadFilter.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1412,7 +1412,7 @@ func expandLogsNewValueAlertTypeDefinition(ctx context.Context, properties *aler
 		return nil, diags
 	}
 
-	groupBy, diags := utils.TypeStringSliceToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1518,7 +1518,7 @@ func expandLogsUniqueCountAlertTypeDefinition(ctx context.Context, properties *a
 		return nil, diags
 	}
 
-	notificationPayloadFilter, diags := utils.TypeStringSliceToStringSlice(ctx, uniqueCountModel.NotificationPayloadFilter.Elements())
+	notificationPayloadFilter, diags := utils.TypeStringElementsToStringSlice(ctx, uniqueCountModel.NotificationPayloadFilter.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1528,7 +1528,7 @@ func expandLogsUniqueCountAlertTypeDefinition(ctx context.Context, properties *a
 		return nil, diags
 	}
 
-	groupBy, diags := utils.TypeStringSliceToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1637,7 +1637,7 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 		return nil, diags
 	}
 
-	notificationPayloadFilter, diags := utils.TypeStringSliceToStringSlice(ctx, relativeThresholdModel.NotificationPayloadFilter.Elements())
+	notificationPayloadFilter, diags := utils.TypeStringElementsToStringSlice(ctx, relativeThresholdModel.NotificationPayloadFilter.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1647,7 +1647,7 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 		return nil, diags
 	}
 
-	groupBy, diags := utils.TypeStringSliceToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1757,7 +1757,7 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *a
 		return nil, diags
 	}
 
-	groupBy, diags := utils.TypeStringSliceToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1921,7 +1921,7 @@ func expandTracingImmediateTypeDefinition(ctx context.Context, properties *alert
 		return nil, diags
 	}
 
-	groupBy, diags := utils.TypeStringSliceToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1963,7 +1963,7 @@ func expandTracingImmediateTypeDefinition(ctx context.Context, properties *alert
 		return nil, diags
 	}
 
-	notificationPayloadFilter, diags := utils.TypeStringSliceToStringSlice(ctx, tracingImmediateModel.NotificationPayloadFilter.Elements())
+	notificationPayloadFilter, diags := utils.TypeStringElementsToStringSlice(ctx, tracingImmediateModel.NotificationPayloadFilter.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -1984,7 +1984,7 @@ func expandTracingThresholdTypeDefinition(ctx context.Context, properties *alert
 		return nil, diags
 	}
 
-	groupBy, diags := utils.TypeStringSliceToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2026,7 +2026,7 @@ func expandTracingThresholdTypeDefinition(ctx context.Context, properties *alert
 		return nil, diags
 	}
 
-	notificationPayloadFilter, diags := utils.TypeStringSliceToStringSlice(ctx, tracingThresholdModel.NotificationPayloadFilter.Elements())
+	notificationPayloadFilter, diags := utils.TypeStringElementsToStringSlice(ctx, tracingThresholdModel.NotificationPayloadFilter.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2175,7 +2175,7 @@ func extractTracingLabelFilter(ctx context.Context, filterModelObject types.Obje
 		return nil, diags
 	}
 
-	values, diags := utils.TypeStringSliceToStringSlice(ctx, filterModel.Values.Elements())
+	values, diags := utils.TypeStringElementsToStringSlice(ctx, filterModel.Values.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2226,7 +2226,7 @@ func expandMetricAnomalyAlertTypeDefinition(ctx context.Context, properties *ale
 		return nil, diags
 	}
 
-	groupBy, diags := utils.TypeStringSliceToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2376,7 +2376,7 @@ func expandFlowAlertTypeDefinition(ctx context.Context, properties *alerts.Alert
 		return nil, diags
 	}
 
-	groupBy, diags := utils.TypeStringSliceToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}
@@ -2539,7 +2539,7 @@ func expandSloThresholdAlertTypeDefinition(ctx context.Context, properties *aler
 		return nil, diags
 	}
 
-	groupBy, diags := utils.TypeStringSliceToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
+	groupBy, diags := utils.TypeStringElementsToStringSlice(ctx, alertResourceModel.GroupBy.Elements())
 	if diags.HasError() {
 		return nil, diags
 	}

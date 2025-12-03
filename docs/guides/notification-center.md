@@ -173,9 +173,9 @@ resource "coralogix_alert" "example_with_router" {
   description = "metric_threshold alert example with routing"
   
   labels = {
-    alert_type = "security"
-    routing.group = "teamA" # Routing label to match global routers.
-    routing.environment = "production" # Routing label to match global routers.
+    "alert_type" = "security"
+    "routing.group" = "teamA" # Routing label to match global routers.
+    "routing.environment" = "production" # Routing label to match global routers.
   }
   
   notification_group = {
