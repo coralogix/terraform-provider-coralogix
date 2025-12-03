@@ -1130,16 +1130,14 @@ Fix:
 Fix:
 - State upgrade issue was resolved
 
-# Release 4.0.0
-
-## resource/coralogix_alert
-
-Remove:  
-* remove support for `notification_group.destinations`
-
-# Release 4.0.1
+# Release 3.0.2
 
 ## resource/coralogix_alert
 
 Feat:
 * Added `percentage_of_deviation` field to `logs_anomaly` and `metric_anomaly` alert types to configure the percentage of deviation from baseline for triggering anomaly alerts.
+
+# Release 4.0.0
+
+## resource/coralogix_alert
+Remove:  remove support for `notification_group.destinations`
