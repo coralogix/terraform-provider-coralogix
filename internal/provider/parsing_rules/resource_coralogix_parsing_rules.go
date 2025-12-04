@@ -17,7 +17,6 @@ package parsing_rules
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -413,7 +412,6 @@ func (r *ParsingRulesResource) Create(ctx context.Context, req resource.CreateRe
 
 	rq := extractParsingRules(plan)
 
-	log.Printf("[INFO] Creating new coralogix_parsing_rules: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		RuleGroupsServiceCreateRuleGroup(ctx).
 		RuleGroupsServiceCreateRuleGroupRequest(*rq).
@@ -424,7 +422,6 @@ func (r *ParsingRulesResource) Create(ctx context.Context, req resource.CreateRe
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_parsing_rules: %s", utils.FormatJSON(result))
 	state := flattenParsingRules(result.RuleGroup)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -472,7 +469,6 @@ func (r *ParsingRulesResource) Read(ctx context.Context, req resource.ReadReques
 	}
 	id := state.ID.ValueString()
 	rq := r.client.RuleGroupsServiceGetRuleGroup(ctx, id)
-	log.Printf("[INFO] Reading coralogix_parsing_rules: %v", rq)
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
@@ -488,7 +484,6 @@ func (r *ParsingRulesResource) Read(ctx context.Context, req resource.ReadReques
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_parsing_rules: %s", utils.FormatJSON(result))
 
 	state = flattenParsingRules(result.RuleGroup)
 	if diags.HasError() {
@@ -508,7 +503,6 @@ func (r *ParsingRulesResource) Delete(ctx context.Context, req resource.DeleteRe
 	}
 	id := state.ID.ValueString()
 	rq := r.client.RuleGroupsServiceDeleteRuleGroup(ctx, id)
-	log.Printf("[INFO] Deleting coralogix_parsing_rules: %v", utils.FormatJSON(rq))
 
 	_, httpResponse, err := rq.Execute()
 	if err != nil {

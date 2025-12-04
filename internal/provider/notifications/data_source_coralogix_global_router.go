@@ -129,9 +129,6 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 	rq := d.client.GlobalRoutersServiceGetGlobalRouter(ctx, routerID)
-
-	log.Printf("[INFO] Reading coralogix_global_router: %s", utils.FormatJSON(rq))
-
 	result, httpResponse, err := rq.
 		Execute()
 
@@ -141,9 +138,6 @@ func (d *GlobalRouterDataSource) Read(ctx context.Context, req datasource.ReadRe
 		)
 		return
 	}
-
-	log.Printf("[INFO] Read coralogix_global_router: %s", utils.FormatJSON(result))
-
 	data, diags = flattenGlobalRouter(ctx, result.Router)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)

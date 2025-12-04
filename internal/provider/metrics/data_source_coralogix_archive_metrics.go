@@ -17,7 +17,6 @@ package metrics
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -78,7 +77,6 @@ func (d *ArchiveMetricsDataSource) Read(ctx context.Context, req datasource.Read
 
 	rq := d.client.
 		MetricsConfiguratorPublicServiceGetTenantConfig(ctx)
-	log.Printf("[INFO] Reading new coralogix_archive_metrics: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := rq.
 		Execute()
@@ -97,8 +95,6 @@ func (d *ArchiveMetricsDataSource) Read(ctx context.Context, req datasource.Read
 		}
 		return
 	}
-
-	log.Printf("[INFO] Created new coralogix_archive_metrics: %s", utils.FormatJSON(result))
 
 	state, diags := flattenArchiveMetrics(ctx, result.TenantConfig, data.ID.ValueString())
 	if diags.HasError() {

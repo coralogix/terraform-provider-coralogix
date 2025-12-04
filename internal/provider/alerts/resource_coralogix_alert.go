@@ -17,7 +17,6 @@ package alerts
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/big"
 	"net/http"
 	"strconv"
@@ -108,7 +107,6 @@ func (r AlertResource) GenericUpgradeState(_ any) func(context.Context, resource
 		resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("id"), &state)...)
 		//Get refreshed Alert value from Coralogix
 		id := state.ValueString()
-		log.Printf("[INFO] Reading coralogix_alert: %s", id)
 		if resp.Diagnostics.HasError() {
 			return
 		}
@@ -126,7 +124,6 @@ func (r AlertResource) GenericUpgradeState(_ any) func(context.Context, resource
 
 		getAlertResp, httpResponse, err := r.client.AlertDefsServiceGetAlertDef(ctx, id).Execute()
 		if err != nil {
-			log.Printf("[ERROR] Received error: %s", err.Error())
 			resp.Diagnostics.AddError("Error creating coralogix_alert",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", id),
 			)
@@ -134,7 +131,6 @@ func (r AlertResource) GenericUpgradeState(_ any) func(context.Context, resource
 		}
 
 		alert := getAlertResp.GetAlertDef()
-		log.Printf("[INFO] Received coralogix_alert for %q: %s", id, utils.FormatJSON(alert))
 
 		newState, diags := flattenAlert(ctx, alert, &schedule)
 		if diags.HasError() {
@@ -161,7 +157,6 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 	rq := alerts.CreateAlertDefinitionRequest{AlertDefProperties: alertProperties}
-	log.Printf("[INFO] Creating new coralogix_alert: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.AlertDefsServiceCreateAlertDef(ctx).CreateAlertDefinitionRequest(rq).Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating coralogix_alert",
@@ -169,7 +164,6 @@ func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, 
 		)
 		return
 	}
-	log.Printf("[INFO] Created coralogix_alert: %s", utils.FormatJSON(result))
 	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -197,7 +191,6 @@ func (r *AlertResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		Id:                 &id,
 		AlertDefProperties: alertProperties,
 	}
-	log.Printf("[INFO] Replacing coralogix_alert: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		AlertDefsServiceReplaceAlertDef(ctx).
 		ReplaceAlertDefinitionRequest(*rq).Execute()
@@ -213,7 +206,6 @@ func (r *AlertResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced coralogix_alert: %s", utils.FormatJSON(result))
 	plan, diags = flattenAlert(ctx, result.GetAlertDef(), &plan.Schedule)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -232,7 +224,6 @@ func (r *AlertResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting coralogix_alert %s", id)
 	_, httpResponse, err := r.client.
 		AlertDefsServiceDeleteAlertDef(ctx, id).
 		Execute()
@@ -242,7 +233,6 @@ func (r *AlertResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted coralogix_alert: %v", id)
 }
 
 func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -255,7 +245,6 @@ func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		return
 	}
 	rq := r.client.AlertDefsServiceGetAlertDef(ctx, id)
-	log.Printf("[INFO] Reading coralogix_alert: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
@@ -272,7 +261,6 @@ func (r *AlertResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_alert: %s", utils.FormatJSON(result))
 
 	state, diags = flattenAlert(ctx, result.GetAlertDef(), &state.Schedule)
 	if diags.HasError() {

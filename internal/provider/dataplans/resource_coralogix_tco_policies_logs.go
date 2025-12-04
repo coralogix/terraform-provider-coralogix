@@ -17,7 +17,6 @@ package dataplans
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -323,7 +322,6 @@ func (r *TCOPoliciesLogsResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	log.Printf("[INFO] Creating new coralogix_tco_policies_logs: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		PoliciesServiceAtomicOverwriteLogPolicies(ctx).
 		AtomicOverwriteLogPoliciesRequest(*rq).
@@ -334,7 +332,6 @@ func (r *TCOPoliciesLogsResource) Create(ctx context.Context, req resource.Creat
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_tco_policies_logs: %s", utils.FormatJSON(result))
 	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, result)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -348,7 +345,6 @@ func (r *TCOPoliciesLogsResource) Read(ctx context.Context, _ resource.ReadReque
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	log.Printf("[INFO] Reading coralogix_tco_policies_logs")
 	result, httpResponse, err := r.client.PoliciesServiceGetCompanyPolicies(ctx).SourceType(LogSource).Execute()
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
@@ -364,7 +360,6 @@ func (r *TCOPoliciesLogsResource) Read(ctx context.Context, _ resource.ReadReque
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_tco_policies_logs: %s", utils.FormatJSON(result))
 
 	state, diags := flattenGetTCOPoliciesLogsList(ctx, result)
 	if diags.HasError() {
@@ -391,7 +386,6 @@ func (r *TCOPoliciesLogsResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	log.Printf("[INFO] Replacing coralogix_tco_policies_logs: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		PoliciesServiceAtomicOverwriteLogPolicies(ctx).
 		AtomicOverwriteLogPoliciesRequest(*rq).
@@ -409,7 +403,6 @@ func (r *TCOPoliciesLogsResource) Update(ctx context.Context, req resource.Updat
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced coralogix_tco_policies_logs: %s", utils.FormatJSON(result))
 
 	state, diags := flattenOverwriteTCOPoliciesLogsList(ctx, result)
 
@@ -428,15 +421,13 @@ func (r *TCOPoliciesLogsResource) Delete(ctx context.Context, req resource.Delet
 	rq := r.client.
 		PoliciesServiceAtomicOverwriteLogPolicies(ctx).
 		AtomicOverwriteLogPoliciesRequest(*tcoPolicys.NewAtomicOverwriteLogPoliciesRequestWithDefaults())
-	log.Printf("[INFO] Deleting coralogix_tco_policies_logs: %s", utils.FormatJSON(rq))
-	result, httpResponse, err := rq.Execute()
+	_, httpResponse, err := rq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting coralogix_tco_policies_logs",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted coralogix_tco_policies_logs: %s", utils.FormatJSON(result))
 }
 
 func flattenOverwriteTCOPoliciesLogsList(ctx context.Context, overwriteResp *tcoPolicys.AtomicOverwriteLogPoliciesResponse) (*TCOPoliciesListModel, diag.Diagnostics) {
@@ -569,39 +560,6 @@ func extractOverwriteTcoPoliciesLogs(ctx context.Context, plan *TCOPoliciesListM
 	}
 
 	return &tcoPolicys.AtomicOverwriteLogPoliciesRequest{Policies: policies}, nil
-}
-
-func extractUpdateTcoPoliciesLogs(ctx context.Context, tcoPolicy *TCOPolicyLogsModel) (*tcoPolicys.UpdatePolicyRequestLogRules, diag.Diagnostics) {
-	applicationRule, diags := expandTCOPolicyRule(ctx, tcoPolicy.Applications)
-	if diags.HasError() {
-		return nil, diags
-	}
-	subsystemRule, diags := expandTCOPolicyRule(ctx, tcoPolicy.Subsystems)
-	if diags.HasError() {
-		return nil, diags
-	}
-	severities, diags := expandTCOPolicySeverities(ctx, tcoPolicy.Severities.Elements())
-	if diags.HasError() {
-		return nil, diags
-	}
-
-	priority := tcoPoliciesPrioritySchemaToApi[tcoPolicy.Priority.ValueString()]
-
-	archiveRetention := expandActiveRetention(tcoPolicy.ArchiveRetentionID)
-
-	return &tcoPolicys.UpdatePolicyRequestLogRules{
-		ApplicationRule:  applicationRule,
-		ArchiveRetention: archiveRetention,
-		Description:      tcoPolicy.Description.ValueStringPointer(),
-		Enabled:          tcoPolicy.Enabled.ValueBoolPointer(),
-		Id:               tcoPolicy.ID.ValueString(),
-		LogRules: &tcoPolicys.LogRules{
-			Severities: severities,
-		},
-		Name:          tcoPolicy.Name.ValueStringPointer(),
-		Priority:      &priority,
-		SubsystemRule: subsystemRule,
-	}, nil
 }
 
 func extractTcoPolicyLog(ctx context.Context, plan TCOPolicyLogsModel) (*tcoPolicys.CreateLogPolicyRequest, diag.Diagnostics) {

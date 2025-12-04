@@ -17,7 +17,6 @@ package notifications
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -108,8 +107,6 @@ func (r *GlobalRouterResource) UpgradeState(_ context.Context) map[int64]resourc
 }
 
 func (r *GlobalRouterResource) fetchGlobalRouterFromServer(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-	log.Printf("[INFO] Upgrading state from version: %v", req.State.Schema.GetVersion())
-
 	var state *GlobalRouterResourceModel
 	id := types.StringValue("")
 	diags := req.State.GetAttribute(ctx, path.Root("id"), &id)
@@ -120,8 +117,6 @@ func (r *GlobalRouterResource) fetchGlobalRouterFromServer(ctx context.Context, 
 
 	// id := state.ID.ValueString()
 	rq := r.client.GlobalRoutersServiceGetGlobalRouter(ctx, id.ValueString())
-
-	log.Printf("[INFO] Reading coralogix_global_router: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
@@ -138,7 +133,6 @@ func (r *GlobalRouterResource) fetchGlobalRouterFromServer(ctx context.Context, 
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_global_router: %s", utils.FormatJSON(result))
 
 	state, diags = flattenGlobalRouter(ctx, result.Router)
 	if diags.HasError() {
@@ -171,7 +165,6 @@ func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRe
 		Router: router,
 	}
 
-	log.Printf("[INFO] Creating new coralogix_global_router: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		GlobalRoutersServiceCreateGlobalRouter(ctx).
 		CreateGlobalRouterRequest(rq).
@@ -183,7 +176,6 @@ func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRe
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_global_router: %s", utils.FormatJSON(result))
 	plan, diags = flattenGlobalRouter(ctx, result.Router)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -205,8 +197,6 @@ func (r *GlobalRouterResource) Read(ctx context.Context, req resource.ReadReques
 	id := state.ID.ValueString()
 	rq := r.client.GlobalRoutersServiceGetGlobalRouter(ctx, id)
 
-	log.Printf("[INFO] Reading coralogix_global_router: %s", utils.FormatJSON(rq))
-
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
@@ -222,7 +212,6 @@ func (r *GlobalRouterResource) Read(ctx context.Context, req resource.ReadReques
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_global_router: %s", utils.FormatJSON(result))
 
 	state, diags = flattenGlobalRouter(ctx, result.Router)
 	if diags.HasError() {
@@ -250,7 +239,6 @@ func (r GlobalRouterResource) Update(ctx context.Context, req resource.UpdateReq
 	rq := globalRouters.ReplaceGlobalRouterRequest{
 		Router: router,
 	}
-	log.Printf("[INFO] Replacing new coralogix_global_router: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		GlobalRoutersServiceReplaceGlobalRouter(ctx).
 		ReplaceGlobalRouterRequest(rq).
@@ -268,7 +256,6 @@ func (r GlobalRouterResource) Update(ctx context.Context, req resource.UpdateReq
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced new coralogix_global_router: %s", utils.FormatJSON(result))
 	plan, diags = flattenGlobalRouter(ctx, result.Router)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -295,7 +282,6 @@ func (r GlobalRouterResource) Delete(ctx context.Context, req resource.DeleteReq
 		)
 		return
 	}
-	log.Printf("[INFO] GlobalRouter %s deleted", id)
 }
 
 func extractGlobalRouter(ctx context.Context, plan *GlobalRouterResourceModel) (*globalRouters.GlobalRouter, diag.Diagnostics) {

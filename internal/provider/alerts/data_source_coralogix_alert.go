@@ -17,7 +17,6 @@ package alerts
 import (
 	"context"
 	"fmt"
-	"log"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 
@@ -78,7 +77,6 @@ func (d *AlertDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 
 	// Get refreshed Alert value from Coralogix
 	id := data.ID.ValueString()
-	log.Printf("[INFO] Reading Alert: %s", utils.FormatJSON(id))
 	getAlertResp, httpResponse, err := d.client.AlertDefsServiceGetAlertDef(ctx, id).Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading alert",
@@ -86,7 +84,6 @@ func (d *AlertDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		)
 		return
 	}
-	log.Printf("[INFO] Read resource: %s", utils.FormatJSON(getAlertResp))
 
 	data, diags := flattenAlert(ctx, getAlertResp.GetAlertDef(), &data.Schedule)
 	if diags.HasError() {

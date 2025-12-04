@@ -17,7 +17,6 @@ package aaa
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -125,7 +124,6 @@ func (r *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	log.Printf("[INFO] Creating new coralogix_custom_role: %s", utils.FormatJSON(rq))
 	createResult, httpResponse, err := r.client.
 		RoleManagementServiceCreateRole(ctx).
 		RoleManagementServiceCreateRoleRequest(*rq).
@@ -145,7 +143,6 @@ func (r *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 		resp.Diagnostics.AddError("Error refreshing updated coralogix_custom_role. State was not updated", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_custom_role: %s", utils.FormatJSON(result))
 
 	state := flattenCustomRole(result.Role)
 
@@ -170,7 +167,6 @@ func (r *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 	rq := r.client.
 		RoleManagementServiceGetCustomRole(ctx, *id)
 
-	log.Printf("[INFO] Reading coralogix_custom_role: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.
 		Execute()
 
@@ -186,7 +182,6 @@ func (r *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced new coralogix_custom_role: %s", utils.FormatJSON(result))
 	state = flattenCustomRole(result.Role)
 
 	diags = resp.State.Set(ctx, state)
@@ -213,7 +208,6 @@ func (r *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	log.Printf("[INFO] Replacing new coralogix_custom_role: %s", utils.FormatJSON(rq))
 	_, httpResponse, err := r.client.
 		RoleManagementServiceUpdateRole(ctx, *id).
 		RoleManagementServiceUpdateRoleRequest(*rq).
@@ -239,7 +233,6 @@ func (r *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		resp.Diagnostics.AddError("Error refreshing updated coralogix_custom_role. State was not updated", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		return
 	}
-	log.Printf("[INFO] Replaced new coralogix_custom_role: %s", utils.FormatJSON(result))
 
 	state := flattenCustomRole(result.Role)
 
@@ -266,9 +259,8 @@ func (r *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 	rq := r.client.
 		RoleManagementServiceDeleteRole(ctx, *id)
-	log.Printf("[INFO] Deleting coralogix_custom_role: %s", utils.FormatJSON(rq))
 
-	result, httpResponse, err := rq.
+	_, httpResponse, err := rq.
 		Execute()
 
 	if err != nil {
@@ -277,7 +269,6 @@ func (r *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteReques
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted coralogix_custom_role: %s", utils.FormatJSON(result))
 }
 
 func extractCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) (*roless.RoleManagementServiceCreateRoleRequest, diag.Diagnostics) {

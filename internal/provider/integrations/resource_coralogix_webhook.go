@@ -17,7 +17,6 @@ package integrations
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -767,7 +766,6 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 	rq := webhooks.CreateOutgoingWebhookRequest{
 		Data: data,
 	}
-	log.Printf("[INFO] Creating new coralogix_webhook: %s", utils.FormatJSON(rq))
 	createResult, httpResponse, err := r.client.
 		OutgoingWebhooksServiceCreateOutgoingWebhook(ctx).
 		CreateOutgoingWebhookRequest(rq).
@@ -779,11 +777,7 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_webhook: %s", utils.FormatJSON(createResult))
-
 	readRq := r.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, *createResult.Id)
-
-	log.Printf("[INFO] Reading new coralogix_webhook: %s", utils.FormatJSON(rq))
 
 	result, _, err := readRq.Execute()
 	if err != nil {
@@ -792,7 +786,6 @@ func (r *WebhookResource) Create(ctx context.Context, req resource.CreateRequest
 		)
 		return
 	}
-	log.Printf("[INFO] Read coralogix_webhook: %s", utils.FormatJSON(result))
 
 	plan, diags = flattenWebhook(ctx, result.Webhook)
 
@@ -817,8 +810,6 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 	id := state.ID.ValueString()
 	rq := r.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, id)
 
-	log.Printf("[INFO] Reading coralogix_webhook: %s", utils.FormatJSON(rq))
-
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
@@ -834,7 +825,6 @@ func (r *WebhookResource) Read(ctx context.Context, req resource.ReadRequest, re
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_webhook: %s", utils.FormatJSON(result))
 
 	state, diags = flattenWebhook(ctx, result.Webhook)
 	if diags.HasError() {
@@ -862,7 +852,6 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 		Data: data,
 		Id:   &id,
 	}
-	log.Printf("[INFO] Updating coralogix_webhook: %s", utils.FormatJSON(rq))
 	_, httpResponse, err := r.client.
 		OutgoingWebhooksServiceUpdateOutgoingWebhook(ctx).
 		UpdateOutgoingWebhookRequest(rq).
@@ -888,7 +877,6 @@ func (r WebhookResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	log.Printf("[INFO] Updated coralogix_webhook: %s", utils.FormatJSON(result))
 	plan, diags = flattenWebhook(ctx, result.Webhook)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -909,9 +897,7 @@ func (r WebhookResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 	id := state.ID.ValueString()
 
-	log.Printf("[INFO] Deleting coralogix_webhook %s", id)
-
-	result, httpResponse, err := r.client.
+	_, httpResponse, err := r.client.
 		OutgoingWebhooksServiceDeleteOutgoingWebhook(ctx, id).
 		Execute()
 
@@ -921,7 +907,6 @@ func (r WebhookResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted coralogix_webhook: %s", utils.FormatJSON(result))
 }
 
 func expandWebhookType(ctx context.Context, plan *WebhookResourceModel) (*webhooks.OutgoingWebhookInputData, diag.Diagnostics) {

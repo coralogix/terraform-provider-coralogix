@@ -17,7 +17,6 @@ package dataplans
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -82,7 +81,6 @@ func (d *TCOPoliciesTracesDataSource) Read(ctx context.Context, _ datasource.Rea
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	log.Printf("[INFO] Reading coralogix_tco_policies_traces")
 	result, httpResponse, err := d.client.
 		PoliciesServiceGetCompanyPolicies(ctx).
 		SourceType(TracesSource).
@@ -102,7 +100,6 @@ func (d *TCOPoliciesTracesDataSource) Read(ctx context.Context, _ datasource.Rea
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_tco_policies_traces: %s", utils.FormatJSON(result))
 
 	state, diags := flattenGetTCOTracesPoliciesList(ctx, result)
 	if diags.HasError() {

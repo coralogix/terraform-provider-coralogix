@@ -17,7 +17,6 @@ package recording_rules
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -401,7 +400,6 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Creating coralogix_recording_rule_groups: %s", utils.FormatJSON(rq))
 
 	createResult, httpResponse, err := r.client.RuleGroupSetsCreate(ctx).
 		CreateRuleGroupSet(*rq).
@@ -423,7 +421,6 @@ func (r *RecordingRuleGroupSetResource) Create(ctx context.Context, req resource
 		)
 		return
 	}
-	log.Printf("[INFO] Created coralogix_recording_rule_groups: %s", utils.FormatJSON(result))
 
 	plan.ID = types.StringValue(id)
 	plan, diags = flattenRecordingRuleGroupSet(ctx, plan, result)
@@ -446,7 +443,6 @@ func (r *RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.R
 	}
 	id := state.ID.ValueString()
 
-	log.Printf("[INFO] Reading coralogix_recording_rule_groups")
 	result, httpResponse, err := r.client.
 		RuleGroupSetsFetch(ctx, id).
 		Execute()
@@ -464,7 +460,6 @@ func (r *RecordingRuleGroupSetResource) Read(ctx context.Context, req resource.R
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_recording_rule_groups: %s", utils.FormatJSON(result))
 
 	state, diags = flattenRecordingRuleGroupSet(ctx, state, result)
 	if diags.HasError() {
@@ -489,7 +484,6 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Replacing coralogix_recording_rule_groups: %s", utils.FormatJSON(rq))
 
 	_, httpResponse, err := r.client.
 		RuleGroupSetsUpdate(ctx, id).
@@ -518,7 +512,6 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		)
 		return
 	}
-	log.Printf("[INFO] Replaced coralogix_recording_rule_groups: %s", utils.FormatJSON(result))
 
 	plan, diags = flattenRecordingRuleGroupSet(ctx, plan, result)
 	if diags.HasError() {
@@ -539,13 +532,11 @@ func (r *RecordingRuleGroupSetResource) Delete(ctx context.Context, req resource
 	}
 	id := state.ID.ValueString()
 	rq := r.client.RuleGroupSetsDelete(ctx, id)
-	log.Printf("[INFO] Deleting coralogix_recording_rule_groups: %s", utils.FormatJSON(rq))
-	result, httpResponse, err := rq.Execute()
+	_, httpResponse, err := rq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting coralogix_recording_rule_groups", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", rq))
 		return
 	}
-	log.Printf("[INFO] Deleted coralogix_recording_rule_groups: %s", utils.FormatJSON(result))
 }
 
 func flattenRecordingRuleGroupSet(ctx context.Context, plan *RecordingRuleGroupSetResourceModel, resp *recRuless.OutRuleGroupSet) (*RecordingRuleGroupSetResourceModel, diag.Diagnostics) {

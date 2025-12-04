@@ -17,7 +17,6 @@ package aaa
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -273,7 +272,6 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		resp.Diagnostics = diags
 		return
 	}
-	log.Printf("[INFO] Creating new coralogix_api_key: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := r.client.
 		ApiKeysServiceCreateApiKey(context.Background()).
@@ -286,7 +284,6 @@ func (r *ApiKeyResource) Create(ctx context.Context, req resource.CreateRequest,
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_api_key: %s", utils.FormatJSON(result))
 
 	currentKeyId := result.GetKeyId()
 	key, diags := getKeyInfo(ctx, r.client, &currentKeyId, result.Value)
@@ -307,15 +304,12 @@ func (r *ApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	log.Printf("[INFO] Reading coralogix_api_key: %s", currentState.ID.ValueString())
-
 	key, diags := getKeyInfo(ctx, r.client, currentState.ID.ValueStringPointer(), currentState.Value.ValueStringPointer())
 	if diags.HasError() {
 		resp.State.RemoveResource(ctx)
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Read new coralogix_api_key: %s", utils.FormatJSON(key))
 
 	diags = resp.State.Set(ctx, key)
 	resp.Diagnostics.Append(diags...)
@@ -376,9 +370,7 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 
-	log.Printf("[INFO] Updating coralogix_api_key: %s", utils.FormatJSON(rq))
-
-	result, httpResponse, err := r.client.
+	_, httpResponse, err := r.client.
 		ApiKeysServiceUpdateApiKey(ctx, id).
 		UpdateApiKeyRequest(rq).
 		Execute()
@@ -395,7 +387,6 @@ func (r *ApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest,
 		}
 		return
 	}
-	log.Printf("[INFO] Updated coralogix_api_key: %s", utils.FormatJSON(result))
 
 	key, diags := getKeyInfo(ctx, r.client, &id, currentState.Value.ValueStringPointer())
 	if diags.HasError() {
@@ -420,9 +411,8 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	log.Printf("[INFO] Deleting resource %s", id)
 
-	result, httpResponse, err := r.client.
+	_, httpResponse, err := r.client.
 		ApiKeysServiceDeleteApiKey(ctx, id).
 		Execute()
 
@@ -432,11 +422,9 @@ func (r *ApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted coralogix_api_key: %s", utils.FormatJSON(result))
 }
 
 func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *string, keyValue *string) (*ApiKeyModel, diag.Diagnostics) {
-	log.Printf("[INFO] Reading resource: %v", id)
 
 	result, httpResponse, err := r.
 		ApiKeysServiceGetApiKey(ctx, *id).
@@ -449,7 +437,6 @@ func getKeyInfo(ctx context.Context, r *apiKeys.APIKeysServiceAPIService, id *st
 		)
 		return nil, diags
 	}
-	log.Printf("[INFO] Read new coralogix_api_key: %s", utils.FormatJSON(result))
 
 	key, diags := flattenGetApiKeyResponse(ctx, id, result, keyValue)
 	if diags.HasError() {

@@ -17,7 +17,6 @@ package dataengine
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -165,16 +164,19 @@ func (r *ArchiveRetentionsResource) Create(ctx context.Context, req resource.Cre
 	}
 
 	readRq := r.client.RetentionsServiceGetRetentions(ctx)
-	log.Printf("[INFO] Reading coralogix_archive_retentions: %v", readRq)
 	readResult, httpResponse, err := readRq.Execute()
-
+	if err != nil {
+		resp.Diagnostics.AddError("Error creating coralogix_archive_retentions",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", readRq),
+		)
+		return
+	}
 	rq, diags := extractCreateArchiveRetentions(ctx, plan, readResult.Retentions)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
 
-	log.Printf("[INFO] Creating new coralogix_archive_retentions: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		RetentionsServiceUpdateRetentions(ctx).
 		UpdateRetentionsRequest(*rq).
@@ -185,7 +187,6 @@ func (r *ArchiveRetentionsResource) Create(ctx context.Context, req resource.Cre
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_archive_retentions: %s", utils.FormatJSON(result))
 	state, diags := flattenArchiveRetentions(ctx, result.Retentions, RESOURCE_ID_ARCHIVE_RETENTIONS)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -309,7 +310,6 @@ func (r *ArchiveRetentionsResource) Read(ctx context.Context, req resource.ReadR
 	}
 	id := state.ID.ValueString()
 	rq := r.client.RetentionsServiceGetRetentions(ctx)
-	log.Printf("[INFO] Reading coralogix_archive_retentions: %v", rq)
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
@@ -325,7 +325,6 @@ func (r *ArchiveRetentionsResource) Read(ctx context.Context, req resource.ReadR
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_archive_retentions: %s", utils.FormatJSON(result))
 
 	state, diags = flattenArchiveRetentions(ctx, result.Retentions, id)
 	if diags.HasError() {
@@ -357,7 +356,6 @@ func (r *ArchiveRetentionsResource) Update(ctx context.Context, req resource.Upd
 		return
 	}
 
-	log.Printf("[INFO] Replacing new coralogix_archive_retentions: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		RetentionsServiceUpdateRetentions(ctx).
 		UpdateRetentionsRequest(*rq).
@@ -368,7 +366,6 @@ func (r *ArchiveRetentionsResource) Update(ctx context.Context, req resource.Upd
 		)
 		return
 	}
-	log.Printf("[INFO] Replaced coralogix_archive_retentions: %s", utils.FormatJSON(result))
 
 	state, diags = flattenArchiveRetentions(ctx, result.Retentions, RESOURCE_ID_ARCHIVE_RETENTIONS)
 	if diags.HasError() {
@@ -389,8 +386,7 @@ func (r *ArchiveRetentionsResource) Delete(ctx context.Context, req resource.Del
 
 	rq := retss.UpdateRetentionsRequest{}
 
-	log.Printf("[INFO] Deleting new coralogix_archive_retentions: %s", utils.FormatJSON(rq))
-	result, httpResponse, err := r.client.
+	_, httpResponse, err := r.client.
 		RetentionsServiceUpdateRetentions(ctx).
 		UpdateRetentionsRequest(rq).
 		Execute()
@@ -400,7 +396,6 @@ func (r *ArchiveRetentionsResource) Delete(ctx context.Context, req resource.Del
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted coralogix_archive_retentions: %s", utils.FormatJSON(result))
 }
 
 func (r *ArchiveRetentionsResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {

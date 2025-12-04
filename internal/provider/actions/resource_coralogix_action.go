@@ -17,7 +17,6 @@ package actions
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -183,7 +182,6 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Creating new coralogix_action: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		ActionsServiceCreateAction(ctx).
 		ActionsServiceCreateActionRequest(*rq).
@@ -195,7 +193,6 @@ func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest,
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_action: %s", utils.FormatJSON(result))
 	action := result.GetAction()
 
 	plan = flattenAction(&action)
@@ -229,7 +226,6 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 	rq := r.client.
 		ActionsServiceGetAction(ctx, id)
 
-	log.Printf("[INFO] Reading coralogix_action: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.
 		Execute()
 
@@ -245,7 +241,6 @@ func (r *ActionResource) Read(ctx context.Context, req resource.ReadRequest, res
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced new coralogix_action: %s", utils.FormatJSON(result))
 	state = flattenAction(result.Action)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -264,7 +259,6 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Replacing new coralogix_action: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.ActionsServiceReplaceAction(ctx).
 		ActionsServiceReplaceActionRequest(*rq).
 		Execute()
@@ -280,7 +274,6 @@ func (r ActionResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced new coralogix_action: %s", utils.FormatJSON(result))
 
 	plan = flattenAction(result.Action)
 
@@ -297,9 +290,8 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 
 	id := state.ID.ValueString()
 	rq := r.client.ActionsServiceDeleteAction(ctx, id)
-	log.Printf("[INFO] Deleting coralogix_action: %s", utils.FormatJSON(rq))
 
-	result, httpResponse, err := rq.Execute()
+	_, httpResponse, err := rq.Execute()
 
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting coralogix_action",
@@ -307,7 +299,6 @@ func (r ActionResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted coralogix_action: %s", utils.FormatJSON(result))
 }
 
 func extractCreateAction(ctx context.Context, plan ActionResourceModel) (*actionss.ActionsServiceCreateActionRequest, diag.Diagnostics) {

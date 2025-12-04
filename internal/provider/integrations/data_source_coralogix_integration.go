@@ -17,7 +17,6 @@ package integrations
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -81,7 +80,6 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	id := data.ID.ValueString()
 
 	rq := d.client.IntegrationServiceGetDeployedIntegration(ctx, id)
-	log.Printf("[INFO] Reading new coralogix_integration: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.Execute()
 
 	if err != nil {
@@ -98,7 +96,6 @@ func (d *IntegrationDataSource) Read(ctx context.Context, req datasource.ReadReq
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_integration: %s", utils.FormatJSON(result))
 
 	keys, diags := KeysFromPlan(ctx, data)
 	if diags.HasError() {

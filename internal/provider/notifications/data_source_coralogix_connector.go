@@ -129,9 +129,6 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 	rq := d.client.ConnectorsServiceGetConnector(ctx, connectorID)
-
-	log.Printf("[INFO] Reading coralogix_connector: %s", utils.FormatJSON(rq))
-
 	result, httpResponse, err := rq.
 		Execute()
 
@@ -141,8 +138,6 @@ func (d *ConnectorDataSource) Read(ctx context.Context, req datasource.ReadReque
 		)
 		return
 	}
-
-	log.Printf("[INFO] Read coralogix_connector: %s", utils.FormatJSON(result))
 
 	data, diags = flattenConnector(ctx, result.Connector)
 	if diags.HasError() {

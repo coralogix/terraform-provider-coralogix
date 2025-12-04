@@ -17,7 +17,6 @@ package aaa
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -160,7 +159,6 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 		return
 	}
 
-	log.Printf("[INFO] Creating new coralogix_scope: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		ScopesServiceCreateScope(ctx).
 		CreateScopeRequest(*rq).
@@ -172,7 +170,6 @@ func (r *ScopeResource) Create(ctx context.Context, req resource.CreateRequest, 
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_scope: %s", utils.FormatJSON(result))
 	state := flattenScope(result.Scope)
 
 	diags = resp.State.Set(ctx, state)
@@ -251,7 +248,6 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	rq := r.client.
 		ScopesServiceGetTeamScopesByIds(ctx).Ids([]string{id})
 
-	log.Printf("[INFO] Reading coralogix_scope: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.
 		Execute()
 
@@ -267,7 +263,6 @@ func (r *ScopeResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced new coralogix_scope: %s", utils.FormatJSON(result))
 	state := flattenScope(result.Scopes[0])
 
 	diags = resp.State.Set(ctx, state)
@@ -287,7 +282,6 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	if diags.HasError() {
 		return
 	}
-	log.Printf("[INFO] Replacing new coralogix_scope: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		ScopesServiceUpdateScope(ctx).
 		UpdateScopeRequest(*rq).
@@ -305,7 +299,6 @@ func (r *ScopeResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced new coralogix_scope: %s", utils.FormatJSON(result))
 
 	state := flattenScope(result.Scope)
 
@@ -348,9 +341,7 @@ func (r *ScopeResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 
 	id := state.ID.ValueString()
 
-	log.Printf("[INFO] Deleting coralogix_scope")
-
-	result, httpResponse, err := r.client.
+	_, httpResponse, err := r.client.
 		ScopesServiceDeleteScope(ctx, id).
 		Execute()
 
@@ -360,5 +351,4 @@ func (r *ScopeResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted coralogix_scope: %s", utils.FormatJSON(result))
 }

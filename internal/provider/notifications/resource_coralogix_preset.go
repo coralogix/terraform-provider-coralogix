@@ -17,7 +17,6 @@ package notifications
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
@@ -249,7 +248,6 @@ func (r *PresetResource) Create(ctx context.Context, req resource.CreateRequest,
 		Preset: preset,
 	}
 
-	log.Printf("[INFO] Creating new coralogix_preset: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		PresetsServiceCreateCustomPreset(ctx).
 		CreateCustomPresetRequest(rq).
@@ -261,7 +259,6 @@ func (r *PresetResource) Create(ctx context.Context, req resource.CreateRequest,
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_preset: %s", utils.FormatJSON(result))
 	plan, diags = flattenPreset(ctx, result.Preset)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -289,7 +286,6 @@ func (r *PresetResource) Read(ctx context.Context, req resource.ReadRequest, res
 	rq := r.client.
 		PresetsServiceGetPreset(ctx, id)
 
-	log.Printf("[INFO] Reading coralogix_preset: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.
 		Execute()
 
@@ -305,7 +301,6 @@ func (r *PresetResource) Read(ctx context.Context, req resource.ReadRequest, res
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced new coralogix_preset: %s", utils.FormatJSON(result))
 	plan, diags = flattenPreset(ctx, result.Preset)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -335,7 +330,6 @@ func (r PresetResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		Preset: preset,
 	}
 
-	log.Printf("[INFO] Replacing coralogix_preset: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		PresetsServiceReplaceCustomPreset(ctx).
 		ReplaceCustomPresetRequest(rq).
@@ -354,7 +348,6 @@ func (r PresetResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced coralogix_preset: %s", utils.FormatJSON(result))
 	plan, diags = flattenPreset(ctx, result.Preset)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -374,14 +367,12 @@ func (r PresetResource) Delete(ctx context.Context, req resource.DeleteRequest, 
 	}
 
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting resource %s", id)
 
 	if _, httpResponse, err := r.client.PresetsServiceDeleteCustomPreset(ctx, id).Execute(); err != nil {
 		resp.Diagnostics.AddError("Error deleting coralogix_preset",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil))
 		return
 	}
-	log.Printf("[INFO] resource %s deleted", id)
 }
 
 func extractPreset(ctx context.Context, plan *PresetResourceModel) (*presets.Preset, diag.Diagnostics) {
@@ -454,7 +445,6 @@ func extractConditionType(ctx context.Context, conditionType types.Object) (*pre
 		return nil, diags
 	}
 
-	log.Printf("got %v", conditionType)
 	if matchEntityType := condition.MatchEntityType; !(matchEntityType.IsNull() || matchEntityType.IsUnknown()) {
 		var matchEntityTypeModel MatchEntityTypeModel
 		if diags := matchEntityType.As(ctx, &matchEntityTypeModel, basetypes.ObjectAsOptions{}); diags.HasError() {

@@ -292,7 +292,6 @@ func (r *SLOV2Resource) Create(ctx context.Context, req resource.CreateRequest, 
 		SloWindowBasedMetricSli:  slo.SloWindowBasedMetricSli,
 	}
 
-	log.Printf("[INFO] Creating new coralogix_slo_v2: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.SlosServiceCreateSlo(ctx).SlosServiceCreateSloRequest(rq).Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating coralogix_slo_v2",
@@ -300,7 +299,6 @@ func (r *SLOV2Resource) Create(ctx context.Context, req resource.CreateRequest, 
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_slo_v2: %s", utils.FormatJSON(result))
 	plan, diags = flattenSLOV2(ctx, &result.Slo)
 	if diags.HasError() {
 		resp.Diagnostics = diags
@@ -321,7 +319,6 @@ func (r *SLOV2Resource) Read(ctx context.Context, req resource.ReadRequest, resp
 	//Get refreshed SLO value from Coralogix
 	id := state.ID.ValueString()
 	rq := r.client.SlosServiceGetSlo(ctx, id)
-	log.Printf("[INFO] Reading new coralogix_slo_v2: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.Execute()
 
 	if err != nil {
@@ -338,7 +335,6 @@ func (r *SLOV2Resource) Read(ctx context.Context, req resource.ReadRequest, resp
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_slo_v2: %s", utils.FormatJSON(result))
 
 	state, diags = flattenSLOV2(ctx, &result.Slo)
 	if diags.HasError() {
@@ -371,7 +367,6 @@ func (r *SLOV2Resource) Update(ctx context.Context, req resource.UpdateRequest, 
 		SloRequestBasedMetricSli: slo.SloRequestBasedMetricSli,
 		SloWindowBasedMetricSli:  slo.SloWindowBasedMetricSli,
 	}
-	log.Printf("[INFO] Updating coralogix_slo_v2: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := r.client.
 		SlosServiceReplaceSlo(ctx).
@@ -390,7 +385,6 @@ func (r *SLOV2Resource) Update(ctx context.Context, req resource.UpdateRequest, 
 		}
 		return
 	}
-	log.Printf("[INFO] Updated coralogix_slo_v2: %s", utils.FormatJSON(result))
 
 	plan, diags = flattenSLOV2(ctx, &result.Slo)
 	if diags.HasError() {
@@ -412,9 +406,7 @@ func (r *SLOV2Resource) Delete(ctx context.Context, req resource.DeleteRequest, 
 
 	id := state.ID.ValueString()
 
-	log.Printf("[INFO] Deleting coralogix_slo_v2")
-
-	result, httpResponse, err := r.client.
+	_, httpResponse, err := r.client.
 		SlosServiceDeleteSlo(ctx, id).
 		Execute()
 
@@ -424,7 +416,6 @@ func (r *SLOV2Resource) Delete(ctx context.Context, req resource.DeleteRequest, 
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted coralogix_slo_v2: %s", utils.FormatJSON(result))
 }
 
 func extractSLOV2(ctx context.Context, plan *SLOV2ResourceModel) (*slos.Slo, diag.Diagnostics) {
@@ -601,8 +592,6 @@ func flattenWindow(ctx context.Context, tf slos.SloTimeFrame) (types.Object, dia
 }
 
 func flattenRequestBasedSLI(ctx context.Context, sli *slos.SloRequestBasedMetricSli) (*SLOV2ResourceModel, diag.Diagnostics) {
-	sliObj := types.ObjectNull(sliAttr())
-
 	goodEvents := SLOMetricQueryModel{
 		Query: types.StringValue(sli.RequestBasedMetricSli.GoodEvents.Query),
 	}
@@ -631,7 +620,7 @@ func flattenRequestBasedSLI(ctx context.Context, sli *slos.SloRequestBasedMetric
 		return nil, diags
 	}
 
-	sliObj, diags = types.ObjectValueFrom(ctx, sliAttr(), SLIModel{
+	sliObj, diags := types.ObjectValueFrom(ctx, sliAttr(), SLIModel{
 		RequestBasedMetricSli: reqSliObj,
 		WindowBasedMetricSli:  types.ObjectNull(windowBasedMetricSliAttr()),
 	})
