@@ -1176,7 +1176,7 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 	log.Printf("[INFO] Submitted updated alerts-scheduler: %s", protojson.Format(updateAlertsSchedulerResp))
 
 	// Get refreshed alerts-scheduler value from Coralogix
-	getAlertsSchedulerReq := &cxsdk.GetAlertSchedulerRuleRequest{AlertSchedulerRuleId: updateAlertsSchedulerResp.GetAlertSchedulerRule().GetId()}
+	getAlertsSchedulerReq := &cxsdk.GetAlertSchedulerRuleRequest{AlertSchedulerRuleId: *id}
 	getAlertsSchedulerResp, err := r.client.Get(ctx, getAlertsSchedulerReq)
 	if err != nil {
 		log.Printf("[ERROR] Received error: %s", err.Error())
