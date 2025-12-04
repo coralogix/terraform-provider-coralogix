@@ -443,7 +443,7 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 		return
 	}
 
-	result, httpResponse, err := r.client.IntegrationServiceUpdateIntegration(ctx).
+	_, httpResponse, err := r.client.IntegrationServiceUpdateIntegration(ctx).
 		UpdateIntegrationRequest(*rq).
 		Execute()
 	if err != nil {
