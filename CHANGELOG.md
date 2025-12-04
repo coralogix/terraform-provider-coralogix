@@ -1,11 +1,3 @@
-## Unreleased
-
-BUG FIXES:
-
-#### resource/coralogix_alerts_scheduler
-
-* Fixed "Invalid uuid" error during update operations caused by using `GetId()` instead of the ID from state (`GetUniqueIdentifier()`) when fetching refreshed resource after update. This resolves drift detection issues (BUGV2-2858).
-
 ## Release 1.3.0
 
 BREAKING CHANGES:
@@ -1157,3 +1149,9 @@ Fix:
 
 ## resource/coralogix_alert
 Remove:  remove support for `notification_group.destinations`
+
+BUG FIXES:
+
+#### resource/coralogix_alerts_scheduler
+
+* Fixed "Invalid uuid" error during update operations 
