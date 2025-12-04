@@ -419,6 +419,7 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_anomaly.rules.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_anomaly.rules.0.condition.minimum_threshold", "2"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_anomaly.rules.0.condition.time_window", "10_MINUTES"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_anomaly.percentage_of_deviation", "15.5"),
 
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_anomaly.notification_payload_filter.*", "coralogix.metadata.sdkId"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "type_definition.logs_anomaly.notification_payload_filter.*", "coralogix.metadata.sdkName"),
@@ -435,6 +436,7 @@ func TestAccCoralogixResourceAlert_logs_more_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-more-than-usual alert example updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-more-than-usual alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_anomaly.custom_evaluation_delay", "100"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_anomaly.percentage_of_deviation", "25.5"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
 					resource.TestCheckResourceAttr(alertResourceName, "labels.#", "0"),
 					resource.TestCheckResourceAttr(alertResourceName, "notification_group.webhooks_settings.#", "1"),
@@ -1012,6 +1014,7 @@ func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of metric-less-than-usual alert from terraform"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_anomaly.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_anomaly.percentage_of_deviation", "20"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_anomaly.rules.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_anomaly.rules.0.condition.threshold", "20"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_anomaly.rules.0.condition.of_the_last", "12_HOURS"),
@@ -1031,6 +1034,7 @@ func TestAccCoralogixResourceAlert_metric_less_than_usual(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of metric-less-than-usual alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_anomaly.metric_filter.promql", "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_anomaly.percentage_of_deviation", "30"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_anomaly.rules.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_anomaly.rules.0.condition.threshold", "2"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_anomaly.rules.0.condition.of_the_last", "10_MINUTES"),
@@ -2151,6 +2155,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUsual() string {
 
   type_definition = {
     logs_anomaly = {
+        percentage_of_deviation = 15.5
         rules = [{
             condition = {
             minimum_threshold   = 2
@@ -2210,6 +2215,7 @@ func testAccCoralogixResourceAlertLogsMoreThanUsualUpdated() string {
   type_definition = {
     logs_anomaly = {
       custom_evaluation_delay = 100
+      percentage_of_deviation = 25.5
       logs_filter = {
         simple_filter = {
           lucene_query  = "message:\"updated_error\""
@@ -2914,6 +2920,7 @@ priority    = "P1"
 
 type_definition = { 
     metric_anomaly = { 
+        percentage_of_deviation = 20
         metric_filter = { 
             promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)" 
         } 
@@ -2938,6 +2945,7 @@ description = "Example of metric-less-than-usual alert from terraform updated"
 priority    = "P1" 
 type_definition = { 
     metric_anomaly = { 
+        percentage_of_deviation = 30
         metric_filter = { 
             promql = "sum(rate(http_requests_total{job=\"api-server\"}[5m])) by (status)" 
         } 

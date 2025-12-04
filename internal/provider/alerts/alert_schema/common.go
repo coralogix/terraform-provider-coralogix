@@ -654,6 +654,7 @@ func LogsAnomalyAttr() map[string]attr.Type {
 		"rules":                       types.SetType{ElemType: types.ObjectType{AttrTypes: LogsAnomalyRulesAttr()}},
 		"notification_payload_filter": types.SetType{ElemType: types.StringType},
 		"custom_evaluation_delay":     types.Int32Type,
+		"percentage_of_deviation":     types.Float64Type,
 	}
 }
 
@@ -854,6 +855,7 @@ func MetricAnomalyAttr() map[string]attr.Type {
 		"metric_filter":           types.ObjectType{AttrTypes: MetricFilterAttr()},
 		"rules":                   types.SetType{ElemType: types.ObjectType{AttrTypes: MetricAnomalyRulesAttr()}},
 		"custom_evaluation_delay": types.Int32Type,
+		"percentage_of_deviation": types.Float64Type,
 	}
 }
 
