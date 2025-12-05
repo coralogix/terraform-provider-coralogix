@@ -25,6 +25,7 @@ import (
 	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
 	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
+	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
 	integrations "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/integration_service"
 	ipaccess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/ip_access_service"
@@ -56,6 +57,7 @@ type ClientSet struct {
 	groupGrpc        *cxsdk.GroupsClient
 	teams            *cxsdk.TeamsClient
 
+	dataEnrichments     *ess.EnrichmentsServiceAPIService
 	parsingRuleGroups   *prgs.RuleGroupsServiceAPIService
 	archiveMetrics      *ams.MetricsDataArchiveServiceAPIService
 	archiveLogs         *archiveLogs.TargetServiceAPIService
@@ -194,6 +196,10 @@ func (c *ClientSet) Teams() *cxsdk.TeamsClient {
 	return c.teams
 }
 
+func (c *ClientSet) DataEnrichments() *ess.EnrichmentsServiceAPIService {
+	return c.dataEnrichments
+}
+
 func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	apiKeySdk := cxsdk.NewSDKCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
@@ -220,17 +226,21 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	cs := cxsdkOpenapi.NewClientSet(conf)
 
 	return &ClientSet{
-		enrichments:      cxsdk.NewEnrichmentClient(apiKeySdk),
-		dataSet:          cxsdk.NewDataSetClient(apiKeySdk),
-		legacySlos:       cxsdk.NewLegacySLOsClient(apiKeySdk),
+		// deprecated
+		dataSet:     cxsdk.NewDataSetClient(apiKeySdk),
+		enrichments: cxsdk.NewEnrichmentClient(apiKeySdk),
+		legacySlos:  cxsdk.NewLegacySLOsClient(apiKeySdk),
+		ruleGroups:  cxsdk.NewRuleGroupsClient(apiKeySdk),
+		teams:       cxsdk.NewTeamsClient(apiKeySdk),
+
+		users: cxsdk.NewUsersClient(apiKeySdk),
+
+		// TODO
 		dashboards:       cxsdk.NewDashboardsClient(apiKeySdk),
 		dahboardsFolders: cxsdk.NewDashboardsFoldersClient(apiKeySdk),
-		users:            cxsdk.NewUsersClient(apiKeySdk),
-		ruleGroups:       cxsdk.NewRuleGroupsClient(apiKeySdk),
 		events2Metrics:   cxsdk.NewEvents2MetricsClient(apiKeySdk),
 		groupGrpc:        cxsdk.NewGroupsClient(apiKeySdk),
 		alertScheduler:   cxsdk.NewAlertSchedulerClient(apiKeySdk),
-		teams:            cxsdk.NewTeamsClient(apiKeySdk),
 
 		parsingRuleGroups:   cs.RuleGroups(),
 		archiveMetrics:      cs.ArchiveMetrics(),
@@ -250,6 +260,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		apikeys:             cs.APIKeys(),
 		webhooks:            cs.Webhooks(),
 		ipaccess:            cs.IPAccess(),
+		dataEnrichments:     cs.Enrichments(),
 		// alertScheduler: cxsdkOpenapi.NewAlertSchedulerClient(oasTfCPC),
 		grafana: NewGrafanaClient(apikeyCPC),
 		groups:  NewGroupsClient(apikeyCPC),
