@@ -17,7 +17,6 @@ package dataplans
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -81,7 +80,6 @@ func (d *TCOPoliciesLogsDataSource) Read(ctx context.Context, _ datasource.ReadR
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	log.Printf("[INFO] Reading coralogix_tco_policies_logs")
 	result, httpResponse, err := d.client.PoliciesServiceGetCompanyPolicies(ctx).SourceType(LogSource).Execute()
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
@@ -97,7 +95,6 @@ func (d *TCOPoliciesLogsDataSource) Read(ctx context.Context, _ datasource.ReadR
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_tco_policies_logs: %s", utils.FormatJSON(result))
 
 	state, diags := flattenGetTCOPoliciesLogsList(ctx, result)
 	if diags.HasError() {

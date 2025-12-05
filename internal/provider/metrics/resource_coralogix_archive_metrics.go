@@ -17,7 +17,6 @@ package metrics
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -200,7 +199,6 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Creating new coralogix_archive_metrics: %s", utils.FormatJSON(rq))
 	_, httpResponse, err := r.client.
 		MetricsConfiguratorPublicServiceConfigureTenant(ctx).
 		MetricsConfiguratorPublicServiceConfigureTenantRequest(*rq).
@@ -220,7 +218,6 @@ func (r *ArchiveMetricsResource) Create(ctx context.Context, req resource.Create
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_archive_metrics: %s", utils.FormatJSON(result))
 
 	plan, diags = flattenArchiveMetrics(ctx, result.TenantConfig, RESOURCE_ID_ARCHIVE_METRICS)
 	if diags.HasError() {
@@ -243,7 +240,6 @@ func (r *ArchiveMetricsResource) Read(ctx context.Context, req resource.ReadRequ
 
 	rq := r.client.
 		MetricsConfiguratorPublicServiceGetTenantConfig(ctx)
-	log.Printf("[INFO] Reading new coralogix_archive_metrics: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := rq.
 		Execute()
@@ -262,8 +258,6 @@ func (r *ArchiveMetricsResource) Read(ctx context.Context, req resource.ReadRequ
 		}
 		return
 	}
-
-	log.Printf("[INFO] Created new coralogix_archive_metrics: %s", utils.FormatJSON(result))
 
 	state, diags = flattenArchiveMetrics(ctx, result.TenantConfig, id)
 	if diags.HasError() {
@@ -288,7 +282,6 @@ func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.Update
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Updating new coralogix_archive_metrics: %s", utils.FormatJSON(rq))
 	_, httpResponse, err := r.client.
 		MetricsConfiguratorPublicServiceConfigureTenant(ctx).
 		MetricsConfiguratorPublicServiceConfigureTenantRequest(*rq).
@@ -308,7 +301,6 @@ func (r *ArchiveMetricsResource) Update(ctx context.Context, req resource.Update
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_archive_metrics: %s", utils.FormatJSON(result))
 
 	plan, diags = flattenArchiveMetrics(ctx, result.TenantConfig, plan.ID.ValueString())
 	if diags.HasError() {

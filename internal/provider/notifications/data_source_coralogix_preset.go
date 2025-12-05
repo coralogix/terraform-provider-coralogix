@@ -17,7 +17,6 @@ package notifications
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -98,7 +97,6 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	var presetID string
 	//Get refreshed preset value from Coralogix
 	if name := data.Name.ValueString(); name != "" {
-		log.Printf("[INFO] Listing resource to find by name: %s", name)
 		listResult, httpResponse, err := d.client.
 			PresetsServiceListPresetSummaries(ctx).
 			Execute()
@@ -129,7 +127,6 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 	rq := d.client.PresetsServiceGetPreset(ctx, presetID)
-	log.Printf("[INFO] Reading coralogix_preset: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
@@ -139,7 +136,6 @@ func (d *PresetDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 
 	}
-	log.Printf("[INFO] Read coralogix_preset: %s", utils.FormatJSON(result))
 
 	data, diags = flattenPreset(ctx, result.Preset)
 	if diags.HasError() {

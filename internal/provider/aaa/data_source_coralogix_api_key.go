@@ -17,7 +17,6 @@ package aaa
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -70,22 +69,17 @@ func (r *ApiKeyDataSource) Schema(ctx context.Context, _ datasource.SchemaReques
 func (r *ApiKeyDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var data *ApiKeyModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
-	log.Printf("[INFO] Reading ApiKey")
 	id := data.ID.ValueString()
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	log.Printf("[INFO] Reading coralogix_api_key: %s", id)
-
 	result, diags := getKeyInfo(ctx, r.client, &id, data.Value.ValueStringPointer())
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Read new coralogix_api_key: %s", utils.FormatJSON(result))
-
 	diags = resp.State.Set(ctx, result)
 	resp.Diagnostics.Append(diags...)
 

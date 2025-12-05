@@ -17,7 +17,6 @@ package aaa
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -118,7 +117,6 @@ func getRoleById(ctx context.Context, resp *datasource.ReadResponse, client *rol
 	rq := client.
 		RoleManagementServiceGetCustomRole(ctx, id)
 
-	log.Printf("[INFO] Reading coralogix_custom_role: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.
 		Execute()
 
@@ -130,7 +128,6 @@ func getRoleById(ctx context.Context, resp *datasource.ReadResponse, client *rol
 }
 
 func getRoleByName(ctx context.Context, resp *datasource.ReadResponse, client *roless.RoleManagementServiceAPIService, roleName string) *roless.V2CustomRole {
-	log.Printf("[INFO] Reading coralogix_custom_role: %v", roleName)
 
 	result, httpResponse, err := client.RoleManagementServiceListCustomRoles(ctx).
 		Execute()
@@ -162,6 +159,5 @@ func getRoleByName(ctx context.Context, resp *datasource.ReadResponse, client *r
 		return nil
 	}
 
-	log.Printf("[INFO] Received coralogix_custom_role: %s", utils.FormatJSON(foundRole))
 	return foundRole
 }

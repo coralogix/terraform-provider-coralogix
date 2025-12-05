@@ -17,7 +17,6 @@ package aaa
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -88,7 +87,6 @@ func (d *ScopeDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	rq := d.client.
 		ScopesServiceGetTeamScopesByIds(ctx).Ids([]string{id})
 
-	log.Printf("[INFO] Reading coralogix_scope: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.
 		Execute()
 
@@ -104,7 +102,6 @@ func (d *ScopeDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced new coralogix_scope: %s", utils.FormatJSON(result))
 	state := flattenScope(result.Scopes[0])
 	diags = resp.State.Set(ctx, &state)
 	resp.Diagnostics.Append(diags...)

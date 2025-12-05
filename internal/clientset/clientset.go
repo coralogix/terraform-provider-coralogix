@@ -15,7 +15,8 @@
 package clientset
 
 import (
-	"log"
+	"log/slog"
+	"os"
 	"strings"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
@@ -197,12 +198,27 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 	apiKeySdk := cxsdk.NewSDKCallPropertiesCreatorTerraform(strings.ToLower(region), cxsdk.NewAuthContext(apiKey, apiKey), TF_PROVIDER_VERSION)
 	apikeyCPC := NewCallPropertiesCreator(targetUrl, apiKey)
 
-	url, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
+	confBuilder := cxsdkOpenapi.NewConfigBuilder().
+		WithTerraformVersion(TF_PROVIDER_VERSION).
+		WithAPIKey(apiKey)
+
+	_, found := cxsdkOpenapi.URLFromRegion(strings.ToLower(region))
 	if !found {
-		url = cxsdkOpenapi.URLFromDomain(region)
+		url := cxsdkOpenapi.URLFromDomain(region)
+		confBuilder.WithURL(url)
+	} else {
+		confBuilder.WithRegion(strings.ToLower(region))
 	}
-	log.Printf("[INFO] Using API URL: %v\n", url)
-	oasTfCPC := cxsdkOpenapi.NewSDKCallPropertiesCreatorTerraform(url, apiKey, TF_PROVIDER_VERSION)
+
+	logLevel := slog.LevelInfo
+	if strings.ToLower(os.Getenv("TF_LOG")) == "debug" {
+		logLevel = slog.LevelDebug
+	}
+
+	confBuilder.WithLogger(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
+	conf := confBuilder.Build()
+	cs := cxsdkOpenapi.NewClientSet(conf)
+
 	return &ClientSet{
 		enrichments:      cxsdk.NewEnrichmentClient(apiKeySdk),
 		dataSet:          cxsdk.NewDataSetClient(apiKeySdk),
@@ -216,24 +232,24 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		alertScheduler:   cxsdk.NewAlertSchedulerClient(apiKeySdk),
 		teams:            cxsdk.NewTeamsClient(apiKeySdk),
 
-		parsingRuleGroups:   cxsdkOpenapi.NewRuleGroupsClient(oasTfCPC),
-		archiveMetrics:      cxsdkOpenapi.NewArchiveMetricsClient(oasTfCPC),
-		alerts:              cxsdkOpenapi.NewAlertsClient(oasTfCPC),
-		archiveRetentions:   cxsdkOpenapi.NewArchiveRetentionsClient(oasTfCPC),
-		recordingRuleGroups: cxsdkOpenapi.NewRecordingRulesClient(oasTfCPC),
-		archiveLogs:         cxsdkOpenapi.NewArchiveLogsClient(oasTfCPC),
-		tcoPolicies:         cxsdkOpenapi.NewTCOPoliciesClient(oasTfCPC),
-		actions:             cxsdkOpenapi.NewActionsClient(oasTfCPC),
-		customRole:          cxsdkOpenapi.NewCustomRolesClient(oasTfCPC),
-		scopes:              cxsdkOpenapi.NewScopesClient(oasTfCPC),
-		presets:             cxsdkOpenapi.NewPresetsClient(oasTfCPC),
-		connectors:          cxsdkOpenapi.NewConnectorsClient(oasTfCPC),
-		globalRouters:       cxsdkOpenapi.NewGlobalRoutersClient(oasTfCPC),
-		integrations:        cxsdkOpenapi.NewIntegrationsClient(oasTfCPC),
-		slos:                cxsdkOpenapi.NewSLOsClient(oasTfCPC),
-		apikeys:             cxsdkOpenapi.NewAPIKeysClient(oasTfCPC),
-		webhooks:            cxsdkOpenapi.NewWebhooksClient(oasTfCPC),
-		ipaccess:            cxsdkOpenapi.NewIPAccessClient(oasTfCPC),
+		parsingRuleGroups:   cs.RuleGroups(),
+		archiveMetrics:      cs.ArchiveMetrics(),
+		alerts:              cs.Alerts(),
+		archiveRetentions:   cs.ArchiveRetentions(),
+		recordingRuleGroups: cs.RecordingRules(),
+		archiveLogs:         cs.ArchiveLogs(),
+		tcoPolicies:         cs.TCOPolicies(),
+		actions:             cs.Actions(),
+		customRole:          cs.CustomRoles(),
+		scopes:              cs.Scopes(),
+		presets:             cs.Presets(),
+		connectors:          cs.Connectors(),
+		globalRouters:       cs.GlobalRouters(),
+		integrations:        cs.Integrations(),
+		slos:                cs.SLOs(),
+		apikeys:             cs.APIKeys(),
+		webhooks:            cs.Webhooks(),
+		ipaccess:            cs.IPAccess(),
 		// alertScheduler: cxsdkOpenapi.NewAlertSchedulerClient(oasTfCPC),
 		grafana: NewGrafanaClient(apikeyCPC),
 		groups:  NewGroupsClient(apikeyCPC),

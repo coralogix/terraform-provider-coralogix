@@ -17,7 +17,6 @@ package recording_rules
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -78,7 +77,6 @@ func (d *RecordingRuleGroupSetDataSource) Read(ctx context.Context, req datasour
 
 	id := data.ID.ValueString()
 
-	log.Printf("[INFO] Reading coralogix_recording_rule_groups")
 	result, httpResponse, err := d.client.
 		RuleGroupSetsFetch(ctx, id).
 		Execute()
@@ -96,7 +94,6 @@ func (d *RecordingRuleGroupSetDataSource) Read(ctx context.Context, req datasour
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_recording_rule_groups: %s", utils.FormatJSON(result))
 
 	state, diags := flattenRecordingRuleGroupSet(ctx, data, result)
 	if diags.HasError() {

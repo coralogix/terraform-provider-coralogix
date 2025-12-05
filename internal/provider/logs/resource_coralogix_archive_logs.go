@@ -143,7 +143,6 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Creating coralogix_archive_logs: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		S3TargetServiceSetTarget(ctx).
 		SetTargetResponse(rq).
@@ -153,7 +152,6 @@ func (r *ArchiveLogsResource) Create(ctx context.Context, req resource.CreateReq
 		resp.Diagnostics.AddError("Error replacing coralogix_archive_logs", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq))
 		return
 	}
-	log.Printf("[INFO] Created coralogix_archive_logs: %s", utils.FormatJSON(result))
 
 	plan = flattenArchiveLogs(result.Target.TargetS3, RESOURCE_ID_ARCHIVE_LOGS)
 	if diags.HasError() {
@@ -200,7 +198,6 @@ func (r *ArchiveLogsResource) Read(ctx context.Context, req resource.ReadRequest
 	//Get refreshed ArchiveLogs value from Coralogix
 	id := state.ID.ValueString()
 	rq := r.client.S3TargetServiceGetTarget(ctx)
-	log.Printf("[INFO] Reading coralogix_archive_logs: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
@@ -216,7 +213,6 @@ func (r *ArchiveLogsResource) Read(ctx context.Context, req resource.ReadRequest
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_archive_logs: %s", utils.FormatJSON(result))
 
 	state = flattenArchiveLogs(result.Target.TargetS3, id)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -236,7 +232,6 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-	log.Printf("[INFO] Updating coralogix_archive_logs: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		S3TargetServiceSetTarget(ctx).
 		SetTargetResponse(rq).
@@ -254,7 +249,6 @@ func (r *ArchiveLogsResource) Update(ctx context.Context, req resource.UpdateReq
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced coralogix_archive_logs: %s", utils.FormatJSON(result))
 
 	plan = flattenArchiveLogs(result.Target.TargetS3, plan.ID.ValueString())
 	if diags.HasError() {

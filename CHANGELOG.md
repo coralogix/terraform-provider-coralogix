@@ -1130,12 +1130,13 @@ Fix:
 Fix:
 - State upgrade issue was resolved
 
-# Release 3.0.2
+# Release 4.0.0
 
 **Note** From now on, the provider will follow actual semver. 
 
 **Internal:**
 * Some more Restructuring
+* Improved request/response logging using `TF_LOG`
 
 ## resource/coralogix_parsing_rules, data_source/coralogix_parsing_rules
 
@@ -1145,7 +1146,8 @@ Fix:
 
 - Deprecated in favor of the new `coralogix_parsing_rules` (Phase out date TBD)
 
-# Release 4.0.0
+
+# Unknown future release 
 
 ## resource/coralogix_alert
 Remove:  remove support for `notification_group.destinations`

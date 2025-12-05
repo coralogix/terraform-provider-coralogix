@@ -17,7 +17,6 @@ package dataengine
 import (
 	"context"
 	"fmt"
-	"log"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	retss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/retentions_service"
@@ -78,7 +77,6 @@ func (d *ArchiveRetentionsDataSource) Read(ctx context.Context, req datasource.R
 	id := data.ID.ValueString()
 
 	rq := d.client.RetentionsServiceGetRetentions(ctx)
-	log.Printf("[INFO] Reading coralogix_archive_retentions: %v", rq)
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading coralogix_archive_retentions",
@@ -86,7 +84,6 @@ func (d *ArchiveRetentionsDataSource) Read(ctx context.Context, req datasource.R
 		)
 		return
 	}
-	log.Printf("[INFO] Read coralogix_archive_retentions: %s", utils.FormatJSON(result))
 
 	data, diags := flattenArchiveRetentions(ctx, result.Retentions, id)
 	if diags.HasError() {

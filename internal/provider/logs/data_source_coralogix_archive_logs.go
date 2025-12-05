@@ -17,7 +17,6 @@ package logs
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -77,7 +76,6 @@ func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadReq
 	}
 	id := data.ID.ValueString()
 	rq := d.client.S3TargetServiceGetTarget(ctx)
-	log.Printf("[INFO] Reading coralogix_archive_logs: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
@@ -93,8 +91,6 @@ func (d *ArchiveLogsDataSource) Read(ctx context.Context, req datasource.ReadReq
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_archive_logs: %s", utils.FormatJSON(result))
-
 	data = flattenArchiveLogs(result.Target.TargetS3, id)
 	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)

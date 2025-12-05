@@ -114,7 +114,6 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		log.Printf("[INFO] Listing Webhooks to find by name: %s", name)
 		listResult, httpResponse, err := d.client.OutgoingWebhooksServiceListAllOutgoingWebhooks(ctx).Execute()
 		if err != nil {
-			log.Printf("[ERROR] Received error when listing webhooks: %s", err.Error())
 			resp.Diagnostics.AddError(
 				"Error listing Webhooks",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
@@ -164,8 +163,6 @@ func (d *WebhookDataSource) Read(ctx context.Context, req datasource.ReadRequest
 func (d *WebhookDataSource) fetchWebhookByID(ctx context.Context, id string, resp *datasource.ReadResponse) (*webhooks.GetOutgoingWebhookResponse, error) {
 	rq := d.client.OutgoingWebhooksServiceGetOutgoingWebhook(ctx, id)
 
-	log.Printf("[INFO] Reading new coralogix_webhook: %s", utils.FormatJSON(rq))
-
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
@@ -181,6 +178,5 @@ func (d *WebhookDataSource) fetchWebhookByID(ctx context.Context, id string, res
 		}
 		return nil, err
 	}
-	log.Printf("[INFO] Read coralogix_webhook: %s", utils.FormatJSON(result))
 	return result, nil
 }

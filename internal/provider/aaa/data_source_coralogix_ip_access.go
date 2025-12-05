@@ -17,7 +17,6 @@ package aaa
 import (
 	"context"
 	"fmt"
-	"log"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -70,9 +69,6 @@ func (r *IpAccessDataSource) Read(ctx context.Context, req datasource.ReadReques
 	rq := r.client.
 		IpAccessServiceGetCompanyIpAccessSettings(ctx)
 
-	// rq = rq.Id(data.Id.ValueString())
-	log.Printf("[INFO] Reading new coralogix_ip_access: %s", utils.FormatJSON(rq))
-
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading coralogix_ip_access",
@@ -80,7 +76,6 @@ func (r *IpAccessDataSource) Read(ctx context.Context, req datasource.ReadReques
 		)
 		return
 	}
-	log.Printf("[INFO] Read coralogix_ip_access: %s", utils.FormatJSON(result))
 
 	state := flattenReadResponse(result)
 

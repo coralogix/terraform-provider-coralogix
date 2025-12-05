@@ -17,7 +17,6 @@ package notifications
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -221,7 +220,6 @@ func (r *ConnectorResource) Create(ctx context.Context, req resource.CreateReque
 	rq := connectors.CreateConnectorRequest{
 		Connector: connector,
 	}
-	log.Printf("[INFO] Creating new coralogix_connector: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		ConnectorsServiceCreateConnector(ctx).
 		CreateConnectorRequest(rq).
@@ -233,7 +231,6 @@ func (r *ConnectorResource) Create(ctx context.Context, req resource.CreateReque
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_connector: %s", utils.FormatJSON(result))
 
 	plan, diags = flattenConnector(ctx, result.Connector)
 	if diags.HasError() {
@@ -257,8 +254,6 @@ func (r *ConnectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 	id := state.ID.ValueString()
 	rq := r.client.ConnectorsServiceGetConnector(ctx, id)
 
-	log.Printf("[INFO] Reading coralogix_connector: %s", utils.FormatJSON(rq))
-
 	result, httpResponse, err := rq.Execute()
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
@@ -274,7 +269,6 @@ func (r *ConnectorResource) Read(ctx context.Context, req resource.ReadRequest, 
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_connector: %s", utils.FormatJSON(result))
 
 	state, diags = flattenConnector(ctx, result.Connector)
 	if diags.HasError() {
@@ -303,7 +297,6 @@ func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateReques
 		Connector: connector,
 	}
 
-	log.Printf("[INFO] Updating coralogix_connector: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		ConnectorsServiceReplaceConnector(ctx).
 		ReplaceConnectorRequest(rq).
@@ -321,7 +314,6 @@ func (r ConnectorResource) Update(ctx context.Context, req resource.UpdateReques
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced coralogix_connector: %s", utils.FormatJSON(result))
 
 	plan, diags = flattenConnector(ctx, result.Connector)
 	if diags.HasError() {
@@ -342,9 +334,7 @@ func (r ConnectorResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 	id := state.ID.ValueString()
 
-	log.Printf("[INFO] Deleting resource %s", id)
-
-	result, httpResponse, err := r.client.
+	_, httpResponse, err := r.client.
 		ConnectorsServiceDeleteConnector(ctx, id).
 		Execute()
 
@@ -354,7 +344,6 @@ func (r ConnectorResource) Delete(ctx context.Context, req resource.DeleteReques
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted coralogix_connector: %s", utils.FormatJSON(result))
 }
 
 func extractConnector(ctx context.Context, plan *ConnectorResourceModel) (*connectors.Connector, diag.Diagnostics) {

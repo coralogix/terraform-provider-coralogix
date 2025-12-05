@@ -17,7 +17,6 @@ package aaa
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -125,7 +124,6 @@ func (r *IpAccessResource) Create(ctx context.Context, req resource.CreateReques
 		EnableCoralogixCustomerSupportAccess: &accessEnabled,
 		IpAccess:                             extractIpAccessRules(data.Rules),
 	}
-	log.Printf("[INFO] Creating new coralogix_ip_access: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := r.client.
 		IpAccessServiceCreateCompanyIpAccessSettings(ctx).
@@ -138,7 +136,6 @@ func (r *IpAccessResource) Create(ctx context.Context, req resource.CreateReques
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_ip_access: %s", utils.FormatJSON(result))
 	state := flattenCreateResponse(result)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
@@ -152,7 +149,6 @@ func (r *IpAccessResource) Read(ctx context.Context, req resource.ReadRequest, r
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	log.Printf("[INFO] Reading coralogix_ip_access")
 
 	result, httpResponse, err := r.client.
 		IpAccessServiceGetCompanyIpAccessSettings(ctx).
@@ -164,7 +160,6 @@ func (r *IpAccessResource) Read(ctx context.Context, req resource.ReadRequest, r
 		)
 		return
 	}
-	log.Printf("[INFO] Read new coralogix_ip_access: %s", utils.FormatJSON(result))
 	state := flattenReadResponse(result)
 	// Save updated data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -184,7 +179,6 @@ func (r *IpAccessResource) Update(ctx context.Context, req resource.UpdateReques
 		EnableCoralogixCustomerSupportAccess: &accessEnabled,
 		IpAccess:                             extractIpAccessRules(data.Rules),
 	}
-	log.Printf("[INFO] Updating coralogix_ip_access: %s", utils.FormatJSON(rq))
 
 	result, httpResponse, err := r.client.
 		IpAccessServiceReplaceCompanyIpAccessSettings(ctx).
@@ -203,7 +197,6 @@ func (r *IpAccessResource) Update(ctx context.Context, req resource.UpdateReques
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced coralogix_ip_access: %s", utils.FormatJSON(result))
 
 	state := flattenReplaceResponse(result)
 
@@ -218,9 +211,8 @@ func (r *IpAccessResource) Delete(ctx context.Context, req resource.DeleteReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	log.Printf("[INFO] Deleting coralogix_ip_access")
 
-	result, httpResponse, err := r.client.
+	_, httpResponse, err := r.client.
 		IpAccessServiceDeleteCompanyIpAccessSettings(ctx).
 		Execute()
 
@@ -230,7 +222,6 @@ func (r *IpAccessResource) Delete(ctx context.Context, req resource.DeleteReques
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted coralogix_ip_access: %s", utils.FormatJSON(result))
 }
 
 func (r *IpAccessResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {

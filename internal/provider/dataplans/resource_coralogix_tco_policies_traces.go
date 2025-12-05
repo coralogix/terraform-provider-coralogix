@@ -17,7 +17,6 @@ package dataplans
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -316,7 +315,6 @@ func (r *TCOPoliciesTracesResource) Create(ctx context.Context, req resource.Cre
 		return
 	}
 
-	log.Printf("[INFO] Creating new coralogix_tco_policies_traces: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		PoliciesServiceAtomicOverwriteSpanPolicies(ctx).
 		AtomicOverwriteSpanPoliciesRequest(*rq).
@@ -327,7 +325,6 @@ func (r *TCOPoliciesTracesResource) Create(ctx context.Context, req resource.Cre
 		)
 		return
 	}
-	log.Printf("[INFO] Created new coralogix_tco_policies_traces: %s", utils.FormatJSON(result))
 	state, diags := flattenOverwriteTCOPoliciesTracesList(ctx, result)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
@@ -341,7 +338,6 @@ func (r *TCOPoliciesTracesResource) Read(ctx context.Context, _ resource.ReadReq
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 
-	log.Printf("[INFO] Reading coralogix_tco_policies_traces")
 	result, httpResponse, err := r.client.
 		PoliciesServiceGetCompanyPolicies(ctx).
 		SourceType(TracesSource).
@@ -361,7 +357,6 @@ func (r *TCOPoliciesTracesResource) Read(ctx context.Context, _ resource.ReadReq
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_tco_policies_traces: %s", utils.FormatJSON(result))
 
 	state, diags := flattenGetTCOTracesPoliciesList(ctx, result)
 	if diags.HasError() {
@@ -388,7 +383,6 @@ func (r *TCOPoliciesTracesResource) Update(ctx context.Context, req resource.Upd
 		return
 	}
 
-	log.Printf("[INFO] Updating coralogix_tco_policies_traces: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := r.client.
 		PoliciesServiceAtomicOverwriteSpanPolicies(ctx).
 		AtomicOverwriteSpanPoliciesRequest(*rq).
@@ -406,7 +400,6 @@ func (r *TCOPoliciesTracesResource) Update(ctx context.Context, req resource.Upd
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced coralogix_tco_policies_traces: %s", utils.FormatJSON(result))
 
 	state, diags := flattenOverwriteTCOPoliciesTracesList(ctx, result)
 
@@ -425,15 +418,13 @@ func (r *TCOPoliciesTracesResource) Delete(ctx context.Context, _ resource.Delet
 	rq := r.client.
 		PoliciesServiceAtomicOverwriteSpanPolicies(ctx).
 		AtomicOverwriteSpanPoliciesRequest(*tcoPolicys.NewAtomicOverwriteSpanPoliciesRequestWithDefaults())
-	log.Printf("[INFO] Deleting coralogix_tco_policies_traces: %s", utils.FormatJSON(rq))
-	result, httpResponse, err := rq.Execute()
+	_, httpResponse, err := rq.Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error deleting coralogix_tco_policies_traces",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil),
 		)
 		return
 	}
-	log.Printf("[INFO] Deleted coralogix_tco_policies_traces: %s", utils.FormatJSON(result))
 }
 
 func extractOverwriteTcoPoliciesTraces(ctx context.Context, plan *TCOPoliciesListModel) (*tcoPolicys.AtomicOverwriteSpanPoliciesRequest, diag.Diagnostics) {

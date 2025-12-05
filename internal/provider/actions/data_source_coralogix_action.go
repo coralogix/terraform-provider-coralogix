@@ -17,7 +17,6 @@ package actions
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -80,7 +79,6 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	rq := d.client.
 		ActionsServiceGetAction(ctx, id)
 
-	log.Printf("[INFO] Reading coralogix_action: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.
 		Execute()
 
@@ -96,7 +94,6 @@ func (d *ActionDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		}
 		return
 	}
-	log.Printf("[INFO] Replaced new coralogix_action: %s", utils.FormatJSON(result))
 	state := flattenAction(result.Action)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
