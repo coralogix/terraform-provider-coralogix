@@ -390,10 +390,11 @@ type LogsThresholdModel struct {
 }
 
 type LogsAnomalyModel struct {
-	Rules                     types.Set    `tfsdk:"rules"`                       // [] LogsAnomalyRuleModel
-	LogsFilter                types.Object `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
-	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
-	CustomEvaluationDelay     types.Int32  `tfsdk:"custom_evaluation_delay"`
+	Rules                     types.Set     `tfsdk:"rules"`                       // [] LogsAnomalyRuleModel
+	LogsFilter                types.Object  `tfsdk:"logs_filter"`                 // AlertsLogsFilterModel
+	NotificationPayloadFilter types.Set     `tfsdk:"notification_payload_filter"` // []types.String
+	CustomEvaluationDelay     types.Int32   `tfsdk:"custom_evaluation_delay"`
+	PercentageOfDeviation     types.Float64 `tfsdk:"percentage_of_deviation"`
 }
 
 type LogsRatioThresholdModel struct {
@@ -476,9 +477,10 @@ type MetricThresholdConditionModel struct {
 }
 
 type MetricAnomalyModel struct {
-	MetricFilter          types.Object `tfsdk:"metric_filter"` // MetricFilterModel
-	Rules                 types.Set    `tfsdk:"rules"`         // [] MetricAnomalyRuleModel
-	CustomEvaluationDelay types.Int32  `tfsdk:"custom_evaluation_delay"`
+	MetricFilter          types.Object  `tfsdk:"metric_filter"` // MetricFilterModel
+	Rules                 types.Set     `tfsdk:"rules"`         // [] MetricAnomalyRuleModel
+	CustomEvaluationDelay types.Int32   `tfsdk:"custom_evaluation_delay"`
+	PercentageOfDeviation types.Float64 `tfsdk:"percentage_of_deviation"`
 }
 
 type MetricImmediateModel struct {
