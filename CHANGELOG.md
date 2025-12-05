@@ -1152,3 +1152,8 @@ Remove:  remove support for `notification_group.destinations`
 
 Feat:
 * Added `percentage_of_deviation` field to `logs_anomaly` and `metric_anomaly` alert types to configure the percentage of deviation from baseline for triggering anomaly alerts.
+
+#### resource/coralogix_alerts_scheduler
+
+FIX:
+* "Invalid uuid" error during update operations 
