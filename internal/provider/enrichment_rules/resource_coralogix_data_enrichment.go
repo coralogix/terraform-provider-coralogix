@@ -17,6 +17,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -27,24 +31,27 @@ var (
 )
 
 const (
-	AWS_TYPE    = "aws"
-	GEOIP_TYPE  = "geo_ip"
-	SUSIP_TYPE  = "suspicious_ip"
-	CUSTOM_TYPE = "custom"
+	AWS_TYPE                     = "aws"
+	GEOIP_TYPE                   = "geo_ip"
+	SUSIP_TYPE                   = "suspicious_ip"
+	CUSTOM_TYPE                  = "custom"
+	RESOURCE_ID_DATA_ENRICHMENTS = "data-enrichment-settings"
 )
 
 type CoralogixEnrichment interface {
-	GetEnrichedFieldName() string
-	GetSelectedColumns() []string
-	GetName() string
 	GetId() uint32
 }
 
 type DataEnrichmentsModel struct {
+	ID           types.String                 `tfsdk:"id"`
 	Aws          *AwsEnrichmentFieldsModel    `tfsdk:"aws"`
-	GeoIp        *EnrichmentFieldsModel       `tfsdk:"geo_ip"`
+	GeoIp        *GeoIpEnrichmentFieldsModel  `tfsdk:"geo_ip"`
 	SuspiciousIp *EnrichmentFieldsModel       `tfsdk:"suspicious_ip"`
 	Custom       *CustomEnrichmentFieldsModel `tfsdk:"custom"`
+}
+
+type GeoIpEnrichmentFieldsModel struct {
+	Fields []GeoIpEnrichmentFieldModel `tfsdk:"fields"`
 }
 
 type EnrichmentFieldsModel struct {
@@ -55,19 +62,27 @@ type AwsEnrichmentFieldsModel struct {
 	Fields []AwsEnrichmentFieldModel `tfsdk:"fields"`
 }
 
-type EnrichmentFieldModel struct {
-	EnrichedFieldName types.String `tfsdk:"enriched_field_name"`
-	SelectedColumns   []string     `tfsdk:"selected_columns"`
-	Name              types.String `tfsdk:"name"`
+type GeoIpEnrichmentFieldModel struct {
 	ID                types.Int64  `tfsdk:"id"`
+	Name              types.String `tfsdk:"name"`
+	Asn               types.Bool   `tfsdk:"with_asn"`
+	EnrichedFieldName types.String `tfsdk:"enriched_field_name"`
+	SelectedColumns   types.Set    `tfsdk:"selected_columns"`
+}
+
+type EnrichmentFieldModel struct {
+	ID                types.Int64  `tfsdk:"id"`
+	Name              types.String `tfsdk:"name"`
+	EnrichedFieldName types.String `tfsdk:"enriched_field_name"`
+	SelectedColumns   types.Set    `tfsdk:"selected_columns"`
 }
 
 type AwsEnrichmentFieldModel struct {
-	EnrichedFieldName types.String `tfsdk:"enriched_field_name"`
-	SelectedColumns   []string     `tfsdk:"selected_columns"`
-	Name              types.String `tfsdk:"name"`
-	Resource          types.String `tfsdk:"resource"`
 	ID                types.Int64  `tfsdk:"id"`
+	Name              types.String `tfsdk:"name"`
+	EnrichedFieldName types.String `tfsdk:"enriched_field_name"`
+	SelectedColumns   types.Set    `tfsdk:"selected_columns"`
+	Resource          types.String `tfsdk:"resource"`
 }
 
 type CustomEnrichmentFieldsModel struct {
@@ -79,31 +94,11 @@ func (e AwsEnrichmentFieldModel) GetId() uint32 {
 	return uint32(e.ID.ValueInt64())
 }
 
-func (e AwsEnrichmentFieldModel) GetSelectedColumns() []string {
-	return e.SelectedColumns
-}
-
-func (e AwsEnrichmentFieldModel) GetEnrichedFieldName() string {
-	return e.EnrichedFieldName.ValueString()
-}
-
-func (e AwsEnrichmentFieldModel) GetName() string {
-	return e.Name.ValueString()
-}
-
-func (e EnrichmentFieldModel) GetEnrichedFieldName() string {
-	return e.EnrichedFieldName.ValueString()
-}
-
-func (e EnrichmentFieldModel) GetName() string {
-	return e.Name.ValueString()
-}
-
-func (e EnrichmentFieldModel) GetSelectedColumns() []string {
-	return e.SelectedColumns
-}
-
 func (e EnrichmentFieldModel) GetId() uint32 {
+	return uint32(e.ID.ValueInt64())
+}
+
+func (e GeoIpEnrichmentFieldModel) GetId() uint32 {
 	return uint32(e.ID.ValueInt64())
 }
 
@@ -162,34 +157,70 @@ func (r *DataEnrichmentsResource) Configure(ctx context.Context, req resource.Co
 }
 
 func (r *DataEnrichmentsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_parsing_rules"
+	resp.TypeName = req.ProviderTypeName + "_data_enrichment"
 }
 
 func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 0,
 		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			GEOIP_TYPE: schema.SingleNestedAttribute{
+				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"fields": schema.ListNestedAttribute{
+						Required: true,
 						NestedObject: schema.NestedAttributeObject{
-							Attributes: enrichmentFieldSchema(),
+							Attributes: map[string]schema.Attribute{
+								"with_asn": schema.BoolAttribute{
+									Optional: true,
+									Computed: true,
+									PlanModifiers: []planmodifier.Bool{
+										boolplanmodifier.UseStateForUnknown(),
+									},
+								},
+								"name": schema.StringAttribute{
+									Required: true,
+								},
+								"enriched_field_name": schema.StringAttribute{
+									Required: true,
+								},
+								"selected_columns": schema.SetAttribute{
+									ElementType: types.StringType,
+									Optional:    true,
+									Computed:    true,
+									PlanModifiers: []planmodifier.Set{
+										setplanmodifier.UseStateForUnknown(),
+									},
+								},
+								"id": schema.Int64Attribute{
+									Optional: true,
+									Computed: true,
+								},
+							},
 						},
 						MarkdownDescription: "Set of fields to enrich with geo_ip information.",
 					},
 				},
 				Validators: []validator.Object{
 					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("suspicious_ip"),
-						path.MatchRelative().AtParent().AtName("aws"),
-						path.MatchRelative().AtParent().AtName("custom"),
+						path.MatchRelative().AtParent().AtName(SUSIP_TYPE),
+						path.MatchRelative().AtParent().AtName(AWS_TYPE),
+						path.MatchRelative().AtParent().AtName(CUSTOM_TYPE),
 					),
 				},
 				MarkdownDescription: "Coralogix allows you to enrich your logs with location data by automatically converting IPs to Geo-points which can be used to aggregate logs by location and create Map visualizations in Kibana.",
 			},
 			SUSIP_TYPE: schema.SingleNestedAttribute{
+				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"fields": schema.ListNestedAttribute{
+						Required: true,
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: enrichmentFieldSchema(),
 						},
@@ -202,8 +233,10 @@ func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaReq
 				MarkdownDescription: "Coralogix allows you to automatically discover threats on your web servers by enriching your logs with the most updated IP blacklists.",
 			},
 			AWS_TYPE: schema.SingleNestedAttribute{
+				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"fields": schema.ListNestedAttribute{
+						Required: true,
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"resource": schema.StringAttribute{
@@ -213,7 +246,8 @@ func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaReq
 									Required: true,
 								},
 								"id": schema.Int64Attribute{
-									Required: true,
+									Optional: true,
+									Computed: true,
 								},
 								"enriched_field_name": schema.StringAttribute{
 									Required: true,
@@ -233,11 +267,14 @@ func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaReq
 				MarkdownDescription: "Coralogix allows you to enrich your logs with the data from a chosen AWS resource. The feature enriches every log that contains a particular resourceId, associated with the metadata of a chosen AWS resource.",
 			},
 			CUSTOM_TYPE: schema.SingleNestedAttribute{
+				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"custom_enrichment_id": schema.Int64Attribute{
 						Optional: true,
+						Computed: true,
 					},
 					"fields": schema.ListNestedAttribute{
+						Required: true,
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: enrichmentFieldSchema(),
 						},
@@ -285,7 +322,7 @@ func (r *DataEnrichmentsResource) Create(ctx context.Context, req resource.Creat
 		EnrichmentsCreationRequest(*rq).
 		Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating coralogix_parsing_rules",
+		resp.Diagnostics.AddError("Error creating coralogix_data_enrichment",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
@@ -314,7 +351,7 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 		EnrichmentServiceAtomicOverwriteEnrichmentsRequest(*rq).
 		Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error replacing coralogix_parsing_rules",
+		resp.Diagnostics.AddError("Error replacing coralogix_data_enrichment",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
@@ -341,12 +378,12 @@ func (r *DataEnrichmentsResource) Read(ctx context.Context, req resource.ReadReq
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				"coralogix_parsing_rules is in state, but no longer exists in Coralogix backend",
-				"coralogix_parsing_rules will be recreated when you apply",
+				"coralogix_data_enrichment is in state, but no longer exists in Coralogix backend",
+				"coralogix_data_enrichment will be recreated when you apply",
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error reading coralogix_parsing_rules",
+			resp.Diagnostics.AddError("Error reading coralogix_data_enrichment",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
@@ -376,7 +413,7 @@ func (r *DataEnrichmentsResource) Delete(ctx context.Context, req resource.Delet
 
 	_, httpResponse, err := r.client.EnrichmentServiceRemoveEnrichments(ctx).EnrichmentIds(ids).Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting coralogix_parsing_rules",
+		resp.Diagnostics.AddError("Error deleting coralogix_data_enrichment",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 	}
@@ -384,6 +421,7 @@ func (r *DataEnrichmentsResource) Delete(ctx context.Context, req resource.Delet
 
 func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestModel {
 	requestModels := make([]ess.EnrichmentRequestModel, 0)
+	ctx := context.TODO()
 	if plan.Aws != nil {
 		for _, f := range plan.Aws.Fields {
 			enrichmentType := ess.EnrichmentType{
@@ -396,37 +434,45 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 			requestModels = append(requestModels, ess.EnrichmentRequestModel{
 				EnrichedFieldName: f.EnrichedFieldName.ValueStringPointer(),
 				FieldName:         f.Name.ValueString(),
-				SelectedColumns:   f.SelectedColumns,
+				SelectedColumns:   utils.TypeStringSetToStringSlice(ctx, f.SelectedColumns),
 				EnrichmentType:    enrichmentType,
 			})
 		}
 	}
+
 	if plan.GeoIp != nil {
+		enrichmentType := ess.EnrichmentType{
+			EnrichmentTypeGeoIp: &ess.EnrichmentTypeGeoIp{
+				GeoIp: ess.NewGeoIpType(),
+			},
+		}
 		for _, f := range plan.GeoIp.Fields {
-			enrichmentType := ess.EnrichmentType{
-				EnrichmentTypeGeoIp: &ess.EnrichmentTypeGeoIp{},
+			if !(f.Asn.IsNull() || f.Asn.IsUnknown()) {
+				enrichmentType.EnrichmentTypeGeoIp.GeoIp.WithAsn = f.Asn.ValueBoolPointer()
 			}
 			requestModels = append(requestModels, ess.EnrichmentRequestModel{
 				EnrichedFieldName: f.EnrichedFieldName.ValueStringPointer(),
 				FieldName:         f.Name.ValueString(),
-				SelectedColumns:   f.SelectedColumns,
+				SelectedColumns:   utils.TypeStringSetToStringSlice(ctx, f.SelectedColumns),
 				EnrichmentType:    enrichmentType,
 			})
 		}
 	}
+
 	if plan.SuspiciousIp != nil {
+		enrichmentType := ess.EnrichmentType{
+			EnrichmentTypeSuspiciousIp: ess.NewEnrichmentTypeSuspiciousIp(),
+		}
 		for _, f := range plan.SuspiciousIp.Fields {
-			enrichmentType := ess.EnrichmentType{
-				EnrichmentTypeSuspiciousIp: &ess.EnrichmentTypeSuspiciousIp{},
-			}
 			requestModels = append(requestModels, ess.EnrichmentRequestModel{
 				EnrichedFieldName: f.EnrichedFieldName.ValueStringPointer(),
 				FieldName:         f.Name.ValueString(),
-				SelectedColumns:   f.SelectedColumns,
+				SelectedColumns:   utils.TypeStringSetToStringSlice(ctx, f.SelectedColumns),
 				EnrichmentType:    enrichmentType,
 			})
 		}
 	}
+
 	if plan.Custom != nil {
 		for _, f := range plan.Custom.Fields {
 			id := int64(f.GetId())
@@ -440,7 +486,7 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 			requestModels = append(requestModels, ess.EnrichmentRequestModel{
 				EnrichedFieldName: f.EnrichedFieldName.ValueStringPointer(),
 				FieldName:         f.Name.ValueString(),
-				SelectedColumns:   f.SelectedColumns,
+				SelectedColumns:   utils.TypeStringSetToStringSlice(ctx, f.SelectedColumns),
 				EnrichmentType:    enrichmentType,
 			})
 		}
@@ -462,7 +508,9 @@ func extractDataEnrichmentsUpdate(plan *DataEnrichmentsModel) *ess.EnrichmentSer
 }
 
 func flattenDataEnrichments(rgrp []ess.Enrichment) *DataEnrichmentsModel {
-	model := &DataEnrichmentsModel{}
+	model := &DataEnrichmentsModel{
+		ID: types.StringValue(RESOURCE_ID_DATA_ENRICHMENTS),
+	}
 	for _, e := range rgrp {
 		if e.EnrichmentType.EnrichmentTypeAws != nil {
 			if model.Aws == nil {
@@ -470,20 +518,21 @@ func flattenDataEnrichments(rgrp []ess.Enrichment) *DataEnrichmentsModel {
 			}
 			model.Aws.Fields = append(model.Aws.Fields, AwsEnrichmentFieldModel{
 				EnrichedFieldName: types.StringPointerValue(e.EnrichedFieldName),
-				SelectedColumns:   e.SelectedColumns,
+				SelectedColumns:   utils.StringSliceToTypeStringSet(e.SelectedColumns),
 				Name:              types.StringValue(e.FieldName),
 				Resource:          types.StringPointerValue(e.EnrichmentType.EnrichmentTypeAws.Aws.ResourceType),
 				ID:                types.Int64Value(e.Id),
 			})
 		} else if e.EnrichmentType.EnrichmentTypeGeoIp != nil {
 			if model.GeoIp == nil {
-				model.GeoIp = &EnrichmentFieldsModel{}
+				model.GeoIp = &GeoIpEnrichmentFieldsModel{}
 			}
-			model.GeoIp.Fields = append(model.GeoIp.Fields, EnrichmentFieldModel{
+			model.GeoIp.Fields = append(model.GeoIp.Fields, GeoIpEnrichmentFieldModel{
 				EnrichedFieldName: types.StringPointerValue(e.EnrichedFieldName),
-				SelectedColumns:   e.SelectedColumns,
+				SelectedColumns:   utils.StringSliceToTypeStringSet(e.SelectedColumns),
 				Name:              types.StringValue(e.FieldName),
 				ID:                types.Int64Value(e.Id),
+				Asn:               types.BoolPointerValue(e.EnrichmentType.EnrichmentTypeGeoIp.GeoIp.WithAsn),
 			})
 		} else if e.EnrichmentType.EnrichmentTypeSuspiciousIp != nil {
 			if model.SuspiciousIp == nil {
@@ -491,7 +540,7 @@ func flattenDataEnrichments(rgrp []ess.Enrichment) *DataEnrichmentsModel {
 			}
 			model.SuspiciousIp.Fields = append(model.SuspiciousIp.Fields, EnrichmentFieldModel{
 				EnrichedFieldName: types.StringPointerValue(e.EnrichedFieldName),
-				SelectedColumns:   e.SelectedColumns,
+				SelectedColumns:   utils.StringSliceToTypeStringSet(e.SelectedColumns),
 				Name:              types.StringValue(e.FieldName),
 				ID:                types.Int64Value(e.Id),
 			})
@@ -502,7 +551,7 @@ func flattenDataEnrichments(rgrp []ess.Enrichment) *DataEnrichmentsModel {
 			model.Custom.CustomEnrichmentId = types.Int64Value(int64(*e.EnrichmentType.EnrichmentTypeCustomEnrichment.CustomEnrichment.Id))
 			model.Custom.Fields = append(model.Custom.Fields, EnrichmentFieldModel{
 				EnrichedFieldName: types.StringPointerValue(e.EnrichedFieldName),
-				SelectedColumns:   e.SelectedColumns,
+				SelectedColumns:   utils.StringSliceToTypeStringSet(e.SelectedColumns),
 				Name:              types.StringValue(e.FieldName),
 				ID:                types.Int64Value(e.Id),
 			})

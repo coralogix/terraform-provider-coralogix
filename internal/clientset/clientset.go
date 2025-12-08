@@ -221,7 +221,7 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		logLevel = slog.LevelDebug
 	}
 
-	confBuilder.WithLogger(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
+	confBuilder.WithLogger(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
 	conf := confBuilder.Build()
 	cs := cxsdkOpenapi.NewClientSet(conf)
 

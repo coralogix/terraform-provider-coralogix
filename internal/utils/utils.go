@@ -325,6 +325,15 @@ func WrappedStringSliceToTypeStringSet(s []*wrapperspb.StringValue) types.Set {
 	return types.SetValueMust(types.StringType, elements)
 }
 
+func TypeStringSetToStringSlice(ctx context.Context, s types.Set) []string {
+	if s.IsNull() || s.IsUnknown() {
+		return nil
+	}
+	casted := make([]types.String, 0, len(s.Elements()))
+	_ = s.ElementsAs(ctx, &casted, false)
+	return TypeStringSliceToStringSlice(casted)
+}
+
 func StringSliceToTypeStringSet(s []string) types.Set {
 	if len(s) == 0 {
 		return types.SetNull(types.StringType)
@@ -472,6 +481,7 @@ func TypeStringElementsToStringSlice(ctx context.Context, s []attr.Value) ([]str
 	}
 	return result, nil
 }
+
 func TypeStringSliceToStringSlice(s []types.String) []string {
 	result := make([]string, 0, len(s))
 	for _, v := range s {

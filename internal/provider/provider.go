@@ -413,5 +413,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		notifications.NewGlobalRouterResource,
 		notifications.NewPresetResource,
 		parsing_rules.NewParsingRulesResource,
+		enrichment_rules.NewDataEnrichmentsResource,
 	}
 }
