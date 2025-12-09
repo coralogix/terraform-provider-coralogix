@@ -13,7 +13,6 @@ import (
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -157,7 +156,7 @@ func (r *DataEnrichmentsResource) Configure(ctx context.Context, req resource.Co
 }
 
 func (r *DataEnrichmentsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_data_enrichment"
+	resp.TypeName = req.ProviderTypeName + "_data_enrichments"
 }
 
 func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -206,13 +205,6 @@ func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaReq
 						},
 						MarkdownDescription: "Set of fields to enrich with geo_ip information.",
 					},
-				},
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName(SUSIP_TYPE),
-						path.MatchRelative().AtParent().AtName(AWS_TYPE),
-						path.MatchRelative().AtParent().AtName(CUSTOM_TYPE),
-					),
 				},
 				MarkdownDescription: "Coralogix allows you to enrich your logs with location data by automatically converting IPs to Geo-points which can be used to aggregate logs by location and create Map visualizations in Kibana.",
 			},
@@ -322,7 +314,7 @@ func (r *DataEnrichmentsResource) Create(ctx context.Context, req resource.Creat
 		EnrichmentsCreationRequest(*rq).
 		Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error creating coralogix_data_enrichment",
+		resp.Diagnostics.AddError("Error creating coralogix_data_enrichments",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
@@ -351,7 +343,7 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 		EnrichmentServiceAtomicOverwriteEnrichmentsRequest(*rq).
 		Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error replacing coralogix_data_enrichment",
+		resp.Diagnostics.AddError("Error replacing coralogix_data_enrichments",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
@@ -378,12 +370,12 @@ func (r *DataEnrichmentsResource) Read(ctx context.Context, req resource.ReadReq
 	if err != nil {
 		if httpResponse.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
-				"coralogix_data_enrichment is in state, but no longer exists in Coralogix backend",
-				"coralogix_data_enrichment will be recreated when you apply",
+				"coralogix_data_enrichments is in state, but no longer exists in Coralogix backend",
+				"coralogix_data_enrichments will be recreated when you apply",
 			)
 			resp.State.RemoveResource(ctx)
 		} else {
-			resp.Diagnostics.AddError("Error reading coralogix_data_enrichment",
+			resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
 				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 			)
 		}
@@ -391,11 +383,6 @@ func (r *DataEnrichmentsResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	state = flattenDataEnrichments(result.Enrichments)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
-	}
-
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -413,7 +400,7 @@ func (r *DataEnrichmentsResource) Delete(ctx context.Context, req resource.Delet
 
 	_, httpResponse, err := r.client.EnrichmentServiceRemoveEnrichments(ctx).EnrichmentIds(ids).Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error deleting coralogix_data_enrichment",
+		resp.Diagnostics.AddError("Error deleting coralogix_data_enrichments",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 	}
@@ -461,7 +448,9 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 
 	if plan.SuspiciousIp != nil {
 		enrichmentType := ess.EnrichmentType{
-			EnrichmentTypeSuspiciousIp: ess.NewEnrichmentTypeSuspiciousIp(),
+			EnrichmentTypeSuspiciousIp: &ess.EnrichmentTypeSuspiciousIp{
+				SuspiciousIp: map[string]interface{}{},
+			},
 		}
 		for _, f := range plan.SuspiciousIp.Fields {
 			requestModels = append(requestModels, ess.EnrichmentRequestModel{
