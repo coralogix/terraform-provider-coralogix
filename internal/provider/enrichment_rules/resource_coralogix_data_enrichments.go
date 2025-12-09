@@ -3,7 +3,6 @@ package enrichment_rules
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -449,7 +448,7 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 	if plan.SuspiciousIp != nil {
 		enrichmentType := ess.EnrichmentType{
 			EnrichmentTypeSuspiciousIp: &ess.EnrichmentTypeSuspiciousIp{
-				SuspiciousIp: map[string]interface{}{},
+				SuspiciousIp: map[string]any{},
 			},
 		}
 		for _, f := range plan.SuspiciousIp.Fields {
@@ -547,60 +546,6 @@ func flattenDataEnrichments(rgrp []ess.Enrichment) *DataEnrichmentsModel {
 		}
 	}
 	return model
-}
-
-func DataEnrichmentsByID(ctx context.Context, client *ess.EnrichmentsServiceAPIService, customEnrichmentID uint32) ([]ess.Enrichment, error) {
-	result, _, err := client.EnrichmentServiceGetEnrichments(ctx).Execute()
-	if err != nil {
-		return nil, err
-	}
-
-	enrichments := make([]ess.Enrichment, 0)
-	for _, enrichment := range result.Enrichments {
-		if customEnrichment := enrichment.GetEnrichmentType().EnrichmentTypeCustomEnrichment; customEnrichment != nil && customEnrichment.CustomEnrichment != nil && uint32(*customEnrichment.CustomEnrichment.Id) == customEnrichmentID {
-			enrichments = append(enrichments, enrichment)
-		}
-	}
-	log.Printf("[INFO] found %v enrichments for ID %v", len(enrichments), customEnrichmentID)
-	return enrichments, nil
-}
-
-func DataEnrichmentsByType(ctx context.Context, client *ess.EnrichmentsServiceAPIService, enrichmentType string) ([]ess.Enrichment, error) {
-	result, _, err := client.EnrichmentServiceGetEnrichments(ctx).Execute()
-	if err != nil {
-		return nil, err
-	}
-	enrichments := make([]ess.Enrichment, 0)
-	for _, enrichment := range result.Enrichments {
-		log.Printf("[INFO] Checking %v", enrichment.GetEnrichmentType())
-		switch enrichmentType {
-		case SUSIP_TYPE:
-			if t := enrichment.EnrichmentType.EnrichmentTypeSuspiciousIp; t != nil {
-				enrichments = append(enrichments, enrichment)
-			}
-			continue
-		case AWS_TYPE:
-			if t := enrichment.EnrichmentType.EnrichmentTypeAws; t != nil {
-				enrichments = append(enrichments, enrichment)
-			}
-			continue
-		case CUSTOM_TYPE:
-			if t := enrichment.EnrichmentType.EnrichmentTypeCustomEnrichment.CustomEnrichment; t != nil {
-				enrichments = append(enrichments, enrichment)
-			}
-			continue
-		case GEOIP_TYPE:
-			if t := enrichment.EnrichmentType.EnrichmentTypeGeoIp.GeoIp; t != nil {
-				enrichments = append(enrichments, enrichment)
-			}
-			continue
-		default:
-			log.Printf("[WARNING] Unknown enrichment type: %v", enrichmentType)
-		}
-
-	}
-	log.Printf("[INFO] found %v enrichments for type %v", len(enrichments), enrichmentType)
-	return enrichments, nil
 }
 
 func ExtractIdsFromEnrichment(fields []CoralogixEnrichment) []uint32 {
