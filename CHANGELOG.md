@@ -1146,6 +1146,20 @@ Fix:
 
 - Deprecated in favor of the new `coralogix_parsing_rules` (Phase out date TBD)
 
+## resource/coralogix_data_enrichments, data_source/coralogix_data_enrichments
+
+- New addition! These will replace `coralogix_enrichment`
+
+
+# Release 5.0.0
+
+## resource/coralogix_enrichment, data_source/coralogix_enrichment
+
+- Removed.
+
+## resource/coralogix_rules_group, data_source/coralogix_rules_group
+
+- Removed.
 
 # Unknown future release 
 
