@@ -15,8 +15,11 @@
 package provider
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
@@ -45,4 +48,29 @@ func testAccCoralogixDataSourceDataEnrichments_read() string {
 	id = coralogix_data_enrichments.test.id
 }
 `
+}
+
+func TestAccCoralogixDataSourceDataEnrichmentsCustom_basic(t *testing.T) {
+	name := acctest.RandomWithPrefix("tf-acc-test")
+	description := acctest.RandomWithPrefix("tf-acc-test")
+	wd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	parent := filepath.Dir(filepath.Dir(wd))
+	filePath := parent + "/examples/resources/coralogix_data_set/date-to-day-of-the-week.csv"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceCustomDataEnrichments(name, description, filePath) +
+					testAccCoralogixDataSourceDataEnrichments_read(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(dataEnrichmentDataSourceName, "name", name),
+				),
+			},
+		},
+	})
 }

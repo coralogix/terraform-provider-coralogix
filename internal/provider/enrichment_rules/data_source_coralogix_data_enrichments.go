@@ -8,6 +8,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	cess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/custom_enrichments_service"
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -26,7 +27,8 @@ func NewDataEnrichmentDataSource() datasource.DataSource {
 }
 
 type DataEnrichmentDataSource struct {
-	client *ess.EnrichmentsServiceAPIService
+	client                    *ess.EnrichmentsServiceAPIService
+	custom_enrichments_client *cess.CustomEnrichmentsServiceAPIService
 }
 
 func (d *DataEnrichmentDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -47,7 +49,7 @@ func (d *DataEnrichmentDataSource) Configure(_ context.Context, req datasource.C
 		return
 	}
 
-	d.client = clientSet.DataEnrichments()
+	d.client, d.custom_enrichments_client = clientSet.DataEnrichments()
 }
 
 func (d *DataEnrichmentDataSource) Schema(ctx context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -65,16 +67,31 @@ func (d *DataEnrichmentDataSource) Read(ctx context.Context, req datasource.Read
 		return
 	}
 
-	result, httpResponse, err := d.client.
-		EnrichmentServiceGetEnrichments(ctx).
+	customEnrichmentId := getCustomEnrichmentId(data)
+	customEnrichment, httpResponse, err := d.custom_enrichments_client.
+		CustomEnrichmentServiceGetCustomEnrichment(ctx, *customEnrichmentId).
 		Execute()
-	if err != nil {
 
+	if err != nil {
 		resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, flattenDataEnrichments(result.Enrichments))...)
+	result, httpResponse, err := d.client.
+		EnrichmentServiceGetEnrichments(ctx).
+		Execute()
+	if err != nil {
+		resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+		)
+		return
+	}
+
+	state := flattenDataEnrichments(result.Enrichments,
+		&customEnrichment.CustomEnrichment,
+		data.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer())
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }

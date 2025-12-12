@@ -3,12 +3,15 @@ package enrichment_rules
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	cess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/custom_enrichments_service"
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
@@ -84,8 +87,16 @@ type AwsEnrichmentFieldModel struct {
 }
 
 type CustomEnrichmentFieldsModel struct {
-	CustomEnrichmentId types.Int64            `tfsdk:"custom_enrichment_id"`
-	Fields             []EnrichmentFieldModel `tfsdk:"fields"`
+	CustomEnrichmentDataModel *CustomEnrichmentDataModel `tfsdk:"custom_enrichment_data"`
+	Fields                    []EnrichmentFieldModel     `tfsdk:"fields"`
+}
+
+type CustomEnrichmentDataModel struct {
+	ID          types.Int64  `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	Description types.String `tfsdk:"description"`
+	Version     types.Int64  `tfsdk:"version"`
+	Contents    types.String `tfsdk:"contents"`
 }
 
 func (e AwsEnrichmentFieldModel) GetId() uint32 {
@@ -105,7 +116,8 @@ func NewDataEnrichmentsResource() resource.Resource {
 }
 
 type DataEnrichmentsResource struct {
-	client *ess.EnrichmentsServiceAPIService
+	client                    *ess.EnrichmentsServiceAPIService
+	custom_enrichments_client *cess.CustomEnrichmentsServiceAPIService
 }
 
 func (e *DataEnrichmentsModel) GetFields() []CoralogixEnrichment {
@@ -151,7 +163,7 @@ func (r *DataEnrichmentsResource) Configure(ctx context.Context, req resource.Co
 		return
 	}
 
-	r.client = clientSet.DataEnrichments()
+	r.client, r.custom_enrichments_client = clientSet.DataEnrichments()
 }
 
 func (r *DataEnrichmentsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -260,10 +272,35 @@ func (r *DataEnrichmentsResource) Schema(_ context.Context, _ resource.SchemaReq
 			CUSTOM_TYPE: schema.SingleNestedAttribute{
 				Optional: true,
 				Attributes: map[string]schema.Attribute{
-					"custom_enrichment_id": schema.Int64Attribute{
+					"custom_enrichment_data": schema.SingleNestedAttribute{
 						Optional: true,
-						Computed: true,
+						Attributes: map[string]schema.Attribute{
+							"id": schema.Int64Attribute{
+								Computed: true,
+								PlanModifiers: []planmodifier.Int64{
+									int64planmodifier.UseStateForUnknown(),
+								},
+							},
+							"name": schema.StringAttribute{
+								Required:    true,
+								Description: "A name for the enrichment.",
+							},
+							"description": schema.StringAttribute{
+								Optional:    true,
+								Description: "A description.",
+							},
+
+							"version": schema.Int64Attribute{
+								Computed:    true,
+								Description: "The version of the enrichment data.",
+							},
+							"contents": schema.StringAttribute{
+								Required:    true,
+								Description: "The file contents to upload. Use Terraform's functions to read from disk.",
+							},
+						},
 					},
+
 					"fields": schema.ListNestedAttribute{
 						Required: true,
 						NestedObject: schema.NestedAttributeObject{
@@ -299,31 +336,64 @@ func enrichmentFieldSchema() map[string]schema.Attribute {
 }
 
 func (r *DataEnrichmentsResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	log.Print("CREATE")
 	var plan *DataEnrichmentsModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
+	// First, upload the custom enrichment (if provided)
+	upload := extractCustomEnrichmentsDataCreate(plan)
+	var customId *int64 = nil
+	var uploadResult *cess.CustomEnrichment
+	if upload != nil {
+		result, httpResponse, err := r.custom_enrichments_client.
+			CustomEnrichmentServiceCreateCustomEnrichment(ctx).
+			CreateCustomEnrichmentRequest(*upload).
+			Execute()
+		if err != nil {
+			resp.Diagnostics.AddError("Error uploading custom enrichment coralogix_data_enrichments",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", upload),
+			)
+			return
+		}
+		customId = result.CustomEnrichment.Id
+		// add ID to the plan for the follow up request
+		plan.Custom.CustomEnrichmentDataModel.ID = types.Int64PointerValue(result.CustomEnrichment.Id)
+		// store result for "merged flattening"
+		uploadResult = result.CustomEnrichment
+	}
 	rq := extractDataEnrichmentsCreate(plan)
-
 	result, httpResponse, err := r.client.
 		EnrichmentServiceAddEnrichments(ctx).
 		EnrichmentsCreationRequest(*rq).
 		Execute()
+
 	if err != nil {
+		if customId != nil {
+			r.custom_enrichments_client.
+				CustomEnrichmentServiceDeleteCustomEnrichment(ctx, *customId).
+				Execute()
+		}
 		resp.Diagnostics.AddError("Error creating coralogix_data_enrichments",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
-	state := flattenDataEnrichments(result.Enrichments)
+	var content *string = nil
+	if plan.Custom != nil && plan.Custom.CustomEnrichmentDataModel != nil {
+		content = plan.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer()
+	}
+	state := flattenDataEnrichments(result.Enrichments,
+		uploadResult,
+		// the data isn't actually returned from the request, so we have to keep the state happy like that
+		content)
+
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
 	}
-
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -335,6 +405,24 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
+	// First, upload/update the custom enrichment (if provided)
+	upload := extractCustomEnrichmentsDataUpdate(plan)
+	var uploadResult *cess.CustomEnrichment
+	if upload != nil {
+		result, httpResponse, err := r.custom_enrichments_client.
+			CustomEnrichmentServiceUpdateCustomEnrichment(ctx).
+			UpdateCustomEnrichmentRequest(*upload).
+			Execute()
+		if err != nil {
+			resp.Diagnostics.AddError("Error uploading custom enrichment coralogix_data_enrichments",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", upload),
+			)
+			return
+		}
+		// store result for "merged flattening"
+		uploadResult = result.CustomEnrichment
+	}
+
 	rq := extractDataEnrichmentsUpdate(plan)
 
 	result, httpResponse, err := r.client.
@@ -342,12 +430,18 @@ func (r *DataEnrichmentsResource) Update(ctx context.Context, req resource.Updat
 		EnrichmentServiceAtomicOverwriteEnrichmentsRequest(*rq).
 		Execute()
 	if err != nil {
-		resp.Diagnostics.AddError("Error replacing coralogix_data_enrichments",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
+		resp.Diagnostics.AddError("Error replacing coralogix_data_enrichments. If custom enrichment data was updated, then this update was executed successfully.",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq),
 		)
 		return
 	}
-	state := flattenDataEnrichments(result.Enrichments)
+	var content *string = nil
+	if plan.Custom != nil && plan.Custom.CustomEnrichmentDataModel != nil {
+		content = plan.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer()
+	}
+	state := flattenDataEnrichments(result.Enrichments,
+		uploadResult,
+		content)
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
@@ -363,6 +457,29 @@ func (r *DataEnrichmentsResource) Read(ctx context.Context, req resource.ReadReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	customEnrichmentId := getCustomEnrichmentId(state)
+	var customEnrichment *cess.CustomEnrichment = nil
+	if customEnrichmentId != nil {
+		result, httpResponse, err := r.custom_enrichments_client.
+			CustomEnrichmentServiceGetCustomEnrichment(ctx, *customEnrichmentId).
+			Execute()
+		if err != nil {
+			if httpResponse.StatusCode == http.StatusNotFound {
+				resp.Diagnostics.AddWarning(
+					"coralogix_data_enrichments is in state, but no longer exists in Coralogix backend",
+					"coralogix_data_enrichments will be recreated when you apply",
+				)
+				resp.State.RemoveResource(ctx)
+			} else {
+				resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
+					utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+				)
+			}
+			return
+		}
+		customEnrichment = &result.CustomEnrichment
+	}
+
 	result, httpResponse, err := r.client.
 		EnrichmentServiceGetEnrichments(ctx).
 		Execute()
@@ -380,8 +497,14 @@ func (r *DataEnrichmentsResource) Read(ctx context.Context, req resource.ReadReq
 		}
 		return
 	}
+	var content *string = nil
+	if customEnrichmentId != nil {
+		content = state.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer()
+	}
+	state = flattenDataEnrichments(result.Enrichments,
+		customEnrichment,
+		content)
 
-	state = flattenDataEnrichments(result.Enrichments)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
@@ -405,9 +528,53 @@ func (r *DataEnrichmentsResource) Delete(ctx context.Context, req resource.Delet
 	}
 }
 
+func getCustomEnrichmentId(state *DataEnrichmentsModel) *int64 {
+	if state.Custom != nil {
+		if state.Custom.CustomEnrichmentDataModel != nil {
+			return state.Custom.CustomEnrichmentDataModel.ID.ValueInt64Pointer()
+		}
+	}
+	return nil
+}
+
+func extractCustomEnrichmentsDataCreate(plan *DataEnrichmentsModel) *cess.CreateCustomEnrichmentRequest {
+	if plan.Custom != nil {
+		ext := "csv"
+		return &cess.CreateCustomEnrichmentRequest{
+			Name:        plan.Custom.CustomEnrichmentDataModel.Name.ValueString(),
+			Description: plan.Custom.CustomEnrichmentDataModel.Description.ValueString(),
+			File: cess.FileTextualAsFile(&cess.FileTextual{
+				Extension: &ext,
+				Name:      plan.Custom.CustomEnrichmentDataModel.Name.ValueStringPointer(),
+				Textual:   plan.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer(),
+			}),
+		}
+	}
+	return nil
+}
+
+func extractCustomEnrichmentsDataUpdate(plan *DataEnrichmentsModel) *cess.UpdateCustomEnrichmentRequest {
+	if plan.Custom != nil {
+		ext := "csv"
+		return &cess.UpdateCustomEnrichmentRequest{
+			CustomEnrichmentId: plan.Custom.CustomEnrichmentDataModel.ID.ValueInt64(),
+			Name:               plan.Custom.CustomEnrichmentDataModel.Name.ValueString(),
+			Description:        plan.Custom.CustomEnrichmentDataModel.Description.ValueString(),
+			File: cess.File{
+				FileTextual: &cess.FileTextual{
+					Extension: &ext,
+					Name:      plan.Custom.CustomEnrichmentDataModel.Name.ValueStringPointer(),
+					Textual:   plan.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer(),
+				},
+			},
+		}
+	}
+	return nil
+}
+
 func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestModel {
 	requestModels := make([]ess.EnrichmentRequestModel, 0)
-	ctx := context.TODO()
+	ctx := context.Background()
 	if plan.Aws != nil {
 		for _, f := range plan.Aws.Fields {
 			enrichmentType := ess.EnrichmentType{
@@ -462,12 +629,13 @@ func extractDataEnrichments(plan *DataEnrichmentsModel) []ess.EnrichmentRequestM
 	}
 
 	if plan.Custom != nil {
+		id := plan.Custom.CustomEnrichmentDataModel.ID.ValueInt64Pointer()
 		for _, f := range plan.Custom.Fields {
-			id := int64(f.GetId())
+
 			enrichmentType := ess.EnrichmentType{
 				EnrichmentTypeCustomEnrichment: &ess.EnrichmentTypeCustomEnrichment{
 					CustomEnrichment: &ess.CustomEnrichmentType{
-						Id: &id,
+						Id: id,
 					},
 				},
 			}
@@ -488,18 +656,36 @@ func extractDataEnrichmentsCreate(plan *DataEnrichmentsModel) *ess.EnrichmentsCr
 	}
 	return req
 }
+
 func extractDataEnrichmentsUpdate(plan *DataEnrichmentsModel) *ess.EnrichmentServiceAtomicOverwriteEnrichmentsRequest {
 	req := &ess.EnrichmentServiceAtomicOverwriteEnrichmentsRequest{
 		RequestEnrichments: extractDataEnrichments(plan),
+		EnrichmentType: &ess.EnrichmentType{EnrichmentTypeSuspiciousIp: &ess.EnrichmentTypeSuspiciousIp{
+			SuspiciousIp: map[string]interface{}{},
+		}},
 	}
 	return req
 }
 
-func flattenDataEnrichments(rgrp []ess.Enrichment) *DataEnrichmentsModel {
+func flattenDataEnrichments(enrichments []ess.Enrichment, uploadResp *cess.CustomEnrichment, customEnrichmentContents *string) *DataEnrichmentsModel {
 	model := &DataEnrichmentsModel{
 		ID: types.StringValue(RESOURCE_ID_DATA_ENRICHMENTS),
 	}
-	for _, e := range rgrp {
+
+	if uploadResp != nil {
+		model.Custom = &CustomEnrichmentFieldsModel{
+			CustomEnrichmentDataModel: &CustomEnrichmentDataModel{
+				ID:          types.Int64PointerValue(uploadResp.Id),
+				Name:        types.StringPointerValue(uploadResp.Name),
+				Description: types.StringPointerValue(uploadResp.Description),
+				Version:     types.Int64PointerValue(uploadResp.Version),
+				Contents:    types.StringPointerValue(customEnrichmentContents),
+			},
+			Fields: []EnrichmentFieldModel{},
+		}
+	}
+
+	for _, e := range enrichments {
 		if e.EnrichmentType.EnrichmentTypeAws != nil {
 			if model.Aws == nil {
 				model.Aws = &AwsEnrichmentFieldsModel{}
@@ -536,7 +722,7 @@ func flattenDataEnrichments(rgrp []ess.Enrichment) *DataEnrichmentsModel {
 			if model.Custom == nil {
 				model.Custom = &CustomEnrichmentFieldsModel{}
 			}
-			model.Custom.CustomEnrichmentId = types.Int64Value(int64(*e.EnrichmentType.EnrichmentTypeCustomEnrichment.CustomEnrichment.Id))
+
 			model.Custom.Fields = append(model.Custom.Fields, EnrichmentFieldModel{
 				EnrichedFieldName: types.StringPointerValue(e.EnrichedFieldName),
 				SelectedColumns:   utils.StringSliceToTypeStringSet(e.SelectedColumns),
