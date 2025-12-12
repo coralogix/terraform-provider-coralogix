@@ -660,6 +660,7 @@ func extractDataEnrichmentsCreate(plan *DataEnrichmentsModel) *ess.EnrichmentsCr
 func extractDataEnrichmentsUpdate(plan *DataEnrichmentsModel) *ess.EnrichmentServiceAtomicOverwriteEnrichmentsRequest {
 	req := &ess.EnrichmentServiceAtomicOverwriteEnrichmentsRequest{
 		RequestEnrichments: extractDataEnrichments(plan),
+		// some server side validation wants this
 		EnrichmentType: &ess.EnrichmentType{EnrichmentTypeSuspiciousIp: &ess.EnrichmentTypeSuspiciousIp{
 			SuspiciousIp: map[string]interface{}{},
 		}},
