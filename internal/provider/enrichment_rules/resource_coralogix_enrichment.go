@@ -90,8 +90,9 @@ func ResourceCoralogixEnrichment() *schema.Resource {
 			Update: schema.DefaultTimeout(60 * time.Second),
 			Delete: schema.DefaultTimeout(30 * time.Second),
 		},
-
-		Schema: EnrichmentSchema(),
+		DeprecationMessage: "This resource will be phased out in 5.0.0. Please use `coralogix_data_enrichments` instead.",
+		Description:        "**DEPRECATED**. Please use `coralogix_data_enrichments` instead.",
+		Schema:             EnrichmentSchema(),
 	}
 }
 

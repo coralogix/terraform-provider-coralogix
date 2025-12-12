@@ -3073,16 +3073,12 @@ func expandDashboardFolder(ctx context.Context, dashboard *cxsdk.Dashboard, fold
 		return nil, dgs
 	}
 
-	if !(folderModel.Path.IsNull() || folderModel.Path.IsUnknown()) {
+	if !(folderModel.ID.IsNull() || folderModel.ID.IsUnknown()) {
+		dashboard.FolderId = dashboardwidgets.ExpandDashboardUUID(folderModel.ID)
+	} else if !(folderModel.Path.IsNull() || folderModel.Path.IsUnknown()) {
 		segments := strings.Split(folderModel.Path.ValueString(), "/")
-		dashboard.Folder = &cxsdk.DashboardFolderPath{
-			FolderPath: &cxsdk.FolderPath{
-				Segments: segments,
-			},
-		}
-	} else if !(folderModel.ID.IsNull() || folderModel.ID.IsUnknown()) {
-		dashboard.Folder = &cxsdk.DashboardFolderID{
-			FolderId: dashboardwidgets.ExpandDashboardUUID(folderModel.ID),
+		dashboard.FolderPath = &cxsdk.FolderPath{
+			Segments: segments,
 		}
 	}
 
@@ -3103,7 +3099,7 @@ func flattenDashboard(ctx context.Context, plan DashboardResourceModel, dashboar
 		if err != nil {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error Unmarshal Dashboard", err.Error())}
 		}
-		if unmarshalledDashboard.GetFolder() != nil {
+		if unmarshalledDashboard.FolderId != nil || unmarshalledDashboard.FolderPath != nil {
 			folder = types.ObjectNull(dashboardFolderModelAttr())
 		}
 
@@ -5576,11 +5572,7 @@ func flattenDashboardFilter(ctx context.Context, filter *cxsdk.DashboardFilter) 
 }
 
 func flattenDashboardFolder(ctx context.Context, planedDashboard types.Object, dashboard *cxsdk.Dashboard) (types.Object, diag.Diagnostics) {
-	if dashboard.GetFolder() == nil {
-		return types.ObjectNull(dashboardFolderModelAttr()), nil
-	}
-	switch folderType := dashboard.GetFolder().(type) {
-	case *cxsdk.DashboardFolderID:
+	if dashboard.FolderId != nil {
 		path := types.StringNull()
 		if !utils.ObjIsNullOrUnknown(planedDashboard) {
 			var folderModel DashboardFolderModel
@@ -5594,18 +5586,18 @@ func flattenDashboardFolder(ctx context.Context, planedDashboard types.Object, d
 		}
 
 		folderObject := &DashboardFolderModel{
-			ID:   types.StringValue(folderType.FolderId.GetValue()),
+			ID:   types.StringValue(dashboard.FolderId.GetValue()),
 			Path: path,
 		}
 		return types.ObjectValueFrom(ctx, dashboardFolderModelAttr(), folderObject)
-	case *cxsdk.DashboardFolderPath:
+	} else if dashboard.FolderPath != nil {
 		folderObject := &DashboardFolderModel{
 			ID:   types.StringNull(),
-			Path: types.StringValue(strings.Join(folderType.FolderPath.GetSegments(), "/")),
+			Path: types.StringValue(strings.Join(dashboard.FolderPath.GetSegments(), "/")),
 		}
 		return types.ObjectValueFrom(ctx, dashboardFolderModelAttr(), folderObject)
-	default:
-		return types.ObjectNull(dashboardFolderModelAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Error Flatten Dashboard Folder", fmt.Sprintf("unknown folder type %T", dashboard.GetFolder()))}
+	} else {
+		return types.ObjectNull(dashboardFolderModelAttr()), nil
 	}
 }
 

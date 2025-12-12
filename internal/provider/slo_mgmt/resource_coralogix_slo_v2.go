@@ -287,12 +287,12 @@ func (r *SLOV2Resource) Create(ctx context.Context, req resource.CreateRequest, 
 		resp.Diagnostics = diags
 		return
 	}
-	rq := slos.SlosServiceCreateSloRequest{
+	rq := slos.SlosServiceReplaceSloRequest{
 		SloRequestBasedMetricSli: slo.SloRequestBasedMetricSli,
 		SloWindowBasedMetricSli:  slo.SloWindowBasedMetricSli,
 	}
 
-	result, httpResponse, err := r.client.SlosServiceCreateSlo(ctx).SlosServiceCreateSloRequest(rq).Execute()
+	result, httpResponse, err := r.client.SlosServiceCreateSlo(ctx).SlosServiceReplaceSloRequest(rq).Execute()
 	if err != nil {
 		resp.Diagnostics.AddError("Error creating coralogix_slo_v2",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),

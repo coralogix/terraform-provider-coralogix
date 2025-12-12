@@ -17,7 +17,6 @@ package slo_mgmt
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
@@ -78,7 +77,6 @@ func (d *SLOV2DataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	//Get refreshed SLO value from Coralogix
 	id := state.ID.ValueString()
 	rq := d.client.SlosServiceGetSlo(ctx, id)
-	log.Printf("[INFO] Reading new coralogix_slo_v2: %s", utils.FormatJSON(rq))
 	result, httpResponse, err := rq.Execute()
 
 	if err != nil {
@@ -95,7 +93,6 @@ func (d *SLOV2DataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 		}
 		return
 	}
-	log.Printf("[INFO] Read coralogix_slo_v2: %s", utils.FormatJSON(result))
 
 	state, diags = flattenSLOV2(ctx, &result.Slo)
 	if diags.HasError() {

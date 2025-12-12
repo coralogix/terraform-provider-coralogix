@@ -6,7 +6,7 @@ replace github.com/grpc-ecosystem/grpc-gateway/v2 => github.com/coralogix/grpc-g
 
 require (
 	github.com/ahmetalpbalkan/go-linq v3.0.0+incompatible
-	github.com/coralogix/coralogix-management-sdk v1.9.3-0.20251202113405-952cf7178e7d
+	github.com/coralogix/coralogix-management-sdk v1.9.3-0.20251212124421-0559f8b5528f
 	github.com/google/uuid v1.6.0
 	github.com/grafana/grafana-api-golang-client v0.27.0
 	github.com/hashicorp/terraform-plugin-docs v0.20.1
