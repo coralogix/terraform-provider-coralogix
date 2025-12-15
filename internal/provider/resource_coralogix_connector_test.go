@@ -45,7 +45,7 @@ func TestAccCoralogixResourceGenericHttpsConnector(t *testing.T) {
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "url",
-						"value":      "https://httpbin.org/post",
+						"value":      "https://api.staging.coralogix.net/mgmt/testing/tools/httpbin/post",
 					}),
 				),
 			},
@@ -67,7 +67,7 @@ func TestAccCoralogixResourceGenericHttpsConnector(t *testing.T) {
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs(connectorResourceName, "connector_config.fields.*", map[string]string{
 						"field_name": "url",
-						"value":      "https://httpbin.org/post",
+						"value":      "https://api.staging.coralogix.net/mgmt/testing/tools/httpbin/post",
 					}),
 				),
 			},
@@ -183,7 +183,7 @@ func testAccResourceCoralogixGenericHttpsConnector(name string) string {
      fields = [
 	  {
 	    field_name = "url"
-	 	value      = "https://httpbin.org/post"
+	 	value      = "https://api.staging.coralogix.net/mgmt/testing/tools/httpbin/post"
 	  },
 	  {
 	 	field_name = "method"
@@ -205,7 +205,7 @@ func testAccResourceCoralogixGenericHttpsConnectorUpdate(name string) string {
      fields = [
 	  {
 	    field_name = "url"
-	 	value      = "https://httpbin.org/post"
+	 	value      = "https://api.staging.coralogix.net/mgmt/testing/tools/httpbin/post"
 	  },
 	  {
 	 	field_name = "method"

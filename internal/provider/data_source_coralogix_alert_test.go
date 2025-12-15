@@ -138,7 +138,7 @@ func testAccCoralogixResourceAlertWebhooksNotifyOnMandatory() string {
     custom = {
       method  = "get"
       headers = { "Content-Type" : "application/json" }
-      url     = "https://httpbin.org/get"
+      url     = "https://api.staging.coralogix.net/mgmt/testing/tools/httpbin/get"
     }
   }
   
