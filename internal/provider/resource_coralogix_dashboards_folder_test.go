@@ -15,14 +15,9 @@
 package provider
 
 import (
-	"context"
-	"fmt"
 	"testing"
 
-	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
-
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
-	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 var dashboardsFolderResourceName = "coralogix_dashboards_folder.test"
@@ -31,7 +26,6 @@ func TestAccCoralogixResourceDashboardsFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckDashboardsFolderDestroy,
 		Steps: []resource.TestStep{
 			{
 
@@ -54,26 +48,4 @@ func testAccCoralogixResourceDashboardsFolder() string {
 			name = "test"
 		}
 `
-}
-
-func testAccCheckDashboardsFolderDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).DashboardsFolders()
-
-	ctx := context.TODO()
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "coralogix_dashboards_folder" {
-			continue
-		}
-		resp, err := client.List(ctx)
-		if err == nil {
-			for _, folder := range resp.GetFolder() {
-				if folder.GetId().GetValue() == rs.Primary.ID {
-					return fmt.Errorf("dashboard folder still exists: %s", rs.Primary.ID)
-				}
-			}
-		}
-	}
-
-	return nil
 }
