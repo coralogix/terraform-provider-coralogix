@@ -837,11 +837,11 @@ func UuidCreateIfNull(uuid types.String) string {
 	return uuid.ValueString()
 }
 
-func ExpandUuid(uuid types.String) *wrapperspb.StringValue {
+func ExpandUuid(uuid types.String) string {
 	if uuid.IsNull() || uuid.IsUnknown() {
-		return &wrapperspb.StringValue{Value: gouuid.NewString()}
+		return gouuid.NewString()
 	}
-	return &wrapperspb.StringValue{Value: uuid.ValueString()}
+	return uuid.ValueString()
 }
 
 func RetryableStatusCode(statusCode codes.Code) bool {

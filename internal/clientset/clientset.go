@@ -26,6 +26,7 @@ import (
 	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 	cess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/custom_enrichments_service"
+	dbfs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_folders_service"
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 
 	globalRouters "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/global_routers_service"
@@ -51,14 +52,14 @@ type ClientSet struct {
 	legacySlos  *cxsdk.LegacySLOsClient
 	dashboards  *cxsdk.DashboardsClient
 	// alertScheduler      *alertScheduler.AlertSchedulerRuleServiceAPIService
-	alertScheduler   *cxsdk.AlertSchedulerClient
-	dahboardsFolders *cxsdk.DashboardsFoldersClient
-	ruleGroups       *cxsdk.RuleGroupsClient
-	users            *cxsdk.UsersClient
-	events2Metrics   *cxsdk.Events2MetricsClient
-	groupGrpc        *cxsdk.GroupsClient
-	teams            *cxsdk.TeamsClient
+	alertScheduler *cxsdk.AlertSchedulerClient
+	ruleGroups     *cxsdk.RuleGroupsClient
+	users          *cxsdk.UsersClient
+	events2Metrics *cxsdk.Events2MetricsClient
+	groupGrpc      *cxsdk.GroupsClient
+	teams          *cxsdk.TeamsClient
 
+	dahboardsFolders      *dbfs.DashboardFoldersServiceAPIService
 	customDataEnrichments *cess.CustomEnrichmentsServiceAPIService
 	dataEnrichments       *ess.EnrichmentsServiceAPIService
 	parsingRuleGroups     *prgs.RuleGroupsServiceAPIService
@@ -158,7 +159,7 @@ func (c *ClientSet) SLOs() *slos.SlosServiceAPIService {
 	return c.slos
 }
 
-func (c *ClientSet) DashboardsFolders() *cxsdk.DashboardsFoldersClient {
+func (c *ClientSet) DashboardsFolders() *dbfs.DashboardFoldersServiceAPIService {
 	return c.dahboardsFolders
 }
 
@@ -239,12 +240,12 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		users: cxsdk.NewUsersClient(apiKeySdk),
 
 		// TODO
-		dashboards:       cxsdk.NewDashboardsClient(apiKeySdk),
-		dahboardsFolders: cxsdk.NewDashboardsFoldersClient(apiKeySdk),
-		events2Metrics:   cxsdk.NewEvents2MetricsClient(apiKeySdk),
-		groupGrpc:        cxsdk.NewGroupsClient(apiKeySdk),
-		alertScheduler:   cxsdk.NewAlertSchedulerClient(apiKeySdk),
+		dashboards:     cxsdk.NewDashboardsClient(apiKeySdk),
+		events2Metrics: cxsdk.NewEvents2MetricsClient(apiKeySdk),
+		groupGrpc:      cxsdk.NewGroupsClient(apiKeySdk),
+		alertScheduler: cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
+		dahboardsFolders:      cs.DashboardFolders(),
 		parsingRuleGroups:     cs.RuleGroups(),
 		archiveMetrics:        cs.ArchiveMetrics(),
 		alerts:                cs.Alerts(),
