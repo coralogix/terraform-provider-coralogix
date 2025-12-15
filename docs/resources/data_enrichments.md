@@ -58,7 +58,7 @@ Required:
 
 Optional:
 
-- `custom_enrichment_id` (Number)
+- `custom_enrichment_data` (Attributes) (see [below for nested schema](#nestedatt--custom--custom_enrichment_data))
 
 <a id="nestedatt--custom--fields"></a>
 ### Nested Schema for `custom.fields`
@@ -72,6 +72,24 @@ Optional:
 
 - `id` (Number)
 - `selected_columns` (Set of String)
+
+
+<a id="nestedatt--custom--custom_enrichment_data"></a>
+### Nested Schema for `custom.custom_enrichment_data`
+
+Required:
+
+- `contents` (String) The file contents to upload. Use Terraform's functions to read from disk.
+- `name` (String) A name for the enrichment.
+
+Optional:
+
+- `description` (String) A description.
+
+Read-Only:
+
+- `id` (Number)
+- `version` (Number) The version of the enrichment data.
 
 
 
