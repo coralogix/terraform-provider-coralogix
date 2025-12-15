@@ -94,10 +94,10 @@ resource "coralogix_slo_v2" "test" {
   sli = {
     request_based_metric_sli = {
       good_events = {
-        query = "avg(rate(cpu_usage_seconds_total[5m])) by (instance)"
+        query = "avg(rate(cpu_usage_seconds_total[1m])) by (instance)"
       }
       total_events = {
-        query = "avg(rate(cpu_usage_seconds_total[5m])) by (instance)"
+        query = "avg(rate(cpu_usage_seconds_total[1m])) by (instance)"
       }
     }
   }
