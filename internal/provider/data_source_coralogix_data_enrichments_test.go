@@ -44,7 +44,7 @@ func TestAccCoralogixDataSourceDataEnrichments_basic(t *testing.T) {
 }
 
 func testAccCoralogixDataSourceDataEnrichments_read() string {
-	return `data "coralogix_enrichment" "test" {
+	return `data "coralogix_data_enrichment" "test" {
 	id = coralogix_data_enrichments.test.id
 }
 `

@@ -26,6 +26,7 @@ import (
 	prgs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/rule_groups_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -335,6 +336,37 @@ func (r *ParsingRulesResource) Schema(_ context.Context, _ resource.SchemaReques
 									"parse": schema.SingleNestedAttribute{
 										Optional:   true,
 										Attributes: parseSchemaAttrs(),
+										Validators: []validator.Object{
+											objectvalidator.ExactlyOneOf(
+												path.MatchRelative().
+													AtParent().
+													AtName("parse"),
+												path.MatchRelative().
+													AtParent().
+													AtName("block"),
+												path.MatchRelative().
+													AtParent().
+													AtName("json_extract"),
+												path.MatchRelative().
+													AtParent().
+													AtName("replace"),
+												path.MatchRelative().
+													AtParent().
+													AtName("extract_timestamp"),
+												path.MatchRelative().
+													AtParent().
+													AtName("remove_fields"),
+												path.MatchRelative().
+													AtParent().
+													AtName("json_stringify"),
+												path.MatchRelative().
+													AtParent().
+													AtName("extract"),
+												path.MatchRelative().
+													AtParent().
+													AtName("parse_json_field"),
+											),
+										},
 									},
 									"block": schema.SingleNestedAttribute{
 										Optional:   true,
@@ -744,6 +776,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 		for i, rule := range groups.Rules {
 			order := int64(i) + 1
 			if r := rule.Block; r != nil {
+				order += 1
 				var params prgs.RuleParameters
 				if r.BlockMatchingLogs.ValueBool() {
 					params = prgs.RuleParameters{
@@ -775,6 +808,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 
 			}
 			if r := rule.JsonExtract; r != nil {
+				order += 1
 				destinationField := rulesSchemaDestinationFieldToApiDestinationField[r.DestinationField.ValueString()]
 				rules = append(rules, prgs.CreateRuleGroupRequestCreateRuleSubgroupCreateRule{
 					Description: r.Description.ValueStringPointer(),
@@ -794,6 +828,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 				})
 			}
 			if r := rule.Replace; r != nil {
+				order += 1
 				rules = append(rules, prgs.CreateRuleGroupRequestCreateRuleSubgroupCreateRule{
 					Description: r.Description.ValueStringPointer(),
 					Enabled:     r.Active.ValueBoolPointer(),
@@ -813,6 +848,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 			}
 
 			if r := rule.ExtractTimestamp; r != nil {
+				order += 1
 				fmtStd := rulesSchemaFormatStandardToApiFormatStandard[r.FieldFormatStandard.ValueString()]
 				rules = append(rules, prgs.CreateRuleGroupRequestCreateRuleSubgroupCreateRule{
 					Description: r.Description.ValueStringPointer(),
@@ -832,6 +868,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 			}
 
 			if r := rule.RemoveFields; r != nil {
+				order += 1
 				rules = append(rules, prgs.CreateRuleGroupRequestCreateRuleSubgroupCreateRule{
 					Description: r.Description.ValueStringPointer(),
 					Enabled:     r.Active.ValueBoolPointer(),
@@ -849,6 +886,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 			}
 
 			if r := rule.JsonStringify; r != nil {
+				order += 1
 				deleteSource := !r.KeepSourceField.ValueBool()
 				rules = append(rules, prgs.CreateRuleGroupRequestCreateRuleSubgroupCreateRule{
 					Description: r.Description.ValueStringPointer(),
@@ -868,6 +906,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 			}
 
 			if r := rule.Extract; r != nil {
+				order += 1
 				rules = append(rules, prgs.CreateRuleGroupRequestCreateRuleSubgroupCreateRule{
 					Description: r.Description.ValueStringPointer(),
 					Enabled:     r.Active.ValueBoolPointer(),
@@ -885,6 +924,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 			}
 
 			if r := rule.ParseJsonField; r != nil {
+				order += 1
 				deleteSource := !r.KeepSourceField.ValueBool()
 				overrideDestination := !r.KeepDestinationField.ValueBool()
 				escapeValue := true
@@ -908,6 +948,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 			}
 
 			if r := rule.Parse; r != nil {
+				order += 1
 				rules = append(rules, prgs.CreateRuleGroupRequestCreateRuleSubgroupCreateRule{
 					Description: r.Description.ValueStringPointer(),
 					Enabled:     r.Active.ValueBoolPointer(),
@@ -955,7 +996,6 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 	if subgroups == nil {
 		return nil
 	}
-
 	subgroupRules := make([]RuleSubgroupsModel, len(subgroups))
 	for g, groups := range subgroups {
 		rules := make([]RuleSubgroupModel, 0)
@@ -964,9 +1004,9 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 			Active: types.BoolPointerValue(groups.Enabled),
 			Order:  types.Int64PointerValue(groups.Order),
 		}
-
 		for _, rule := range groups.Rules {
 			params := rule.Parameters
+
 			if p := params.RuleParametersAllowParameters; p != nil {
 				rules = append(rules, RuleSubgroupModel{
 					Block: &BlockModel{
@@ -1115,9 +1155,9 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 					},
 				})
 			}
-
 		}
 		subgroupRules[g].Rules = rules
 	}
+
 	return subgroupRules
 }
