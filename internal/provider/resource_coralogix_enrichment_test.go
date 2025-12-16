@@ -23,6 +23,7 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/provider/enrichment_rules"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
+	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
@@ -162,20 +163,20 @@ func testAccCoralogixResourceSuspiciousIpEnrichment(fieldName string) string {
 
 func testAccCoralogixResourceCustomEnrichment(fieldName string) string {
 	return fmt.Sprintf(`resource "coralogix_data_set" test {
-        name         = "custom enrichment"
+        name         = "%s"
         description  = "description"
         file_content = "local_id,instance_type\nfoo1,t2.micro\nfoo2,t2.micro\nfoo3,t2.micro\nbar1,m3.large\n"
     }
 
     resource "coralogix_enrichment" test{
-        custom{
+        custom {
             custom_enrichment_id = coralogix_data_set.test.id
             fields {
                     name = "%s"
                 }
         }
     }
-    `, fieldName)
+    `, acctest.RandomWithPrefix("custom-enrichment"), fieldName)
 }
 
 func testAccCheckEnrichmentDestroy(s *terraform.State) error {
