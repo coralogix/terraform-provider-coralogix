@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 )
 
 var (
@@ -58,6 +59,13 @@ func (d *DataEnrichmentDataSource) Schema(ctx context.Context, _ datasource.Sche
 	r.Schema(ctx, resource.SchemaRequest{}, &resourceResp)
 
 	resp.Schema = utils.FrameworkDatasourceSchemaFromFrameworkResourceSchema(resourceResp.Schema)
+
+	if idAttr, ok := resp.Schema.Attributes[CUSTOM_TYPE].(schema.StringAttribute); ok {
+		idAttr.Required = false
+		idAttr.Optional = true
+		resp.Schema.Attributes[CUSTOM_TYPE] = idAttr
+	}
+
 }
 
 func (d *DataEnrichmentDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {

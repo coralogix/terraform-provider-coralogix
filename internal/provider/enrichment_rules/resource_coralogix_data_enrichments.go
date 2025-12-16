@@ -3,8 +3,10 @@ package enrichment_rules
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
+	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -15,7 +17,6 @@ import (
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
@@ -32,11 +33,10 @@ var (
 )
 
 const (
-	AWS_TYPE                     = "aws"
-	GEOIP_TYPE                   = "geo_ip"
-	SUSIP_TYPE                   = "suspicious_ip"
-	CUSTOM_TYPE                  = "custom"
-	RESOURCE_ID_DATA_ENRICHMENTS = "data-enrichment-settings"
+	AWS_TYPE    = "aws"
+	GEOIP_TYPE  = "geo_ip"
+	SUSIP_TYPE  = "suspicious_ip"
+	CUSTOM_TYPE = "custom"
 )
 
 type CoralogixEnrichment interface {
@@ -146,7 +146,44 @@ func (e *DataEnrichmentsModel) GetFields() []CoralogixEnrichment {
 }
 
 func (r *DataEnrichmentsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	idParts := strings.Split(req.ID, ",")
+	possibleTypes := []string{AWS_TYPE, SUSIP_TYPE, CUSTOM_TYPE, GEOIP_TYPE}
+	if len(idParts) == 0 || len(idParts) > 4 {
+		resp.Diagnostics.AddError(
+			"Unexpected Import Identifier",
+			fmt.Sprintf("Expected import identifier with one of %v or 12345 (that's a custom enrichment id). Got: %q", strings.Join(possibleTypes, ","), req.ID),
+		)
+		return
+	}
+
+	for _, p := range idParts {
+		if !slices.Contains(possibleTypes, strings.ToLower(p)) {
+			resp.Diagnostics.AddError(
+				"Unexpected Import Identifier",
+				fmt.Sprintf("Expected import identifier to be one of: %v . Got: '%q'", strings.Join(possibleTypes, ","), strings.ToLower(p)),
+			)
+			return
+		}
+	}
+
+	val, isDataSet := strconv.ParseInt(idParts[0], 10, 64)
+
+	if isDataSet != nil {
+		resp.Diagnostics.AddError(
+			"Unexpected Import Identifier",
+			fmt.Sprintf("Expected import identifier with format: %v or 12345 (that's a custom enrichment id). Got: %q", strings.Join(possibleTypes, ","), req.ID))
+		return
+	}
+
+	state := DataEnrichmentsModel{
+		Custom: &CustomEnrichmentFieldsModel{
+			CustomEnrichmentDataModel: &CustomEnrichmentDataModel{
+				ID: types.Int64Value(val),
+			},
+		},
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 func (r *DataEnrichmentsResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -336,7 +373,6 @@ func enrichmentFieldSchema() map[string]schema.Attribute {
 }
 
 func (r *DataEnrichmentsResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	log.Print("CREATE")
 	var plan *DataEnrichmentsModel
 	diags := req.Plan.Get(ctx, &plan)
 	resp.Diagnostics.Append(diags...)
@@ -457,7 +493,18 @@ func (r *DataEnrichmentsResource) Read(ctx context.Context, req resource.ReadReq
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	id := state.ID.ValueString()
+	types := strings.Split(id, ",")
+
 	customEnrichmentId := getCustomEnrichmentId(state)
+	if len(types) == 0 && customEnrichmentId == nil {
+		resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
+			"No ids found",
+		)
+		return
+	}
+
 	var customEnrichment *cess.CustomEnrichment = nil
 	if customEnrichmentId != nil {
 		result, httpResponse, err := r.custom_enrichments_client.
@@ -479,29 +526,35 @@ func (r *DataEnrichmentsResource) Read(ctx context.Context, req resource.ReadReq
 		}
 		customEnrichment = &result.CustomEnrichment
 	}
-
-	result, httpResponse, err := r.client.
-		EnrichmentServiceGetEnrichments(ctx).
-		Execute()
-	if err != nil {
-		if httpResponse.StatusCode == http.StatusNotFound {
-			resp.Diagnostics.AddWarning(
-				"coralogix_data_enrichments is in state, but no longer exists in Coralogix backend",
-				"coralogix_data_enrichments will be recreated when you apply",
-			)
-			resp.State.RemoveResource(ctx)
-		} else {
-			resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
-				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-			)
+	var enrichments []ess.Enrichment
+	if len(types) > 0 {
+		result, httpResponse, err := r.client.
+			EnrichmentServiceGetEnrichments(ctx).
+			Execute()
+		if err != nil {
+			if httpResponse.StatusCode == http.StatusNotFound {
+				resp.Diagnostics.AddWarning(
+					"coralogix_data_enrichments is in state, but no longer exists in Coralogix backend",
+					"coralogix_data_enrichments will be recreated when you apply",
+				)
+				resp.State.RemoveResource(ctx)
+			} else {
+				resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
+					utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+				)
+			}
+			return
 		}
-		return
+		for _, t := range types {
+			enrichments = append(enrichments, FilterEnrichmentByTypes(result.Enrichments, t)...)
+		}
 	}
+
 	var content *string = nil
 	if customEnrichmentId != nil {
 		content = state.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer()
 	}
-	state = flattenDataEnrichments(result.Enrichments,
+	state = flattenDataEnrichments(enrichments,
 		customEnrichment,
 		content)
 
@@ -525,6 +578,20 @@ func (r *DataEnrichmentsResource) Delete(ctx context.Context, req resource.Delet
 		resp.Diagnostics.AddError("Error deleting coralogix_data_enrichments",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
 		)
+	}
+
+	customEnrichmentId := getCustomEnrichmentId(state)
+	if customEnrichmentId != nil {
+		_, httpResponse, err := r.custom_enrichments_client.
+			CustomEnrichmentServiceDeleteCustomEnrichment(ctx, *customEnrichmentId).
+			Execute()
+		if err != nil {
+
+			resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+			)
+			return
+		}
 	}
 }
 
@@ -662,16 +729,15 @@ func extractDataEnrichmentsUpdate(plan *DataEnrichmentsModel) *ess.EnrichmentSer
 		RequestEnrichments: extractDataEnrichments(plan),
 		// some server side validation wants this
 		EnrichmentType: &ess.EnrichmentType{EnrichmentTypeSuspiciousIp: &ess.EnrichmentTypeSuspiciousIp{
-			SuspiciousIp: map[string]interface{}{},
+			SuspiciousIp: map[string]any{},
 		}},
 	}
 	return req
 }
 
 func flattenDataEnrichments(enrichments []ess.Enrichment, uploadResp *cess.CustomEnrichment, customEnrichmentContents *string) *DataEnrichmentsModel {
-	model := &DataEnrichmentsModel{
-		ID: types.StringValue(RESOURCE_ID_DATA_ENRICHMENTS),
-	}
+	id := make([]string, 0)
+	model := &DataEnrichmentsModel{}
 
 	if uploadResp != nil {
 		model.Custom = &CustomEnrichmentFieldsModel{
@@ -698,6 +764,7 @@ func flattenDataEnrichments(enrichments []ess.Enrichment, uploadResp *cess.Custo
 				Resource:          types.StringPointerValue(e.EnrichmentType.EnrichmentTypeAws.Aws.ResourceType),
 				ID:                types.Int64Value(e.Id),
 			})
+			id = append(id, AWS_TYPE)
 		} else if e.EnrichmentType.EnrichmentTypeGeoIp != nil {
 			if model.GeoIp == nil {
 				model.GeoIp = &GeoIpEnrichmentFieldsModel{}
@@ -709,6 +776,7 @@ func flattenDataEnrichments(enrichments []ess.Enrichment, uploadResp *cess.Custo
 				ID:                types.Int64Value(e.Id),
 				Asn:               types.BoolPointerValue(e.EnrichmentType.EnrichmentTypeGeoIp.GeoIp.WithAsn),
 			})
+			id = append(id, GEOIP_TYPE)
 		} else if e.EnrichmentType.EnrichmentTypeSuspiciousIp != nil {
 			if model.SuspiciousIp == nil {
 				model.SuspiciousIp = &EnrichmentFieldsModel{}
@@ -719,6 +787,7 @@ func flattenDataEnrichments(enrichments []ess.Enrichment, uploadResp *cess.Custo
 				Name:              types.StringValue(e.FieldName),
 				ID:                types.Int64Value(e.Id),
 			})
+			id = append(id, SUSIP_TYPE)
 		} else if e.EnrichmentType.EnrichmentTypeCustomEnrichment != nil {
 			if model.Custom == nil {
 				model.Custom = &CustomEnrichmentFieldsModel{}
@@ -730,8 +799,10 @@ func flattenDataEnrichments(enrichments []ess.Enrichment, uploadResp *cess.Custo
 				Name:              types.StringValue(e.FieldName),
 				ID:                types.Int64Value(e.Id),
 			})
+			id = append(id, CUSTOM_TYPE)
 		}
 	}
+	model.ID = types.StringValue(strings.Join(id, ","))
 	return model
 }
 
@@ -741,4 +812,23 @@ func ExtractIdsFromEnrichment(fields []CoralogixEnrichment) []uint32 {
 		ids = append(ids, e.GetId())
 	}
 	return ids
+}
+
+func FilterEnrichmentByTypes(enrichments []ess.Enrichment, t string) []ess.Enrichment {
+	results := make([]ess.Enrichment, 0)
+	for _, e := range enrichments {
+		if t == AWS_TYPE && e.EnrichmentType.EnrichmentTypeAws != nil {
+			results = append(results, e)
+		}
+		if t == GEOIP_TYPE && e.EnrichmentType.EnrichmentTypeGeoIp != nil {
+			results = append(results, e)
+		}
+		if t == SUSIP_TYPE && e.EnrichmentType.EnrichmentTypeSuspiciousIp != nil {
+			results = append(results, e)
+		}
+		if t == CUSTOM_TYPE && e.EnrichmentType.EnrichmentTypeCustomEnrichment != nil {
+			results = append(results, e)
+		}
+	}
+	return results
 }

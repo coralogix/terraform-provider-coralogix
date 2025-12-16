@@ -138,8 +138,7 @@ func FrameworkDatasourceSchemaFromFrameworkResourceSchema(rs resourceschema.Sche
 	}
 
 	return datasourceschema.Schema{
-		Attributes: attributes,
-		//Blocks: convertBlocks(rs.Blocks),
+		Attributes:          attributes,
 		Description:         rs.Description,
 		MarkdownDescription: rs.MarkdownDescription,
 		DeprecationMessage:  rs.DeprecationMessage,
