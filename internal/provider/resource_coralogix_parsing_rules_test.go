@@ -1012,22 +1012,23 @@ func testAccCoralogixResourceParsingRulessSeverities() string {
   severities =  ["critical", "debug", "error"]
   rule_subgroups = [{
     rules = [{
-		extract_timestamp = {
-            name               	= "rule1"
-            description        	= "description"
-            source_field 			= "text"
-            time_format        	= "2006-01-02T15:04:05.999999999Z07:00"
-            field_format_standard = "golang"
-		}}, {
-        parse_json_field = {
-			name                   = "Example parse-json-field rule from terraform"
-			description            = "rule created by coralogix terraform provider"
-			source_field           = "text"
-			destination_field      = "text"
-			keep_source_field      = "true"
-			keep_destination_field = "true"
-        }
-    }]
+			extract_timestamp = {
+				name               	= "rule1"
+				description        	= "description"
+				source_field 			= "text"
+				time_format        	= "2006-01-02T15:04:05.999999999Z07:00"
+				field_format_standard = "golang"
+			}
+		}, {
+			parse_json_field = {
+				name                   = "Example parse-json-field rule from terraform"
+				description            = "rule created by coralogix terraform provider"
+				source_field           = "text"
+				destination_field      = "text"
+				keep_source_field      = "true"
+				keep_destination_field = "true"
+			}
+    	}]
   }] 
 }`
 

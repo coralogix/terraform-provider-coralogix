@@ -134,6 +134,12 @@ func (r *DashboardsFolderResource) Create(ctx context.Context, req resource.Crea
 	result, httpResponse, err := r.client.DashboardFoldersServiceGetDashboardFolder(ctx, *createResult.FolderId).
 		Execute()
 
+	if err != nil {
+		resp.Diagnostics.AddError("Error fetching folders after replacing coralogix_dashboard_folder",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq),
+		)
+		return
+	}
 	plan = flattenDashboardsFolder(result.Folder)
 
 	diags = resp.State.Set(ctx, plan)
@@ -204,6 +210,12 @@ func (r *DashboardsFolderResource) Update(ctx context.Context, req resource.Upda
 	result, httpResponse, err := r.client.DashboardFoldersServiceGetDashboardFolder(ctx, *dashboardsFolder.Id).
 		Execute()
 
+	if err != nil {
+		resp.Diagnostics.AddError("Error fetching folders after replacing coralogix_dashboard_folder",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq),
+		)
+		return
+	}
 	plan = flattenDashboardsFolder(result.Folder)
 
 	diags = resp.State.Set(ctx, plan)
@@ -229,9 +241,9 @@ func (r *DashboardsFolderResource) Delete(ctx context.Context, req resource.Dele
 
 func flattenDashboardsFolder(folder *dbfs.DashboardFolder) DashboardsFolderResourceModel {
 	return DashboardsFolderResourceModel{
-		ID:       types.StringValue(folder.GetId()),
-		Name:     types.StringValue(folder.GetName()),
-		ParentId: types.StringValue(folder.GetParentId()),
+		ID:       types.StringPointerValue(folder.Id),
+		Name:     types.StringPointerValue(folder.Name),
+		ParentId: types.StringPointerValue(folder.ParentId),
 	}
 }
 
