@@ -3,6 +3,8 @@ package enrichment_rules
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -74,32 +76,69 @@ func (d *DataEnrichmentDataSource) Read(ctx context.Context, req datasource.Read
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	id := data.ID.ValueString()
+	types := strings.Split(id, ",")
 
 	customEnrichmentId := getCustomEnrichmentId(data)
-	customEnrichment, httpResponse, err := d.custom_enrichments_client.
-		CustomEnrichmentServiceGetCustomEnrichment(ctx, *customEnrichmentId).
-		Execute()
-
-	if err != nil {
+	if len(types) == 0 && customEnrichmentId == nil {
 		resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+			"No ids found",
 		)
 		return
 	}
 
-	result, httpResponse, err := d.client.
-		EnrichmentServiceGetEnrichments(ctx).
-		Execute()
-	if err != nil {
-		resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-		)
-		return
+	var customEnrichment *cess.CustomEnrichment = nil
+	if customEnrichmentId != nil {
+		result, httpResponse, err := d.custom_enrichments_client.
+			CustomEnrichmentServiceGetCustomEnrichment(ctx, *customEnrichmentId).
+			Execute()
+		if err != nil {
+			if httpResponse.StatusCode == http.StatusNotFound {
+				resp.Diagnostics.AddWarning(
+					"coralogix_data_enrichments is in state, but no longer exists in Coralogix backend",
+					"coralogix_data_enrichments will be recreated when you apply",
+				)
+				resp.State.RemoveResource(ctx)
+			} else {
+				resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
+					utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+				)
+			}
+			return
+		}
+		customEnrichment = &result.CustomEnrichment
+	}
+	var enrichments []ess.Enrichment
+	if len(types) > 0 {
+		result, httpResponse, err := d.client.
+			EnrichmentServiceGetEnrichments(ctx).
+			Execute()
+		if err != nil {
+			if httpResponse.StatusCode == http.StatusNotFound {
+				resp.Diagnostics.AddWarning(
+					"coralogix_data_enrichments is in state, but no longer exists in Coralogix backend",
+					"coralogix_data_enrichments will be recreated when you apply",
+				)
+				resp.State.RemoveResource(ctx)
+			} else {
+				resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
+					utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+				)
+			}
+			return
+		}
+		for _, t := range types {
+			enrichments = append(enrichments, FilterEnrichmentByTypes(result.Enrichments, t)...)
+		}
 	}
 
-	state := flattenDataEnrichments(result.Enrichments,
-		&customEnrichment.CustomEnrichment,
-		data.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer())
+	var content *string = nil
+	if customEnrichmentId != nil {
+		content = data.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer()
+	}
+	data = flattenDataEnrichments(enrichments,
+		customEnrichment,
+		content)
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
