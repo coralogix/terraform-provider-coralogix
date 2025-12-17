@@ -15,6 +15,7 @@
 package provider
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -63,7 +64,7 @@ func TestAccCoralogixDataSourceDataEnrichmentsCustom_basic(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceCustomDataEnrichments(name, description, filePath) +
+				Config: testAccCoralogixResourceCustomDataEnrichments(name, description, fmt.Sprintf("file(\"%v\")", filePath)) +
 					testAccCoralogixDataSourceDataEnrichments_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.coralogix_data_enrichments.test", "name", name),
