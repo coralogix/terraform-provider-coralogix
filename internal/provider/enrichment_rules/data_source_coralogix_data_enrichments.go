@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -80,7 +81,12 @@ func (d *DataEnrichmentDataSource) Read(ctx context.Context, req datasource.Read
 	types := strings.Split(id, ",")
 
 	customEnrichmentId := getCustomEnrichmentId(data)
-	if len(types) == 0 && customEnrichmentId == nil {
+	val, isDataSet := strconv.ParseInt(id, 10, 64)
+	if customEnrichmentId == nil {
+		customEnrichmentId = &val
+	}
+
+	if len(types) == 0 && customEnrichmentId == nil && isDataSet != nil {
 		resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
 			"No ids found",
 		)
@@ -134,7 +140,13 @@ func (d *DataEnrichmentDataSource) Read(ctx context.Context, req datasource.Read
 
 	var content *string = nil
 	if customEnrichmentId != nil {
-		content = data.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer()
+
+		if data.Custom != nil {
+			content = data.Custom.CustomEnrichmentDataModel.Contents.ValueStringPointer()
+		} else {
+			empty := ""
+			content = &empty
+		}
 	}
 	data = flattenDataEnrichments(enrichments,
 		customEnrichment,

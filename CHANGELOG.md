@@ -1130,12 +1130,11 @@ Fix:
 Fix:
 - State upgrade issue was resolved
 
-# Release 4.0.0
-
-**Note** From now on, the provider will follow actual semver. 
+# Release 3.1.0
 
 **Internal:**
-* Some more Restructuring
+
+* Some more restructuring. Most of the clients are now based on REST APIs. 
 * Improved request/response logging using `TF_LOG`
 
 ## resource/coralogix_parsing_rules, data_source/coralogix_parsing_rules
@@ -1148,12 +1147,19 @@ Fix:
 
 ## resource/coralogix_data_enrichments, data_source/coralogix_data_enrichments
 
-- New addition! These will replace `coralogix_enrichment`
+- New addition! These will replace `coralogix_enrichment` **and** `coralogix_data_set`
 
+## resource/coralogix_dashboard
 
-# Release 5.0.0
+- Fix: providing a dashboard folder id will now take precedence over name
+
+# Release 4.0.0
 
 ## resource/coralogix_enrichment, data_source/coralogix_enrichment
+
+- Removed.
+
+## resource/coralogix_data_set, data_source/coralogix_data_set
 
 - Removed.
 
