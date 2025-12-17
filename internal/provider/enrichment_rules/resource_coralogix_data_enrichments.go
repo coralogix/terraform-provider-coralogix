@@ -155,35 +155,34 @@ func (r *DataEnrichmentsResource) ImportState(ctx context.Context, req resource.
 		)
 		return
 	}
-
+	isCustomId := false
+Outer:
 	for _, p := range idParts {
 		if !slices.Contains(possibleTypes, strings.ToLower(p)) {
-			resp.Diagnostics.AddError(
-				"Unexpected Import Identifier",
-				fmt.Sprintf("Expected import identifier to be one of: %v . Got: '%q'", strings.Join(possibleTypes, ","), strings.ToLower(p)),
-			)
-			return
+			isCustomId = true
+			break Outer
 		}
 	}
 
-	val, isDataSet := strconv.ParseInt(idParts[0], 10, 64)
+	if isCustomId {
+		val, isDataSet := strconv.ParseInt(idParts[0], 10, 64)
 
-	if isDataSet != nil {
-		resp.Diagnostics.AddError(
-			"Unexpected Import Identifier",
-			fmt.Sprintf("Expected import identifier with format: %v or 12345 (that's a custom enrichment id). Got: %q", strings.Join(possibleTypes, ","), req.ID))
-		return
-	}
+		if isDataSet != nil {
+			resp.Diagnostics.AddError(
+				"Unexpected Import Identifier",
+				fmt.Sprintf("Expected import identifier with format: %v or 12345 (that's a custom enrichment id). Got: %q", strings.Join(possibleTypes, ","), req.ID))
+			return
+		}
 
-	state := DataEnrichmentsModel{
-		Custom: &CustomEnrichmentFieldsModel{
-			CustomEnrichmentDataModel: &CustomEnrichmentDataModel{
-				ID: types.Int64Value(val),
+		state := DataEnrichmentsModel{
+			Custom: &CustomEnrichmentFieldsModel{
+				CustomEnrichmentDataModel: &CustomEnrichmentDataModel{
+					ID: types.Int64Value(val),
+				},
 			},
-		},
+		}
+		resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 	}
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 func (r *DataEnrichmentsResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
