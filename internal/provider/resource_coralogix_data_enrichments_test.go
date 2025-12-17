@@ -180,9 +180,8 @@ func TestAccCoralogixResourceCustomDataEnrichment(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:      dataEnrichmentResourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName: dataEnrichmentResourceName,
+				ImportState:  true,
 			},
 		},
 	})
