@@ -67,7 +67,7 @@ func TestAccCoralogixDataSourceDataEnrichmentsCustom_basic(t *testing.T) {
 				Config: testAccCoralogixResourceCustomDataEnrichments(name, description, fmt.Sprintf("file(\"%v\")", filePath)) +
 					testAccCoralogixDataSourceDataEnrichments_read(),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("data.coralogix_data_enrichments.test", "name", name),
+					resource.TestCheckResourceAttr("data.coralogix_data_enrichments.test", "custom.custom_enrichment_data.name", name),
 				),
 			},
 		},
