@@ -27,7 +27,7 @@ provider "coralogix" {
   #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
 }
 
-resource "coralogix_data_enrichment" geo_ip_enrichment {
+resource "coralogix_data_enrichments" geo_ip_enrichment {
   geo_ip = {
     fields = [{
       name = "coralogix.metadata.sdkId"
@@ -39,7 +39,7 @@ resource "coralogix_data_enrichment" geo_ip_enrichment {
   }
 }
 
-resource "coralogix_data_enrichment" suspicious_ip_enrichment {
+resource "coralogix_data_enrichments" suspicious_ip_enrichment {
   suspicious_ip = {
     fields = [{
       name = "coralogix.metadata.sdkId"
@@ -48,7 +48,7 @@ resource "coralogix_data_enrichment" suspicious_ip_enrichment {
   }
 }
 
-resource "coralogix_data_enrichment" custom_enrichment {
+resource "coralogix_data_enrichments" custom_enrichment {
   custom = {
       custom_enrichment_data = {
 				name         = "my-custom-enrichment"

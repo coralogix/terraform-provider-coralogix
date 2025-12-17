@@ -50,6 +50,7 @@ resource "coralogix_api_key" "example" {
 
 ### Optional
 
+- `access_policy` (String) Api Key Access Policy
 - `active` (Boolean) Api Key Is Active.
 
 ### Read-Only
