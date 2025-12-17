@@ -15,6 +15,7 @@ import (
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	cess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/custom_enrichments_service"
 	ess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/enrichments_service"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/listvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -182,6 +183,8 @@ Outer:
 			},
 		}
 		resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+	} else {
+		resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 	}
 }
 
