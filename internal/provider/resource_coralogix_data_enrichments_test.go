@@ -217,7 +217,7 @@ func testAccCoralogixResourceCustomDataEnrichment(fieldName string) string {
     resource "coralogix_data_enrichments" test{
         custom = {
             custom_enrichment_data = {
-				name         = "custom enrichment"
+				name         = "%s"
 				description  = "description"
 				contents = "local_id,instance_type\nfoo1,t2.micro\nfoo2,t2.micro\nfoo3,t2.micro\nbar1,m3.large\n"			
 			}
@@ -227,7 +227,7 @@ func testAccCoralogixResourceCustomDataEnrichment(fieldName string) string {
 			}]
         }
     }
-    `, fieldName)
+    `, acctest.RandomWithPrefix("custom-enrichment"), fieldName)
 }
 
 func testAccCoralogixResourceGeoIpSusIpDataEnrichments() string {
