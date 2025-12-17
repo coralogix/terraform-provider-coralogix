@@ -27,7 +27,7 @@ func TestAccCoralogixResourceCustomDataEnrichments(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceCustomDataEnrichments(name, description, fmt.Sprintf("file(%v)", filePath)),
+				Config: testAccCoralogixResourceCustomDataEnrichments(name, description, fmt.Sprintf("file(\"%v\")", filePath)),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "id"),
 					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "name", name),

@@ -749,6 +749,7 @@ func flattenDataEnrichments(enrichments []ess.Enrichment, uploadResp *cess.Custo
 			},
 			Fields: []EnrichmentFieldModel{},
 		}
+		model.ID = types.StringValue(strconv.FormatInt(*uploadResp.Id, 10))
 	}
 
 	for _, e := range enrichments {
@@ -801,7 +802,9 @@ func flattenDataEnrichments(enrichments []ess.Enrichment, uploadResp *cess.Custo
 			id = append(id, CUSTOM_TYPE)
 		}
 	}
-	model.ID = types.StringValue(strings.Join(id, ","))
+	if len(id) > 0 {
+		model.ID = types.StringValue(strings.Join(id, ","))
+	}
 	return model
 }
 
