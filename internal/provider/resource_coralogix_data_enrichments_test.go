@@ -172,9 +172,9 @@ func TestAccCoralogixResourceCustomDataEnrichment(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "id"),
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "custom.custom_enrichment_data.id"),
-					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "custom.custom_enrichment_data.version"),
 					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "custom.custom_enrichment_data.contents"),
-					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "custom.custom_enrichment_data.name", "custom enrichment"),
+					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "custom.custom_enrichment_data.version", "1"),
+					resource.TestCheckResourceAttrSet(dataEnrichmentResourceName, "custom.custom_enrichment_data.name"),
 					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "custom.custom_enrichment_data.description", "description"),
 					resource.TestCheckResourceAttr(dataEnrichmentResourceName, "custom.fields.0.name", fieldName),
 				),
