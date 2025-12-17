@@ -57,7 +57,7 @@ func TestAccCoralogixDataSourceDataEnrichmentsCustom_basic(t *testing.T) {
 		panic(err)
 	}
 	parent := filepath.Dir(filepath.Dir(wd))
-	filePath := parent + "/examples/resources/coralogix_data_set/date-to-day-of-the-week.csv"
+	filePath := parent + "/examples/resources/coralogix_data_enrichments/date-to-day-of-the-week.csv"
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },

@@ -66,7 +66,7 @@ resource "coralogix_data_enrichments" test{
     custom_enrichment_data = {
       name         = "custom enrichment data"
       description  = "description"
-      contents     = file("../coralogix_data_set/date-to-day-of-the-week.csv")
+      contents     = file("../coralogix_data_enrichments/date-to-day-of-the-week.csv")
     }
     fields = []
   }
