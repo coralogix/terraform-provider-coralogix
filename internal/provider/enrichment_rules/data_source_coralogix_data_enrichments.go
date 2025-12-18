@@ -3,7 +3,6 @@ package enrichment_rules
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 
@@ -82,7 +81,8 @@ func (d *DataEnrichmentDataSource) Read(ctx context.Context, req datasource.Read
 
 	customEnrichmentId := getCustomEnrichmentId(data)
 	val, isDataSet := strconv.ParseInt(id, 10, 64)
-	if customEnrichmentId == nil {
+	// the data source has only a single ID field
+	if customEnrichmentId == nil && isDataSet == nil {
 		customEnrichmentId = &val
 	}
 
@@ -99,38 +99,25 @@ func (d *DataEnrichmentDataSource) Read(ctx context.Context, req datasource.Read
 			CustomEnrichmentServiceGetCustomEnrichment(ctx, *customEnrichmentId).
 			Execute()
 		if err != nil {
-			if httpResponse.StatusCode == http.StatusNotFound {
-				resp.Diagnostics.AddWarning(
-					"coralogix_data_enrichments is in state, but no longer exists in Coralogix backend",
-					"coralogix_data_enrichments will be recreated when you apply",
-				)
-				resp.State.RemoveResource(ctx)
-			} else {
-				resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
-					utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-				)
-			}
+			resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+			)
 			return
 		}
 		customEnrichment = &result.CustomEnrichment
 	}
+
 	var enrichments []ess.Enrichment
 	if len(types) > 0 {
+
 		result, httpResponse, err := d.client.
 			EnrichmentServiceGetEnrichments(ctx).
 			Execute()
 		if err != nil {
-			if httpResponse.StatusCode == http.StatusNotFound {
-				resp.Diagnostics.AddWarning(
-					"coralogix_data_enrichments is in state, but no longer exists in Coralogix backend",
-					"coralogix_data_enrichments will be recreated when you apply",
-				)
-				resp.State.RemoveResource(ctx)
-			} else {
-				resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
-					utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
-				)
-			}
+
+			resp.Diagnostics.AddError("Error reading coralogix_data_enrichments",
+				utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil),
+			)
 			return
 		}
 		for _, t := range types {
@@ -148,6 +135,7 @@ func (d *DataEnrichmentDataSource) Read(ctx context.Context, req datasource.Read
 			content = &empty
 		}
 	}
+
 	data = flattenDataEnrichments(enrichments,
 		customEnrichment,
 		content)
