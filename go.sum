@@ -62,6 +62,8 @@ github.com/coralogix/coralogix-management-sdk v1.9.3-0.20251215104658-4806eb3d29
 github.com/coralogix/coralogix-management-sdk v1.9.3-0.20251215104658-4806eb3d29e0/go.mod h1:hC1w7mD+AZhGGw6krKRYEsKst+pYfH6SuUYM001X+tk=
 github.com/coralogix/coralogix-management-sdk v1.9.3-0.20251217180441-0921290d7865 h1:44ClApMBB2EFckMtp+wW3r0F5c1Oae4yLyUsHBAWBlc=
 github.com/coralogix/coralogix-management-sdk v1.9.3-0.20251217180441-0921290d7865/go.mod h1:hC1w7mD+AZhGGw6krKRYEsKst+pYfH6SuUYM001X+tk=
+github.com/coralogix/coralogix-management-sdk v1.9.3-0.20251218110019-b07a72c8b3cb h1:P95rBxV7AHRJiq3b+Dskf92xMqXBM0qKnF0qSuQNCf8=
+github.com/coralogix/coralogix-management-sdk v1.9.3-0.20251218110019-b07a72c8b3cb/go.mod h1:hC1w7mD+AZhGGw6krKRYEsKst+pYfH6SuUYM001X+tk=
 github.com/coralogix/grpc-gateway/v2 v2.0.0-20251015134251-4d8694a21a7c h1:aOfG9Pwe7Fp/m+tdybObODwgeK5st/+9df/QUw0dzBQ=
 github.com/coralogix/grpc-gateway/v2 v2.0.0-20251015134251-4d8694a21a7c/go.mod h1:bqGO/kNOHTFiDIfPmXLQcox10aWQs5Q3b9sXUFoaFFk=
 github.com/cyphar/filepath-securejoin v0.4.1 h1:JyxxyPEaktOD+GAnqIqTf9A8tHyAG22rowi7HkoSU1s=
