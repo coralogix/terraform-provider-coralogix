@@ -20,4 +20,5 @@ resource "coralogix_api_key" "example" {
   active = true
   presets = ["APM"]
   permissions = ["livetail:Read"]
+  access_policy = "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"data-ingest-api-keys:ReadAccessPolicy\": \"grant\", \"data-ingest-api-keys:Manage\": \"deny\", \"data-ingest-api-keys:UpdateAccessPolicy\": \"deny\", \"data-ingest-api-keys:ReadConfig\": \"grant\" } }, \"rules\": [] }"
 }

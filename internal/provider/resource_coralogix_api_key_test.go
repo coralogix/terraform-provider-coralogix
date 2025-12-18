@@ -106,7 +106,7 @@ func testApiKeyResourceWithAccessPolicy() string {
   active = true
   permissions = []
   presets = ["Alerts", "APM"]
-  access_policy = "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"data-ingest-api-keys:ReadAccessPolicy\": \"grant\", \"data-ingest-api-keys:Manage\": \"deny\", \"data-ingest-api-keys:UpdateAccessPolicy\": \"deny\", \"data-ingest-api-keys:ReadConfig\": \"grant\" } }, \"rules\": [] }"
+  access_policy = "{ \"version\": \"v2025-01-01\", \"rules\": [], \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"grant\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"grant\" }, \"additionalInfo\": null } }"
 }
 `, "<TEAM_ID>", teamID, 1)
 }
