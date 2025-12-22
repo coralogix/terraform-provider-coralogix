@@ -1305,6 +1305,7 @@ func expandLogsRatioThresholdTypeDefinition(ctx context.Context, properties *ale
 		NotificationPayloadFilter: notificationPayloadFilter,
 		GroupByFor:                alerttypes.LogsRatioGroupByForSchemaToProtoMap[groupByFor].Ptr(),
 		EvaluationDelayMs:         ratioThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		IgnoreInfinity:            ratioThresholdModel.IgnoreInfinity.ValueBoolPointer(),
 	}
 	properties.AlertDefPropertiesLogsRatioThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_RATIO_THRESHOLD.Ptr()
 	return properties, nil
@@ -1687,6 +1688,7 @@ func expandLogsTimeRelativeThresholdAlertTypeDefinition(ctx context.Context, pro
 		NotificationPayloadFilter:  notificationPayloadFilter,
 		UndetectedValuesManagement: undetected,
 		EvaluationDelayMs:          relativeThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
+		IgnoreInfinity:             relativeThresholdModel.IgnoreInfinity.ValueBoolPointer(),
 	}
 	properties.AlertDefPropertiesLogsTimeRelativeThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_TIME_RELATIVE_THRESHOLD.Ptr()
 	return properties, nil
@@ -3722,6 +3724,7 @@ func flattenLogsRatioThreshold(ctx context.Context, ratioThreshold *alerts.LogsR
 		NotificationPayloadFilter: utils.StringSliceToTypeStringSet(ratioThreshold.GetNotificationPayloadFilter()),
 		GroupByFor:                types.StringValue(alerttypes.LogsRatioGroupByForProtoToSchemaMap[*groupByFor]),
 		CustomEvaluationDelay:     types.Int32PointerValue(ratioThreshold.EvaluationDelayMs),
+		IgnoreInfinity:            types.BoolPointerValue(ratioThreshold.IgnoreInfinity),
 	}
 	return types.ObjectValueFrom(ctx, alertschema.LogsRatioThresholdAttr(), logsRatioMoreThanModel)
 }
@@ -4053,6 +4056,7 @@ func flattenLogsTimeRelativeThreshold(ctx context.Context, logsTimeRelativeThres
 		NotificationPayloadFilter:  utils.StringSliceToTypeStringSet(logsTimeRelativeThreshold.GetNotificationPayloadFilter()),
 		UndetectedValuesManagement: undetected,
 		CustomEvaluationDelay:      types.Int32PointerValue(logsTimeRelativeThreshold.EvaluationDelayMs),
+		IgnoreInfinity:             types.BoolPointerValue(logsTimeRelativeThreshold.IgnoreInfinity),
 	}
 
 	return types.ObjectValueFrom(ctx, alertschema.LogsTimeRelativeAttr(), logsTimeRelativeThresholdModel)

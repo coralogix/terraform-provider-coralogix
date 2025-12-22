@@ -574,6 +574,7 @@ func TestAccCoralogixResourceAlert_logs_ratio_threshold(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-ratio-more-than alert example"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-ratio-more-than alert from terraform"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.ignore_infinity", "false"),
 					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "2"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_id"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_name"),
@@ -631,6 +632,7 @@ func TestAccCoralogixResourceAlert_logs_ratio_threshold(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-ratio-more-than alert example updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-ratio-more-than alert from terraform updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P2"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_ratio_threshold.ignore_infinity", "false"),
 					resource.TestCheckResourceAttr(alertResourceName, "group_by.#", "3"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_id"),
 					resource.TestCheckTypeSetElemAttr(alertResourceName, "group_by.*", "coralogix.metadata.alert_name"),
@@ -832,6 +834,7 @@ func TestAccCoralogixResourceAlert_logs_time_relative_more_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-time-relative-more-than alert example"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-time-relative-more-than alert from terraform"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P4"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.ignore_infinity", "true"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.0.condition.threshold", "10"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.0.condition.compared_to", "Same Hour Yesterday"),
@@ -847,6 +850,7 @@ func TestAccCoralogixResourceAlert_logs_time_relative_more_than(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-time-relative-more-than alert example updated"),
 					resource.TestCheckResourceAttr(alertResourceName, "description", "Example of logs-time-relative-more-than alert from terraform updated"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.ignore_infinity", "true"),
 					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.#", "1"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_time_relative_threshold.rules.0.condition.threshold", "50"),
@@ -2452,6 +2456,7 @@ func testAccCoralogixResourceAlertLogsRatioMoreThan() string {
             }
             override = { }
         }]
+      ignore_infinity = false
     }
   }
 }
@@ -2524,6 +2529,7 @@ func testAccCoralogixResourceAlertLogsRatioMoreThanUpdated() string {
         override = {}
       }]
       group_by_for = "Numerator Only"
+      ignore_infinity = false
     }
   }
 }
@@ -2695,6 +2701,7 @@ func testAccCoralogixResourceAlertLogsTimeRelativeMoreThan() string {
             priority = "P2"
         }
     }]
+    ignore_infinity = true
     }
   }
 }
@@ -2719,6 +2726,7 @@ func testAccCoralogixResourceAlertLogsTimeRelativeMoreThanUpdated() string {
             priority = "P2"
         }
     }]
+    ignore_infinity = true
     }
   }
 }
