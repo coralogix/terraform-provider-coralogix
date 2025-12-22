@@ -513,6 +513,11 @@ func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*ap
 		return nil, diags
 	}
 	hashed := false
+
+	var accessPolicy *string = nil
+	if !apiKeyModel.AccessPolicy.IsUnknown() {
+		accessPolicy = apiKeyModel.AccessPolicy.ValueStringPointer()
+	}
 	return &apiKeys.CreateApiKeyRequest{
 		Name:  apiKeyModel.Name.ValueStringPointer(),
 		Owner: &owner,
@@ -521,7 +526,7 @@ func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*ap
 			Permissions: permissions,
 		},
 		Hashed:       &hashed, // this has to be false or the GetApiKey will fail (encrypted keys are not readable)
-		AccessPolicy: apiKeyModel.AccessPolicy.ValueStringPointer(),
+		AccessPolicy: accessPolicy,
 	}, diags
 }
 

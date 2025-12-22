@@ -217,9 +217,10 @@ func main() {
 
 	if err == nil {
 		log.Println("Deleting all groups")
-
 		for _, group := range groups.GetGroups() {
-			groupClient.Delete(ctx, &cxsdk.DeleteTeamGroupRequest{GroupId: group.GetGroupId()})
+			if !strings.HasPrefix(group.Name, "CI Group") {
+				groupClient.Delete(ctx, &cxsdk.DeleteTeamGroupRequest{GroupId: group.GetGroupId()})
+			}
 		}
 	} else {
 		log.Print("Error listing groups:", err)
