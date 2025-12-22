@@ -60,6 +60,58 @@ func TestApiKeyResource(t *testing.T) {
 	})
 }
 
+func TestApiKeyResourceWithAccessPolicy(t *testing.T) {
+	t.Skip("Different Permissions Required")
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testApiKeyResourceWithAccessPolicy(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(apiKeyResourceName, "name", "Test Key 3"),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "owner.team_id", teamID),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "active", "true"),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "access_policy", "{ \"version\": \"2025-01-01\", \"default\": { \"permissions\": { \"data-ingest-api-keys:ReadAccessPolicy\": \"grant\", \"data-ingest-api-keys:Manage\": \"deny\", \"data-ingest-api-keys:UpdateAccessPolicy\": \"deny\", \"data-ingest-api-keys:ReadConfig\": \"grant\" } }, \"rules\": [] }"),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "permissions.#", "0"),
+					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "Alerts"),
+					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "APM"),
+				),
+			},
+			{
+				ResourceName:      apiKeyResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				Config: updateApiKeyResource(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(apiKeyResourceName, "name", "Test Key 5"),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "owner.team_id", teamID),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "active", "false"),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "access_policy", ""),
+					resource.TestCheckResourceAttr(apiKeyResourceName, "permissions.#", "0"),
+					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "Alerts"),
+					resource.TestCheckTypeSetElemAttr(apiKeyResourceName, "presets.*", "APM")),
+			},
+		},
+	})
+}
+
+func testApiKeyResourceWithAccessPolicy() string {
+	return strings.Replace(`resource "coralogix_api_key" "test" {
+  name  = "Test Key 3"
+  owner = {
+    team_id : "<TEAM_ID>"
+  }
+  active = true
+  permissions = []
+  presets = ["Alerts", "APM"]
+  access_policy = "{ \"version\": \"v2025-01-01\", \"rules\": [], \"default\": { \"permissions\": { \"team-custom-api-keys:ReadConfig\": \"grant\", \"team-custom-api-keys:Manage\": \"grant\", \"team-custom-api-keys:ReadAccessPolicy\": \"grant\", \"team-custom-api-keys:UpdateAccessPolicy\": \"grant\" }, \"additionalInfo\": null } }"
+}
+`, "<TEAM_ID>", teamID, 1)
+}
+
 func testApiKeyResource() string {
 	return strings.Replace(`resource "coralogix_api_key" "test" {
   name  = "Test Key 3"

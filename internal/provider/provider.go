@@ -380,6 +380,7 @@ func (p *coralogixProvider) DataSources(context.Context) []func() datasource.Dat
 		notifications.NewGlobalRouterDataSource,
 		notifications.NewPresetDataSource,
 		parsing_rules.NewParsingRulesDataSource,
+		enrichment_rules.NewDataEnrichmentDataSource,
 	}
 }
 
@@ -413,5 +414,6 @@ func (p *coralogixProvider) Resources(context.Context) []func() resource.Resourc
 		notifications.NewGlobalRouterResource,
 		notifications.NewPresetResource,
 		parsing_rules.NewParsingRulesResource,
+		enrichment_rules.NewDataEnrichmentsResource,
 	}
 }

@@ -159,6 +159,14 @@ func resourceSchemaV1() schema.Schema {
 				ElementType:         types.StringType,
 				MarkdownDescription: "Api Key Permissions",
 			},
+			"access_policy": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				MarkdownDescription: "Api Key Access Policy",
+			},
 		},
 		MarkdownDescription: "Coralogix Api keys.",
 	}
@@ -243,14 +251,15 @@ func (r *ApiKeyResource) Schema(ctx context.Context, req resource.SchemaRequest,
 }
 
 type ApiKeyModel struct {
-	ID          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	Owner       *Owner       `tfsdk:"owner"`
-	Active      types.Bool   `tfsdk:"active"`
-	Hashed      types.Bool   `tfsdk:"hashed"`
-	Permissions types.Set    `tfsdk:"permissions"`
-	Presets     types.Set    `tfsdk:"presets"`
-	Value       types.String `tfsdk:"value"`
+	ID           types.String `tfsdk:"id"`
+	Name         types.String `tfsdk:"name"`
+	Owner        *Owner       `tfsdk:"owner"`
+	Active       types.Bool   `tfsdk:"active"`
+	Hashed       types.Bool   `tfsdk:"hashed"`
+	Permissions  types.Set    `tfsdk:"permissions"`
+	Presets      types.Set    `tfsdk:"presets"`
+	Value        types.String `tfsdk:"value"`
+	AccessPolicy types.String `tfsdk:"access_policy"`
 }
 
 type Owner struct {
@@ -476,14 +485,15 @@ func flattenGetApiKeyResponse(ctx context.Context, apiKeyId *string, response *a
 
 	owner := flattenOwner(response.KeyInfo.Owner)
 	return &ApiKeyModel{
-		ID:          types.StringValue(*apiKeyId),
-		Value:       key,
-		Name:        types.StringPointerValue(response.KeyInfo.Name),
-		Active:      types.BoolValue(active),
-		Hashed:      types.BoolValue(hashedKey),
-		Permissions: permissions,
-		Presets:     presets,
-		Owner:       &owner,
+		ID:           types.StringValue(*apiKeyId),
+		Value:        key,
+		Name:         types.StringPointerValue(response.KeyInfo.Name),
+		Active:       types.BoolValue(active),
+		Hashed:       types.BoolValue(hashedKey),
+		Permissions:  permissions,
+		Presets:      presets,
+		Owner:        &owner,
+		AccessPolicy: types.StringPointerValue(response.KeyInfo.AccessPolicy),
 	}, nil
 }
 
@@ -503,6 +513,11 @@ func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*ap
 		return nil, diags
 	}
 	hashed := false
+
+	var accessPolicy *string = nil
+	if !apiKeyModel.AccessPolicy.IsUnknown() {
+		accessPolicy = apiKeyModel.AccessPolicy.ValueStringPointer()
+	}
 	return &apiKeys.CreateApiKeyRequest{
 		Name:  apiKeyModel.Name.ValueStringPointer(),
 		Owner: &owner,
@@ -510,7 +525,8 @@ func makeCreateApiKeyRequest(ctx context.Context, apiKeyModel *ApiKeyModel) (*ap
 			Presets:     presets,
 			Permissions: permissions,
 		},
-		Hashed: &hashed, // this has to be false or the GetApiKey will fail (encrypted keys are not readable)
+		Hashed:       &hashed, // this has to be false or the GetApiKey will fail (encrypted keys are not readable)
+		AccessPolicy: accessPolicy,
 	}, diags
 }
 

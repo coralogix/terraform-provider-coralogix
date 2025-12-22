@@ -19,12 +19,12 @@ import (
 	"fmt"
 	"log"
 
-	"google.golang.org/protobuf/encoding/protojson"
-
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	dbfs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_folders_service"
+
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -40,7 +40,7 @@ func NewDashboardsFoldersDataSource() datasource.DataSource {
 }
 
 type DashboardsFolderDataSource struct {
-	client *cxsdk.DashboardsFoldersClient
+	client *dbfs.DashboardFoldersServiceAPIService
 }
 
 func (d *DashboardsFolderDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -88,7 +88,7 @@ func (d *DashboardsFolderDataSource) Schema(ctx context.Context, _ datasource.Sc
 }
 
 func (d *DashboardsFolderDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	var data *DashboardsFolderResourceModel
+	var data DashboardsFolderResourceModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -96,33 +96,27 @@ func (d *DashboardsFolderDataSource) Read(ctx context.Context, req datasource.Re
 
 	//Get refreshed dashboards-folder value from Coralogix
 	log.Print("[INFO] Reading dashboards-folders")
-	getDashboardsFolders, err := d.client.List(ctx)
+	listResult, httpResponse, err := d.client.DashboardFoldersServiceListDashboardFolders(ctx).Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError(
-			"Error listing dashboards-folders",
-			utils.FormatRpcErrors(err, cxsdk.GetDashboardRPC, protojson.Format(&cxsdk.ListDashboardFolderRequest{})),
-		)
-
+		resp.Diagnostics.AddError("Error listing coralogix_dashboard_folder", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		return
 	}
-	log.Printf("[INFO] Received dashboards-folders: %s", protojson.Format(getDashboardsFolders))
-	var dashboardsFolder *cxsdk.DashboardFolder
-	for _, folder := range getDashboardsFolders.GetFolder() {
-		if folder.GetId().GetValue() == data.ID.ValueString() ||
-			folder.Name.GetValue() == data.Name.ValueString() {
+	var dashboardsFolder dbfs.DashboardFolder
+	var found = false
+	for _, folder := range listResult.GetFolder() {
+		found = folder.GetId() == data.ID.ValueString() ||
+			*folder.Name == data.Name.ValueString()
+		if found {
 			dashboardsFolder = folder
 			break
 		}
 	}
-	if dashboardsFolder == nil {
-		log.Printf("[ERROR] Could not find created folder with id: %s", data.ID.ValueString())
+	if !found {
 		resp.Diagnostics.AddError(
-			"Error reading dashboards-folders",
-			fmt.Sprintf("Could not find created folder with id: %s", data.ID.ValueString()),
+			"Error reading coralogix_dashboard_folders",
+			fmt.Sprintf("Could not find folder with id (%s) or name (%s)", data.ID.ValueString(), data.Name.ValueString()),
 		)
 	}
-
-	// Save data into Terraform state
+	data = flattenDashboardsFolder(&dashboardsFolder)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

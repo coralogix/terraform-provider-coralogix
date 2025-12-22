@@ -65,12 +65,12 @@ func TestAccCoralogixResourceParsingRules_severities(t *testing.T) {
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "name", "Example parse-json-field rule-group from terraform"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "description", "rule_group created by coralogix terraform provider"),
 					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "severities.#", "3"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.name", "Example parse-json-field rule from terraform"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.description", "rule created by coralogix terraform provider"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.source_field", "text"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.destination_field", "text"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.keep_destination_field", "true"),
-					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.0.parse_json_field.keep_destination_field", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.1.parse_json_field.name", "Example parse-json-field rule from terraform"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.1.parse_json_field.description", "rule created by coralogix terraform provider"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.1.parse_json_field.source_field", "text"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.1.parse_json_field.destination_field", "text"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.1.parse_json_field.keep_destination_field", "true"),
+					resource.TestCheckResourceAttr(parsingRulesGroupResourceName, "rule_subgroups.0.rules.1.parse_json_field.keep_destination_field", "true"),
 				),
 			},
 			{
@@ -1012,15 +1012,23 @@ func testAccCoralogixResourceParsingRulessSeverities() string {
   severities =  ["critical", "debug", "error"]
   rule_subgroups = [{
     rules = [{
-        parse_json_field = {
-          name                   = "Example parse-json-field rule from terraform"
-          description            = "rule created by coralogix terraform provider"
-          source_field           = "text"
-          destination_field      = "text"
-          keep_source_field      = "true"
-          keep_destination_field = "true"
-        }
-    }]
+			extract_timestamp = {
+				name               	= "rule1"
+				description        	= "description"
+				source_field 			= "text"
+				time_format        	= "2006-01-02T15:04:05.999999999Z07:00"
+				field_format_standard = "golang"
+			}
+		}, {
+			parse_json_field = {
+				name                   = "Example parse-json-field rule from terraform"
+				description            = "rule created by coralogix terraform provider"
+				source_field           = "text"
+				destination_field      = "text"
+				keep_source_field      = "true"
+				keep_destination_field = "true"
+			}
+    	}]
   }] 
 }`
 

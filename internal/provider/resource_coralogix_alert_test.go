@@ -1385,7 +1385,7 @@ func TestAccCoralogixResourceAlert_flow(t *testing.T) {
 }
 
 func TestAccCoralogixResourceAlert_sloBurnRate(t *testing.T) {
-	t.Skip("Skipping SLO v2 for now")
+	// t.Skip("Skipping SLO v2 for now")
 	sloName := "coralogix_slo_go_example"
 	alertName := "SLO burn rate alert"
 	resource.Test(t, resource.TestCase{
@@ -3475,10 +3475,10 @@ resource "coralogix_slo_v2" "example" {
   sli = {
     request_based_metric_sli = {
       good_events = {
-        query = "avg(rate(cpu_usage_seconds_total[5m])) by (instance)"
+        query = "avg(rate(cpu_usage_seconds_total[1m])) by (instance)"
       }
       total_events = {
-        query = "avg(rate(cpu_usage_seconds_total[5m])) by (instance)"
+        query = "avg(rate(cpu_usage_seconds_total[1m])) by (instance)"
       }
     }
   }

@@ -3,12 +3,12 @@
 page_title: "coralogix_enrichment Data Source - terraform-provider-coralogix"
 subcategory: ""
 description: |-
-  
+  DEPRECATED. Please use coralogix_data_enrichments instead.
 ---
 
 # coralogix_enrichment (Data Source)
 
-
+**DEPRECATED**. Please use `coralogix_data_enrichments` instead.
 
 ## Example Usage
 

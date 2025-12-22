@@ -138,8 +138,7 @@ func FrameworkDatasourceSchemaFromFrameworkResourceSchema(rs resourceschema.Sche
 	}
 
 	return datasourceschema.Schema{
-		Attributes: attributes,
-		//Blocks: convertBlocks(rs.Blocks),
+		Attributes:          attributes,
 		Description:         rs.Description,
 		MarkdownDescription: rs.MarkdownDescription,
 		DeprecationMessage:  rs.DeprecationMessage,
@@ -325,6 +324,15 @@ func WrappedStringSliceToTypeStringSet(s []*wrapperspb.StringValue) types.Set {
 	return types.SetValueMust(types.StringType, elements)
 }
 
+func TypeStringSetToStringSlice(ctx context.Context, s types.Set) []string {
+	if s.IsNull() || s.IsUnknown() {
+		return nil
+	}
+	casted := make([]types.String, 0, len(s.Elements()))
+	_ = s.ElementsAs(ctx, &casted, false)
+	return TypeStringSliceToStringSlice(casted)
+}
+
 func StringSliceToTypeStringSet(s []string) types.Set {
 	if len(s) == 0 {
 		return types.SetNull(types.StringType)
@@ -472,6 +480,7 @@ func TypeStringElementsToStringSlice(ctx context.Context, s []attr.Value) ([]str
 	}
 	return result, nil
 }
+
 func TypeStringSliceToStringSlice(s []types.String) []string {
 	result := make([]string, 0, len(s))
 	for _, v := range s {
@@ -827,11 +836,11 @@ func UuidCreateIfNull(uuid types.String) string {
 	return uuid.ValueString()
 }
 
-func ExpandUuid(uuid types.String) *wrapperspb.StringValue {
+func ExpandUuid(uuid types.String) string {
 	if uuid.IsNull() || uuid.IsUnknown() {
-		return &wrapperspb.StringValue{Value: gouuid.NewString()}
+		return gouuid.NewString()
 	}
-	return &wrapperspb.StringValue{Value: uuid.ValueString()}
+	return uuid.ValueString()
 }
 
 func RetryableStatusCode(statusCode codes.Code) bool {

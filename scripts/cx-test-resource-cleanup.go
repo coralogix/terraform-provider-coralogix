@@ -168,11 +168,11 @@ func main() {
 
 	// Dashboard folders
 	dashboardsFolderClient := cs.DashboardsFolders()
-	dashboardsFolders, err := dashboardsFolderClient.List(ctx)
+	dashboardsFolders, _, err := dashboardsFolderClient.DashboardFoldersServiceListDashboardFolders(ctx).Execute()
 	if err == nil {
 		log.Println("Deleting all dashboard folders")
 		for _, dashboardsFolder := range dashboardsFolders.GetFolder() {
-			dashboardsFolderClient.Delete(ctx, &cxsdk.DeleteDashboardFolderRequest{FolderId: dashboardsFolder.GetId()})
+			_, _, _ = dashboardsFolderClient.DashboardFoldersServiceDeleteDashboardFolder(ctx, *dashboardsFolder.Id).Execute()
 		}
 	} else {
 		log.Print("Error listing dashboard folders:", err)
@@ -217,9 +217,10 @@ func main() {
 
 	if err == nil {
 		log.Println("Deleting all groups")
-
 		for _, group := range groups.GetGroups() {
-			groupClient.Delete(ctx, &cxsdk.DeleteTeamGroupRequest{GroupId: group.GetGroupId()})
+			if !strings.HasPrefix(group.Name, "CI Group") {
+				groupClient.Delete(ctx, &cxsdk.DeleteTeamGroupRequest{GroupId: group.GetGroupId()})
+			}
 		}
 	} else {
 		log.Print("Error listing groups:", err)

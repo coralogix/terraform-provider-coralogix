@@ -40,7 +40,9 @@ func DataSourceCoralogixEnrichment() *schema.Resource {
 	return &schema.Resource{
 		ReadContext: dataSourceCoralogixEnrichmentRead,
 
-		Schema: enrichmentSchema,
+		Schema:             enrichmentSchema,
+		DeprecationMessage: "This data source will be phased out in 5.0.0. Please use `coralogix_data_enrichments` instead.",
+		Description:        "**DEPRECATED**. Please use `coralogix_data_enrichments` instead.",
 	}
 }
 

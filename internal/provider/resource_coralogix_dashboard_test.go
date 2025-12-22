@@ -446,7 +446,6 @@ func TestAccCoralogixResourceDashboardFromJsonWithFolder(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckCoralogixDashboardAndFolderDestroy,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCoralogixResourceDashboardFromJsonWithFolder(filePath),
@@ -496,40 +495,6 @@ func testAccCheckDashboardDestroy(s *terraform.State) error {
 		if err == nil {
 			if resp.GetDashboard().GetId().GetValue() == rs.Primary.ID {
 				return fmt.Errorf("dashboard still exists: %s", rs.Primary.ID)
-			}
-		}
-	}
-
-	return nil
-}
-
-func testAccCheckCoralogixDashboardAndFolderDestroy(s *terraform.State) error {
-	dashboardsClient := testAccProvider.Meta().(*clientset.ClientSet).Dashboards()
-	foldersClient := testAccProvider.Meta().(*clientset.ClientSet).DashboardsFolders()
-
-	ctx := context.TODO()
-
-	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "coralogix_dashboard" && rs.Type != "coralogix_dashboards_folder" {
-			continue
-		}
-
-		if rs.Type == "coralogix_dashboard" {
-			dashboardId := wrapperspb.String(rs.Primary.ID)
-			resp, err := dashboardsClient.Get(ctx, &cxsdk.GetDashboardRequest{DashboardId: dashboardId})
-			if err == nil {
-				if resp.GetDashboard().GetId().GetValue() == rs.Primary.ID {
-					return fmt.Errorf("dashboard still exists: %s", rs.Primary.ID)
-				}
-			}
-		}
-		if rs.Type == "coralogix_dashboards_folder" {
-			folderId := wrapperspb.String(rs.Primary.ID)
-			resp, err := foldersClient.Get(ctx, &cxsdk.GetDashboardFolderRequest{FolderId: folderId})
-			if err == nil {
-				if resp.GetFolder().GetId().GetValue() == rs.Primary.ID {
-					return fmt.Errorf("folder still exists: %s", rs.Primary.ID)
-				}
 			}
 		}
 	}

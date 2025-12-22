@@ -17,20 +17,20 @@ package dashboards
 import (
 	"context"
 	"fmt"
-	"log"
+	"net/http"
 
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
-	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
+	dbfs "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/dashboard_folders_service"
+
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 var (
@@ -43,7 +43,7 @@ func NewDashboardsFolderResource() resource.Resource {
 }
 
 type DashboardsFolderResource struct {
-	client *cxsdk.DashboardsFoldersClient
+	client *dbfs.DashboardFoldersServiceAPIService
 }
 
 func (r *DashboardsFolderResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
@@ -109,62 +109,41 @@ func (r *DashboardsFolderResource) Create(ctx context.Context, req resource.Crea
 	}
 
 	dashboardsFolder := extractCreateDashboardsFolder(plan)
-	id := dashboardsFolder.GetId().GetValue()
-	dashboardsFolderStr := protojson.Format(dashboardsFolder)
-	log.Printf("[INFO] Creating new Dashboards Folder: %s", dashboardsFolderStr)
-	_, err := r.client.Create(ctx, &cxsdk.CreateDashboardFolderRequest{Folder: dashboardsFolder})
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError("Error Creating Dashboards Folder",
-			utils.FormatRpcErrors(err, cxsdk.DashboardFoldersCreateDashboardFolderRPC, dashboardsFolderStr),
-		)
+
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
-	listResp, err := r.client.List(ctx)
+
+	rq := dbfs.CreateDashboardFolderRequestDataStructure{
+		Folder: dashboardsFolder,
+	}
+
+	createResult, httpResponse, err := r.client.
+		DashboardFoldersServiceCreateDashboardFolder(ctx).
+		CreateDashboardFolderRequestDataStructure(rq).
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError("Error Listing Dashboards Folders",
-			utils.FormatRpcErrors(err, cxsdk.DashboardFoldersListDashboardFoldersRPC, ""),
-		)
-		return
-	}
-	dashboardsFolder = nil
-	for _, folder := range listResp.GetFolder() {
-		if folder.GetId().GetValue() == id {
-			dashboardsFolder = folder
-			break
-		}
-	}
-	if dashboardsFolder == nil {
-		log.Printf("[ERROR] Could not find created folder with id: %s", id)
-		resp.Diagnostics.AddError("Error Listing Dashboards Folders",
-			fmt.Sprintf("Could not find created folder with id: %s", id),
+		resp.Diagnostics.AddError("Error creating coralogix_dashboard_folder",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Create", rq),
 		)
 		return
 	}
 
-	log.Printf("[INFO] Submitted new Dashboards Folder: %s", protojson.Format(dashboardsFolder))
+	result, httpResponse, err := r.client.DashboardFoldersServiceGetDashboardFolder(ctx, *createResult.FolderId).
+		Execute()
 
-	plan = flattenDashboardsFolder(dashboardsFolder)
+	if err != nil {
+		resp.Diagnostics.AddError("Error fetching folders after replacing coralogix_dashboard_folder",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq),
+		)
+		return
+	}
+	plan = flattenDashboardsFolder(result.Folder)
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
-}
-
-func flattenDashboardsFolder(folder *cxsdk.DashboardFolder) DashboardsFolderResourceModel {
-	return DashboardsFolderResourceModel{
-		ID:       utils.WrapperspbStringToTypeString(folder.GetId()),
-		Name:     utils.WrapperspbStringToTypeString(folder.GetName()),
-		ParentId: utils.WrapperspbStringToTypeString(folder.GetParentId()),
-	}
-}
-
-func extractCreateDashboardsFolder(plan DashboardsFolderResourceModel) *cxsdk.DashboardFolder {
-	return &cxsdk.DashboardFolder{
-		Id:       utils.ExpandUuid(plan.ID),
-		Name:     utils.TypeStringToWrapperspbString(plan.Name),
-		ParentId: utils.TypeStringToWrapperspbString(plan.ParentId),
-	}
 }
 
 func (r *DashboardsFolderResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -174,29 +153,24 @@ func (r *DashboardsFolderResource) Read(ctx context.Context, req resource.ReadRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
+	id := state.ID.ValueString()
 
-	listResp, err := r.client.List(ctx)
+	result, httpResponse, err := r.client.DashboardFoldersServiceGetDashboardFolder(ctx, id).
+		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		utils.FormatRpcErrors(err, cxsdk.DashboardFoldersListDashboardFoldersRPC, "")
-		return
-	}
-	var dashboardsFolder *cxsdk.DashboardFolder
-	for _, folder := range listResp.GetFolder() {
-		if folder.GetId().GetValue() == state.ID.ValueString() {
-			dashboardsFolder = folder
-			break
+		if httpResponse.StatusCode == http.StatusNotFound {
+			resp.Diagnostics.AddWarning(
+				fmt.Sprintf("coralogix_dashboard_folder %q is in state, but no longer exists in Coralogix backend", id),
+				fmt.Sprintf("%s will be recreated when you apply", id),
+			)
+			resp.State.RemoveResource(ctx)
+		} else {
+			resp.Diagnostics.AddError("Error reading coralogix_dashboard_folder", utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Read", nil))
 		}
-	}
-	if dashboardsFolder == nil {
-		log.Printf("[WARNING] Dashboard folder %q is in state, but no longer exists in Coralogix backend. It will be recreated when you apply.", state.ID.ValueString())
-		resp.State.RemoveResource(ctx)
 		return
 	}
 
-	log.Printf("[INFO] Recived Dashboards Folder: %s", protojson.Format(dashboardsFolder))
-
-	state = flattenDashboardsFolder(dashboardsFolder)
+	state = flattenDashboardsFolder(result.Folder)
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
@@ -211,42 +185,38 @@ func (r *DashboardsFolderResource) Update(ctx context.Context, req resource.Upda
 	}
 
 	dashboardsFolder := extractCreateDashboardsFolder(plan)
-	dashboardsFolderStr := protojson.Format(dashboardsFolder)
-	log.Printf("[INFO] Creating new Dashboards Folder: %s", dashboardsFolderStr)
-	_, err := r.client.Replace(ctx, &cxsdk.ReplaceDashboardFolderRequest{Folder: dashboardsFolder})
-	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError("Error Creating Dashboards Folder",
-			utils.FormatRpcErrors(err, cxsdk.DashboardFoldersReplaceDashboardFolderRPC, dashboardsFolderStr),
-		)
+
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
 		return
 	}
-	listResp, err := r.client.List(ctx)
+
+	rq := dbfs.ReplaceDashboardFolderRequestDataStructure{
+		Folder: dashboardsFolder,
+	}
+
+	_, httpResponse, err := r.client.
+		DashboardFoldersServiceReplaceDashboardFolder(ctx).
+		ReplaceDashboardFolderRequestDataStructure(rq).
+		Execute()
+
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
-		resp.Diagnostics.AddError("Error Listing Dashboards Folders",
-			utils.FormatRpcErrors(err, cxsdk.DashboardFoldersListDashboardFoldersRPC, ""),
-		)
-		return
-	}
-	dashboardsFolder = nil
-	for _, folder := range listResp.GetFolder() {
-		if folder.GetId().GetValue() == plan.ID.ValueString() {
-			dashboardsFolder = folder
-			break
-		}
-	}
-	if dashboardsFolder == nil {
-		log.Printf("[ERROR] Could not find created folder with id: %s", plan.ID.ValueString())
-		resp.Diagnostics.AddError("Error Listing Dashboards Folders",
-			fmt.Sprintf("Could not find created folder with id: %s", plan.ID.ValueString()),
+		resp.Diagnostics.AddError("Error replacing coralogix_dashboard_folder",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq),
 		)
 		return
 	}
 
-	log.Printf("[INFO] Submitted new Dashboards Folder: %s", protojson.Format(dashboardsFolder))
+	result, httpResponse, err := r.client.DashboardFoldersServiceGetDashboardFolder(ctx, *dashboardsFolder.Id).
+		Execute()
 
-	plan = flattenDashboardsFolder(dashboardsFolder)
+	if err != nil {
+		resp.Diagnostics.AddError("Error fetching folders after replacing coralogix_dashboard_folder",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Replace", rq),
+		)
+		return
+	}
+	plan = flattenDashboardsFolder(result.Folder)
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -261,14 +231,27 @@ func (r *DashboardsFolderResource) Delete(ctx context.Context, req resource.Dele
 	}
 
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting Dashboards Folder %s", id)
-	deleteReq := &cxsdk.DeleteDashboardFolderRequest{FolderId: wrapperspb.String(id)}
-	if _, err := r.client.Delete(ctx, deleteReq); err != nil {
-		resp.Diagnostics.AddError(
-			fmt.Sprintf("Error Deleting Dashboard %s", id),
-			utils.FormatRpcErrors(err, cxsdk.DashboardFoldersDeleteDashboardFolderRPC, protojson.Format(deleteReq)),
-		)
+
+	if _, httpResponse, err := r.client.DashboardFoldersServiceDeleteDashboardFolder(ctx, id).Execute(); err != nil {
+		resp.Diagnostics.AddError("Error deleting coralogix_dashboard_folder",
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResponse, err), "Delete", nil))
 		return
 	}
-	log.Printf("[INFO] Dashboards Folder %s deleted", id)
+}
+
+func flattenDashboardsFolder(folder *dbfs.DashboardFolder) DashboardsFolderResourceModel {
+	return DashboardsFolderResourceModel{
+		ID:       types.StringPointerValue(folder.Id),
+		Name:     types.StringPointerValue(folder.Name),
+		ParentId: types.StringPointerValue(folder.ParentId),
+	}
+}
+
+func extractCreateDashboardsFolder(plan DashboardsFolderResourceModel) *dbfs.DashboardFolder {
+	id := utils.ExpandUuid(plan.ID)
+	return &dbfs.DashboardFolder{
+		Id:       &id,
+		Name:     utils.TypeStringToStringPointer(plan.Name),
+		ParentId: utils.TypeStringToStringPointer(plan.ParentId),
+	}
 }
