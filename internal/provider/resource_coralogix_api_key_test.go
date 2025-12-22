@@ -61,6 +61,7 @@ func TestApiKeyResource(t *testing.T) {
 }
 
 func TestApiKeyResourceWithAccessPolicy(t *testing.T) {
+	t.Skip("Different Permissions Required")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
