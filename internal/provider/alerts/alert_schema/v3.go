@@ -199,8 +199,8 @@ func V3() schema.Schema {
 					"logs_anomaly": schema.SingleNestedAttribute{
 						Optional: true,
 						Attributes: map[string]schema.Attribute{
-							"custom_evaluation_delay": 		evaluationDelaySchema(),
-							"percentage_of_deviation": 		schema.Float64Attribute{
+							"custom_evaluation_delay": evaluationDelaySchema(),
+							"percentage_of_deviation": schema.Float64Attribute{
 								Optional:            true,
 								MarkdownDescription: "The percentage of deviation from the baseline for triggering the alert.",
 							},
@@ -271,6 +271,12 @@ func V3() schema.Schema {
 							"notification_payload_filter": notificationPayloadFilterSchema(),
 							"group_by_for":                logsRatioGroupByForSchema(),
 							"custom_evaluation_delay":     evaluationDelaySchema(),
+							"ignore_infinity": schema.BoolAttribute{
+								Optional:            true,
+								Computed:            true,
+								Default:             booldefault.StaticBool(false),
+								MarkdownDescription: "Whether to ignore infinite ratios when the denominator is zero. False by default.",
+							},
 						},
 					},
 					"logs_new_value": schema.SingleNestedAttribute{
@@ -361,6 +367,12 @@ func V3() schema.Schema {
 									},
 								},
 							},
+							"ignore_infinity": schema.BoolAttribute{
+								Optional:            true,
+								Computed:            true,
+								Default:             booldefault.StaticBool(false),
+								MarkdownDescription: "Whether to ignore infinite ratios when the denominator is zero. False by default.",
+							},
 						},
 					},
 					// Metrics
@@ -423,7 +435,7 @@ func V3() schema.Schema {
 								Optional:            true,
 								MarkdownDescription: "The percentage of deviation from the baseline for triggering the alert.",
 							},
-							"metric_filter": 		   metricFilterSchema(),
+							"metric_filter": metricFilterSchema(),
 							"rules": schema.SetNestedAttribute{
 								Required:   true,
 								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},

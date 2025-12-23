@@ -679,6 +679,7 @@ func LogsRatioThresholdAttr() map[string]attr.Type {
 		"denominator":       types.ObjectType{AttrTypes: LogsFilterAttr()},
 		"denominator_alias": types.StringType,
 		"rules":             types.SetType{ElemType: types.ObjectType{AttrTypes: LogsRatioThresholdRulesAttr()}},
+		"ignore_infinity":   types.BoolType,
 		"notification_payload_filter": types.SetType{
 			ElemType: types.StringType,
 		},
@@ -785,6 +786,7 @@ func LogsTimeRelativeAttr() map[string]attr.Type {
 		"undetected_values_management": types.ObjectType{AttrTypes: UndetectedValuesManagementAttr()},
 		"rules":                        types.SetType{ElemType: types.ObjectType{AttrTypes: LogsTimeRelativeRulesAttr()}},
 		"custom_evaluation_delay":      types.Int32Type,
+		"ignore_infinity":              types.BoolType,
 	}
 }
 

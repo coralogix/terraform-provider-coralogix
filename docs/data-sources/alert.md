@@ -443,6 +443,7 @@ Read-Only:
 - `denominator` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--denominator))
 - `denominator_alias` (String)
 - `group_by_for` (String) Group by for. Valid values: ["Both" "Denominator Only" "Numerator Only"]. 'Both' by default.
+- `ignore_infinity` (Boolean) Whether to ignore infinite ratios when the denominator is zero. False by default.
 - `notification_payload_filter` (Set of String)
 - `numerator` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_ratio_threshold--numerator))
 - `numerator_alias` (String)
@@ -665,6 +666,7 @@ Read-Only:
 Read-Only:
 
 - `custom_evaluation_delay` (Number) Delay evaluation of the rules by n milliseconds. Defaults to 0.
+- `ignore_infinity` (Boolean) Whether to ignore infinite ratios when the denominator is zero. False by default.
 - `logs_filter` (Attributes) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--logs_filter))
 - `notification_payload_filter` (Set of String)
 - `rules` (Attributes Set) (see [below for nested schema](#nestedatt--type_definition--logs_time_relative_threshold--rules))

@@ -406,6 +406,7 @@ type LogsRatioThresholdModel struct {
 	NotificationPayloadFilter types.Set    `tfsdk:"notification_payload_filter"` // []types.String
 	GroupByFor                types.String `tfsdk:"group_by_for"`
 	CustomEvaluationDelay     types.Int32  `tfsdk:"custom_evaluation_delay"`
+	IgnoreInfinity            types.Bool   `tfsdk:"ignore_infinity"`
 }
 
 type LogsNewValueModel struct {
@@ -437,6 +438,7 @@ type LogsTimeRelativeThresholdModel struct {
 	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
 	CustomEvaluationDelay      types.Int32  `tfsdk:"custom_evaluation_delay"`
+	IgnoreInfinity             types.Bool   `tfsdk:"ignore_infinity"`
 }
 
 type MetricAnomalyRuleModel struct {
