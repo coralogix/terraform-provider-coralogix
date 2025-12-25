@@ -36,10 +36,18 @@ jobs:
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
       
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v3
+      - name: Run GoReleaser (PR – snapshot)
+        if: github.event_name == 'pull_request'
+        uses: goreleaser/goreleaser-action@v6
         with:
-          version: latest
+          version: "~> v2"
+          args: release --snapshot --clean --skip=sign
+
+      - name: Run GoReleaser
+        if: github.event_name != 'pull_request'
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
           args: release --clean
         env:
           GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}
