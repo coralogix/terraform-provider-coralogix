@@ -57,6 +57,38 @@ func TestCustomRole(t *testing.T) {
 	})
 }
 
+func TestCustomRoleWithUppercasePermissions(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testCustomRoleResourceWithUppercasePermissions(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(customRoleResourceName, "name", "Test Custom Role"),
+					resource.TestCheckResourceAttr(customRoleResourceName, "description", "This role is created with terraform!"),
+					resource.TestCheckResourceAttr(customRoleResourceName, "parent_role", "Standard User"),
+					resource.TestCheckTypeSetElemAttr(customRoleResourceName, "permissions.*", "SPANS.EVENTS2METRICS:UPDATECONFIG"),
+				),
+			},
+			{
+				ResourceName: customRoleResourceName,
+				ImportState:  true,
+			},
+			{
+				Config: testCustomRoleUpdateResourceWithUppercasePermissions(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(customRoleResourceName, "name", "Test Custom Role Renamed"),
+					resource.TestCheckResourceAttr(customRoleResourceName, "description", "This role is renamed with terraform!"),
+					resource.TestCheckResourceAttr(customRoleResourceName, "parent_role", "Standard User"),
+					resource.TestCheckTypeSetElemAttr(customRoleResourceName, "permissions.*", "SPANS.EVENTS2METRICS:UPDATECONFIG"),
+					resource.TestCheckTypeSetElemAttr(customRoleResourceName, "permissions.*", "SPANS.EVENTS2METRICS:READCONFIG"),
+				),
+			},
+		},
+	})
+}
+
 func testCustomRoleResource() string {
 	return `resource "coralogix_custom_role" "test" {
   name  = "Test Custom Role"
@@ -73,6 +105,26 @@ func testCustomRoleUpdateResource() string {
   description = "This role is renamed with terraform!"
   parent_role = "Standard User"
   permissions = ["spans.events2metrics:UpdateConfig", "spans.events2metrics:ReadConfig"]
+}
+`
+}
+
+func testCustomRoleResourceWithUppercasePermissions() string {
+	return `resource "coralogix_custom_role" "test" {
+  name  = "Test Custom Role"
+  description = "This role is created with terraform!"
+  parent_role = "Standard User"
+  permissions = ["SPANS.EVENTS2METRICS:UPDATECONFIG"]
+}
+`
+}
+
+func testCustomRoleUpdateResourceWithUppercasePermissions() string {
+	return `resource "coralogix_custom_role" "test" {
+  name  = "Test Custom Role Renamed"
+  description = "This role is renamed with terraform!"
+  parent_role = "Standard User"
+  permissions = ["SPANS.EVENTS2METRICS:UPDATECONFIG", "SPANS.EVENTS2METRICS:READCONFIG"]
 }
 `
 }

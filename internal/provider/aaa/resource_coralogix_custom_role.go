@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -144,7 +145,11 @@ func (r *CustomRoleSource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	state := flattenCustomRole(result.Role)
+	state, err := flattenCustomRole(result.Role, plan)
+	if err != nil {
+		resp.Diagnostics.AddError("Error flattening coralogix_custom_role after creation", err.Error())
+		return
+	}
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
@@ -182,7 +187,11 @@ func (r *CustomRoleSource) Read(ctx context.Context, req resource.ReadRequest, r
 		}
 		return
 	}
-	state = flattenCustomRole(result.Role)
+	state, err = flattenCustomRole(result.Role, state)
+	if err != nil {
+		resp.Diagnostics.AddError("Error flattening coralogix_custom_role after read", err.Error())
+		return
+	}
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
@@ -234,7 +243,11 @@ func (r *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	state := flattenCustomRole(result.Role)
+	state, err := flattenCustomRole(result.Role, plan)
+	if err != nil {
+		resp.Diagnostics.AddError("Error flattening coralogix_custom_role after update", err.Error())
+		return
+	}
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
@@ -288,15 +301,52 @@ func extractCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) 
 	}, nil
 }
 
-func flattenCustomRole(customRole *roless.V2CustomRole) *RolesModel {
+func flattenCustomRole(customRole *roless.V2CustomRole, plan *RolesModel) (*RolesModel, error) {
+	permissionsFromPlan := utils.TypeStringSetToStringSlice(context.Background(), plan.Permissions)
+	permissionsFromAPI := customRole.Permissions
+	// permissions are required, so if plan.Permissions is null, it must mean that we're importing
+	isImport := plan.Permissions.IsNull()
+
+	if isImport {
+		// Just take what the API gives us and return, because we're importing
+		apiPermsSet, diags := types.SetValueFrom(context.Background(), types.StringType, customRole.Permissions)
+		if diags.HasError() {
+			return nil, fmt.Errorf("failed to convert API permissions to set")
+		}
+
+		return &RolesModel{
+			ID:          utils.Int64ToStringValue(customRole.RoleId),
+			ParentRole:  types.StringPointerValue(customRole.ParentRoleName),
+			Permissions: apiPermsSet,
+			Description: types.StringPointerValue(customRole.Description),
+			Name:        types.StringPointerValue(customRole.Name),
+		}, nil
+	}
+	if len(permissionsFromAPI) != len(permissionsFromPlan) {
+		return nil, fmt.Errorf("the number of permissions specified in the plan (%d) does not match the number of permissions returned from the Coralogix API (%d).", len(permissionsFromPlan), len(permissionsFromAPI))
+	}
+	for _, perm := range permissionsFromPlan {
+		permissionWasReturnedFromAPI := false
+		for _, apiPerm := range permissionsFromAPI {
+			if strings.ToLower(perm) == strings.ToLower(apiPerm) {
+				permissionWasReturnedFromAPI = true
+				break
+			}
+		}
+		if !permissionWasReturnedFromAPI {
+			return nil, fmt.Errorf("permission %s was specified in the plan but was not returned from the Coralogix API.", perm)
+		}
+	}
 
 	return &RolesModel{
-		ID:          utils.Int64ToStringValue(customRole.RoleId),
-		ParentRole:  types.StringPointerValue(customRole.ParentRoleName),
-		Permissions: utils.StringSliceToTypeStringSet(customRole.Permissions),
+		ID:         utils.Int64ToStringValue(customRole.RoleId),
+		ParentRole: types.StringPointerValue(customRole.ParentRoleName),
+		// The reason we do this is that the API can return permissions with different casing than what was sent.
+		// In order to make sure that the output is correct, we perform the checks above.
+		Permissions: plan.Permissions,
 		Description: types.StringPointerValue(customRole.Description),
 		Name:        types.StringPointerValue(customRole.Name),
-	}
+	}, nil
 }
 
 func extractUpdateCustomRoleRequest(ctx context.Context, model *RolesModel) (*roless.RoleManagementServiceUpdateRoleRequest, diag.Diagnostics) {
