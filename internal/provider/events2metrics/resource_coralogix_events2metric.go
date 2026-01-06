@@ -472,7 +472,11 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 				Attributes: map[string]schema.Attribute{
 					"lucene": schema.StringAttribute{
 						Optional:    true,
+						Computed:    true,
 						Description: "The search_query that we wanted to be notified on.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"applications": schema.SetAttribute{
 						ElementType: types.StringType,
@@ -518,7 +522,11 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 				Attributes: map[string]schema.Attribute{
 					"lucene": schema.StringAttribute{
 						Optional:    true,
+						Computed:    true,
 						Description: "The search_query that we wanted to be notified on.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"applications": schema.SetAttribute{
 						ElementType: types.StringType,
