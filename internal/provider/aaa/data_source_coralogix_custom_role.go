@@ -108,7 +108,11 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
-	model := flattenCustomRole(customRole)
+	model, err := flattenCustomRole(customRole, data)
+	if err != nil {
+		resp.Diagnostics.AddError("Error flattening coralogix_custom_role during read", err.Error())
+		return
+	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
 }
