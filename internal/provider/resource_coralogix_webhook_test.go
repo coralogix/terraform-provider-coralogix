@@ -388,7 +388,7 @@ func testAccCheckWebhookDestroy(s *terraform.State) error {
 func getRandomWebhook() *webhookTestFields {
 	return &webhookTestFields{
 		name: acctest.RandomWithPrefix("tf-acc-test"),
-		url:  fmt.Sprintf("https://%s/", acctest.RandomWithPrefix("tf-acc-test")),
+		url:  fmt.Sprintf("https://api.staging.coralogix.net/mgmt/testing/tools/httpbin/post?q=%s", acctest.RandomWithPrefix("tf-acc-test")),
 	}
 }
 
