@@ -21,27 +21,28 @@ import (
 )
 
 func TestAccCoralogixDataSourceWebhook_basic(t *testing.T) {
-	w := &slackWebhookTestFields{
+	w := &customWebhookTestFields{
 		webhookTestFields: *getRandomWebhook(),
+		method:            "post",
 	}
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceSlackWebhook(w) +
+				Config: testAccCoralogixResourceCustomWebhook(w) +
 					testAccCoralogixDataSourceWebhook_readByID(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.coralogix_webhook.test_by_id", "name", w.name),
-					resource.TestCheckResourceAttr("data.coralogix_webhook.test_by_id", "slack.url", w.url),
+					resource.TestCheckResourceAttr("data.coralogix_webhook.test_by_id", "custom.url", w.url),
 				),
 			},
 			{
-				Config: testAccCoralogixResourceSlackWebhook(w) +
+				Config: testAccCoralogixResourceCustomWebhook(w) +
 					testAccCoralogixDataSourceWebhook_readByName(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.coralogix_webhook.test_by_name", "name", w.name),
-					resource.TestCheckResourceAttr("data.coralogix_webhook.test_by_name", "slack.url", w.url),
+					resource.TestCheckResourceAttr("data.coralogix_webhook.test_by_name", "custom.url", w.url),
 				),
 			},
 		},
