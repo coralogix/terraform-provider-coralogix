@@ -70,7 +70,7 @@ type eventBridgeWebhookTestFields struct {
 func TestAccCoralogixResourceSlackWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := &slackWebhookTestFields{
-		webhookTestFields: *getRandomWebhook(),
+		webhookTestFields: *getRandomWebhookWithCustomUrl("xyz.slack.com"),
 		notifyAbout:       []string{"flow_anomalies"},
 		attachments: []attachmentTestFields{
 			{
@@ -196,7 +196,7 @@ func TestAccCoralogixResourceEmailGroupWebhook(t *testing.T) {
 func TestAccCoralogixResourceJiraWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := &jiraWebhookTestFields{
-		webhookTestFields: *getRandomWebhook(),
+		webhookTestFields: *getRandomWebhookWithCustomUrl("xyz.atlassian.net"),
 		apiToken:          acctest.RandomWithPrefix("tf-acc-test"),
 		email:             "example@coralgox.com",
 		projectKey:        acctest.RandomWithPrefix("tf-acc-test"),
@@ -229,7 +229,8 @@ func TestAccCoralogixResourceJiraWebhook(t *testing.T) {
 
 func TestAccCoralogixResourceMicrosoftTeamsWorkflowWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
-	webhook := getRandomWebhook()
+	webhook := getRandomWebhookWithCustomUrl("xyxz.webhook.office.com")
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -278,7 +279,7 @@ func TestAccCoralogixResourceSendLogWebhook(t *testing.T) {
 
 func TestAccCoralogixResourceOpsgenieWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
-	webhook := getRandomWebhook()
+	webhook := getRandomWebhookWithCustomUrl("api.opsgenie.com")
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -389,6 +390,13 @@ func getRandomWebhook() *webhookTestFields {
 	return &webhookTestFields{
 		name: acctest.RandomWithPrefix("tf-acc-test"),
 		url:  fmt.Sprintf("https://api.staging.coralogix.net/mgmt/testing/tools/httpbin/post?q=%s", acctest.RandomWithPrefix("tf-acc-test")),
+	}
+}
+
+func getRandomWebhookWithCustomUrl(url string) *webhookTestFields {
+	return &webhookTestFields{
+		name: acctest.RandomWithPrefix("tf-acc-test"),
+		url:  fmt.Sprintf("https://%s?q=%s", url, acctest.RandomWithPrefix("tf-acc-test")),
 	}
 }
 
