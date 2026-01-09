@@ -174,7 +174,7 @@ resource "coralogix_alert" "example_with_router" {
   
   labels = {
     "alert_type" = "security"
-    "routing.group" = "teamA" # Routing label to match global routers.
+    "routing.team" = "teamA" # Routing label to match global routers.
     "routing.environment" = "production" # Routing label to match global routers.
   }
   
