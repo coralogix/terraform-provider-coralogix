@@ -70,7 +70,7 @@ type eventBridgeWebhookTestFields struct {
 func TestAccCoralogixResourceSlackWebhook(t *testing.T) {
 	resourceName := "coralogix_webhook.test"
 	webhook := &slackWebhookTestFields{
-		webhookTestFields: *getRandomWebhookWithCustomUrl("xyz.slack.com"),
+		webhookTestFields: *getRandomWebhookWithCustomTld("slack.com"),
 		notifyAbout:       []string{"flow_anomalies"},
 		attachments: []attachmentTestFields{
 			{
@@ -397,6 +397,13 @@ func getRandomWebhookWithCustomUrl(url string) *webhookTestFields {
 	return &webhookTestFields{
 		name: acctest.RandomWithPrefix("tf-acc-test"),
 		url:  fmt.Sprintf("https://%s/?q=%s", url, acctest.RandomWithPrefix("tf-acc-test")),
+	}
+}
+
+func getRandomWebhookWithCustomTld(tld string) *webhookTestFields {
+	return &webhookTestFields{
+		name: acctest.RandomWithPrefix("tf-acc-test"),
+		url:  fmt.Sprintf("https://%s.%s/", acctest.RandomWithPrefix("tf-acc-test"), tld),
 	}
 }
 
