@@ -203,7 +203,7 @@ func extractCreateScope(plan *ScopeResourceModel) (*scopess.CreateScopeRequest, 
 	}, nil
 }
 
-func flattenScope(scope scopess.ScopesV1Scope) ScopeResourceModel {
+func flattenScope(scope scopess.V1Scope) ScopeResourceModel {
 	description := types.StringNull()
 	if scope.GetDescription() != "" {
 		description = types.StringValue(scope.GetDescription())

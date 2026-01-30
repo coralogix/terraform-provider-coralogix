@@ -40,6 +40,10 @@ github.com/cloudflare/circl v1.6.1/go.mod h1:uddAzsPgqdMAYatqJ0lsjX1oECcQLIlRpzZ
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/coralogix/coralogix-management-sdk v1.9.3-0.20251218110019-b07a72c8b3cb h1:P95rBxV7AHRJiq3b+Dskf92xMqXBM0qKnF0qSuQNCf8=
 github.com/coralogix/coralogix-management-sdk v1.9.3-0.20251218110019-b07a72c8b3cb/go.mod h1:hC1w7mD+AZhGGw6krKRYEsKst+pYfH6SuUYM001X+tk=
+github.com/coralogix/coralogix-management-sdk v1.9.3-0.20260130152512-32540465247d h1:226kMlKguUELPvvtjQYTFcFbOjY42t35n0eUqpl/f2A=
+github.com/coralogix/coralogix-management-sdk v1.9.3-0.20260130152512-32540465247d/go.mod h1:hC1w7mD+AZhGGw6krKRYEsKst+pYfH6SuUYM001X+tk=
+github.com/coralogix/coralogix-management-sdk v1.9.3-0.20260201103411-420a674b4871 h1:RlpYVEQ9b+EPZV56FOHp6syDuNa/ecFmMON0cae5n8w=
+github.com/coralogix/coralogix-management-sdk v1.9.3-0.20260201103411-420a674b4871/go.mod h1:hC1w7mD+AZhGGw6krKRYEsKst+pYfH6SuUYM001X+tk=
 github.com/coralogix/grpc-gateway/v2 v2.0.0-20251015134251-4d8694a21a7c h1:aOfG9Pwe7Fp/m+tdybObODwgeK5st/+9df/QUw0dzBQ=
 github.com/coralogix/grpc-gateway/v2 v2.0.0-20251015134251-4d8694a21a7c/go.mod h1:bqGO/kNOHTFiDIfPmXLQcox10aWQs5Q3b9sXUFoaFFk=
 github.com/cyphar/filepath-securejoin v0.4.1 h1:JyxxyPEaktOD+GAnqIqTf9A8tHyAG22rowi7HkoSU1s=
