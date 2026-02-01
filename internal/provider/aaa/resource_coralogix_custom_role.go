@@ -301,7 +301,7 @@ func extractCreateCustomRoleRequest(ctx context.Context, roleModel *RolesModel) 
 	}, nil
 }
 
-func flattenCustomRole(customRole *roless.V2CustomRole, plan *RolesModel) (*RolesModel, error) {
+func flattenCustomRole(customRole *roless.CustomRole, plan *RolesModel) (*RolesModel, error) {
 	permissionsFromPlan := utils.TypeStringSetToStringSlice(context.Background(), plan.Permissions)
 	permissionsFromAPI := customRole.Permissions
 	// permissions are required, so if plan.Permissions is null, it must mean that we're importing

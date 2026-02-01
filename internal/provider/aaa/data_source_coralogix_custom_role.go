@@ -96,7 +96,7 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 
 	id, diags := utils.TypeStringToInt64Pointer(data.ID)
 
-	var customRole *roless.V2CustomRole
+	var customRole *roless.CustomRole
 	if !diags.HasError() {
 		customRole = getRoleById(ctx, resp, d.client, *id)
 	} else if name := data.Name.ValueString(); name != "" {
@@ -117,7 +117,7 @@ func (d *CustomRoleDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	resp.Diagnostics.Append(resp.State.Set(ctx, &model)...)
 }
 
-func getRoleById(ctx context.Context, resp *datasource.ReadResponse, client *roless.RoleManagementServiceAPIService, id int64) *roless.V2CustomRole {
+func getRoleById(ctx context.Context, resp *datasource.ReadResponse, client *roless.RoleManagementServiceAPIService, id int64) *roless.CustomRole {
 	rq := client.
 		RoleManagementServiceGetCustomRole(ctx, id)
 
@@ -131,7 +131,7 @@ func getRoleById(ctx context.Context, resp *datasource.ReadResponse, client *rol
 	return result.Role
 }
 
-func getRoleByName(ctx context.Context, resp *datasource.ReadResponse, client *roless.RoleManagementServiceAPIService, roleName string) *roless.V2CustomRole {
+func getRoleByName(ctx context.Context, resp *datasource.ReadResponse, client *roless.RoleManagementServiceAPIService, roleName string) *roless.CustomRole {
 
 	result, httpResponse, err := client.RoleManagementServiceListCustomRoles(ctx).
 		Execute()
@@ -140,7 +140,7 @@ func getRoleByName(ctx context.Context, resp *datasource.ReadResponse, client *r
 		return nil
 	}
 	var found bool
-	var foundRole *roless.V2CustomRole
+	var foundRole *roless.CustomRole
 	for _, role := range result.GetRoles() {
 		if role.GetName() == roleName {
 			if found {
