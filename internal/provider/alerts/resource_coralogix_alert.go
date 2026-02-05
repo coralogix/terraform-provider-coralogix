@@ -3803,10 +3803,15 @@ func flattenLogsUniqueCount(ctx context.Context, uniqueCount *alerts.LogsUniqueC
 		return types.ObjectNull(alertschema.LogsUniqueCountAttr()), diags
 	}
 
-	maxUniqueCountPerGroupKey, err := strconv.ParseInt(*uniqueCount.MaxUniqueCountPerGroupByKey, 10, 64)
-	if err != nil {
-		diags.AddError("Invalid Max Unique Count Per Group By Key", fmt.Sprintf("Could not parse Max Unique Count Per Group By Key value '%s' to int64: %s", *uniqueCount.MaxUniqueCountPerGroupByKey, err.Error()))
-		return types.ObjectNull(alertschema.LogsUniqueCountAttr()), diags
+	// Fix: Add nil check to prevent panic during state upgrade
+	var maxUniqueCountPerGroupKey int64 = 0
+	if uniqueCount.MaxUniqueCountPerGroupByKey != nil {
+		var err error
+		maxUniqueCountPerGroupKey, err = strconv.ParseInt(*uniqueCount.MaxUniqueCountPerGroupByKey, 10, 64)
+		if err != nil {
+			diags.AddError("Invalid Max Unique Count Per Group By Key", fmt.Sprintf("Could not parse Max Unique Count Per Group By Key value '%s' to int64: %s", *uniqueCount.MaxUniqueCountPerGroupByKey, err.Error()))
+			return types.ObjectNull(alertschema.LogsUniqueCountAttr()), diags
+		}
 	}
 	logsUniqueCountModel := alerttypes.LogsUniqueCountModel{
 		LogsFilter:                  logsFilter,
@@ -3840,11 +3845,16 @@ func flattenLogsUniqueCountRuleCondition(ctx context.Context, condition *alerts.
 		return types.ObjectNull(alertschema.LogsUniqueCountConditionAttr()), nil
 	}
 
-	maxUniqueCount, err := strconv.ParseInt(*condition.MaxUniqueCount, 10, 64)
-	if err != nil {
-		diags := diag.Diagnostics{}
-		diags.AddError("Invalid Max Unique Count", fmt.Sprintf("Could not parse Max Unique Count value '%s' to int64: %s", *condition.MaxUniqueCount, err.Error()))
-		return types.ObjectNull(alertschema.LogsUniqueCountConditionAttr()), diags
+	// Fix: Add nil check to prevent panic during state upgrade
+	var maxUniqueCount int64 = 0
+	if condition.MaxUniqueCount != nil {
+		var err error
+		maxUniqueCount, err = strconv.ParseInt(*condition.MaxUniqueCount, 10, 64)
+		if err != nil {
+			diags := diag.Diagnostics{}
+			diags.AddError("Invalid Max Unique Count", fmt.Sprintf("Could not parse Max Unique Count value '%s' to int64: %s", *condition.MaxUniqueCount, err.Error()))
+			return types.ObjectNull(alertschema.LogsUniqueCountConditionAttr()), diags
+		}
 	}
 	return types.ObjectValueFrom(ctx, alertschema.LogsUniqueCountConditionAttr(), alerttypes.LogsUniqueCountConditionModel{
 		MaxUniqueCount: types.Int64Value(maxUniqueCount),
@@ -4530,9 +4540,14 @@ func flattenFlowStage(ctx context.Context, stage *alerts.FlowStages) (*alerttype
 	if diags.HasError() {
 		return nil, diags
 	}
-	timeFrameMs, err := strconv.ParseInt(*stage.TimeframeMs, 10, 64)
-	if err != nil {
-		return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Timeframe Ms", fmt.Sprintf("Could not parse Timeframe Ms value '%s' to int64: %s", *stage.TimeframeMs, err.Error()))}
+	// Fix: Add nil check to prevent panic during state upgrade
+	var timeFrameMs int64 = 0
+	if stage.TimeframeMs != nil {
+		var err error
+		timeFrameMs, err = strconv.ParseInt(*stage.TimeframeMs, 10, 64)
+		if err != nil {
+			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Timeframe Ms", fmt.Sprintf("Could not parse Timeframe Ms value '%s' to int64: %s", *stage.TimeframeMs, err.Error()))}
+		}
 	}
 	timeFrameType := stage.TimeframeType
 	if timeFrameType == nil {
@@ -4721,9 +4736,17 @@ func flattenSloThresholdRules(ctx context.Context, rules []alerts.SloThresholdRu
 }
 
 func flattenSloTimeDuration(ctx context.Context, td *alerts.TimeDuration) (types.Object, diag.Diagnostics) {
-	duration, err := strconv.ParseInt(*td.Duration, 10, 64)
-	if err != nil {
-		return types.ObjectNull(alertschema.SloDurationAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Duration", fmt.Sprintf("Could not parse Duration value '%s' to int64: %s", *td.Duration, err.Error()))}
+	// Fix: Add nil check to prevent panic during state upgrade
+	if td == nil {
+		return types.ObjectNull(alertschema.SloDurationAttr()), nil
+	}
+	var duration int64 = 0
+	if td.Duration != nil {
+		var err error
+		duration, err = strconv.ParseInt(*td.Duration, 10, 64)
+		if err != nil {
+			return types.ObjectNull(alertschema.SloDurationAttr()), diag.Diagnostics{diag.NewErrorDiagnostic("Invalid Duration", fmt.Sprintf("Could not parse Duration value '%s' to int64: %s", *td.Duration, err.Error()))}
+		}
 	}
 	unit := td.Unit
 	if unit == nil {
