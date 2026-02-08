@@ -3803,16 +3803,20 @@ func flattenLogsUniqueCount(ctx context.Context, uniqueCount *alerts.LogsUniqueC
 		return types.ObjectNull(alertschema.LogsUniqueCountAttr()), diags
 	}
 
-	maxUniqueCountPerGroupKey, err := strconv.ParseInt(*uniqueCount.MaxUniqueCountPerGroupByKey, 10, 64)
-	if err != nil {
-		diags.AddError("Invalid Max Unique Count Per Group By Key", fmt.Sprintf("Could not parse Max Unique Count Per Group By Key value '%s' to int64: %s", *uniqueCount.MaxUniqueCountPerGroupByKey, err.Error()))
-		return types.ObjectNull(alertschema.LogsUniqueCountAttr()), diags
+	var maxUniqueCountPerGroupByKey *int64
+	if uniqueCount.MaxUniqueCountPerGroupByKey != nil {
+		parsed, err := strconv.ParseInt(*uniqueCount.MaxUniqueCountPerGroupByKey, 10, 64)
+		if err != nil {
+			diags.AddError("Invalid Max Unique Count Per Group By Key", fmt.Sprintf("Could not parse Max Unique Count Per Group By Key value '%s' to int64: %s", *uniqueCount.MaxUniqueCountPerGroupByKey, err.Error()))
+			return types.ObjectNull(alertschema.LogsUniqueCountAttr()), diags
+		}
+		maxUniqueCountPerGroupByKey = &parsed
 	}
 	logsUniqueCountModel := alerttypes.LogsUniqueCountModel{
 		LogsFilter:                  logsFilter,
 		Rules:                       rules,
 		NotificationPayloadFilter:   utils.StringSliceToTypeStringSet(uniqueCount.NotificationPayloadFilter),
-		MaxUniqueCountPerGroupByKey: types.Int64PointerValue(&maxUniqueCountPerGroupKey),
+		MaxUniqueCountPerGroupByKey: types.Int64PointerValue(maxUniqueCountPerGroupByKey),
 		UniqueCountKeypath:          types.StringPointerValue(uniqueCount.UniqueCountKeypath),
 	}
 	return types.ObjectValueFrom(ctx, alertschema.LogsUniqueCountAttr(), logsUniqueCountModel)
@@ -3840,11 +3844,15 @@ func flattenLogsUniqueCountRuleCondition(ctx context.Context, condition *alerts.
 		return types.ObjectNull(alertschema.LogsUniqueCountConditionAttr()), nil
 	}
 
-	maxUniqueCount, err := strconv.ParseInt(*condition.MaxUniqueCount, 10, 64)
-	if err != nil {
-		diags := diag.Diagnostics{}
-		diags.AddError("Invalid Max Unique Count", fmt.Sprintf("Could not parse Max Unique Count value '%s' to int64: %s", *condition.MaxUniqueCount, err.Error()))
-		return types.ObjectNull(alertschema.LogsUniqueCountConditionAttr()), diags
+	var maxUniqueCount int64
+	if condition.MaxUniqueCount != nil {
+		var err error
+		maxUniqueCount, err = strconv.ParseInt(*condition.MaxUniqueCount, 10, 64)
+		if err != nil {
+			diags := diag.Diagnostics{}
+			diags.AddError("Invalid Max Unique Count", fmt.Sprintf("Could not parse Max Unique Count value '%s' to int64: %s", *condition.MaxUniqueCount, err.Error()))
+			return types.ObjectNull(alertschema.LogsUniqueCountConditionAttr()), diags
+		}
 	}
 	return types.ObjectValueFrom(ctx, alertschema.LogsUniqueCountConditionAttr(), alerttypes.LogsUniqueCountConditionModel{
 		MaxUniqueCount: types.Int64Value(maxUniqueCount),
@@ -3857,7 +3865,7 @@ func flattenLogsUniqueTimeWindow(timeWindow *alerts.LogsUniqueValueTimeWindow) t
 		return types.StringNull()
 	}
 	timeWindowValue := timeWindow.LogsUniqueValueTimeWindowSpecificValue
-	if timeWindow == nil {
+	if timeWindowValue == nil {
 		timeWindowValue = alerts.LOGSUNIQUEVALUETIMEWINDOWVALUE_LOGS_UNIQUE_VALUE_TIME_WINDOW_VALUE_MINUTE_1_OR_UNSPECIFIED.Ptr()
 	}
 	return types.StringValue(alerttypes.LogsUniqueCountTimeWindowValueProtoToSchemaMap[*timeWindowValue])
@@ -4418,7 +4426,7 @@ func flattenTracingTimeWindow(timeWindow *alerts.TracingTimeWindow) types.String
 		return types.StringNull()
 	}
 	timeWindowValue := timeWindow.TracingTimeWindowValue
-	if timeWindow == nil {
+	if timeWindowValue == nil {
 		timeWindowValue = alerts.TRACINGTIMEWINDOWVALUE_TRACING_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED.Ptr()
 	}
 
