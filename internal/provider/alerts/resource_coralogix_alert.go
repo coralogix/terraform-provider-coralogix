@@ -3844,15 +3844,16 @@ func flattenLogsUniqueCountRuleCondition(ctx context.Context, condition *alerts.
 		return types.ObjectNull(alertschema.LogsUniqueCountConditionAttr()), nil
 	}
 
-	var maxUniqueCount int64
-	if condition.MaxUniqueCount != nil {
-		var err error
-		maxUniqueCount, err = strconv.ParseInt(*condition.MaxUniqueCount, 10, 64)
-		if err != nil {
-			diags := diag.Diagnostics{}
-			diags.AddError("Invalid Max Unique Count", fmt.Sprintf("Could not parse Max Unique Count value '%s' to int64: %s", *condition.MaxUniqueCount, err.Error()))
-			return types.ObjectNull(alertschema.LogsUniqueCountConditionAttr()), diags
-		}
+	if condition.MaxUniqueCount == nil {
+		diags := diag.Diagnostics{}
+		diags.AddError("Missing Max Unique Count", "The API response is missing the required max_unique_count field")
+		return types.ObjectNull(alertschema.LogsUniqueCountConditionAttr()), diags
+	}
+	maxUniqueCount, err := strconv.ParseInt(*condition.MaxUniqueCount, 10, 64)
+	if err != nil {
+		diags := diag.Diagnostics{}
+		diags.AddError("Invalid Max Unique Count", fmt.Sprintf("Could not parse Max Unique Count value '%s' to int64: %s", *condition.MaxUniqueCount, err.Error()))
+		return types.ObjectNull(alertschema.LogsUniqueCountConditionAttr()), diags
 	}
 	return types.ObjectValueFrom(ctx, alertschema.LogsUniqueCountConditionAttr(), alerttypes.LogsUniqueCountConditionModel{
 		MaxUniqueCount: types.Int64Value(maxUniqueCount),
