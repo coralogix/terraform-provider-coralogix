@@ -177,6 +177,8 @@ func TestAccCoralogixResourceAlert_logs_more_than(t *testing.T) {
 							"value":     "application_name",
 						},
 					),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.no_data_policy.state", "ALERTING"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_threshold.no_data_policy.auto_retire_seconds", "300"),
 				),
 			},
 		},
@@ -998,6 +1000,8 @@ func TestAccCoralogixResourceAlert_metric_less_than(t *testing.T) {
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.threshold", "5"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.of_the_last", "10m"),
 					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.rules.0.condition.for_over_pct", "15"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.no_data_policy.state", "KEEP_LAST"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.metric_threshold.no_data_policy.auto_retire_seconds", "600"),
 				),
 			},
 		},
@@ -1679,6 +1683,10 @@ func testAccCoralogixResourceAlertLogsMoreThanUpdated() string {
             ]
           }
         }
+      }
+      no_data_policy = {
+        state                = "ALERTING"
+        auto_retire_seconds  = 300
       }
     }
   }
@@ -2913,6 +2921,10 @@ func testAccCoralogixResourceAlertMetricLessThanUpdated() string {
       undetected_values_management = {
         trigger_undetected_values = true
         auto_retire_timeframe     = "5_MINUTES"
+      }
+      no_data_policy = {
+        state               = "KEEP_LAST"
+        auto_retire_seconds = 600
       }
     }
   }
