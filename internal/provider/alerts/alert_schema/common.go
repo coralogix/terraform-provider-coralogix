@@ -509,6 +509,31 @@ func undetectedValuesManagementSchema() schema.SingleNestedAttribute {
 	}
 }
 
+func noDataPolicySchema() schema.SingleNestedAttribute {
+	return schema.SingleNestedAttribute{
+		Optional: true,
+		Computed: true,
+		PlanModifiers: []planmodifier.Object{
+			objectplanmodifier.UseStateForUnknown(),
+		},
+		Attributes: map[string]schema.Attribute{
+			"auto_retire_seconds": schema.Int64Attribute{
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "The timeframe in seconds for auto retiring values that were detected as no-data. Accepts only multiples of 60 seconds.",
+			},
+			"state": schema.StringAttribute{
+				Optional: true,
+				Computed: true,
+				Validators: []validator.String{
+					stringvalidator.OneOf(alerttypes.ValidNoDataPolicyStates...),
+				},
+				MarkdownDescription: fmt.Sprintf("No-data policy state. Valid values: %q.", alerttypes.ValidNoDataPolicyStates),
+			},
+		},
+	}
+}
+
 func WebhooksSettingsAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"notify_on": types.StringType,
@@ -629,6 +654,7 @@ func LogsThresholdAttr() map[string]attr.Type {
 		"notification_payload_filter":  types.SetType{ElemType: types.StringType},
 		"rules":                        types.SetType{ElemType: types.ObjectType{AttrTypes: LogsThresholdRulesAttr()}},
 		"undetected_values_management": types.ObjectType{AttrTypes: UndetectedValuesManagementAttr()},
+		"no_data_policy":               types.ObjectType{AttrTypes: NoDataPolicyAttr()},
 		"custom_evaluation_delay":      types.Int32Type,
 	}
 }
@@ -737,6 +763,13 @@ func UndetectedValuesManagementAttr() map[string]attr.Type {
 	}
 }
 
+func NoDataPolicyAttr() map[string]attr.Type {
+	return map[string]attr.Type{
+		"auto_retire_seconds": types.Int64Type,
+		"state":               types.StringType,
+	}
+}
+
 func LogsUniqueCountAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"logs_filter":                       types.ObjectType{AttrTypes: LogsFilterAttr()},
@@ -813,6 +846,7 @@ func MetricThresholdAttr() map[string]attr.Type {
 	return map[string]attr.Type{
 		"metric_filter":                types.ObjectType{AttrTypes: MetricFilterAttr()},
 		"undetected_values_management": types.ObjectType{AttrTypes: UndetectedValuesManagementAttr()},
+		"no_data_policy":               types.ObjectType{AttrTypes: NoDataPolicyAttr()},
 		"rules":                        types.SetType{ElemType: types.ObjectType{AttrTypes: MetricThresholdRulesAttr()}},
 		"missing_values":               types.ObjectType{AttrTypes: MissingValuesAttr()},
 		"custom_evaluation_delay":      types.Int32Type,

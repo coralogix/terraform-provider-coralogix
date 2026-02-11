@@ -1006,12 +1006,17 @@ func expandLogsThresholdTypeDefinition(ctx context.Context, properties *alerts.A
 	if diags.HasError() {
 		return nil, diags
 	}
+	noDataPolicy, diags := extractNoDataPolicy(ctx, thresholdModel.NoDataPolicy)
+	if diags.HasError() {
+		return nil, diags
+	}
 
 	properties.AlertDefPropertiesLogsThreshold.LogsThreshold = &alerts.LogsThresholdType{
 		LogsFilter:                 logsFilter,
 		Rules:                      rules,
 		NotificationPayloadFilter:  notificationPayloadFilter,
 		UndetectedValuesManagement: undetected,
+		NoDataPolicy:               noDataPolicy,
 		EvaluationDelayMs:          thresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
 	}
 
@@ -1106,6 +1111,31 @@ func extractUndetectedValuesManagement(ctx context.Context, management types.Obj
 		TriggerUndetectedValues: managementModel.TriggerUndetectedValues.ValueBoolPointer(),
 		AutoRetireTimeframe:     autoRetireTimeframe,
 	}, nil
+}
+
+func extractNoDataPolicy(ctx context.Context, noDataPolicy types.Object) (*alerts.NoDataPolicy, diag.Diagnostics) {
+	if utils.ObjIsNullOrUnknown(noDataPolicy) {
+		return nil, nil
+	}
+	var policyModel alerttypes.NoDataPolicyModel
+	if diags := noDataPolicy.As(ctx, &policyModel, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return nil, diags
+	}
+	if policyModel.State.IsNull() && policyModel.AutoRetireSeconds.IsNull() {
+		return nil, nil
+	}
+	out := &alerts.NoDataPolicy{}
+	if !(policyModel.AutoRetireSeconds.IsNull() || policyModel.AutoRetireSeconds.IsUnknown()) {
+		sec := int32(policyModel.AutoRetireSeconds.ValueInt64())
+		out.AutoRetireSeconds = &sec
+	}
+	if !(policyModel.State.IsNull() || policyModel.State.IsUnknown()) {
+		stateStr := policyModel.State.ValueString()
+		if stateStr != "" {
+			out.State = alerttypes.NoDataPolicyStateSchemaToProtoMap[stateStr].Ptr()
+		}
+	}
+	return out, nil
 }
 
 func expandLogsAnomalyAlertTypeDefinition(ctx context.Context, properties *alerts.AlertDefProperties, anomaly types.Object, alertResourceModel alerttypes.AlertResourceModel) (*alerts.AlertDefProperties, diag.Diagnostics) {
@@ -1803,11 +1833,16 @@ func expandMetricThresholdAlertTypeDefinition(ctx context.Context, properties *a
 	if diags.HasError() {
 		return nil, diags
 	}
+	noDataPolicy, diags := extractNoDataPolicy(ctx, metricThresholdModel.NoDataPolicy)
+	if diags.HasError() {
+		return nil, diags
+	}
 	properties.AlertDefPropertiesMetricThreshold.MetricThreshold = &alerts.MetricThresholdType{
 		MetricFilter:               metricFilter,
 		Rules:                      rules,
 		MissingValues:              missingValues,
 		UndetectedValuesManagement: undetected,
+		NoDataPolicy:               noDataPolicy,
 		EvaluationDelayMs:          metricThresholdModel.CustomEvaluationDelay.ValueInt32Pointer(),
 	}
 	properties.AlertDefPropertiesMetricThreshold.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_METRIC_THRESHOLD.Ptr()
@@ -3520,12 +3555,17 @@ func flattenLogsThreshold(ctx context.Context, threshold *alerts.LogsThresholdTy
 	if diags.HasError() {
 		return types.ObjectNull(alertschema.LogsThresholdAttr()), diags
 	}
+	noDataPolicy, diags := flattenNoDataPolicy(ctx, threshold.NoDataPolicy)
+	if diags.HasError() {
+		return types.ObjectNull(alertschema.LogsThresholdAttr()), diags
+	}
 
 	logsMoreThanModel := alerttypes.LogsThresholdModel{
 		LogsFilter:                 logsFilter,
 		Rules:                      rules,
 		NotificationPayloadFilter:  utils.StringSliceToTypeStringSet(threshold.NotificationPayloadFilter),
 		UndetectedValuesManagement: undetected,
+		NoDataPolicy:               noDataPolicy,
 		CustomEvaluationDelay:      types.Int32PointerValue(threshold.EvaluationDelayMs),
 	}
 	return types.ObjectValueFrom(ctx, alertschema.LogsThresholdAttr(), logsMoreThanModel)
@@ -3624,6 +3664,20 @@ func flattenUndetectedValuesManagement(ctx context.Context, undetectedValuesMana
 		undetectedValuesManagementModel.AutoRetireTimeframe = types.StringValue(alerttypes.AutoRetireTimeframeProtoToSchemaMap[*autoRetireTimeFrame])
 	}
 	return types.ObjectValueFrom(ctx, alertschema.UndetectedValuesManagementAttr(), undetectedValuesManagementModel)
+}
+
+func flattenNoDataPolicy(ctx context.Context, noDataPolicy *alerts.NoDataPolicy) (types.Object, diag.Diagnostics) {
+	var model alerttypes.NoDataPolicyModel
+	if noDataPolicy == nil {
+		return types.ObjectValueFrom(ctx, alertschema.NoDataPolicyAttr(), model)
+	}
+	if noDataPolicy.AutoRetireSeconds != nil {
+		model.AutoRetireSeconds = types.Int64Value(int64(*noDataPolicy.AutoRetireSeconds))
+	}
+	if noDataPolicy.State != nil {
+		model.State = types.StringValue(alerttypes.NoDataPolicyStateProtoToSchemaMap[*noDataPolicy.State])
+	}
+	return types.ObjectValueFrom(ctx, alertschema.NoDataPolicyAttr(), model)
 }
 
 func flattenLogsAnomaly(ctx context.Context, anomaly *alerts.LogsAnomalyType) (types.Object, diag.Diagnostics) {
@@ -4135,12 +4189,17 @@ func flattenMetricThreshold(ctx context.Context, metricThreshold *alerts.MetricT
 	if diags.HasError() {
 		return types.ObjectNull(alertschema.MetricThresholdAttr()), diags
 	}
+	noDataPolicy, diags := flattenNoDataPolicy(ctx, metricThreshold.NoDataPolicy)
+	if diags.HasError() {
+		return types.ObjectNull(alertschema.MetricThresholdAttr()), diags
+	}
 
 	metricThresholdModel := alerttypes.MetricThresholdModel{
 		MetricFilter:               metricFilter,
 		Rules:                      rules,
 		MissingValues:              missingValues,
 		UndetectedValuesManagement: undetectedValuesManagement,
+		NoDataPolicy:               noDataPolicy,
 		CustomEvaluationDelay:      types.Int32PointerValue(metricThreshold.EvaluationDelayMs),
 	}
 	return types.ObjectValueFrom(ctx, alertschema.MetricThresholdAttr(), metricThresholdModel)
