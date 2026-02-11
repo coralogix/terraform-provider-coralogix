@@ -1179,3 +1179,8 @@ Feat:
 
 FIX:
 * "Invalid uuid" error during update operations 
+
+#### resource/coralogix_recording_rules
+
+FIX:
+* Name attrubute to fail when an update for this field is attempted
