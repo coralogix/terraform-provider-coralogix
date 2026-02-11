@@ -25,7 +25,7 @@ data "coralogix_recording_rules_groups_set" "imported_recording_rules_groups_set
 
 - `groups` (Attributes Set) (see [below for nested schema](#nestedatt--groups))
 - `id` (String) The ID of this resource.
-- `name` (String) The name of the rule group. Overrides the name specified in the YAML if provided.
+- `name` (String) The name of the rule group. Overrides the name specified in the YAML if provided. Please do not change after creation.
 - `yaml_content` (String) YAML specification of rules. Cannot be used together with `groups`.
 
 <a id="nestedatt--groups"></a>

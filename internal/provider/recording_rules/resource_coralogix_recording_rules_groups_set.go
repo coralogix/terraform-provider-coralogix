@@ -318,7 +318,7 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "The name of the rule group. Overrides the name specified in the YAML if provided.",
+				MarkdownDescription: "The name of the rule group. Overrides the name specified in the YAML if provided. Please do not change after creation.",
 			},
 		},
 	}
@@ -476,6 +476,26 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 	if diags.HasError() {
 		resp.Diagnostics.Append(diags...)
 		return
+	}
+	var state *RecordingRuleGroupSetResourceModel
+	diags = req.State.Get(ctx, &state)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	if !plan.Name.IsNull() && !state.Name.IsNull() {
+		if plan.Name.ValueString() != state.Name.ValueString() {
+			resp.Diagnostics.AddError(
+				"Name Cannot Be Changed",
+				"The 'name' attribute cannot be changed after resource creation. "+
+					"To change the name, you must destroy and recreate the resource. "+
+					fmt.Sprintf("Current name: %s, Attempted new name: %s",
+						state.Name.ValueString(),
+						plan.Name.ValueString()),
+			)
+			return
+		}
 	}
 
 	id := plan.ID.ValueString()
