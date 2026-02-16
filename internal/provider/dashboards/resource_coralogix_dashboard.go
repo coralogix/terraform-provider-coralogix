@@ -742,6 +742,10 @@ func extractDashboard(ctx context.Context, plan DashboardResourceModel) (*cxsdk.
 		if err := dashboardschema.JSONUnmarshal.Unmarshal([]byte(plan.ContentJson.ValueString()), dashboard); err != nil {
 			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error unmarshalling dashboard content json", err.Error())}
 		}
+		// Inject queryDefinitions for dynamic widgets when missing (known field; keeps DiscardUnknown: true).
+		if err := injectDynamicWidgetQueryDefinitions(plan.ContentJson.ValueString(), dashboard); err != nil {
+			return nil, diag.Diagnostics{diag.NewErrorDiagnostic("Error injecting dynamic widget queryDefinitions", err.Error())}
+		}
 
 		dashboard, diags := expandDashboardFolder(ctx, dashboard, plan.Folder)
 		if diags.HasError() {
