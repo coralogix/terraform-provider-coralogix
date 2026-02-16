@@ -481,6 +481,11 @@ func TestAccCoralogixResourceDashboardFromJsonWithVar(t *testing.T) {
 }
 
 func testAccCheckDashboardDestroy(s *terraform.State) error {
+	// When using ProtoV6ProviderFactories, testAccProvider is never configured (a different
+	// provider instance is used), so Meta() is nil. Skip destroy check to avoid panic.
+	if testAccProvider == nil || testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).Dashboards()
 
 	ctx := context.TODO()
