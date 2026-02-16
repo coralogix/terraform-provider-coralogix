@@ -16,6 +16,7 @@ package dashboards
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
@@ -74,7 +75,7 @@ func injectDynamicWidgetQueryDefinitions(contentJSON string, dashboard *cxsdk.Da
 				if !ok || len(rawList) == 0 {
 					continue
 				}
-				if err := setQueryDefinitionsViaReflection(dyn, rawList, unmarshalOpts); err != nil {
+				if err := setQueryDefinitionsViaReflection(pathKey{si, ri, wi}, dyn, rawList, unmarshalOpts); err != nil {
 					return err
 				}
 			}
@@ -143,7 +144,7 @@ func collectRawDynamicQueryDefinitions(raw map[string]interface{}) (map[pathKey]
 	return out, nil
 }
 
-func setQueryDefinitionsViaReflection(dyn interface{}, rawList []interface{}, opts protojson.UnmarshalOptions) error {
+func setQueryDefinitionsViaReflection(path pathKey, dyn interface{}, rawList []interface{}, opts protojson.UnmarshalOptions) error {
 	if dyn == nil {
 		return nil
 	}
@@ -159,18 +160,18 @@ func setQueryDefinitionsViaReflection(dyn interface{}, rawList []interface{}, op
 	elemPtrType := sliceType.Elem() // *Dynamic_QueryDefinition
 	elemType := elemPtrType.Elem()  // Dynamic_QueryDefinition
 	slice := reflect.MakeSlice(sliceType, 0, len(rawList))
-	for _, rawItem := range rawList {
+	for idx, rawItem := range rawList {
 		rawBytes, err := json.Marshal(rawItem)
 		if err != nil {
-			continue
+			return fmt.Errorf("dynamic widget query definition at section %d row %d widget %d, item %d: marshal: %w", path.section, path.row, path.widget, idx, err)
 		}
 		newMsg := reflect.New(elemType).Interface()
 		pm, ok := newMsg.(proto.Message)
 		if !ok {
-			continue
+			return fmt.Errorf("dynamic widget query definition at section %d row %d widget %d, item %d: SDK type is not proto.Message", path.section, path.row, path.widget, idx)
 		}
 		if err := opts.Unmarshal(rawBytes, pm); err != nil {
-			continue
+			return fmt.Errorf("dynamic widget query definition at section %d row %d widget %d, item %d: %w", path.section, path.row, path.widget, idx, err)
 		}
 		slice = reflect.Append(slice, reflect.ValueOf(pm))
 	}
