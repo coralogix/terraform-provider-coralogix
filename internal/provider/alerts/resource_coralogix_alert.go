@@ -1589,12 +1589,16 @@ func expandLogsUniqueCountAlertTypeDefinition(ctx context.Context, properties *a
 		return nil, diags
 	}
 
-	maxUniqueCountPerGroupByKey := strconv.FormatInt(uniqueCountModel.MaxUniqueCountPerGroupByKey.ValueInt64(), 10)
+	var maxUniqueCountPerGroupByKey *string
+	if !uniqueCountModel.MaxUniqueCountPerGroupByKey.IsNull() && !uniqueCountModel.MaxUniqueCountPerGroupByKey.IsUnknown() {
+		val := strconv.FormatInt(uniqueCountModel.MaxUniqueCountPerGroupByKey.ValueInt64(), 10)
+		maxUniqueCountPerGroupByKey = &val
+	}
 	properties.AlertDefPropertiesLogsUniqueCount.LogsUniqueCount = &alerts.LogsUniqueCountType{
 		LogsFilter:                  logsFilter,
 		Rules:                       rules,
 		NotificationPayloadFilter:   notificationPayloadFilter,
-		MaxUniqueCountPerGroupByKey: &maxUniqueCountPerGroupByKey,
+		MaxUniqueCountPerGroupByKey: maxUniqueCountPerGroupByKey,
 		UniqueCountKeypath:          uniqueCountModel.UniqueCountKeypath.ValueStringPointer(),
 	}
 	properties.AlertDefPropertiesLogsUniqueCount.Type = alerts.ALERTDEFTYPE_ALERT_DEF_TYPE_LOGS_UNIQUE_COUNT.Ptr()

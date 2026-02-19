@@ -824,6 +824,31 @@ func TestAccCoralogixResourceAlert_logs_unique_count(t *testing.T) {
 	)
 }
 
+func TestAccCoralogixResourceAlert_logs_unique_count_without_per_group_by_key(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertLogsUniqueCountWithoutPerGroupByKey(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "logs-unique-count alert without per group by key"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.#", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.rules.0.condition.max_unique_count", "1"),
+					resource.TestCheckResourceAttr(alertResourceName, "type_definition.logs_unique_count.unique_count_keypath", "test_field"),
+					resource.TestCheckNoResourceAttr(alertResourceName, "type_definition.logs_unique_count.max_unique_count_per_group_by_key"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+		},
+	},
+	)
+}
+
 func TestAccCoralogixResourceAlert_logs_time_relative_more_than(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -2685,6 +2710,33 @@ func testAccCoralogixResourceAlertLogsUniqueCountUpdated() string {
                 time_window          = "20_MINUTES"
             }
         }]
+    }
+  }
+}
+`
+}
+
+func testAccCoralogixResourceAlertLogsUniqueCountWithoutPerGroupByKey() string {
+	return `resource "coralogix_alert" "test" {
+  name        = "logs-unique-count alert without per group by key"
+  description = "Test alert without max_unique_count_per_group_by_key"
+  priority    = "P3"
+  enabled     = false
+
+  type_definition = {
+    logs_unique_count = {
+        unique_count_keypath = "test_field"
+        rules = [{
+            condition = {
+                max_unique_count = 1
+                time_window      = "1_MINUTE"
+            }
+        }]
+        logs_filter = {
+            simple_filter = {
+                lucene_query = "test:query"
+            }
+        }
     }
   }
 }
