@@ -478,6 +478,27 @@ func (r *RecordingRuleGroupSetResource) Update(ctx context.Context, req resource
 		return
 	}
 
+	var state *RecordingRuleGroupSetResourceModel
+	diags = req.State.Get(ctx, &state)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+
+	if !plan.Name.IsNull() && !state.Name.IsNull() {
+		if plan.Name.ValueString() != state.Name.ValueString() {
+			resp.Diagnostics.AddError(
+				"Name Cannot Be Changed",
+				"The 'name' attribute cannot be changed after resource creation. "+
+					"To change the name, you must destroy and recreate the resource. "+
+					fmt.Sprintf("Current name: %s, Attempted new name: %s",
+						state.Name.ValueString(),
+						plan.Name.ValueString()),
+			)
+			return
+		}
+	}
+
 	id := plan.ID.ValueString()
 	rq, diags := expandUpdateRecordingRulesGroupsSet(ctx, plan)
 	if diags.HasError() {
