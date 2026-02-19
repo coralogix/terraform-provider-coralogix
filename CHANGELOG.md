@@ -1172,6 +1172,12 @@ Fix:
 
 - Fix: E2M lucene null results in errors
 
+# Release 3.1.1
+
+Fix:
+* Don't send `maxUniqueCountPerGroupByKey` when optional field `max_unique_count_per_group_by_key` is not set in `logs_unique_count` alerts. Previously, the provider sent `"0"` causing API `400 Bad Request` errors.
+
+
 # Release 4.0.0
 
 ## resource/coralogix_enrichment, data_source/coralogix_enrichment
