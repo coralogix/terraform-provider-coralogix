@@ -59,8 +59,8 @@ resource "coralogix_slo_v2" "example_window_based_slo" {
 }
 
 resource "coralogix_alert" "slo_alert_burn_rate" {
-  name        = "SLO burn rate alert"
-  description = "Alert based on SLO burn rate threshold"
+  name         = "SLO burn rate alert"
+  description  = "Alert based on SLO burn rate threshold"
   phantom_mode = false
   labels = {
     alert_type        = "security"
