@@ -3901,7 +3901,14 @@ func flattenDashboardOptions(_ context.Context, opts *cxsdk.DashboardSectionOpti
 	if opts.GetCustom().Color != nil {
 		colorString := opts.GetCustom().Color.GetPredefined().String()
 		colors := strings.Split(colorString, "_")
-		color = types.StringValue(strings.ToLower(colors[len(colors)-1]))
+		colorLower := strings.ToLower(colors[len(colors)-1])
+		// "unspecified" is the protobuf zero-value; treat it the same as absent
+		// so it does not violate the schema's OneOf validator for named colors.
+		if colorLower == "unspecified" {
+			color = types.StringNull()
+		} else {
+			color = types.StringValue(colorLower)
+		}
 	} else {
 		color = types.StringNull()
 	}
@@ -3988,9 +3995,16 @@ func flattenDashboardWidget(ctx context.Context, widget *cxsdk.DashboardWidget) 
 		return nil, diags
 	}
 
+	// Markdown widgets must not carry a title: the schema declares ConflictsWith
+	// between markdown and title, so the API value must be suppressed here.
+	title := utils.WrapperspbStringToTypeString(widget.GetTitle())
+	if definition != nil && definition.Markdown != nil {
+		title = types.StringNull()
+	}
+
 	return &WidgetModel{
 		ID:          types.StringValue(widget.GetId().GetValue()),
-		Title:       utils.WrapperspbStringToTypeString(widget.GetTitle()),
+		Title:       title,
 		Description: utils.WrapperspbStringToTypeString(widget.GetDescription()),
 		Width:       utils.WrapperspbInt32ToTypeInt64(widget.GetAppearance().GetWidth()),
 		Definition:  definition,
