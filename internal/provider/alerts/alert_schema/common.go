@@ -130,10 +130,20 @@ func (c ComputedForSomeAlerts) PlanModifyList(ctx context.Context, request planm
 		response.Diagnostics.Append(diags...)
 		return
 	}
-	var typeDefinition alerttypes.AlertTypeDefinitionModel
-	diags = request.Plan.GetAttribute(ctx, paths[0], &typeDefinition)
+	// Check if type_definition is null or unknown before trying to decode it.
+	// During import plans the value is unknown (computed, not yet read).
+	var typeDefinitionObj types.Object
+	diags = request.Plan.GetAttribute(ctx, paths[0], &typeDefinitionObj)
 	if diags.HasError() {
 		response.Diagnostics.Append(diags...)
+		return
+	}
+	if typeDefinitionObj.IsNull() || typeDefinitionObj.IsUnknown() {
+		return
+	}
+	var typeDefinition alerttypes.AlertTypeDefinitionModel
+	if convDiags := typeDefinitionObj.As(ctx, &typeDefinition, basetypes.ObjectAsOptions{}); convDiags.HasError() {
+		response.Diagnostics.Append(convDiags...)
 		return
 	}
 
@@ -317,7 +327,6 @@ func logsRatioGroupByForSchema() schema.StringAttribute {
 		Default:  stringdefault.StaticString("Both"),
 		Validators: []validator.String{
 			stringvalidator.OneOf(alerttypes.ValidLogsRatioGroupByFor...),
-			stringvalidator.AlsoRequires(path.MatchRoot("group_by")),
 		},
 		MarkdownDescription: fmt.Sprintf("Group by for. Valid values: %q. 'Both' by default.", alerttypes.ValidLogsRatioGroupByFor),
 	}

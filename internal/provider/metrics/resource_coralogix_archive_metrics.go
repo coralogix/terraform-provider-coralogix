@@ -25,7 +25,6 @@ import (
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	ams "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/metrics_data_archive_service"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -35,14 +34,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 var (
-	_ resource.ResourceWithConfigure   = &ArchiveMetricsResource{}
-	_ resource.ResourceWithImportState = &ArchiveMetricsResource{}
+	_ resource.ResourceWithConfigure        = &ArchiveMetricsResource{}
+	_ resource.ResourceWithImportState      = &ArchiveMetricsResource{}
+	_ resource.ResourceWithModifyPlan = &ArchiveMetricsResource{}
 )
 
 // Safeguard against empty ID string, as using empty string causes problems when this provider is used in Pulumi via https://github.com/pulumi/pulumi-terraform-provider
@@ -67,6 +66,11 @@ type ArchiveMetricsResource struct {
 
 func (r *ArchiveMetricsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r *ArchiveMetricsResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.ExactlyOneOfOnCreate(ctx, req, resp, path.Root("ibm"), path.Root("s3"))
+	utils.RequiredAttributeOnCreate(ctx, req, resp, path.Root("retention_policy"))
 }
 
 func (r *ArchiveMetricsResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -128,59 +132,56 @@ func (r *ArchiveMetricsResource) Schema(_ context.Context, _ resource.SchemaRequ
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"retention_policy": schema.SingleNestedAttribute{
-				Computed: true,
-				Optional: true,
-				Attributes: map[string]schema.Attribute{
-					"raw_resolution": schema.Int64Attribute{
-						Required: true,
-					},
-					"five_minutes_resolution": schema.Int64Attribute{
-						Required: true,
-					},
-					"one_hour_resolution": schema.Int64Attribute{
-						Required: true,
-					},
+		"retention_policy": schema.SingleNestedAttribute{
+			Computed: true,
+			Optional: true,
+			Attributes: map[string]schema.Attribute{
+				"raw_resolution": schema.Int64Attribute{
+					Optional: true,
+					Computed: true,
 				},
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
+				"five_minutes_resolution": schema.Int64Attribute{
+					Optional: true,
+					Computed: true,
 				},
-				MarkdownDescription: "The retention policy (in days) for the archived metrics. Having default values when not specified.",
-			},
-			"ibm": schema.SingleNestedAttribute{
-				Optional: true,
-				Attributes: map[string]schema.Attribute{
-					"endpoint": schema.StringAttribute{
-						Required: true,
-					},
-					"crn": schema.StringAttribute{
-						Required: true,
-					},
-				},
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("s3"),
-					),
+				"one_hour_resolution": schema.Int64Attribute{
+					Optional: true,
+					Computed: true,
 				},
 			},
-			"s3": schema.SingleNestedAttribute{
-				Optional: true,
-				Attributes: map[string]schema.Attribute{
-					"bucket": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: "The bucket name to store the archived metrics in.",
-					},
-					"region": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: "The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions",
-					},
+			PlanModifiers: []planmodifier.Object{
+				objectplanmodifier.UseStateForUnknown(),
+			},
+			MarkdownDescription: "The retention policy (in days) for the archived metrics. Having default values when not specified.",
+		},
+		"ibm": schema.SingleNestedAttribute{
+			Optional: true,
+			Attributes: map[string]schema.Attribute{
+				"endpoint": schema.StringAttribute{
+					Optional: true,
+					Computed: true,
 				},
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("ibm"),
-					),
+				"crn": schema.StringAttribute{
+					Optional: true,
+					Computed: true,
 				},
 			},
+		},
+		"s3": schema.SingleNestedAttribute{
+			Optional: true,
+			Attributes: map[string]schema.Attribute{
+				"bucket": schema.StringAttribute{
+					Optional:            true,
+					Computed:            true,
+					MarkdownDescription: "The bucket name to store the archived metrics in. Required when creating.",
+				},
+				"region": schema.StringAttribute{
+					Optional:            true,
+					Computed:            true,
+					MarkdownDescription: "The bucket region. see - https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html#Concepts.RegionsAndAvailabilityZones.Regions Required when creating.",
+				},
+			},
+		},
 		},
 	}
 }

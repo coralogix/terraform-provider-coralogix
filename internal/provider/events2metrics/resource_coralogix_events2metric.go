@@ -28,7 +28,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -81,7 +80,7 @@ var (
 
 var (
 	_ resource.ResourceWithConfigure        = &Events2MetricResource{}
-	_ resource.ResourceWithConfigValidators = &Events2MetricResource{}
+	_ resource.ResourceWithModifyPlan = &Events2MetricResource{}
 	_ resource.ResourceWithImportState      = &Events2MetricResource{}
 	_ resource.ResourceWithUpgradeState     = &Events2MetricResource{}
 )
@@ -236,14 +235,15 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
-			"name": schema.StringAttribute{
-				Required: true,
-				Validators: []validator.String{
-					stringvalidator.RegexMatches(regexp.MustCompile(`^[A-Za-z\d_:-]*$`), "Invalid metric name, name may only contain ASCII letters and digits, as well as underscores and colons."),
-					stringvalidator.LengthAtLeast(1),
-				},
-				MarkdownDescription: "Events2Metric name. Events2Metric names have to be unique per account.",
+		"name": schema.StringAttribute{
+			Optional: true,
+			Computed: true,
+			Validators: []validator.String{
+				stringvalidator.RegexMatches(regexp.MustCompile(`^[A-Za-z\d_:-]*$`), "Invalid metric name, name may only contain ASCII letters and digits, as well as underscores and colons."),
+				stringvalidator.LengthAtLeast(1),
 			},
+			MarkdownDescription: "Events2Metric name. Events2Metric names have to be unique per account. Required when creating.",
+		},
 			"description": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "Events2Metric description.",
@@ -252,10 +252,11 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"source_field": schema.StringAttribute{
-							Required: true,
-						},
-						"aggregations": schema.SingleNestedAttribute{
+					"source_field": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+					},
+					"aggregations": schema.SingleNestedAttribute{
 							Optional: true,
 							Computed: true,
 							PlanModifiers: []planmodifier.Object{
@@ -392,13 +393,14 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 												stringplanmodifier.UseStateForUnknown(),
 											},
 										},
-										"type": schema.StringAttribute{
-											Required: true,
-											Validators: []validator.String{
-												stringvalidator.OneOf(validSampleTypes...),
-											},
-											MarkdownDescription: fmt.Sprintf("Can be one of %q.", validSampleTypes),
+									"type": schema.StringAttribute{
+										Optional: true,
+										Computed: true,
+										Validators: []validator.String{
+											stringvalidator.OneOf(validSampleTypes...),
 										},
+										MarkdownDescription: fmt.Sprintf("Can be one of %q. Required when creating.", validSampleTypes),
+									},
 									},
 								},
 								"histogram": schema.SingleNestedAttribute{
@@ -415,20 +417,21 @@ func (r *Events2MetricResource) Schema(_ context.Context, _ resource.SchemaReque
 												boolplanmodifier.UseStateForUnknown(),
 											},
 										},
-										"target_metric_name": schema.StringAttribute{
-											Computed: true,
-											PlanModifiers: []planmodifier.String{
-												stringplanmodifier.UseStateForUnknown(),
-											},
+									"target_metric_name": schema.StringAttribute{
+										Computed: true,
+										PlanModifiers: []planmodifier.String{
+											stringplanmodifier.UseStateForUnknown(),
 										},
-										"buckets": schema.ListAttribute{
-											ElementType: types.Float64Type,
-											Required:    true,
-										},
+									},
+									"buckets": schema.ListAttribute{
+										ElementType: types.Float64Type,
+										Optional:    true,
+										Computed:    true,
 									},
 								},
 							},
 						},
+					},
 					},
 				},
 				Validators: []validator.Map{
@@ -839,13 +842,12 @@ func commonAggregationSchemaV0() schema.ListNestedBlock {
 	}
 }
 
-func (r *Events2MetricResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
-	return []resource.ConfigValidator{
-		resourcevalidator.ExactlyOneOf(
-			path.MatchRoot("spans_query"),
-			path.MatchRoot("logs_query"),
-		),
-	}
+func (r *Events2MetricResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredOnCreate(ctx, req, resp, path.Root("name"))
+	utils.ExactlyOneOfOnCreate(ctx, req, resp,
+		path.Root("spans_query"),
+		path.Root("logs_query"),
+	)
 }
 
 func (r *Events2MetricResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

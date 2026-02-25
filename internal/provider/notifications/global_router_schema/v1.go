@@ -48,10 +48,11 @@ func V1() schema.Schema {
 				PlanModifiers:       []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 				MarkdownDescription: "The ID of the GlobalRouter. Use `router_default` for the default; leave empty for auto generated or provide your own (unique) id.",
 			},
-			"name": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Name of the GlobalRouter.",
-			},
+		"name": schema.StringAttribute{
+			Optional:            true,
+			Computed:            true,
+			MarkdownDescription: "Name of the GlobalRouter. Required when creating.",
+		},
 			"description": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "Description of the GlobalRouter.",
@@ -88,55 +89,60 @@ func V1() schema.Schema {
 							Validators: []validator.String{
 								stringvalidator.OneOf(GlobalRouterValidNotificationCenterEntityTypesSchemaToApi...),
 							}},
-						"condition": schema.StringAttribute{
-							Required: true,
-						},
+					"condition": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "Required when creating.",
+					},
 						"targets": schema.ListNestedAttribute{
 							Optional:    true,
 							Computed:    true,
 							Description: "Routing targets for the rule.",
 							NestedObject: schema.NestedAttributeObject{
 								Attributes: map[string]schema.Attribute{
-									"connector_id": schema.StringAttribute{
-										Required:    true,
-										Description: "ID of the connector.",
-									},
-									"preset_id": schema.StringAttribute{
-										Optional:    true,
-										Description: "ID of the preset.",
-									},
-									"custom_details": schema.MapAttribute{
-										Optional:    true,
-										Computed:    true,
-										ElementType: types.StringType,
-										Description: "Custom details for the target.",
-									},
+								"connector_id": schema.StringAttribute{
+									Optional:    true,
+									Computed:    true,
+									Description: "ID of the connector. Required when creating.",
+								},
+								"preset_id": schema.StringAttribute{
+									Optional:    true,
+									Description: "ID of the preset.",
+								},
+								"custom_details": schema.MapAttribute{
+									Optional:    true,
+									Computed:    true,
+									ElementType: types.StringType,
+									Description: "Custom details for the target.",
 								},
 							},
 						},
-						"custom_details": schema.MapAttribute{
-							Optional:    true,
-							Computed:    true,
-							ElementType: types.StringType,
-							Description: "Custom details for the rule.",
-						},
-						"name": schema.StringAttribute{
-							Required:    true,
-							Description: "Name of the routing rule.",
-						},
+					},
+					"custom_details": schema.MapAttribute{
+						Optional:    true,
+						Computed:    true,
+						ElementType: types.StringType,
+						Description: "Custom details for the rule.",
+					},
+					"name": schema.StringAttribute{
+						Optional:    true,
+						Computed:    true,
+						Description: "Name of the routing rule. Required when creating.",
+					},
 					},
 				},
 			},
-			"fallback": schema.ListNestedAttribute{
-				Optional:    true,
-				Computed:    true,
-				Description: "Fallback routing targets.",
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"connector_id": schema.StringAttribute{
-							Required:    true,
-							Description: "ID of the connector.",
-						},
+		"fallback": schema.ListNestedAttribute{
+			Optional:    true,
+			Computed:    true,
+			Description: "Fallback routing targets.",
+			NestedObject: schema.NestedAttributeObject{
+				Attributes: map[string]schema.Attribute{
+					"connector_id": schema.StringAttribute{
+						Optional:    true,
+						Computed:    true,
+						Description: "ID of the connector. Required when creating.",
+					},
 						"preset_id": schema.StringAttribute{
 							Optional:    true,
 							Description: "ID of the preset.",

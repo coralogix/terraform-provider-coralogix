@@ -40,6 +40,8 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+var _ resource.ResourceWithModifyPlan = &UserResource{}
+
 func NewUserResource() resource.Resource {
 	return &UserResource{}
 }
@@ -81,8 +83,9 @@ func (r *UserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 				MarkdownDescription: "User ID.",
 			},
 			"user_name": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "User name.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "User name. Required when creating.",
 			},
 			"name": schema.SingleNestedAttribute{
 				Optional: true,
@@ -149,6 +152,10 @@ func (r *UserResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 
 func (r *UserResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r *UserResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredOnCreate(ctx, req, resp, path.Root("user_name"))
 }
 
 func (r *UserResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

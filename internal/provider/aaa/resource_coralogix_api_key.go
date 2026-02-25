@@ -43,6 +43,8 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+var _ resource.ResourceWithModifyPlan = &ApiKeyResource{}
+
 func NewApiKeyResource() resource.Resource {
 	return &ApiKeyResource{}
 }
@@ -77,6 +79,15 @@ func (r *ApiKeyResource) ImportState(ctx context.Context, req resource.ImportSta
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
+func (r *ApiKeyResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredAttributeOnCreate(ctx, req, resp, path.Root("name"))
+	utils.ExactlyOneOfOnCreate(ctx, req, resp,
+		path.Root("owner").AtName("team_id"),
+		path.Root("owner").AtName("user_id"),
+		path.Root("owner").AtName("organisation_id"),
+	)
+}
+
 func resourceSchemaV1() schema.Schema {
 	return schema.Schema{
 		Version: 1,
@@ -89,8 +100,9 @@ func resourceSchemaV1() schema.Schema {
 				MarkdownDescription: "ApiKey ID.",
 			},
 			"name": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Api Key name.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Api Key name. Required when creating.",
 			},
 			"value": schema.StringAttribute{
 				Computed:            true,
@@ -101,42 +113,29 @@ func resourceSchemaV1() schema.Schema {
 				Attributes: map[string]schema.Attribute{
 					"team_id": schema.StringAttribute{
 						Optional: true,
-						Validators: []validator.String{
-							stringvalidator.ExactlyOneOf(
-								path.MatchRelative().AtParent().AtName("user_id"),
-								path.MatchRelative().AtParent().AtName("organisation_id"),
-							),
-						},
+						Computed: true,
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.RequiresReplace(),
 						},
 					},
 					"user_id": schema.StringAttribute{
 						Optional: true,
-						Validators: []validator.String{
-							stringvalidator.ExactlyOneOf(
-								path.MatchRelative().AtParent().AtName("team_id"),
-								path.MatchRelative().AtParent().AtName("organisation_id"),
-							),
-						},
+						Computed: true,
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.RequiresReplace(),
 						},
 					},
 					"organisation_id": schema.StringAttribute{
 						Optional: true,
-						Validators: []validator.String{
-							stringvalidator.ExactlyOneOf(
-								path.MatchRelative().AtParent().AtName("team_id"),
-								path.MatchRelative().AtParent().AtName("user_id")),
-						},
+						Computed: true,
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.RequiresReplace(),
 						},
 					},
 				},
-				Required:            true,
-				MarkdownDescription: "Api Key Owner. It can either be a team_id, organisation_id, or a user_id ",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Api Key Owner. It can either be a team_id, organisation_id, or a user_id. Required when creating.",
 			},
 
 			"active": schema.BoolAttribute{
@@ -150,12 +149,14 @@ func resourceSchemaV1() schema.Schema {
 				MarkdownDescription: "Api Key Is Hashed.",
 			},
 			"presets": schema.SetAttribute{
-				Required:            true,
+				Optional:            true,
+				Computed:            true,
 				ElementType:         types.StringType,
 				MarkdownDescription: "Api Key Presets",
 			},
 			"permissions": schema.SetAttribute{
-				Required:            true,
+				Optional:            true,
+				Computed:            true,
 				ElementType:         types.StringType,
 				MarkdownDescription: "Api Key Permissions",
 			},

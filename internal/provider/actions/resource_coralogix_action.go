@@ -40,8 +40,9 @@ import (
 )
 
 var (
-	_                                       resource.ResourceWithConfigure   = &ActionResource{}
-	_                                       resource.ResourceWithImportState = &ActionResource{}
+	_                                       resource.ResourceWithConfigure        = &ActionResource{}
+	_                                       resource.ResourceWithImportState      = &ActionResource{}
+	_                                       resource.ResourceWithModifyPlan = &ActionResource{}
 	actionSchemaSourceTypeToProtoSourceType                                  = map[string]actionss.V2SourceType{
 		"Log":     actionss.V2SOURCETYPE_SOURCE_TYPE_LOG,
 		"DataMap": actionss.V2SOURCETYPE_SOURCE_TYPE_DATA_MAP,
@@ -103,18 +104,20 @@ func (r *ActionResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				MarkdownDescription: "Action ID.",
 			},
 			"name": schema.StringAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
 				},
-				MarkdownDescription: "Action name.",
+				MarkdownDescription: "Action name. Required when creating.",
 			},
 			"url": schema.StringAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					utils.UrlValidationFuncFramework{},
 				},
-				MarkdownDescription: "URL for the external tool.",
+				MarkdownDescription: "URL for the external tool. Required when creating.",
 			},
 			"is_private": schema.BoolAttribute{
 				Optional:            true,
@@ -129,11 +132,12 @@ func (r *ActionResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				MarkdownDescription: "Determines weather the action will be shown at the action menu.",
 			},
 			"source_type": schema.StringAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(actionValidSourceTypes...),
 				},
-				MarkdownDescription: fmt.Sprintf("By selecting the data type, you can make sure that the action will be displayed only in the relevant context. Can be one of %q", actionValidSourceTypes),
+				MarkdownDescription: fmt.Sprintf("By selecting the data type, you can make sure that the action will be displayed only in the relevant context. Required when creating. Can be one of %q", actionValidSourceTypes),
 			},
 			"applications": schema.SetAttribute{
 				ElementType: types.StringType,
@@ -167,6 +171,14 @@ func (r *ActionResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 
 func (r *ActionResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r *ActionResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredOnCreate(ctx, req, resp,
+		path.Root("name"),
+		path.Root("url"),
+		path.Root("source_type"),
+	)
 }
 
 func (r *ActionResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

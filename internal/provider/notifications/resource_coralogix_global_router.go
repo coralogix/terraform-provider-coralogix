@@ -33,6 +33,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
+var (
+	_ resource.ResourceWithConfigure        = &GlobalRouterResource{}
+	_ resource.ResourceWithImportState      = &GlobalRouterResource{}
+	_ resource.ResourceWithModifyPlan = &GlobalRouterResource{}
+)
+
 func NewGlobalRouterResource() resource.Resource {
 	return &GlobalRouterResource{}
 }
@@ -145,6 +151,14 @@ func (r *GlobalRouterResource) fetchGlobalRouterFromServer(ctx context.Context, 
 
 func (r *GlobalRouterResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r *GlobalRouterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredAttributeOnCreate(ctx, req, resp,
+		path.Root("name"),
+		path.Root("rules"),
+		path.Root("fallback"),
+	)
 }
 
 func (r *GlobalRouterResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

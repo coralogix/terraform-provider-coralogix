@@ -157,10 +157,11 @@ func EnrichmentSchema() map[string]*schema.Schema {
 			Optional: true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"custom_enrichment_id": {
-						Type:     schema.TypeInt,
-						Required: true,
-					},
+				"custom_enrichment_id": {
+					Type:     schema.TypeInt,
+					Optional: true,
+					Computed: true,
+				},
 					"fields": {
 						Type:        schema.TypeSet,
 						Optional:    true,
@@ -182,7 +183,8 @@ func fields() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 			},
 			"id": {
 				Type:     schema.TypeInt,
@@ -201,11 +203,13 @@ func awsFields() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 			},
 			"resource": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 			},
 			"id": {
 				Type:     schema.TypeInt,

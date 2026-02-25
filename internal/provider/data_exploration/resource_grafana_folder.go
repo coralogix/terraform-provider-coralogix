@@ -54,11 +54,12 @@ func ResourceGrafanaFolder() *schema.Resource {
 				Optional:    true,
 				Description: "Unique identifier.",
 			},
-			"title": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The title of the folder.",
-			},
+		"title": {
+			Type:        schema.TypeString,
+			Optional:    true,
+			Computed:    true,
+			Description: "The title of the folder. Required when creating.",
+		},
 			"url": {
 				Type:        schema.TypeString,
 				Computed:    true,

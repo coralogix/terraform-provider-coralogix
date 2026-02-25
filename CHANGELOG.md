@@ -1192,7 +1192,56 @@ Fix:
 
 - Removed.
 
-# Unknown future release 
+# Unknown future release
+
+## Empty-stub import support (all importable resources)
+
+**Enhancement:** All importable resources now support empty-stub `terraform import`. You can import any resource using a minimal stub without specifying required fields in HCL:
+
+```hcl
+resource "coralogix_webhook" "my_webhook" {}
+```
+
+```shell
+terraform import coralogix_webhook.my_webhook <id>
+```
+
+Previously, schema-level `Required` constraints and `ExactlyOneOf` validators ran at plan time, blocking import with empty stubs. These constraints have been moved to import-aware `ConfigValidators` that:
+- **Skip validation during import** (when the resource `id` is already known in config)
+- **Enforce requirements at plan time** for new creates and updates, with clear error messages
+
+**Affected resources:**
+- `coralogix_action`
+- `coralogix_alert`
+- `coralogix_alerts_scheduler`
+- `coralogix_api_key`
+- `coralogix_archive_logs`
+- `coralogix_archive_metrics`
+- `coralogix_connector`
+- `coralogix_custom_role`
+- `coralogix_data_set`
+- `coralogix_enrichment`
+- `coralogix_events2metric`
+- `coralogix_global_router`
+- `coralogix_grafana_folder`
+- `coralogix_group`
+- `coralogix_hosted_dashboard`
+- `coralogix_ip_access`
+- `coralogix_preset`
+- `coralogix_recording_rules_groups_set`
+- `coralogix_rules_group`
+- `coralogix_scope`
+- `coralogix_slo` (apm)
+- `coralogix_slo_v2`
+- `coralogix_tco_policies_logs`
+- `coralogix_tco_policies_traces`
+- `coralogix_team`
+- `coralogix_user`
+- `coralogix_webhook`
+
+**Write-only credential fields** (e.g., `pager_duty.service_key`, `jira.api_token`) are now marked `Sensitive: true`. These fields are not returned by the API after creation — after import, they will appear as null in state. Use `lifecycle { ignore_changes = [pager_duty[0].service_key] }` to suppress the resulting plan diff.
+
+**Schema note:** No schema version bumps were required. The state shape is unchanged — only constraint annotations were relaxed.
 
 ## resource/coralogix_alert
 Remove:  remove support for `notification_group.destinations`

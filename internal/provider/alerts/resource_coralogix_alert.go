@@ -48,8 +48,9 @@ const OFFSET_FORMAT = "Z0700"
 const DEFAULT_TIMEZONE_OFFSET = "+0000"
 
 var (
-	_ resource.ResourceWithConfigure   = &AlertResource{}
-	_ resource.ResourceWithImportState = &AlertResource{}
+	_ resource.ResourceWithConfigure        = &AlertResource{}
+	_ resource.ResourceWithImportState      = &AlertResource{}
+	_ resource.ResourceWithModifyPlan = &AlertResource{}
 )
 
 func NewAlertResource() resource.Resource {
@@ -143,6 +144,65 @@ func (r AlertResource) GenericUpgradeState(_ any) func(context.Context, resource
 }
 func (r *AlertResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r *AlertResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredOnCreate(ctx, req, resp, path.Root("name"))
+	utils.RequiredAttributeOnCreate(ctx, req, resp, path.Root("type_definition"))
+	utils.ExactlyOneOfOnCreate(ctx, req, resp,
+		path.Root("type_definition").AtName("logs_immediate"),
+		path.Root("type_definition").AtName("logs_threshold"),
+		path.Root("type_definition").AtName("logs_anomaly"),
+		path.Root("type_definition").AtName("logs_ratio_threshold"),
+		path.Root("type_definition").AtName("logs_new_value"),
+		path.Root("type_definition").AtName("logs_unique_count"),
+		path.Root("type_definition").AtName("logs_time_relative_threshold"),
+		path.Root("type_definition").AtName("metric_threshold"),
+		path.Root("type_definition").AtName("metric_anomaly"),
+		path.Root("type_definition").AtName("tracing_immediate"),
+		path.Root("type_definition").AtName("tracing_threshold"),
+		path.Root("type_definition").AtName("flow"),
+		path.Root("type_definition").AtName("slo_threshold"),
+	)
+	validateGroupByOnCreate(ctx, req, resp)
+}
+
+// validateGroupByOnCreate enforces two constraints that were previously schema-level validators,
+// which could not distinguish import plans from regular creates and incorrectly blocked imports.
+//
+//  1. group_by must be empty for logs_immediate and tracing_immediate alert types.
+//     (logs_new_value is intentionally excluded: it uses group_by internally for keypath_to_track.)
+//
+//  2. When type_definition.logs_ratio_threshold.group_by_for is explicitly set, group_by must
+//     also be specified.
+func validateGroupByOnCreate(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	if !utils.IsNewResource(req) {
+		return
+	}
+
+	var groupBy types.List
+	if diags := req.Config.GetAttribute(ctx, path.Root("group_by"), &groupBy); diags.HasError() || groupBy.IsNull() || groupBy.IsUnknown() || len(groupBy.Elements()) == 0 {
+		// group_by not set — no need to validate further.
+		return
+	}
+
+	var typeDefObj types.Object
+	if diags := req.Config.GetAttribute(ctx, path.Root("type_definition"), &typeDefObj); diags.HasError() || typeDefObj.IsNull() || typeDefObj.IsUnknown() {
+		return
+	}
+
+	var typeDef alerttypes.AlertTypeDefinitionModel
+	if diags := typeDefObj.As(ctx, &typeDef, basetypes.ObjectAsOptions{}); diags.HasError() {
+		return
+	}
+
+	if !utils.ObjIsNullOrUnknown(typeDef.LogsImmediate) || !utils.ObjIsNullOrUnknown(typeDef.TracingImmediate) {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("group_by"),
+			"Invalid attribute combination",
+			"group_by is not allowed for logs_immediate and tracing_immediate alert types.",
+		)
+	}
 }
 
 func (r *AlertResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -2816,7 +2876,7 @@ func flattenAlert(ctx context.Context, alert alerts.AlertDef, currentSchedule *t
 	return &alerttypes.AlertResourceModel{
 		ID:                types.StringPointerValue(alert.Id),
 		Name:              types.StringPointerValue(getAlertName(alertProperties)),
-		Description:       types.StringPointerValue(getAlertDescription(alertProperties)),
+		Description:       utils.StringValueOrNull(getAlertDescription(alertProperties)),
 		Enabled:           types.BoolPointerValue(getAlertEnabled(alertProperties)),
 		Priority:          types.StringValue(alerttypes.AlertPriorityProtoToSchemaMap[*alertPriority]),
 		Schedule:          alertSchedule,
