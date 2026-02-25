@@ -17,8 +17,8 @@ package provider
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"os"
+	"time"
 	"path/filepath"
 	"testing"
 
@@ -73,7 +73,7 @@ func TestAccCoralogixRecordingRulesGroupsSetFromYamlWithName(t *testing.T) {
 	}
 	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_recording_rules_groups_set/rule-group-set.yaml"
-	name := fmt.Sprintf("test-recording-rules-%d", rand.Int())
+	name := fmt.Sprintf("test-recording-rules-%d", time.Now().UnixNano())
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -105,7 +105,7 @@ func TestAccCoralogixRecordingRulesGroupsSetFromYamlWithName(t *testing.T) {
 }
 
 func TestAccCoralogixRecordingRulesGroupsExplicit(t *testing.T) {
-	name := fmt.Sprintf("test-recording-rules-%d", rand.Int())
+	name := fmt.Sprintf("test-recording-rules-%d", time.Now().UnixNano())
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

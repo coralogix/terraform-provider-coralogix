@@ -53,6 +53,9 @@ func TestAccCoralogixResourceUser(t *testing.T) {
 }
 
 func testAccCheckUserDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).Users()
 
 	ctx := context.TODO()

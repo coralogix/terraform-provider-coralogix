@@ -481,6 +481,9 @@ func TestAccCoralogixResourceDashboardFromJsonWithVar(t *testing.T) {
 }
 
 func testAccCheckDashboardDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).Dashboards()
 
 	ctx := context.TODO()

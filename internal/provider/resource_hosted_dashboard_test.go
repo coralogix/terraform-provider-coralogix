@@ -126,6 +126,9 @@ func testAccDashboardCheckExists(rn string, dashboard *gapi.Dashboard) resource.
 }
 
 func testAccDashboardCheckDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).Grafana()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {

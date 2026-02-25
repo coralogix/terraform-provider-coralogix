@@ -162,6 +162,9 @@ func testAccCoralogixResourceDataSetWithUploadedFile(name, description, filePath
 }
 
 func testAccCheckDataSetDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).DataSet()
 
 	ctx := context.TODO()

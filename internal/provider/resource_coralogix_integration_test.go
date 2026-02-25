@@ -102,6 +102,9 @@ func TestAccCoralogixResourceIntegrationWithSensitiveData(t *testing.T) {
 }
 
 func testAccCheckIntegrationDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).Integrations()
 	ctx := context.TODO()
 

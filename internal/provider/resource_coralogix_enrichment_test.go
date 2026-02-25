@@ -180,6 +180,9 @@ func testAccCoralogixResourceCustomEnrichment(fieldName string) string {
 }
 
 func testAccCheckEnrichmentDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).Enrichments()
 
 	ctx := context.TODO()
@@ -202,6 +205,9 @@ func testAccCheckEnrichmentDestroy(s *terraform.State) error {
 }
 
 func testAccCheckCustomEnrichmentDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).Enrichments()
 
 	ctx := context.TODO()

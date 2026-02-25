@@ -129,6 +129,9 @@ func TestAccCoralogixResourceSpans2Metric(t *testing.T) {
 }
 
 func testAccCheckEvents2MetricDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).Events2Metrics()
 
 	ctx := context.TODO()

@@ -88,6 +88,9 @@ func TestAccCoralogixResourceTCOPoliciesLogsCreate(t *testing.T) {
 }
 
 func testAccTCOPoliciesLogsCheckDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).TCOPolicies()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {

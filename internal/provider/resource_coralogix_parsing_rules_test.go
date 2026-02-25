@@ -659,6 +659,9 @@ func TestAccCoralogixResourceParsingRulesOrder(t *testing.T) {
 }
 
 func testAccCheckParsingRuleDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).ParsingRuleGroups()
 
 	ctx := context.TODO()

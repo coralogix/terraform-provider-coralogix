@@ -83,6 +83,9 @@ func TestAccCoralogixResourceSpanSLOCreate(t *testing.T) {
 }
 
 func testAccSLOCheckDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).LegacySLOs()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {

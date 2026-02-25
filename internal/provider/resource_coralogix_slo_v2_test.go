@@ -67,6 +67,9 @@ func TestAccCoralogixResourceSLOV2WindowBased(t *testing.T) {
 }
 
 func testAccSLOV2CheckDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).SLOs()
 	ctx := context.TODO()
 	for _, rs := range s.RootModule().Resources {

@@ -368,6 +368,9 @@ func TestAccCoralogixResourceEventBridgeWebhook(t *testing.T) {
 }
 
 func testAccCheckWebhookDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).Webhooks()
 
 	ctx := context.TODO()

@@ -61,6 +61,9 @@ func TestAccCoralogixResourceScope(t *testing.T) {
 }
 
 func testAccCheckScopeDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).Scopes()
 	ctx := context.TODO()
 

@@ -55,6 +55,9 @@ func TestAccCoralogixResourceGroup(t *testing.T) {
 }
 
 func testAccCheckGroupDestroy(s *terraform.State) error {
+	if testAccProvider.Meta() == nil {
+		return nil
+	}
 	client := testAccProvider.Meta().(*clientset.ClientSet).Groups()
 
 	ctx := context.TODO()
