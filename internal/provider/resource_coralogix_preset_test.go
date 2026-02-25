@@ -25,6 +25,7 @@ import (
 const genericHttpsPresetResourceName = "coralogix_preset.generic_https_example"
 const slackPresetResourceName = "coralogix_preset.slack_example"
 const pagerdutyPresetResourceName = "coralogix_preset.pagerduty_example"
+const emailPresetResourceName = "coralogix_preset.email_example"
 
 func TestAccCoralogixResourceGenericHttpsPreset(t *testing.T) {
 	name := uuid.NewString()
@@ -216,6 +217,60 @@ func TestAccCoralogixResourcePagerdutyPreset(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs(pagerdutyPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
 						"field_name": "timestamp",
 						"template":   "{{ alertDef.timestamp }}",
+					}),
+				),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceEmailPreset(t *testing.T) {
+	name := uuid.NewString()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccResourceCoralogixEmailPreset(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(emailPresetResourceName, "id", name),
+					resource.TestCheckResourceAttr(emailPresetResourceName, "name", name),
+					resource.TestCheckResourceAttr(emailPresetResourceName, "description", "email preset example"),
+					resource.TestCheckResourceAttr(emailPresetResourceName, "entity_type", "alerts"),
+					resource.TestCheckResourceAttr(emailPresetResourceName, "connector_type", "email"),
+					resource.TestCheckResourceAttr(emailPresetResourceName, "parent_id", "preset_system_email_alerts"),
+					resource.TestCheckResourceAttr(emailPresetResourceName, "config_overrides.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(emailPresetResourceName, "config_overrides.*", map[string]string{
+						"payload_type": "email_default",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(emailPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "customSubject",
+						"template":   "{{ alertDef.name }}",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs(emailPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "customContent",
+						"template":   "<div>content-example</div>",
+					}),
+				),
+			},
+			{
+				ResourceName:      emailPresetResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				Config: testAccResourceCoralogixEmailPresetUpdate(name),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(emailPresetResourceName, "id", name),
+					resource.TestCheckResourceAttr(emailPresetResourceName, "name", "email example updated"),
+					resource.TestCheckResourceAttr(emailPresetResourceName, "description", "email preset example"),
+					resource.TestCheckResourceAttr(emailPresetResourceName, "entity_type", "alerts"),
+					resource.TestCheckResourceAttr(emailPresetResourceName, "connector_type", "email"),
+					resource.TestCheckResourceAttr(emailPresetResourceName, "parent_id", "preset_system_email_alerts"),
+					resource.TestCheckResourceAttr(emailPresetResourceName, "config_overrides.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs(emailPresetResourceName, "config_overrides.*.message_config.fields.*", map[string]string{
+						"field_name": "customSubject",
+						"template":   "{{ alertDef.name }} - updated",
 					}),
 				),
 			},
@@ -443,6 +498,70 @@ func testAccResourceCoralogixPagerdutyPresetUpdate(name string) string {
               {
                 field_name = "timestamp"
                 template   = "{{ alertDef.timestamp }}"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  `, name)
+}
+
+func testAccResourceCoralogixEmailPreset(name string) string {
+	return fmt.Sprintf(`resource "coralogix_preset" "email_example" {
+      id             = "%[1]v"
+      name           = "%[1]v"
+      description    = "email preset example"
+      entity_type    = "alerts"
+      connector_type = "email"
+      parent_id      = "preset_system_email_alerts"
+      config_overrides = [
+        {
+          payload_type = "email_default"
+          condition_type = {
+            match_entity_type = {}
+          }
+          message_config = {
+            fields = [
+              {
+                field_name = "customSubject"
+                template   = "{{ alertDef.name }}"
+              },
+              {
+                field_name = "customContent"
+                template   = "<div>content-example</div>"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  `, name)
+}
+
+func testAccResourceCoralogixEmailPresetUpdate(name string) string {
+	return fmt.Sprintf(`resource "coralogix_preset" "email_example" {
+      id             = "%[1]v"
+      name           = "email example updated"
+      description    = "email preset example"
+      entity_type    = "alerts"
+      connector_type = "email"
+      parent_id      = "preset_system_email_alerts"
+      config_overrides = [
+        {
+          payload_type = "email_default"
+          condition_type = {
+            match_entity_type = {}
+          }
+          message_config = {
+            fields = [
+              {
+                field_name = "customSubject"
+                template   = "{{ alertDef.name }} - updated"
+              },
+              {
+                field_name = "customContent"
+                template   = "<div>content-example</div>"
               }
             ]
           }
