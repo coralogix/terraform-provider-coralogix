@@ -97,9 +97,10 @@ func RulesGroupSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"name": {
 			Type:         schema.TypeString,
-			Required:     true,
+			Optional:     true,
+			Computed:     true,
 			ValidateFunc: validation.StringIsNotEmpty,
-			Description:  "Rule-group name",
+			Description:  "Rule-group name. Required when creating.",
 		},
 		"description": {
 			Type:        schema.TypeString,
@@ -268,9 +269,9 @@ func RulesGroupSchema() map[string]*schema.Schema {
 									MaxItems:    1,
 								},
 							},
-						},
-						Required: true,
 					},
+					Optional: true,
+				},
 				},
 			},
 			Description: "List of rule-subgroups. Every rule-subgroup is a list of rules linked with a logical 'OR' (||) operation.",
@@ -309,10 +310,11 @@ func jsonExtractSchema() map[string]*schema.Schema {
 	jsonExtractSchema := commonRulesSchema()
 	jsonExtractSchema["destination_field"] = &schema.Schema{
 		Type:         schema.TypeString,
-		Required:     true,
+		Optional:     true,
+		Computed:     true,
 		ValidateFunc: validation.StringInSlice(rulesValidDestinationFields, false),
 		Description: fmt.Sprintf("The field that will be populated by the results of RegEx operation."+
-			"Can be one of %s.", fmt.Sprint(rulesValidDestinationFields)),
+			"Can be one of %s. Required when creating.", fmt.Sprint(rulesValidDestinationFields)),
 	}
 	jsonExtractSchema["destination_field_text"] = &schema.Schema{
 		Type:        schema.TypeString,
@@ -321,8 +323,9 @@ func jsonExtractSchema() map[string]*schema.Schema {
 	}
 	jsonExtractSchema["json_key"] = &schema.Schema{
 		Type:        schema.TypeString,
-		Required:    true,
-		Description: "JSON key to extract its value directly into a Coralogix metadata field.",
+		Optional:    true,
+		Computed:    true,
+		Description: "JSON key to extract its value directly into a Coralogix metadata field. Required when creating.",
 	}
 	return jsonExtractSchema
 }
@@ -346,14 +349,16 @@ func extractTimestampSchema() map[string]*schema.Schema {
 	extractTimestampSchema = appendSourceFieldSchema(extractTimestampSchema)
 	extractTimestampSchema["field_format_standard"] = &schema.Schema{
 		Type:         schema.TypeString,
-		Required:     true,
+		Optional:     true,
+		Computed:     true,
 		ValidateFunc: validation.StringInSlice(rulesValidFormatStandards, false),
-		Description:  fmt.Sprintf("The format standard you want to use. Can be one of %q", rulesValidFormatStandards),
+		Description:  fmt.Sprintf("The format standard you want to use. Can be one of %q. Required when creating.", rulesValidFormatStandards),
 	}
 	extractTimestampSchema["time_format"] = &schema.Schema{
 		Type:        schema.TypeString,
-		Required:    true,
-		Description: "A time format that matches the field format standard",
+		Optional:    true,
+		Computed:    true,
+		Description: "A time format that matches the field format standard. Required when creating.",
 	}
 	return extractTimestampSchema
 }
@@ -362,12 +367,13 @@ func removeFieldsSchema() map[string]*schema.Schema {
 	removeFieldsSchema := commonRulesSchema()
 	removeFieldsSchema["excluded_fields"] = &schema.Schema{
 		Type:     schema.TypeList,
-		Required: true,
+		Optional: true,
+		Computed: true,
 		Elem: &schema.Schema{
 			Type: schema.TypeString,
 		},
 		MinItems:    1,
-		Description: "Excluded fields won't be indexed.",
+		Description: "Excluded fields won't be indexed. Required when creating.",
 	}
 	return removeFieldsSchema
 }
@@ -420,9 +426,10 @@ func commonRulesSchema() map[string]*schema.Schema {
 		},
 		"name": {
 			Type:         schema.TypeString,
-			Required:     true,
+			Optional:     true,
+			Computed:     true,
 			ValidateFunc: validation.StringIsNotEmpty,
-			Description:  "The rule name.",
+			Description:  "The rule name. Required when creating.",
 		},
 		"description": {
 			Type:        schema.TypeString,
@@ -449,8 +456,9 @@ func commonRulesSchema() map[string]*schema.Schema {
 func appendSourceFieldSchema(m map[string]*schema.Schema) map[string]*schema.Schema {
 	m["source_field"] = &schema.Schema{
 		Type:        schema.TypeString,
-		Required:    true,
-		Description: "The field on which the Regex will operate on. Accepts lowercase only.",
+		Optional:    true,
+		Computed:    true,
+		Description: "The field on which the Regex will operate on. Accepts lowercase only. Required when creating.",
 	}
 	return m
 }
@@ -458,8 +466,9 @@ func appendSourceFieldSchema(m map[string]*schema.Schema) map[string]*schema.Sch
 func appendDestinationFieldSchema(m map[string]*schema.Schema) map[string]*schema.Schema {
 	m["destination_field"] = &schema.Schema{
 		Type:        schema.TypeString,
-		Required:    true,
-		Description: "The field that will be populated by the results of the RegEx operation.",
+		Optional:    true,
+		Computed:    true,
+		Description: "The field that will be populated by the results of the RegEx operation. Required when creating.",
 	}
 	return m
 }
@@ -467,8 +476,9 @@ func appendDestinationFieldSchema(m map[string]*schema.Schema) map[string]*schem
 func appendRegularExpressionSchema(m map[string]*schema.Schema) map[string]*schema.Schema {
 	m["regular_expression"] = &schema.Schema{
 		Type:        schema.TypeString,
-		Required:    true,
-		Description: "Regular expiration. More info: https://coralogix.com/blog/regex-101/",
+		Optional:    true,
+		Computed:    true,
+		Description: "Regular expiration. More info: https://coralogix.com/blog/regex-101/. Required when creating.",
 	}
 	return m
 }

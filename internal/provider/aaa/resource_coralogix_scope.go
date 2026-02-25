@@ -39,7 +39,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-var availableEntityTypes = []string{"logs", "spans", utils.UNSPECIFIED}
+var (
+	_                    resource.ResourceWithModifyPlan = &ScopeResource{}
+	availableEntityTypes                                       = []string{"logs", "spans", utils.UNSPECIFIED}
+)
 
 func NewScopeResource() resource.Resource {
 	return &ScopeResource{}
@@ -74,6 +77,10 @@ func (r *ScopeResource) ImportState(ctx context.Context, req resource.ImportStat
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
+func (r *ScopeResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredAttributeOnCreate(ctx, req, resp, path.Root("display_name"), path.Root("default_expression"), path.Root("filters"))
+}
+
 func (r *ScopeResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 0,
@@ -86,16 +93,18 @@ func (r *ScopeResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				MarkdownDescription: "Scope ID.",
 			},
 			"display_name": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Scope display name.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Scope display name. Required when creating.",
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
 				MarkdownDescription: "Description of the scope. Optional.",
 			},
 			"default_expression": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Default expression to use when no filter matches the query. Until further notice, this is limited to `true` (everything is included) or `false` (nothing is included). Use a version tag (e.g `<v1>true` or `<v1>false`)",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Default expression to use when no filter matches the query. Until further notice, this is limited to `true` (everything is included) or `false` (nothing is included). Use a version tag (e.g `<v1>true` or `<v1>false`). Required when creating.",
 				Validators: []validator.String{
 					stringvalidator.RegexMatches(regexp.MustCompile(`^<v[\d]+>true|false+$`), "Default expression must be in the format `<vX>true` or `<vX>false where X is a version number. E.g. `<v1>true` or `<v1>false"),
 				},
@@ -108,17 +117,20 @@ func (r *ScopeResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				},
 			},
 			"filters": schema.ListNestedAttribute{
-				Required:            true,
-				MarkdownDescription: "Filters applied to include data in the scope.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Filters applied to include data in the scope. Required when creating.",
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"expression": schema.StringAttribute{
-							Required:            true,
-							MarkdownDescription: "Expression to run",
+							Optional:            true,
+							Computed:            true,
+							MarkdownDescription: "Expression to run. Required when creating.",
 						},
 						"entity_type": schema.StringAttribute{
-							Required:            true,
-							MarkdownDescription: "Entity type to apply the expression on",
+							Optional:            true,
+							Computed:            true,
+							MarkdownDescription: "Entity type to apply the expression on. Required when creating.",
 							Validators: []validator.String{
 								stringvalidator.OneOf(availableEntityTypes...),
 							},

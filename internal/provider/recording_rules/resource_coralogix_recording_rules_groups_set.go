@@ -30,7 +30,6 @@ import (
 	recRuless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/recording_rules_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -46,9 +45,10 @@ import (
 )
 
 var (
-	_ resource.ResourceWithConfigure    = &RecordingRuleGroupSetResource{}
-	_ resource.ResourceWithImportState  = &RecordingRuleGroupSetResource{}
-	_ resource.ResourceWithUpgradeState = &RecordingRuleGroupSetResource{}
+	_ resource.ResourceWithConfigure        = &RecordingRuleGroupSetResource{}
+	_ resource.ResourceWithImportState      = &RecordingRuleGroupSetResource{}
+	_ resource.ResourceWithModifyPlan = &RecordingRuleGroupSetResource{}
+	_ resource.ResourceWithUpgradeState     = &RecordingRuleGroupSetResource{}
 )
 
 type RecordingRuleGroupSetResourceModel struct {
@@ -255,6 +255,13 @@ func (r *RecordingRuleGroupSetResource) ImportState(ctx context.Context, req res
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
+func (r *RecordingRuleGroupSetResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.ExactlyOneOfOnCreate(ctx, req, resp,
+		path.Root("yaml_content"),
+		path.Root("groups"),
+	)
+}
+
 func (r *RecordingRuleGroupSetResource) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
@@ -299,19 +306,14 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 				},
 				MarkdownDescription: "YAML specification of rules. Cannot be used together with `groups`.",
 			},
-			"groups": schema.SetNestedAttribute{
-				Optional:     true,
-				Computed:     true,
-				NestedObject: recordingRuleGroupSchema(),
-				Validators: []validator.Set{
-					setvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("yaml_content"),
-					),
-				},
-				PlanModifiers: []planmodifier.Set{
-					setplanmodifier.UseStateForUnknown(),
-				},
+		"groups": schema.SetNestedAttribute{
+			Optional:     true,
+			Computed:     true,
+			NestedObject: recordingRuleGroupSchema(),
+			PlanModifiers: []planmodifier.Set{
+				setplanmodifier.UseStateForUnknown(),
 			},
+		},
 			"name": schema.StringAttribute{
 				Optional: true,
 				Computed: true,
@@ -327,13 +329,14 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 func recordingRuleGroupSchema() schema.NestedAttributeObject {
 	return schema.NestedAttributeObject{
 		Attributes: map[string]schema.Attribute{
-			"name": schema.StringAttribute{
-				Required:    true,
-				Description: "The (unique) rule-group name.",
-				Validators: []validator.String{
-					stringvalidator.LengthAtLeast(1),
-				},
+		"name": schema.StringAttribute{
+			Optional:    true,
+			Computed:    true,
+			Description: "The (unique) rule-group name. Required when creating.",
+			Validators: []validator.String{
+				stringvalidator.LengthAtLeast(1),
 			},
+		},
 			"interval": schema.Int64Attribute{
 				Optional:    true,
 				Computed:    true,
@@ -353,10 +356,11 @@ func recordingRuleGroupSchema() schema.NestedAttributeObject {
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
-			"rules": schema.ListNestedAttribute{
-				Required:     true,
-				NestedObject: recordingRulesSchema(),
-			},
+		"rules": schema.ListNestedAttribute{
+			Optional:     true,
+			Computed:     true,
+			NestedObject: recordingRulesSchema(),
+		},
 		},
 	}
 }
@@ -364,16 +368,18 @@ func recordingRuleGroupSchema() schema.NestedAttributeObject {
 func recordingRulesSchema() schema.NestedAttributeObject {
 	return schema.NestedAttributeObject{
 		Attributes: map[string]schema.Attribute{
-			"record": schema.StringAttribute{
-				Required:    true,
-				Description: "The name of the time series to output to. Must be a valid metric name.",
-			},
-			"expr": schema.StringAttribute{
-				Required: true,
-				Description: "The PromQL expression to evaluate. " +
-					"Every evaluation cycle this is evaluated at the current time," +
-					" and the result recorded as a new set of time series with the metric name as given by 'record'.",
-			},
+		"record": schema.StringAttribute{
+			Optional:    true,
+			Computed:    true,
+			Description: "The name of the time series to output to. Must be a valid metric name. Required when creating.",
+		},
+		"expr": schema.StringAttribute{
+			Optional: true,
+			Computed: true,
+			Description: "The PromQL expression to evaluate. " +
+				"Every evaluation cycle this is evaluated at the current time," +
+				" and the result recorded as a new set of time series with the metric name as given by 'record'. Required when creating.",
+		},
 			"labels": schema.MapAttribute{
 				ElementType: types.StringType,
 				Optional:    true,

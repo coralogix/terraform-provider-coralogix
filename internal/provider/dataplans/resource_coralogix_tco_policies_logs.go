@@ -44,8 +44,9 @@ import (
 )
 
 var (
-	_                              resource.ResourceWithConfigure   = &TCOPoliciesLogsResource{}
-	_                              resource.ResourceWithImportState = &TCOPoliciesLogsResource{}
+	_                              resource.ResourceWithConfigure        = &TCOPoliciesLogsResource{}
+	_                              resource.ResourceWithImportState      = &TCOPoliciesLogsResource{}
+	_                              resource.ResourceWithModifyPlan = &TCOPoliciesLogsResource{}
 	tcoPoliciesPrioritySchemaToApi                                  = map[string]tcoPolicys.QuotaV1Priority{
 		"block":  tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_BLOCK,
 		"high":   tcoPolicys.QUOTAV1PRIORITY_PRIORITY_TYPE_HIGH,
@@ -88,6 +89,10 @@ type TCOPoliciesLogsResource struct {
 
 func (r *TCOPoliciesLogsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r *TCOPoliciesLogsResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredAttributeOnCreate(ctx, req, resp, path.Root("policies"))
 }
 
 type TCOPoliciesListModel struct {
@@ -148,13 +153,14 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 							Computed:            true,
 							MarkdownDescription: "tco-policy ID.",
 						},
-						"name": schema.StringAttribute{
-							Required: true,
-							Validators: []validator.String{
-								stringvalidator.LengthAtLeast(1),
-							},
-							MarkdownDescription: "tco-policy name.",
+					"name": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						Validators: []validator.String{
+							stringvalidator.LengthAtLeast(1),
 						},
+						MarkdownDescription: "tco-policy name. Required when creating.",
+					},
 						"description": schema.StringAttribute{
 							Optional:            true,
 							Computed:            true,
@@ -167,13 +173,14 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 							Default:             booldefault.StaticBool(true),
 							MarkdownDescription: "Determines weather the policy will be enabled. True by default.",
 						},
-						"priority": schema.StringAttribute{
-							Required: true,
-							Validators: []validator.String{
-								stringvalidator.OneOf(tcoPoliciesValidPriorities...),
-							},
-							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q.", tcoPoliciesValidPriorities),
+					"priority": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						Validators: []validator.String{
+							stringvalidator.OneOf(tcoPoliciesValidPriorities...),
 						},
+						MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q. Required when creating.", tcoPoliciesValidPriorities),
+					},
 						"order": schema.Int64Attribute{
 							Computed:            true,
 							MarkdownDescription: "The policy's order between the other policies.",
@@ -195,42 +202,44 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 							},
 							MarkdownDescription: fmt.Sprintf("The severities to apply the policy on. Valid severities are %q.", validPolicySeverities),
 						},
-						"applications": schema.SingleNestedAttribute{
-							Optional: true,
-							Attributes: map[string]schema.Attribute{
-								"names": schema.SetAttribute{
-									Required:    true,
-									ElementType: types.StringType,
-									Validators: []validator.Set{
-										setvalidator.SizeAtLeast(1),
-										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
-											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
-									},
-								},
-								"rule_type": schema.StringAttribute{
-									Optional: true,
-									Computed: true,
-									Default:  stringdefault.StaticString("is"),
-									Validators: []validator.String{
-										stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
-									},
-									MarkdownDescription: fmt.Sprintf("The rule type. Can be one of %q.", tcoPoliciesValidRuleTypes),
+					"applications": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"names": schema.SetAttribute{
+								Optional:    true,
+								Computed:    true,
+								ElementType: types.StringType,
+								Validators: []validator.Set{
+									setvalidator.SizeAtLeast(1),
+									setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
+										regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
 								},
 							},
-							MarkdownDescription: "The applications to apply the policy on. Applies the policy on all the applications by default.",
-						},
-						"subsystems": schema.SingleNestedAttribute{
-							Optional: true,
-							Attributes: map[string]schema.Attribute{
-								"names": schema.SetAttribute{
-									Required:    true,
-									ElementType: types.StringType,
-									Validators: []validator.Set{
-										setvalidator.SizeAtLeast(1),
-										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
-											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
-									},
+							"rule_type": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  stringdefault.StaticString("is"),
+								Validators: []validator.String{
+									stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
 								},
+								MarkdownDescription: fmt.Sprintf("The rule type. Can be one of %q.", tcoPoliciesValidRuleTypes),
+							},
+						},
+						MarkdownDescription: "The applications to apply the policy on. Applies the policy on all the applications by default.",
+					},
+					"subsystems": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"names": schema.SetAttribute{
+								Optional:    true,
+								Computed:    true,
+								ElementType: types.StringType,
+								Validators: []validator.Set{
+									setvalidator.SizeAtLeast(1),
+									setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
+										regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
+								},
+							},
 								"rule_type": schema.StringAttribute{
 									Optional: true,
 									Computed: true,
@@ -243,12 +252,13 @@ func (r *TCOPoliciesLogsResource) Schema(_ context.Context, _ resource.SchemaReq
 							MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
 						},
 					},
-				},
-				Required: true,
 			},
+			Optional: true,
+			Computed: true,
 		},
-		MarkdownDescription: "Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.",
-	}
+	},
+	MarkdownDescription: "Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.",
+}
 }
 
 func (r *TCOPoliciesLogsResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {

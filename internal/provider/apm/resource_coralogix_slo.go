@@ -46,7 +46,7 @@ import (
 var (
 	_                                resource.ResourceWithConfigure        = &SLOResource{}
 	_                                resource.ResourceWithImportState      = &SLOResource{}
-	_                                resource.ResourceWithConfigValidators = &SLOResource{}
+	_                                resource.ResourceWithModifyPlan = &SLOResource{}
 	protoToSchemaThresholdSymbolType                                       = map[cxsdk.ThresholdSymbol]string{
 		cxsdk.SloThresholdSymbolGreaterOrEqual: "greater_or_equal",
 		cxsdk.SloThresholdSymbolGreater:        "greater",
@@ -88,9 +88,49 @@ type SLOResource struct {
 	client *cxsdk.LegacySLOsClient
 }
 
-func (r *SLOResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
-	return []resource.ConfigValidator{
-		SLOResourceValidator{},
+func (r *SLOResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredAttributeOnCreate(ctx, req, resp,
+		path.Root("name"),
+		path.Root("service_name"),
+		path.Root("target_percentage"),
+		path.Root("type"),
+		path.Root("period"),
+	)
+	if req.Plan.Raw.IsNull() || !req.State.Raw.IsNull() {
+		return
+	}
+	var plan *SLOResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	if diags.HasError() {
+		resp.Diagnostics.Append(diags...)
+		return
+	}
+	if plan.Type.ValueString() == "latency" && plan.ThresholdMicroseconds.IsNull() {
+		resp.Diagnostics.AddError(
+			"ThresholdMicroseconds is required when type is latency",
+			"ThresholdMicroseconds is required when type is latency",
+		)
+		return
+	}
+	if plan.Type.ValueString() == "latency" && plan.ThresholdSymbolType.IsNull() {
+		resp.Diagnostics.AddError(
+			"ThresholdSymbolType is required when type is latency",
+			"ThresholdSymbolType is required when type is latency",
+		)
+		return
+	}
+	if plan.Type.ValueString() == "error" && !plan.ThresholdMicroseconds.IsNull() {
+		resp.Diagnostics.AddError(
+			"ThresholdMicroseconds is not allowed when type is error",
+			"ThresholdMicroseconds is not allowed when type is error",
+		)
+		return
+	}
+	if plan.Type.ValueString() == "error" && !plan.ThresholdSymbolType.IsNull() {
+		resp.Diagnostics.AddError(
+			"ThresholdSymbolType is not allowed when type is error",
+			"ThresholdSymbolType is not allowed when type is error",
+		)
 	}
 }
 
@@ -180,12 +220,14 @@ func (r *SLOResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 				MarkdownDescription: "SLO ID.",
 			},
 			"name": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "SLO name.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "SLO name. Required when creating.",
 			},
 			"service_name": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Service name. This is the name of the service that the SLO is associated with.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Service name. This is the name of the service that the SLO is associated with. Required when creating.",
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
@@ -195,8 +237,9 @@ func (r *SLOResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 				Computed: true,
 			},
 			"target_percentage": schema.Int64Attribute{
-				Required:            true,
-				MarkdownDescription: "Target percentage. This is the target percentage of the SLO.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Target percentage. This is the target percentage of the SLO. Required when creating.",
 				Validators: []validator.Int64{
 					int64validator.Between(0, 100),
 				},
@@ -205,9 +248,10 @@ func (r *SLOResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 				Computed: true,
 			},
 			"type": schema.StringAttribute{
-				Required:            true,
+				Optional:            true,
+				Computed:            true,
 				Validators:          []validator.String{stringvalidator.OneOf("error", "latency")},
-				MarkdownDescription: `Type. This is the type of the SLO. Valid values are: "error", "latency".`,
+				MarkdownDescription: `Type. This is the type of the SLO. Required when creating. Valid values are: "error", "latency".`,
 			},
 			"threshold_microseconds": schema.Int64Attribute{
 				Optional:            true,
@@ -223,10 +267,12 @@ func (r *SLOResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"field": schema.StringAttribute{
-							Required: true,
+							Optional: true,
+							Computed: true,
 						},
 						"compare_type": schema.StringAttribute{
-							Required:            true,
+							Optional:            true,
+							Computed:            true,
 							Validators:          []validator.String{stringvalidator.OneOf(validSLOCompareTypes...)},
 							MarkdownDescription: fmt.Sprintf("Compare type. This is the compare type of the SLO. Valid values are: %q", validSLOCompareTypes),
 						},
@@ -238,9 +284,10 @@ func (r *SLOResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 				},
 			},
 			"period": schema.StringAttribute{
-				Required:            true,
+				Optional:            true,
+				Computed:            true,
 				Validators:          []validator.String{stringvalidator.OneOf(validSLOPeriods...)},
-				MarkdownDescription: fmt.Sprintf("Period. This is the period of the SLO. Valid values are: %q", validSLOPeriods),
+				MarkdownDescription: fmt.Sprintf("Period. This is the period of the SLO. Required when creating. Valid values are: %q", validSLOPeriods),
 			},
 		},
 		MarkdownDescription: "Coralogix SLO.",

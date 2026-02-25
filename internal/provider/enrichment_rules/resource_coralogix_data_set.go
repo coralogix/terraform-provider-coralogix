@@ -70,7 +70,8 @@ func DataSetSchema() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
 		"name": {
 			Type:         schema.TypeString,
-			Required:     true,
+			Optional:     true,
+			Computed:     true,
 			ValidateFunc: validation.StringIsNotEmpty,
 		},
 		"description": {
@@ -84,7 +85,6 @@ func DataSetSchema() map[string]*schema.Schema {
 		"file_content": {
 			Type:         schema.TypeString,
 			Optional:     true,
-			ExactlyOneOf: []string{"file_content", "uploaded_file"},
 			ValidateFunc: fileContentNoLongerThan,
 		},
 		"uploaded_file": {
@@ -92,12 +92,13 @@ func DataSetSchema() map[string]*schema.Schema {
 			MaxItems: 1,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
-					"path": {
-						Type:     schema.TypeString,
-						Required: true,
-						//ValidateFunc: validation.StringMatch(
-						//regexp.MustCompile(`^(?:\w\:|\/)(\/[a-z_\-\s\d\.]+)+\.csv$`), "not valid path or not csv file"),
-					},
+				"path": {
+					Type:     schema.TypeString,
+					Optional: true,
+					Computed: true,
+					//ValidateFunc: validation.StringMatch(
+					//regexp.MustCompile(`^(?:\w\:|\/)(\/[a-z_\-\s\d\.]+)+\.csv$`), "not valid path or not csv file"),
+				},
 					"modification_time_uploaded": {
 						Type:     schema.TypeString,
 						Computed: true,
@@ -109,9 +110,8 @@ func DataSetSchema() map[string]*schema.Schema {
 					},
 				},
 			},
-			Optional:     true,
-			ExactlyOneOf: []string{"file_content", "uploaded_file"},
-		},
+		Optional: true,
+	},
 	}
 }
 

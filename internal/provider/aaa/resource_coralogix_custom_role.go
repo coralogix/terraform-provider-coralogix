@@ -38,6 +38,8 @@ import (
 	roless "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/role_management_service"
 )
 
+var _ resource.ResourceWithModifyPlan = &CustomRoleSource{}
+
 func NewCustomRoleSource() resource.Resource {
 	return &CustomRoleSource{}
 }
@@ -87,21 +89,25 @@ func (r *CustomRoleSource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				MarkdownDescription: "Custom Role ID.",
 			},
 			"name": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Custom Role name.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Custom Role name. Required when creating.",
 			},
 			"description": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Custom Role description.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Custom Role description. Required when creating.",
 			},
 			"parent_role": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Parent role name",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Parent role name. Required when creating.",
 			},
 			"permissions": schema.SetAttribute{
-				Required:            true,
+				Optional:            true,
+				Computed:            true,
 				ElementType:         types.StringType,
-				MarkdownDescription: "Custom role permissions",
+				MarkdownDescription: "Custom role permissions. Required when creating.",
 				Validators: []validator.Set{
 					setvalidator.SizeAtLeast(1),
 				},
@@ -255,6 +261,10 @@ func (r *CustomRoleSource) Update(ctx context.Context, req resource.UpdateReques
 
 func (r *CustomRoleSource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r *CustomRoleSource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredAttributeOnCreate(ctx, req, resp, path.Root("name"), path.Root("description"), path.Root("parent_role"), path.Root("permissions"))
 }
 
 func (r *CustomRoleSource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

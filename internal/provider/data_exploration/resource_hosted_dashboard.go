@@ -162,13 +162,14 @@ func HostedDashboardSchema() map[string]*schema.Schema {
 							return old == "0" && new == "" || old == "" && new == "0" || old == new
 						},
 					},
-					"config_json": {
-						Type:         schema.TypeString,
-						Required:     true,
-						StateFunc:    normalizeDashboardConfigJSON,
-						ValidateFunc: validateDashboardConfigJSON,
-						Description:  "The complete dashboard model JSON.",
-					},
+				"config_json": {
+					Type:         schema.TypeString,
+					Optional:     true,
+					Computed:     true,
+					StateFunc:    normalizeDashboardConfigJSON,
+					ValidateFunc: validateDashboardConfigJSON,
+					Description:  "The complete dashboard model JSON. Required when creating.",
+				},
 					"overwrite": {
 						Type:        schema.TypeBool,
 						Optional:    true,
