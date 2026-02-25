@@ -17,6 +17,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"testing"
@@ -72,16 +73,17 @@ func TestAccCoralogixRecordingRulesGroupsSetFromYamlWithName(t *testing.T) {
 	}
 	parent := filepath.Dir(filepath.Dir(wd))
 	filePath := parent + "/examples/resources/coralogix_recording_rules_groups_set/rule-group-set.yaml"
+	name := fmt.Sprintf("test-recording-rules-%d", rand.Int())
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckRecordingRulesGroupDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceRecordingRulesGroupsSetFromYamlWithName(filePath),
+				Config: testAccCoralogixResourceRecordingRulesGroupsSetFromYamlWithName(filePath, name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(recordingRulesGroupsSetResourceName, "id"),
-					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "name", "Name"),
+					resource.TestCheckResourceAttr(recordingRulesGroupsSetResourceName, "name", name),
 					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "groups.*",
 						map[string]string{
 							"name":     "Foo",
@@ -103,13 +105,14 @@ func TestAccCoralogixRecordingRulesGroupsSetFromYamlWithName(t *testing.T) {
 }
 
 func TestAccCoralogixRecordingRulesGroupsExplicit(t *testing.T) {
+	name := fmt.Sprintf("test-recording-rules-%d", rand.Int())
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccCheckRecordingRulesGroupDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccCoralogixResourceRecordingRulesGroupsSetExplicit(),
+				Config: testAccCoralogixResourceRecordingRulesGroupsSetExplicit(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet(recordingRulesGroupsSetResourceName, "id"),
 					resource.TestCheckTypeSetElemNestedAttrs(recordingRulesGroupsSetResourceName, "groups.*",
@@ -133,7 +136,11 @@ func TestAccCoralogixRecordingRulesGroupsExplicit(t *testing.T) {
 }
 
 func testAccCheckRecordingRulesGroupDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).RecordingRuleGroupsSets()
+	meta := testAccProvider.Meta()
+	if meta == nil {
+		return nil
+	}
+	client := meta.(*clientset.ClientSet).RecordingRuleGroupsSets()
 	ctx := context.TODO()
 
 	for _, rs := range s.RootModule().Resources {
@@ -152,13 +159,13 @@ func testAccCheckRecordingRulesGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCoralogixResourceRecordingRulesGroupsSetFromYamlWithName(filePath string) string {
+func testAccCoralogixResourceRecordingRulesGroupsSetFromYamlWithName(filePath, name string) string {
 	return fmt.Sprintf(
 		`resource "coralogix_recording_rules_groups_set" "test" {
-					yaml_content = file("%s")
-					name = "Name"
-				}
-`, filePath)
+				yaml_content = file("%s")
+				name = "%s"
+			}
+`, filePath, name)
 }
 
 func testAccCoralogixResourceRecordingRulesGroupsSetFromYaml(filePath string) string {
@@ -169,9 +176,9 @@ func testAccCoralogixResourceRecordingRulesGroupsSetFromYaml(filePath string) st
 `, filePath)
 }
 
-func testAccCoralogixResourceRecordingRulesGroupsSetExplicit() string {
-	return `resource "coralogix_recording_rules_groups_set" test {
-            name   = "Name"
+func testAccCoralogixResourceRecordingRulesGroupsSetExplicit(name string) string {
+	return fmt.Sprintf(`resource "coralogix_recording_rules_groups_set" "test" {
+            name   = "%s"`, name) + `
             groups = [
               {
                 name     = "Foo"

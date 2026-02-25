@@ -1452,6 +1452,33 @@ func TestAccCoralogixResourceAlert_sloBurnRate(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceAlert_null_description(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckAlertDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceAlertWithoutDescription(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(alertResourceName, "name", "alert without description"),
+					resource.TestCheckResourceAttr(alertResourceName, "description", ""),
+					resource.TestCheckResourceAttr(alertResourceName, "priority", "P3"),
+				),
+			},
+			{
+				ResourceName: alertResourceName,
+				ImportState:  true,
+			},
+			{
+				Config:             testAccCoralogixResourceAlertWithoutDescription(),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func testAccCheckAlertDestroy(s *terraform.State) error {
 	meta := testAccProvider.Meta()
 	if meta == nil {
@@ -3628,4 +3655,50 @@ resource "coralogix_alert" "slo_alert_burn_rate" {
   }
 }
 `, sloName, alertName)
+}
+
+func testAccCoralogixResourceAlertWithoutDescription() string {
+	return `resource "coralogix_alert" "test" {
+  name     = "alert without description"
+  priority = "P3"
+
+  labels = {
+    alert_type = "security"
+  }
+
+  notification_group = {
+    webhooks_settings = [
+      {
+        notify_on = "Triggered Only"
+        recipients = ["example@coralogix.com"]
+      }
+    ]
+  }
+
+  incidents_settings = {
+    notify_on = "Triggered and Resolved"
+    retriggering_period = {
+      minutes = 1
+    }
+  }
+
+  schedule = {
+    active_on = {
+      days_of_week = ["Wednesday", "Thursday"]
+      start_time = "08:30"
+      end_time = "20:30"
+    }
+  }
+
+  type_definition = {
+    logs_immediate = {
+      logs_filter = {
+        simple_filter = {
+          lucene_query = "message:\"test\""
+        }
+      }
+    }
+  }
+}
+`
 }

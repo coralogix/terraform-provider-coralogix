@@ -145,6 +145,8 @@ func (c ComputedForSomeAlerts) PlanModifyList(ctx context.Context, request planm
 		typeDefinitionStr = "metric_anomaly"
 	} else if !utils.ObjIsNullOrUnknown(typeDefinition.LogsNewValue) {
 		typeDefinitionStr = "logs_new_value"
+	} else if !utils.ObjIsNullOrUnknown(typeDefinition.SloThreshold) {
+		typeDefinitionStr = "slo_threshold"
 	}
 
 	switch typeDefinitionStr {
@@ -202,6 +204,34 @@ func (c ComputedForSomeAlerts) PlanModifyList(ctx context.Context, request planm
 			if !rulesState.Equal(rulesPlan) {
 				response.PlanValue = types.ListUnknown(types.StringType)
 			} else {
+				response.PlanValue = request.StateValue
+			}
+			return
+		}
+	case "slo_threshold": // group_by is computed from the SLO's PromQL query by the API
+		if request.ConfigValue.IsUnknown() || request.ConfigValue.IsNull() {
+			// Extract slo_id from plan and state — if the SLO changes the group_by may change too
+			sloIdPath := path.MatchRoot("type_definition").AtName("slo_threshold").AtName("slo_definition").AtName("slo_id")
+			sloPaths, sloDiags := request.Plan.PathMatches(ctx, sloIdPath)
+			if sloDiags.HasError() || len(sloPaths) == 0 {
+				response.PlanValue = types.ListUnknown(types.StringType)
+				return
+			}
+			var sloIdPlan types.String
+			if diags = request.Plan.GetAttribute(ctx, sloPaths[0], &sloIdPlan); diags.HasError() {
+				response.PlanValue = types.ListUnknown(types.StringType)
+				return
+			}
+			var sloIdState types.String
+			if diags = request.State.GetAttribute(ctx, sloPaths[0], &sloIdState); diags.HasError() {
+				response.PlanValue = types.ListUnknown(types.StringType)
+				return
+			}
+			if !sloIdState.Equal(sloIdPlan) {
+				// SLO changed — group_by may change too
+				response.PlanValue = types.ListUnknown(types.StringType)
+			} else {
+				// SLO unchanged — keep the known state value to avoid perpetual diff
 				response.PlanValue = request.StateValue
 			}
 			return

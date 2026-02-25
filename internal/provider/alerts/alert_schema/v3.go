@@ -64,6 +64,8 @@ func V3() schema.Schema {
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString(""),
 				MarkdownDescription: "Alert description.",
 			},
 			"enabled": schema.BoolAttribute{
