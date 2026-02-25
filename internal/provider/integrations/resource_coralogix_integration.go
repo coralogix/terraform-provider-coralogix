@@ -139,7 +139,7 @@ func (r *IntegrationResource) Create(ctx context.Context, req resource.CreateReq
 	if testErr != nil {
 		resp.Diagnostics.AddError(
 			"Testing the integration has failed",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(testHttpResponse, testErr), "TestIntegration", rq),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(testHttpResponse, testErr), "TestIntegration", nil),
 		)
 		return
 	}
@@ -448,7 +448,7 @@ func (r *IntegrationResource) Update(ctx context.Context, req resource.UpdateReq
 	if testErr != nil {
 		resp.Diagnostics.AddError(
 			"Testing the integration has failed",
-			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(testHttpResponse, testErr), "TestIntegration", rq),
+			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(testHttpResponse, testErr), "TestIntegration", nil),
 		)
 		return
 	}
