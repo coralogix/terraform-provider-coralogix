@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -29,6 +30,7 @@ import (
 var integrationWithoutSensitiveDataName = "aws-metrics-collector"
 var integrationWithSensitiveDataName = "gcp-metrics-collector"
 var testRoleArn = os.Getenv("AWS_TEST_ROLE")
+var testAwsRegion = os.Getenv("AWS_REGION")
 
 func TestAccCoralogixResourceIntegrationWithoutSensitiveData(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -101,8 +103,74 @@ func TestAccCoralogixResourceIntegrationWithSensitiveData(t *testing.T) {
 	})
 }
 
+func TestAccCoralogixResourceIntegrationV091(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckIntegrationDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceIntegrationV091(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coralogix_integration.v091_test", "id"),
+					resource.TestCheckResourceAttr("coralogix_integration.v091_test", "integration_key", integrationWithoutSensitiveDataName),
+					resource.TestCheckResourceAttr("coralogix_integration.v091_test", "version", "0.9.1"),
+					resource.TestCheckResourceAttr("coralogix_integration.v091_test", "parameters.DiscoverNamespaces", "false"),
+					resource.TestCheckResourceAttr("coralogix_integration.v091_test", "parameters.IncludeLinkedAccounts", "false"),
+					resource.TestCheckResourceAttr("coralogix_integration.v091_test", "parameters.WithAggregations", "false"),
+					resource.TestCheckResourceAttr("coralogix_integration.v091_test", "parameters.EnrichWithTags", "true"),
+					resource.TestCheckResourceAttr("coralogix_integration.v091_test", "parameters.AwsRoleArn", testRoleArn),
+				),
+			},
+		},
+	})
+}
+
+// TestAccCoralogixResourceIntegrationV091MissingParam verifies that when a
+// required parameter is omitted the provider surfaces a descriptive error that
+// names the missing field (e.g. "Required field Statistics not provided") rather
+// than an opaque "400 Bad Request". This is a regression test for the improved
+// error-handling in Create/Update — the fix applies to any missing field, not
+// just Statistics, because utils.FormatOpenAPIErrors now extracts the full
+// response body from the API.
+func TestAccCoralogixResourceIntegrationV091MissingParam(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixResourceIntegrationV091MissingCoreFields(),
+				ExpectError: regexp.MustCompile(`Required field`),
+			},
+		},
+	})
+}
+
+func TestAccCoralogixResourceIntegrationV090(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckIntegrationDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCoralogixResourceIntegrationByVersion("0.9.0", "sdk-integration-v090-test"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("coralogix_integration.version_test", "id"),
+					resource.TestCheckResourceAttr("coralogix_integration.version_test", "integration_key", integrationWithoutSensitiveDataName),
+					resource.TestCheckResourceAttr("coralogix_integration.version_test", "version", "0.9.0"),
+					resource.TestCheckResourceAttr("coralogix_integration.version_test", "parameters.AwsRoleArn", testRoleArn),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckIntegrationDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*clientset.ClientSet).Integrations()
+	meta := testAccProvider.Meta()
+	if meta == nil {
+		return nil
+	}
+	client := meta.(*clientset.ClientSet).Integrations()
 	ctx := context.TODO()
 
 	for _, rs := range s.RootModule().Resources {
@@ -112,7 +180,7 @@ func testAccCheckIntegrationDestroy(s *terraform.State) error {
 
 		_, _, err := client.IntegrationServiceGetDeployedIntegration(ctx, rs.Primary.ID).Execute()
 		if err == nil {
-			return fmt.Errorf("Integration still exists: %v, %v", rs.Primary.ID, err)
+			return fmt.Errorf("integration %q still exists", rs.Primary.ID)
 		}
 	}
 	return nil
@@ -149,7 +217,7 @@ parameters = {
 }
 
 func testAccCoralogixResourceIntegrationWithSensitiveData() string {
-	return fmt.Sprintf("%40s", `resource "coralogix_integration" "sensitive_data_test" {
+	return fmt.Sprintf("%s", `resource "coralogix_integration" "sensitive_data_test" {
 		integration_key = "gcp-metrics-collector"
 		version         = "1.0.0"
 		# Note that the attribute casing is important here
@@ -194,4 +262,83 @@ variable "metrics_to_collect" {
 	]
   }
 	`, integrationWithoutSensitiveDataName, integrationWithoutSensitiveDataName, testRoleArn)
+}
+
+func testAccCoralogixResourceIntegrationV091() string {
+	region := testAwsRegion
+	if region == "" {
+		region = "eu-west-1"
+	}
+	return fmt.Sprintf(`resource "coralogix_integration" "v091_test" {
+integration_key = "%v"
+version = "0.9.1"
+# Note that the attribute casing is important here
+parameters = {
+	ApplicationName       = "cxsdk"
+	SubsystemName         = "%v"
+	IntegrationName       = "sdk-integration-v091-test"
+	AwsRoleArn            = "%v"
+	AwsRegion             = "%v"
+	MetricNamespaces      = ["AWS/SQS"]
+	EnrichWithTags        = true
+	WithAggregations      = false
+	Statistics            = ["Average", "Sum", "SampleCount", "Minimum", "Maximum"]
+	DiscoverNamespaces    = false
+	IncludeLinkedAccounts = false
+}
+}
+	`, integrationWithoutSensitiveDataName, integrationWithoutSensitiveDataName, testRoleArn, region)
+}
+
+// testAccCoralogixResourceIntegrationV091MissingCoreFields deliberately omits
+// ApplicationName and SubsystemName to verify that the provider returns a
+// descriptive error naming the missing fields.
+func testAccCoralogixResourceIntegrationV091MissingCoreFields() string {
+	region := testAwsRegion
+	if region == "" {
+		region = "eu-west-1"
+	}
+	return fmt.Sprintf(`resource "coralogix_integration" "v091_missing_fields_test" {
+integration_key = "%v"
+version = "0.9.1"
+parameters = {
+	IntegrationName       = "sdk-integration-v091-missing-core"
+	AwsRoleArn            = "%v"
+	AwsRegion             = "%v"
+	MetricNamespaces      = ["AWS/SQS"]
+	EnrichWithTags        = true
+	WithAggregations      = false
+	Statistics            = ["Average", "Sum", "SampleCount", "Minimum", "Maximum"]
+	DiscoverNamespaces    = false
+	IncludeLinkedAccounts = false
+}
+}
+	`, integrationWithoutSensitiveDataName, testRoleArn, region)
+}
+
+// testAccCoralogixResourceIntegrationByVersion builds a config for any version
+// using the full v0.9.x parameter set (extra fields are ignored by older versions).
+func testAccCoralogixResourceIntegrationByVersion(version, integrationName string) string {
+	region := testAwsRegion
+	if region == "" {
+		region = "eu-west-1"
+	}
+	return fmt.Sprintf(`resource "coralogix_integration" "version_test" {
+integration_key = "%v"
+version = "%v"
+parameters = {
+	ApplicationName       = "cxsdk"
+	SubsystemName         = "%v"
+	IntegrationName       = "%v"
+	AwsRoleArn            = "%v"
+	AwsRegion             = "%v"
+	MetricNamespaces      = ["AWS/SQS"]
+	EnrichWithTags        = true
+	WithAggregations      = false
+	Statistics            = ["Average", "Sum", "SampleCount", "Minimum", "Maximum"]
+	DiscoverNamespaces    = false
+	IncludeLinkedAccounts = false
+}
+}
+	`, integrationWithoutSensitiveDataName, version, integrationWithoutSensitiveDataName, integrationName, testRoleArn, region)
 }
