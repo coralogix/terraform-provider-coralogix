@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -130,7 +131,10 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		)
 		return
 	}
-	getResp, err := r.client.GetGroup(ctx, createResp.ID)
+
+	// Retry GetGroup with backoff when we set scope_id: API may have eventual consistency
+	// and not return nextGenScopeId on the first read after create.
+	getResp, err := r.getGroupWithScopeRetry(ctx, createResp.ID, plan.ScopeID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error reading group",
 			utils.FormatRpcErrors(err, r.client.TargetUrl, createResp.ID),
@@ -149,6 +153,41 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
+}
+
+// getGroupWithScopeRetry fetches the group and, when expectedScopeID is set,
+// retries with backoff until the API returns the scope (handles eventual consistency).
+func (r *GroupResource) getGroupWithScopeRetry(ctx context.Context, groupID, expectedScopeID string) (*clientset.SCIMGroup, error) {
+	backoffs := []time.Duration{0, time.Second, 2 * time.Second, 2 * time.Second, 3 * time.Second}
+	var lastResp *clientset.SCIMGroup
+	var lastErr error
+	for i, backoff := range backoffs {
+		if backoff > 0 {
+			select {
+			case <-ctx.Done():
+				if lastErr != nil {
+					return nil, lastErr
+				}
+				return nil, ctx.Err()
+			case <-time.After(backoff):
+			}
+		}
+		lastResp, lastErr = r.client.GetGroup(ctx, groupID)
+		if lastErr != nil {
+			if i == len(backoffs)-1 {
+				return nil, lastErr
+			}
+			continue
+		}
+		if expectedScopeID == "" || lastResp.ScopeID != "" {
+			return lastResp, nil
+		}
+		if i == len(backoffs)-1 {
+			return lastResp, nil
+		}
+		log.Printf("[INFO] Group %s scope_id not yet visible (eventual consistency), retrying in %v (attempt %d/%d)", groupID, backoffs[i+1], i+2, len(backoffs))
+	}
+	return lastResp, lastErr
 }
 
 func flattenSCIMGroup(group *clientset.SCIMGroup) (*GroupResourceModel, diag.Diagnostics) {
