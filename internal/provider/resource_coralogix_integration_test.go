@@ -43,7 +43,7 @@ func TestAccCoralogixResourceIntegrationWithoutSensitiveData(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coralogix_integration.no_sensitive_data_test", "id"),
 					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "integration_key", integrationWithoutSensitiveDataName),
-					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "version", "0.1.0"),
+					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "version", "0.9.0"),
 					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "parameters.ApplicationName", "cxsdk"),
 					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "parameters.SubsystemName", integrationWithoutSensitiveDataName),
 					resource.TestCheckResourceAttr("coralogix_integration.no_sensitive_data_test", "parameters.AwsRegion", "eu-north-1"),
@@ -68,7 +68,7 @@ func TestAccCoralogixResourceIntegrationWithVariablesWithoutSensitiveData(t *tes
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttrSet("coralogix_integration.variable_test", "id"),
 					resource.TestCheckResourceAttr("coralogix_integration.variable_test", "integration_key", integrationWithoutSensitiveDataName),
-					resource.TestCheckResourceAttr("coralogix_integration.variable_test", "version", "0.1.0"),
+					resource.TestCheckResourceAttr("coralogix_integration.variable_test", "version", "0.9.0"),
 					resource.TestCheckResourceAttr("coralogix_integration.variable_test", "parameters.ApplicationName", "cxsdk"),
 					resource.TestCheckResourceAttr("coralogix_integration.variable_test", "parameters.SubsystemName", integrationWithoutSensitiveDataName),
 					resource.TestCheckResourceAttr("coralogix_integration.variable_test", "parameters.AwsRegion", "eu-north-1"),
@@ -189,28 +189,20 @@ func testAccCheckIntegrationDestroy(s *terraform.State) error {
 func testAccCoralogixResourceIntegrationWithoutSensitiveData() string {
 	return fmt.Sprintf(`resource "coralogix_integration" "no_sensitive_data_test" {
 integration_key = "%v"
-version = "0.1.0"
+version = "0.9.0"
 # Note that the attribute casing is important here
 parameters = {
-	ApplicationName = "cxsdk"
-	SubsystemName = "%v"
-	MetricNamespaces = [
-		"AWS/S3",
-		"AWS/ECR",
-		"AWS/EFS",
-		"AWS/RDS",
-		"AWS/ApplicationELB",
-		"AWS/Lambda",
-		"AWS/Backup",
-		"AWS/EBS",
-		"AWS/SNS",
-		"AWS/EC2"
-	]
-	AwsRoleArn = "%v"
-	IntegrationName = "sdk-integration-no-sensitive-data-setup"
-	AwsRegion = "eu-north-1"
-	WithAggregations = false
-	EnrichWithTags = true
+	ApplicationName       = "cxsdk"
+	SubsystemName         = "%v"
+	MetricNamespaces      = ["AWS/S3", "AWS/ECR", "AWS/EFS", "AWS/RDS", "AWS/ApplicationELB", "AWS/Lambda", "AWS/Backup", "AWS/EBS", "AWS/SNS", "AWS/EC2"]
+	AwsRoleArn            = "%v"
+	IntegrationName       = "sdk-integration-no-sensitive-data-setup"
+	AwsRegion             = "eu-north-1"
+	WithAggregations      = false
+	EnrichWithTags        = true
+	Statistics            = ["Average", "Sum", "SampleCount", "Minimum", "Maximum"]
+	DiscoverNamespaces    = false
+	IncludeLinkedAccounts = false
 }
 }
 	`, integrationWithoutSensitiveDataName, integrationWithoutSensitiveDataName, testRoleArn)
@@ -234,17 +226,20 @@ func testAccCoralogixResourceIntegrationWithSensitiveData() string {
 func testAccCoralogixResourceIntegrationVariablesWithoutSensitiveData() string {
 	return fmt.Sprintf(`resource "coralogix_integration" "variable_test" {
 integration_key = "%v"
-version = "0.1.0"
+version = "0.9.0"
 # Note that the attribute casing is important here
 parameters = {
-	ApplicationName = "cxsdk"
-	SubsystemName = "%v"
-	MetricNamespaces = var.metrics_to_collect
-	AwsRoleArn = "%v"
-	IntegrationName = "sdk-integration-no-sensitive-data-setup"
-	AwsRegion = "eu-north-1"
-	WithAggregations = false
-	EnrichWithTags = true
+	ApplicationName       = "cxsdk"
+	SubsystemName         = "%v"
+	MetricNamespaces      = var.metrics_to_collect
+	AwsRoleArn            = "%v"
+	IntegrationName       = "sdk-integration-no-sensitive-data-setup"
+	AwsRegion             = "eu-north-1"
+	WithAggregations      = false
+	EnrichWithTags        = true
+	Statistics            = ["Average", "Sum", "SampleCount", "Minimum", "Maximum"]
+	DiscoverNamespaces    = false
+	IncludeLinkedAccounts = false
 }
 }
 
@@ -314,6 +309,38 @@ parameters = {
 }
 }
 	`, integrationWithoutSensitiveDataName, testRoleArn, region)
+}
+
+func TestAccCoralogixResourceIntegration_deprecatedVersionRejected(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccCoralogixResourceIntegrationDeprecatedVersion(),
+				ExpectError: regexp.MustCompile(`Unsupported integration version`),
+			},
+		},
+	})
+}
+
+func testAccCoralogixResourceIntegrationDeprecatedVersion() string {
+	return fmt.Sprintf(`resource "coralogix_integration" "deprecated_test" {
+  integration_key = "%v"
+  version         = "0.5.0"
+
+  parameters = {
+    IntegrationName  = "cx-test-deprecated"
+    AwsRoleArn       = "arn:aws:iam::012345678901:role/test"
+    AwsRegion        = "eu-west-1"
+    ApplicationName  = "test"
+    SubsystemName    = "test"
+    MetricNamespaces = ["AWS/EC2"]
+    Statistics       = ["Average"]
+    WithAggregations = false
+    EnrichWithTags   = true
+  }
+}`, integrationWithoutSensitiveDataName)
 }
 
 // testAccCoralogixResourceIntegrationByVersion builds a config for any version

@@ -561,6 +561,31 @@ func supportedVersionsForKey(integrationsWithCounts []integrations.GetIntegratio
 			continue
 		}
 
+		// Build a set of non-deprecated versions using the Revisions list, which
+		// carries lifecycle information. Fall back to the flat Versions list only
+		// when no revision summaries are available.
+		revisions := integrationWithCounts.Integration.GetRevisions()
+		if len(revisions) > 0 {
+			unique := make(map[string]struct{}, len(revisions))
+			supportedVersions := make([]string, 0, len(revisions))
+			for _, rev := range revisions {
+				v := rev.GetVersion()
+				if v == "" {
+					continue
+				}
+				if rev.GetLifecycle() == integrations.REVISIONLIFECYCLE_REVISION_LIFECYCLE_DEPRECATED {
+					continue
+				}
+				if _, exists := unique[v]; exists {
+					continue
+				}
+				unique[v] = struct{}{}
+				supportedVersions = append(supportedVersions, v)
+			}
+			slices.Sort(supportedVersions)
+			return supportedVersions, true
+		}
+
 		unique := make(map[string]struct{}, len(integrationWithCounts.Integration.Versions))
 		supportedVersions := make([]string, 0, len(integrationWithCounts.Integration.Versions))
 		for _, version := range integrationWithCounts.Integration.Versions {
