@@ -20,8 +20,6 @@ import (
 	"log"
 	"net/http"
 
-	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
-	alertscheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
@@ -38,6 +36,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+
+	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
+	alertscheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
 )
 
 var (
@@ -829,12 +830,12 @@ func extractAlertsScheduler(ctx context.Context, plan *AlertsSchedulerResourceMo
 
 	return alertscheduler.AlertSchedulerRule{
 		UniqueIdentifier: id,
-		Name:             utils.Ptr(plan.Name.ValueString()),
+		Name:             alertscheduler.PtrString(plan.Name.ValueString()),
 		Description:      utils.TypeStringToStringPointer(plan.Description),
 		MetaLabels:       metaLabels,
 		Filter:           filter,
 		Schedule:         schedule,
-		Enabled:          utils.Ptr(plan.Enabled.ValueBool()),
+		Enabled:          alertscheduler.PtrBool(plan.Enabled.ValueBool()),
 	}, nil
 }
 
@@ -851,7 +852,7 @@ func extractAlertsSchedulerMetaLabels(ctx context.Context, labels types.Set) ([]
 			continue
 		}
 		expandedLabel := alertscheduler.MetaLabelsProtobufV1MetaLabel{
-			Key:   utils.Ptr(label.Key.ValueString()),
+			Key:   utils.TypeStringToStringPointer(label.Key),
 			Value: utils.TypeStringToStringPointer(label.Value),
 		}
 		expandedLabels = append(expandedLabels, expandedLabel)
@@ -879,7 +880,7 @@ func extractFilter(ctx context.Context, filter types.Object) (*alertscheduler.Al
 		}
 		return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
 			AlertSchedulerRuleProtobufV1FilterAlertUniqueIds: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds{
-				WhatExpression: utils.Ptr(whatExpression),
+				WhatExpression: alertscheduler.PtrString(whatExpression),
 				AlertUniqueIds: &alertscheduler.AlertUniqueIds{
 					Value: ids,
 				},
@@ -892,7 +893,7 @@ func extractFilter(ctx context.Context, filter types.Object) (*alertscheduler.Al
 		}
 		return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
 			AlertSchedulerRuleProtobufV1FilterAlertMetaLabels: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertMetaLabels{
-				WhatExpression: utils.Ptr(whatExpression),
+				WhatExpression: alertscheduler.PtrString(whatExpression),
 				AlertMetaLabels: &alertscheduler.MetaLabels{
 					Value: metaLabels,
 				},
@@ -902,7 +903,7 @@ func extractFilter(ctx context.Context, filter types.Object) (*alertscheduler.Al
 
 	return &alertscheduler.AlertSchedulerRuleProtobufV1Filter{
 		AlertSchedulerRuleProtobufV1FilterAlertUniqueIds: &alertscheduler.AlertSchedulerRuleProtobufV1FilterAlertUniqueIds{
-			WhatExpression: utils.Ptr(whatExpression),
+			WhatExpression: alertscheduler.PtrString(whatExpression),
 			AlertUniqueIds: &alertscheduler.AlertUniqueIds{
 				Value: nil,
 			},
@@ -989,17 +990,17 @@ func extractTimeFrame(ctx context.Context, timeFrame types.Object) (*alertschedu
 		}
 		return &alertscheduler.Timeframe{
 			TimeframeDuration: &alertscheduler.TimeframeDuration{
-				StartTime: utils.Ptr(startTime),
-				Timezone:  utils.Ptr(timezone),
+				StartTime: alertscheduler.PtrString(startTime),
+				Timezone:  alertscheduler.PtrString(timezone),
 				Duration:  duration,
 			},
 		}, nil
 	} else if !(timeFrameModel.EndTime.IsNull() || timeFrameModel.EndTime.IsUnknown()) {
 		return &alertscheduler.Timeframe{
 			TimeframeEndTime: &alertscheduler.TimeframeEndTime{
-				StartTime: utils.Ptr(startTime),
-				Timezone:  utils.Ptr(timezone),
-				EndTime:   utils.Ptr(timeFrameModel.EndTime.ValueString()),
+				StartTime: alertscheduler.PtrString(startTime),
+				Timezone:  alertscheduler.PtrString(timezone),
+				EndTime:   alertscheduler.PtrString(timeFrameModel.EndTime.ValueString()),
 			},
 		}, nil
 	}
@@ -1017,7 +1018,7 @@ func extractDuration(ctx context.Context, duration types.Object) (*alertschedule
 	}
 	freq := schemaToProtoDurationFrequency[durationModel.Frequency.ValueString()]
 	return &alertscheduler.V1Duration{
-		ForOver:   utils.Ptr(int32(durationModel.ForOver.ValueInt64())),
+		ForOver:   alertscheduler.PtrInt32(int32(durationModel.ForOver.ValueInt64())),
 		Frequency: &freq,
 	}, nil
 }

@@ -96,5 +96,6 @@ func (d *AlertsSchedulerDataSource) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
+	// Save data into Terraform state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
