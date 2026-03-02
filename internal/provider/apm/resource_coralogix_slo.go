@@ -131,6 +131,7 @@ func (r *SLOResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanReq
 			"ThresholdSymbolType is not allowed when type is error",
 			"ThresholdSymbolType is not allowed when type is error",
 		)
+		return
 	}
 }
 

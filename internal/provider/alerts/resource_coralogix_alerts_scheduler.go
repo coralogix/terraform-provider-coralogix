@@ -381,6 +381,53 @@ func (r *AlertsSchedulerResource) ModifyPlan(ctx context.Context, req resource.M
 		path.Root("schedule").AtName("one_time"),
 		path.Root("schedule").AtName("recurring"),
 	)
+	if utils.IsNewResource(req) {
+		enforceTimeFrameEndTimeOrDuration(ctx, req, resp,
+			path.Root("schedule").AtName("one_time").AtName("time_frame"),
+		)
+		enforceTimeFrameEndTimeOrDuration(ctx, req, resp,
+			path.Root("schedule").AtName("recurring").AtName("dynamic").AtName("time_frame"),
+		)
+	}
+}
+
+// enforceTimeFrameEndTimeOrDuration checks that when a time_frame block is set,
+// exactly one of end_time or duration is specified.  This replaces the
+// ExactlyOneOf schema-level validators that were removed to support empty-stub import.
+func enforceTimeFrameEndTimeOrDuration(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse, timeFramePath path.Path) {
+	var timeFrame types.Object
+	if diags := req.Config.GetAttribute(ctx, timeFramePath, &timeFrame); diags.HasError() || timeFrame.IsNull() || timeFrame.IsUnknown() {
+		return
+	}
+
+	endTimePath := timeFramePath.AtName("end_time")
+	durationPath := timeFramePath.AtName("duration")
+
+	var endTime types.String
+	endTimeNull := true
+	if diags := req.Config.GetAttribute(ctx, endTimePath, &endTime); !diags.HasError() {
+		endTimeNull = endTime.IsNull() || endTime.IsUnknown()
+	}
+
+	var duration types.Object
+	durationNull := true
+	if diags := req.Config.GetAttribute(ctx, durationPath, &duration); !diags.HasError() {
+		durationNull = duration.IsNull() || duration.IsUnknown()
+	}
+
+	if endTimeNull && durationNull {
+		resp.Diagnostics.AddAttributeError(
+			timeFramePath,
+			"Missing required attribute",
+			fmt.Sprintf("Exactly one of %q or %q must be set inside time_frame. Both are unset.", endTimePath, durationPath),
+		)
+	} else if !endTimeNull && !durationNull {
+		resp.Diagnostics.AddAttributeError(
+			timeFramePath,
+			"Conflicting attributes",
+			fmt.Sprintf("Exactly one of %q or %q must be set inside time_frame, but both are set.", endTimePath, durationPath),
+		)
+	}
 }
 
 func (r *AlertsSchedulerResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -437,10 +484,11 @@ func flattenAlertScheduler(ctx context.Context, scheduler *cxsdk.AlertSchedulerR
 		return nil, diags
 	}
 
+	desc := scheduler.GetDescription()
 	return &AlertsSchedulerResourceModel{
 		ID:          types.StringValue(scheduler.GetUniqueIdentifier()),
 		Name:        types.StringValue(scheduler.GetName()),
-		Description: types.StringValue(scheduler.GetDescription()),
+		Description: utils.StringValueOrNull(&desc),
 		MetaLabels:  metaLabels,
 		Filter:      filter,
 		Schedule:    schedule,

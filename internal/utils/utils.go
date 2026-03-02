@@ -665,6 +665,17 @@ func StringValueOrNull(str *string) types.String {
 	return types.StringValue(*str)
 }
 
+// TypeStringToStringPointerWithDefault converts a types.String to *string,
+// returning a pointer to defaultVal when the value is null or unknown.
+// Use this for API fields that reject nil but accept an empty string.
+func TypeStringToStringPointerWithDefault(str types.String, defaultVal string) *string {
+	if str.IsNull() || str.IsUnknown() {
+		return &defaultVal
+	}
+	v := str.ValueString()
+	return &v
+}
+
 func TypeFloat64ToWrapperspbDouble(num types.Float64) *wrapperspb.DoubleValue {
 	if num.IsNull() {
 		return nil

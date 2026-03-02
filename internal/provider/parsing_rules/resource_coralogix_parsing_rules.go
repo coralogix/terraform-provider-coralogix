@@ -836,7 +836,7 @@ func extractRuleSubGroups(subgroups []RuleSubgroupsModel) []prgs.CreateRuleGroup
 						RuleParametersReplaceParameters: &prgs.RuleParametersReplaceParameters{
 							ReplaceParameters: &prgs.ReplaceParameters{
 								DestinationField: r.DestinationField.ValueStringPointer(),
-								ReplaceNewVal:    r.ReplacementString.ValueStringPointer(),
+								ReplaceNewVal:    utils.TypeStringToStringPointerWithDefault(r.ReplacementString, ""),
 								Rule:             r.RegularExpression.ValueStringPointer(),
 							},
 						},
@@ -998,154 +998,154 @@ func flattenRuleSubGroups(subgroups []prgs.RuleSubgroup) []RuleSubgroupsModel {
 		for _, rule := range groups.Rules {
 			params := rule.Parameters
 
-			if p := params.RuleParametersAllowParameters; p != nil {
-				rules = append(rules, RuleSubgroupModel{
-					Block: &BlockModel{
-						ID:                types.StringPointerValue(rule.Id),
-						Name:              types.StringPointerValue(rule.Name),
-						Description:       types.StringPointerValue(rule.Description),
-						Active:            types.BoolPointerValue(rule.Enabled),
-						Order:             types.Int64PointerValue(rule.Order),
-						SourceField:       types.StringPointerValue(rule.SourceField),
-						RegularExpression: types.StringPointerValue(p.AllowParameters.Rule),
-						KeepBlockedLogs:   types.BoolPointerValue(p.AllowParameters.KeepBlockedLogs),
-						BlockMatchingLogs: types.BoolValue(false),
-					},
-				})
-			}
-			if p := params.RuleParametersBlockParameters; p != nil {
-				rules = append(rules, RuleSubgroupModel{
-					Block: &BlockModel{
-						ID:                types.StringPointerValue(rule.Id),
-						Name:              types.StringPointerValue(rule.Name),
-						Description:       types.StringPointerValue(rule.Description),
-						Active:            types.BoolPointerValue(rule.Enabled),
-						Order:             types.Int64PointerValue(rule.Order),
-						SourceField:       types.StringPointerValue(rule.SourceField),
-						RegularExpression: types.StringPointerValue(p.BlockParameters.Rule),
-						KeepBlockedLogs:   types.BoolPointerValue(p.BlockParameters.KeepBlockedLogs),
-						BlockMatchingLogs: types.BoolValue(true),
-					},
-				})
-			}
-			if p := params.RuleParametersExtractParameters; p != nil {
-				rules = append(rules, RuleSubgroupModel{
-					Extract: &ExtractModel{
-						ID:                types.StringPointerValue(rule.Id),
-						Name:              types.StringPointerValue(rule.Name),
-						Description:       types.StringPointerValue(rule.Description),
-						Active:            types.BoolPointerValue(rule.Enabled),
-						Order:             types.Int64PointerValue(rule.Order),
-						SourceField:       types.StringPointerValue(rule.SourceField),
-						RegularExpression: types.StringPointerValue(p.ExtractParameters.Rule),
-					},
-				})
+		if p := params.RuleParametersAllowParameters; p != nil {
+			rules = append(rules, RuleSubgroupModel{
+				Block: &BlockModel{
+					ID:                types.StringPointerValue(rule.Id),
+					Name:              types.StringPointerValue(rule.Name),
+					Description:       utils.StringValueOrNull(rule.Description),
+					Active:            types.BoolPointerValue(rule.Enabled),
+					Order:             types.Int64PointerValue(rule.Order),
+					SourceField:       types.StringPointerValue(rule.SourceField),
+					RegularExpression: types.StringPointerValue(p.AllowParameters.Rule),
+					KeepBlockedLogs:   types.BoolPointerValue(p.AllowParameters.KeepBlockedLogs),
+					BlockMatchingLogs: types.BoolValue(false),
+				},
+			})
+		}
+		if p := params.RuleParametersBlockParameters; p != nil {
+			rules = append(rules, RuleSubgroupModel{
+				Block: &BlockModel{
+					ID:                types.StringPointerValue(rule.Id),
+					Name:              types.StringPointerValue(rule.Name),
+					Description:       utils.StringValueOrNull(rule.Description),
+					Active:            types.BoolPointerValue(rule.Enabled),
+					Order:             types.Int64PointerValue(rule.Order),
+					SourceField:       types.StringPointerValue(rule.SourceField),
+					RegularExpression: types.StringPointerValue(p.BlockParameters.Rule),
+					KeepBlockedLogs:   types.BoolPointerValue(p.BlockParameters.KeepBlockedLogs),
+					BlockMatchingLogs: types.BoolValue(true),
+				},
+			})
+		}
+		if p := params.RuleParametersExtractParameters; p != nil {
+			rules = append(rules, RuleSubgroupModel{
+				Extract: &ExtractModel{
+					ID:                types.StringPointerValue(rule.Id),
+					Name:              types.StringPointerValue(rule.Name),
+					Description:       utils.StringValueOrNull(rule.Description),
+					Active:            types.BoolPointerValue(rule.Enabled),
+					Order:             types.Int64PointerValue(rule.Order),
+					SourceField:       types.StringPointerValue(rule.SourceField),
+					RegularExpression: types.StringPointerValue(p.ExtractParameters.Rule),
+				},
+			})
 
-			}
-			if p := params.RuleParametersExtractTimestampParameters; p != nil {
-				fmtStd := rulesApiFormatStandardToSchemaFormatStandard[*p.ExtractTimestampParameters.Standard]
-				rules = append(rules, RuleSubgroupModel{
-					ExtractTimestamp: &ExtractTimestampModel{
-						ID:                  types.StringPointerValue(rule.Id),
-						Name:                types.StringPointerValue(rule.Name),
-						Description:         types.StringPointerValue(rule.Description),
-						Active:              types.BoolPointerValue(rule.Enabled),
-						Order:               types.Int64PointerValue(rule.Order),
-						SourceField:         types.StringPointerValue(rule.SourceField),
-						FieldFormatStandard: types.StringValue(fmtStd),
-						TimeFormat:          types.StringPointerValue(p.ExtractTimestampParameters.Format),
-					},
-				})
-			}
-			if p := params.RuleParametersJsonExtractParameters; p != nil {
-				destinationField := rulesApiDestinationFieldToSchemaDestinationField[*p.JsonExtractParameters.DestinationFieldType]
-				rules = append(rules, RuleSubgroupModel{
-					JsonExtract: &JsonExtractModel{
-						ID:                   types.StringPointerValue(rule.Id),
-						Name:                 types.StringPointerValue(rule.Name),
-						Description:          types.StringPointerValue(rule.Description),
-						Active:               types.BoolPointerValue(rule.Enabled),
-						Order:                types.Int64PointerValue(rule.Order),
-						DestinationField:     types.StringValue(destinationField),
-						DestinationFieldText: types.StringPointerValue(p.JsonExtractParameters.DestinationFieldText),
-						JsonKey:              types.StringPointerValue(p.JsonExtractParameters.Rule),
-					},
-				})
-			}
-			if p := params.RuleParametersJsonParseParameters; p != nil {
-				keepSourceField := !*p.JsonParseParameters.DeleteSource
-				keepDestinationField := !*p.JsonParseParameters.OverrideDest
+		}
+		if p := params.RuleParametersExtractTimestampParameters; p != nil {
+			fmtStd := rulesApiFormatStandardToSchemaFormatStandard[*p.ExtractTimestampParameters.Standard]
+			rules = append(rules, RuleSubgroupModel{
+				ExtractTimestamp: &ExtractTimestampModel{
+					ID:                  types.StringPointerValue(rule.Id),
+					Name:                types.StringPointerValue(rule.Name),
+					Description:         utils.StringValueOrNull(rule.Description),
+					Active:              types.BoolPointerValue(rule.Enabled),
+					Order:               types.Int64PointerValue(rule.Order),
+					SourceField:         types.StringPointerValue(rule.SourceField),
+					FieldFormatStandard: types.StringValue(fmtStd),
+					TimeFormat:          types.StringPointerValue(p.ExtractTimestampParameters.Format),
+				},
+			})
+		}
+		if p := params.RuleParametersJsonExtractParameters; p != nil {
+			destinationField := rulesApiDestinationFieldToSchemaDestinationField[*p.JsonExtractParameters.DestinationFieldType]
+			rules = append(rules, RuleSubgroupModel{
+				JsonExtract: &JsonExtractModel{
+					ID:                   types.StringPointerValue(rule.Id),
+					Name:                 types.StringPointerValue(rule.Name),
+					Description:          utils.StringValueOrNull(rule.Description),
+					Active:               types.BoolPointerValue(rule.Enabled),
+					Order:                types.Int64PointerValue(rule.Order),
+					DestinationField:     types.StringValue(destinationField),
+					DestinationFieldText: types.StringPointerValue(p.JsonExtractParameters.DestinationFieldText),
+					JsonKey:              types.StringPointerValue(p.JsonExtractParameters.Rule),
+				},
+			})
+		}
+		if p := params.RuleParametersJsonParseParameters; p != nil {
+			keepSourceField := !*p.JsonParseParameters.DeleteSource
+			keepDestinationField := !*p.JsonParseParameters.OverrideDest
 
-				rules = append(rules, RuleSubgroupModel{
-					ParseJsonField: &ParseJsonFieldModel{
-						ID:                   types.StringPointerValue(rule.Id),
-						Name:                 types.StringPointerValue(rule.Name),
-						Description:          types.StringPointerValue(rule.Description),
-						Active:               types.BoolPointerValue(rule.Enabled),
-						Order:                types.Int64PointerValue(rule.Order),
-						SourceField:          types.StringPointerValue(rule.SourceField),
-						DestinationField:     types.StringPointerValue(p.JsonParseParameters.DestinationField),
-						KeepSourceField:      types.BoolValue(keepSourceField),
-						KeepDestinationField: types.BoolValue(keepDestinationField),
-					},
-				})
-			}
-			if p := params.RuleParametersJsonStringifyParameters; p != nil {
-				keepSourceField := !*params.RuleParametersJsonStringifyParameters.JsonStringifyParameters.DeleteSource
-				rules = append(rules, RuleSubgroupModel{
-					JsonStringify: &JsonStringifyModel{
-						ID:               types.StringPointerValue(rule.Id),
-						Name:             types.StringPointerValue(rule.Name),
-						Description:      types.StringPointerValue(rule.Description),
-						Active:           types.BoolPointerValue(rule.Enabled),
-						Order:            types.Int64PointerValue(rule.Order),
-						SourceField:      types.StringPointerValue(rule.SourceField),
-						DestinationField: types.StringPointerValue(p.JsonStringifyParameters.DestinationField),
-						KeepSourceField:  types.BoolValue(keepSourceField),
-					},
-				})
-			}
-			if p := params.RuleParametersParseParameters; p != nil {
-				rules = append(rules, RuleSubgroupModel{
-					Parse: &ParseModel{
-						ID:                types.StringPointerValue(rule.Id),
-						Name:              types.StringPointerValue(rule.Name),
-						Description:       types.StringPointerValue(rule.Description),
-						Active:            types.BoolPointerValue(rule.Enabled),
-						Order:             types.Int64PointerValue(rule.Order),
-						SourceField:       types.StringPointerValue(rule.SourceField),
-						DestinationField:  types.StringPointerValue(p.ParseParameters.DestinationField),
-						RegularExpression: types.StringPointerValue(p.ParseParameters.Rule),
-					},
-				})
-			}
-			if p := params.RuleParametersRemoveFieldsParameters; p != nil {
-				rules = append(rules, RuleSubgroupModel{
-					RemoveFields: &RemoveFieldsModel{
-						ID:             types.StringPointerValue(rule.Id),
-						Name:           types.StringPointerValue(rule.Name),
-						Description:    types.StringPointerValue(rule.Description),
-						Active:         types.BoolPointerValue(rule.Enabled),
-						Order:          types.Int64PointerValue(rule.Order),
-						ExcludedFields: utils.StringSliceToTypeStringSlice(p.RemoveFieldsParameters.Fields),
-					},
-				})
-			}
-			if p := params.RuleParametersReplaceParameters; p != nil {
-				rules = append(rules, RuleSubgroupModel{
-					Replace: &ReplaceModel{
-						ID:                types.StringPointerValue(rule.Id),
-						Name:              types.StringPointerValue(rule.Name),
-						Description:       types.StringPointerValue(rule.Description),
-						Active:            types.BoolPointerValue(rule.Enabled),
-						Order:             types.Int64PointerValue(rule.Order),
-						SourceField:       types.StringPointerValue(rule.SourceField),
-						DestinationField:  types.StringPointerValue(p.ReplaceParameters.DestinationField),
-						RegularExpression: types.StringPointerValue(p.ReplaceParameters.Rule),
-						ReplacementString: types.StringPointerValue(p.ReplaceParameters.ReplaceNewVal),
-					},
-				})
-			}
+			rules = append(rules, RuleSubgroupModel{
+				ParseJsonField: &ParseJsonFieldModel{
+					ID:                   types.StringPointerValue(rule.Id),
+					Name:                 types.StringPointerValue(rule.Name),
+					Description:          utils.StringValueOrNull(rule.Description),
+					Active:               types.BoolPointerValue(rule.Enabled),
+					Order:                types.Int64PointerValue(rule.Order),
+					SourceField:          types.StringPointerValue(rule.SourceField),
+					DestinationField:     types.StringPointerValue(p.JsonParseParameters.DestinationField),
+					KeepSourceField:      types.BoolValue(keepSourceField),
+					KeepDestinationField: types.BoolValue(keepDestinationField),
+				},
+			})
+		}
+		if p := params.RuleParametersJsonStringifyParameters; p != nil {
+			keepSourceField := !*params.RuleParametersJsonStringifyParameters.JsonStringifyParameters.DeleteSource
+			rules = append(rules, RuleSubgroupModel{
+				JsonStringify: &JsonStringifyModel{
+					ID:               types.StringPointerValue(rule.Id),
+					Name:             types.StringPointerValue(rule.Name),
+					Description:      utils.StringValueOrNull(rule.Description),
+					Active:           types.BoolPointerValue(rule.Enabled),
+					Order:            types.Int64PointerValue(rule.Order),
+					SourceField:      types.StringPointerValue(rule.SourceField),
+					DestinationField: types.StringPointerValue(p.JsonStringifyParameters.DestinationField),
+					KeepSourceField:  types.BoolValue(keepSourceField),
+				},
+			})
+		}
+		if p := params.RuleParametersParseParameters; p != nil {
+			rules = append(rules, RuleSubgroupModel{
+				Parse: &ParseModel{
+					ID:                types.StringPointerValue(rule.Id),
+					Name:              types.StringPointerValue(rule.Name),
+					Description:       utils.StringValueOrNull(rule.Description),
+					Active:            types.BoolPointerValue(rule.Enabled),
+					Order:             types.Int64PointerValue(rule.Order),
+					SourceField:       types.StringPointerValue(rule.SourceField),
+					DestinationField:  types.StringPointerValue(p.ParseParameters.DestinationField),
+					RegularExpression: types.StringPointerValue(p.ParseParameters.Rule),
+				},
+			})
+		}
+		if p := params.RuleParametersRemoveFieldsParameters; p != nil {
+			rules = append(rules, RuleSubgroupModel{
+				RemoveFields: &RemoveFieldsModel{
+					ID:             types.StringPointerValue(rule.Id),
+					Name:           types.StringPointerValue(rule.Name),
+					Description:    utils.StringValueOrNull(rule.Description),
+					Active:         types.BoolPointerValue(rule.Enabled),
+					Order:          types.Int64PointerValue(rule.Order),
+					ExcludedFields: utils.StringSliceToTypeStringSlice(p.RemoveFieldsParameters.Fields),
+				},
+			})
+		}
+		if p := params.RuleParametersReplaceParameters; p != nil {
+			rules = append(rules, RuleSubgroupModel{
+				Replace: &ReplaceModel{
+					ID:                types.StringPointerValue(rule.Id),
+					Name:              types.StringPointerValue(rule.Name),
+					Description:       utils.StringValueOrNull(rule.Description),
+					Active:            types.BoolPointerValue(rule.Enabled),
+					Order:             types.Int64PointerValue(rule.Order),
+					SourceField:       types.StringPointerValue(rule.SourceField),
+					DestinationField:  types.StringPointerValue(p.ReplaceParameters.DestinationField),
+					RegularExpression: types.StringPointerValue(p.ReplaceParameters.Rule),
+					ReplacementString: utils.StringValueOrNull(p.ReplaceParameters.ReplaceNewVal),
+				},
+			})
+		}
 		}
 		subgroupRules[g].Rules = rules
 	}

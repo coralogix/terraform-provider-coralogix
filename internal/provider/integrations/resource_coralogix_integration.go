@@ -396,13 +396,37 @@ func (r *IntegrationResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
-	keys, diags := KeysFromPlan(ctx, plan)
-	if diags.HasError() {
-		resp.Diagnostics.Append(diags...)
-		return
+	var keys []string
+	if plan.Parameters.IsNull() || plan.Parameters.IsUnderlyingValueNull() || plan.Parameters.IsUnknown() || plan.Parameters.IsUnderlyingValueUnknown() {
+		// During import, parameters are not yet known — use all keys from the API response.
+		for _, p := range result.Integration.GetParameters() {
+			if p.ParameterStringList != nil {
+				keys = append(keys, *p.ParameterStringList.Key)
+			} else if p.ParameterBooleanValue != nil {
+				keys = append(keys, *p.ParameterBooleanValue.Key)
+			} else if p.ParameterStringValue != nil {
+				keys = append(keys, *p.ParameterStringValue.Key)
+			} else if p.ParameterNumericValue != nil {
+				keys = append(keys, *p.ParameterNumericValue.Key)
+			} else if p.ParameterApiKey != nil {
+				keys = append(keys, *p.ParameterApiKey.Key)
+			} else if p.ParameterSensitiveData != nil {
+				keys = append(keys, *p.ParameterSensitiveData.Key)
+			}
+		}
+	} else {
+		var keyDiags diag.Diagnostics
+		keys, keyDiags = KeysFromPlan(ctx, plan)
+		if keyDiags.HasError() {
+			resp.Diagnostics.Append(keyDiags...)
+			return
+		}
 	}
+
 	state, e := integrationDetail(result, keys)
-	state.Parameters = plan.Parameters
+	if !plan.Parameters.IsNull() && !plan.Parameters.IsUnderlyingValueNull() && !plan.Parameters.IsUnknown() && !plan.Parameters.IsUnderlyingValueUnknown() {
+		state.Parameters = plan.Parameters
+	}
 	if e.HasError() {
 		resp.Diagnostics.Append(e...)
 		return
