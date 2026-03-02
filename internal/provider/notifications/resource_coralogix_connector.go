@@ -47,6 +47,8 @@ var (
 		"slack":           connectors.CONNECTORTYPE_SLACK,
 		"generic_https":   connectors.CONNECTORTYPE_GENERIC_HTTPS,
 		"pagerduty":       connectors.CONNECTORTYPE_PAGERDUTY,
+		"email":           connectors.CONNECTORTYPE_EMAIL,
+		"service_now":     connectors.CONNECTORTYPE_SERVICE_NOW,
 	}
 	connectorTypeApiToSchema       = utils.ReverseMap(connectorTypeSchemaToApi)
 	validConnectorTypesSchemaToApi = utils.GetKeys(connectorTypeSchemaToApi)

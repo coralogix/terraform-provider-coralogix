@@ -1,3 +1,17 @@
+terraform {
+  required_providers {
+    coralogix = {
+      version = "~> 3.0"
+      source  = "coralogix/coralogix"
+    }
+  }
+}
+
+provider "coralogix" {
+  #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+}
+
 resource "coralogix_preset" "generic_https_example" {
   id               = "generic_https_example"
   name             = "generic_https example"
@@ -96,6 +110,35 @@ resource "coralogix_preset" "pagerduty_example" {
           {
             field_name = "timestamp"
             template   = "{{ alert.timestamp }}"
+          }
+        ]
+      }
+    }
+  ]
+}
+
+resource "coralogix_preset" "email_example" {
+  id             = "email_example"
+  name           = "email example"
+  description    = "email preset example"
+  entity_type    = "alerts"
+  connector_type = "email"
+  parent_id      = "preset_system_email_alerts"
+  config_overrides = [
+    {
+      payload_type = "email_default"
+      condition_type = {
+        match_entity_type = {}
+      }
+      message_config = {
+        fields = [
+          {
+            field_name = "customSubject"
+            template   = "{{ alertDef.name }}"
+          },
+          {
+            field_name = "customContent"
+            template   = "<div>content-example</div>"
           }
         ]
       }

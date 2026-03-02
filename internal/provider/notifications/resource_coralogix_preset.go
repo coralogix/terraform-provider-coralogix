@@ -50,6 +50,7 @@ var (
 		"generic_https":   presets.CONNECTORTYPE_GENERIC_HTTPS,
 		"pagerduty":       presets.CONNECTORTYPE_PAGERDUTY,
 		"service_now":     presets.CONNECTORTYPE_SERVICE_NOW,
+		"email":           presets.CONNECTORTYPE_EMAIL,
 	}
 	presetConnectorTypeApiToSchema = utils.ReverseMap(presetConnectorTypeSchemaToApi)
 	validConnectorTypes            = utils.GetKeys(presetConnectorTypeSchemaToApi)

@@ -1,3 +1,17 @@
+terraform {
+  required_providers {
+    coralogix = {
+      version = "~> 3.0"
+      source  = "coralogix/coralogix"
+    }
+  }
+}
+
+provider "coralogix" {
+  #api_key = "<add your api key here or add env variable CORALOGIX_API_KEY>"
+  #env = "<add the environment you want to work at or add env variable CORALOGIX_ENV>"
+}
+
 resource "coralogix_connector" "generic_https_example" {
   id               = "generic_https_example" //This field is optional, if not provided a random id will be generated
   type             = "generic_https"
@@ -138,4 +152,40 @@ EOF
       ]
     }
   ]
+}
+
+resource "coralogix_connector" "email_example" {
+  type             = "email"
+  name             = "email connector"
+  description      = "email connector example"
+  connector_config = {
+    fields = [
+      {
+        field_name = "emailAddresses"
+        value      = "[\"email1@example.com\",\"email2@example.com\"]"
+      }
+    ]
+  }
+}
+
+resource "coralogix_connector" "service_now_example" {
+  type             = "service_now"
+  name             = "service now connector"
+  description      = "service now connector example"
+  connector_config = {
+    fields = [
+      {
+        field_name = "instanceUrl"
+        value      = "https://your-instance.service-now.com"
+      },
+      {
+        field_name = "username"
+        value      = "username-example"
+      },
+      {
+        field_name = "password"
+        value      = "password-example"
+      }
+    ]
+  }
 }
