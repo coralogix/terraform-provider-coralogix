@@ -17,7 +17,6 @@ package alerts
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
@@ -76,19 +75,16 @@ func (d *AlertsSchedulerDataSource) Read(ctx context.Context, req datasource.Rea
 	}
 
 	id := data.ID.ValueString()
-	log.Printf("[INFO] Reading alerts-scheduler: %s", id)
 	getAlertsSchedulerResp, httpResp, err := d.client.
 		AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, id).
 		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error reading alerts-scheduler",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Read", id),
 		)
 		return
 	}
-	log.Printf("[INFO] Received alerts-scheduler: %s", utils.FormatJSON(getAlertsSchedulerResp))
 
 	data, diags := flattenAlertScheduler(ctx, getAlertsSchedulerResp.AlertSchedulerRule)
 	if diags.HasError() {

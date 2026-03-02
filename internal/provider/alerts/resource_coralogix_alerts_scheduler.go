@@ -17,7 +17,6 @@ package alerts
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -387,19 +386,16 @@ func (r *AlertsSchedulerResource) Create(ctx context.Context, req resource.Creat
 	createRequest := alertscheduler.CreateAlertSchedulerRuleRequestDataStructure{
 		AlertSchedulerRule: alertSchedulerRule,
 	}
-	log.Printf("[INFO] Creating new alerts-scheduler: %s", utils.FormatJSON(createRequest))
 	createResp, httpResp, err := r.client.
 		AlertSchedulerRuleServiceCreateAlertSchedulerRule(ctx).
 		CreateAlertSchedulerRuleRequestDataStructure(createRequest).
 		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError("Error creating alerts-scheduler",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Create", createRequest))
 		return
 	}
 	alertSchedulerRule = createResp.AlertSchedulerRule
-	log.Printf("[INFO] Submitted new alerts-scheduler: %s", utils.FormatJSON(alertSchedulerRule))
 
 	plan, diags = flattenAlertScheduler(ctx, alertSchedulerRule)
 	if diags.HasError() {
@@ -1146,12 +1142,10 @@ func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Reading alerts-scheduler: %s", id)
 	getAlertsSchedulerResp, httpResp, err := r.client.
 		AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, id).
 		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
 		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("alerts-scheduler %q is in state, but no longer exists in Coralogix backend", id),
@@ -1167,7 +1161,6 @@ func (r *AlertsSchedulerResource) Read(ctx context.Context, req resource.ReadReq
 		return
 	}
 	alertsScheduler := getAlertsSchedulerResp.AlertSchedulerRule
-	log.Printf("[INFO] Received alerts-scheduler: %s", utils.FormatJSON(alertsScheduler))
 
 	state, diags = flattenAlertScheduler(ctx, alertsScheduler)
 	if diags.HasError() {
@@ -1198,26 +1191,22 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 	updateRequest := alertscheduler.UpdateAlertSchedulerRuleRequestDataStructure{
 		AlertSchedulerRule: alertsScheduler,
 	}
-	log.Printf("[INFO] Updating alerts-scheduler: %s", utils.FormatJSON(updateRequest))
-	updateResp, httpResp, err := r.client.
+	_, httpResp, err := r.client.
 		AlertSchedulerRuleServiceUpdateAlertSchedulerRule(ctx).
 		UpdateAlertSchedulerRuleRequestDataStructure(updateRequest).
 		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
 		resp.Diagnostics.AddError(
 			"Error updating alerts-scheduler",
 			utils.FormatOpenAPIErrors(cxsdkOpenapi.NewAPIError(httpResp, err), "Update", updateRequest),
 		)
 		return
 	}
-	log.Printf("[INFO] Submitted updated alerts-scheduler: %s", utils.FormatJSON(updateResp))
 
 	getAlertsSchedulerResp, httpResp, err := r.client.
 		AlertSchedulerRuleServiceGetAlertSchedulerRule(ctx, id).
 		Execute()
 	if err != nil {
-		log.Printf("[ERROR] Received error: %s", err.Error())
 		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
 			resp.Diagnostics.AddWarning(
 				fmt.Sprintf("alerts-scheduler %s is in state, but no longer exists in Coralogix backend", id),
@@ -1232,7 +1221,6 @@ func (r *AlertsSchedulerResource) Update(ctx context.Context, req resource.Updat
 		}
 		return
 	}
-	log.Printf("[INFO] Received alerts-scheduler: %s", utils.FormatJSON(getAlertsSchedulerResp))
 
 	plan, diags = flattenAlertScheduler(ctx, getAlertsSchedulerResp.AlertSchedulerRule)
 	if diags.HasError() {
@@ -1253,13 +1241,11 @@ func (r *AlertsSchedulerResource) Delete(ctx context.Context, req resource.Delet
 	}
 
 	id := state.ID.ValueString()
-	log.Printf("[INFO] Deleting alerts-scheduler %s", id)
 	_, httpResp, err := r.client.
 		AlertSchedulerRuleServiceDeleteAlertSchedulerRule(ctx, id).
 		Execute()
 	if err != nil {
 		if httpResp != nil && httpResp.StatusCode == http.StatusNotFound {
-			log.Printf("[INFO] alerts-scheduler %s not found, considering deleted", id)
 			return
 		}
 		resp.Diagnostics.AddError(
@@ -1268,5 +1254,4 @@ func (r *AlertsSchedulerResource) Delete(ctx context.Context, req resource.Delet
 		)
 		return
 	}
-	log.Printf("[INFO] alerts-scheduler %s deleted", id)
 }
