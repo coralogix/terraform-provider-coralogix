@@ -25,7 +25,6 @@ import (
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
 
-	. "github.com/ahmetalpbalkan/go-linq"
 	gapi "github.com/grafana/grafana-api-golang-client"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
@@ -63,11 +62,10 @@ func ResourceCoralogixHostedDashboard() *schema.Resource {
 }
 
 func resourceHostedDashboardCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	hostedDashboardTypeStr := From(validHostedDashboardTypes).FirstWith(func(key interface{}) bool {
-		return len(d.Get(key.(string)).([]interface{})) > 0
-	}).(string)
-
-	hostedDashboardTypeSchema := d.Get(hostedDashboardTypeStr).([]interface{})[0].(map[string]interface{})
+	hostedDashboardTypeStr, hostedDashboardTypeSchema, ok := getConfiguredHostedDashboardType(d)
+	if !ok {
+		return diag.Errorf("one of %q must be configured", validHostedDashboardTypes)
+	}
 
 	switch hostedDashboardTypeStr {
 	case "grafana":
@@ -78,11 +76,10 @@ func resourceHostedDashboardCreate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceHostedDashboardRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	hostedDashboardTypeStr := From(validHostedDashboardTypes).FirstWith(func(key interface{}) bool {
-		return len(d.Get(key.(string)).([]interface{})) > 0
-	}).(string)
-
-	hostedDashboardTypeSchema := d.Get(hostedDashboardTypeStr).([]interface{})[0].(map[string]interface{})
+	hostedDashboardTypeStr, hostedDashboardTypeSchema, ok := getHostedDashboardTypeForRead(d)
+	if !ok {
+		return diag.Errorf("unable to determine hosted dashboard type from config or id %q", d.Id())
+	}
 
 	switch hostedDashboardTypeStr {
 	case "grafana":
@@ -93,11 +90,10 @@ func resourceHostedDashboardRead(ctx context.Context, d *schema.ResourceData, me
 }
 
 func resourceHostedDashboardUpdate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	hostedDashboardTypeStr := From(validHostedDashboardTypes).FirstWith(func(key interface{}) bool {
-		return len(d.Get(key.(string)).([]interface{})) > 0
-	}).(string)
-
-	hostedDashboardTypeSchema := d.Get(hostedDashboardTypeStr).([]interface{})[0].(map[string]interface{})
+	hostedDashboardTypeStr, hostedDashboardTypeSchema, ok := getConfiguredHostedDashboardType(d)
+	if !ok {
+		return diag.Errorf("one of %q must be configured", validHostedDashboardTypes)
+	}
 
 	switch hostedDashboardTypeStr {
 	case "grafana":
@@ -108,9 +104,10 @@ func resourceHostedDashboardUpdate(ctx context.Context, d *schema.ResourceData, 
 }
 
 func resourceHostedDashboardDelete(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	hostedDashboardTypeStr := From(validHostedDashboardTypes).FirstWith(func(key interface{}) bool {
-		return len(d.Get(key.(string)).([]interface{})) > 0
-	}).(string)
+	hostedDashboardTypeStr, _, ok := getHostedDashboardTypeForRead(d)
+	if !ok {
+		return diag.Errorf("unable to determine hosted dashboard type from config or id %q", d.Id())
+	}
 
 	switch hostedDashboardTypeStr {
 	case "grafana":
@@ -164,10 +161,11 @@ func HostedDashboardSchema() map[string]*schema.Schema {
 					},
 					"config_json": {
 						Type:         schema.TypeString,
-						Required:     true,
+						Optional:     true,
+						Computed:     true,
 						StateFunc:    normalizeDashboardConfigJSON,
 						ValidateFunc: validateDashboardConfigJSON,
-						Description:  "The complete dashboard model JSON.",
+						Description:  "The complete dashboard model JSON. Required when creating.",
 					},
 					"overwrite": {
 						Type:        schema.TypeBool,
@@ -184,7 +182,6 @@ func HostedDashboardSchema() map[string]*schema.Schema {
 			Description: `Hosted grafana dashboard.
 			* [Official documentation](https://grafana.com/docs/grafana/latest/dashboards/)
 			* [HTTP API](https://grafana.com/docs/grafana/latest/http_api/dashboard/)`,
-			ExactlyOneOf: validHostedDashboardTypes,
 		},
 	}
 }
@@ -230,11 +227,11 @@ func resourceGrafanaDashboardRead(ctx context.Context, d *schema.ResourceData, m
 	hostedGrafanaNewSchema["version"] = int64(dashboard.Model["version"].(float64))
 	hostedGrafanaNewSchema["url"] = strings.TrimRight(meta.(*clientset.ClientSet).Grafana().GetTargetURL(), "/") + dashboard.Meta.URL
 
-	// If the folder was originally set to a numeric ID, we read the folder ID
-	// Othwerwise, we read the folder UID
+	// If the folder was originally set to a numeric ID, we read the folder ID.
+	// Otherwise, we read the folder UID. During import with an empty stub there
+	// is no folder configured, so we default to the remote folder UID.
 	var folderID string
-	m := d.Get("grafana").([]interface{})[0].(map[string]interface{})
-	if folder, ok := m["folder"]; ok && folder != nil {
+	if folder, ok := hostedGrafanaSchema["folder"]; ok && folder != nil {
 		_, folderID = SplitOrgResourceID(folder.(string))
 	}
 	if idRegexp.MatchString(folderID) && dashboard.Meta.Folder > 0 {
@@ -252,7 +249,7 @@ func resourceGrafanaDashboardRead(ctx context.Context, d *schema.ResourceData, m
 		return diag.FromErr(err)
 	}
 
-	configJSON := hostedGrafanaSchema["config_json"].(string)
+	configJSON, _ := hostedGrafanaSchema["config_json"].(string)
 
 	// Skip if `uid` is not set in configuration, we need to delete it from the
 	// dashboard JSON we just read from the Grafana API. This is so it does not
@@ -329,7 +326,49 @@ func resourceGrafanaDashboardDelete(ctx context.Context, d *schema.ResourceData,
 }
 
 func extractOriginalUID(d *schema.ResourceData, dashboardType string) string {
-	return strings.Split(d.Id(), fmt.Sprintf("%s:", dashboardType))[1]
+	prefix := fmt.Sprintf("%s:", dashboardType)
+	if strings.HasPrefix(d.Id(), prefix) {
+		return strings.TrimPrefix(d.Id(), prefix)
+	}
+	parts := strings.SplitN(d.Id(), ":", 2)
+	if len(parts) == 2 {
+		return parts[1]
+	}
+	return d.Id()
+}
+
+func getConfiguredHostedDashboardType(d *schema.ResourceData) (string, map[string]interface{}, bool) {
+	for _, hostedDashboardType := range validHostedDashboardTypes {
+		raw := d.Get(hostedDashboardType)
+		configured, ok := raw.([]interface{})
+		if !ok || len(configured) == 0 {
+			continue
+		}
+		configMap, ok := configured[0].(map[string]interface{})
+		if !ok {
+			return "", nil, false
+		}
+		return hostedDashboardType, configMap, true
+	}
+	return "", nil, false
+}
+
+func getHostedDashboardTypeForRead(d *schema.ResourceData) (string, map[string]interface{}, bool) {
+	if hostedDashboardType, configMap, ok := getConfiguredHostedDashboardType(d); ok {
+		return hostedDashboardType, configMap, true
+	}
+
+	parts := strings.SplitN(d.Id(), ":", 2)
+	if len(parts) != 2 {
+		return "", nil, false
+	}
+	for _, hostedDashboardType := range validHostedDashboardTypes {
+		if parts[0] == hostedDashboardType {
+			// Empty config map is valid during import with an empty stub.
+			return hostedDashboardType, map[string]interface{}{}, true
+		}
+	}
+	return "", nil, false
 }
 
 // validateDashboardConfigJSON is the ValidateFunc for `config_json`. It

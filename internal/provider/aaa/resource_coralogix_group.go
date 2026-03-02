@@ -38,6 +38,8 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+var _ resource.ResourceWithModifyPlan = &GroupResource{}
+
 func NewGroupResource() resource.Resource {
 	return &GroupResource{}
 }
@@ -79,18 +81,21 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 				MarkdownDescription: "Group ID.",
 			},
 			"display_name": schema.StringAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.LengthAtLeast(1),
 				},
-				MarkdownDescription: "Group display name.",
+				MarkdownDescription: "Group display name. Required when creating.",
 			},
 			"members": schema.SetAttribute{
 				Optional:    true,
 				ElementType: types.StringType,
 			},
 			"role": schema.StringAttribute{
-				Required: true,
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Required when creating.",
 			},
 			"scope_id": schema.StringAttribute{
 				Optional:            true,
@@ -104,6 +109,10 @@ func (r *GroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp
 
 func (r *GroupResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r *GroupResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredAttributeOnCreate(ctx, req, resp, path.Root("display_name"), path.Root("role"))
 }
 
 func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

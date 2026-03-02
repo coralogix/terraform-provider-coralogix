@@ -40,8 +40,9 @@ import (
 const RESOURCE_ID_ARCHIVE_LOGS string = "archive-logs-settings"
 
 var (
-	_ resource.ResourceWithConfigure   = &ArchiveLogsResource{}
-	_ resource.ResourceWithImportState = &ArchiveLogsResource{}
+	_ resource.ResourceWithConfigure        = &ArchiveLogsResource{}
+	_ resource.ResourceWithImportState      = &ArchiveLogsResource{}
+	_ resource.ResourceWithModifyPlan = &ArchiveLogsResource{}
 )
 
 type ArchiveLogsResourceModel struct {
@@ -63,6 +64,10 @@ type ArchiveLogsResource struct {
 
 func (r *ArchiveLogsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r *ArchiveLogsResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredOnCreate(ctx, req, resp, path.Root("bucket"))
 }
 
 func (r *ArchiveLogsResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
@@ -97,8 +102,9 @@ func (r ArchiveLogsResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 			"bucket": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "The bucket name to store the archived logs in.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "The bucket name to store the archived logs in. Required when creating.",
 			},
 			"active": schema.BoolAttribute{
 				Optional: true,

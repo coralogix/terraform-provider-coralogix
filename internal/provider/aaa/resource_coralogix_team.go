@@ -41,6 +41,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
+var _ resource.ResourceWithModifyPlan = &TeamResource{}
+
 func NewTeamResource() resource.Resource {
 	return &TeamResource{}
 }
@@ -75,6 +77,10 @@ func (r *TeamResource) ImportState(ctx context.Context, req resource.ImportState
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
+func (r *TeamResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredOnCreate(ctx, req, resp, path.Root("name"))
+}
+
 func (r *TeamResource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 0,
@@ -87,8 +93,9 @@ func (r *TeamResource) Schema(ctx context.Context, req resource.SchemaRequest, r
 				MarkdownDescription: "Team ID.",
 			},
 			"name": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Team name.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Team name. Required when creating.",
 			},
 			"retention": schema.Int64Attribute{
 				Computed:            true,

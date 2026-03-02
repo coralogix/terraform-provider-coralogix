@@ -24,7 +24,6 @@ import (
 
 	cxsdk "github.com/coralogix/coralogix-management-sdk/go"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -42,8 +41,9 @@ import (
 )
 
 var (
-	_                              resource.ResourceWithConfigure   = &AlertsSchedulerResource{}
-	_                              resource.ResourceWithImportState = &AlertsSchedulerResource{}
+	_                              resource.ResourceWithConfigure        = &AlertsSchedulerResource{}
+	_                              resource.ResourceWithImportState      = &AlertsSchedulerResource{}
+	_                              resource.ResourceWithModifyPlan = &AlertsSchedulerResource{}
 	protoToSchemaDurationFrequency                                  = map[cxsdk.DurationFrequency]string{
 		cxsdk.DurationFrequencyMinute: "minutes",
 		cxsdk.DurationFrequencyHour:   "hours",
@@ -182,8 +182,9 @@ func (r *AlertsSchedulerResource) Schema(_ context.Context, _ resource.SchemaReq
 				MarkdownDescription: "Alert Scheduler ID.",
 			},
 			"name": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "Alert Scheduler name.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Alert Scheduler name. Required when creating.",
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
@@ -199,8 +200,9 @@ func (r *AlertsSchedulerResource) Schema(_ context.Context, _ resource.SchemaReq
 			"filter": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"what_expression": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: "DataPrime query expression. - [DataPrime query language](https://coralogix.com/docs/dataprime-query-language/).",
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "DataPrime query expression. - [DataPrime query language](https://coralogix.com/docs/dataprime-query-language/). Required when creating.",
 					},
 					"meta_labels": schema.SetNestedAttribute{
 						NestedObject: schema.NestedAttributeObject{
@@ -219,91 +221,92 @@ func (r *AlertsSchedulerResource) Schema(_ context.Context, _ resource.SchemaReq
 						},
 					},
 				},
-				Required:            true,
-				MarkdownDescription: "Alert Scheduler filter. Only one of `meta_labels` or `alerts_unique_ids` can be set. If none of them set, all alerts will be affected.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Alert Scheduler filter. Only one of `meta_labels` or `alerts_unique_ids` can be set. If none of them set, all alerts will be affected. Required when creating.",
 			},
-			"schedule": schema.SingleNestedAttribute{
-				Attributes: map[string]schema.Attribute{
-					"operation": schema.StringAttribute{
-						Required: true,
-						Validators: []validator.String{
-							stringvalidator.OneOf(validScheduleOperations...),
-						},
-						MarkdownDescription: "The operation to perform. Can be `mute` or `active`.",
+		"schedule": schema.SingleNestedAttribute{
+			Attributes: map[string]schema.Attribute{
+				"operation": schema.StringAttribute{
+					Optional: true,
+					Computed: true,
+					Validators: []validator.String{
+						stringvalidator.OneOf(validScheduleOperations...),
 					},
-					"one_time": schema.SingleNestedAttribute{
-						Attributes: map[string]schema.Attribute{
-							"time_frame": schema.SingleNestedAttribute{
-								Attributes: timeFrameAttributes(),
-								Required:   true,
-							},
-						},
-						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("recurring")),
-						},
-					},
-					"recurring": schema.SingleNestedAttribute{
-						Attributes: map[string]schema.Attribute{
-							"dynamic": schema.SingleNestedAttribute{
-								Attributes: map[string]schema.Attribute{
-									"repeat_every": schema.Int64Attribute{
-										Required: true,
-									},
-									"frequency": schema.SingleNestedAttribute{
-										Attributes: map[string]schema.Attribute{
-											"daily": schema.SingleNestedAttribute{
-												Attributes: map[string]schema.Attribute{},
-												Optional:   true,
-											},
-											"weekly": schema.SingleNestedAttribute{
-												Attributes: map[string]schema.Attribute{
-													"days": schema.SetAttribute{
-														ElementType: types.StringType,
-														Optional:    true,
-														Validators: []validator.Set{
-															setvalidator.ValueStringsAre(
-																stringvalidator.OneOf(validDays...),
-															),
-														},
-													},
-												},
-												Optional: true,
-											},
-											"monthly": schema.SingleNestedAttribute{
-												Attributes: map[string]schema.Attribute{
-													"days": schema.SetAttribute{
-														ElementType: types.Int64Type,
-														Optional:    true,
-													},
-												},
-												Optional: true,
-											},
-										},
-										Required: true,
-									},
-									"time_frame": schema.SingleNestedAttribute{
-										Attributes: timeFrameAttributes(),
-										Required:   true,
-									},
-									"termination_date": schema.StringAttribute{
-										Optional: true,
-										Computed: true,
-										Default:  stringdefault.StaticString(""),
-									},
-								},
-								Optional: true,
-							},
-						},
-						Optional: true,
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("one_time")),
-						},
-					},
+					MarkdownDescription: "The operation to perform. Can be `mute` or `active`. Required when creating.",
 				},
-				Required:            true,
-				MarkdownDescription: "Exactly one of `one_time` or `recurring` must be set.",
+				"one_time": schema.SingleNestedAttribute{
+					Attributes: map[string]schema.Attribute{
+						"time_frame": schema.SingleNestedAttribute{
+							Attributes: timeFrameAttributes(),
+							Optional:   true,
+							Computed:   true,
+						},
+					},
+					Optional: true,
+				},
+				"recurring": schema.SingleNestedAttribute{
+					Attributes: map[string]schema.Attribute{
+						"dynamic": schema.SingleNestedAttribute{
+							Attributes: map[string]schema.Attribute{
+								"repeat_every": schema.Int64Attribute{
+									Optional: true,
+									Computed: true,
+								},
+								"frequency": schema.SingleNestedAttribute{
+									Attributes: map[string]schema.Attribute{
+										"daily": schema.SingleNestedAttribute{
+											Attributes: map[string]schema.Attribute{},
+											Optional:   true,
+										},
+										"weekly": schema.SingleNestedAttribute{
+											Attributes: map[string]schema.Attribute{
+												"days": schema.SetAttribute{
+													ElementType: types.StringType,
+													Optional:    true,
+													Validators: []validator.Set{
+														setvalidator.ValueStringsAre(
+															stringvalidator.OneOf(validDays...),
+														),
+													},
+												},
+											},
+											Optional: true,
+										},
+										"monthly": schema.SingleNestedAttribute{
+											Attributes: map[string]schema.Attribute{
+												"days": schema.SetAttribute{
+													ElementType: types.Int64Type,
+													Optional:    true,
+												},
+											},
+											Optional: true,
+										},
+									},
+									Optional: true,
+									Computed: true,
+								},
+								"time_frame": schema.SingleNestedAttribute{
+									Attributes: timeFrameAttributes(),
+									Optional:   true,
+									Computed:   true,
+								},
+								"termination_date": schema.StringAttribute{
+									Optional: true,
+									Computed: true,
+									Default:  stringdefault.StaticString(""),
+								},
+							},
+							Optional: true,
+						},
+					},
+					Optional: true,
+				},
 			},
+			Optional:            true,
+			Computed:            true,
+			MarkdownDescription: "Exactly one of `one_time` or `recurring` must be set. Required when creating.",
+		},
 			"enabled": schema.BoolAttribute{
 				Optional:            true,
 				Computed:            true,
@@ -329,37 +332,37 @@ func metaLabelsAttributes() map[string]schema.Attribute {
 func timeFrameAttributes() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"start_time": schema.StringAttribute{
-			Required: true,
+			Optional: true,
+			Computed: true,
 		},
 		"end_time": schema.StringAttribute{
-			Optional: true,
-			Validators: []validator.String{
-				stringvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("duration")),
-			},
+			Optional:            true,
+			Computed:            true,
 			MarkdownDescription: "The end time of the time frame. In a isodate format. For example, `2021-01-01T00:00:00.000`.",
 		},
 		"duration": schema.SingleNestedAttribute{
 			Optional: true,
+			Computed: true,
 			Attributes: map[string]schema.Attribute{
 				"for_over": schema.Int64Attribute{
-					Required:            true,
+					Optional:            true,
+					Computed:            true,
 					MarkdownDescription: "The number of time units to wait before the alert is triggered. For example, if the frequency is set to `hours` and the value is set to `2`, the alert will be triggered after 2 hours.",
 				},
 				"frequency": schema.StringAttribute{
-					Required: true,
+					Optional: true,
+					Computed: true,
 					Validators: []validator.String{
 						stringvalidator.OneOf(validDurationFrequencies...),
 					},
 					MarkdownDescription: "The time unit to wait before the alert is triggered. Can be `minutes`, `hours` or `days`.",
 				},
 			},
-			Validators: []validator.Object{
-				objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("end_time")),
-			},
 			MarkdownDescription: "The duration from the start time to wait.",
 		},
 		"time_zone": schema.StringAttribute{
-			Required: true,
+			Optional: true,
+			Computed: true,
 			Validators: []validator.String{
 				stringvalidator.OneOf(validTimeZones...),
 			},
@@ -369,6 +372,62 @@ func timeFrameAttributes() map[string]schema.Attribute {
 
 func (r *AlertsSchedulerResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r *AlertsSchedulerResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredOnCreate(ctx, req, resp, path.Root("name"))
+	utils.RequiredAttributeOnCreate(ctx, req, resp, path.Root("filter"), path.Root("schedule"))
+	utils.ExactlyOneOfOnCreate(ctx, req, resp,
+		path.Root("schedule").AtName("one_time"),
+		path.Root("schedule").AtName("recurring"),
+	)
+	if utils.IsNewResource(req) {
+		enforceTimeFrameEndTimeOrDuration(ctx, req, resp,
+			path.Root("schedule").AtName("one_time").AtName("time_frame"),
+		)
+		enforceTimeFrameEndTimeOrDuration(ctx, req, resp,
+			path.Root("schedule").AtName("recurring").AtName("dynamic").AtName("time_frame"),
+		)
+	}
+}
+
+// enforceTimeFrameEndTimeOrDuration checks that when a time_frame block is set,
+// exactly one of end_time or duration is specified.  This replaces the
+// ExactlyOneOf schema-level validators that were removed to support empty-stub import.
+func enforceTimeFrameEndTimeOrDuration(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse, timeFramePath path.Path) {
+	var timeFrame types.Object
+	if diags := req.Config.GetAttribute(ctx, timeFramePath, &timeFrame); diags.HasError() || timeFrame.IsNull() || timeFrame.IsUnknown() {
+		return
+	}
+
+	endTimePath := timeFramePath.AtName("end_time")
+	durationPath := timeFramePath.AtName("duration")
+
+	var endTime types.String
+	endTimeNull := true
+	if diags := req.Config.GetAttribute(ctx, endTimePath, &endTime); !diags.HasError() {
+		endTimeNull = endTime.IsNull() || endTime.IsUnknown()
+	}
+
+	var duration types.Object
+	durationNull := true
+	if diags := req.Config.GetAttribute(ctx, durationPath, &duration); !diags.HasError() {
+		durationNull = duration.IsNull() || duration.IsUnknown()
+	}
+
+	if endTimeNull && durationNull {
+		resp.Diagnostics.AddAttributeError(
+			timeFramePath,
+			"Missing required attribute",
+			fmt.Sprintf("Exactly one of %q or %q must be set inside time_frame. Both are unset.", endTimePath, durationPath),
+		)
+	} else if !endTimeNull && !durationNull {
+		resp.Diagnostics.AddAttributeError(
+			timeFramePath,
+			"Conflicting attributes",
+			fmt.Sprintf("Exactly one of %q or %q must be set inside time_frame, but both are set.", endTimePath, durationPath),
+		)
+	}
 }
 
 func (r *AlertsSchedulerResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -425,10 +484,11 @@ func flattenAlertScheduler(ctx context.Context, scheduler *cxsdk.AlertSchedulerR
 		return nil, diags
 	}
 
+	desc := scheduler.GetDescription()
 	return &AlertsSchedulerResourceModel{
 		ID:          types.StringValue(scheduler.GetUniqueIdentifier()),
 		Name:        types.StringValue(scheduler.GetName()),
-		Description: types.StringValue(scheduler.GetDescription()),
+		Description: utils.StringValueOrNull(&desc),
 		MetaLabels:  metaLabels,
 		Filter:      filter,
 		Schedule:    schedule,

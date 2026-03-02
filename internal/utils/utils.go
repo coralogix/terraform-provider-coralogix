@@ -654,6 +654,28 @@ func StringPointerToTypeString(str *string) types.String {
 	return types.StringValue(*str)
 }
 
+// StringValueOrNull converts a *string to types.String, returning null for both
+// nil pointers and empty strings. Use this for optional API fields where the API
+// returns "" instead of nil when the field is unset, to keep the Terraform state
+// consistent with configs that omit the attribute.
+func StringValueOrNull(str *string) types.String {
+	if str == nil || *str == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(*str)
+}
+
+// TypeStringToStringPointerWithDefault converts a types.String to *string,
+// returning a pointer to defaultVal when the value is null or unknown.
+// Use this for API fields that reject nil but accept an empty string.
+func TypeStringToStringPointerWithDefault(str types.String, defaultVal string) *string {
+	if str.IsNull() || str.IsUnknown() {
+		return &defaultVal
+	}
+	v := str.ValueString()
+	return &v
+}
+
 func TypeFloat64ToWrapperspbDouble(num types.Float64) *wrapperspb.DoubleValue {
 	if num.IsNull() {
 		return nil

@@ -35,8 +35,9 @@ import (
 )
 
 var (
-	_ resource.ResourceWithConfigure   = &IpAccessResource{}
-	_ resource.ResourceWithImportState = &IpAccessResource{}
+	_ resource.ResourceWithConfigure        = &IpAccessResource{}
+	_ resource.ResourceWithImportState      = &IpAccessResource{}
+	_ resource.ResourceWithModifyPlan = &IpAccessResource{}
 
 	CustomerSupportAccessSchemaToApi = map[string]ipaccess.CoralogixCustomerSupportAccess{
 		utils.UNSPECIFIED: ipaccess.CORALOGIXCUSTOMERSUPPORTACCESS_CORALOGIX_CUSTOMER_SUPPORT_ACCESS_UNSPECIFIED,
@@ -91,14 +92,16 @@ func (r *IpAccessResource) Schema(ctx context.Context, req resource.SchemaReques
 				Computed: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"enabled": schema.BoolAttribute{
-							Required:            true,
-							MarkdownDescription: "Whether this IP access entry is enabled.",
-						},
-						"ip_range": schema.StringAttribute{
-							Required:            true,
-							MarkdownDescription: "The IP range in CIDR notation.",
-						},
+					"enabled": schema.BoolAttribute{
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "Whether this IP access entry is enabled. Required when creating.",
+					},
+					"ip_range": schema.StringAttribute{
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "The IP range in CIDR notation. Required when creating.",
+					},
 						"name": schema.StringAttribute{
 							Optional:            true,
 							MarkdownDescription: "The name of the IP access entry.",
@@ -243,6 +246,10 @@ func (r *IpAccessResource) Configure(_ context.Context, req resource.ConfigureRe
 
 func (r *IpAccessResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r *IpAccessResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredAttributeOnCreate(ctx, req, resp, path.Root("ip_access"))
 }
 
 func extractIpAccessRules(rules []IpAccessRuleModel) []ipaccess.IpAccess {

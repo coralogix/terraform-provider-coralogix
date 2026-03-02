@@ -44,9 +44,10 @@ import (
 )
 
 var (
-	_            resource.ResourceWithConfigure      = &TCOPoliciesTracesResource{}
-	_            resource.ResourceWithValidateConfig = &TCOPoliciesTracesResource{}
-	_            resource.ResourceWithImportState    = &TCOPoliciesTracesResource{}
+	_            resource.ResourceWithConfigure        = &TCOPoliciesTracesResource{}
+	_            resource.ResourceWithValidateConfig   = &TCOPoliciesTracesResource{}
+	_            resource.ResourceWithImportState      = &TCOPoliciesTracesResource{}
+	_            resource.ResourceWithModifyPlan = &TCOPoliciesTracesResource{}
 	TracesSource                                     = tcoPolicys.V1SOURCETYPE_SOURCE_TYPE_SPANS
 )
 
@@ -60,6 +61,10 @@ type TCOPoliciesTracesResource struct {
 
 func (r *TCOPoliciesTracesResource) ImportState(ctx context.Context, request resource.ImportStateRequest, response *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), request, response)
+}
+
+func (r *TCOPoliciesTracesResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredAttributeOnCreate(ctx, req, resp, path.Root("policies"))
 }
 
 type TCOPolicyTracesModel struct {
@@ -112,13 +117,14 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 							Computed:            true,
 							MarkdownDescription: "tco-policy ID.",
 						},
-						"name": schema.StringAttribute{
-							Required: true,
-							Validators: []validator.String{
-								stringvalidator.LengthAtLeast(1),
-							},
-							MarkdownDescription: "tco-policy name.",
+					"name": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						Validators: []validator.String{
+							stringvalidator.LengthAtLeast(1),
 						},
+						MarkdownDescription: "tco-policy name. Required when creating.",
+					},
 						"description": schema.StringAttribute{
 							Optional:            true,
 							Computed:            true,
@@ -131,13 +137,14 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 							Default:             booldefault.StaticBool(true),
 							MarkdownDescription: "Determines weather the policy will be enabled. True by default.",
 						},
-						"priority": schema.StringAttribute{
-							Required: true,
-							Validators: []validator.String{
-								stringvalidator.OneOf(tcoPoliciesValidPriorities...),
-							},
-							MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q.", tcoPoliciesValidPriorities),
+					"priority": schema.StringAttribute{
+						Optional: true,
+						Computed: true,
+						Validators: []validator.String{
+							stringvalidator.OneOf(tcoPoliciesValidPriorities...),
 						},
+						MarkdownDescription: fmt.Sprintf("The policy priority. Can be one of %q. Required when creating.", tcoPoliciesValidPriorities),
+					},
 						"order": schema.Int64Attribute{
 							Computed:            true,
 							MarkdownDescription: "The policy's order between the other policies.",
@@ -149,85 +156,89 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 								stringvalidator.LengthAtLeast(1),
 							},
 						},
-						"applications": schema.SingleNestedAttribute{
-							Optional: true,
-							Attributes: map[string]schema.Attribute{
-								"names": schema.SetAttribute{
-									Required:    true,
-									ElementType: types.StringType,
-									Validators: []validator.Set{
-										setvalidator.SizeAtLeast(1),
-										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
-											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
-									},
-								},
-								"rule_type": schema.StringAttribute{
-									Optional: true,
-									Computed: true,
-									Default:  stringdefault.StaticString("is"),
-									Validators: []validator.String{
-										stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
-									},
+					"applications": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"names": schema.SetAttribute{
+								Optional:    true,
+								Computed:    true,
+								ElementType: types.StringType,
+								Validators: []validator.Set{
+									setvalidator.SizeAtLeast(1),
+									setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
+										regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
 								},
 							},
-							MarkdownDescription: "The applications to apply the policy on. Applies the policy on all the applications by default.",
-						},
-						"subsystems": schema.SingleNestedAttribute{
-							Optional: true,
-							Attributes: map[string]schema.Attribute{
-								"names": schema.SetAttribute{
-									Required:    true,
-									ElementType: types.StringType,
-									Validators: []validator.Set{
-										setvalidator.SizeAtLeast(1),
-										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
-											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
-									},
-								},
-								"rule_type": schema.StringAttribute{
-									Optional: true,
-									Computed: true,
-									Default:  stringdefault.StaticString("is"),
-									Validators: []validator.String{
-										stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
-									},
+							"rule_type": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  stringdefault.StaticString("is"),
+								Validators: []validator.String{
+									stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
 								},
 							},
-							MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
 						},
-						"actions": schema.SingleNestedAttribute{
-							Optional: true,
-							Attributes: map[string]schema.Attribute{
-								"names": schema.SetAttribute{
-									Required:    true,
-									ElementType: types.StringType,
-									Validators: []validator.Set{
-										setvalidator.SizeAtLeast(1),
-										setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
-											regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
-									},
-								},
-								"rule_type": schema.StringAttribute{
-									Optional: true,
-									Computed: true,
-									Default:  stringdefault.StaticString("is"),
-									Validators: []validator.String{
-										stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
-									},
+						MarkdownDescription: "The applications to apply the policy on. Applies the policy on all the applications by default.",
+					},
+					"subsystems": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"names": schema.SetAttribute{
+								Optional:    true,
+								Computed:    true,
+								ElementType: types.StringType,
+								Validators: []validator.Set{
+									setvalidator.SizeAtLeast(1),
+									setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
+										regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
 								},
 							},
-							MarkdownDescription: "The actions to apply the policy on. Applies the policy on all the actions by default.",
-						},
-						"services": schema.SingleNestedAttribute{
-							Optional: true,
-							Attributes: map[string]schema.Attribute{
-								"names": schema.SetAttribute{
-									Required:    true,
-									ElementType: types.StringType,
-									Validators: []validator.Set{
-										setvalidator.SizeAtLeast(1),
-									},
+							"rule_type": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  stringdefault.StaticString("is"),
+								Validators: []validator.String{
+									stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
 								},
+							},
+						},
+						MarkdownDescription: "The subsystems to apply the policy on. Applies the policy on all the subsystems by default.",
+					},
+					"actions": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"names": schema.SetAttribute{
+								Optional:    true,
+								Computed:    true,
+								ElementType: types.StringType,
+								Validators: []validator.Set{
+									setvalidator.SizeAtLeast(1),
+									setvalidator.ValueStringsAre(stringvalidator.RegexMatches(
+										regexp.MustCompile("[^A-Z]+"), "Only lowercase letters are allowed")),
+								},
+							},
+							"rule_type": schema.StringAttribute{
+								Optional: true,
+								Computed: true,
+								Default:  stringdefault.StaticString("is"),
+								Validators: []validator.String{
+									stringvalidator.OneOf(tcoPoliciesValidRuleTypes...),
+								},
+							},
+						},
+						MarkdownDescription: "The actions to apply the policy on. Applies the policy on all the actions by default.",
+					},
+					"services": schema.SingleNestedAttribute{
+						Optional: true,
+						Attributes: map[string]schema.Attribute{
+							"names": schema.SetAttribute{
+								Optional:    true,
+								Computed:    true,
+								ElementType: types.StringType,
+								Validators: []validator.Set{
+									setvalidator.SizeAtLeast(1),
+								},
+							},
 								"rule_type": schema.StringAttribute{
 									Optional: true,
 									Computed: true,
@@ -239,17 +250,18 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 							},
 							MarkdownDescription: "The services to apply the policy on. Applies the policy on all the services by default.",
 						},
-						"tags": schema.MapNestedAttribute{
-							Optional: true,
-							NestedObject: schema.NestedAttributeObject{
-								Attributes: map[string]schema.Attribute{
-									"names": schema.SetAttribute{
-										Required:    true,
-										ElementType: types.StringType,
-										Validators: []validator.Set{
-											setvalidator.SizeAtLeast(1),
-										},
+					"tags": schema.MapNestedAttribute{
+						Optional: true,
+						NestedObject: schema.NestedAttributeObject{
+							Attributes: map[string]schema.Attribute{
+								"names": schema.SetAttribute{
+									Optional:    true,
+									Computed:    true,
+									ElementType: types.StringType,
+									Validators: []validator.Set{
+										setvalidator.SizeAtLeast(1),
 									},
+								},
 									"rule_type": schema.StringAttribute{
 										Optional: true,
 										Computed: true,
@@ -266,12 +278,13 @@ func (r *TCOPoliciesTracesResource) Schema(_ context.Context, _ resource.SchemaR
 							MarkdownDescription: "The tags to apply the policy on. Applies the policy on all the tags by default.",
 						},
 					},
-				},
-				Required: true,
 			},
+			Optional: true,
+			Computed: true,
 		},
-		MarkdownDescription: "Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.",
-	}
+	},
+	MarkdownDescription: "Coralogix TCO-Policies-List. For more information - https://coralogix.com/docs/tco-optimizer-api.",
+}
 }
 
 func (r *TCOPoliciesTracesResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {

@@ -28,7 +28,6 @@ import (
 	slos "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/slos_service"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/float32validator"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -43,8 +42,9 @@ import (
 )
 
 var (
-	_ resource.ResourceWithConfigure   = &SLOV2Resource{}
-	_ resource.ResourceWithImportState = &SLOV2Resource{}
+	_ resource.ResourceWithConfigure        = &SLOV2Resource{}
+	_ resource.ResourceWithImportState      = &SLOV2Resource{}
+	_ resource.ResourceWithModifyPlan = &SLOV2Resource{}
 
 	protoToSchemaSloTimeFrame = map[slos.SloTimeFrame]string{
 		slos.SLOTIMEFRAME_SLO_TIME_FRAME_UNSPECIFIED: utils.UNSPECIFIED,
@@ -107,6 +107,19 @@ func (r *SLOV2Resource) ImportState(ctx context.Context, req resource.ImportStat
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
+func (r *SLOV2Resource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredAttributeOnCreate(ctx, req, resp,
+		path.Root("name"),
+		path.Root("target_threshold_percentage"),
+		path.Root("sli"),
+		path.Root("window"),
+	)
+	utils.ExactlyOneOfOnCreate(ctx, req, resp,
+		path.Root("sli").AtName("request_based_metric_sli"),
+		path.Root("sli").AtName("window_based_metric_sli"),
+	)
+}
+
 func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 0,
@@ -119,8 +132,9 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				MarkdownDescription: "SLO ID.",
 			},
 			"name": schema.StringAttribute{
-				Required:            true,
-				MarkdownDescription: "SLO name.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "SLO name. Required when creating.",
 			},
 			"description": schema.StringAttribute{
 				Optional:            true,
@@ -144,43 +158,46 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				MarkdownDescription: "Grouping configuration for SLO evaluations.",
 			},
 			"target_threshold_percentage": schema.Float32Attribute{
-				Required:            true,
-				MarkdownDescription: "The target threshold percentage.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "The target threshold percentage. Required when creating.",
 				Validators: []validator.Float32{
 					float32validator.Between(0, 100),
 				},
 			},
 			"sli": schema.SingleNestedAttribute{
-				Required:            true,
-				MarkdownDescription: "SLI definition: exactly one of request_based_metric_sli or window_based_metric_sli must be provided.",
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "SLI definition: exactly one of request_based_metric_sli or window_based_metric_sli must be provided. Required when creating.",
 				Attributes: map[string]schema.Attribute{
 					"request_based_metric_sli": schema.SingleNestedAttribute{
 						Optional:            true,
 						MarkdownDescription: "SLI based on request metrics.",
 						Attributes: map[string]schema.Attribute{
 							"good_events": schema.SingleNestedAttribute{
-								Required:            true,
-								MarkdownDescription: "Query defining good events.",
+								Optional:            true,
+								Computed:            true,
+								MarkdownDescription: "Query defining good events. Required when creating.",
 								Attributes: map[string]schema.Attribute{
 									"query": schema.StringAttribute{
-										Required:            true,
-										MarkdownDescription: "Query string for good events.",
+										Optional:            true,
+										Computed:            true,
+										MarkdownDescription: "Query string for good events. Required when creating.",
 									},
 								},
 							},
 							"total_events": schema.SingleNestedAttribute{
-								Required:            true,
-								MarkdownDescription: "Query defining total events.",
+								Optional:            true,
+								Computed:            true,
+								MarkdownDescription: "Query defining total events. Required when creating.",
 								Attributes: map[string]schema.Attribute{
 									"query": schema.StringAttribute{
-										Required:            true,
-										MarkdownDescription: "Query string for total events.",
+										Optional:            true,
+										Computed:            true,
+										MarkdownDescription: "Query string for total events. Required when creating.",
 									},
 								},
 							},
-						},
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("window_based_metric_sli")),
 						},
 					},
 					"window_based_metric_sli": schema.SingleNestedAttribute{
@@ -188,46 +205,50 @@ func (r *SLOV2Resource) Schema(ctx context.Context, req resource.SchemaRequest, 
 						MarkdownDescription: "SLI based on time-window metrics.",
 						Attributes: map[string]schema.Attribute{
 							"query": schema.SingleNestedAttribute{
-								Required:            true,
-								MarkdownDescription: "Query used for evaluating the time-window SLI.",
+								Optional:            true,
+								Computed:            true,
+								MarkdownDescription: "Query used for evaluating the time-window SLI. Required when creating.",
 								Attributes: map[string]schema.Attribute{
 									"query": schema.StringAttribute{
-										Required:            true,
-										MarkdownDescription: "Query string for the metric.",
+										Optional:            true,
+										Computed:            true,
+										MarkdownDescription: "Query string for the metric. Required when creating.",
 									},
 								},
 							},
 							"window": schema.StringAttribute{
-								Required:            true,
-								MarkdownDescription: fmt.Sprintf("Time window type for evaluation. One of: %v.", strings.Join(validWindows, ", ")),
+								Optional:            true,
+								Computed:            true,
+								MarkdownDescription: fmt.Sprintf("Time window type for evaluation. Required when creating. One of: %v.", strings.Join(validWindows, ", ")),
 								Validators:          []validator.String{stringvalidator.OneOf(validWindows...)},
 							},
 							"comparison_operator": schema.StringAttribute{
-								Required:            true,
-								MarkdownDescription: fmt.Sprintf("Comparison operator used to evaluate the threshold. One of: %v", strings.Join(validComparisonOperators, ",")),
+								Optional:            true,
+								Computed:            true,
+								MarkdownDescription: fmt.Sprintf("Comparison operator used to evaluate the threshold. Required when creating. One of: %v", strings.Join(validComparisonOperators, ",")),
 								Validators:          []validator.String{stringvalidator.OneOf(validComparisonOperators...)},
 							},
 							"threshold": schema.Float32Attribute{
-								Required:            true,
-								MarkdownDescription: "Threshold value for the comparison.",
+								Optional:            true,
+								Computed:            true,
+								MarkdownDescription: "Threshold value for the comparison. Required when creating.",
 							},
-						},
-						Validators: []validator.Object{
-							objectvalidator.ExactlyOneOf(path.MatchRelative().AtParent().AtName("request_based_metric_sli")),
 						},
 					},
 				},
 			},
 			"window": schema.SingleNestedAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Attributes: map[string]schema.Attribute{
 					"slo_time_frame": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: fmt.Sprintf("SLO time window. One of: %v.", strings.Join(validSLOTimeFrame, ", ")),
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: fmt.Sprintf("SLO time window. Required when creating. One of: %v.", strings.Join(validSLOTimeFrame, ", ")),
 						Validators:          []validator.String{stringvalidator.OneOf(validSLOTimeFrame...)},
 					},
 				},
-				MarkdownDescription: fmt.Sprintf("SLO time window. One of: %v.", strings.Join(validSLOTimeFrame, ", ")),
+				MarkdownDescription: fmt.Sprintf("SLO time window. Required when creating. One of: %v.", strings.Join(validSLOTimeFrame, ", ")),
 			},
 		},
 		MarkdownDescription: "Coralogix New SLO. Read more about limits and details at https://coralogix.com/docs/user-guides/slos/introduction/",

@@ -17,6 +17,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -118,6 +119,51 @@ func testAccCheckActionDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+// TestAccCoralogixResourceActionEmptyStubImport verifies that an empty resource stub
+// can be used with `terraform import` — no Required fields need to be set in HCL.
+func TestAccCoralogixResourceActionEmptyStubImport(t *testing.T) {
+	action := actionTestParams{
+		name:       "google search action",
+		url:        "https://www.google.com/",
+		sourceType: "Log",
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccCheckActionDestroy,
+		Steps: []resource.TestStep{
+			// Create the resource with full config.
+			{
+				Config: testAccCoralogixResourceAction(action),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet(actionResourceName, "id"),
+				),
+			},
+			// Import using an empty stub — should succeed without any Required fields set.
+			{
+				ResourceName:      actionResourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// TestAccCoralogixResourceActionCreateMissingRequired verifies that creating an action
+// without the required fields (name, url, source_type) produces a clear plan-time error.
+func TestAccCoralogixResourceActionCreateMissingRequired(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      `resource "coralogix_action" "test" {}`,
+				ExpectError: regexp.MustCompile(`Missing required attribute`),
+			},
+		},
+	})
 }
 
 func testAccCoralogixResourceAction(action actionTestParams) string {

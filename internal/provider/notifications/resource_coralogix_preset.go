@@ -26,7 +26,6 @@ import (
 	"github.com/coralogix/terraform-provider-coralogix/internal/utils"
 
 	presets "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/presets_service"
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -42,8 +41,9 @@ import (
 )
 
 var (
-	_                              resource.ResourceWithConfigure   = &PresetResource{}
-	_                              resource.ResourceWithImportState = &PresetResource{}
+	_                              resource.ResourceWithConfigure        = &PresetResource{}
+	_                              resource.ResourceWithImportState      = &PresetResource{}
+	_                              resource.ResourceWithModifyPlan = &PresetResource{}
 	presetConnectorTypeSchemaToApi                                  = map[string]presets.ConnectorType{
 		utils.UNSPECIFIED: presets.CONNECTORTYPE_CONNECTOR_TYPE_UNSPECIFIED,
 		"slack":           presets.CONNECTORTYPE_SLACK,
@@ -144,24 +144,28 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				MarkdownDescription: "The ID of the Preset. Can be set to a custom value, or left empty to auto-generate. Requires recreation in case of change.",
 			},
 			"name": schema.StringAttribute{
-				Required: true,
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Required when creating.",
 			},
 			"entity_type": schema.StringAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(presetsValidNotificationCenterEntityTypesSchemaToApi...),
 				},
-				MarkdownDescription: fmt.Sprintf("The type of entity for the preset. Valid values are: %s", strings.Join(presetsValidNotificationCenterEntityTypesSchemaToApi, ", ")),
+				MarkdownDescription: fmt.Sprintf("The type of entity for the preset. Required when creating. Valid values are: %s", strings.Join(presetsValidNotificationCenterEntityTypesSchemaToApi, ", ")),
 			},
 			"description": schema.StringAttribute{
 				Optional: true,
 			},
 			"connector_type": schema.StringAttribute{
-				Required: true,
+				Optional: true,
+				Computed: true,
 				Validators: []validator.String{
 					stringvalidator.OneOf(validConnectorTypes...),
 				},
-				MarkdownDescription: fmt.Sprintf("The type of connector for the preset. Valid values are: %s", strings.Join(validConnectorTypes, ", ")),
+				MarkdownDescription: fmt.Sprintf("The type of connector for the preset. Required when creating. Valid values are: %s", strings.Join(validConnectorTypes, ", ")),
 			},
 			"config_overrides": schema.ListNestedAttribute{
 				Optional: true,
@@ -169,22 +173,19 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"condition_type": schema.SingleNestedAttribute{
-							Required: true,
+							Optional: true,
+							Computed: true,
 							Attributes: map[string]schema.Attribute{
 								"match_entity_type": schema.SingleNestedAttribute{
-									Optional: true,
-									Validators: []validator.Object{
-										objectvalidator.ExactlyOneOf(
-											path.MatchRelative().AtParent().AtName("match_entity_type_and_sub_type"),
-										),
-									},
+									Optional:   true,
 									Attributes: map[string]schema.Attribute{},
 								},
 								"match_entity_type_and_sub_type": schema.SingleNestedAttribute{
 									Optional: true,
 									Attributes: map[string]schema.Attribute{
 										"entity_sub_type": schema.StringAttribute{
-											Required: true,
+											Optional: true,
+											Computed: true,
 										},
 									},
 								},
@@ -199,17 +200,21 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 							},
 						},
 						"message_config": schema.SingleNestedAttribute{
-							Required: true,
+							Optional: true,
+							Computed: true,
 							Attributes: map[string]schema.Attribute{
 								"fields": schema.SetNestedAttribute{
-									Required: true,
+									Optional: true,
+									Computed: true,
 									NestedObject: schema.NestedAttributeObject{
 										Attributes: map[string]schema.Attribute{
 											"field_name": schema.StringAttribute{
-												Required: true,
+												Optional: true,
+												Computed: true,
 											},
 											"template": schema.StringAttribute{
-												Required: true,
+												Optional: true,
+												Computed: true,
 											},
 										},
 									},
@@ -220,7 +225,9 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"parent_id": schema.StringAttribute{
-				Required: true,
+				Optional:            true,
+				Computed:            true,
+				MarkdownDescription: "Required when creating.",
 			},
 		},
 		MarkdownDescription: "Coralogix Preset. **NOTE:** This resource is in Beta stage.",
@@ -229,6 +236,64 @@ func (r *PresetResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 
 func (r *PresetResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r *PresetResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.RequiredAttributeOnCreate(ctx, req, resp,
+		path.Root("name"),
+		path.Root("entity_type"),
+		path.Root("connector_type"),
+		path.Root("parent_id"),
+		path.Root("config_overrides"),
+	)
+	if utils.IsNewResource(req) {
+		enforceConditionTypeExactlyOne(ctx, req, resp)
+	}
+}
+
+// enforceConditionTypeExactlyOne checks that within each config_overrides[i].condition_type
+// block exactly one of match_entity_type or match_entity_type_and_sub_type is set.
+// This replaces the objectvalidator.ExactlyOneOf that was removed from the schema to
+// support empty-stub import.
+func enforceConditionTypeExactlyOne(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	var overridesList types.List
+	if diags := req.Config.GetAttribute(ctx, path.Root("config_overrides"), &overridesList); diags.HasError() || overridesList.IsNull() || overridesList.IsUnknown() {
+		return
+	}
+
+	var overrides []PresetConfigOverrideModel
+	if diags := overridesList.ElementsAs(ctx, &overrides, false); diags.HasError() {
+		return
+	}
+
+	for i, override := range overrides {
+		if override.ConditionType.IsNull() || override.ConditionType.IsUnknown() {
+			continue
+		}
+
+		var condType PresetConditionTypeModel
+		if diags := override.ConditionType.As(ctx, &condType, basetypes.ObjectAsOptions{}); diags.HasError() {
+			continue
+		}
+
+		matchSet := !condType.MatchEntityType.IsNull() && !condType.MatchEntityType.IsUnknown()
+		matchSubSet := !condType.MatchEntityTypeAndSubType.IsNull() && !condType.MatchEntityTypeAndSubType.IsUnknown()
+		condPath := path.Root("config_overrides").AtListIndex(i).AtName("condition_type")
+
+		if !matchSet && !matchSubSet {
+			resp.Diagnostics.AddAttributeError(
+				condPath,
+				"Missing required attribute",
+				"Exactly one of \"match_entity_type\" or \"match_entity_type_and_sub_type\" must be set in condition_type, but neither is set.",
+			)
+		} else if matchSet && matchSubSet {
+			resp.Diagnostics.AddAttributeError(
+				condPath,
+				"Conflicting attributes",
+				"Exactly one of \"match_entity_type\" or \"match_entity_type_and_sub_type\" must be set in condition_type, but both are set.",
+			)
+		}
+	}
 }
 
 func (r *PresetResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {

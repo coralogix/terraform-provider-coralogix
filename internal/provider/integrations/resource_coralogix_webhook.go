@@ -29,7 +29,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
-	"github.com/hashicorp/terraform-plugin-framework-validators/objectvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/setvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -45,8 +44,9 @@ import (
 )
 
 var (
-	_                           resource.ResourceWithConfigure   = &WebhookResource{}
-	_                           resource.ResourceWithImportState = &WebhookResource{}
+	_                           resource.ResourceWithConfigure        = &WebhookResource{}
+	_                           resource.ResourceWithImportState      = &WebhookResource{}
+	_                           resource.ResourceWithModifyPlan = &WebhookResource{}
 	webhooksSchemaToProtoMethod                                  = map[string]webhooks.MethodType{
 		"get":  webhooks.METHODTYPE_GET,
 		"post": webhooks.METHODTYPE_POST,
@@ -330,6 +330,24 @@ func (r *WebhookResource) ImportState(ctx context.Context, req resource.ImportSt
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
+// ConfigValidators enforces create/update requirements that cannot be expressed as
+// schema-level Required constraints (which would block empty-stub import).
+func (r *WebhookResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	utils.ExactlyOneOfOnCreate(ctx, req, resp,
+		path.Root("custom"),
+		path.Root("slack"),
+		path.Root("pager_duty"),
+		path.Root("sendlog"),
+		path.Root("email_group"),
+		path.Root("microsoft_teams"),
+		path.Root("microsoft_teams_workflow"),
+		path.Root("jira"),
+		path.Root("opsgenie"),
+		path.Root("demisto"),
+		path.Root("event_bridge"),
+	)
+}
+
 func (r *WebhookResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
 	if req.ProviderData == nil {
 		return
@@ -404,20 +422,6 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						MarkdownDescription: "Webhook URL.",
 					},
 				},
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("slack"),
-						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("sendlog"),
-						path.MatchRelative().AtParent().AtName("email_group"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
-						path.MatchRelative().AtParent().AtName("jira"),
-						path.MatchRelative().AtParent().AtName("opsgenie"),
-						path.MatchRelative().AtParent().AtName("demisto"),
-						path.MatchRelative().AtParent().AtName("event_bridge"),
-					),
-				},
 				Optional:            true,
 				MarkdownDescription: "Generic webhook.",
 			},
@@ -441,11 +445,12 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						NestedObject: schema.NestedAttributeObject{
 							Attributes: map[string]schema.Attribute{
 								"type": schema.StringAttribute{
-									Required: true,
+									Optional: true,
+									Computed: true,
 									Validators: []validator.String{
 										stringvalidator.OneOf(webhooksValidSlackAttachmentTypes...),
 									},
-									MarkdownDescription: fmt.Sprintf("Slack attachment type. can be one of: %s", strings.Join(webhooksValidSlackAttachmentTypes, ", ")),
+									MarkdownDescription: fmt.Sprintf("Slack attachment type. Required when creating attachments. Can be one of: %s", strings.Join(webhooksValidSlackAttachmentTypes, ", ")),
 								},
 								"active": schema.BoolAttribute{
 									Optional:            true,
@@ -458,20 +463,6 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						MarkdownDescription: "Slack attachments.",
 					},
 				},
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("custom"),
-						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("sendlog"),
-						path.MatchRelative().AtParent().AtName("email_group"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
-						path.MatchRelative().AtParent().AtName("jira"),
-						path.MatchRelative().AtParent().AtName("opsgenie"),
-						path.MatchRelative().AtParent().AtName("demisto"),
-						path.MatchRelative().AtParent().AtName("event_bridge"),
-					),
-				},
 				Optional:            true,
 				MarkdownDescription: "Slack webhook.",
 			},
@@ -479,22 +470,9 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Attributes: map[string]schema.Attribute{
 					"service_key": schema.StringAttribute{
 						Optional:            true,
-						MarkdownDescription: "PagerDuty service key.",
+						Sensitive:           true,
+						MarkdownDescription: "PagerDuty service key. Required when creating. Sensitive — not returned by the API after creation.",
 					},
-				},
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("custom"),
-						path.MatchRelative().AtParent().AtName("slack"),
-						path.MatchRelative().AtParent().AtName("sendlog"),
-						path.MatchRelative().AtParent().AtName("email_group"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
-						path.MatchRelative().AtParent().AtName("jira"),
-						path.MatchRelative().AtParent().AtName("opsgenie"),
-						path.MatchRelative().AtParent().AtName("demisto"),
-						path.MatchRelative().AtParent().AtName("event_bridge"),
-					),
 				},
 				Optional:            true,
 				MarkdownDescription: "PagerDuty webhook.",
@@ -507,8 +485,9 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						MarkdownDescription: "Webhook UUID. Computed automatically.",
 					},
 					"url": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: "Webhook URL.",
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "Webhook URL. Required when creating.",
 					},
 					"payload": schema.StringAttribute{
 						Optional:            true,
@@ -516,20 +495,6 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Default:             stringdefault.StaticString(sendLockDefaultPayload),
 						MarkdownDescription: "Webhook payload. JSON string.",
 					},
-				},
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("custom"),
-						path.MatchRelative().AtParent().AtName("slack"),
-						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("email_group"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
-						path.MatchRelative().AtParent().AtName("jira"),
-						path.MatchRelative().AtParent().AtName("opsgenie"),
-						path.MatchRelative().AtParent().AtName("demisto"),
-						path.MatchRelative().AtParent().AtName("event_bridge"),
-					),
 				},
 				Optional:            true,
 				MarkdownDescription: "Send log webhook.",
@@ -543,20 +508,6 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						MarkdownDescription: "Emails list.",
 					},
 				},
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("custom"),
-						path.MatchRelative().AtParent().AtName("slack"),
-						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("sendlog"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
-						path.MatchRelative().AtParent().AtName("jira"),
-						path.MatchRelative().AtParent().AtName("opsgenie"),
-						path.MatchRelative().AtParent().AtName("demisto"),
-						path.MatchRelative().AtParent().AtName("event_bridge"),
-					),
-				},
 				Optional:            true,
 				MarkdownDescription: "Email group webhook.",
 			},
@@ -566,20 +517,6 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						Optional:            true,
 						MarkdownDescription: "Microsoft Teams Workflow URL.",
 					},
-				},
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("custom"),
-						path.MatchRelative().AtParent().AtName("slack"),
-						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("sendlog"),
-						path.MatchRelative().AtParent().AtName("email_group"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams"),
-						path.MatchRelative().AtParent().AtName("jira"),
-						path.MatchRelative().AtParent().AtName("opsgenie"),
-						path.MatchRelative().AtParent().AtName("demisto"),
-						path.MatchRelative().AtParent().AtName("event_bridge"),
-					),
 				},
 				Optional:            true,
 				MarkdownDescription: "Microsoft Teams Workflow webhook.",
@@ -591,20 +528,6 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						MarkdownDescription: "Microsoft Teams URL.",
 					},
 				},
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("custom"),
-						path.MatchRelative().AtParent().AtName("slack"),
-						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("sendlog"),
-						path.MatchRelative().AtParent().AtName("email_group"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
-						path.MatchRelative().AtParent().AtName("jira"),
-						path.MatchRelative().AtParent().AtName("opsgenie"),
-						path.MatchRelative().AtParent().AtName("demisto"),
-						path.MatchRelative().AtParent().AtName("event_bridge"),
-					),
-				},
 				Optional:            true,
 				MarkdownDescription: "Microsoft Teams webhook. (Deprecated, please use microsoft_teams_workflow)",
 				DeprecationMessage:  "Please use microsoft_teams_workflow",
@@ -614,7 +537,8 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Attributes: map[string]schema.Attribute{
 					"api_token": schema.StringAttribute{
 						Optional:            true,
-						MarkdownDescription: "Jira API token.",
+						Sensitive:           true,
+						MarkdownDescription: "Jira API token. Required when creating. Sensitive — not returned by the API after creation.",
 					},
 					"email": schema.StringAttribute{
 						Optional:            true,
@@ -625,23 +549,10 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						MarkdownDescription: "Jira project key.",
 					},
 					"url": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: "Jira URL.",
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "Jira URL. Required when creating.",
 					},
-				},
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("custom"),
-						path.MatchRelative().AtParent().AtName("slack"),
-						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("sendlog"),
-						path.MatchRelative().AtParent().AtName("email_group"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
-						path.MatchRelative().AtParent().AtName("opsgenie"),
-						path.MatchRelative().AtParent().AtName("demisto"),
-						path.MatchRelative().AtParent().AtName("event_bridge"),
-					),
 				},
 				Optional:            true,
 				MarkdownDescription: "Jira webhook.",
@@ -649,23 +560,10 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"opsgenie": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"url": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: "Opsgenie URL.",
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "Opsgenie URL. Required when creating.",
 					},
-				},
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("custom"),
-						path.MatchRelative().AtParent().AtName("slack"),
-						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("sendlog"),
-						path.MatchRelative().AtParent().AtName("email_group"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
-						path.MatchRelative().AtParent().AtName("jira"),
-						path.MatchRelative().AtParent().AtName("demisto"),
-						path.MatchRelative().AtParent().AtName("event_bridge"),
-					),
 				},
 				Optional:            true,
 				MarkdownDescription: "Opsgenie webhook.",
@@ -684,23 +582,10 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 						MarkdownDescription: "Webhook payload. JSON string.",
 					},
 					"url": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: "Microsoft Teams URL.",
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "Demisto URL. Required when creating.",
 					},
-				},
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("custom"),
-						path.MatchRelative().AtParent().AtName("slack"),
-						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("sendlog"),
-						path.MatchRelative().AtParent().AtName("email_group"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
-						path.MatchRelative().AtParent().AtName("jira"),
-						path.MatchRelative().AtParent().AtName("opsgenie"),
-						path.MatchRelative().AtParent().AtName("event_bridge"),
-					),
 				},
 				Optional:            true,
 				MarkdownDescription: "Demisto webhook.",
@@ -708,41 +593,33 @@ func (r *WebhookResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"event_bridge": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
 					"event_bus_arn": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: "Corresponds to the event bus, which will receive notifications. The policy attached must contain permission to publish.",
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "Corresponds to the event bus, which will receive notifications. The policy attached must contain permission to publish. Required when creating.",
 					},
 					"detail": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: "Event bridge message. JSON string. More details about the token [\"here\"](https://coralogix.com/docs/user-guides/alerting/outbound-webhooks/generic-outbound-webhooks-alert-webhooks/#placeholders)",
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "Event bridge message. JSON string. More details about the token [\"here\"](https://coralogix.com/docs/user-guides/alerting/outbound-webhooks/generic-outbound-webhooks-alert-webhooks/#placeholders). Required when creating.",
 					},
 					"detail_type": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: "Free text to be included in the event.",
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "Free text to be included in the event. Required when creating.",
 					},
 					"source": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: "Free text is used to identify the messages Coralogix sends.",
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "Free text is used to identify the messages Coralogix sends. Required when creating.",
 					},
 					"role_name": schema.StringAttribute{
-						Required:            true,
-						MarkdownDescription: "Corresponds to the AWS IAM role that will be created in your account.",
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: "Corresponds to the AWS IAM role that will be created in your account. Required when creating.",
 					},
 				},
-				Optional: true,
-				Validators: []validator.Object{
-					objectvalidator.ExactlyOneOf(
-						path.MatchRelative().AtParent().AtName("custom"),
-						path.MatchRelative().AtParent().AtName("slack"),
-						path.MatchRelative().AtParent().AtName("pager_duty"),
-						path.MatchRelative().AtParent().AtName("sendlog"),
-						path.MatchRelative().AtParent().AtName("email_group"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams"),
-						path.MatchRelative().AtParent().AtName("microsoft_teams_workflow"),
-						path.MatchRelative().AtParent().AtName("jira"),
-						path.MatchRelative().AtParent().AtName("opsgenie"),
-						path.MatchRelative().AtParent().AtName("demisto"),
-					),
-				},
+				Optional:            true,
+				MarkdownDescription: "AWS EventBridge webhook.",
 			},
 		},
 		MarkdownDescription: "Coralogix webhook. For more info please review - https://coralogix.com/docs/coralogix-Webhook-extension/.",

@@ -17,6 +17,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/coralogix/terraform-provider-coralogix/internal/clientset"
@@ -362,6 +363,20 @@ func TestAccCoralogixResourceEventBridgeWebhook(t *testing.T) {
 				ResourceName:      resourceName,
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+// TestAccCoralogixResourceWebhookCreateMissingRequired verifies that creating a webhook
+// without specifying any type block produces a clear plan-time error.
+func TestAccCoralogixResourceWebhookCreateMissingRequired(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      `resource "coralogix_webhook" "test" { name = "test" }`,
+				ExpectError: regexp.MustCompile(`Exactly one of`),
 			},
 		},
 	})
