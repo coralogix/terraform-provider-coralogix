@@ -246,6 +246,54 @@ func (r *PresetResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 		path.Root("parent_id"),
 		path.Root("config_overrides"),
 	)
+	if utils.IsNewResource(req) {
+		enforceConditionTypeExactlyOne(ctx, req, resp)
+	}
+}
+
+// enforceConditionTypeExactlyOne checks that within each config_overrides[i].condition_type
+// block exactly one of match_entity_type or match_entity_type_and_sub_type is set.
+// This replaces the objectvalidator.ExactlyOneOf that was removed from the schema to
+// support empty-stub import.
+func enforceConditionTypeExactlyOne(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	var overridesList types.List
+	if diags := req.Config.GetAttribute(ctx, path.Root("config_overrides"), &overridesList); diags.HasError() || overridesList.IsNull() || overridesList.IsUnknown() {
+		return
+	}
+
+	var overrides []PresetConfigOverrideModel
+	if diags := overridesList.ElementsAs(ctx, &overrides, false); diags.HasError() {
+		return
+	}
+
+	for i, override := range overrides {
+		if override.ConditionType.IsNull() || override.ConditionType.IsUnknown() {
+			continue
+		}
+
+		var condType PresetConditionTypeModel
+		if diags := override.ConditionType.As(ctx, &condType, basetypes.ObjectAsOptions{}); diags.HasError() {
+			continue
+		}
+
+		matchSet := !condType.MatchEntityType.IsNull() && !condType.MatchEntityType.IsUnknown()
+		matchSubSet := !condType.MatchEntityTypeAndSubType.IsNull() && !condType.MatchEntityTypeAndSubType.IsUnknown()
+		condPath := path.Root("config_overrides").AtListIndex(i).AtName("condition_type")
+
+		if !matchSet && !matchSubSet {
+			resp.Diagnostics.AddAttributeError(
+				condPath,
+				"Missing required attribute",
+				"Exactly one of \"match_entity_type\" or \"match_entity_type_and_sub_type\" must be set in condition_type, but neither is set.",
+			)
+		} else if matchSet && matchSubSet {
+			resp.Diagnostics.AddAttributeError(
+				condPath,
+				"Conflicting attributes",
+				"Exactly one of \"match_entity_type\" or \"match_entity_type_and_sub_type\" must be set in condition_type, but both are set.",
+			)
+		}
+	}
 }
 
 func (r *PresetResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
