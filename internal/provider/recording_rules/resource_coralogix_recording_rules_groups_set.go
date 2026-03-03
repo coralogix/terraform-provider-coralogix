@@ -318,7 +318,7 @@ func (r *RecordingRuleGroupSetResource) Schema(ctx context.Context, _ resource.S
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
-				MarkdownDescription: "The name of the rule group. Overrides the name specified in the YAML if provided. Please do not change after creation.",
+				MarkdownDescription: "The name of the rule group. Overrides the name specified in the YAML if provided.",
 			},
 		},
 	}
