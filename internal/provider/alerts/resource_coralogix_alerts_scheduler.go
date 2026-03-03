@@ -327,13 +327,20 @@ func metaLabelsAttributes() map[string]schema.Attribute {
 	}
 }
 
+const (
+	startTimeFormatCanonical   = "2006-01-02T15:04:05.000" // output format and parse format without Z
+	startTimeFormatWithMillisZ = "2006-01-02T15:04:05.000Z"
+	startTimeFormatZ           = "2006-01-02T15:04:05Z"
+	startTimeFormatNoMillis    = "2006-01-02T15:04:05" // fallback parse format
+)
+
 // startTimeFormats are formats the API may return or users may send for start_time.
 var startTimeFormats = []string{
 	time.RFC3339Nano,
 	time.RFC3339,
-	"2006-01-02T15:04:05.000Z",
-	"2006-01-02T15:04:05.000",
-	"2006-01-02T15:04:05Z",
+	startTimeFormatWithMillisZ,
+	startTimeFormatCanonical,
+	startTimeFormatZ,
 }
 
 // normalizeStartTimeFromAPI parses start_time from the API and returns it in the format the API uses (no Z suffix).
@@ -343,11 +350,11 @@ func normalizeStartTimeFromAPI(s string) string {
 	}
 	for _, layout := range startTimeFormats {
 		if t, err := time.Parse(layout, s); err == nil {
-			return t.UTC().Format("2006-01-02T15:04:05.000")
+			return t.UTC().Format(startTimeFormatCanonical)
 		}
 	}
-	if t, err := time.Parse("2006-01-02T15:04:05", s); err == nil {
-		return t.UTC().Format("2006-01-02T15:04:05.000")
+	if t, err := time.Parse(startTimeFormatNoMillis, s); err == nil {
+		return t.UTC().Format(startTimeFormatCanonical)
 	}
 	return s
 }
@@ -358,7 +365,7 @@ func parseStartTime(s string) (t time.Time, ok bool) {
 			return parsed.UTC(), true
 		}
 	}
-	if parsed, err := time.Parse("2006-01-02T15:04:05", s); err == nil {
+	if parsed, err := time.Parse(startTimeFormatNoMillis, s); err == nil {
 		return parsed.UTC(), true
 	}
 	return time.Time{}, false
