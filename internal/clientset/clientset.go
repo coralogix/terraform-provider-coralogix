@@ -23,6 +23,7 @@ import (
 	cxsdkOpenapi "github.com/coralogix/coralogix-management-sdk/go/openapi/cxsdk"
 	actionss "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/actions_service"
 	alerts "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_definitions_service"
+	alertScheduler "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/alert_scheduler_rule_service"
 	apiKeys "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/api_keys_service"
 	connectors "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/connectors_service"
 	cess "github.com/coralogix/coralogix-management-sdk/go/openapi/gen/custom_enrichments_service"
@@ -47,12 +48,10 @@ import (
 )
 
 type ClientSet struct {
-	enrichments *cxsdk.EnrichmentsClient
-	dataSet     *cxsdk.DataSetClient
-	legacySlos  *cxsdk.LegacySLOsClient
-	dashboards  *cxsdk.DashboardsClient
-	// alertScheduler      *alertScheduler.AlertSchedulerRuleServiceAPIService
-	alertScheduler *cxsdk.AlertSchedulerClient
+	enrichments    *cxsdk.EnrichmentsClient
+	dataSet        *cxsdk.DataSetClient
+	legacySlos     *cxsdk.LegacySLOsClient
+	dashboards     *cxsdk.DashboardsClient
 	ruleGroups     *cxsdk.RuleGroupsClient
 	users          *cxsdk.UsersClient
 	events2Metrics *cxsdk.Events2MetricsClient
@@ -70,6 +69,7 @@ type ClientSet struct {
 	tcoPolicies           *tcoPolicys.PoliciesServiceAPIService
 	actions               *actionss.ActionsServiceAPIService
 	alerts                *alerts.AlertDefinitionsServiceAPIService
+	alertScheduler        *alertScheduler.AlertSchedulerRuleServiceAPIService
 	apikeys               *apiKeys.APIKeysServiceAPIService
 	webhooks              *webhhooks.OutgoingWebhooksServiceAPIService
 	slos                  *slos.SlosServiceAPIService
@@ -147,7 +147,7 @@ func (c *ClientSet) ArchiveLogs() *archiveLogs.TargetServiceAPIService {
 	return c.archiveLogs
 }
 
-func (c *ClientSet) AlertSchedulers() *cxsdk.AlertSchedulerClient {
+func (c *ClientSet) AlertSchedulers() *alertScheduler.AlertSchedulerRuleServiceAPIService {
 	return c.alertScheduler
 }
 
@@ -243,7 +243,6 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		dashboards:     cxsdk.NewDashboardsClient(apiKeySdk),
 		events2Metrics: cxsdk.NewEvents2MetricsClient(apiKeySdk),
 		groupGrpc:      cxsdk.NewGroupsClient(apiKeySdk),
-		alertScheduler: cxsdk.NewAlertSchedulerClient(apiKeySdk),
 
 		dahboardsFolders:      cs.DashboardFolders(),
 		parsingRuleGroups:     cs.RuleGroups(),
@@ -266,8 +265,8 @@ func NewClientSet(region string, apiKey string, targetUrl string) *ClientSet {
 		ipaccess:              cs.IPAccess(),
 		dataEnrichments:       cs.Enrichments(),
 		customDataEnrichments: cs.CustomEnrichments(),
-		// alertScheduler: cxsdkOpenapi.NewAlertSchedulerClient(oasTfCPC),
-		grafana: NewGrafanaClient(apikeyCPC),
-		groups:  NewGroupsClient(apikeyCPC),
+		alertScheduler:        cs.AlertScheduler(),
+		grafana:               NewGrafanaClient(apikeyCPC),
+		groups:                NewGroupsClient(apikeyCPC),
 	}
 }
