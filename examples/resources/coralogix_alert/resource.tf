@@ -189,7 +189,6 @@ resource "coralogix_alert" "test" {
 # }
 
 # resource "coralogix_alert" "test_with_router" {
-#   depends_on = [coralogix_global_router.example]
 #   name        = "logs_threshold alert example"
 #   description = "Example of logs_threshold alert example from terraform"
 #   priority    = "P2"
@@ -202,6 +201,7 @@ resource "coralogix_alert" "test" {
 #   notification_group = {
 #     webhooks_settings = [{
 #       recipients = ["example@coralogix.com", "example2@coralogix.com"]
+#       notify_on  = "Triggered and Resolved"
 #     }]
 #     router = {}
 #   }
@@ -233,12 +233,16 @@ resource "coralogix_alert" "test" {
 #           priority = "P2"
 #         }
 #       }]
+#       no_data_policy = {
+#         state               = "ALERTING"
+#         auto_retire_seconds = 300
+#       }
 #       logs_filter       = {
 #         simple_filter = {
 #           lucene_query  = "message:\"error\""
 #           label_filters = {
 #             application_name = [{
-#               operation = "NOT"
+#               operation = "IS"
 #               value     = "application_name"
 #             }]
 #             subsystem_name = [{
@@ -391,6 +395,10 @@ resource "coralogix_alert" "test" {
 #       }]
 #       missing_values = {
 #         replace_with_zero = true
+#       }
+#       no_data_policy = {
+#         state               = "KEEP_LAST"
+#         auto_retire_seconds = 600
 #       }
 #     }
 #   }

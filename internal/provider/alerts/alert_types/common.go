@@ -101,6 +101,16 @@ var (
 	AutoRetireTimeframeSchemaToProtoMap = utils.ReverseMap(AutoRetireTimeframeProtoToSchemaMap)
 	ValidAutoRetireTimeframes           = utils.GetKeys(AutoRetireTimeframeSchemaToProtoMap)
 
+	NoDataPolicyStateProtoToSchemaMap = map[alerts.NoDataPolicyState]string{
+		alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_UNSPECIFIED: "UNSPECIFIED",
+		alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_OK:          "OK",
+		alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_ALERTING:    "ALERTING",
+		alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_KEEP_LAST:   "KEEP_LAST",
+		alerts.NODATAPOLICYSTATE_NO_DATA_POLICY_STATE_NO_DATA:     "NO_DATA",
+	}
+	NoDataPolicyStateSchemaToProtoMap = utils.ReverseMap(NoDataPolicyStateProtoToSchemaMap)
+	ValidNoDataPolicyStates           = utils.GetKeys(NoDataPolicyStateSchemaToProtoMap)
+
 	LogsRatioTimeWindowValueProtoToSchemaMap = map[alerts.LogsRatioTimeWindowValue]string{
 		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_5_OR_UNSPECIFIED: "5_MINUTES",
 		alerts.LOGSRATIOTIMEWINDOWVALUE_LOGS_RATIO_TIME_WINDOW_VALUE_MINUTES_10:               "10_MINUTES",
@@ -386,6 +396,7 @@ type LogsThresholdModel struct {
 	LogsFilter                 types.Object `tfsdk:"logs_filter"`                  // AlertsLogsFilterModel
 	NotificationPayloadFilter  types.Set    `tfsdk:"notification_payload_filter"`  // []types.String
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
+	NoDataPolicy               types.Object `tfsdk:"no_data_policy"`              // NoDataPolicyModel
 	CustomEvaluationDelay      types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
 
@@ -458,6 +469,7 @@ type MetricThresholdModel struct {
 	MetricFilter               types.Object `tfsdk:"metric_filter"`                // MetricFilterModel
 	MissingValues              types.Object `tfsdk:"missing_values"`               // MissingValuesModel
 	UndetectedValuesManagement types.Object `tfsdk:"undetected_values_management"` // UndetectedValuesManagementModel
+	NoDataPolicy               types.Object `tfsdk:"no_data_policy"`               // NoDataPolicyModel
 	CustomEvaluationDelay      types.Int32  `tfsdk:"custom_evaluation_delay"`
 }
 
@@ -560,6 +572,11 @@ type NotificationPayloadFilterModel struct {
 type UndetectedValuesManagementModel struct {
 	TriggerUndetectedValues types.Bool   `tfsdk:"trigger_undetected_values"`
 	AutoRetireTimeframe     types.String `tfsdk:"auto_retire_timeframe"`
+}
+
+type NoDataPolicyModel struct {
+	AutoRetireSeconds types.Int64  `tfsdk:"auto_retire_seconds"`
+	State             types.String `tfsdk:"state"`
 }
 
 type MetricFilterModel struct {

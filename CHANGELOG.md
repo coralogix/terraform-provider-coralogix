@@ -1153,6 +1153,31 @@ Fix:
 
 - Fix: providing a dashboard folder id will now take precedence over name
 
+## resource/coralogix_api_key
+
+- Feat: Added support for PBAC.
+
+## resource/coralogix_alert
+
+- Feat: Added support for `no_data_policy`.
+- Feat: Added support for `ignore_infinity`.
+- Feat: Added support for `percentage_of_deviation`.
+- Fix: Nil pointer dereference in alert import.
+
+## resource/coralogix_custom_role
+
+- Fix: Make permissions in custom roles case-insensitive
+
+## resource/coralogix_events2metric
+
+- Fix: E2M lucene null results in errors
+
+# Release 3.1.1
+
+Fix:
+* Don't send `maxUniqueCountPerGroupByKey` when optional field `max_unique_count_per_group_by_key` is not set in `logs_unique_count` alerts. Previously, the provider sent `"0"` causing API `400 Bad Request` errors.
+
+
 # Release 4.0.0
 
 ## resource/coralogix_enrichment, data_source/coralogix_enrichment

@@ -193,6 +193,7 @@ func V3() schema.Schema {
 							"notification_payload_filter":  notificationPayloadFilterSchema(),
 							"logs_filter":                  logsFilterSchema(),
 							"undetected_values_management": undetectedValuesManagementSchema(),
+							"no_data_policy":               noDataPolicySchema(),
 							"custom_evaluation_delay":      evaluationDelaySchema(),
 						},
 					},
@@ -382,6 +383,7 @@ func V3() schema.Schema {
 							"custom_evaluation_delay":      evaluationDelaySchema(),
 							"metric_filter":                metricFilterSchema(),
 							"undetected_values_management": undetectedValuesManagementSchema(),
+							"no_data_policy":               noDataPolicySchema(),
 							"rules": schema.SetNestedAttribute{
 								Required:   true,
 								Validators: []validator.Set{setvalidator.SizeAtLeast(1)},
