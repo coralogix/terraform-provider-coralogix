@@ -1208,4 +1208,4 @@ FIX:
 #### resource/coralogix_recording_rules
 
 FIX:
-* Name attrubute to fail when an update for this field is attempted
+* Name attribute now accepts updates
